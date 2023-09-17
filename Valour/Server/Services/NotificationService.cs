@@ -93,19 +93,16 @@ public class NotificationService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-    public async Task AddNotificationAsync(Notification notification, bool doDatabase = true)
+    public async Task AddNotificationAsync(Notification notification)
     {
         // Create id for notification
         notification.Id = IdManager.Generate();
         // Set time of notification
         notification.TimeSent = DateTime.UtcNow;
-
-        if (doDatabase)
-        {
-            // Add notification to database
-            await _db.Notifications.AddAsync(notification.ToDatabase());
-            await _db.SaveChangesAsync();
-        }
+        
+        // Add notification to database
+        await _db.Notifications.AddAsync(notification.ToDatabase());
+        await _db.SaveChangesAsync();
 
         // Send notification to all of the user's online Valour instances
         _coreHub.RelayNotification(notification, _nodeService);
@@ -117,6 +114,27 @@ public class NotificationService
             notification.Title, 
             notification.Body, 
             notification.ClickUrl
+        );
+    }
+    
+    public async Task AddBatchedNotificationAsync(Notification notification, ValourDB db)
+    {
+        // Create id for notification
+        notification.Id = IdManager.Generate();
+        // Set time of notification
+        notification.TimeSent = DateTime.UtcNow;
+
+        // Send notification to all of the user's online Valour instances
+        _coreHub.RelayNotification(notification, _nodeService);
+        
+        // Send actual push notification to devices
+        await SendPushNotificationAsync(
+            notification.UserId, 
+            notification.ImageUrl, 
+            notification.Title, 
+            notification.Body, 
+            notification.ClickUrl,
+            db
         );
     }
     
@@ -145,20 +163,22 @@ public class NotificationService
 
             foreach (var notification in notifications)
             {
-                await AddNotificationAsync(notification, false);
+                await AddBatchedNotificationAsync(notification, db);
             }
 
-            await _db.Notifications.AddRangeAsync(notifications.Select(x => x.ToDatabase()));
-            await _db.SaveChangesAsync();
+            await db.Notifications.AddRangeAsync(notifications.Select(x => x.ToDatabase()));
+            await db.SaveChangesAsync();
         });
 
         return Task.CompletedTask;
     }
 
-    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl)
+    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDB db = null)
     {
+        var adb = db ?? _db;
+        
         // Get all subscriptions for user
-        var subs = await _db.NotificationSubscriptions.Where(x => x.UserId == userId).ToListAsync();
+        var subs = await adb.NotificationSubscriptions.Where(x => x.UserId == userId).ToListAsync();
         
         bool dbChange = false;
         
