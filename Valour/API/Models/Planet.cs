@@ -150,7 +150,7 @@ public class Planet : LiveModel, ISharedPlanet
         var item = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }

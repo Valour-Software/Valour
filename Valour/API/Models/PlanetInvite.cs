@@ -65,7 +65,7 @@ public class PlanetInvite : LiveModel, IPlanetModel, ISharedPlanetInvite
         var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>($"api/invites/{code}")).Data;
 
         if (invResult is not null)
-            await invResult.AddToCache();
+            await invResult.AddToCache(invResult);
 
         return invResult;
     }

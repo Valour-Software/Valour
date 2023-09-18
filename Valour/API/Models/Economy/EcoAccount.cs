@@ -76,7 +76,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         var item = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }
@@ -102,7 +102,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         {
             foreach (var account in accounts.Items)
             {
-                await account.AddToCache();
+                await account.AddToCache(account);
             }
         }
 
@@ -124,7 +124,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         {
             foreach (var account in accounts.Items)
             {
-                await account.AddToCache();
+                await account.AddToCache(account);
             }
         }
 
@@ -143,8 +143,8 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         {
             foreach (var account in results.Items)
             {
-                await account.Account.AddToCache();
-                await account.Member.AddToCache();
+                await account.Account.AddToCache(account.Account);
+                await account.Member.AddToCache(account.Member);
             }
         }
 
@@ -171,7 +171,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         {
             foreach (var accountData in response)
             {
-                await accountData.Account.AddToCache();
+                await accountData.Account.AddToCache(accountData.Account);
             }
         }
 
@@ -184,7 +184,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         var account = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
         
         if (account is not null)
-            await account.AddToCache();
+            await account.AddToCache(account);
 
         return account;
     }

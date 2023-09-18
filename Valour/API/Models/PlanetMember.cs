@@ -67,7 +67,7 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
         var member = (await node.GetJsonAsync<PlanetMember>($"api/members/{id}")).Data;
 
         if (member is not null)
-            await member.AddToCache();
+            await member.AddToCache(member);
 
         return member;
     }

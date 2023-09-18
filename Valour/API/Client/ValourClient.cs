@@ -875,7 +875,7 @@ public static class ValourClient
             else
             {
                 eventData.Model = updated;
-                await updated.AddToCache();
+                await updated.AddToCache(updated);
             }
             
             // Fire off global events
@@ -1421,7 +1421,7 @@ public static class ValourClient
         foreach (var channel in response.Data)
         {
             // Custom cache insert behavior
-            await channel.AddToCache();
+            await channel.AddToCache(channel);
         }
 
         if (DirectChatChannels is null)
@@ -1474,7 +1474,7 @@ public static class ValourClient
 
         // Add to cache
         foreach (var planet in planets)
-            await planet.AddToCache();
+            await planet.AddToCache(planet);
 
         JoinedPlanets = planets;
 

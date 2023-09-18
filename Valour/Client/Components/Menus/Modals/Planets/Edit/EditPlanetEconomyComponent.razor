@@ -1,6 +1,5 @@
 @using Valour.Api.Models.Economy
 @using Valour.Shared.Models.Economy
-@using Item = Valour.Api.Items.LiveModel
 
 <div class="title-container">
     <h3>Economy</h3>
@@ -151,12 +150,12 @@
     private string _accountInfo = null;
 
     private ModelListProvider<EcoAccount> _planetAccountProvider;
-    private ModelListProvider<EcoAccountPlanetMember> _userAccountProvider;
+    private EconomyMemberProvider _userAccountProvider;
 
     protected override async Task OnInitializedAsync()
     {
         _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Planet.Id}/planet", Planet.Id);
-        _userAccountProvider = new ModelListProvider<EcoAccountPlanetMember>($"api/eco/accounts/planet/{Planet.Id}/member", Planet.Id);
+        _userAccountProvider = new EconomyMemberProvider($"api/eco/accounts/planet/{Planet.Id}/member", Planet.Id);
         
         var self = await ValourClient.GetSelfMember(Planet);
         _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
@@ -183,11 +182,11 @@
         // New currency
         if (Currency.Id == 0)
         {
-            result = await Item.CreateAsync(Currency);
+            result = await LiveModel.CreateAsync(Currency);
         }
         else
         {
-            result = await Item.UpdateAsync(Currency);
+            result = await LiveModel.UpdateAsync(Currency);
         }
 
         if (!result.Success)
@@ -211,7 +210,7 @@
             PlanetId = Currency.PlanetId,
         };
 
-        var result = await Item.CreateAsync(newAccount);
+        var result = await LiveModel.CreateAsync(newAccount);
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -225,7 +224,7 @@
 
     private async Task OnClickSaveAccount(EcoAccount account)
     {
-        var result = await Item.UpdateAsync(account);
+        var result = await LiveModel.UpdateAsync(account);
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -240,7 +239,7 @@
     
     private async Task OnClickDeleteAccount(EcoAccount account)
     {
-        var result = await Item.DeleteAsync(account);
+        var result = await LiveModel.DeleteAsync(account);
         if (!result.Success)
         {
             _accountError = result.Message;

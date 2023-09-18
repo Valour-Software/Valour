@@ -43,7 +43,7 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
         var item = (await node.GetJsonAsync<PlanetCategory>($"api/categories/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }

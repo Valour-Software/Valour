@@ -65,7 +65,7 @@ public class Currency : LiveModel, ISharedCurrency
         var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }
@@ -76,7 +76,7 @@ public class Currency : LiveModel, ISharedCurrency
         var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planetId}", true)).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }

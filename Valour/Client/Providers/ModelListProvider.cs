@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Valour.Api.Client;
-using Valour.Api.Items;
 using Valour.Api.Nodes;
 using Valour.Shared.Models;
 
-namespace Valour.Client.Utility;
+namespace Valour.Client.Providers;
 
 public class ModelListProvider<T>
 {
