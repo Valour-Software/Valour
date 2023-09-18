@@ -4,14 +4,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
 using Valour.Api.Extensions;
-using Valour.Api.Models;
 using Valour.Api.Models.Messages.Embeds;
-using Valour.Api.Models;
 using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Client;
@@ -293,14 +290,14 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet
     /// </summary>
-    public static ValueTask<PlanetMember> GetSelfMember(Planet planet, bool force_refresh = false) =>
-        GetSelfMember(planet.Id, force_refresh);
+    public static ValueTask<PlanetMember> GetSelfMember(Planet planet, bool forceRefresh = false) =>
+        GetSelfMember(planet.Id, forceRefresh);
 
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
-        PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
+    public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool forceRefresh = false) =>
+        PlanetMember.FindAsyncByUser(Self.Id, planetId, forceRefresh);
 
     /// <summary>
     /// Sets the compliance data for the current user
@@ -1013,7 +1010,8 @@ public static class ValourClient
 
     public static async Task MessageDeleted(PlanetMessage message)
     {
-        await OnMessageDeleted?.Invoke(message);
+        if (OnMessageDeleted is not null)
+            await OnMessageDeleted.Invoke(message);
     }
 
     public static async Task ChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
@@ -1284,8 +1282,8 @@ public static class ValourClient
         // Load user data concurrently
         await Task.WhenAll(loadTasks);
 
-        if (OnLogin != null)
-            await OnLogin?.Invoke();
+        if (OnLogin is not null)
+            await OnLogin.Invoke();
         
         await BeginOnlinePings();
 
@@ -1346,8 +1344,8 @@ public static class ValourClient
 
         Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
 
-        if (OnLogin != null)
-            await OnLogin?.Invoke();
+        if (OnLogin is not null)
+            await OnLogin.Invoke();
 
         await JoinAllChannelsAsync();
         
@@ -1364,17 +1362,27 @@ public static class ValourClient
         // Get all joined planets
         var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
 
+        var planetTasks = new List<Task>();
+        
         // Add to cache
         foreach (var planet in planets)
         {
-            await ValourCache.Put(planet.Id, planet);
+            planetTasks.Add(new Task(async () =>
+            {
+                await ValourCache.Put(planet.Id, planet);
 
-            OpenPlanet(planet);
+                await OpenPlanet(planet);
 
-            var channels = await planet.GetChannelsAsync();
+                var channels = await planet.GetChannelsAsync();
 
-            channels.ForEach(async x => await OpenPlanetChannel(x));
+                foreach (var channel in channels)
+                {
+                    await OpenPlanetChannel(channel);
+                }
+            }));
         }
+
+        await Task.WhenAll(planetTasks);
 
         JoinedPlanets = planets;
 
@@ -1387,8 +1395,10 @@ public static class ValourClient
     public static async Task UpdateUserChannelState(UserChannelState channelState)
     {
         ChannelsLastViewedState[channelState.ChannelId] = channelState.LastViewedTime;
+        
         // Access dict again to maintain references (do not try to optimize and break everything)
-        await OnUserChannelStateUpdate.Invoke(channelState);
+        if (OnUserChannelStateUpdate is not null)
+            await OnUserChannelStateUpdate.Invoke(channelState);
     }
 
     public static async Task LoadTenorFavoritesAsync()
@@ -1480,8 +1490,8 @@ public static class ValourClient
 
         _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
 
-        if (OnJoinedPlanetsUpdate != null)
-            await OnJoinedPlanetsUpdate?.Invoke();
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
     }
 
     public static async Task LoadUnreadNotificationsAsync()
@@ -1599,7 +1609,8 @@ public static class ValourClient
             JoinedPlanets.Add(await Planet.FindAsync(id));
         }
 
-        await OnJoinedPlanetsUpdate?.Invoke();
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
     }
 
     #endregion
@@ -1849,7 +1860,7 @@ public static class ValourClient
         {
             response = await http.PostAsync(BaseAddress + uri, jsonContent);
         }
-        catch (System.Exception)
+        catch (Exception)
         {
             return new TaskResult(false, "Unable to reach server.");
         }
@@ -1885,7 +1896,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        StringContent jsonContent = new StringContent((string)content);
+        StringContent jsonContent = new StringContent(content);
 
         var response = await http.PostAsync(BaseAddress + uri, jsonContent);
 
@@ -1896,7 +1907,7 @@ public static class ValourClient
 
         if (!result.Success)
         {
-            result.Message = await response.Content.ReadAsStringAsync(); ;
+            result.Message = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +

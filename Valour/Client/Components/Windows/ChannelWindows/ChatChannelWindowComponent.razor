@@ -17,12 +17,6 @@
 </CascadingValue>
 
 @code {
-
-    /// <summary>
-    /// True if the client has negotiated a channel connection
-    /// </summary>
-    private bool channelConnected;
-
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
@@ -31,19 +25,13 @@
 
     public IChatChannel Channel;
 
-    public Func<Task> ForceRefreshMessages;
-
     public event Func<IChatChannel, Task> OnChannelChange;
-
-    public bool ForceMessageRefresh;
 
     public MessageHolderComponent MessageHolder { get; set; }
 
     public InputComponent InputComponent { get; set; }
 
     public PermissionsNode ChannelPermissions { get; set; }
-
-    public MessageComponent MessageEditing { get; set; }
 
     public bool CanRenderFlag { get; set; }
 
@@ -79,13 +67,13 @@
     public virtual Type GetInputComponentType() => 
         typeof(InputComponent);
 
-    public virtual async Task<string> GetChannelDisplayTitleAsync() =>
-        Channel.Name;
+    public virtual Task<string> GetChannelDisplayTitleAsync() =>
+        Task.FromResult(Channel.Name);
 
-    public virtual async Task<string> GetChannelDisplayDescriptionAsync() =>
-        Channel.Description;
+    public virtual Task<string> GetChannelDisplayDescriptionAsync() =>
+        Task.FromResult(Channel.Description);
 
-    public async virtual Task SetupNewChannelAsync()
+    public virtual async Task SetupNewChannelAsync()
     {
         Title = await GetChannelDisplayTitleAsync();
         Description = await GetChannelDisplayDescriptionAsync();
@@ -94,12 +82,12 @@
         
         MessageHolder.Clear();
 
-        var msgs = ClientMessageWrapper.FromList(await Channel.GetLastMessagesGenericAsync(64));
+        var messages = ClientMessageWrapper.FromList(await Channel.GetLastMessagesGenericAsync(64));
 
-        foreach (var msg in msgs)
+        foreach (var msg in messages)
             await ValourCache.Put(msg.Message.Id, msg.Message);
 
-        MessageHolder.AddMessages(msgs);
+        MessageHolder.AddMessages(messages);
 
         await MessageHolder.ScrollToBottom();
     }
@@ -156,9 +144,10 @@
         _thisRef.Dispose();
     }
 
-    public async Task OnChatChannelUpdate(ModelUpdateEvent eventData)
+    public Task OnChatChannelUpdate(ModelUpdateEvent eventData)
     {
         Refresh();
+        return Task.CompletedTask;
     }
 
     public virtual async Task OnReceiveMessage(Message message)
