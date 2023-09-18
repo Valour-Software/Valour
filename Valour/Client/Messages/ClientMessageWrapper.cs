@@ -45,20 +45,6 @@ public class ClientMessageWrapper
     /// </summary>
     public ClientMessageWrapper Reply { get; set; }
 
-    /// <summary>
-    /// Returns the component type to be used when rendering the message
-    /// Don't forget to add to this when new Message types are added (ahem, Jacob)
-    /// </summary>
-    public Type GetComponentType()
-    {
-        switch (Message) {
-            case PlanetMessage: return typeof(PlanetMessageComponent);
-            case DirectMessage: return typeof(DirectMessageComponent);
-        }
-
-        return typeof(MessageComponent);
-    }
-
     public static List<ClientMessageWrapper> FromList(List<Message> data)
     {
         List<ClientMessageWrapper> result = new();

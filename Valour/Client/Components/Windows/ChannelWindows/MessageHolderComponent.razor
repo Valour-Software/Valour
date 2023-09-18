@@ -5,59 +5,37 @@
 
 <ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto"  MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
     <CascadingValue Value="this" IsFixed="true">
-        @{
-            ClientMessageWrapper last;    
-
-            if (DisplayedMessageData != null && DisplayedMessageData.Any())
-            {
-                last = null;
-                
-                foreach (var messageData in DisplayedMessageData)
-                {
-                    Dictionary<string, object> messageParams = new()
-                    {
-                        { "MessageData", messageData },
-                        { "IsInnerReply", false },
-                        { "LastMessage", last },
-                    };
-
-                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
-
-                    last = messageData;
-                }
-            }
-
-            if (QueuedMessageData != null && QueuedMessageData.Any()){
-
-                last = null;
-
-                if (DisplayedMessageData != null)
-                {
-                    last = DisplayedMessageData.Last();
-                }
-
-                foreach (var messageData in QueuedMessageData)
-                {
-                    Dictionary<string, object> messageParams = new()
-                    {
-                        { "MessageData", messageData },
-                        { "IsInnerReply", false },
-                        { "LastMessage", last },
-                        { "Ghost", true }
-                    };
-
-                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
-
-                    last = messageData;
-                }
-            }
-        }
+        @MessagesTemplate
     </CascadingValue>
     
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
 </ContextMenuTrigger>
 
 @code {
+
+    /*
+     *
+     * switch (messageData.Message) {
+            case PlanetMessage:
+                <PlanetMessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last"  />
+                break;
+            case DirectMessage: 
+                <DirectMessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last" />
+                break;
+            default:
+                <MessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last" />
+                break;
+        }
+     */
+    
+    public class MessageComponentParams
+    {
+        public ClientMessageWrapper MessageData { get; set; }
+        public bool IsInnerReply { get; set; }
+        public ClientMessageWrapper LastMessage { get; set; }
+        public bool Ghost { get; set; }
+    }
+
     [CascadingParameter]
     public ChatChannelWindow Window { get; set; }
 
@@ -75,9 +53,92 @@
     private string _id;
 
     private bool _canRenderFlag = false;
+    
+    public Type MessageType;
+
+    public RenderFragment MessagesTemplate => builder =>
+    {
+        ClientMessageWrapper lastMessage = null;
+        
+        // Displayed messages
+        if (!(DisplayedMessageData == null || !DisplayedMessageData.Any()))
+        {
+            // Render each message
+            foreach (var messageData in DisplayedMessageData)
+            {
+                var messageParams = new MessageComponentParams()
+                {
+                    MessageData = messageData,
+                    IsInnerReply = false,
+                    LastMessage = lastMessage,
+                    Ghost = false,
+                };
+
+                builder.OpenComponent(0, MessageType);
+                builder.AddAttribute(1, "ParamData", messageParams);
+                builder.SetKey(messageData.Message.Id);
+                builder.CloseComponent();
+
+                lastMessage = messageData;
+            }
+        }
+        
+        // Queued messages
+        if (!(QueuedMessageData == null || !QueuedMessageData.Any()))
+        {
+            // Render each message
+            foreach (var messageData in QueuedMessageData)
+            {
+                var messageParams = new MessageComponentParams()
+                {
+                    MessageData = messageData,
+                    IsInnerReply = false,
+                    LastMessage = lastMessage,
+                    Ghost = true,
+                };
+
+                builder.OpenComponent(0, MessageType);
+                builder.AddAttribute(1, "MessageParams", messageParams);
+                builder.SetKey(messageData.Message.Id);
+                builder.CloseComponent();
+
+                lastMessage = messageData;
+            }
+        }
+    };
+    
+    
+    /*
+     * // Efficiency!
+        switch (Window)
+        {
+            case PlanetChatChannelWindow:
+                MessageTemplate = (data => @<PlanetMessageComponent ParamData="@data"/>);
+                break;
+            case DirectChatChannelWindow:
+                MessageTemplate = (data => @<DirectMessageComponent ParamData="@data"/>);
+                break;
+            default:
+                MessageTemplate = (data => @<MessageComponent ParamData="@data"/>);
+                break;
+        }
+     */
 
     protected override void OnInitialized()
     {
+        switch (Window)
+        {
+            case PlanetChatChannelWindow:
+                MessageType = typeof(PlanetMessageComponent);
+                break;
+            case DirectChatChannelWindow:
+                MessageType = typeof(DirectMessageComponent);
+                break;
+            default:
+                MessageType = typeof(MessageComponent);
+                break;
+        }
+        
         _id = $"innerWindow-{Window.Id}";
         
         RenderedMessages = new List<MessageComponent>();
