@@ -44,6 +44,8 @@ export function init(id, margin= '0'){
             )
           `;
     }
+    
+    if (!card) return;
 
     bounds = card.getBoundingClientRect();
     card.style.margin = margin;

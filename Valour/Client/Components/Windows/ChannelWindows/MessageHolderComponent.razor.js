@@ -7,7 +7,7 @@ export function setup(id, ref){
     // Build object
     let holder = {
         id: id,
-        element: document.getElementById('innerwindow-' + id),
+        element: document.getElementById(id),
         dotnet: ref,
         oldScrollHeight: 0,
         oldScrollTop: 0,

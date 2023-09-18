@@ -2,16 +2,17 @@
 @implements IAsyncDisposable
 @using Valour.Api.Models.Messages
 @using System.Reflection.Metadata
+
 <ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto"  MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
     <CascadingValue Value="this" IsFixed="true">
         @{
             ClientMessageWrapper last;    
 
-            if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
+            if (DisplayedMessageData != null && DisplayedMessageData.Any())
             {
                 last = null;
                 
-                foreach (ClientMessageWrapper messageData in DisplayedMessageData)
+                foreach (var messageData in DisplayedMessageData)
                 {
                     Dictionary<string, object> messageParams = new()
                     {
@@ -26,7 +27,7 @@
                 }
             }
 
-            if (QueuedMessageData != null && QueuedMessageData.Count > 0){
+            if (QueuedMessageData != null && QueuedMessageData.Any()){
 
                 last = null;
 
@@ -35,7 +36,7 @@
                     last = DisplayedMessageData.Last();
                 }
 
-                foreach (ClientMessageWrapper messageData in QueuedMessageData)
+                foreach (var messageData in QueuedMessageData)
                 {
                     Dictionary<string, object> messageParams = new()
                     {
@@ -71,13 +72,13 @@
 
     private IJSInProcessObjectReference _jsModule;
 
-    public string state = "none";
-
     private string _id;
+
+    private bool _canRenderFlag = false;
 
     protected override void OnInitialized()
     {
-        _id = "innerwindow-" + Window.Id;
+        _id = $"innerWindow-{Window.Id}";
         
         RenderedMessages = new List<MessageComponent>();
         DisplayedMessageData = new List<ClientMessageWrapper>();
@@ -85,15 +86,13 @@
 
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 
-        _thisRef = DotNetObjectReference.Create<MessageHolderComponent>(this);
-
-        StateHasChanged();
+        _thisRef = DotNetObjectReference.Create(this);
     }
 
     public void AddQueuedMessage(ClientMessageWrapper message)
     {
         QueuedMessageData.Add(message);
-        StateHasChanged();
+        Refresh();
     }
 
     public void RemoveQueuedMessage(string fingerprint)
@@ -101,7 +100,7 @@
         var queued = QueuedMessageData.FirstOrDefault(x => x.Message.Fingerprint == fingerprint);
         if (queued != null) { QueuedMessageData.Remove(queued); }
 
-        StateHasChanged();
+        Refresh();
     }
 
     public void RemoveErrorMessage()
@@ -109,24 +108,31 @@
         var error = DisplayedMessageData.FirstOrDefault(x => x.Message.Id == 0);
         if (error != null) { 
             QueuedMessageData.Remove(error); 
-            StateHasChanged();
+            Refresh();
         }
     }
 
     public void Clear()
     {
+        if (!DisplayedMessageData.Any() &&
+            !QueuedMessageData.Any() &&
+            !RenderedMessages.Any())
+            return;
+        
         DisplayedMessageData.Clear();
         QueuedMessageData.Clear();
         RenderedMessages.Clear();
-        StateHasChanged();
+        
+        Refresh();
     }
 
     public ClientMessageWrapper GetLastMessage()
     {
-        if (QueuedMessageData != null && QueuedMessageData.Count > 0){
+        if (QueuedMessageData != null && QueuedMessageData.Any())
+        {
             return QueuedMessageData.Last();
         }
-        else if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
+        else if (DisplayedMessageData != null && DisplayedMessageData.Any())
         {
             return DisplayedMessageData.Last();
         }
@@ -134,28 +140,28 @@
         return null;
     }
 
-    public void AddMessages(List<ClientMessageWrapper> messages, bool refresh = true)
+    public async Task AddMessages(List<ClientMessageWrapper> messages, bool refresh = true, bool scroll = false)
     {
         DisplayedMessageData.AddRange(messages);
 
         if (refresh)
         {
-            StateHasChanged();
+            Refresh();
+        }
+        
+        if (scroll)
+        {
+            await ScrollToBottom();
         }
     }
 
     public void InsertMessages(int position, List<ClientMessageWrapper> messages, bool refresh = true)
     {
-        //foreach(var m in messages)
-        //{
-        //    Console.WriteLine(m.Content);
-        //}
-
         DisplayedMessageData.InsertRange(position, messages);
 
         if (refresh)
         {
-            StateHasChanged();
+            Refresh();
         }
     }
 
@@ -164,10 +170,10 @@
         QueuedMessageData.RemoveAll(x => x.Message.Fingerprint == renderData.Message.Fingerprint);
 
         //Get current window scroll pos
-        bool IsAtBottom = await _jsModule.InvokeAsync<bool>("isAtBottom", Window.Id);
+        var atBottom = await _jsModule.InvokeAsync<bool>("isAtBottom", _id);
 
         // check if theres too many messages
-        if (IsAtBottom && DisplayedMessageData.Count > 120)
+        if (atBottom && DisplayedMessageData.Count > 120)
         {
             DisplayedMessageData.RemoveRange(0, DisplayedMessageData.Count - 120);
         }
@@ -177,23 +183,25 @@
         // Flag for UI refresh
         if (refresh)
         {
-            StateHasChanged();
+            Refresh();
         }
 
         await ScrollToBottom();
     }
 
-    public void ForceRefresh()
+    public void Refresh()
     {
-        state = "force-ref";
+        _canRenderFlag = true;
         StateHasChanged();
     }
 
+    /* This is called by the MessageComponent when it is rendered */
     public void AddRenderedMessage(MessageComponent message)
     {
         RenderedMessages.Add(message);
     }
 
+    /* This is called by the MessageComponent when it is rendered */
     public void RemoveRenderedMessage(MessageComponent message)
     {
         RenderedMessages.Remove(message);
@@ -223,12 +231,15 @@
             var lastMessage = RenderedMessages
                 .OrderByDescending(x => x.MessageData.Message.Id)
                 .FirstOrDefault(x => x.MessageData.Message.Id < message.Id);
-            nextMessage.SetLast(lastMessage.MessageData);
+            
+            if (lastMessage is not null)
+                nextMessage.SetLast(lastMessage.MessageData);
+            
             await nextMessage.RefreshMessage();
             nextMessage.ReRender();
         }
 
-        ForceRefresh();
+        Refresh();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -236,58 +247,47 @@
         if (firstRender)
         {
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/MessageHolderComponent.razor.js");
-            await SetupJS();
+            await SetupJs();
             await ScrollToBottom();
         }
+        
+        #if DEBUG
+        Console.WriteLine($"Message holder render! ({firstRender})");
+        #endif
 
-        state = GetState();
+        _canRenderFlag = false;
     }
 
-    public string GetState()
-    {
-        if (DisplayedMessageData == null || DisplayedMessageData.Count == 0)
-        {
-            return "none";
-        }
-        else
-        {
-            return $"{DisplayedMessageData.First().Message.Id}-{DisplayedMessageData.Last().Message.Id}-{QueuedMessageData.Count}";
-        }
-    }
-
-    protected override bool ShouldRender()
-    {
-        return GetState() != state;
-    }
+    protected override bool ShouldRender() => _canRenderFlag;
 
     /////////////////////
     // JS Interop Zone //
     /////////////////////
 
-    public async Task SetupJS()
+    public async Task SetupJs()
     {
-        await _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
+        await _jsModule.InvokeVoidAsync("setup", _id, _thisRef);
     }
 
     public async Task ScrollToBottom(bool force = false)
     {
         if (_jsModule is not null)
-            await _jsModule.InvokeVoidAsync("scrollToBottom", Window.Id, force);
+            await _jsModule.InvokeVoidAsync("scrollToBottom", _id, force);
     }
 
     public async Task ScrollToBottomAnimated()
     {
-        await _jsModule.InvokeVoidAsync("scrollToBottomAnimated", Window.Id);
+        await _jsModule.InvokeVoidAsync("scrollToBottomAnimated", _id);
     }
 
     public async Task UpdateScrollPosition()
     {
-        await _jsModule.InvokeVoidAsync("updateScrollPosition", Window.Id);
+        await _jsModule.InvokeVoidAsync("updateScrollPosition", _id);
     }
 
     public async Task ScaleScrollPosition()
     {
-        await _jsModule.InvokeVoidAsync("scaleScrollPosition", Window.Id);
+        await _jsModule.InvokeVoidAsync("scaleScrollPosition", _id);
     }
 
     [JSInvokable("OnScrollTopInvoke")]
@@ -299,13 +299,13 @@
             return;
         }
 
-        long firstId = DisplayedMessageData[0].Message.Id;
+        var firstId = DisplayedMessageData[0].Message.Id;
 
         Console.WriteLine($"Fetching older messages from id {firstId} for window {Window.Id}");
 
         var messages = await Window.Channel.GetMessagesGenericAsync(firstId, 64);
 
-        if (messages == null || messages.Count() == 0)
+        if (messages is null || !messages.Any())
             return;
 
         foreach (var msg in messages)

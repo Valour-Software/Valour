@@ -8,7 +8,7 @@
             <WindowFrameComponent Window="@Window" Title="@Title" Description="@Description">
                 <ChannelWatchingComponent ParentComponent="this" Channel="Channel" />
                 <CascadingValue Value='ChannelPermissions'>
-                    <MessageHolderComponent @ref="MessageHolder" @key='$"mh-{Window.Id}"' />
+                    <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
                 </CascadingValue>
                 <DynamicComponent Type="Window.Component.GetInputComponentType()" />
             </WindowFrameComponent>
@@ -77,19 +77,21 @@
     {
         Title = await GetChannelDisplayTitleAsync();
         Description = await GetChannelDisplayDescriptionAsync();
-
-        Refresh();
         
         MessageHolder.Clear();
 
         var messages = ClientMessageWrapper.FromList(await Channel.GetLastMessagesGenericAsync(64));
 
         foreach (var msg in messages)
+        {
             await ValourCache.Put(msg.Message.Id, msg.Message);
+            if (msg.Reply is not null)
+            {
+                await ValourCache.Put(msg.Reply.Message.Id, msg.Reply.Message);
+            }
+        }
 
-        MessageHolder.AddMessages(messages);
-
-        await MessageHolder.ScrollToBottom();
+        await MessageHolder.AddMessages(messages, true, true);
     }
 
     public async Task SwapChannel(IChatChannel newchannel)

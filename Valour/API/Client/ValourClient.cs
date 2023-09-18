@@ -153,6 +153,11 @@ public static class ValourClient
     #region Event Fields
 
     /// <summary>
+    /// Run when the client browser is refocused
+    /// </summary>
+    public static event Func<Task> OnRefocus;
+
+    /// <summary>
     /// Run when the friends list updates
     /// </summary>
     public static event Func<Task> OnFriendsUpdate;
@@ -781,12 +786,15 @@ public static class ValourClient
 
     #region SignalR Events
 
-    public static async Task RefreshNodes()
+    public static async Task HandleRefocus()
     {
         foreach (var node in NodeManager.Nodes)
         {
             await node.ForceRefresh();
         }
+        
+        if (OnRefocus is not null)
+            await OnRefocus.Invoke();
     }
 
     public static async Task NotifyNodeReconnect(Node node)

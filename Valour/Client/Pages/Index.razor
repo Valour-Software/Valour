@@ -126,7 +126,7 @@
 	public static async Task OnRefocus()
 	{
 		Console.WriteLine("Detected refocus event.");
-		await ValourClient.RefreshNodes();
+		await ValourClient.HandleRefocus();
 	}
 
 	public void ForceRefresh()
