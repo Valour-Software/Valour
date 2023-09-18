@@ -175,11 +175,6 @@
 
     public void Clear()
     {
-        if (!DisplayedMessageData.Any() &&
-            !QueuedMessageData.Any() &&
-            !RenderedMessages.Any())
-            return;
-        
         DisplayedMessageData.Clear();
         QueuedMessageData.Clear();
         RenderedMessages.Clear();
