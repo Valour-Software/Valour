@@ -1,9 +1,9 @@
 ﻿@inject HttpClient Http
-@inject NavigationManager navManager
-@inject WindowManager windowManager
+@inject NavigationManager NavManager
+@inject WindowManager WindowManager
 
 <section class="bigmenu-section">
-    <CascadingValue Value="this">
+    <CascadingValue Value="this" IsFixed="true">
         <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
         <div class="inner">
             @if (DeviceInfo.IsMobile)
@@ -41,6 +41,12 @@
 
 @code {
     [Parameter]
+    public string StartTopMenu { get; set; }
+    
+    [Parameter]
+    public string StartSubMenu { get; set; }
+    
+    [Parameter]
     public RenderFragment LeftSide { get; set; }
 
     [Parameter]
@@ -63,16 +69,39 @@
 
     public event Action RefreshRightSide;
 
+    private bool _startSet = false;
+    
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
-
         if (firstRender)
         {
             SelectedTopLevelMenu = TopLevelMenus.First();
             SelectedSubMenu = SelectedTopLevelMenu.SubMenus.First();
             StateHasChanged();
+            
+            
         }
+
+        if (!_startSet && TopLevelMenus.Any())
+        {
+            if (!string.IsNullOrWhiteSpace(StartTopMenu))
+            {
+                SetSelectedMenu(StartTopMenu, StartSubMenu);
+            }
+
+            _startSet = true;
+        }
+        
         return base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void SetSelectedMenu(string top, string sub)
+    {
+        SelectedTopLevelMenu = TopLevelMenus.FirstOrDefault(x => x.Name == top);
+        if (SelectedTopLevelMenu is not null)
+            SelectedSubMenu = SelectedTopLevelMenu.SubMenus.FirstOrDefault(x => x.Name == sub);
+        
+        StateHasChanged();
     }
 
     public async Task ClickEscape(MouseEventArgs e)

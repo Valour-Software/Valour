@@ -186,8 +186,9 @@
     public async Task OnClickAddFriend()
     {
         var param = new ModalParameters();
-        param.Add("Window", Window);
-        Modal.Show<AddFriendComponent>("Add Friend", param);
+        param.Add("StartTopMenu", "General Settings");
+        param.Add("StartSubMenu", "Friends");
+        Modal.Show<EditUserComponent>("Edit User", param);
     }
 
     public async Task OnFriendsListUpdate()
