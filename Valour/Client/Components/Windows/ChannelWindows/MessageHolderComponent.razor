@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @using Valour.Api.Models.Messages
 @using System.Reflection.Metadata
+@using Microsoft.AspNetCore.Components.Rendering
 
 <ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto"  MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
     <CascadingValue Value="this" IsFixed="true">
@@ -56,7 +57,7 @@
     
     public Type MessageType;
 
-    public RenderFragment MessagesTemplate => builder =>
+    public void TypedMessagesTemplate<T>(RenderTreeBuilder builder) where T : MessageComponent
     {
         ClientMessageWrapper lastMessage = null;
         
@@ -74,7 +75,7 @@
                     Ghost = false,
                 };
 
-                builder.OpenComponent(0, MessageType);
+                builder.OpenComponent<T>(0);
                 builder.AddAttribute(1, "ParamData", messageParams);
                 builder.SetKey(messageData.Message.Id);
                 builder.CloseComponent();
@@ -97,7 +98,7 @@
                     Ghost = true,
                 };
 
-                builder.OpenComponent(0, MessageType);
+                builder.OpenComponent<T>(0);
                 builder.AddAttribute(1, "MessageParams", messageParams);
                 builder.SetKey(messageData.Message.Id);
                 builder.CloseComponent();
@@ -105,37 +106,26 @@
                 lastMessage = messageData;
             }
         }
-    };
-    
-    
-    /*
-     * // Efficiency!
-        switch (Window)
-        {
-            case PlanetChatChannelWindow:
-                MessageTemplate = (data => @<PlanetMessageComponent ParamData="@data"/>);
-                break;
-            case DirectChatChannelWindow:
-                MessageTemplate = (data => @<DirectMessageComponent ParamData="@data"/>);
-                break;
-            default:
-                MessageTemplate = (data => @<MessageComponent ParamData="@data"/>);
-                break;
-        }
-     */
+    }
+
+
+    public RenderFragment MessagesTemplate;
 
     protected override void OnInitialized()
     {
+        
+         // Using generics instead of reflection gives better performance,
+         // and we only have to set the render template once
         switch (Window)
         {
             case PlanetChatChannelWindow:
-                MessageType = typeof(PlanetMessageComponent);
+                MessagesTemplate = TypedMessagesTemplate<PlanetMessageComponent>;
                 break;
             case DirectChatChannelWindow:
-                MessageType = typeof(DirectMessageComponent);
+                MessagesTemplate = TypedMessagesTemplate<DirectMessageComponent>;
                 break;
             default:
-                MessageType = typeof(MessageComponent);
+                MessagesTemplate = TypedMessagesTemplate<MessageComponent>;
                 break;
         }
         
