@@ -71,6 +71,25 @@ public class NotificationService
         return TaskResult.SuccessResult;
     }
 
+    public async Task<TaskResult> ClearNotificationsForUser(long userId)
+    {
+        int changes = 0;
+        
+        try
+        {
+            changes = await _db.Database.ExecuteSqlRawAsync("UPDATE notifications SET time_read = (now() at time zone 'utc') WHERE user_id = {0} AND time_read IS NULL;",
+                userId);
+        }
+        catch (Exception)
+        {
+            return new TaskResult(false, "Error saving changes to database");
+        }
+        
+        _coreHub.RelayNotificationsCleared(userId, _nodeService);
+
+        return new TaskResult(true, $"Cleared {changes} notifications");
+    }
+
     public async Task<List<Notification>> GetNotifications(long userId, int page = 0)
         => await _db.Notifications.Where(x => x.UserId == userId)
             .OrderBy(x => x.TimeSent)

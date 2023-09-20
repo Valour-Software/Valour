@@ -218,6 +218,11 @@ public static class ValourClient
     public static event Func<Notification, Task> OnNotificationReceived;
 
     /// <summary>
+    /// Run when notifications are cleared
+    /// </summary>
+    public static event Func<Task> OnNotificationsCleared;
+
+    /// <summary>
     /// Run when a channel sends a watching update
     /// </summary>
     public static event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
@@ -460,7 +465,7 @@ public static class ValourClient
         return result;
     }
 
-    public static async Task FriendEventReceived(FriendEventData eventData)
+    public static async Task HandleFriendEventReceived(FriendEventData eventData)
     {
         if (eventData.Type == FriendEventType.Added)
         {
@@ -845,7 +850,7 @@ public static class ValourClient
             await OnNodeReconnect.Invoke(node);
     }
 
-    public static async Task UpdateChannelState(ChannelStateUpdate update)
+    public static async Task HandleUpdateChannelState(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
         var channel = ValourCache.Get<PlanetChatChannel>(update.ChannelId);
@@ -966,7 +971,7 @@ public static class ValourClient
         return UnreadNotifications.Count(x => x.ChannelId == channelId);
     }
 
-    public static async Task NotificationReceived(Notification notification)
+    public static async Task HandleNotificationReceived(Notification notification)
     {
         await notification.AddToCache(notification);
         var cached = ValourCache.Get<Notification>(notification.Id);
@@ -994,10 +999,19 @@ public static class ValourClient
             await OnNotificationReceived.Invoke(cached);
     }
 
+    public static async Task HandleNotificationsCleared()
+    {
+        UnreadNotifications.Clear();
+        UnreadNotificationsLookup.Clear();
+        
+        if (OnNotificationsCleared is not null)
+            await OnNotificationsCleared.Invoke();
+    }
+
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task PlanetMessageReceived(PlanetMessage message)
+    public static async Task HandlePlanetMessageReceived(PlanetMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1013,7 +1027,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task PlanetMessageEdited(PlanetMessage message)
+    public static async Task HandlePlanetMessageEdited(PlanetMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1029,7 +1043,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task DirectMessageReceived(DirectMessage message)
+    public static async Task HandleDirectMessageReceived(DirectMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1045,7 +1059,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task DirectMessageEdited(DirectMessage message)
+    public static async Task HandleDirectMessageEdited(DirectMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1058,13 +1072,13 @@ public static class ValourClient
             await OnMessageEdited.Invoke(message);
     }
 
-    public static async Task MessageDeleted(PlanetMessage message)
+    public static async Task HandleMessageDeleted(PlanetMessage message)
     {
         if (OnMessageDeleted is not null)
             await OnMessageDeleted.Invoke(message);
     }
 
-    public static async Task ChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
+    public static async Task HandleChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
     {
         //Console.WriteLine("Watching: " + update.ChannelId);
         //foreach (var watcher in update.UserIds)
@@ -1076,25 +1090,25 @@ public static class ValourClient
             await OnChannelWatchingUpdate.Invoke(update);
     }
 
-    public static async Task ChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
+    public static async Task HandleChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
     {
         if (OnChannelCurrentlyTypingUpdate is not null)
             await OnChannelCurrentlyTypingUpdate.Invoke(update);
     }
 
-    public static async Task PersonalEmbedUpdate(PersonalEmbedUpdate update)
+    public static async Task HandlePersonalEmbedUpdate(PersonalEmbedUpdate update)
     {
         if (OnPersonalEmbedUpdate is not null)
             await OnPersonalEmbedUpdate.Invoke(update);
     }
 
-    public static async Task ChannelEmbedUpdate(ChannelEmbedUpdate update)
+    public static async Task HandleChannelEmbedUpdate(ChannelEmbedUpdate update)
     {
         if (OnChannelEmbedUpdate is not null)
             await OnChannelEmbedUpdate.Invoke(update);
     }
 
-    public static async Task CategoryOrderUpdate(CategoryOrderEvent eventData)
+    public static async Task HandleCategoryOrderUpdate(CategoryOrderEvent eventData)
     {
         // Update channels in cache
         int pos = 0;
@@ -1442,7 +1456,7 @@ public static class ValourClient
             await OnJoinedPlanetsUpdate.Invoke();
     }
 
-    public static async Task UpdateUserChannelState(UserChannelState channelState)
+    public static async Task HandleUpdateUserChannelState(UserChannelState channelState)
     {
         ChannelsLastViewedState[channelState.ChannelId] = channelState.LastViewedTime;
         
@@ -1581,6 +1595,12 @@ public static class ValourClient
     public static async Task<TaskResult> MarkNotificationRead(Notification notification, bool value)
     {
         var result = await PrimaryNode.PostAsync($"api/notifications/self/{notification.Id}/read/{value}", null);
+        return result;
+    }
+
+    public static async Task<TaskResult> ClearNotificationsAsync()
+    {
+        var result = await PrimaryNode.PostAsync("api/notifications/self/clear", null);
         return result;
     }
 

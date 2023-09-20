@@ -10,6 +10,8 @@
     flex-direction: row;
     justify-content: space-between;
     align-content: center;
+    margin: 4px;
+    gap: 4px;
 }
 
 .inner-scroll-box {

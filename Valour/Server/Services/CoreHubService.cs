@@ -96,10 +96,10 @@ public class CoreHubService
     {
         await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
     }
-
-    public async void NotifyDirectMessage(DirectMessage message, long userId)
+    
+    public async void RelayNotificationsCleared(long userId, NodeService nodeService)
     {
-        
+        await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.NotificationsCleared, userId);
     }
     
     public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>

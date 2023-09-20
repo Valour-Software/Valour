@@ -180,21 +180,22 @@ public class Node
             HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => ValourClient.DeleteItem((dynamic)i[0]));
         }
 
-        HubConnection.On<PlanetMessage>("Relay", ValourClient.PlanetMessageReceived);
-        HubConnection.On<PlanetMessage>("RelayEdit", ValourClient.PlanetMessageEdited);
-        HubConnection.On<DirectMessage>("RelayDirect", ValourClient.DirectMessageReceived);
-        HubConnection.On<DirectMessage>("RelayDirectEdit", ValourClient.DirectMessageEdited);
-        HubConnection.On<Notification>("RelayNotification", ValourClient.NotificationReceived);
-        HubConnection.On<FriendEventData>("RelayFriendEvent", ValourClient.FriendEventReceived);
+        HubConnection.On<PlanetMessage>("Relay", ValourClient.HandlePlanetMessageReceived);
+        HubConnection.On<PlanetMessage>("RelayEdit", ValourClient.HandlePlanetMessageEdited);
+        HubConnection.On<DirectMessage>("RelayDirect", ValourClient.HandleDirectMessageReceived);
+        HubConnection.On<DirectMessage>("RelayDirectEdit", ValourClient.HandleDirectMessageEdited);
+        HubConnection.On<Notification>("RelayNotification", ValourClient.HandleNotificationReceived);
+        HubConnection.On("RelayNotificationsCleared", ValourClient.HandleNotificationsCleared);
+        HubConnection.On<FriendEventData>("RelayFriendEvent", ValourClient.HandleFriendEventReceived);
         
-        HubConnection.On<PlanetMessage>("DeleteMessage", ValourClient.MessageDeleted);
-        HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
-        HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);
-        HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", ValourClient.ChannelWatchingUpdateRecieved);
-        HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", ValourClient.ChannelCurrentlyTypingUpdateRecieved);
-        HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.PersonalEmbedUpdate);
-		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", ValourClient.ChannelEmbedUpdate);
-        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", ValourClient.CategoryOrderUpdate);
+        HubConnection.On<PlanetMessage>("DeleteMessage", ValourClient.HandleMessageDeleted);
+        HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.HandleUpdateChannelState);
+        HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.HandleUpdateUserChannelState);
+        HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", ValourClient.HandleChannelWatchingUpdateRecieved);
+        HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", ValourClient.HandleChannelCurrentlyTypingUpdateRecieved);
+        HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.HandlePersonalEmbedUpdate);
+		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", ValourClient.HandleChannelEmbedUpdate);
+        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", ValourClient.HandleCategoryOrderUpdate);
 
 		await Logger.Log("[Item Events]: Events hooked.", "yellow");
     }

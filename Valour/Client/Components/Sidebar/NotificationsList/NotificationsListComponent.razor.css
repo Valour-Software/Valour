@@ -1,9 +1,24 @@
 ﻿.notifications-container {
     padding: 1em;
     padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .notifications-container .item-wrapper {
     display: flex;
     flex-direction: column-reverse;
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.clear-wrapper {
+    margin-top: auto;
+}
+
+.clear-btn {
+    margin-top: 10px;
+    margin-left: auto;
+    margin-right: auto;
 }

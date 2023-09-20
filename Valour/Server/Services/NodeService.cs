@@ -231,6 +231,7 @@ public class NodeService
         DirectMessageEdit,
         Notification,
         Friend,
+        NotificationsCleared,
     }
     
     public struct NodeRelayEventData
@@ -314,6 +315,11 @@ public class NodeService
                 OnRelayFriendEvent(friendEvent, data.TargetUser);
                 break;
             }
+            case NodeEventType.NotificationsCleared:
+            {
+                OnRelayNotificationsCleared((long)data.Payload);
+                break;
+            }
         }
     }
 
@@ -341,5 +347,10 @@ public class NodeService
     private void OnRelayFriendEvent(FriendEventData eventData, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayFriendEvent", eventData);
+    }
+    
+    private void OnRelayNotificationsCleared(long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotificationsCleared");
     }
 }
