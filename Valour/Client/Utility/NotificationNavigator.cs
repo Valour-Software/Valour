@@ -1,5 +1,8 @@
-﻿using Valour.Api.Client;
+﻿using Blazored.Modal;
+using Blazored.Modal.Services;
+using Valour.Api.Client;
 using Valour.Api.Models;
+using Valour.Client.Components.Menus.Modals.Users.Edit;
 using Valour.Client.Windows;
 using Valour.Client.Windows.ChatWindows;
 using Valour.Shared.Models;
@@ -8,7 +11,7 @@ namespace Valour.Client.Utility;
 
 public static class NotificationNavigator
 {
-    public static async Task NavigateTo(Notification notification)
+    public static async Task NavigateTo(Notification notification, IModalService modalService)
     {
         var windowManager = WindowManager.Instance;
         
@@ -44,6 +47,15 @@ public static class NotificationNavigator
                 var selectedWindow = windowManager.GetSelectedWindow();
                 await windowManager.ReplaceWindow(selectedWindow, new DirectChatChannelWindow(channel));
                 
+                break;
+            }
+            case NotificationSource.FriendRequest:
+            {
+                var param = new ModalParameters();
+                param.Add("StartTopMenu", "General Settings");
+                param.Add("StartSubMenu", "Friends");
+                modalService.Show<EditUserComponent>("Edit User", param);
+
                 break;
             }
         }

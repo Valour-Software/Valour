@@ -145,6 +145,7 @@
     {
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
         ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
+        ValourClient.OnFriendEvent += FriendEventHandler;
 
         Discoverables = await ValourClient.GetDiscoverablePlanetsAsync();
 
@@ -189,6 +190,11 @@
         param.Add("StartTopMenu", "General Settings");
         param.Add("StartSubMenu", "Friends");
         Modal.Show<EditUserComponent>("Edit User", param);
+    }
+    
+    private async Task FriendEventHandler(FriendEventData eventData)
+    {
+        StateHasChanged();
     }
 
     public async Task OnFriendsListUpdate()

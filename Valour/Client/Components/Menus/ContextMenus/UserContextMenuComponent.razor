@@ -34,7 +34,7 @@
 
 	public async Task OnClickAddFriend()
 	{
-		var result = await ValourClient.AddFriendAsync(User.Name);
+		var result = await ValourClient.AddFriendAsync(User.NameAndTag);
 
 		if (!result.Success)
 		{
@@ -48,7 +48,7 @@
 
 	public async Task OnClickRemoveFriend()
 	{
-		var result = await ValourClient.RemoveFriendAsync(User.Name);
+		var result = await ValourClient.RemoveFriendAsync(User.NameAndTag);
 
 		if (!result.Success)
 		{

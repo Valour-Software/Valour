@@ -7,6 +7,12 @@ using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
+using DirectMessage = Valour.Server.Models.DirectMessage;
+using Notification = Valour.Server.Models.Notification;
+using Planet = Valour.Server.Models.Planet;
+using PlanetMessage = Valour.Server.Models.PlanetMessage;
+using User = Valour.Server.Models.User;
+using UserChannelState = Valour.Server.Models.UserChannelState;
 
 namespace Valour.Server.Services;
 
@@ -60,6 +66,11 @@ public class CoreHubService
             Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying edited message {message.Id} to group {groupId}");
 
         await group.SendAsync("RelayEdit", message);
+    }
+
+    public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeService nodeService)
+    {
+        await nodeService.RelayUserEventAsync(targetId, NodeService.NodeEventType.Friend, eventData);
     }
 
     public async Task RelayDirectMessage(DirectMessage message, NodeService nodeService)

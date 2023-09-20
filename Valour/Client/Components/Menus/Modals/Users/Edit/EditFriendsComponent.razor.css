@@ -1,14 +1,15 @@
-button {
-    width: 97px;
-    height: 34px;
-    background-color: var(--main-5);
-    border: none;
-    border-radius: 5px;
-    font-size: 14px;
+.request-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: center;
 }
 
-.button-danger {
-    background-color: var(--v2-danger-dark);
+.action-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: center;
 }
 
 .inner-scroll-box {
@@ -18,43 +19,4 @@ button {
     padding: 10px;
     overflow-y: auto;
     background-color: var(--main-4)
-}
-
-.pfp {
-    height: 25px;
-    width: 25px;
-    border-radius: 50%;
-    vertical-align: top;
-}
-
-.name {
-    display: inline-block;
-    margin-left: 10px;
-    margin-right: 10px;
-    word-break:break-all;
-}
-
-.user-info {
-    margin-top: 2px;
-    min-width: 200px;
-    display: inline-block;
-    word-break: initial;
-}
-
-.options {
-    display: inline-block;
-    float: right;
-}
-
-.options .btn {
-    padding: 0px;
-    width: 65px;
-    height: 25px;
-    line-height: 10px;
-}
-
-.modal-bg {
-    background-color: var(--main-3);
-    padding: 20px;
-    border-radius: 20px;
 }

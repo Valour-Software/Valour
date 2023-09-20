@@ -248,6 +248,11 @@ public static class ValourClient
     public static event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
 
     /// <summary>
+    /// Run when there is a friend event
+    /// </summary>
+    public static event Func<FriendEventData, Task> OnFriendEvent;
+
+    /// <summary>
     /// Run when the user logs in
     /// </summary>
     public static event Func<Task> OnLogin;
@@ -455,12 +460,49 @@ public static class ValourClient
         return result;
     }
 
+    public static async Task FriendEventReceived(FriendEventData eventData)
+    {
+        if (eventData.Type == FriendEventType.Added)
+        {
+            // If we already had a friend request to them,
+            if (FriendsRequested.Any(x => x.Id == eventData.User.Id))
+            {
+                // Add as a friend
+                Friends.Add(eventData.User);
+            }
+            // otherwise,
+            else
+            {
+                // add to friend requests
+                FriendRequests.Add(eventData.User);
+            }
+        } 
+        else if (eventData.Type == FriendEventType.Removed)
+        {
+            // If they were already a friend,
+            if (Friends.Any(x => x.Id == eventData.User.Id))
+            {
+                // remove them
+                Friends.RemoveAll(x => x.Id == eventData.User.Id);
+            }
+            // otherwise,
+            else
+            {
+                // remove from friend requests
+                FriendRequests.RemoveAll(x => x.Id == eventData.User.Id);
+            }
+        }
+        
+        if (OnFriendEvent is not null)
+            await OnFriendEvent.Invoke(eventData);
+    }
+
     /// <summary>
     /// Adds a friend
     /// </summary>
-    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username)
+    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
     {
-        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(username)}");
+        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(nameAndTag)}");
 
         if (result.Success)
         {
@@ -468,7 +510,7 @@ public static class ValourClient
 
 			// If we already had a friend request from them,
 			// add them to the friends list
-			var request = FriendRequests.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+			var request = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
             if (request is not null)
             {
                 FriendRequests.Remove(request);
@@ -491,13 +533,13 @@ public static class ValourClient
 	/// <summary>
 	/// Declines a friend request
 	/// </summary>
-	public static async Task<TaskResult> DeclineFriendAsync(string username)
+	public static async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
 	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(username)}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
         if (result.Success)
         {
-            var declined = FriendRequests.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            var declined = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
             if (declined is not null)
                 FriendRequests.Remove(declined);
         }
@@ -508,14 +550,14 @@ public static class ValourClient
 	/// <summary>
 	/// Removes a friend
 	/// </summary>
-	public static async Task<TaskResult> RemoveFriendAsync(string username)
+	public static async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
     {
-        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(username)}", null);
+        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
         if (result.Success)
         {
-            FriendsRequested.RemoveAll(x => x.Name.ToLower() == username.ToLower());
-            var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            FriendsRequested.RemoveAll(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
+            var friend = Friends.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
             if (friend is not null)
             {
                 Friends.Remove(friend);
@@ -533,13 +575,13 @@ public static class ValourClient
 	/// <summary>
 	/// Cancels a friend request
 	/// </summary>
-	public static async Task<TaskResult> CancelFriendAsync(string username)
+	public static async Task<TaskResult> CancelFriendAsync(string nameAndTag)
 	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(username)}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
 		if (result.Success)
 		{
-			var canceled = FriendsRequested.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+			var canceled = FriendsRequested.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
 			if (canceled is not null)
 				FriendsRequested.Remove(canceled);
 		}
