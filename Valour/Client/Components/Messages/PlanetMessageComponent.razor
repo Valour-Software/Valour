@@ -78,8 +78,11 @@
     
     void IDisposable.Dispose()
     {
-        _author.OnUpdated -= OnAuthorUpdated;
-        _author.OnRoleModified -= OnAuthorRoleChange;
+        if (_author is not null)
+        {
+            _author.OnUpdated -= OnAuthorUpdated;
+            _author.OnRoleModified -= OnAuthorRoleChange;
+        }
         
         if (Holder != null)
         {

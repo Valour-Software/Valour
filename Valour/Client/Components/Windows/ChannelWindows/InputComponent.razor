@@ -275,6 +275,8 @@
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
 
             await OnAfterJsSetupAsync();
+
+            PreviewMessageComponent.Holder = MessageHolder;
         }
 
         CanRenderFlag = false;
@@ -565,7 +567,7 @@
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
                     ChannelId = Window.Channel.Id,
-                    Id = 0 
+                    Id = long.MaxValue
                 };
 
                 MessageHolder.RemoveErrorMessage();
