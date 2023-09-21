@@ -327,10 +327,16 @@ public class EcoService
         var planet = await _db.Planets.FindAsync(account.PlanetId);
         if (planet is null)
             return new TaskResult<EcoAccount>(false, "Planet not found");
+
+        var member =
+            await _db.PlanetMembers.FirstOrDefaultAsync(x =>
+                x.UserId == account.UserId && x.PlanetId == account.PlanetId);
         
-        if (!await _db.PlanetMembers.AnyAsync(x => x.UserId == account.UserId && x.PlanetId == account.PlanetId))
+        if (member is null)
             return new TaskResult<EcoAccount>(false, "User is not a member of the planet");
 
+        account.PlanetMemberId = member.Id;
+        
         if (string.IsNullOrWhiteSpace(account.Name))
         {
             account.Name = account.Id.ToString();

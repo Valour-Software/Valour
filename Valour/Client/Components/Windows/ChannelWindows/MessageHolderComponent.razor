@@ -62,7 +62,7 @@
         ClientMessageWrapper lastMessage = null;
         
         // Displayed messages
-        if (!(DisplayedMessageData == null || !DisplayedMessageData.Any()))
+        if (DisplayedMessageData is not null && DisplayedMessageData.Count > 0)
         {
             // Render each message
             foreach (var messageData in DisplayedMessageData)
@@ -85,7 +85,7 @@
         }
         
         // Queued messages
-        if (!(QueuedMessageData == null || !QueuedMessageData.Any()))
+        if (QueuedMessageData is not null && QueuedMessageData.Count > 0)
         {
             // Render each message
             foreach (var messageData in QueuedMessageData)
@@ -99,7 +99,7 @@
                 };
 
                 builder.OpenComponent<T>(0);
-                builder.AddAttribute(1, "MessageParams", messageParams);
+                builder.AddAttribute(1, "ParamData", messageParams);
                 builder.SetKey(messageData.Message.Id);
                 builder.CloseComponent();
 
@@ -119,14 +119,23 @@
         switch (Window)
         {
             case PlanetChatChannelWindow:
+            {
                 MessagesTemplate = TypedMessagesTemplate<PlanetMessageComponent>;
+                MessageType = typeof(PlanetMessageComponent);
                 break;
+            }
             case DirectChatChannelWindow:
+            {
                 MessagesTemplate = TypedMessagesTemplate<DirectMessageComponent>;
+                MessageType = typeof(DirectMessageComponent);
                 break;
+            }
             default:
+            {
                 MessagesTemplate = TypedMessagesTemplate<MessageComponent>;
+                MessageType = typeof(MessageComponent);
                 break;
+            }
         }
         
         _id = $"innerWindow-{Window.Id}";
@@ -142,24 +151,30 @@
 
     public void AddQueuedMessage(ClientMessageWrapper message)
     {
+        //Console.WriteLine("Queued Message");
         QueuedMessageData.Add(message);
         Refresh();
     }
 
     public void RemoveQueuedMessage(string fingerprint)
     {
+        
         var queued = QueuedMessageData.FirstOrDefault(x => x.Message.Fingerprint == fingerprint);
-        if (queued != null) { QueuedMessageData.Remove(queued); }
-
-        Refresh();
+        if (queued != null)
+        {
+            //Console.WriteLine("Removed Queued Message");
+            QueuedMessageData.Remove(queued);
+            Refresh();
+        }
     }
 
     public void RemoveErrorMessage()
     {
-        var error = DisplayedMessageData.FirstOrDefault(x => x.Message.Id == 0);
+        var error = DisplayedMessageData.FirstOrDefault(x => x.Message.Id == long.MaxValue);
         if (error != null) { 
-            QueuedMessageData.Remove(error); 
-            Refresh();
+           //Console.WriteLine("Removed error message");
+           DisplayedMessageData.Remove(error); 
+           Refresh();
         }
     }
 

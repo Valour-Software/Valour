@@ -225,6 +225,12 @@ public class RegisterService
                 Console.WriteLine("-- Error adding onboarding member! --");
                 Console.WriteLine(onboardingMember.Message);
             }
+            else
+            {
+                var globalAccount = await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == user.Id && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User);
+                globalAccount.PlanetMemberId = onboardingMember.Data.Id;
+                await _db.SaveChangesAsync();
+            }
             
             // Add Victor friendship
             var f0 = await _friendService.AddFriendAsync(user.Id, ISharedUser.VictorUserId);

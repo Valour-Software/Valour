@@ -114,7 +114,7 @@
         var messageParams = new MessageHolderComponent.MessageComponentParams()
         {
             MessageData = MessageData.Reply,
-            LastMessage = LastMessage,
+            LastMessage = null,
             Ghost = Ghost,
             IsInnerReply = true
         };
@@ -372,7 +372,7 @@
         CalculateClass();
         CalculateTime();
 
-    // Build actual message content
+        // Build actual message content
         MessageContent = RenderContent(MessageData);
 
         if (Minimal)
