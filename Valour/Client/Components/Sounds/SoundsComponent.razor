@@ -20,9 +20,28 @@
 
     private async Task OnNotification(Notification notification)
     {
-    // Has to be unread for sound to play
+        // Has to be unread for sound to play
         if (notification.TimeRead is null)
         {
+            
+            // This makes it so if you have the direct message window open,
+            // it won't play the sound when you get a message from that channel
+            // unless it's a mention
+            if (notification.Source == NotificationSource.DirectReply)
+            {
+                var windows = WindowManager.Instance.GetWindows();
+                foreach (var window in windows)
+                {
+                    if (window is DirectChatChannelWindow directChat)
+                    {
+                        if (directChat.DirectChannel.Id == notification.ChannelId)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+            
             await PlayNotificationSound();
         }
     }

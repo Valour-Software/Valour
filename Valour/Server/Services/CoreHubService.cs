@@ -7,6 +7,12 @@ using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
+using DirectMessage = Valour.Server.Models.DirectMessage;
+using Notification = Valour.Server.Models.Notification;
+using Planet = Valour.Server.Models.Planet;
+using PlanetMessage = Valour.Server.Models.PlanetMessage;
+using User = Valour.Server.Models.User;
+using UserChannelState = Valour.Server.Models.UserChannelState;
 
 namespace Valour.Server.Services;
 
@@ -62,6 +68,11 @@ public class CoreHubService
         await group.SendAsync("RelayEdit", message);
     }
 
+    public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeService nodeService)
+    {
+        await nodeService.RelayUserEventAsync(targetId, NodeService.NodeEventType.Friend, eventData);
+    }
+
     public async Task RelayDirectMessage(DirectMessage message, NodeService nodeService)
     {
         var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
@@ -85,10 +96,10 @@ public class CoreHubService
     {
         await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
     }
-
-    public async void NotifyDirectMessage(DirectMessage message, long userId)
+    
+    public async void RelayNotificationsCleared(long userId, NodeService nodeService)
     {
-        
+        await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.NotificationsCleared, userId);
     }
     
     public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>

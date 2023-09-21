@@ -1,6 +1,4 @@
-﻿@inject HttpClient Http
-@inject NavigationManager navManager
-@inject WindowManager windowManager
+﻿@inject WindowManager WindowManager
 @implements IDisposable
 
 @if (Planet is null)
@@ -9,15 +7,15 @@
     return;
 }
 
-<BigMenuComponent @ref="bigMenuComponent">
+<BigMenuComponent @ref="BigMenuComponent">
     <LeftSide>
         <EditPlanetMenuComponent Planet="@Planet"></EditPlanetMenuComponent>
     </LeftSide>
     <RightSide>
-        @switch (bigMenuComponent.SelectedTopLevelMenu?.Name)
+        @switch (BigMenuComponent.SelectedTopLevelMenu?.Name)
         {
             case "General Settings":
-                switch (bigMenuComponent.SelectedSubMenu.Name)
+                switch (BigMenuComponent.SelectedSubMenu.Name)
                 {
                     case "Info":
                         <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
@@ -25,7 +23,7 @@
                     case "Invites":
                         <EditPlanetInvitesComponent Planet="Planet"></EditPlanetInvitesComponent>
                         break;
-                    case "Users":
+                    case "Members":
                         <EditPlanetUsersComponent></EditPlanetUsersComponent>
                         break;
                     case "Bans":
@@ -55,50 +53,33 @@
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
 
-    private BigMenuComponent bigMenuComponent { get; set; }
-
-    public string GetButtonClass(int tab)
-    {
-        if (buttonStates[tab])
-        {
-            return "settings-button active";
-        }
-
-        return "settings-button";
-    }
-
-    public bool[] buttonStates = new bool[5]
-    {
-        true, false, false, false, false
-    };
-
-    public int selected = 0;
+    private BigMenuComponent BigMenuComponent { get; set; }
 
     public void Dispose()
     {
-        bigMenuComponent.RefreshRightSide -= Refresh;
+        BigMenuComponent.RefreshRightSide -= Refresh;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
-
         if (firstRender)
         {
-            bigMenuComponent.RefreshRightSide += Refresh;
+            BigMenuComponent.RefreshRightSide += Refresh;
         }
+        
         return base.OnAfterRenderAsync(firstRender);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        Planet = windowManager.FocusedPlanet;
+        Planet = WindowManager.FocusedPlanet;
     }
 
-    public async void Refresh()
+    private void Refresh()
     {
-        if (bigMenuComponent.SelectedSubMenu?.Name == "Delete")
+        if (BigMenuComponent.SelectedSubMenu?.Name == "Delete")
         {
-            await OnClickDelete();
+            OnClickDelete();
         }
         else
         {
@@ -106,23 +87,7 @@
         }
     }
 
-    public void SetSelectedTab(int tab)
-    {
-        Console.WriteLine("Set selected to " + tab);
-
-        for (int i = 0; i < buttonStates.Length; i++)
-        {
-            buttonStates[i] = false;
-        }
-
-        buttonStates[tab] = true;
-
-        selected = tab;
-
-        StateHasChanged();
-    }
-
-    private async Task OnClickDelete()
+    private void OnClickDelete()
     {
         ConfirmModalData modalData =
         new($"Delete {Planet.Name}?",

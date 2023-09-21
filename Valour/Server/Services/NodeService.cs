@@ -1,12 +1,10 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using Valour.Api.Nodes;
 using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Server.Redis;
-using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -232,6 +230,8 @@ public class NodeService
         DirectMessage,
         DirectMessageEdit,
         Notification,
+        Friend,
+        NotificationsCleared,
     }
     
     public struct NodeRelayEventData
@@ -309,6 +309,17 @@ public class NodeService
                 OnRelayNotification(notification, data.TargetUser);
                 break;
             }
+            case NodeEventType.Friend:
+            {
+                var friendEvent = (FriendEventData) data.Payload;
+                OnRelayFriendEvent(friendEvent, data.TargetUser);
+                break;
+            }
+            case NodeEventType.NotificationsCleared:
+            {
+                OnRelayNotificationsCleared((long)data.Payload);
+                break;
+            }
         }
     }
 
@@ -331,5 +342,15 @@ public class NodeService
     private void OnRelayNotification(Notification notif, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotification", notif);
+    }
+
+    private void OnRelayFriendEvent(FriendEventData eventData, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayFriendEvent", eventData);
+    }
+    
+    private void OnRelayNotificationsCleared(long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotificationsCleared");
     }
 }

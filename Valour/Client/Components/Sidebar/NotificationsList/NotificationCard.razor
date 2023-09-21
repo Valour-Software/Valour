@@ -15,6 +15,10 @@
 </div>
 
 @code {
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    
     [Parameter]
     public Notification Notification { get; set; }
 
@@ -34,7 +38,7 @@
     
     private async Task OnClickView()
     {
-        await NotificationNavigator.NavigateTo(Notification);
+        await NotificationNavigator.NavigateTo(Notification, Modal);
     }
     
     private async Task OnClickClear()

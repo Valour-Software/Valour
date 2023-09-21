@@ -413,12 +413,14 @@ CREATE TABLE IF NOT EXISTS eco_accounts (
   account_type INT NOT NULL,
   user_id BIGINT NOT NULL,
   planet_id BIGINT NOT NULL,
+  planet_member_id BIGINT NOT NULL,
   currency_id BIGINT NOT NULL,
   balance_value DECIMAL NOT NULL DEFAULT 0,
   
   CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
   CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
-  CONSTRAINT fk_currency FOREIGN KEY(currency_id) REFERENCES currencies(id)
+  CONSTRAINT fk_currency FOREIGN KEY(currency_id) REFERENCES currencies(id),
+  CONSTRAINT fk_member FOREIGN KEY(planet_member_id) REFERENCES planet_members(id)
 );
 
 CREATE TABLE IF NOT EXISTS transactions (

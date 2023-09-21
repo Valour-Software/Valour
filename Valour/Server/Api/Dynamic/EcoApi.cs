@@ -166,8 +166,13 @@ public class EcoApi
     public static async Task<IResult> GetPlanetPlanetAccountsAsync(
         long planetId, 
         EcoService ecoService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        int skip = 0,
+        int take = 50)
     {
+        if (take > 50)
+            take = 50;
+        
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
@@ -185,8 +190,13 @@ public class EcoApi
     public static async Task<IResult> GetPlanetUserAccountsAsync(
         long planetId, 
         EcoService ecoService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        int skip = 0,
+        int take = 50)
     {
+        if (take > 50)
+            take = 50;
+        
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
@@ -194,7 +204,31 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId);
+        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId, skip, take);
+        return Results.Json(accounts);
+    }
+    
+    // Returns all user accounts (with members) of the planet
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/member")]
+    [UserRequired]
+    public static async Task<IResult> GetPlanetUserAccountMembersAsync(
+        long planetId, 
+        EcoService ecoService,
+        PlanetMemberService memberService,
+        int skip = 0,
+        int take = 50)
+    {
+        if (take > 50)
+            take = 50;
+        
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        
+        var accounts = await ecoService.GetPlanetUserAccountMembersAsync(planetId, skip, take);
         return Results.Json(accounts);
     }
     

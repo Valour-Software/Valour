@@ -1,4 +1,5 @@
-﻿@inject NavigationManager NavigationManager
+﻿@implements IDisposable
+@inject NavigationManager NavigationManager
 @inject WindowManager WindowManager
 
 <div class="notifications-container">
@@ -11,6 +12,9 @@
             <NotificationCard @key="@context.Id" Notification="@context" />
         </Virtualize>
     </div>
+    <div class="clear-wrapper">
+        <button class="v-btn clear-btn" @onclick="OnClickClearNotifications">Clear All Notifications</button>
+    </div>
 </div>
 @code {
 
@@ -18,10 +22,28 @@
     
     protected override void OnInitialized()
     {
-        ValourClient.OnNotificationReceived += OnNotification;
+        ValourClient.OnNotificationReceived += HandleNotificationReceived;
+        ValourClient.OnNotificationsCleared += HandleNotificationsCleared;
     }
 
-    private Task OnNotification(Notification notification)
+    void IDisposable.Dispose()
+    {
+        ValourClient.OnNotificationReceived -= HandleNotificationReceived;
+        ValourClient.OnNotificationsCleared -= HandleNotificationsCleared;
+    }
+    
+    private async Task OnClickClearNotifications()
+    {
+        await ValourClient.ClearNotificationsAsync();
+    }
+
+    private Task HandleNotificationReceived(Notification notification)
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleNotificationsCleared()
     {
         StateHasChanged();
         return Task.CompletedTask;

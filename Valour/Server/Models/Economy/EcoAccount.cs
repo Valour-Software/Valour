@@ -44,6 +44,11 @@ public class EcoAccount : ISharedEcoAccount
     /// This will always be set
     /// </summary>
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The member id of the planet member this account belongs to
+    /// </summary>
+    public long? PlanetMemberId { get; set; }
 
     /// <summary>
     /// The id of the currency this account is using

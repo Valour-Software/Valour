@@ -64,14 +64,12 @@ namespace Valour.Api.Items
                 }
             }
         }
-
-        public async Task AddToCache()
-        {
-            await AddToCache(this);
-        }
         
         /// <summary>
         /// This exists because of some type weirdness in C#
+        /// Basically, if we do not use a generic, for some reason the cache does not
+        /// insert into the right type. So yes, it's weird the item has to be passed in to
+        /// its own method, but it works.
         /// </summary>
         public virtual async Task AddToCache<T>(T item, bool skipEvent = false) where T : LiveModel
         {

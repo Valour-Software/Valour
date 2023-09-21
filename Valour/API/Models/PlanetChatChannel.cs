@@ -127,7 +127,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         var item = (await node.GetJsonAsync<PlanetChatChannel>($"api/chatchannels/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }

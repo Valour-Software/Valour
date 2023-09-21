@@ -9,7 +9,7 @@
     return;
 }
 
-<BigMenuComponent @ref="bigMenu">
+<BigMenuComponent StartTopMenu="@StartTopMenu" StartSubMenu="@StartSubMenu" @ref="BigMenu">
     <LeftSide>
         <section>
             <p class="user-settings">USER SETTINGS</p>
@@ -18,6 +18,7 @@
                 <BigMenuTopLevelMenuComponent Icon="gear-fill" Name="General Settings">
                     <BigMenuSubMenuComponent Icon="info-circle-fill" Name="Info"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="person-fill" Name="Profile"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="person-heart" Name="Friends"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="rocket-takeoff-fill" Name="Subscriptions"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="envelope-paper-heart-fill" Name="Referrals"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="sign-stop-lights-fill" Name="Permissions"></BigMenuSubMenuComponent>
@@ -28,10 +29,10 @@
         </section>
     </LeftSide>
     <RightSide>
-        @switch (bigMenu.SelectedTopLevelMenu?.Name)
+        @switch (BigMenu.SelectedTopLevelMenu?.Name)
         {
             case "General Settings":
-                switch (bigMenu.SelectedSubMenu.Name)
+                switch (BigMenu.SelectedSubMenu.Name)
                 {
                     case "Info":
                         <EditUserInfoComponent User="User"></EditUserInfoComponent>
@@ -51,6 +52,9 @@
                     case "Referrals":
                         <EditReferralsComponent></EditReferralsComponent>
                         break;
+                    case "Friends":
+                        <EditFriendsComponent></EditFriendsComponent>
+                        break;
                     case "Log Out":
                         LogOut();
                         break;
@@ -62,29 +66,35 @@
 </BigMenuComponent>
 
 @code {
+    
+    [Parameter]
+    public string StartTopMenu { get; set; }
+    
+    [Parameter]
+    public string StartSubMenu { get; set; }
+    
     [Parameter]
     public User User { get; set; }
 
-    private BigMenuComponent bigMenu { get; set; }
+    private BigMenuComponent BigMenu { get; set; }
 
     public void Dispose()
     {
-        bigMenu.RefreshRightSide -= Refresh;
+        BigMenu.RefreshRightSide -= Refresh;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
-
         if (firstRender)
         {
-            bigMenu.RefreshRightSide += Refresh;
+            BigMenu.RefreshRightSide += Refresh;
         }
         return base.OnAfterRenderAsync(firstRender);
     }
 
-    public async void Refresh()
+    private async void Refresh()
     {
-        if (bigMenu.SelectedSubMenu?.Name == "Log Out")
+        if (BigMenu.SelectedSubMenu?.Name == "Log Out")
         {
             await LogOut();
         }
@@ -93,46 +103,13 @@
             StateHasChanged();
         }
     }
-
-    public string GetButtonClass(int tab)
-    {
-        if (buttonStates[tab])
-        {
-            return "settings-button active";
-        }
-
-        return "settings-button";
-    }
-
-    public bool[] buttonStates = new bool[2]
-    {
-        true, false
-    };
-
-    public int selected = 0;
-
-    protected override async Task OnInitializedAsync()
+    
+    protected override void OnInitialized()
     {
         User = ValourClient.Self;
     }
 
-    public void SetSelectedTab(int tab)
-    {
-        Console.WriteLine("Set selected to " + tab);
-
-        for (int i = 0; i < buttonStates.Length; i++)
-        {
-            buttonStates[i] = false;
-        }
-
-        buttonStates[tab] = true;
-
-        selected = tab;
-
-        StateHasChanged();
-    }
-
-    public async Task LogOut()
+    private async Task LogOut()
     {
         var response = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
 

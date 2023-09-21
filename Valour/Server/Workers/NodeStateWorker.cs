@@ -31,8 +31,26 @@ public class NodeStateWorker : IHostedService, IDisposable
         using var scope = _serviceProvider.CreateScope();
         _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
 
-        //var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
-
+        var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+        foreach (var account in await db.EcoAccounts.IgnoreQueryFilters().Where(x => x.PlanetMemberId == null).ToListAsync())
+        {
+            if (account.PlanetMemberId is not null)
+                continue;
+            
+            var member = await db.PlanetMembers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.PlanetId == account.PlanetId && x.UserId == account.UserId);
+            if (member is null)
+                continue;
+            
+            account.PlanetMemberId = member.Id;
+            
+            await db.SaveChangesAsync();
+            
+            Console.WriteLine($"Migrated account {account.Id}");
+        }
+        
+        Console.WriteLine("Finished migrate");
+        
+        
         await _longNodeService.AnnounceNode();
         
         _timer = new Timer(UpdateNodeState, null, TimeSpan.Zero,

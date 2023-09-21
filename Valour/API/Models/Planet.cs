@@ -150,7 +150,7 @@ public class Planet : LiveModel, ISharedPlanet
         var item = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }
@@ -421,6 +421,6 @@ public class Planet : LiveModel, ISharedPlanet
     public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
         await Node.PostAsync($"{IdRoute}/planetChannels/insert", model);
 
-    public Task<List<EcoAccount>> GetPlanetAccounts() =>
+    public Task<PagedModelResponse<EcoAccount>> GetPlanetAccounts(int skip = 0, int take = 50) =>
         EcoAccount.GetPlanetPlanetAccountsAsync(Id);
 }

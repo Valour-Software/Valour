@@ -91,7 +91,7 @@ public class PermissionsNode : LiveModel, ISharedPermissionsNode
         var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/permissionsnodes/{type}/{targetId}/{roleId}", true)).Data;
 
         if (permNode is not null)
-            await permNode.AddToCache();
+            await permNode.AddToCache(permNode);
 
         return permNode;
     }
@@ -111,7 +111,7 @@ public class PermissionsNode : LiveModel, ISharedPermissionsNode
         foreach (var node in nodes)
         {
             // Add or update in cache
-            await node.AddToCache();
+            await node.AddToCache(node);
             
             // Put cached node in results
             results.Add(ValourCache.Get<PermissionsNode>(node.Id));

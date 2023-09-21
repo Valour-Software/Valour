@@ -13,6 +13,7 @@ public static class EcoAccountMapper
             Name = account.Name,
             AccountType = account.AccountType,
             UserId = account.UserId,
+            PlanetMemberId = account.PlanetMemberId,
             PlanetId = account.PlanetId,
             CurrencyId = account.CurrencyId,
             BalanceValue = account.BalanceValue
@@ -31,6 +32,7 @@ public static class EcoAccountMapper
             AccountType = account.AccountType,
             UserId = account.UserId,
             PlanetId = account.PlanetId,
+            PlanetMemberId = account.PlanetMemberId,
             CurrencyId = account.CurrencyId,
             BalanceValue = account.BalanceValue
         };

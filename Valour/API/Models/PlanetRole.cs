@@ -140,7 +140,7 @@ public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
         var item = (await node.GetJsonAsync<PlanetRole>($"api/roles/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }

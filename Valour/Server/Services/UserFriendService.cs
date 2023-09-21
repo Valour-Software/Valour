@@ -2,6 +2,7 @@
 using System.Security.Cryptography;
 using Valour.Server.Database;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -9,16 +10,25 @@ public class UserFriendService
 {
     private readonly ValourDB _db;
     private readonly UserService _userService;
+    private readonly NotificationService _notificationService;
+    private readonly CoreHubService _coreHub;
+    private readonly NodeService _nodeService;
     private readonly ILogger<UserFriendService> _logger;
 
     public UserFriendService(
         ValourDB db,
         UserService userService,
+        NotificationService notificationService,
+        CoreHubService coreHub,
+        NodeService nodeService,
         ILogger<UserFriendService> logger)
     {
         _db = db;
         _logger = logger;
         _userService = userService;
+        _notificationService = notificationService;
+        _coreHub = coreHub;
+        _nodeService = nodeService;
     }
 
     public async Task<UserFriend> GetAsync(long userId, long friendId) =>
@@ -27,6 +37,10 @@ public class UserFriendService
 
     public async Task<TaskResult> RemoveFriendAsync(string friendUsername, long userId)
     {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new(false, "User not found.");
+        
         var friendUser = await _userService.GetByNameAsync(friendUsername);
         if (friendUser is null)
             return new(false, $"User {friendUsername} was not found.");
@@ -38,12 +52,22 @@ public class UserFriendService
 
         _db.UserFriends.Remove(friend);
         await _db.SaveChangesAsync();
+        
+        await _coreHub.RelayFriendEvent(friend.Id, new FriendEventData()
+        {
+            User = user.ToModel(),
+            Type = FriendEventType.Removed
+        }, _nodeService);
 
         return new(true, "Succcess");
     }
 
     public async Task<TaskResult<UserFriend>> AddFriendAsync(long friendId, long userId)
     {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new(false, "User not found.");
+        
         if (await _db.UserFriends.AnyAsync(x => x.UserId == userId &&
                                                 x.FriendId == friendId))
             return new(false, "Friend already added.");
@@ -57,6 +81,29 @@ public class UserFriendService
 
         await _db.UserFriends.AddAsync(newFriend.ToDatabase());
         await _db.SaveChangesAsync();
+        
+        // Send out notification
+
+        var notification = new Notification()
+        {
+            Title = $"{user.Name} has added you as a friend!",
+            Body = "You can add them back or ignore this.",
+            ImageUrl = user.PfpUrl,
+            UserId = friendId,
+            PlanetId = null,
+            ChannelId = null,
+            SourceId = userId,
+            Source = NotificationSource.FriendRequest,
+            ClickUrl = $"/friends"
+        };
+
+        await _notificationService.AddNotificationAsync(notification);
+        
+        await _coreHub.RelayFriendEvent(friendId, new FriendEventData()
+        {
+            User = user.ToModel(),
+            Type = FriendEventType.Added
+        }, _nodeService);
 
         return new(true, "Success", newFriend);
     }
@@ -91,6 +138,10 @@ public class UserFriendService
 
     public async Task<TaskResult> CancelRequestAsync(string username, long userId)
     {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new(false, "User not found.");
+        
         var targetUser = await _userService.GetByNameAsync(username);
         if (targetUser is null)
             return new(false, $"User {username} was not found.");
@@ -104,6 +155,12 @@ public class UserFriendService
 
         _db.UserFriends.Remove(request);
         await _db.SaveChangesAsync();
+        
+        await _coreHub.RelayFriendEvent(targetUser.Id, new FriendEventData()
+        {
+            User = user.ToModel(),
+            Type = FriendEventType.Removed
+        }, _nodeService);
 
         return new(true, "Success");
     }

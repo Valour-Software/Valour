@@ -45,6 +45,11 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// This will always be set
     /// </summary>
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The member id of the planet member this account belongs to
+    /// </summary>
+    public long? PlanetMemberId { get; set; }
 
     /// <summary>
     /// The id of the currency this account is using
@@ -71,7 +76,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         var item = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }
@@ -85,16 +90,19 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all planet accounts for the given planet id
     /// </summary>
-    public static async Task<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId)
+    public static async Task<PagedModelResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
+        if (take > 50)
+            take = 50;
+        
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet")).Data;
+        var accounts = (await node.GetJsonAsync<PagedModelResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet?skip={skip}&take={take}")).Data;
 
-        if (accounts is not null)
+        if (accounts.Items is not null)
         {
-            foreach (var account in accounts)
+            foreach (var account in accounts.Items)
             {
-                await account.AddToCache();
+                await account.AddToCache(account);
             }
         }
 
@@ -104,20 +112,43 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId)
+    public static async Task<PagedModelResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
+        if (take > 50)
+            take = 50;
+        
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user")).Data;
+        var accounts = (await node.GetJsonAsync<PagedModelResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
 
-        if (accounts is not null)
+        if (accounts.Items is not null)
         {
-            foreach (var account in accounts)
+            foreach (var account in accounts.Items)
             {
-                await account.AddToCache();
+                await account.AddToCache(account);
             }
         }
 
         return accounts;
+    }
+    
+    /// <summary>
+    /// Returns all user accounts for the given planet id
+    /// </summary>
+    public static async Task<PagedModelResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var results = (await node.GetJsonAsync<PagedModelResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
+
+        if (results.Items is not null)
+        {
+            foreach (var account in results.Items)
+            {
+                await account.Account.AddToCache(account.Account);
+                await account.Member.AddToCache(account.Member);
+            }
+        }
+
+        return results;
     }
 
     /// <summary>
@@ -140,7 +171,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         {
             foreach (var accountData in response)
             {
-                await accountData.Account.AddToCache();
+                await accountData.Account.AddToCache(accountData.Account);
             }
         }
 
@@ -153,7 +184,7 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         var account = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
         
         if (account is not null)
-            await account.AddToCache();
+            await account.AddToCache(account);
 
         return account;
     }

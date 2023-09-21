@@ -8,7 +8,16 @@
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
-        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
+        @{
+            var messageParams = new MessageHolderComponent.MessageComponentParams()
+            {
+                MessageData = PreviewMessage,
+                Ghost = true,
+                LastMessage = WindowComponent.MessageHolder.GetLastMessage(),
+            };
+            
+            <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+        }
     </div>
 
     <ChannelCurrentlyTypingComponent ParentComponent="WindowComponent" Channel="WindowComponent.Channel"></ChannelCurrentlyTypingComponent>

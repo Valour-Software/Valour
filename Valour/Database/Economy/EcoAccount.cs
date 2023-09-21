@@ -10,6 +10,9 @@ public class EcoAccount : ISharedEcoAccount
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
     
+    [ForeignKey("PlanetMemberId")]
+    public virtual PlanetMember PlanetMember { get; set; }
+    
     /// <summary>
     /// The database id of this economy account
     /// </summary>
@@ -41,6 +44,12 @@ public class EcoAccount : ISharedEcoAccount
     /// </summary>
     [Column("planet_id")]
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The member id of the planet member this account belongs to
+    /// </summary>
+    [Column("planet_member_id")]
+    public long? PlanetMemberId { get; set; }
 
     /// <summary>
     /// The id of the currency this account is using

@@ -4,14 +4,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
 using Valour.Api.Extensions;
-using Valour.Api.Models;
 using Valour.Api.Models.Messages.Embeds;
-using Valour.Api.Models;
 using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Client;
@@ -156,6 +153,11 @@ public static class ValourClient
     #region Event Fields
 
     /// <summary>
+    /// Run when the client browser is refocused
+    /// </summary>
+    public static event Func<Task> OnRefocus;
+
+    /// <summary>
     /// Run when the friends list updates
     /// </summary>
     public static event Func<Task> OnFriendsUpdate;
@@ -216,6 +218,11 @@ public static class ValourClient
     public static event Func<Notification, Task> OnNotificationReceived;
 
     /// <summary>
+    /// Run when notifications are cleared
+    /// </summary>
+    public static event Func<Task> OnNotificationsCleared;
+
+    /// <summary>
     /// Run when a channel sends a watching update
     /// </summary>
     public static event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
@@ -244,6 +251,11 @@ public static class ValourClient
     /// Run when a category is reordered
     /// </summary>
     public static event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
+
+    /// <summary>
+    /// Run when there is a friend event
+    /// </summary>
+    public static event Func<FriendEventData, Task> OnFriendEvent;
 
     /// <summary>
     /// Run when the user logs in
@@ -293,14 +305,14 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet
     /// </summary>
-    public static ValueTask<PlanetMember> GetSelfMember(Planet planet, bool force_refresh = false) =>
-        GetSelfMember(planet.Id, force_refresh);
+    public static ValueTask<PlanetMember> GetSelfMember(Planet planet, bool forceRefresh = false) =>
+        GetSelfMember(planet.Id, forceRefresh);
 
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
-        PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
+    public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool forceRefresh = false) =>
+        PlanetMember.FindAsyncByUser(Self.Id, planetId, forceRefresh);
 
     /// <summary>
     /// Sets the compliance data for the current user
@@ -453,12 +465,49 @@ public static class ValourClient
         return result;
     }
 
+    public static async Task HandleFriendEventReceived(FriendEventData eventData)
+    {
+        if (eventData.Type == FriendEventType.Added)
+        {
+            // If we already had a friend request to them,
+            if (FriendsRequested.Any(x => x.Id == eventData.User.Id))
+            {
+                // Add as a friend
+                Friends.Add(eventData.User);
+            }
+            // otherwise,
+            else
+            {
+                // add to friend requests
+                FriendRequests.Add(eventData.User);
+            }
+        } 
+        else if (eventData.Type == FriendEventType.Removed)
+        {
+            // If they were already a friend,
+            if (Friends.Any(x => x.Id == eventData.User.Id))
+            {
+                // remove them
+                Friends.RemoveAll(x => x.Id == eventData.User.Id);
+            }
+            // otherwise,
+            else
+            {
+                // remove from friend requests
+                FriendRequests.RemoveAll(x => x.Id == eventData.User.Id);
+            }
+        }
+        
+        if (OnFriendEvent is not null)
+            await OnFriendEvent.Invoke(eventData);
+    }
+
     /// <summary>
     /// Adds a friend
     /// </summary>
-    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username)
+    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
     {
-        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(username)}");
+        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(nameAndTag)}");
 
         if (result.Success)
         {
@@ -466,7 +515,7 @@ public static class ValourClient
 
 			// If we already had a friend request from them,
 			// add them to the friends list
-			var request = FriendRequests.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+			var request = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
             if (request is not null)
             {
                 FriendRequests.Remove(request);
@@ -489,13 +538,13 @@ public static class ValourClient
 	/// <summary>
 	/// Declines a friend request
 	/// </summary>
-	public static async Task<TaskResult> DeclineFriendAsync(string username)
+	public static async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
 	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(username)}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
         if (result.Success)
         {
-            var declined = FriendRequests.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            var declined = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
             if (declined is not null)
                 FriendRequests.Remove(declined);
         }
@@ -506,14 +555,14 @@ public static class ValourClient
 	/// <summary>
 	/// Removes a friend
 	/// </summary>
-	public static async Task<TaskResult> RemoveFriendAsync(string username)
+	public static async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
     {
-        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(username)}", null);
+        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
         if (result.Success)
         {
-            FriendsRequested.RemoveAll(x => x.Name.ToLower() == username.ToLower());
-            var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            FriendsRequested.RemoveAll(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
+            var friend = Friends.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
             if (friend is not null)
             {
                 Friends.Remove(friend);
@@ -531,13 +580,13 @@ public static class ValourClient
 	/// <summary>
 	/// Cancels a friend request
 	/// </summary>
-	public static async Task<TaskResult> CancelFriendAsync(string username)
+	public static async Task<TaskResult> CancelFriendAsync(string nameAndTag)
 	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(username)}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
 		if (result.Success)
 		{
-			var canceled = FriendsRequested.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+			var canceled = FriendsRequested.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
 			if (canceled is not null)
 				FriendsRequested.Remove(canceled);
 		}
@@ -784,12 +833,15 @@ public static class ValourClient
 
     #region SignalR Events
 
-    public static async Task RefreshNodes()
+    public static async Task HandleRefocus()
     {
         foreach (var node in NodeManager.Nodes)
         {
             await node.ForceRefresh();
         }
+        
+        if (OnRefocus is not null)
+            await OnRefocus.Invoke();
     }
 
     public static async Task NotifyNodeReconnect(Node node)
@@ -798,7 +850,7 @@ public static class ValourClient
             await OnNodeReconnect.Invoke(node);
     }
 
-    public static async Task UpdateChannelState(ChannelStateUpdate update)
+    public static async Task HandleUpdateChannelState(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
         var channel = ValourCache.Get<PlanetChatChannel>(update.ChannelId);
@@ -875,7 +927,7 @@ public static class ValourClient
             else
             {
                 eventData.Model = updated;
-                await updated.AddToCache();
+                await updated.AddToCache(updated);
             }
             
             // Fire off global events
@@ -919,7 +971,7 @@ public static class ValourClient
         return UnreadNotifications.Count(x => x.ChannelId == channelId);
     }
 
-    public static async Task NotificationReceived(Notification notification)
+    public static async Task HandleNotificationReceived(Notification notification)
     {
         await notification.AddToCache(notification);
         var cached = ValourCache.Get<Notification>(notification.Id);
@@ -947,10 +999,19 @@ public static class ValourClient
             await OnNotificationReceived.Invoke(cached);
     }
 
+    public static async Task HandleNotificationsCleared()
+    {
+        UnreadNotifications.Clear();
+        UnreadNotificationsLookup.Clear();
+        
+        if (OnNotificationsCleared is not null)
+            await OnNotificationsCleared.Invoke();
+    }
+
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task PlanetMessageReceived(PlanetMessage message)
+    public static async Task HandlePlanetMessageReceived(PlanetMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -966,7 +1027,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task PlanetMessageEdited(PlanetMessage message)
+    public static async Task HandlePlanetMessageEdited(PlanetMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -982,7 +1043,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task DirectMessageReceived(DirectMessage message)
+    public static async Task HandleDirectMessageReceived(DirectMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -998,7 +1059,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task DirectMessageEdited(DirectMessage message)
+    public static async Task HandleDirectMessageEdited(DirectMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1011,12 +1072,13 @@ public static class ValourClient
             await OnMessageEdited.Invoke(message);
     }
 
-    public static async Task MessageDeleted(PlanetMessage message)
+    public static async Task HandleMessageDeleted(PlanetMessage message)
     {
-        await OnMessageDeleted?.Invoke(message);
+        if (OnMessageDeleted is not null)
+            await OnMessageDeleted.Invoke(message);
     }
 
-    public static async Task ChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
+    public static async Task HandleChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
     {
         //Console.WriteLine("Watching: " + update.ChannelId);
         //foreach (var watcher in update.UserIds)
@@ -1028,25 +1090,25 @@ public static class ValourClient
             await OnChannelWatchingUpdate.Invoke(update);
     }
 
-    public static async Task ChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
+    public static async Task HandleChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
     {
         if (OnChannelCurrentlyTypingUpdate is not null)
             await OnChannelCurrentlyTypingUpdate.Invoke(update);
     }
 
-    public static async Task PersonalEmbedUpdate(PersonalEmbedUpdate update)
+    public static async Task HandlePersonalEmbedUpdate(PersonalEmbedUpdate update)
     {
         if (OnPersonalEmbedUpdate is not null)
             await OnPersonalEmbedUpdate.Invoke(update);
     }
 
-    public static async Task ChannelEmbedUpdate(ChannelEmbedUpdate update)
+    public static async Task HandleChannelEmbedUpdate(ChannelEmbedUpdate update)
     {
         if (OnChannelEmbedUpdate is not null)
             await OnChannelEmbedUpdate.Invoke(update);
     }
 
-    public static async Task CategoryOrderUpdate(CategoryOrderEvent eventData)
+    public static async Task HandleCategoryOrderUpdate(CategoryOrderEvent eventData)
     {
         // Update channels in cache
         int pos = 0;
@@ -1284,8 +1346,8 @@ public static class ValourClient
         // Load user data concurrently
         await Task.WhenAll(loadTasks);
 
-        if (OnLogin != null)
-            await OnLogin?.Invoke();
+        if (OnLogin is not null)
+            await OnLogin.Invoke();
         
         await BeginOnlinePings();
 
@@ -1346,8 +1408,8 @@ public static class ValourClient
 
         Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
 
-        if (OnLogin != null)
-            await OnLogin?.Invoke();
+        if (OnLogin is not null)
+            await OnLogin.Invoke();
 
         await JoinAllChannelsAsync();
         
@@ -1364,17 +1426,27 @@ public static class ValourClient
         // Get all joined planets
         var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
 
+        var planetTasks = new List<Task>();
+        
         // Add to cache
         foreach (var planet in planets)
         {
-            await ValourCache.Put(planet.Id, planet);
+            planetTasks.Add(new Task(async () =>
+            {
+                await ValourCache.Put(planet.Id, planet);
 
-            OpenPlanet(planet);
+                await OpenPlanet(planet);
 
-            var channels = await planet.GetChannelsAsync();
+                var channels = await planet.GetChannelsAsync();
 
-            channels.ForEach(async x => await OpenPlanetChannel(x));
+                foreach (var channel in channels)
+                {
+                    await OpenPlanetChannel(channel);
+                }
+            }));
         }
+
+        await Task.WhenAll(planetTasks);
 
         JoinedPlanets = planets;
 
@@ -1384,11 +1456,13 @@ public static class ValourClient
             await OnJoinedPlanetsUpdate.Invoke();
     }
 
-    public static async Task UpdateUserChannelState(UserChannelState channelState)
+    public static async Task HandleUpdateUserChannelState(UserChannelState channelState)
     {
         ChannelsLastViewedState[channelState.ChannelId] = channelState.LastViewedTime;
+        
         // Access dict again to maintain references (do not try to optimize and break everything)
-        await OnUserChannelStateUpdate.Invoke(channelState);
+        if (OnUserChannelStateUpdate is not null)
+            await OnUserChannelStateUpdate.Invoke(channelState);
     }
 
     public static async Task LoadTenorFavoritesAsync()
@@ -1421,7 +1495,7 @@ public static class ValourClient
         foreach (var channel in response.Data)
         {
             // Custom cache insert behavior
-            await channel.AddToCache();
+            await channel.AddToCache(channel);
         }
 
         if (DirectChatChannels is null)
@@ -1474,14 +1548,14 @@ public static class ValourClient
 
         // Add to cache
         foreach (var planet in planets)
-            await planet.AddToCache();
+            await planet.AddToCache(planet);
 
         JoinedPlanets = planets;
 
         _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
 
-        if (OnJoinedPlanetsUpdate != null)
-            await OnJoinedPlanetsUpdate?.Invoke();
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
     }
 
     public static async Task LoadUnreadNotificationsAsync()
@@ -1521,6 +1595,12 @@ public static class ValourClient
     public static async Task<TaskResult> MarkNotificationRead(Notification notification, bool value)
     {
         var result = await PrimaryNode.PostAsync($"api/notifications/self/{notification.Id}/read/{value}", null);
+        return result;
+    }
+
+    public static async Task<TaskResult> ClearNotificationsAsync()
+    {
+        var result = await PrimaryNode.PostAsync("api/notifications/self/clear", null);
         return result;
     }
 
@@ -1599,7 +1679,8 @@ public static class ValourClient
             JoinedPlanets.Add(await Planet.FindAsync(id));
         }
 
-        await OnJoinedPlanetsUpdate?.Invoke();
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
     }
 
     #endregion
@@ -1849,7 +1930,7 @@ public static class ValourClient
         {
             response = await http.PostAsync(BaseAddress + uri, jsonContent);
         }
-        catch (System.Exception)
+        catch (Exception)
         {
             return new TaskResult(false, "Unable to reach server.");
         }
@@ -1885,7 +1966,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        StringContent jsonContent = new StringContent((string)content);
+        StringContent jsonContent = new StringContent(content);
 
         var response = await http.PostAsync(BaseAddress + uri, jsonContent);
 
@@ -1896,7 +1977,7 @@ public static class ValourClient
 
         if (!result.Success)
         {
-            result.Message = await response.Content.ReadAsStringAsync(); ;
+            result.Message = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +

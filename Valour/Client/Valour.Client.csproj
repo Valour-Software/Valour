@@ -3,8 +3,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <ImplicitUsings>true</ImplicitUsings>
-    <PublishTrimmed>false</PublishTrimmed>
     <DebugType>portable</DebugType>
+    <WasmEnableSIMD>false</WasmEnableSIMD>
+    <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +14,10 @@
     <PackageReference Include="Blazored.Modal" Version="7.1.0" />
     <PackageReference Include="EmojiMartBlazor" Version="1.0.1" />
     <PackageReference Include="FastDragBlazor" Version="1.0.6" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-preview.7.23375.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-preview.7.23375.9" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.0-preview.7.23375.9" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0-preview.7.23375.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-rc.1.23421.29" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-rc.1.23421.29" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.0-rc.1.23421.29" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0-rc.1.23419.4" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.0" />
   </ItemGroup>
 

@@ -1,4 +1,5 @@
-﻿@inject NavigationManager NavManager
+﻿@implements IDisposable
+@inject NavigationManager NavManager
 
 <div class="quick-notif">
     @for (int i = 0; i < _showing.Count; i++)
@@ -19,6 +20,9 @@
 </div>
 
 @code {
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     private class QuickNotif
     {
@@ -30,10 +34,25 @@
 
     protected override void OnInitialized()
     {
-        ValourClient.OnNotificationReceived += OnNotification;
+        ValourClient.OnNotificationReceived += NotificationHandler;
+        ValourClient.OnNotificationsCleared += NotificationsClearedHandler;
     }
 
-    private async Task OnNotification(Notification notification)
+    void IDisposable.Dispose()
+    {
+        ValourClient.OnNotificationReceived -= NotificationHandler;
+        ValourClient.OnNotificationsCleared -= NotificationsClearedHandler;
+    }
+    
+    private Task NotificationsClearedHandler()
+    {
+        _showing.Clear();
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    private Task NotificationHandler(Notification notification)
     {
         bool render = false;
         
@@ -55,6 +74,8 @@
         
         if (render)
             StateHasChanged();
+
+        return Task.CompletedTask;
     }
 
     private void OnMouseEnter(QuickNotif notif)
@@ -74,7 +95,7 @@
         }
         else if (e.Button == 0)
         {
-            await NotificationNavigator.NavigateTo(notif.Notification);
+            await NotificationNavigator.NavigateTo(notif.Notification, Modal);
         }
     }
 }

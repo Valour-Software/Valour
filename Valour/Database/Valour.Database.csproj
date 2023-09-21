@@ -12,9 +12,9 @@
 
     <ItemGroup>
       <PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL" Version="6.0.3" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0-preview.7.23375.4" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0-preview.7.23375.4" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-preview.7" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0-rc.1.23419.6" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0-rc.1.23419.6" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.1" />
     </ItemGroup>
 
 </Project>

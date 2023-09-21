@@ -38,4 +38,19 @@ public class NotificationApi
 
         return ValourResult.Ok("Notification updated successfully");
     }
+
+    [ValourRoute(HttpVerbs.Post, "api/notifications/self/clear")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> ClearAllAsync(
+        UserService userService,
+        NotificationService notificationService)
+    {
+        var selfId = await userService.GetCurrentUserIdAsync();
+        
+        var result = await notificationService.ClearNotificationsForUser(selfId);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok("Notifications cleared successfully");
+    }
 }

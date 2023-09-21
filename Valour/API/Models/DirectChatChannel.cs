@@ -47,7 +47,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/directchatchannels/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }
@@ -81,7 +81,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/directchatchannels/byuser/{otherUserId}?create={create}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }

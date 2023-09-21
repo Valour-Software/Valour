@@ -51,7 +51,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
         var item = (await node.GetJsonAsync<PlanetVoiceChannel>($"api/voicechannels/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache();
+            await item.AddToCache(item);
 
         return item;
     }
