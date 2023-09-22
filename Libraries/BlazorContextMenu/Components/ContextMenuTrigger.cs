@@ -48,9 +48,17 @@ namespace BlazorContextMenu
             {
                 builder.AddAttribute(6, "class", CssClass);
             }
-            builder.AddAttribute(7, "id", Id);
-            builder.AddContent(8, ChildContent);
-            builder.AddElementReferenceCapture(9, (__value) =>
+
+            if (!string.IsNullOrWhiteSpace(Style))
+            {
+                builder.AddAttribute(7, "style", Style);
+            }
+            
+            
+            
+            builder.AddAttribute(8, "id", Id);
+            builder.AddContent(9, ChildContent);
+            builder.AddElementReferenceCapture(10, (__value) =>
             {
                 contextMenuTriggerElementRef = __value;
             });
@@ -81,6 +89,12 @@ namespace BlazorContextMenu
         /// </summary>
         [Parameter]
         public string CssClass { get; set; }
+        
+        /// <summary>
+        /// Additional inline style
+        /// </summary>
+        [Parameter]
+        public string Style { get; set; }
 
         /// <summary>
         /// The mouse button that triggers the menu.

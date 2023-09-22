@@ -1027,3 +1027,60 @@ img.emoji {
 .embed-item p, .embed-footer p, .embed-title p {
     margin-bottom: 0px;
 }
+
+/* Message fragments */
+.message .fragments p {
+    margin: 0;
+    word-break: break-word;
+}
+
+.message .fragments code {
+    margin: 0;
+    word-break: break-word;
+    background: #242424;
+}
+
+.message .fragments pre {
+    margin: 0;
+    word-break: break-word;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.message .fragments .enlarged {
+    max-width: 900px !important;
+    max-height: 900px !important;
+}
+
+.message .fragments a:not(.nohide) {
+    font-size: 0px;
+}
+
+.message .fragments a:not(.nohide):after {
+    font-size: 16px;
+    line-height: 0px;
+    content: attr(href);
+    visibility: visible;
+    left: 55px;
+    vertical-align: central;
+}
+
+.message .fragments .youtube {
+    max-width: 90%;
+    display: block;
+}
+
+.message .fragments video {
+    max-width: 90%;
+    max-height: 300px;
+    display: block;
+}
+
+.message .fragments .table {
+    max-width: 90%;
+    display: block;
+}
+
+.message .fragments > p > strong {
+    font-weight: bold
+}
