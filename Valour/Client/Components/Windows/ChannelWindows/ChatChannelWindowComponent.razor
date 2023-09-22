@@ -5,7 +5,7 @@
 <CascadingValue Value='Channel' IsFixed="true">
     <CascadingValue Value='Window' IsFixed="true">
         <CascadingValue Value='this' IsFixed="true">
-            <WindowFrameComponent Window="@Window" Title="@Title" Description="@Description">
+            <WindowFrameComponent @ref="@WindowFrame" Window="@Window" Title="@Title" Description="@Description">
                 <ChannelWatchingComponent ParentComponent="this" Channel="Channel" />
                 <CascadingValue Value='ChannelPermissions'>
                     <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
@@ -23,6 +23,8 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
+    public WindowFrameComponent WindowFrame { get; set; }
+    
     public IChatChannel Channel;
 
     public event Func<IChatChannel, Task> OnChannelChange;
@@ -77,6 +79,8 @@
     {
         Title = await GetChannelDisplayTitleAsync();
         Description = await GetChannelDisplayDescriptionAsync();
+        
+        Refresh();
         
         MessageHolder.Clear();
 

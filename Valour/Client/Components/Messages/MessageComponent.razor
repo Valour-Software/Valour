@@ -251,15 +251,14 @@
     {
     }
 
-    public virtual async Task OnClickName(MouseEventArgs e)
-    {
-        await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
-    }
+    public virtual Task OnClickName(MouseEventArgs e) =>
+        ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+    
 
     private async Task OnEditReceived(ModelUpdateEvent eventData)
     {
-        Console.WriteLine("EDIT RECEIVED");
-        Console.WriteLine(JsonSerializer.Serialize(eventData));
+        // Console.WriteLine("EDIT RECEIVED");
+        // Console.WriteLine(JsonSerializer.Serialize(eventData));
         await BuildMessage();
         await CloseEditMode();
     }
@@ -279,7 +278,7 @@
         {
             await WindowManager.Instance.SetSelectedWindow(Window);
 
-    // Initialize message
+            // Initialize message
             await MessageContextMenuComponent.Initialize(MessageData, Window.Component, this);
         }
     }
@@ -408,17 +407,17 @@
 
         Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.Id}";
 
-        if (!IsInnerReply && !Ghost)
-        {
-            Holder.AddRenderedMessage(this);
-        }
-
         User = await MessageData.Message.GetAuthorUserAsync();
 
         await BuildMessage(false);
 
         if (User != null)
             User.OnUpdated += OnUserUpdated;
+        
+        if (!IsInnerReply && !Ghost)
+        {
+            Holder.AddRenderedMessage(this);
+        }
     }
 
     public async Task OnUserUpdated(ModelUpdateEvent eventData)

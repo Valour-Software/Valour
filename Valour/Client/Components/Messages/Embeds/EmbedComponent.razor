@@ -120,7 +120,7 @@
 
         MessageWrapper.Message.EmbedData = message.EmbedData;
 		//Console.WriteLine(update.NewEmbedContent);
-		MessageWrapper.Message.embedParsed = false;
+		MessageWrapper.Message.SetEmbedParsed(false);
 		embed = MessageWrapper.Message.Embed;
 		ProcessPageChange = true;
 		StateHasChanged();
@@ -132,7 +132,7 @@
 		{
 			int currentpage = embed.currentPage;
 			MessageWrapper.Message.EmbedData = update.NewEmbedContent;
-			MessageWrapper.Message.embedParsed = false;
+			MessageWrapper.Message.SetEmbedParsed(false);
 			embed = MessageWrapper.Message.Embed;
 			if (!embed.KeepPageOnUpdate)
 			{
@@ -162,7 +162,7 @@
 					int currentpage = embed.currentPage;
 					MessageWrapper.Message.EmbedData = update.NewEmbedContent;
 					//Console.WriteLine(update.NewEmbedContent);
-					MessageWrapper.Message.embedParsed = false;
+					MessageWrapper.Message.SetEmbedParsed(false);
 					embed = MessageWrapper.Message.Embed;
 					if (!embed.KeepPageOnUpdate)
 					{
