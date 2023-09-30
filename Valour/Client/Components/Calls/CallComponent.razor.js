@@ -54,14 +54,27 @@ export let
             device: null,
             resolution: 'hd',
         },
+    mics = new Map(),
+    mic = 
+        {
+            device: null,
+        },
 
     // Other state
     closed = false,
     audioOnly = false,
     useDataChannel = false;
 
-export async function initialize(dotnetRef, memberId, channelId, e2e) {
+// Debug
+window.mics = mics;
+window.webcams = webcams;
 
+window.mic = mic;
+window.webcam = webcam;
+
+export async function initialize(dotnetRef, memberId, channelId, e2e) {
+    dotnet = dotnetRef;
+    
     e2eKey = e2e;
     if (e2eKey && e2eIsSupported()) {
         e2eSetCryptoKey('setCryptoKey', e2eKey, true);
@@ -75,6 +88,8 @@ export async function initialize(dotnetRef, memberId, channelId, e2e) {
         peerId,
         consumerReplicas
     );
+    
+    await updateMics();
 }
 
 export function close() {
@@ -1738,7 +1753,7 @@ export async function joinRoom()
         // Just get access to the mic and DO NOT close the mic track for a while.
         // Super hack!
         {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             const audioTrack = stream.getAudioTracks()[0];
 
             audioTrack.enabled = false;
@@ -1959,6 +1974,10 @@ export async function joinRoom()
         }
 
         */
+        
+        // Notify of all peers
+        console.debug('joinRoom() | calling NotifyStartingPeers()', peers);
+        await dotnet.invokeMethodAsync('NotifyStartingPeers', peers);
 
         // Enable mic/webcam.
         if (produce)
@@ -1979,8 +1998,10 @@ export async function joinRoom()
 
             const devicesCookie = getCookieDevices();
 
-            if (!devicesCookie || devicesCookie.webcamEnabled)
-                enableWebcam();
+            // TODO: enable webcam in the future
+            
+            //if (!devicesCookie || devicesCookie.webcamEnabled)
+            //    enableWebcam();
 
             sendTransport.on('connectionstatechange', (connectionState) =>
             {
@@ -2021,6 +2042,45 @@ export async function joinRoom()
 
         close();
     }
+}
+
+export async function updateMics()
+{
+    console.debug('updateMics()');
+
+    // Reset the list.
+    mics = new Map();
+
+    console.debug('updateMics() | calling enumerateDevices()');
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    for (const device of devices)
+    {
+        if (device.kind === 'videoinput')
+            continue;
+
+        mics.set(device.deviceId, device);
+    }
+
+    const array = Array.from(mics.values());
+    const len = array.length;
+    const currentMicId =
+        mic.device ? mic.device.deviceId : undefined;
+
+    console.debug('updateMics() [mics:%o]', array);
+
+    if (len === 0)
+        mic.device = null;
+    else if (!mics.has(currentMicId))
+        mic.device = array[0];
+
+    // TODO: dotnet event
+
+    /*
+    store.dispatch(
+        stateActions.setCanChangeWebcam(this.webcams.size > 1));
+     */
 }
 
 export async function updateWebcams()

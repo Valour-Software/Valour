@@ -38,7 +38,7 @@
         /* Very cool logic goes here */
         listManager.OnItemClickInCategory(Channel, ParentCategory);
 
-        await CallComponent.Instance.Initialize(Channel.Id);
+        await CallComponent.Instance.Initialize(Channel);
         
         StateHasChanged();
     }

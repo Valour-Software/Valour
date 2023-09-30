@@ -6,6 +6,8 @@ export let activeId = '';
 export function initialize(id, x, y, right = false){
     const element = document.getElementById(id);
     
+    console.debug('initializing draggable ' + id);
+    
     if (right) {
         element.style.left = ((element.parentElement.clientWidth - x - element.clientWidth) / element.parentElement.clientWidth) * 100 + "%";
     } else {

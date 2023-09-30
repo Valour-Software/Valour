@@ -3,24 +3,26 @@
 
 @if (ActiveChannel is not null)
 {
-    <SmoothDraggable>
-        <div style="background-color: black; padding: 20px">
-            <h1>This is a call</h1>
-            <br />
-            
-            @foreach (var peer in VisiblePeers)
-            {
-                <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer" />
-            }
-        </div>
-    </SmoothDraggable>
+    <div class="drag-area">
+        <SmoothDraggable StartX="40" StartY="10" FromRight="@false">
+            <div class="call-container">
+                <h5>Active Call: @ActiveChannel.Name</h5>
+                <br />
+                
+                @foreach (var peer in VisiblePeers)
+                {
+                    <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer" />
+                }
+            </div>
+        </SmoothDraggable>
+    </div>
 }
 
 
 
 @code {
 
-    public long? ActiveChannel { get; set; } = null;
+    public PlanetVoiceChannel ActiveChannel { get; set; } = null;
     
     public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
     public List<MediaPeerComponent> PeerComponents { get; set; } = new List<MediaPeerComponent>();
@@ -48,7 +50,7 @@
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Voice/MediaSoupWrapper.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Calls/CallComponent.razor.js");
         }
     }
 
@@ -66,7 +68,7 @@
 
     /* Methods that invoke JS */
 
-    public async Task Initialize(long channelId)
+    public async Task Initialize(PlanetVoiceChannel channel)
     {
         if (ActiveChannel is not null)
         {
@@ -74,8 +76,10 @@
             PeerComponents.Clear();
         }
 
-        ActiveChannel = channelId;
-        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channelId);
+        ActiveChannel = channel;
+        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id);
+        
+        await Join();
     }
 
     public async Task Join()
@@ -179,5 +183,18 @@
         if (ActiveChannel is null)
             return;
         
+    }
+    
+    [JSInvokable]
+    public async Task NotifyStartingPeers(VisiblePeer[] peers)
+    {
+        Console.WriteLine("dotnet: notify starting peers");
+        
+        if (ActiveChannel is null)
+            return;
+        
+        VisiblePeers.Clear();
+        VisiblePeers.AddRange(peers);
+        StateHasChanged();
     }
 }
