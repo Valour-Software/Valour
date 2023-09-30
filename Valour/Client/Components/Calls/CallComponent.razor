@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
+@using Valour.Api.Extensions
 @implements IAsyncDisposable
 
 @if (ActiveChannel is not null)
@@ -60,10 +61,16 @@
         await _jsModule.DisposeAsync();
     }
 
-    public void NotifyPeerElementReady(MediaPeerComponent component)
+    public async Task NotifyPeerElementReady(MediaPeerComponent component)
     {
         if (!PeerComponents.Contains(component))
             PeerComponents.Add(component);
+        
+        // Hook up the peer's media track to the element
+        if (component.Peer.Kind == "audio" || component.Peer.Kind == "video")
+        {
+            await HookPeerElementMediaTrack(component.ElementId, component.Peer.PeerId, component.Peer.Kind);
+        }
     }
 
     /* Methods that invoke JS */
@@ -183,6 +190,40 @@
         if (ActiveChannel is null)
             return;
         
+    }
+
+    [JSInvokable]
+    public async Task NotifyPeerConsumer(string peerId, string type, string codec, string kind)
+    {
+        Console.WriteLine("dotnet: notify peer consumer");
+        
+        // Replace with more complete peer
+        var old = VisiblePeers.FirstOrDefault(x => x.PeerId == peerId);
+        if (old is null)
+        {
+            VisiblePeers.Add(new VisiblePeer()
+            {
+                PeerId = peerId,
+                Kind = kind,
+                Codec = codec,
+                Type = type
+            });
+            
+            StateHasChanged();
+            return;
+        }
+        
+        old.Kind = kind;
+        old.Codec = codec;
+        old.Type = type;
+        
+        // Notify peer component
+        var component = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);
+        
+        if (component is null)
+            return;
+        
+        await component.NotifyPeerUpdated();
     }
     
     [JSInvokable]

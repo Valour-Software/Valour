@@ -72,6 +72,8 @@ window.webcams = webcams;
 window.mic = mic;
 window.webcam = webcam;
 
+window.consumers = consumers;
+
 export async function initialize(dotnetRef, memberId, channelId, e2e) {
     dotnet = dotnetRef;
     
@@ -90,6 +92,37 @@ export async function initialize(dotnetRef, memberId, channelId, e2e) {
     );
     
     await updateMics();
+}
+
+export function hookPeerElementMediaTrack(elementId, peerId, kind) {
+
+    console.log(`Hooking peer ${elementId}`);
+
+    const consumer = consumers.get(peerId);
+    
+    if (!consumer) {
+        console.error(`hookPeerElementMediaTrack() | No consumer found for peer ${peerId}`);
+        return;
+    }
+
+    const element = document.getElementById(elementId);
+
+    element.srcObject = new MediaStream([consumer.track.clone()]);
+    element.consumer = consumer;
+
+    element.rehook = function () {
+        hookPeerElementMediaTrack(elementId, peerId, kind);
+    }
+
+    //element.resumeConsumer = function () {
+    //    resumeConsumer(consumer);
+    //}
+
+    element.play()
+        .then(() => { })
+        .catch((e) => {
+            console.error(e);
+        });
 }
 
 export function close() {
@@ -212,6 +245,17 @@ export async function join()
                             consumer.rtpParameters.encodings[0].scalabilityMode);
 
                     // TODO: dotnet event
+                    
+                    const consumerData = {
+                        id                     : consumer.id,
+                        type                   : type,
+                        codec                  : consumer.rtpParameters.codecs[0].mimeType.split('/')[1],
+                        kind                  : consumer.track?.kind
+                    };
+                    
+                    console.log('new consumer ', consumerData);
+                    
+                    await dotnet.invokeMethodAsync('NotifyPeerConsumer', consumer.id, type, consumer.rtpParameters.codecs[0].mimeType.split('/')[1], consumer.track?.kind);
 
                     accept();
 

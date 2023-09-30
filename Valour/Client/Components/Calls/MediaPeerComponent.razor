@@ -1,8 +1,9 @@
 ﻿@if (Peer.Kind == "audio")
 {
+    <p>Audio: @Peer.PeerId</p>
     <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
 }
-else
+else if (Peer.Kind == "video")
 {
     <div class="peer-video-wrapper">
         <video class="peer-video" playsinline autoplay id="@ElementId" />
@@ -10,6 +11,9 @@ else
             Pause
         </div>
     </div>
+}
+else{
+    <p>Listening: @Peer.PeerId</p>
 }
 
 @code {
@@ -34,7 +38,7 @@ else
 
     protected override void OnInitialized()
     {
-        ElementId = $"{Peer.PeerId}-{Peer.MediaTag}";
+        ElementId = Peer.PeerId;
         Peer.ElementId = ElementId;
     }
 
@@ -43,9 +47,20 @@ else
         if (firstRender)
         {
             Console.WriteLine("Peer component rendered. Notifying parent...");
-            Parent.NotifyPeerElementReady(this);
+            await Parent.NotifyPeerElementReady(this);
         }
 
         _canRender = false;
+    }
+
+    public async Task NotifyPeerUpdated()
+    {
+        Console.WriteLine($"Setting updated peer {Peer.PeerId}...");
+        
+        Console.WriteLine("Peer has track: " + (!string.IsNullOrWhiteSpace(Peer.Kind)));
+        
+        await Parent.NotifyPeerElementReady(this);
+        
+        StateHasChanged();
     }
 }
