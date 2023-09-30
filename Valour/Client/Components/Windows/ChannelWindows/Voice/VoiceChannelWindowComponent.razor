@@ -60,7 +60,12 @@
 
         // TODO: Eventually move this stuff to the API
 
-        await MediaSoup.SendCameraStreams();
+        await MediaSoup.Initialize(Channel.Id);
+        await MediaSoup.Join();
+        // await MediaSoup.JoinRoom();
+        // await MediaSoup.EnableMic();
+
+        // await MediaSoup.SendCameraStreams();
     }
 
     protected override bool ShouldRender()

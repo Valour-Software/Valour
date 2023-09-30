@@ -28,7 +28,6 @@
         {
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Voice/MediaSoupWrapper.razor.js");
-            await _jsModule.InvokeVoidAsync("initialize", _clientId, _thisRef);
         }
     }
 
@@ -44,9 +43,18 @@
     }
 
     /* Methods that invoke JS */
+    
+    public async Task Initialize(long channelId) => 
+        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channelId);
 
-    public async Task<JoinRoomResponse> JoinRoom() => 
-        await _jsModule.InvokeAsync<JoinRoomResponse>("joinRoom");
+    public async Task Join() => 
+        await _jsModule.InvokeVoidAsync("join");
+    
+    public async Task JoinRoom() => 
+        await _jsModule.InvokeVoidAsync("joinRoom");
+    
+    public async Task EnableMic() => 
+        await _jsModule.InvokeVoidAsync("enableMic");
 
     public async Task<SendCameraStreamResponse> SendCameraStreams() =>
         await _jsModule.InvokeAsync<SendCameraStreamResponse>("sendCameraStreams");
