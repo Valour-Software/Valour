@@ -1,8 +1,31 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
+@if (ActiveChannel is not null)
+{
+    <SmoothDraggable>
+        <div style="background-color: black; padding: 20px">
+            <h1>This is a call</h1>
+            <br />
+            
+            @foreach (var peer in VisiblePeers)
+            {
+                <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer" />
+            }
+        </div>
+    </SmoothDraggable>
+}
+
+
+
 @code {
-    public static MediaSoupWrapper Instance { get; private set; }
+
+    public long? ActiveChannel { get; set; } = null;
+    
+    public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
+    public List<MediaPeerComponent> PeerComponents { get; set; } = new List<MediaPeerComponent>();
+
+    public static CallComponent Instance { get; private set; }
 
     protected override void OnInitialized()
     {
@@ -18,9 +41,7 @@
     /// <summary>
     /// Dotnet object reference for use in Javascript
     /// </summary>
-    private DotNetObjectReference<MediaSoupWrapper> _thisRef;
-
-    private VoiceChannelWindowComponent ActiveWindow { get; set; }
+    private DotNetObjectReference<CallComponent> _thisRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -37,19 +58,32 @@
         await _jsModule.DisposeAsync();
     }
 
-    public void SetActiveWindow(VoiceChannelWindowComponent window)
+    public void NotifyPeerElementReady(MediaPeerComponent component)
     {
-        ActiveWindow = window;
+        if (!PeerComponents.Contains(component))
+            PeerComponents.Add(component);
     }
 
     /* Methods that invoke JS */
-    
-    public async Task Initialize(long channelId) => 
-        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channelId);
 
-    public async Task Join() => 
+    public async Task Initialize(long channelId)
+    {
+        if (ActiveChannel is not null)
+        {
+            // Cleanup old call
+            PeerComponents.Clear();
+        }
+
+        ActiveChannel = channelId;
+        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channelId);
+    }
+
+    public async Task Join()
+    {
         await _jsModule.InvokeVoidAsync("join");
-    
+        StateHasChanged();
+    }
+
     public async Task JoinRoom() => 
         await _jsModule.InvokeVoidAsync("joinRoom");
     
@@ -118,38 +152,32 @@
     [JSInvokable]
     public async Task OnSpeakerUpdate(ActiveSpeaker speaker)
     {
-        if (ActiveWindow is null)
+        if (ActiveChannel is null)
             return;
-
-        await ActiveWindow.OnSpeakerUpdate(speaker);
+        
     }
 
     [JSInvokable]
     public async Task OnPeerListUpdate(Dictionary<string, MediaPeer> peers)
     {
-        if (ActiveWindow is null)
+        if (ActiveChannel is null)
             return;
-
-        await ActiveWindow.OnPeerListUpdate(peers);
+        
     }
 
     [JSInvokable]
     public async Task OnReadyBuildPeer(string peerId, string mediaTag, string kind)
     {
-        Console.WriteLine("Got peer build request, forwarding to active window...");
-
-        if (ActiveWindow is null)
+        if (ActiveChannel is null)
             return;
-
-        await ActiveWindow.OnReadyBuildPeer(peerId, mediaTag, kind);
+        
     }
 
     [JSInvokable]
     public async Task NotifyNeedDisposePeer(string peerId, string mediaTag)
     {
-        if (ActiveWindow is null)
+        if (ActiveChannel is null)
             return;
-
-        await ActiveWindow.DisposePeer(peerId, mediaTag);
+        
     }
 }

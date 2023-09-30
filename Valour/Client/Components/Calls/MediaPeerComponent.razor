@@ -14,7 +14,7 @@ else
 
 @code {
     [Parameter]
-    public VoiceChannelWindowComponent Parent { get; set; }
+    public CallComponent Parent { get; set; }
 
     [Parameter]
     public VisiblePeer Peer { get; set; }
@@ -43,7 +43,7 @@ else
         if (firstRender)
         {
             Console.WriteLine("Peer component rendered. Notifying parent...");
-            await Parent.NotifyPeerElementReady(Peer);
+            Parent.NotifyPeerElementReady(this);
         }
 
         _canRender = false;

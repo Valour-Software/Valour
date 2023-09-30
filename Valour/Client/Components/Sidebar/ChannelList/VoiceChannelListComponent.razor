@@ -1,4 +1,5 @@
-﻿@implements IDisposable
+﻿@using Valour.Client.Components.Calls
+@implements IDisposable
 
 @inject WindowManager windowManager
 @inject ChannelListManager listManager
@@ -37,20 +38,8 @@
         /* Very cool logic goes here */
         listManager.OnItemClickInCategory(Channel, ParentCategory);
 
-        var voiceWindows = windowManager.GetWindows().OfType<VoiceChannelWindow>();
-
-        /* Check if another voice channel is open */
-        if (voiceWindows.Count() > 0)
-        {
-            var current = voiceWindows.FirstOrDefault();
-            await current.Component.SwapChannel(Channel);
-        }
-        else
-        {
-            var newWindow = new PlanetVoiceChannelWindow(Channel);
-            await windowManager.AddWindowAsync(newWindow, windowManager.GetSelectedWindow().Holder);
-        }
-
+        await CallComponent.Instance.Initialize(Channel.Id);
+        
         StateHasChanged();
     }
 
