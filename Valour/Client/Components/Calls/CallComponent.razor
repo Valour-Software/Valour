@@ -90,7 +90,7 @@
 
         SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, channel.PlanetId);
 
-        _clientId = SelfMember.Id.ToString();
+        _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
         
         await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id);
         
