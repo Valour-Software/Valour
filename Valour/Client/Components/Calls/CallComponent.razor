@@ -26,9 +26,12 @@
     public PlanetVoiceChannel ActiveChannel { get; set; } = null;
     
     public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
+    
     public List<MediaPeerComponent> PeerComponents { get; set; } = new List<MediaPeerComponent>();
 
     public static CallComponent Instance { get; private set; }
+    
+    private PlanetMember SelfMember { get; set; }
 
     protected override void OnInitialized()
     {
@@ -39,7 +42,7 @@
     /// Module for calling Javascript functions
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
-    private string _clientId = Guid.NewGuid().ToString();
+    private string _clientId = "undefined";
 
     /// <summary>
     /// Dotnet object reference for use in Javascript
@@ -84,6 +87,11 @@
         }
 
         ActiveChannel = channel;
+
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, channel.PlanetId);
+
+        _clientId = SelfMember.Id.ToString();
+        
         await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id);
         
         await Join();

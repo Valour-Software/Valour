@@ -1,6 +1,6 @@
 ﻿@if (Peer.Kind == "audio")
 {
-    <p>Audio: @Peer.PeerId</p>
+    <p>Audio: @_name</p>
     <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
 }
 else if (Peer.Kind == "video")
@@ -13,7 +13,7 @@ else if (Peer.Kind == "video")
     </div>
 }
 else{
-    <p>Listening: @Peer.PeerId</p>
+    <p>Listening: @_name</p>
 }
 
 @code {
@@ -22,6 +22,9 @@ else{
 
     [Parameter]
     public VisiblePeer Peer { get; set; }
+    
+    private PlanetMember _member;
+    private string _name;
 
     public string ElementId { get; set; }
 
@@ -36,10 +39,16 @@ else{
         StateHasChanged();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         ElementId = Peer.PeerId;
-        Peer.ElementId = ElementId;
+        _name = Peer.PeerId;
+
+        if (long.TryParse(Peer.PeerId, out var memberId))
+        {
+            _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId);
+            _name = await _member.GetNameAsync();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
