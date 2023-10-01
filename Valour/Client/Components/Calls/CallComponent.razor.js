@@ -105,6 +105,7 @@ export function getDevice()
 }
 
 export async function initialize(dotnetRef, clientId, channelId, e2e, micId) {
+    closed = false;
     device = getDevice();
     window.device = device;
     
@@ -131,19 +132,19 @@ export function hookPeerElementMediaTrack(elementId, consumerId, kind) {
     console.log(`Hooking peer ${elementId}`);
 
     const consumer = consumers.get(consumerId);
-    
+
     if (!consumer) {
         console.error(`hookPeerElementMediaTrack() | No consumer found for peer ${consumerId}`);
         return;
     }
 
     const element = document.querySelector('#' + elementId + ' .media');
-    
+
     console.debug('hook element', element);
 
     const stream = new MediaStream();
     stream.addTrack(consumer.track);
-    
+
     element.srcObject = stream;
     element.consumer = consumer;
 
@@ -160,7 +161,85 @@ export function hookPeerElementMediaTrack(elementId, consumerId, kind) {
         .catch((e) => {
             console.error(e);
         });
+
+    //const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    //const source = audioCtx.createMediaElementSource(element);
+    //const gainNode = audioCtx.createGain();
+    //gainNode.gain.value = 1.0;
+
+    //source.connect(gainNode);
+    //gainNode.connect(audioCtx.destination);
+    
+    //element.gainNode = gainNode;
 }
+
+export function setPeerConsumerVolume(elementId, volume) {
+    const element = document.querySelector('#' + elementId + ' .media');
+    //const gainNode = element.gainNode;
+    
+    //if (gainNode) {
+        // Change volume smoothly
+        // gainNode.gain.exponentialRampToValueAtTime(volume, gainNode.context.currentTime + 0.5);
+    //}
+    
+    element.volume = volume / 150.0;
+}
+
+/*
+export function hookPeerElementMediaTrack(elementId, consumerId, kind) {
+
+    console.log(`Hooking peer ${elementId}`);
+
+    const consumer = consumers.get(consumerId);
+    
+    if (!consumer) {
+        console.error(`hookPeerElementMediaTrack() | No consumer found for peer ${consumerId}`);
+        return;
+    }
+
+    const stream = new MediaStream();
+    stream.addTrack(consumer.track);
+
+    const element = document.querySelector('#' + elementId + ' .media');
+    
+    
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const dest = audioCtx.createMediaStreamDestination();
+    
+    const source = audioCtx.createMediaStreamSource(stream);
+    const gainNode = audioCtx.createGain();
+    source.connect(gainNode);
+    gainNode.connect(dest);
+    //gainNode.start();
+    
+    console.debug('hook element', element);
+
+    element.gainNode = gainNode;
+    element.audioCtx = audioCtx;
+    element.source = source;
+
+    
+    //element.srcObject = stream;
+    //element.consumer = consumer;
+
+    //element.rehook = function () {
+    //    hookPeerElementMediaTrack(elementId, consumerId, kind);
+    //}
+
+    //element.resumeConsumer = function () {
+    //    resumeConsumer(consumer);
+    //}
+
+    element.srcObject = dest.stream;
+        
+    element.play()
+        .then(() => { })
+        .catch((e) => {
+            console.error(e);
+        });
+}
+
+ */
 
 export function close() {
     if (closed) {
@@ -2272,6 +2351,16 @@ export function getWebcamType(device)
 
         return 'front';
     }
+}
+
+export async function pauseConsumerById(consumerId){
+    const consumer = consumers.get(consumerId);
+    await pauseConsumer(consumer);
+}
+
+export async function resumeConsumerById(consumerId){
+    const consumer = consumers.get(consumerId);
+    await resumeConsumer(consumer);
 }
 
 export async function pauseConsumer(consumer)

@@ -1,4 +1,4 @@
-﻿<div id="@ElementId">
+﻿<div id="@ElementId" @onmousedown="@SetContextSelected">
     @if (Peer.Kind == "video")
     {
         <div class="peer-video-wrapper">
@@ -12,7 +12,7 @@
         <div class="audio-row">
             <div class="audio-left">
                 <img alt="@_name's profile picture" class="audio-pfp" src="@_pfpUrl" @onerror="@OnPfpError"/>
-                <p>@_name</p>
+                <p class="name" @onclick="ShowProfileAsync">@_name</p>
             </div>
 
             <i class="bi @GetAudioIcon()" style="color: @GetAudioIconColor()"></i>
@@ -26,43 +26,63 @@
 </div>
 
 @code {
+
     [Parameter]
     public CallComponent Parent { get; set; }
 
     [Parameter]
     public VisiblePeer Peer { get; set; }
-    
+
     private PlanetMember _member;
     private User _user;
     private string _name;
     private string _pfpUrl;
+    private float _volume = 150f;
 
     private bool _remoteMuted = false;
+    private bool _localMuted = false;
     private bool _isActiveSpeaker = false;
 
+    public bool GetLocalMuted() => _localMuted;
+    public float GetVolume() => _volume;
+    
     private string GetAudioIconColor()
     {
+        if (_localMuted)
+            return "red";
+        
         if (_isActiveSpeaker)
             return "var(--v-cyan)";
-        
+
         return "#fff";
     }
-    
+
     private string GetAudioIcon()
     {
-        if (_isActiveSpeaker)
-            return "bi-mic-fill";
-
-        if (_remoteMuted)
+        if (_remoteMuted || _localMuted)
+        {
+            if (_isActiveSpeaker)
+            {
+                return "bi-mic-mute-fill";
+            }
+            
             return "bi-mic-mute";
-        
-        return "bi-mic";
+        }
+        else
+        {
+            if (_isActiveSpeaker)
+            {
+                return "bi-mic-fill";
+            }
+
+            return "bi-mic";
+        }
     }
 
     public string ElementId { get; set; }
 
     private bool _canRender = false;
-    
+
     private bool _hookAfterRender = false;
 
     protected override bool ShouldRender() =>
@@ -74,6 +94,19 @@
         StateHasChanged();
     }
     
+    public async Task SetLocalVolumeAsync(float volume)
+    {
+        await Parent.SetPeerLocalVolumeAsync(ElementId, volume);
+        _volume = volume;
+    }
+    
+    public async Task SetLocalMutedAsync(bool value)
+    {
+        await Parent.SetPeerConsumerLocalMutedAsync(Peer.ConsumerId, value);
+        _localMuted = value;
+        Refresh();
+    }
+
     public void SetRemoteMuted(bool value)
     {
         if (value != _remoteMuted)
@@ -95,13 +128,15 @@
     protected override async Task OnInitializedAsync()
     {
         ElementId = "rtc-" + Peer.PeerId.Replace(':', '-');
-        _name = Peer.PeerId;
+        Peer.ElementId = ElementId;
         
+        _name = Peer.PeerId;
+
         if (long.TryParse(Peer.PeerId.Split(":")[1], out var memberId))
         {
             _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId);
             _name = await _member.GetNameAsync();
-            
+
             _user = await _member.GetUserAsync();
             _pfpUrl = PfpUtility.GetPfpUrl(_user, _member);
         }
@@ -127,17 +162,34 @@
     public async Task NotifyPeerUpdated()
     {
         Console.WriteLine($"Setting updated peer {Peer.PeerId}...");
-        
+
         Console.WriteLine("Peer has track: " + Peer.Kind);
 
         _hookAfterRender = true;
-        
+
         Refresh();
     }
-    
+
     private void OnPfpError()
     {
         _pfpUrl = PfpUtility.GetFailedPfpUrl(_user);
         StateHasChanged();
+    }
+
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (_member is not null)
+        {
+            await ProfilePopup.Instance.OpenAsync(_member, (int) e.ClientX, (int) e.ClientY, "bottomRight");
+        }
+        else
+        {
+            await ProfilePopup.Instance.OpenAsync(_user, (int) e.ClientX, (int) e.ClientY, "bottomRight");
+        }
+    }
+
+    private void SetContextSelected()
+    {
+        AudioContextMenuComponent.SetSelectedItem(this);
     }
 }

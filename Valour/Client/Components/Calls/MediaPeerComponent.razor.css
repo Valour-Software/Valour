@@ -51,6 +51,15 @@
     align-items: center;
 }
 
+.audio-left .name {
+    
+}
+
+.audio-left .name:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .audio-row p {
     margin-bottom: 0;
     margin-left: 8px;
