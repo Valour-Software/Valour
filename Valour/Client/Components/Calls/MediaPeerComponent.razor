@@ -1,20 +1,22 @@
-﻿@if (Peer.Kind == "audio")
-{
-    <p>Audio: @_name</p>
-    <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
-}
-else if (Peer.Kind == "video")
-{
-    <div class="peer-video-wrapper">
-        <video class="peer-video" playsinline autoplay id="@ElementId" />
-        <div class='pause-button'>
-            Pause
+﻿<div id="@ElementId">
+    @if (Peer.Kind == "audio")
+    {
+        <p>Audio: @_name</p>
+        <audio class="media peer-audio" playsinline autoplay></audio>
+    }
+    else if (Peer.Kind == "video")
+    {
+        <div class="peer-video-wrapper">
+            <video class="media peer-video" playsinline autoplay />
+            <div class='pause-button'>
+                Pause
+            </div>
         </div>
-    </div>
-}
-else{
-    <p>Listening: @_name</p>
-}
+    }
+    else{
+        <p>Listening: @_name</p>
+    }
+</div>
 
 @code {
     [Parameter]
@@ -29,6 +31,8 @@ else{
     public string ElementId { get; set; }
 
     private bool _canRender = false;
+    
+    private bool _hookAfterRender = false;
 
     protected override bool ShouldRender() =>
         _canRender;
@@ -41,7 +45,7 @@ else{
 
     protected override async Task OnInitializedAsync()
     {
-        ElementId = Peer.PeerId;
+        ElementId = "rtc-" + Peer.PeerId.Replace(':', '-');
         _name = Peer.PeerId;
 
         if (long.TryParse(Peer.PeerId.Split(":")[1], out var memberId))
@@ -59,6 +63,12 @@ else{
             await Parent.NotifyPeerElementReady(this);
         }
 
+        if (_hookAfterRender)
+        {
+            await Parent.NotifyPeerElementReady(this);
+            _hookAfterRender = false;
+        }
+
         _canRender = false;
     }
 
@@ -66,10 +76,10 @@ else{
     {
         Console.WriteLine($"Setting updated peer {Peer.PeerId}...");
         
-        Console.WriteLine("Peer has track: " + (!string.IsNullOrWhiteSpace(Peer.Kind)));
+        Console.WriteLine("Peer has track: " + Peer.Kind);
+
+        _hookAfterRender = true;
         
-        await Parent.NotifyPeerElementReady(this);
-        
-        StateHasChanged();
+        Refresh();
     }
 }

@@ -94,24 +94,26 @@ export async function initialize(dotnetRef, memberId, channelId, e2e) {
     await updateMics();
 }
 
-export function hookPeerElementMediaTrack(elementId, peerId, kind) {
+export function hookPeerElementMediaTrack(elementId, consumerId, kind) {
 
     console.log(`Hooking peer ${elementId}`);
 
-    const consumer = consumers.get(peerId);
+    const consumer = consumers.get(consumerId);
     
     if (!consumer) {
-        console.error(`hookPeerElementMediaTrack() | No consumer found for peer ${peerId}`);
+        console.error(`hookPeerElementMediaTrack() | No consumer found for peer ${consumerId}`);
         return;
     }
 
-    const element = document.getElementById(elementId);
+    const element = document.querySelector('#' + elementId + ' .media');
+    
+    console.debug('hook element', element);
 
     element.srcObject = new MediaStream([consumer.track.clone()]);
     element.consumer = consumer;
 
     element.rehook = function () {
-        hookPeerElementMediaTrack(elementId, peerId, kind);
+        hookPeerElementMediaTrack(elementId, consumerId, kind);
     }
 
     //element.resumeConsumer = function () {
@@ -255,13 +257,15 @@ export async function join()
                     
                     console.log('new consumer ', consumerData);
                     
-                    await dotnet.invokeMethodAsync('NotifyPeerConsumer', consumer.id, type, consumer.rtpParameters.codecs[0].mimeType.split('/')[1], consumer.track?.kind);
+                    await dotnet.invokeMethodAsync('NotifyPeerConsumer', peerId, consumer.id, type, consumer.rtpParameters.codecs[0].mimeType.split('/')[1], consumer.track?.kind);
 
                     accept();
 
                     if (consumer.kind === 'video' && audioOnly) {
                         pauseConsumer(consumer);
                     }
+                    
+                    resumeConsumer(consumer);
                 }
                 catch (error) {
                     console.error('New consumer request failed', error);
@@ -1774,10 +1778,7 @@ export async function joinRoom()
 
     try
     {
-        mediasoupDevice = new mediasoupClient.Device(
-            {
-                // handlerName : handlerName
-            });
+        mediasoupDevice = new mediasoupClient.Device();
 
         // TODO: dotnet event
 
@@ -2101,7 +2102,7 @@ export async function updateMics()
 
     for (const device of devices)
     {
-        if (device.kind === 'videoinput')
+        if (device.kind !== 'audioinput')
             continue;
 
         mics.set(device.deviceId, device);
@@ -2292,6 +2293,9 @@ export let worker = undefined;
 
 export function e2eIsSupported()
 {
+    // will enable later
+    return false;
+    
     if (e2eSupported === undefined)
     {
         if (RTCRtpSender.prototype.createEncodedStreams)

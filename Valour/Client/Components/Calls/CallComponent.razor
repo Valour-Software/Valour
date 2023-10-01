@@ -70,9 +70,9 @@
             PeerComponents.Add(component);
         
         // Hook up the peer's media track to the element
-        if (component.Peer.Kind == "audio" || component.Peer.Kind == "video")
+        if (!string.IsNullOrWhiteSpace(component.Peer.ConsumerId))
         {
-            await HookPeerElementMediaTrack(component.ElementId, component.Peer.PeerId, component.Peer.Kind);
+            await HookPeerElementMediaTrack(component.ElementId, component.Peer.ConsumerId, component.Peer.Kind);
         }
     }
 
@@ -145,8 +145,8 @@
     public async Task SetScreenAudioPaused(bool value) =>
         await _jsModule.InvokeVoidAsync("setScreenAudioPaused", value);
 
-    public async Task HookPeerElementMediaTrack(string elementId, string peerId, string mediaTag) =>
-        await _jsModule.InvokeVoidAsync("hookPeerElementMediaTrack", elementId, peerId, mediaTag);
+    public async Task HookPeerElementMediaTrack(string elementId, string consumerId, string mediaTag) =>
+        await _jsModule.InvokeVoidAsync("hookPeerElementMediaTrack", elementId, consumerId, mediaTag);
 
 
     /* Methods that are invoked by JS */
@@ -201,7 +201,7 @@
     }
 
     [JSInvokable]
-    public async Task NotifyPeerConsumer(string peerId, string type, string codec, string kind)
+    public async Task NotifyPeerConsumer(string peerId, string consumerId, string type, string codec, string kind)
     {
         Console.WriteLine("dotnet: notify peer consumer");
         
@@ -214,7 +214,8 @@
                 PeerId = peerId,
                 Kind = kind,
                 Codec = codec,
-                Type = type
+                Type = type,
+                ConsumerId = consumerId
             });
             
             StateHasChanged();
@@ -224,6 +225,7 @@
         old.Kind = kind;
         old.Codec = codec;
         old.Type = type;
+        old.ConsumerId = consumerId;
         
         // Notify peer component
         var component = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);

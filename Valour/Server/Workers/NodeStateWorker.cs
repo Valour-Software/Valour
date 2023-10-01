@@ -31,6 +31,7 @@ public class NodeStateWorker : IHostedService, IDisposable
         using var scope = _serviceProvider.CreateScope();
         _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
 
+        /*
         var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
         foreach (var account in await db.EcoAccounts.IgnoreQueryFilters().Where(x => x.PlanetMemberId == null).ToListAsync())
         {
@@ -49,7 +50,7 @@ public class NodeStateWorker : IHostedService, IDisposable
         }
         
         Console.WriteLine("Finished migrate");
-        
+        */
         
         await _longNodeService.AnnounceNode();
         

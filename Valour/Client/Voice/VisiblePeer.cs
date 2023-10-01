@@ -18,6 +18,9 @@ public class VisiblePeer
     [JsonPropertyName("kind")]
     public string Kind { get; set; }
     
+    [JsonPropertyName("consumerId")]
+    public string ConsumerId { get; set; }
+    
     // Dotnet only
     
     public string ElementId { get; set; }
