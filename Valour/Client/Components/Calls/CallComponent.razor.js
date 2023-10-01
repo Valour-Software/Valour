@@ -1,5 +1,6 @@
 ﻿export const mediasoupClient = window.mediasoup;
 export const protooClient = window.protooClient;
+export const bowser = window.bowser;
 
 export const VIDEO_CONSTRAINS =
     {
@@ -19,16 +20,16 @@ export let
     // Client settings
     roomId = null,
     peerId = null,
-    device = null,
     forceTcp = false,
     produce = true,
     consume = true,
-    dataChannel = null,
+    device = null,
+    datachannel = true,
     enableWebcamLayers = true,
     enableSharingLayers = true,
     webcamScalabilityMode = null,
     sharingScalabilityMode = null,
-    numSimulcastStreams = 2,
+    numSimulcastStreams = 3,
     forceVP8 = false,
     forceVP9 = false,
     forceH264 = false,
@@ -36,6 +37,7 @@ export let
     consumerReplicas = 0,
     handlerName = 'valour-media-handler',
     displayName = '',
+    chosenMicId = null,
 
     // Client components
     protoo = null,
@@ -74,7 +76,38 @@ window.webcam = webcam;
 
 window.consumers = consumers;
 
-export async function initialize(dotnetRef, memberId, channelId, e2e) {
+window.getMicProducer = () => micProducer;
+
+export function getDevice()
+{
+    const ua = navigator.userAgent;
+    const browser = bowser.getParser(ua);
+    let flag;
+
+    if (browser.satisfies({ chrome: '>=0', chromium: '>=0' }))
+        flag = 'chrome';
+    else if (browser.satisfies({ firefox: '>=0' }))
+        flag = 'firefox';
+    else if (browser.satisfies({ safari: '>=0' }))
+        flag = 'safari';
+    else if (browser.satisfies({ opera: '>=0' }))
+        flag = 'opera';
+    else if (browser.satisfies({ 'microsoft edge': '>=0' }))
+        flag = 'edge';
+    else
+        flag = 'unknown';
+
+    return {
+        flag,
+        name    : browser.getBrowserName(),
+        version : browser.getBrowserVersion()
+    };
+}
+
+export async function initialize(dotnetRef, clientId, channelId, e2e, micId) {
+    device = getDevice();
+    window.device = device;
+    
     dotnet = dotnetRef;
     
     e2eKey = e2e;
@@ -83,7 +116,8 @@ export async function initialize(dotnetRef, memberId, channelId, e2e) {
     }
     
     roomId = channelId;
-    peerId = memberId;
+    peerId = clientId;
+    chosenMicId = micId;
 
     protooUrl = getProtooUrl(
         roomId,
@@ -109,12 +143,15 @@ export function hookPeerElementMediaTrack(elementId, consumerId, kind) {
     
     console.debug('hook element', element);
 
-    element.srcObject = new MediaStream([consumer.track.clone()]);
+    const stream = new MediaStream();
+    stream.addTrack(consumer.track);
+    
+    element.srcObject = stream;
     element.consumer = consumer;
 
-    element.rehook = function () {
-        hookPeerElementMediaTrack(elementId, consumerId, kind);
-    }
+    //element.rehook = function () {
+    //    hookPeerElementMediaTrack(elementId, consumerId, kind);
+    //}
 
     //element.resumeConsumer = function () {
     //    resumeConsumer(consumer);
@@ -265,7 +302,7 @@ export async function join()
                         pauseConsumer(consumer);
                     }
                     
-                    resumeConsumer(consumer);
+                    // resumeConsumer(consumer);
                 }
                 catch (error) {
                     console.error('New consumer request failed', error);
@@ -310,7 +347,7 @@ export async function join()
             {
                 const { peerId } = notification.data;
 
-                // TODO: dotnet event
+                dotnet.invokeMethodAsync('NotifyPeerClosed', peerId);
 
                 break;
             }
@@ -335,7 +372,7 @@ export async function join()
 
                 const { peerId } = consumer.appData;
 
-                // TODO: dotnet event
+                dotnet.invokeMethodAsync('NotifyPeerConsumerClosed', peerId, consumerId);
 
                 break;
             }
@@ -350,7 +387,7 @@ export async function join()
 
                 consumer.pause();
 
-                // TODO: dotnet event
+                dotnet.invokeMethodAsync('NotifyPeerConsumerPaused', consumerId);
 
                 break;
             }
@@ -365,7 +402,7 @@ export async function join()
 
                 consumer.resume();
 
-                // TODO: dotnet event
+                dotnet.invokeMethodAsync('NotifyPeerConsumerResumed', consumerId);
 
                 break;
             }
@@ -392,29 +429,13 @@ export async function join()
                 break;
             }
 
-            case 'dataConsumerClosed':
-            {
-                const { dataConsumerId } = notification.data;
-                const dataConsumer = dataConsumers.get(dataConsumerId);
-
-                if (!dataConsumer)
-                    break;
-
-                dataConsumer.close();
-                dataConsumers.delete(dataConsumerId);
-
-                const { peerId } = dataConsumer.appData;
-
-                // TODO: dotnet event
-
-                break;
-            }
-
             case 'activeSpeaker':
             {
                 const { peerId } = notification.data;
+                
+                console.debug('new active speaker [peerId:%s]', peerId);
 
-                // TODO: dotnet event
+                dotnet.invokeMethodAsync('NotifyActiveSpeaker', peerId);
 
                 break;
             }
@@ -436,6 +457,10 @@ export async function enableMic()
 
     if (micProducer)
         return;
+    
+    if (chosenMicId) {
+        await changeMic(chosenMicId);
+    }
 
     if (!mediasoupDevice.canProduce('audio'))
     {
@@ -458,13 +483,14 @@ export async function enableMic()
                 track,
                 codecOptions :
                     {
-                        opusStereo : true,
+                        opusStereo : false,
+                        opusMaxAverageBitrate : 128000,
                         opusDtx    : true,
                         opusFec    : true,
                         opusNack   : true
                     }
                 // NOTE: for testing codec selection.
-                // codec : this._mediasoupDevice.rtpCapabilities.codecs
+                // codec : this.mediasoupDevice.rtpCapabilities.codecs
                 // 	.find((codec) => codec.mimeType.toLowerCase() === 'audio/pcma')
             });
 
@@ -478,11 +504,11 @@ export async function enableMic()
         /*
         store.dispatch(stateActions.addProducer(
             {
-                id            : this._micProducer.id,
-                paused        : this._micProducer.paused,
-                track         : this._micProducer.track,
-                rtpParameters : this._micProducer.rtpParameters,
-                codec         : this._micProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
+                id            : this.micProducer.id,
+                paused        : this.micProducer.paused,
+                track         : this.micProducer.track,
+                rtpParameters : this.micProducer.rtpParameters,
+                codec         : this.micProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
             }));
         */
 
@@ -579,7 +605,7 @@ export async function muteMic()
 
         /*
         store.dispatch(
-            stateActions.setProducerPaused(this._micProducer.id));
+            stateActions.setProducerPaused(this.micProducer.id));
         */
     }
     catch (error)
@@ -613,7 +639,7 @@ export async function unmuteMic()
 
         /*
         store.dispatch(
-            stateActions.setProducerResumed(this._micProducer.id));
+            stateActions.setProducerResumed(this.micProducer.id));
         */
     }
     catch (error)
@@ -794,13 +820,13 @@ export async function enableWebcam()
         /*
         store.dispatch(stateActions.addProducer(
             {
-                id            : this._webcamProducer.id,
+                id            : this.webcamProducer.id,
                 deviceLabel   : device.label,
-                type          : this._getWebcamType(device),
-                paused        : this._webcamProducer.paused,
-                track         : this._webcamProducer.track,
-                rtpParameters : this._webcamProducer.rtpParameters,
-                codec         : this._webcamProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
+                type          : this.getWebcamType(device),
+                paused        : this.webcamProducer.paused,
+                track         : this.webcamProducer.track,
+                rtpParameters : this.webcamProducer.rtpParameters,
+                codec         : this.webcamProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
             }));
         */
 
@@ -886,6 +912,55 @@ export async function disableWebcam()
     }
 
     webcamProducer = null;
+}
+
+export async function changeMic(id){
+    console.debug('changeMic()');
+
+    try
+    {
+        mic.device = mics.get(id);
+
+        console.debug(
+            'changeMic() | new selected mic [device:%o]',
+            mic.device);
+        
+        if (!mic.device)
+            throw new Error('no mic devices');
+
+        // Closing the current audio track before asking for a new one
+        micProducer.track.stop();
+
+        console.debug('changeMic() | calling getUserMedia()');
+
+        const stream = await navigator.mediaDevices.getUserMedia(
+            {
+                audio :
+                    {
+                        deviceId : { exact: mic.device.deviceId },
+                    }
+            });
+
+        const track = stream.getAudioTracks()[0];
+
+        await micProducer.replaceTrack({ track });
+
+        // TODO: dotnet event
+    }
+    catch (error)
+    {
+        console.error('changeMic() | failed: %o', error);
+
+        // TODO: dotnet event
+
+        /*
+        store.dispatch(requestActions.notify(
+            {
+                type : 'error',
+                text : `Could not change webcam: ${error}`
+            }));
+        */
+    }
 }
 
 export async function changeWebcam()
@@ -1022,7 +1097,7 @@ export async function changeWebcamResolution()
 
         /*
         store.dispatch(
-            stateActions.setProducerTrack(this._webcamProducer.id, track));
+            stateActions.setProducerTrack(this.webcamProducer.id, track));
         */
     }
     catch (error)
@@ -1227,12 +1302,12 @@ export async function enableShare()
         /*
         store.dispatch(stateActions.addProducer(
             {
-                id            : this._shareProducer.id,
+                id            : this.shareProducer.id,
                 type          : 'share',
-                paused        : this._shareProducer.paused,
-                track         : this._shareProducer.track,
-                rtpParameters : this._shareProducer.rtpParameters,
-                codec         : this._shareProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
+                paused        : this.shareProducer.paused,
+                track         : this.shareProducer.track,
+                rtpParameters : this.shareProducer.rtpParameters,
+                codec         : this.shareProducer.rtpParameters.codecs[0].mimeType.split('/')[1]
             }));
         */
 
@@ -1779,12 +1854,13 @@ export async function joinRoom()
     try
     {
         mediasoupDevice = new mediasoupClient.Device();
+        window.mediasoupDevice = mediasoupDevice;
 
         // TODO: dotnet event
 
         /*
         store.dispatch(stateActions.setRoomMediasoupClientHandler(
-            this._mediasoupDevice.handlerName
+            this.mediasoupDevice.handlerName
         ));
         */
 
@@ -1798,7 +1874,7 @@ export async function joinRoom()
         // Just get access to the mic and DO NOT close the mic track for a while.
         // Super hack!
         {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const audioTrack = stream.getAudioTracks()[0];
 
             audioTrack.enabled = false;
@@ -2039,7 +2115,7 @@ export async function joinRoom()
                 }));
             */
 
-            enableMic();
+            await enableMic();
 
             const devicesCookie = getCookieDevices();
 
@@ -2119,13 +2195,8 @@ export async function updateMics()
         mic.device = null;
     else if (!mics.has(currentMicId))
         mic.device = array[0];
-
-    // TODO: dotnet event
-
-    /*
-    store.dispatch(
-        stateActions.setCanChangeWebcam(this.webcams.size > 1));
-     */
+    
+    return array;
 }
 
 export async function updateWebcams()
@@ -2171,13 +2242,13 @@ export function getWebcamType(device)
 {
     if (/(back|rear)/i.test(device.label))
     {
-        console.debug('_getWebcamType() | it seems to be a back camera');
+        console.debug('getWebcamType() | it seems to be a back camera');
 
         return 'back';
     }
     else
     {
-        console.debug('_getWebcamType() | it seems to be a front camera');
+        console.debug('getWebcamType() | it seems to be a front camera');
 
         return 'front';
     }

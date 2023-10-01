@@ -36,13 +36,13 @@ function onDown(e, id) {
     states[id].distX = Math.abs((elements[id].offsetLeft - evt.clientX) / elements[id].parentElement.clientWidth * 100);
     states[id].distY = Math.abs((elements[id].offsetTop - evt.clientY) / elements[id].parentElement.clientHeight * 100);
 
-    elements[id].style.pointerEvents = 'none';
+    elements[id].dataset.moving = 'true';
 }
 function onUp(e) {
     if (!activeId)
         return;
     
-    elements[activeId].style.pointerEvents = 'initial';
+    elements[activeId].dataset.moving = 'false';
     activeId = null;
 }
 
@@ -52,7 +52,7 @@ function onMove(e) {
     
     const element = elements[activeId];
     
-    if (element.style.pointerEvents !== 'none')
+    if (element.dataset.moving === 'false')
         return;
     
     const evt = e.type === 'touchmove' ? e.changedTouches[0] : e;

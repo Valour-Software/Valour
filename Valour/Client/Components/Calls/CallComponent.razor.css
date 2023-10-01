@@ -1,12 +1,13 @@
 ﻿.call-container {
     z-index: 1;
     font-size: 12px;
-    padding: 8px;
+    padding: 16px;
     background-color: var(--main-2);
     border-radius: 8px;
     text-align: center;
     width: max-content;
     position: absolute;
+    max-width: 250px;
 }
 
 .drag-area {

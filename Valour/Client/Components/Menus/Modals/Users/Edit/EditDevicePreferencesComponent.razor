@@ -20,8 +20,36 @@
     </div>
 </div>
 
+<br />
+
+@if (_mics is not null)
+{
+    <p>Input Device (Microphone)</p>
+    <select style="margin-top: 12px" class="form-select" @onchange="@OnChooseMic" >
+        @for (int i = 0; i < _mics.Length; i++)
+        {
+            var ii = i;
+            var mic = _mics[ii];
+            <option selected="@(DevicePreferences.MicrophoneDeviceId == mic.DeviceId)" value="@mic.DeviceId">@mic.Label</option>
+        }
+    </select>
+}
+
 
 @code {
+
+    private InputMic[] _mics;
+
+    public async Task OnChooseMic(ChangeEventArgs e)
+    {
+        DevicePreferences.MicrophoneDeviceId = e.Value.ToString();
+        await LocalStorage.SetItemAsync("MicrophoneDeviceId", DevicePreferences.MicrophoneDeviceId);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mics = await CallComponent.Instance.UpdateMics();
+    }
 
     private async Task SwitchAutoEmojis()
     {

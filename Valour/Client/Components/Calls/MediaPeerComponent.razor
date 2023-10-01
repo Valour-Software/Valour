@@ -1,10 +1,5 @@
 ﻿<div id="@ElementId">
-    @if (Peer.Kind == "audio")
-    {
-        <p>Audio: @_name</p>
-        <audio class="media peer-audio" playsinline autoplay></audio>
-    }
-    else if (Peer.Kind == "video")
+    @if (Peer.Kind == "video")
     {
         <div class="peer-video-wrapper">
             <video class="media peer-video" playsinline autoplay />
@@ -14,7 +9,19 @@
         </div>
     }
     else{
-        <p>Listening: @_name</p>
+        <div class="audio-row">
+            <div class="audio-left">
+                <img alt="@_name's profile picture" class="audio-pfp" src="@_pfpUrl" @onerror="@OnPfpError"/>
+                <p>@_name</p>
+            </div>
+
+            <i class="bi @GetAudioIcon()" style="color: @GetAudioIconColor()"></i>
+
+            @if (Peer.Kind == "audio")
+            {
+                <audio class="media peer-audio" type="audio/@Peer.Codec" playsinline autoplay></audio>
+            }
+        </div>
     }
 </div>
 
@@ -26,7 +33,31 @@
     public VisiblePeer Peer { get; set; }
     
     private PlanetMember _member;
+    private User _user;
     private string _name;
+    private string _pfpUrl;
+
+    private bool _remoteMuted = false;
+    private bool _isActiveSpeaker = false;
+
+    private string GetAudioIconColor()
+    {
+        if (_isActiveSpeaker)
+            return "var(--v-cyan)";
+        
+        return "#fff";
+    }
+    
+    private string GetAudioIcon()
+    {
+        if (_isActiveSpeaker)
+            return "bi-mic-fill";
+
+        if (_remoteMuted)
+            return "bi-mic-mute";
+        
+        return "bi-mic";
+    }
 
     public string ElementId { get; set; }
 
@@ -42,16 +73,37 @@
         _canRender = true;
         StateHasChanged();
     }
+    
+    public void SetRemoteMuted(bool value)
+    {
+        if (value != _remoteMuted)
+        {
+            _remoteMuted = value;
+            Refresh();
+        }
+    }
+
+    public void SetActiveSpeaker(bool value)
+    {
+        if (value != _isActiveSpeaker)
+        {
+            _isActiveSpeaker = value;
+            Refresh();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         ElementId = "rtc-" + Peer.PeerId.Replace(':', '-');
         _name = Peer.PeerId;
-
+        
         if (long.TryParse(Peer.PeerId.Split(":")[1], out var memberId))
         {
             _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId);
             _name = await _member.GetNameAsync();
+            
+            _user = await _member.GetUserAsync();
+            _pfpUrl = PfpUtility.GetPfpUrl(_user, _member);
         }
     }
 
@@ -81,5 +133,11 @@
         _hookAfterRender = true;
         
         Refresh();
+    }
+    
+    private void OnPfpError()
+    {
+        _pfpUrl = PfpUtility.GetFailedPfpUrl(_user);
+        StateHasChanged();
     }
 }

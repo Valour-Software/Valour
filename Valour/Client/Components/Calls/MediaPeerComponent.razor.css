@@ -35,3 +35,29 @@
 .peer-video-wrapper:hover .pause-button {
     opacity: 1;
 }
+
+.audio-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 12px;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.audio-left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.audio-row p {
+    margin-bottom: 0;
+    margin-left: 8px;
+}
+
+.audio-pfp {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}

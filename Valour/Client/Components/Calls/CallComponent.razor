@@ -7,13 +7,14 @@
     <div class="drag-area">
         <SmoothDraggable StartX="40" StartY="10" FromRight="@false">
             <div class="call-container">
-                <h5>Active Call: @ActiveChannel.Name</h5>
-                <br />
+                <h6>Active Call: @ActiveChannel.Name</h6>
                 
                 @foreach (var peer in VisiblePeers)
                 {
                     <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer" />
                 }
+
+                <button class="v-btn large" style="margin-top: 12px" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>
             </div>
         </SmoothDraggable>
     </div>
@@ -32,6 +33,10 @@
     public static CallComponent Instance { get; private set; }
     
     private PlanetMember SelfMember { get; set; }
+    
+    private string _lastActiveSpeakerId = null;
+    
+    private bool _muted = false;
 
     protected override void OnInitialized()
     {
@@ -92,7 +97,7 @@
 
         _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
         
-        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id);
+        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id, null, DevicePreferences.MicrophoneDeviceId);
         
         await Join();
     }
@@ -100,6 +105,24 @@
     public async Task Join()
     {
         await _jsModule.InvokeVoidAsync("join");
+        StateHasChanged();
+    }
+
+    public async Task OnClickMute()
+    {
+        if (_muted)
+        {
+            // Unmute
+            await _jsModule.InvokeVoidAsync("unmuteMic");
+        }
+        else
+        {
+            // Mute
+            await _jsModule.InvokeVoidAsync("muteMic");
+        }
+        
+        _muted = !_muted;
+        
         StateHasChanged();
     }
 
@@ -147,59 +170,13 @@
 
     public async Task HookPeerElementMediaTrack(string elementId, string consumerId, string mediaTag) =>
         await _jsModule.InvokeVoidAsync("hookPeerElementMediaTrack", elementId, consumerId, mediaTag);
+    
+    public async Task<InputMic[]> UpdateMics() => 
+        await _jsModule.InvokeAsync<InputMic[]>("updateMics");
 
 
     /* Methods that are invoked by JS */
-
-
-    /// <summary>
-    /// This is called when the user closes the screen share through the browser
-    /// UI rather than through Valour's
-    /// </summary>
-    [JSInvokable]
-    public async Task OnScreenshareForceStop()
-    {
-
-    }
-
-    [JSInvokable]
-    public async Task OnUnexpectedLeaveRoom()
-    {
-
-    }
-
-    [JSInvokable]
-    public async Task OnSpeakerUpdate(ActiveSpeaker speaker)
-    {
-        if (ActiveChannel is null)
-            return;
-        
-    }
-
-    [JSInvokable]
-    public async Task OnPeerListUpdate(Dictionary<string, MediaPeer> peers)
-    {
-        if (ActiveChannel is null)
-            return;
-        
-    }
-
-    [JSInvokable]
-    public async Task OnReadyBuildPeer(string peerId, string mediaTag, string kind)
-    {
-        if (ActiveChannel is null)
-            return;
-        
-    }
-
-    [JSInvokable]
-    public async Task NotifyNeedDisposePeer(string peerId, string mediaTag)
-    {
-        if (ActiveChannel is null)
-            return;
-        
-    }
-
+    
     [JSInvokable]
     public async Task NotifyPeerConsumer(string peerId, string consumerId, string type, string codec, string kind)
     {
@@ -247,5 +224,77 @@
         VisiblePeers.Clear();
         VisiblePeers.AddRange(peers);
         StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task NotifyActiveSpeaker(string peerId)
+    {
+        if (peerId == _lastActiveSpeakerId)
+            return;
+
+        var oldActive = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == _lastActiveSpeakerId);
+        if (oldActive is not null)
+        {
+            oldActive.SetActiveSpeaker(false);
+        }
+
+        if (peerId is not null)
+        {
+            var newActive = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);
+            if (newActive is not null)
+            {
+                newActive.SetActiveSpeaker(true);
+            }
+        }
+
+        _lastActiveSpeakerId = peerId;
+    }
+    
+    [JSInvokable]
+    public async Task NotifyPeerClosed(string peerId)
+    {
+        VisiblePeers.RemoveAll(x => x.PeerId == peerId);
+        PeerComponents.RemoveAll(x => x.Peer.PeerId == peerId);
+        
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task NotifyPeerConsumerClosed(string peerId, string consumerId)
+    {
+        var peer = VisiblePeers.FirstOrDefault(x => x.PeerId == peerId);
+        if (peer is null)
+            return;
+        
+        if (peer.ConsumerId == consumerId)
+        {
+            peer.ConsumerId = null;
+            
+            var component = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);
+            if (component is not null)
+            {
+                await component.NotifyPeerUpdated();
+            }
+        }
+    }
+    
+    [JSInvokable]
+    public async Task NotifyPeerConsumerPaused(string consumerId)
+    {
+        var component = PeerComponents.FirstOrDefault(x => x.Peer.ConsumerId == consumerId);
+        if (component is null)
+            return;
+
+        component.SetRemoteMuted(true);
+    }
+    
+    [JSInvokable]
+    public async Task NotifyPeerConsumerResumed(string consumerId)
+    {
+        var component = PeerComponents.FirstOrDefault(x => x.Peer.ConsumerId == consumerId);
+        if (component is null)
+            return;
+
+        component.SetRemoteMuted(false);
     }
 }
