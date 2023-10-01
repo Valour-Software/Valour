@@ -82,9 +82,9 @@
                     case PlanetChatChannel chat:
                         <ChatChannelListComponent @key='$"{Category.Id}-{chat.Id}"' ParentCategory="@this" Channel="@chat"/>
                         break;
-                    //case PlanetVoiceChannel voice:
-                    //    <VoiceChannelListComponent @key='@voice.Id' ParentCategory="@this" Channel="@voice" />
-                    //    break;
+                    case PlanetVoiceChannel voice:
+                        <VoiceChannelListComponent @key='@voice.Id' ParentCategory="@this" Channel="@voice" />
+                        break;
                     case PlanetCategory cat:
                         <CategoryListComponent
                             @key='$"{Category.Id}-{cat.Id}"'

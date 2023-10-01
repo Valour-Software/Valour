@@ -89,7 +89,7 @@ public abstract class Message : LiveModel, ISharedMessage
     /// <summary>
     /// True if the mentions data has been parsed
     /// </summary>
-    private bool mentionsParsed = false;
+    private bool _mentionsParsed;
 
     /// <summary>
     /// The inner embed data
@@ -99,12 +99,17 @@ public abstract class Message : LiveModel, ISharedMessage
     /// <summary>
     /// True if the embed data has been parsed
     /// </summary>
-    public bool embedParsed = false;
+    private bool _embedParsed;
 
     /// <summary>
     /// The inner attachments data
     /// </summary>
     private List<MessageAttachment> _attachments;
+    
+    /// <summary>
+    /// True if the attachments have been parsed
+    /// </summary>
+    private bool _attachmentsParsed;
 
     // Abstract methods
     public abstract ValueTask<Message> GetReplyMessageAsync();
@@ -117,33 +122,46 @@ public abstract class Message : LiveModel, ISharedMessage
     public abstract Task<TaskResult> EditMessageAsync();
     public abstract Task<TaskResult> DeleteAsync();
 
-    public virtual Task<bool> CheckIfMentioned() =>
-        Task.FromResult(MentionsData?.Contains(ValourClient.Self.Id.ToString()) ?? false);
+    public virtual Task<bool> CheckIfMentioned()
+    {
+        if (Mentions is null || Mentions.Count == 0)
+            return Task.FromResult(false);
+        
+        return Task.FromResult(Mentions.Any(x => x.TargetId == ValourClient.Self.Id));
+    }
 
     /// <summary>
-    /// The mentions for members within this message
+    /// The mentions within this message
     /// </summary>
     public List<Mention> Mentions
     {
         get
         {
-            if (!mentionsParsed)
+            if (!_mentionsParsed)
             {
                 if (!string.IsNullOrEmpty(MentionsData))
                 {
                     _mentions = JsonSerializer.Deserialize<List<Mention>>(MentionsData);
                 }
+
+                _mentionsParsed = true;
             }
 
             return _mentions;
         }
     }
 
+    public void SetupMentionsList()
+    {
+        if (_mentions is null)
+            _mentions = new();
+    }
+
     public Embed Embed
     {
         get
         {
-            if (!embedParsed)
+            if (!_embedParsed)
             {
                 if (!string.IsNullOrEmpty(EmbedData))
                 {
@@ -151,7 +169,7 @@ public abstract class Message : LiveModel, ISharedMessage
                     // prevent a million errors in console
                     if (EmbedData.Contains("EmbedVersion\":\"1.1.0\""))
                     {
-                        embedParsed = true;
+                        _embedParsed = true;
                         return null;
                     }
                     _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
@@ -165,7 +183,7 @@ public abstract class Message : LiveModel, ISharedMessage
                     }
                 }
 
-                embedParsed = true;
+                _embedParsed = true;
             }
 
             return _embed;
@@ -176,41 +194,52 @@ public abstract class Message : LiveModel, ISharedMessage
     {
         get
         {
-            if (!mentionsParsed)
+            if (!_attachmentsParsed)
             {
                 if (!string.IsNullOrEmpty(AttachmentsData))
                 {
                     _attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(AttachmentsData);
                 }
+
+                _attachmentsParsed = true;
             }
 
             return _attachments;
         }
     }
 
-    public void SetMentions(IEnumerable<Mention> mentions)
+    public void SetMentions(List<Mention> mentions)
     {
-        _mentions = mentions.ToList();
-        MentionsData = JsonSerializer.Serialize(mentions);
+        _mentions = mentions;
+        
+        if (mentions is null || mentions.Count == 0)
+        {
+            MentionsData = null;
+        }
+        else
+        {
+            MentionsData = JsonSerializer.Serialize(mentions);
+        }
     }
 
     public void SetAttachments(List<MessageAttachment> attachments)
     {
         _attachments = attachments;
-        AttachmentsData = JsonSerializer.Serialize(attachments);
+        
+        if (_attachments is null || _attachments.Count == 0)
+        {
+            AttachmentsData = null;
+        }
+        else
+        {
+            AttachmentsData = JsonSerializer.Serialize(attachments);
+        }
     }
 
     public void ClearMentions()
     {
-        if (_mentions == null)
-        {
-            _mentions = new List<Mention>();
-        }
-        else
-        {
-            MentionsData = null;
-            _mentions.Clear();
-        }
+        MentionsData = null;
+        _mentions = null;
     }
 
     /// <summary>
@@ -218,14 +247,12 @@ public abstract class Message : LiveModel, ISharedMessage
     /// </summary>
     public bool IsEmbed()
     {
-        if (EmbedData != null || EmbedData == "")
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return !string.IsNullOrWhiteSpace(EmbedData);
+    }
+    
+    public void SetEmbedParsed(bool val)
+    {
+        _embedParsed = val;
     }
 
     /// <summary> 

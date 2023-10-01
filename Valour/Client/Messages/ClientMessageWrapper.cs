@@ -18,12 +18,12 @@ public class ClientMessageWrapper
     /// <summary>
     /// True if this message's content has been fully built
     /// </summary>
-    private bool generated = false;
+    private bool _generated = false;
 
     /// <summary>
     /// True if the markdown has already been generated
     /// </summary>
-    private bool markdownParsed = false;
+    private bool _markdownParsed = false;
 
     /// <summary>
     /// The fragments used for building elements
@@ -70,7 +70,7 @@ public class ClientMessageWrapper
     {
         get
         {
-            if (!markdownParsed)
+            if (!_markdownParsed)
             {
                 ParseMarkdown();
             }
@@ -82,7 +82,7 @@ public class ClientMessageWrapper
     private void ParseMarkdown()
     {
         _markdownContent = MarkdownManager.GetHtml(Message.Content);
-        markdownParsed = true;
+        _markdownParsed = true;
     }
 
     private static readonly HashSet<string> InlineTags = new()
@@ -128,8 +128,8 @@ public class ClientMessageWrapper
     {
         _markdownContent = null;
         _elementFragments = null;
-        generated = false;
-        markdownParsed = false;
+        _generated = false;
+        _markdownParsed = false;
     }
 
     public void GenerateForPost()
@@ -198,7 +198,8 @@ public class ClientMessageWrapper
                             Type = MentionType.Member,
                             PlanetId = planetMessage.PlanetId                     
                         };
-
+                        
+                        Message.SetupMentionsList();
                         Message.Mentions.Add(memberMention);
                     }
                     else if (planetMessage is not null && text[pos + 2] == 'r')
@@ -240,6 +241,7 @@ public class ClientMessageWrapper
                             PlanetId = planetMessage.PlanetId
                         };
 
+                        Message.SetupMentionsList();
                         Message.Mentions.Add(roleMention);
                     }
                     // Other mentions go here
@@ -281,6 +283,7 @@ public class ClientMessageWrapper
                             Type = MentionType.User,
                         };
 
+                        Message.SetupMentionsList();
                         Message.Mentions.Add(userMention);
                     }
                     else
@@ -333,6 +336,7 @@ public class ClientMessageWrapper
                             PlanetId = planetMessage.PlanetId
                         };
 
+                        Message.SetupMentionsList();
                         Message.Mentions.Add(channelMention);
                     }
                     else
@@ -384,7 +388,8 @@ public class ClientMessageWrapper
                     Position = (ushort)pos,
                     Length = (ushort)(2 + ticker.Length)
                 };
-                    
+                
+                Message.SetupMentionsList();
                 Message.Mentions.Add(stock);
             }
 
@@ -488,7 +493,7 @@ public class ClientMessageWrapper
 
         }
 
-        generated = true;
+        _generated = true;
     }
 
     /// <summary>
@@ -498,7 +503,7 @@ public class ClientMessageWrapper
     {
         // Stopwatch sw = new();
 
-        if (!generated)
+        if (!_generated)
         {
             GenerateMessage();
         }

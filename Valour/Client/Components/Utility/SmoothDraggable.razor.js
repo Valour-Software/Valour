@@ -6,6 +6,8 @@ export let activeId = '';
 export function initialize(id, x, y, right = false){
     const element = document.getElementById(id);
     
+    console.debug('initializing draggable ' + id);
+    
     if (right) {
         element.style.left = ((element.parentElement.clientWidth - x - element.clientWidth) / element.parentElement.clientWidth) * 100 + "%";
     } else {
@@ -34,13 +36,13 @@ function onDown(e, id) {
     states[id].distX = Math.abs((elements[id].offsetLeft - evt.clientX) / elements[id].parentElement.clientWidth * 100);
     states[id].distY = Math.abs((elements[id].offsetTop - evt.clientY) / elements[id].parentElement.clientHeight * 100);
 
-    elements[id].style.pointerEvents = 'none';
+    elements[id].dataset.moving = 'true';
 }
 function onUp(e) {
     if (!activeId)
         return;
     
-    elements[activeId].style.pointerEvents = 'initial';
+    elements[activeId].dataset.moving = 'false';
     activeId = null;
 }
 
@@ -50,7 +52,7 @@ function onMove(e) {
     
     const element = elements[activeId];
     
-    if (element.style.pointerEvents !== 'none')
+    if (element.dataset.moving === 'false')
         return;
     
     const evt = e.type === 'touchmove' ? e.changedTouches[0] : e;

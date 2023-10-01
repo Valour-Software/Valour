@@ -1,0 +1,49 @@
+﻿<ContextMenu Id="audio-context" CssClass="context">
+    
+    <BlazorContextMenu.Item CssClass='context-model' >
+        <div>
+            <p>Volume</p>
+            <input type="range" id="volume" name="volume" min="0" max="150" value="@MediaPeer.GetVolume()" @onchange="OnVolumeChanged" />
+        </div>
+    </BlazorContextMenu.Item>
+    @if (MediaPeer.GetLocalMuted())
+    {
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='OnClickUnmute'>Unmute</BlazorContextMenu.Item>
+    }
+    else
+    {
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='OnClickMute'>Mute</BlazorContextMenu.Item>
+    }
+</ContextMenu>
+
+@code {
+    public static MediaPeerComponent MediaPeer { get; set; }
+    
+    public static void SetSelectedItem(MediaPeerComponent mediaPeer)
+    {
+        MediaPeer = mediaPeer;
+    }
+    
+    private Task OnClickMute() => MediaPeer.SetLocalMutedAsync(true);
+    
+    private Task OnClickUnmute() => MediaPeer.SetLocalMutedAsync(false);
+
+    
+    private DateTime _lastVolumeChange = DateTime.MinValue;
+    
+    private async Task OnVolumeChanged(ChangeEventArgs e)
+    {
+        Console.WriteLine("Volume changed to " + e.Value);
+        
+        // debounce
+        if ((DateTime.Now - _lastVolumeChange).TotalMilliseconds < 100)
+        {
+            return;
+        }
+        
+        await MediaPeer.SetLocalVolumeAsync(float.Parse(e.Value.ToString()));
+        
+        _lastVolumeChange = DateTime.Now;
+    }
+
+}

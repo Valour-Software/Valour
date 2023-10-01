@@ -1,9 +1,27 @@
-﻿namespace Valour.Client.Voice;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Client.Voice;
 
 public class VisiblePeer
 {
+    // Converted from json
+    
+    [JsonPropertyName("codec")]
+    public string Codec { get; set; }
+    
+    [JsonPropertyName("id")]
     public string PeerId { get; set; }
-    public string MediaTag { get; set; }
+    
+    [JsonPropertyName("type")]
+    public string Type { get; set; }
+    
+    [JsonPropertyName("kind")]
     public string Kind { get; set; }
+    
+    [JsonPropertyName("consumerId")]
+    public string ConsumerId { get; set; }
+    
+    // Dotnet only
+    
     public string ElementId { get; set; }
 }

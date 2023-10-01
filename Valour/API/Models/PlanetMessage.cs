@@ -39,7 +39,7 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
     
     public override PlanetMessage GetReply()
     {
-        return ReplyTo as PlanetMessage; 
+        return ReplyTo; 
     }
     
     /// <summary>
@@ -161,20 +161,54 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
 
     public override async Task<bool> CheckIfMentioned()
     {
-        var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId);
-
-        if (MentionsData is null)
+        if (Mentions is null || Mentions.Count == 0)
             return false;
-        
-        // TODO: Maybe optimize this
-        var selfRoles = await selfMember.GetRolesAsync();
-        foreach (var role in selfRoles)
+
+        List<PlanetRole> selfRoles = null;
+        PlanetMember selfMember = null;
+
+        foreach (var mention in Mentions)
         {
-            if (MentionsData.Contains(role.Id.ToString()))
-                return true;
+            switch (mention.Type)
+            {
+                case MentionType.Member:
+                {
+                    if (selfMember is null)
+                    {
+                        selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId);
+                    }
+                    
+                    if (mention.TargetId == selfMember.Id)
+                        return true;
+                    
+                    break;
+                }
+                case MentionType.Role:
+                {
+                    if (selfRoles is null)
+                    {
+                        if (selfMember is null)
+                        {
+                            selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId);
+                        }
+                        
+                        selfRoles = await selfMember.GetRolesAsync();
+                    }
+                    
+                    foreach (var role in selfRoles)
+                    {
+                        if (mention.TargetId == role.Id)
+                            return true;
+                    }
+
+                    break;
+                }
+                default:
+                    continue;
+            }
         }
 
-        return MentionsData.Contains(selfMember.Id.ToString());
+        return false;
     }
 
 }

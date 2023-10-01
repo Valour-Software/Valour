@@ -219,65 +219,6 @@
     border-radius: 50%;
 }
 
-
-/* Message content styles */
-
-::deep .message .fragments p {
-    margin: 0px;
-    word-break: break-word;
-}
-
-::deep .message .fragments code {
-    margin: 0px;
-    word-break: break-word;
-    background: #242424;
-}
-
-::deep .message .fragments pre {
-    margin: 0px;
-    word-break: break-word;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-::deep .message .fragments .enlarged {
-    max-width: 900px !important;
-    max-height: 900px !important;
-}
-
-::deep .message .fragments a:not(.nohide) {
-    font-size: 0px;
-}
-
-::deep .message .fragments a:not(.nohide):after {
-    font-size: 16px;
-    line-height: 0px;
-    content: attr(href);
-    visibility: visible;
-    left: 55px;
-    vertical-align: central;
-}
-
-::deep .message .fragments .youtube {
-    max-width: 90%;
-    display: block;
-}
-
-::deep .message .fragments video {
-    max-width: 90%;
-    max-height: 300px;
-    display: block;
-}
-
-::deep .message .fragments .table {
-    max-width: 90%;
-    display: block;
-}
-
-::deep .message .fragments > p > strong {
-    font-weight: bold
-}
-
 /* Preview Message and Replies */
 .edit {
     background-color: rgba(255, 0, 255, 0.1) !important;
@@ -360,6 +301,6 @@
 }
 
 /* Ensure loading messages are greyed out */
-.message-outer .ghost {
+.message.ghost {
     opacity: 0.7 !important;
 }

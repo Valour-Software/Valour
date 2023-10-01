@@ -1,56 +1,103 @@
-﻿@implements IDisposable
+﻿@inherits ChannelListItemComponent
+@using Valour.Client.Components.Calls
+@implements IDisposable
 
-@inject WindowManager windowManager
-@inject ChannelListManager listManager
+@inject WindowManager WindowManager
+@inject ChannelListManager ListManager
 
-<div class="@Chosen_CSS"
-     @onclick="OnClick"
-     @onpointerdown:stopPropagation="true"
-     @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'
-     @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
-     draggable="true" id="@Channel.Id">
-    <div class="channel-icon">
-        <img src="_content/Valour.Client/media/voice-channel-icon.svg">
+<div
+    class="channel-wrapper"
+    draggable="true"
+    
+    @onclick:stopPropagation="true"
+    @onclick="OnClick"
+
+    @ondragstart:stopPropagation="true"
+    @ondragstart="@OnDragStart"
+
+    @ondrop:stopPropagation="true"
+    @ondrop="@OnDropOn"
+
+    @onpointerdown:stopPropagation="true"
+    @onpointerdown='@PrepareContext'
+
+    @ondragleave:stopPropagation="true"
+    @ondragleave="@OnDragLeave">
+    
+    @if (ListManager.DragOverId == Channel.Id &&
+         ListManager.DragIsTop)
+    {
+        <div
+            class="drop-line"
+            @ondragenter:stopPropagation="true"
+            ondragenter="return false;">
+        </div>
+    }
+    <div
+        class="@ChosenCss"
+        id="@Channel.Id">
+        
+        <img class="channel-icon" src="_content/Valour.Client/media/volume-up-fill.svg" alt="Voice channel"/>
+
+        <p class="name">
+            @Channel.Name
+        </p>
+
     </div>
-    <p class="channel-name">
-        @Channel.Name
-    </p>
+    @if (ListManager.DragOverId == Channel.Id &&
+         !ListManager.DragIsTop)
+    {
+        <div
+            class="drop-line"
+            @ondragenter:stopPropagation="true"
+            ondragenter="return false;">
+        </div>
+    }
+    <div
+        class="drop top"
+        @ondragenter:stopPropagation="true"
+        @ondragenter="@OnDragEnterTop">
+    </div>
+    <div
+        class="drop bottom"
+        @ondragenter:stopPropagation="true"
+        @ondragenter="@OnDragEnterBottom">
+    </div>
 </div>
 
 @code {
     [Parameter]
     public PlanetVoiceChannel Channel { get; set; }
+    public override PlanetChannel GetItem() => Channel;
 
-    [Parameter]
-    public CategoryListComponent ParentCategory { get; set; }
-
-    public string Chosen_CSS
+    public string ChosenCss
     {
         get
         {
-            return "channel";
+            var css = "channel";
+
+            if (WindowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
+                css += " open";
+
+            if (ListManager.DragOverId == Channel.Id)
+                css += " drag-over";
+            
+            return css;
         }
+    }
+    
+    private void OnDragStart()
+    {
+        ListManager.OnItemStartDragInCategory(Channel, ParentCategory);
     }
 
     public async Task OnClick()
     {
         /* Very cool logic goes here */
-        listManager.OnItemClickInCategory(Channel, ParentCategory);
+        ListManager.OnItemClickInCategory(Channel, ParentCategory);
 
-        var voiceWindows = windowManager.GetWindows().OfType<VoiceChannelWindow>();
-
-        /* Check if another voice channel is open */
-        if (voiceWindows.Count() > 0)
-        {
-            var current = voiceWindows.FirstOrDefault();
-            await current.Component.SwapChannel(Channel);
-        }
-        else
-        {
-            var newWindow = new PlanetVoiceChannelWindow(Channel);
-            await windowManager.AddWindowAsync(newWindow, windowManager.GetSelectedWindow().Holder);
-        }
-
+        await CallComponent.Instance.Initialize(Channel);
+        
         StateHasChanged();
     }
 
@@ -72,5 +119,33 @@
     public void Dispose()
     {
         ModelObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
+    }
+    
+    private void OnDragEnterTop()
+    {
+        ListManager.OnDragEnterItem(this.Channel.Id, true);
+        Refresh();
+    }
+    
+    private void OnDragEnterBottom()
+    {
+        ListManager.OnDragEnterItem(this.Channel.Id, false);
+        Refresh();
+    }
+
+    private void OnDragLeave()
+    {
+        Refresh();
+    }
+
+    private async Task OnDropOn()
+    {
+        await ListManager.OnItemDropOnItem(this);
+        Refresh();
+    }
+
+    private async Task PrepareContext()
+    {
+        await ChannelListContextMenuComponent.SetSelectedItem(Channel);
     }
 }

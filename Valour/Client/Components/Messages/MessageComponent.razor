@@ -7,104 +7,102 @@
     return;
 }
 
-<div class="message-outer" @onpointerdown='OnPointerDown' @oncontextmenu='@OnPointerDown'>
-    <div id="@Id" class="@_class" tabindex='0'>
-        <div class="left-info">
-            @if (!Minimal)
-            {
-                <img alt="@name's profile picture" loading="lazy" class="author-pfp" src="@pfpurl" @onerror="OnPfpError"/>
-            }
-            <div class="time-container">
-                <p class="time" title="@_timeTitle">
-                    @_timeText
+<div id="@Id" class="@_class" tabindex='0' @onpointerdown='OnPointerDown' @oncontextmenu='@OnPointerDown'>
+    <div class="left-info">
+        @if (!Minimal)
+        {
+            <img alt="@name's profile picture" loading="lazy" class="author-pfp" src="@pfpurl" @onerror="OnPfpError"/>
+        }
+        <div class="time-container">
+            <p class="time" title="@_timeTitle">
+                @_timeText
+            </p>
+        </div>
+    </div>
+    <div class="content-holder">
+
+        @if (!Minimal)
+        {
+            <div class="name-role-holder">
+                <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
+                    <p @onclick="OnClickName" class="author-name" style="color: @nameColor;">
+                        @name
+                    </p>
+                </ContextMenuTrigger>
+
+                <div class="dot-badge-holder">
+                    @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                    {
+                        <BasicTooltipComponent Title="Stargazer" Placement="top">
+                            <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
+                        </BasicTooltipComponent>
+                    }
+                </div>
+
+                <p class="role-name">
+                    &nbsp;- @nameTag
                 </p>
             </div>
-        </div>
-        <div class="content-holder">
-
-            @if (!Minimal)
-            {
-                <div class="name-role-holder">
-                    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
-                        <p @onclick="OnClickName" class="author-name" style="color: @nameColor;">
-                            @name
-                        </p>
-                    </ContextMenuTrigger>
-
-                    <div class="dot-badge-holder">
-                        @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
-                        {
-                            <BasicTooltipComponent Title="Stargazer" Placement="top">
-                                <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
-                            </BasicTooltipComponent>
-                        }
-                    </div>
-
-                    <p class="role-name">
-                        &nbsp;- @nameTag
-                    </p>
-                </div>
-            }
-
-            @if (MessageData.Reply is not null && !IsInnerReply)
-            {
-                @RenderReply
-            }
-
-            <div class="content" @ref="InnerRef">
-
-                @if (MessageData.Message.Attachments != null)
-                {
-                    @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
-                    {
-                        var id = i;
-                        var attachment = MessageData.Message.Attachments[id];
-                        var par = new Dictionary<string, object>()
-                        {
-                            { "Attachment", attachment },
-                            { "MessageComponent", this }
-                        };
-
-                        <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
-                            @if (Ghost)
-                            {
-                                <div class="attachment-x">x</div>
-                            }
-                            <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
-                        </div>
-                    }
-                }
-
-                @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
-                {
-                    <EmbedComponent MessageWrapper="MessageData" MessageComponent="@this"></EmbedComponent>
-                    @if (MessageData.Message.EditedTime != null)
-                    {
-                        <p class="edited-flag"> (Edited)</p>
-                    }
-                }
-                else
-                {
-                    @MessageContent
-
-                    @if (Edit)
-                    {
-                        <p class="edit-flag">(Editing)</p>
-                    }
-
-                    @if (MessageData.Message.EditedTime != null)
-                    {
-                        <p class="edited-flag"> (Edited)</p>
-                    }
-                }
-            </div>
-        </div>
-
-        @if (IsInnerReply)
-        {
-            <div class="reply-x">x</div>
         }
+
+        @if (MessageData.Reply is not null && !IsInnerReply)
+        {
+            @RenderReply
+        }
+
+        <div class="content" @ref="InnerRef">
+
+            @if (MessageData.Message.Attachments != null)
+            {
+                @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
+                {
+                    var id = i;
+                    var attachment = MessageData.Message.Attachments[id];
+                    var par = new Dictionary<string, object>()
+                    {
+                        { "Attachment", attachment },
+                        { "MessageComponent", this }
+                    };
+
+                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                        @if (Ghost)
+                        {
+                            <div class="attachment-x">x</div>
+                        }
+                        <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+                    </div>
+                }
+            }
+
+            @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
+            {
+                <EmbedComponent MessageWrapper="MessageData" MessageComponent="@this"></EmbedComponent>
+                @if (MessageData.Message.EditedTime != null)
+                {
+                    <p class="edited-flag"> (Edited)</p>
+                }
+            }
+            else
+            {
+                @MessageContent
+
+                @if (Edit)
+                {
+                    <p class="edit-flag">(Editing)</p>
+                }
+
+                @if (MessageData.Message.EditedTime != null)
+                {
+                    <p class="edited-flag"> (Edited)</p>
+                }
+            }
+        </div>
     </div>
+
+    @if (IsInnerReply)
+    {
+        <div class="reply-x">x</div>
+    }
 </div>
 
 @code {
@@ -253,15 +251,14 @@
     {
     }
 
-    public virtual async Task OnClickName(MouseEventArgs e)
-    {
-        await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
-    }
+    public virtual Task OnClickName(MouseEventArgs e) =>
+        ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+    
 
     private async Task OnEditReceived(ModelUpdateEvent eventData)
     {
-        Console.WriteLine("EDIT RECEIVED");
-        Console.WriteLine(JsonSerializer.Serialize(eventData));
+        // Console.WriteLine("EDIT RECEIVED");
+        // Console.WriteLine(JsonSerializer.Serialize(eventData));
         await BuildMessage();
         await CloseEditMode();
     }
@@ -281,7 +278,7 @@
         {
             await WindowManager.Instance.SetSelectedWindow(Window);
 
-    // Initialize message
+            // Initialize message
             await MessageContextMenuComponent.Initialize(MessageData, Window.Component, this);
         }
     }
@@ -410,17 +407,17 @@
 
         Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.Id}";
 
-        if (!IsInnerReply && !Ghost)
-        {
-            Holder.AddRenderedMessage(this);
-        }
-
         User = await MessageData.Message.GetAuthorUserAsync();
 
         await BuildMessage(false);
 
         if (User != null)
             User.OnUpdated += OnUserUpdated;
+        
+        if (!IsInnerReply && !Ghost)
+        {
+            Holder.AddRenderedMessage(this);
+        }
     }
 
     public async Task OnUserUpdated(ModelUpdateEvent eventData)

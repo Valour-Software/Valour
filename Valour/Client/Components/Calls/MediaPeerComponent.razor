@@ -1,0 +1,195 @@
+﻿<div id="@ElementId" @onmousedown="@SetContextSelected">
+    @if (Peer.Kind == "video")
+    {
+        <div class="peer-video-wrapper">
+            <video class="media peer-video" playsinline autoplay />
+            <div class='pause-button'>
+                Pause
+            </div>
+        </div>
+    }
+    else{
+        <div class="audio-row">
+            <div class="audio-left">
+                <img alt="@_name's profile picture" class="audio-pfp" src="@_pfpUrl" @onerror="@OnPfpError"/>
+                <p class="name" @onclick="ShowProfileAsync">@_name</p>
+            </div>
+
+            <i class="bi @GetAudioIcon()" style="color: @GetAudioIconColor()"></i>
+
+            @if (Peer.Kind == "audio")
+            {
+                <audio class="media peer-audio" type="audio/@Peer.Codec" playsinline autoplay></audio>
+            }
+        </div>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public CallComponent Parent { get; set; }
+
+    [Parameter]
+    public VisiblePeer Peer { get; set; }
+
+    private PlanetMember _member;
+    private User _user;
+    private string _name;
+    private string _pfpUrl;
+    private float _volume = 150f;
+
+    private bool _remoteMuted = false;
+    private bool _localMuted = false;
+    private bool _isActiveSpeaker = false;
+
+    public bool GetLocalMuted() => _localMuted;
+    public float GetVolume() => _volume;
+    
+    private string GetAudioIconColor()
+    {
+        if (_localMuted)
+            return "red";
+        
+        if (_isActiveSpeaker)
+            return "var(--v-cyan)";
+
+        return "#fff";
+    }
+
+    private string GetAudioIcon()
+    {
+        if (_remoteMuted || _localMuted)
+        {
+            if (_isActiveSpeaker)
+            {
+                return "bi-mic-mute-fill";
+            }
+            
+            return "bi-mic-mute";
+        }
+        else
+        {
+            if (_isActiveSpeaker)
+            {
+                return "bi-mic-fill";
+            }
+
+            return "bi-mic";
+        }
+    }
+
+    public string ElementId { get; set; }
+
+    private bool _canRender = false;
+
+    private bool _hookAfterRender = false;
+
+    protected override bool ShouldRender() =>
+        _canRender;
+
+    public void Refresh()
+    {
+        _canRender = true;
+        StateHasChanged();
+    }
+    
+    public async Task SetLocalVolumeAsync(float volume)
+    {
+        await Parent.SetPeerLocalVolumeAsync(ElementId, volume);
+        _volume = volume;
+    }
+    
+    public async Task SetLocalMutedAsync(bool value)
+    {
+        await Parent.SetPeerConsumerLocalMutedAsync(Peer.ConsumerId, value);
+        _localMuted = value;
+        Refresh();
+    }
+
+    public void SetRemoteMuted(bool value)
+    {
+        if (value != _remoteMuted)
+        {
+            _remoteMuted = value;
+            Refresh();
+        }
+    }
+
+    public void SetActiveSpeaker(bool value)
+    {
+        if (value != _isActiveSpeaker)
+        {
+            _isActiveSpeaker = value;
+            Refresh();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ElementId = "rtc-" + Peer.PeerId.Replace(':', '-');
+        Peer.ElementId = ElementId;
+        
+        _name = Peer.PeerId;
+
+        if (long.TryParse(Peer.PeerId.Split(":")[1], out var memberId))
+        {
+            _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId);
+            _name = await _member.GetNameAsync();
+
+            _user = await _member.GetUserAsync();
+            _pfpUrl = PfpUtility.GetPfpUrl(_user, _member);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("Peer component rendered. Notifying parent...");
+            await Parent.NotifyPeerElementReady(this);
+        }
+
+        if (_hookAfterRender)
+        {
+            await Parent.NotifyPeerElementReady(this);
+            _hookAfterRender = false;
+        }
+
+        _canRender = false;
+    }
+
+    public async Task NotifyPeerUpdated()
+    {
+        Console.WriteLine($"Setting updated peer {Peer.PeerId}...");
+
+        Console.WriteLine("Peer has track: " + Peer.Kind);
+
+        _hookAfterRender = true;
+
+        Refresh();
+    }
+
+    private void OnPfpError()
+    {
+        _pfpUrl = PfpUtility.GetFailedPfpUrl(_user);
+        StateHasChanged();
+    }
+
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (_member is not null)
+        {
+            await ProfilePopup.Instance.OpenAsync(_member, (int) e.ClientX, (int) e.ClientY, "bottomRight");
+        }
+        else
+        {
+            await ProfilePopup.Instance.OpenAsync(_user, (int) e.ClientX, (int) e.ClientY, "bottomRight");
+        }
+    }
+
+    private void SetContextSelected()
+    {
+        AudioContextMenuComponent.SetSelectedItem(this);
+    }
+}

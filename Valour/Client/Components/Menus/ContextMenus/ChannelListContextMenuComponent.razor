@@ -5,9 +5,7 @@
 
     @if (SelectedItem is PlanetCategory && CanModifyCategory){
         <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
-        /* Uncomment when voice is production ready
         <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
-        */
         <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
 
