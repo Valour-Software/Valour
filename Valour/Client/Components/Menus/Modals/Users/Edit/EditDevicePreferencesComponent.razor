@@ -40,10 +40,9 @@
 
     private InputMic[] _mics;
 
-    public async Task OnChooseMic(ChangeEventArgs e)
+    private async Task OnChooseMic(ChangeEventArgs e)
     {
-        DevicePreferences.MicrophoneDeviceId = e.Value.ToString();
-        await LocalStorage.SetItemAsync("MicrophoneDeviceId", DevicePreferences.MicrophoneDeviceId);
+        await DevicePreferences.SetMicrophoneDeviceId(e.Value?.ToString(), LocalStorage);
     }
 
     protected override async Task OnInitializedAsync()

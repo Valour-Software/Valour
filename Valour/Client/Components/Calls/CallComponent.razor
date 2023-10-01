@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
+@inject IModalService Modal
 @using Valour.Api.Extensions
 @implements IAsyncDisposable
 
@@ -14,7 +15,8 @@
                     <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer" />
                 }
 
-                <button class="v-btn large" style="margin-top: 12px" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>
+                <button class="v-btn large call-button" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>
+                <button class="v-btn large call-button" @onmousedown="@OnClickSettings"><i class="bi bi-gear-fill"></i></button>
             </div>
         </SmoothDraggable>
     </div>
@@ -23,7 +25,7 @@
 
 
 @code {
-
+    
     public PlanetVoiceChannel ActiveChannel { get; set; } = null;
     
     public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
@@ -41,6 +43,12 @@
     protected override void OnInitialized()
     {
         Instance = this;
+        DevicePreferences.OnMicrophoneDeviceIdChanged += OnMicrophoneSelected;
+    }
+
+    public async Task OnMicrophoneSelected(string id)
+    {
+        await SetMic(id);
     }
 
     /// <summary>
@@ -126,6 +134,14 @@
         StateHasChanged();
     }
 
+    public async Task OnClickSettings()
+    {
+        var param = new ModalParameters();
+        param.Add("StartTopMenu", "General Settings");
+        param.Add("StartSubMenu", "Device Preferences");
+        Modal.Show<EditUserComponent>("Edit User", param);
+    }
+
     public async Task JoinRoom() => 
         await _jsModule.InvokeVoidAsync("joinRoom");
     
@@ -173,6 +189,9 @@
     
     public async Task<InputMic[]> UpdateMics() => 
         await _jsModule.InvokeAsync<InputMic[]>("updateMics");
+    
+    public async Task SetMic(string deviceId) => 
+        await _jsModule.InvokeVoidAsync("changeMic", deviceId);
 
 
     /* Methods that are invoked by JS */

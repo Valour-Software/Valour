@@ -124,8 +124,6 @@ export async function initialize(dotnetRef, clientId, channelId, e2e, micId) {
         peerId,
         consumerReplicas
     );
-    
-    await updateMics();
 }
 
 export function hookPeerElementMediaTrack(elementId, consumerId, kind) {
@@ -457,10 +455,6 @@ export async function enableMic()
 
     if (micProducer)
         return;
-    
-    if (chosenMicId) {
-        await changeMic(chosenMicId);
-    }
 
     if (!mediasoupDevice.canProduce('audio'))
     {
@@ -472,8 +466,20 @@ export async function enableMic()
 
     console.debug('enableMic() | calling getUserMedia()');
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream;
 
+    if (chosenMicId){
+        stream = await navigator.mediaDevices.getUserMedia({ audio :
+                {
+                    deviceId : { exact: chosenMicId },
+                }
+        });
+    }
+    
+    if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    
     track = stream.getAudioTracks()[0];
     
     try
@@ -1874,7 +1880,21 @@ export async function joinRoom()
         // Just get access to the mic and DO NOT close the mic track for a while.
         // Super hack!
         {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            let stream;
+            
+            if (chosenMicId){
+                stream = await navigator.mediaDevices.getUserMedia({ audio :
+                        {
+                            deviceId : { exact: chosenMicId },
+                        } 
+                });
+            }
+            
+            if (!stream) {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+            
+            
             const audioTrack = stream.getAudioTracks()[0];
 
             audioTrack.enabled = false;

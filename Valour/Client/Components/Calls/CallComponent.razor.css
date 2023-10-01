@@ -15,3 +15,9 @@
     height: 100%;
     width: 100%;
 }
+
+.call-button {
+    margin-top: 12px;
+    width: auto;
+    display: inline-block;
+}
