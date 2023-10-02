@@ -1982,10 +1982,13 @@ export async function joinRoom()
                 console.error('joinRoom() | getUserMedia() failed:%o', error);
             }
             
+            try {
+                const audioTrack = stream.getAudioTracks()[0];
+                audioTrack.enabled = false;
+            } catch (error) {
+                console.error('joinRoom() | failed to get audio track:%o', error);
+            }
             
-            const audioTrack = stream.getAudioTracks()[0];
-
-            audioTrack.enabled = false;
 
             setTimeout(() => audioTrack.stop(), 120000);
         }
