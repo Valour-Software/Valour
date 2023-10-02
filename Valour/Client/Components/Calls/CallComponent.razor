@@ -5,34 +5,45 @@
 
 @if (ActiveChannel is not null)
 {
-    <div class="drag-area">
-        <SmoothDraggable StartX="500" StartY="200" FromRight="@true">
-            <div class="call-container">
-                <h6>Active Call: @ActiveChannel.Name</h6>
-                
-                <ContextMenuTrigger Style="max-height: 200px; overflow-y: auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='audio-context'>
-                    @foreach (var peer in VisiblePeers)
-                    {
-                        <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer" />
-                    }
-                </ContextMenuTrigger>
-
-                <button class="v-btn large call-button" @onmousedown="@OnClickSettings"><i class="bi bi-gear-fill"></i></button>
-                <button class="v-btn large call-button" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>
-                <button class="v-btn large call-button" @onmousedown="@OnClickLeave"><i class="bi bi-box-arrow-right"></i></button>
-                
-                @if (!string.IsNullOrWhiteSpace(_error))
-                {
-                    <p style="color: red; margin-top: 12px">@_error</p>
-                }
-            </div>
-        </SmoothDraggable>
-    </div>
+    @if (DeviceInfo.IsMobile)
+    {
+        @InnerContent
+    }
+    else
+    {
+        <div class="drag-area">
+            <SmoothDraggable StartX="500" StartY="200" FromRight="@true">
+                @InnerContent
+            </SmoothDraggable>
+        </div>
+    }
 }
 
 
 
 @code {
+
+    public RenderFragment InnerContent =>
+        @<div class="call-container">
+            <h6>Active Call: @ActiveChannel.Name</h6>
+
+            <ContextMenuTrigger Style="max-height: 200px; overflow-y: auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='audio-context'>
+                @foreach (var peer in VisiblePeers)
+                {
+                    <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer"/>
+                }
+            </ContextMenuTrigger>
+
+            <button class="v-btn large call-button" @onmousedown="@OnClickSettings"><i class="bi bi-gear-fill"></i></button>
+            <button class="v-btn large call-button" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>
+            <button class="v-btn large call-button" @onmousedown="@OnClickLeave"><i class="bi bi-box-arrow-right"></i></button>
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p style="color: red; margin-top: 12px">@_error</p>
+            }
+        </div>;
+        
     
     public PlanetVoiceChannel ActiveChannel { get; set; } = null;
     

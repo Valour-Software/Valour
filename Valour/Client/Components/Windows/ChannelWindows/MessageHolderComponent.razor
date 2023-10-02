@@ -4,11 +4,15 @@
 @using System.Reflection.Metadata
 @using Microsoft.AspNetCore.Components.Rendering
 
-<ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto"  MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
+<ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
+    <!-- Pushes messages to bottom -->
+    <div style="flex-grow: 1; flex-shrink: 1; height: 0"></div>
+    
+    <!-- Actual messages -->
     <CascadingValue Value="this" IsFixed="true">
         @MessagesTemplate
     </CascadingValue>
-    
+
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
 </ContextMenuTrigger>
 
