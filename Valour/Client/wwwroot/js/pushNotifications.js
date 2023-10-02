@@ -49,6 +49,9 @@
         },
 
         hasNotifications: async () => {
+            if (Notification.permission !== "granted") {
+                await Notification.requestPermission();
+            }
             return !(Notification.permission !== "granted");
         }
     };

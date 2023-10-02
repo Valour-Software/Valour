@@ -102,8 +102,11 @@
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		await JS.InvokeVoidAsync("SplitWindows", "window-man");
-		CanRender = false;
+		if (!DeviceInfo.IsMobile && Windows.Count > 0)
+		{
+			await JS.InvokeVoidAsync("SplitWindows", "window-man");
+			CanRender = false;
+		}
 	}
 
 	/// <summary>
