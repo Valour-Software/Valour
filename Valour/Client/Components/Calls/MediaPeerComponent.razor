@@ -15,7 +15,7 @@
                 <p class="name" @onclick="ShowProfileAsync">@_name</p>
             </div>
 
-            <i class="bi @GetAudioIcon()" style="color: @GetAudioIconColor()"></i>
+            <i class="bi @GetAudioIcon()" style="color: @GetAudioIconColor(); margin-right:  8px; margin-left: 8px"></i>
 
             @if (Peer.Kind == "audio")
             {

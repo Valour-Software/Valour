@@ -546,17 +546,24 @@ export async function enableMic()
     console.debug('enableMic() | calling getUserMedia()');
 
     let stream;
-
-    if (chosenMicId){
-        stream = await navigator.mediaDevices.getUserMedia({ audio :
-                {
-                    deviceId : { exact: chosenMicId },
-                }
-        });
-    }
     
-    if (!stream) {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+        if (chosenMicId) {
+            stream = await navigator.mediaDevices.getUserMedia({
+                audio:
+                    {
+                        deviceId: {exact: chosenMicId},
+                    }
+            });
+        }
+
+        if (!stream) {
+            stream = await navigator.mediaDevices.getUserMedia({audio: true});
+        }
+    } catch (e) {
+        console.error('enableMic() | getUserMedia() failed', e);
+        await dotnet.invokeMethodAsync('NotifyError', 'Failed to hook mic. Ensure mic permissions are set to allow!');
+        return;
     }
     
     track = stream.getAudioTracks()[0];
@@ -1978,19 +1985,19 @@ export async function joinRoom()
                 if (!stream) {
                     stream = await navigator.mediaDevices.getUserMedia({audio: true});
                 }
+
+                try {
+                    const audioTrack = stream.getAudioTracks()[0];
+                    audioTrack.enabled = false;
+                    setTimeout(() => audioTrack.stop(), 120000);
+                } catch (error) {
+                    console.error('joinRoom() | failed to get audio track:%o', error);
+                }
+                
             } catch (error) {
                 console.error('joinRoom() | getUserMedia() failed:%o', error);
+                await dotnet.invokeMethodAsync('NotifyError', 'Mic access needed!');
             }
-            
-            try {
-                const audioTrack = stream.getAudioTracks()[0];
-                audioTrack.enabled = false;
-            } catch (error) {
-                console.error('joinRoom() | failed to get audio track:%o', error);
-            }
-            
-
-            setTimeout(() => audioTrack.stop(), 120000);
         }
         // Create mediasoup Transport for sending (unless we don't want to produce).
         if (produce)
@@ -2231,7 +2238,7 @@ export async function joinRoom()
                     canSendWebcam : this.mediasoupDevice.canProduce('video')
                 }));
             */
-
+            
             await enableMic();
 
             const devicesCookie = getCookieDevices();
