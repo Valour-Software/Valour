@@ -1938,6 +1938,8 @@ export async function joinRoom()
 
     try
     {
+
+        console.debug('joinRoom() | creating mediasoup Device');
         mediasoupDevice = new mediasoupClient.Device();
         window.mediasoupDevice = mediasoupDevice;
 
@@ -1949,6 +1951,7 @@ export async function joinRoom()
         ));
         */
 
+        console.debug('joinRoom() | getting router RTP capabilities');
         const routerRtpCapabilities =
             await protoo.request('getRouterRtpCapabilities');
 
@@ -1960,7 +1963,8 @@ export async function joinRoom()
         // Super hack!
         {
             let stream;
-            
+
+            console.debug('joinRoom() | calling getUserMedia()');
             if (chosenMicId){
                 stream = await navigator.mediaDevices.getUserMedia({ audio :
                         {
@@ -1983,6 +1987,8 @@ export async function joinRoom()
         // Create mediasoup Transport for sending (unless we don't want to produce).
         if (produce)
         {
+            console.debug('joinRoom() | creating mediasoup Transport for sending');
+            
             const transportInfo = await protoo.request(
                 'createWebRtcTransport',
                 {
@@ -2098,6 +2104,8 @@ export async function joinRoom()
         // Create mediasoup Transport for receiving (unless we don't want to consume).
         if (consume)
         {
+            console.debug('joinRoom() | creating mediasoup Transport for receiving');
+            
             const transportInfo = await protoo.request(
                 'createWebRtcTransport',
                 {
@@ -2149,6 +2157,8 @@ export async function joinRoom()
                         .catch(errback);
                 });
         }
+
+        console.debug('joinRoom() | joining room');
 
         // Join now into the room.
         // NOTE: Don't send our RTP capabilities if we don't want to consume.
