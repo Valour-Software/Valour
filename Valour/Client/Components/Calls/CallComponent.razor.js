@@ -1964,17 +1964,22 @@ export async function joinRoom()
         {
             let stream;
 
-            console.debug('joinRoom() | calling getUserMedia()');
-            if (chosenMicId){
-                stream = await navigator.mediaDevices.getUserMedia({ audio :
-                        {
-                            deviceId : { exact: chosenMicId },
-                        } 
-                });
-            }
-            
-            if (!stream) {
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            try {
+                console.debug('joinRoom() | calling getUserMedia()');
+                if (chosenMicId) {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        audio:
+                            {
+                                deviceId: {exact: chosenMicId},
+                            }
+                    });
+                }
+
+                if (!stream) {
+                    stream = await navigator.mediaDevices.getUserMedia({audio: true});
+                }
+            } catch (error) {
+                console.error('joinRoom() | getUserMedia() failed:%o', error);
             }
             
             
