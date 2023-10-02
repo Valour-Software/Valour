@@ -27,7 +27,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        //notif_enabled = await JS.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
+        var notif_enabled = await JS.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
 
         Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription", false);
 
