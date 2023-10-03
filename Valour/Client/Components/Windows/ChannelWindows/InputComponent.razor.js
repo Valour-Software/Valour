@@ -93,7 +93,7 @@ export function inputKeyDownHandler(e, input) {
             else {
 
                 // Mobile uses submit button
-                if (mobile) {
+                if (mobile && !embedded) {
                     break;
                 }
 
