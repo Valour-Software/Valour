@@ -236,6 +236,7 @@ body {
     width: 44px;
     padding: 10px;
     margin-top: 0px;
+    cursor: pointer;
 }
 
 .window {
