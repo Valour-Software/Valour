@@ -1,8 +1,11 @@
 <div class="version">
-    <img alt="Valour logo" class="logo" src="_content/Valour.Client/media/logo/logo-256.png" />
+    @if (DeviceInfo.IsMobile)
+    {
+        <i class="bi bi-list open-menu" @onclick="Sidebar.ToggleMobileSidebar"></i>
+    }
+    <img alt="Valour logo" class="logo" src="_content/Valour.Client/media/logo/logo-256.png"/>
     <p class="text">Valour Alpha <br/> V@(typeof(ISharedUser).Assembly.GetName().Version.ToString())</p>
 </div>
-<div class="version-gap"></div>
 
 @code {
     

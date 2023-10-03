@@ -2,8 +2,8 @@
 @page "/planetchannels/{StartPlanetId:long}/{StartChannelId:long}/{StartMessageId:long}"
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
 
-@inject IJSRuntime JS
-@inject WindowManager windowManager
+@inject IJSRuntime JsRuntime
+@inject WindowManager WindowManager
 @inject NavigationManager NavigationManager
 
 <!-- Check login status -->
@@ -17,27 +17,31 @@
 <SafetyPopup />
 <ProfilePopup />
 
-<link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-<div class="mobile-holder @MobileClass">
+<div class="mobile-holder @MobileClass @EmbeddedClass">
 	<!-- Modal management -->
 	<CascadingBlazoredModal Size="ModalSize.Automatic" HideHeader='true' HideCloseButton='true'>
 		<body class="mainrow">
 			<Sidebar></Sidebar>
 			<div class="channel-and-topbar" id="mainwindow">
 				<div class="topbar">
-					@if (!DeviceInfo.IsMobile)
-					{
-						<QuickNotifComponent></QuickNotifComponent>
-					}
+					@if (DeviceInfo.IsMobile)
+                    {
+                        <i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
+                    }
+					<QuickNotifComponent></QuickNotifComponent>
+					@if (DeviceInfo.IsMobile)
+                    {
+	                    <img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome" />
+                    }
 				</div>
-				<div class="topline">
-				</div>
-				
-				<CallComponent />
-
-				<!-- It's so nice when it's hidden away, just like my fears -->
-				<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
+			<div class="topline">
 			</div>
+
+			<CallComponent/>
+
+			<!-- It's so nice when it's hidden away, just like my fears -->
+			<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
+		</div>
 			@if (!DeviceInfo.IsMobile)
 			{
 				<Sidebar Flip="@true"></Sidebar>
@@ -53,7 +57,7 @@
 
 	private StartScreenData _startData;
 	
-	public StartScreen? Start { get; set; }
+	private StartScreen? Start { get; set; }
 	
 	[Parameter]
 	public long? StartPlanetId { get; set; }
@@ -65,6 +69,8 @@
 	public long? StartMessageId { get; set; }
 
 	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
+	
+	private string EmbeddedClass => DeviceInfo.IsEmbedded ? "embedded" : "";
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -87,31 +93,32 @@
 
 		await base.OnInitializedAsync();
 
-		windowManager.OnPlanetFocused += OnPlanetChange;
+		WindowManager.OnPlanetFocused += OnPlanetChange;
 		ValourClient.OnLogin += OnLoginAsync;
 	}
 
-	public async Task OnLoginAsync()
+	private Task OnLoginAsync()
 	{
 		StateHasChanged();
+		return Task.CompletedTask;
 	}
 
 	public void Dispose()
 	{
-		windowManager.OnPlanetFocused -= OnPlanetChange;
+		WindowManager.OnPlanetFocused -= OnPlanetChange;
 	}
 
 	protected override async void OnAfterRender(bool firstRender)
 	{
 		if (firstRender)
 		{
-			await JS.InvokeVoidAsync("FixClip");
-			await JS.InvokeVoidAsync("FitMobile");
+			await JsRuntime.InvokeVoidAsync("FixClip");
+			await JsRuntime.InvokeVoidAsync("FitMobile");
 			StateHasChanged();
 		}
 	}
 
-	public async Task OnPlanetChange(Planet planet)
+	private Task OnPlanetChange(Planet planet)
 	{
 		if (planet != null)
 		{
@@ -121,6 +128,13 @@
 		{
 			Console.WriteLine("Index planet change: null");
 		}
+
+		return Task.CompletedTask;
+	}
+
+	private async Task OnClickHome()
+	{
+		await WindowManager.GetSelectedWindow().ReturnHomeAsync();
 	}
 
 	[JSInvokable("OnRefocus")]

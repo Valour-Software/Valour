@@ -189,27 +189,27 @@ public class PlanetService
     /// </summary>
     public async Task<PlanetMemberInfo> GetMemberInfoAsync(long planetId, int page = 0)
     {
-        var members = _db.PlanetMembers
-            .Include(x => x.RoleMembership)
-            .ThenInclude(x => x.Role)
-            .Where(x => x.PlanetId == planetId)
-            .OrderBy(x => x.Id);
-
-        var totalCount = await members.CountAsync();
-
-        var roleInfo = await members.Select(x => new PlanetMemberData()
+        // Constructing base query
+        var baseQuery = _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId);
+        
+        var totalCount = await baseQuery.CountAsync();
+        var data = await baseQuery
+            .OrderBy(x => x.Id)
+            .Skip(page * 100)
+            .Take(100)
+            .Select(x => new PlanetMemberData
             {
                 Member = x.ToModel(),
                 User = x.User.ToModel(),
-                RoleIds = x.RoleMembership.OrderBy(x => x.Role.Position).Select(rm => rm.RoleId).ToList()
+                RoleIds = x.RoleMembership.OrderBy(rm => rm.Role.Position).Select(rm => rm.RoleId).ToList()
             })
-            .Skip(page * 100)
-            .Take(100)
             .ToListAsync();
-        
+
         return new PlanetMemberInfo()
         {
-            Members = roleInfo,
+            Members = data,
             TotalCount = totalCount
         };
     }

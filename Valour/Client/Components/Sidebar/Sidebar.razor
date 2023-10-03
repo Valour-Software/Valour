@@ -48,6 +48,13 @@
 </div>
 
 @code {
+
+	private static event Func<Task> OnToggleMobileSidebar;
+	public static async Task ToggleMobileSidebar()
+	{
+		if (OnToggleMobileSidebar is not null)
+			await OnToggleMobileSidebar.Invoke();
+	}
 	
 	[Parameter]
 	public bool Flip { get; set; }
@@ -134,6 +141,8 @@
 				_selectedTab = ChannelLayout.Left;
 			}
 		}
+
+		OnToggleMobileSidebar += OnOpenTabClicked;
 	}
 
 	private async Task OnSelected(TabStripItem tab)
@@ -176,6 +185,7 @@
 		await _jsModule.InvokeVoidAsync("cleanup");
 		await _jsModule.DisposeAsync();
 		_thisRef.Dispose();
+		OnToggleMobileSidebar -= OnOpenTabClicked;
 	}
 	
 	protected override async Task OnAfterRenderAsync(bool firstRender)

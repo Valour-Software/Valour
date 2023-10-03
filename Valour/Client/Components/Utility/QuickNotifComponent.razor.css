@@ -1,9 +1,10 @@
 ﻿.quick-notif {
-    display: flex;
+    display: inline-flex;
     justify-content: flex-end;
     align-items: center;
     height: 100%;
     padding: 20px;
+    flex-grow: 1;
 }
 
 .quick-notif .item.animate {

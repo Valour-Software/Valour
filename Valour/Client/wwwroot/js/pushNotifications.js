@@ -2,8 +2,17 @@
     // Note: Replace with your own key pair before deploying
     const applicationServerPublicKey = 'BBySvfFjJ4IihseXSujDGj4MsAd3ZAwDwy1Q2XxnMY6V3rCXjuqwm3utGvACAyjl0zEhj4Rk4Eoumy-znN_Y2VQ';
 
+    window.askForPushPermission = async () => {
+        if (Notification.permission !== "granted") {
+            await Notification.requestPermission();
+        }
+    };
+    
     window.blazorPushNotifications = {
         requestSubscription: async (create = true) => {
+            
+            await window.askForPushPermission();
+            
             const worker = await navigator.serviceWorker.getRegistration();
             const existingSubscription = await worker.pushManager.getSubscription();
             if (!existingSubscription) {

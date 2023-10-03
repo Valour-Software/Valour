@@ -212,9 +212,29 @@ body {
 }
 
 .topbar {
-    height: 61px;
-    min-height: 61px;
+    display: flex;
+    height: 60px;
+    min-height: 60px;
     background-color: var(--main-4);
+}
+
+.mobile .topbar {
+    height: 44px;
+    min-height: 44px;
+}
+
+.topbar .sidebar-toggle {
+    display: inline-block;
+    padding: 10px;
+    padding-top: 9px;
+    font-size: 24px;
+}
+
+.topbar .home {
+    display: inline-block;
+    width: 44px;
+    padding: 10px;
+    margin-top: 0px;
 }
 
 .window {
@@ -282,6 +302,8 @@ body {
     flex-direction: column;
     max-height: 100vh;
     max-height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .channel-and-topbar {
