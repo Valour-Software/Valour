@@ -1,5 +1,4 @@
 .version {
-    position: absolute;
     background-color: rgba(0, 0, 0, 0.8);
     z-index: 5;
     display: flex;
@@ -22,4 +21,9 @@
 
 .version-gap {
     height: 60px;
+}
+
+.open-menu {
+    font-size: 24px;
+    margin-right: 18px;
 }

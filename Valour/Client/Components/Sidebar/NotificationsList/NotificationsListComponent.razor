@@ -9,9 +9,10 @@
     <!-- Because adding new items to the end of a list is a lot faster than inserting to the start. -->
     <div class="item-wrapper">
         <Virtualize TItem="Notification" Items="ValourClient.UnreadNotifications">
-            <NotificationCard @key="@context.Id" Notification="@context" />
+            <NotificationCard @key="@context.Id" Notification="@context"/>
         </Virtualize>
     </div>
+    <div style="flex-grow: 1; height: 0"></div>
     <div class="clear-wrapper">
         <button class="v-btn clear-btn" @onclick="OnClickClearNotifications">Clear All Notifications</button>
     </div>
