@@ -228,6 +228,7 @@ body {
     padding: 10px;
     padding-top: 9px;
     font-size: 24px;
+    cursor: pointer;
 }
 
 .topbar .home {
@@ -235,6 +236,7 @@ body {
     width: 44px;
     padding: 10px;
     margin-top: 0px;
+    cursor: pointer;
 }
 
 .window {

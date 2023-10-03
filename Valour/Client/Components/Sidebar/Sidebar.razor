@@ -202,6 +202,14 @@
 
 	private async Task OnOpenTabClicked()
 	{
-		await _jsRef.InvokeVoidAsync("toggleOpen");
+		if (!DeviceInfo.IsMobile)
+		{
+			_active = !_active;
+			StateHasChanged();
+		}
+		else
+		{
+			await _jsRef.InvokeVoidAsync("toggleOpen");	
+		}
 	}
 }
