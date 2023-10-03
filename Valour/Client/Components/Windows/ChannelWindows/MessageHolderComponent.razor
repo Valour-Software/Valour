@@ -104,7 +104,7 @@
 
                 builder.OpenComponent<T>(0);
                 builder.AddAttribute(1, "ParamData", messageParams);
-                builder.SetKey(messageData.Message.Id);
+                builder.SetKey($"q-{messageData.Message.Fingerprint}");
                 builder.CloseComponent();
 
                 lastMessage = messageData;
