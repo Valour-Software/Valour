@@ -77,6 +77,8 @@
 	/// </summary>
 	private IJSInProcessObjectReference _jsModule;
 
+	private IJSInProcessObjectReference _jsRef;
+
 
 	public class SidebarLayout
 	{
@@ -194,28 +196,12 @@
 		{
 			_thisRef = DotNetObjectReference.Create(this);
 			_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
-			await _jsModule.InvokeVoidAsync("init", _thisRef, _id);
+			_jsRef = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, _id);
 		}
 	}
 
-	private Task OnOpenTabClicked()
+	private async Task OnOpenTabClicked()
 	{
-		_active = !_active;
-		StateHasChanged();
-		return Task.CompletedTask;
-	}
-
-	[JSInvokable]
-	public void OnLeftSwipe()
-	{
-		_active = false;
-		StateHasChanged();
-	}
-
-	[JSInvokable]
-	public void OnRightSwipe()
-	{
-		_active = true;
-		StateHasChanged();
+		await _jsRef.InvokeVoidAsync("toggleOpen");
 	}
 }

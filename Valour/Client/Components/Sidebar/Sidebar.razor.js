@@ -84,6 +84,18 @@ export function init(ref, id) {
     window.addEventListener('touchstart', onTouchStart, false);
     window.addEventListener('touchmove', onTouchMove, false);
     window.addEventListener('touchend', onTouchEnd, false);
+    
+    return {
+        toggleOpen: () => {
+            if (open) {
+                sidebar.style.transform = null;
+                open = false;
+            } else {
+                sidebar.style.transform = `translateX(0px)`;
+                open = true;
+            }
+        }
+    }
 }
 
 function getTouches(evt) {
