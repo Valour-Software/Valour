@@ -244,7 +244,7 @@
     [JSInvokable]
     public async Task NotifyPeerConsumer(string peerId, string consumerId, string type, string codec, string kind)
     {
-        Console.WriteLine("dotnet: notify peer consumer");
+        Console.WriteLine("dotnet: notify peer consumer " + peerId);
         
         // Replace with more complete peer
         var old = VisiblePeers.FirstOrDefault(x => x.PeerId == peerId);
@@ -287,6 +287,22 @@
         
         VisiblePeers.Clear();
         VisiblePeers.AddRange(peers);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task NotifyNewPeer(string peerId)
+    {
+        Console.WriteLine("dotnet: new peer " + peerId);
+        
+        if (VisiblePeers.Any(x => x.PeerId == peerId))
+            return;
+
+        VisiblePeers.Add(new VisiblePeer()
+        {
+            PeerId = peerId
+        });
+        
         StateHasChanged();
     }
 
