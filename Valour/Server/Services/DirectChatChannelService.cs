@@ -263,7 +263,7 @@ public class DirectChatChannelService
             var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
             if (mentions is not null)
             {
-                foreach (var mention in mentions)
+                foreach (var mention in mentions.DistinctBy(x => x.TargetId))
                 {
                     if (mention.Type == MentionType.User)
                     {

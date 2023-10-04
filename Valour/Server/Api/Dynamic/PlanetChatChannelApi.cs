@@ -432,7 +432,7 @@ public class PlanetChatChannelApi
             var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
             if (mentions is not null)
             {
-                foreach (var mention in mentions)
+                foreach (var mention in mentions.DistinctBy(x => x.TargetId))
                 {
 	                var sendingUser = await userService.GetAsync(member.UserId);
 	                var planet = await planetService.GetAsync(message.PlanetId);

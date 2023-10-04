@@ -35,6 +35,24 @@ public class ClientMessageWrapper
     /// </summary>
     private string _markdownContent;
 
+    private string _renderKey;
+    
+    /// <summary>
+    /// Used to prevent key clashes
+    /// </summary>
+    public string RenderKey
+    {
+        get
+        {
+            if (_renderKey is null)
+            {
+                _renderKey = Guid.NewGuid().ToString();
+            }
+
+            return _renderKey;
+        }
+    }
+
     /// <summary>
     /// The internal message
     /// </summary>

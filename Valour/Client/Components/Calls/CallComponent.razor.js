@@ -415,7 +415,7 @@ export async function join()
             {
                 const peer = notification.data;
 
-                // TODO: dotnet event
+                dotnet.invokeMethodAsync('NotifyNewPeer', peer.id);
 
                 break;
             }
