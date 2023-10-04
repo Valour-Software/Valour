@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Valour.Database;
 using Valour.Server.Services;
 using Valour.Server.Users;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
+using User = Valour.Server.Models.User;
+using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -389,5 +393,27 @@ public class UserApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
         return Results.Json(await userService.GetReferralDataAsync(userId));
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/self/hardDelete")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> DeleteAccountAsync(UserService userService, [FromBody] DeleteAccountModel model)
+    {
+        // Get user id
+        var user = await userService.GetCurrentUserAsync();
+        var cred = await userService.GetCredentialAsync(user.Id);
+        
+        // Check password
+        var passResult = await userService.ValidateAsync(CredentialType.PASSWORD, cred.Identifier, model.Password);
+
+        if (!passResult.Success)
+        {
+            return ValourResult.Forbid(passResult.Message);
+        }
+        
+        // Validated
+        await userService.HardDelete(user);
+
+        return ValourResult.Ok("Deleted.");
     }
 }
