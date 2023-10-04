@@ -38,7 +38,8 @@ public static class ValourClient
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
-    // public static string BaseAddress = "http://192.168.1.185:5000/";
+    // public static string BaseAddress = "https://app.valour.gg/";
+    // public static string BaseAddress = "http://192.168.1.183:5000/";
     public static string BaseAddress = "http://localhost:5000/";
 #endif
 
@@ -2164,4 +2165,11 @@ public static class ValourClient
     }
 
 #endregion
+    
+    // Sad zone
+    public static async Task<TaskResult> DeleteAccountAsync(string password)
+    {
+        var model = new DeleteAccountModel() { Password = password };
+        return await PrimaryNode.PostAsync("api/users/self/hardDelete", model);
+    }
 }
