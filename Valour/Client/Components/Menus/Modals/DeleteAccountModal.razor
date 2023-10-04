@@ -1,0 +1,50 @@
+@inject NavigationManager NavManager
+
+<div class="col-md-12">
+	<section style="text-align: center; padding: 30px; max-width: 400px">
+		<h3>Delete your account?</h3>
+		<h5>This is a permanent action. You will lose all your data and will not be able to recover it, including eco balances and items.</h5>
+		
+		<div class="form-group mt-2">
+			<label>Password</label>
+			<input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" />
+		</div>
+		<br />
+		
+		@if (!string.IsNullOrWhiteSpace(_errorSpan))
+		{
+			<span id="password-span" class="text-danger">@_errorSpan (For help contact support@valour.gg)</span>
+			<br/>
+		}
+		
+		<br />
+		<div @onclick="OnCancel" class="btn v-button d-inline-block">Cancel</div>
+		<div @onclick="OnConfirm" class="btn v-button danger d-inline-block">Confirm</div>
+	</section>
+</div>
+
+@code {
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
+	
+	private string _password = "";
+	private string _errorSpan;
+
+	private async Task OnConfirm()
+	{
+		var result = await ValourClient.DeleteAccountAsync(_password);
+		if (result.Success)
+		{
+			NavManager.NavigateTo("/");
+		}
+		else
+		{
+			_errorSpan = "An error occured. Check your password or contact support@valour.gg";
+		}
+	}
+
+	private async Task OnCancel()
+	{
+		await ModalInstance.CloseAsync();
+	}
+}

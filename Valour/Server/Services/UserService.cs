@@ -528,10 +528,16 @@ public class UserService
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)
             return;
-
+        
         // Remove messages
         var pMsgs = _db.PlanetMessages.Where(x => x.AuthorUserId == dbUser.Id);
         _db.PlanetMessages.RemoveRange(pMsgs);
+        
+        // Channel states
+        var states = _db.UserChannelStates.Where(x => x.UserId == dbUser.Id);
+        _db.UserChannelStates.RemoveRange(states);
+
+        await _db.SaveChangesAsync();
 
         // Direct Message Channels
         var dChannels = await _db.DirectChatChannels
@@ -543,16 +549,26 @@ public class UserService
             // channel states
             var st = _db.UserChannelStates.Where(x => x.ChannelId == dc.Id);
             _db.UserChannelStates.RemoveRange(st);
+            
+            var pst = _db.ChannelStates.Where(x => x.ChannelId == dc.Id);
+            _db.ChannelStates.RemoveRange(pst);
+            
+            // notifications
+            var dnots = _db.Notifications.Where(x => x.ChannelId == dc.Id);
+            _db.Notifications.RemoveRange(dnots);
+            
+            await _db.SaveChangesAsync();
 
             // messages
             var dMsgs = _db.DirectMessages.Where(x => x.ChannelId == dc.Id);
             _db.DirectMessages.RemoveRange(dMsgs);
-
+            
             await _db.SaveChangesAsync();
         }
 
         _db.DirectChatChannels.RemoveRange(dChannels);
         
+        await _db.SaveChangesAsync();
 
         // Remove friends and friend requests
         var requests = _db.UserFriends.Where(x => x.UserId == dbUser.Id || x.FriendId == dbUser.Id);
@@ -561,8 +577,7 @@ public class UserService
         // Remove email confirm codes
         var codes = _db.EmailConfirmCodes.Where(x => x.UserId == dbUser.Id);
         _db.EmailConfirmCodes.RemoveRange(codes);
-
-
+        
         // Remove user emails
         var emails = _db.UserEmails.Where(x => x.UserId == dbUser.Id);
         _db.UserEmails.RemoveRange(emails);
@@ -573,6 +588,17 @@ public class UserService
 
         var recovs = _db.PasswordRecoveries.Where(x => x.UserId == dbUser.Id);
         _db.PasswordRecoveries.RemoveRange(recovs);
+        
+        await _db.SaveChangesAsync();
+        
+        // Remove eco stuff
+        var transactions = _db.Transactions.Where(x => x.UserFromId == dbUser.Id || x.UserToId == dbUser.Id);
+        _db.Transactions.RemoveRange(transactions);
+        
+        var ecoAccounts = _db.EcoAccounts.Where(x => x.UserId == dbUser.Id);
+        _db.EcoAccounts.RemoveRange(ecoAccounts);
+        
+        await _db.SaveChangesAsync();
 
         // Remove membership stuff
         var pRoles = _db.PlanetRoleMembers.Where(x => x.UserId == dbUser.Id);
@@ -594,20 +620,39 @@ public class UserService
 
         // Notifications
         var nots = _db.NotificationSubscriptions.Where(x => x.UserId == dbUser.Id);
-
+        _db.NotificationSubscriptions.RemoveRange(nots);
+        
+        // Also notifications
+        var noots  = _db.Notifications.Where(x => x.UserId == dbUser.Id);
+        _db.Notifications.RemoveRange(noots);
+        
         // Bans
         var bans = _db.PlanetBans.Where(x => x.IssuerId == dbUser.Id || x.TargetId == dbUser.Id);
         _db.PlanetBans.RemoveRange(bans);
-
-        // Channel states
-        var states = _db.UserChannelStates.Where(x => x.UserId == dbUser.Id);
-        _db.UserChannelStates.RemoveRange(states);
 
         // Planet invites
         var invites = _db.PlanetInvites.Where(x => x.IssuerId == dbUser.Id);
         _db.PlanetInvites.RemoveRange(invites);
 
         await _db.SaveChangesAsync();
+        
+        // Assign ownership of planets to the system
+        var planets = _db.Planets.Where(x => x.OwnerId == dbUser.Id);
+        foreach (var planet in planets)
+        {
+            planet.OwnerId = ISharedUser.VictorUserId;
+            _db.Planets.Update(planet);
+        }
+
+        await _db.SaveChangesAsync();
+        
+        // profile
+        var profile = await _db.UserProfiles.FindAsync(dbUser.Id);
+        if (profile is not null)
+        {
+            _db.UserProfiles.Remove(profile);
+            await _db.SaveChangesAsync();
+        }
 
         _db.Users.Remove(dbUser);
         await _db.SaveChangesAsync();

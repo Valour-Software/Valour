@@ -1,5 +1,6 @@
 ﻿@using System.Net.Http.Headers
 @inject HttpClient http
+@inject NavigationManager NavManager
 
 <h3>Edit Basic Info</h3>
 
@@ -38,6 +39,7 @@
     else
     {
         <span class="text-info">@statusCodeResult</span>
+        <br />
     }
 </div>
 
@@ -51,7 +53,15 @@
     </div>
 </div>
 
+<br/>
+
+<h3>DANGER ZONE</h3>
+<button class="v-btn" @onclick="OnClickDeleteAccount">Delete my account</button>
+
 @code {
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    
     [Parameter]
     public User User { get; set; }
 
@@ -157,5 +167,10 @@
         }
 
         StateHasChanged();
+    }
+
+    private void OnClickDeleteAccount()
+    {
+        Modal.Show<DeleteAccountModal>("Delete Account");
     }
 }
