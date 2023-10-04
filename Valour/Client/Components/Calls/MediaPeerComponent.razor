@@ -132,7 +132,12 @@
         
         _name = Peer.PeerId;
 
-        if (long.TryParse(Peer.PeerId.Split(":")[1], out var memberId))
+        var split = Peer.PeerId.Split(":");
+        
+        if (split.Length < 2)
+            return;
+
+        if (long.TryParse(split[1], out var memberId))
         {
             _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId);
             _name = await _member.GetNameAsync();
