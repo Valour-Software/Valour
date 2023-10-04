@@ -35,7 +35,7 @@
 		var result = await ValourClient.DeleteAccountAsync(_password);
 		if (result.Success)
 		{
-			NavManager.NavigateTo("/");
+			NavManager.NavigateTo("/", true);
 		}
 		else
 		{
