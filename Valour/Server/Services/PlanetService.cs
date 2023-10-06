@@ -51,7 +51,8 @@ public class PlanetService
     /// Returns the roles for the given planet id
     /// </summary>
     public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
-        await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+        await _db.PlanetRoles.AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
             .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.ToModel())
             .ToListAsync();
@@ -60,7 +61,8 @@ public class PlanetService
     /// Returns the roles for the given planet id
     /// </summary>
     public async Task<List<long>> GetRoleIdsAsync(long planetId) =>
-        await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+        await _db.PlanetRoles.AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
             .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.Id)
             .ToListAsync();
@@ -69,7 +71,8 @@ public class PlanetService
     /// Returns the invites for a given planet id
     /// </summary>
     public async Task<List<PlanetInvite>> GetInvitesAsync(long planetId) => 
-        await _db.PlanetInvites.Where(x => x.PlanetId == planetId)
+        await _db.PlanetInvites.AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
 
@@ -77,7 +80,8 @@ public class PlanetService
     /// Returns the invites ids for a given planet id
     /// </summary>
     public async Task<List<long>> GetInviteIdsAsync(long planetId) =>
-        await _db.PlanetInvites.Where(x => x.PlanetId == planetId)
+        await _db.PlanetInvites.AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
             .Select(x => x.Id)
             .ToListAsync();
 
@@ -85,7 +89,8 @@ public class PlanetService
     /// Returns discoverable planets
     /// </summary>
     public async Task<List<Planet>> GetDiscoverablesAsync() =>
-        await _db.Planets.Where(x => x.Discoverable && x.Public 
+        await _db.Planets.AsNoTracking()
+                         .Where(x => x.Discoverable && x.Public 
                                                     && (!x.Nsfw)) // do not allow weirdos in discovery
                          .OrderByDescending(x => x.Members.Count())
                          .Select(x => x.ToModel())       
