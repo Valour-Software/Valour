@@ -276,7 +276,8 @@ public class PlanetChatChannelService
         
         List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
         
-        var messages = await _db.PlanetMessages.Where(x => x.ChannelId == channel.Id && x.Id < index)
+        var messages = await _db.PlanetMessages.AsNoTracking()
+                                              .Where(x => x.ChannelId == channel.Id && x.Id < index)
                                               .Include(x => x.ReplyToMessage)
                                               .OrderByDescending(x => x.TimeSent)
                                               .Take(count)

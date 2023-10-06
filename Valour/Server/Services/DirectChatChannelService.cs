@@ -123,7 +123,8 @@ public class DirectChatChannelService
     }
 
     public async Task<List<DirectMessage>> GetDirectMessagesAsync(DirectChatChannel channel, long index, int count) =>
-        await _db.DirectMessages.Where(x => x.ChannelId == channel.Id && x.Id <= index)
+        await _db.DirectMessages.AsNoTracking()
+            .Where(x => x.ChannelId == channel.Id && x.Id <= index)
             .Include(x => x.ReplyToMessage)
             .OrderByDescending(x => x.Id)
             .Take(count)

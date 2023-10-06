@@ -80,7 +80,9 @@ public class PlanetMemberService
     /// Returns the roles for the given member id
     /// </summary>
     public async Task<List<PlanetRole>> GetRolesAsync(long memberId) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == memberId)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.ToModel())
@@ -90,7 +92,9 @@ public class PlanetMemberService
     /// Returns the role ids for the given member id
     /// </summary>
     public async Task<List<long>> GetRoleIdsAsync(long memberId) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == memberId)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.Id)
@@ -114,7 +118,9 @@ public class PlanetMemberService
     /// including the permissions node for a specific target channel
     /// </summary>
     public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
-       await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+       await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes)
             .OrderBy(x => x.Role.Position)
@@ -131,7 +137,9 @@ public class PlanetMemberService
     /// this will return role ids that no node
     /// </summary>
     public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
             .OrderBy(x => x.Role.Position)
@@ -147,7 +155,9 @@ public class PlanetMemberService
     /// Returns the permission nodes for the given target in order of role position
     /// </summary>
     public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
             .OrderBy(x => x.Role.Position)
@@ -203,7 +213,9 @@ public class PlanetMemberService
             return int.MaxValue;
         
         // Otherwise, we get the primary role's position
-        var rolePos = await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+        var rolePos = await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.Position)
@@ -239,6 +251,7 @@ public class PlanetMemberService
             return true;
 
         return await _db.PlanetRoleMembers
+            .AsNoTracking()
             .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .AnyAsync(x => x.Role.IsAdmin || // Admins have all permissions

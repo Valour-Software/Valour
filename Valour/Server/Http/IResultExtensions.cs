@@ -154,6 +154,7 @@ namespace Valour.Server.Http
         }
 
         public static IResult RawJson(string data) => new RawJsonResult(data);
+        public static IResult Ok() => new OkResult("");
         public static IResult Ok(string message) => new OkResult(message);
         public static IResult BadRequest(string reason) => new BadRequestResult(reason);
         public static IResult Problem(string reason) => new ProblemResult(reason);
