@@ -6,7 +6,7 @@
 
 <li @attributes="Attributes"
     id="@Id"
-    @onpointerdown="@((e) => OnClickInternal(e))"
+    @onpointerdown="@(async (e) => await OnClickInternal(e))"
     @onpointerdown:stopPropagation="true"
     class="@("blazor-context-menu__item " + ClassCalc)"
     style="@(Visible ? "display:block;" : "display:none;")"

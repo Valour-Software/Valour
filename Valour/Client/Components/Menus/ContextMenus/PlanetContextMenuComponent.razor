@@ -1,16 +1,16 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 
 @using Item = Valour.Api.Items.LiveModel
 <ContextMenu Id='planet-context' CssClass='context'>
     @if (ValourClient.Self.Id != Planet.OwnerId)
     {
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickLeavePlanet'>Leave Planet</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='@OnClickLeavePlanet'>Leave Planet</BlazorContextMenu.Item>
     }
     @if (CanEdit)
     {
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickEdit'>Edit</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='@OnClickEdit'>Edit</BlazorContextMenu.Item>
     }
-    <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickCopyId'>Copy Id</BlazorContextMenu.Item>
+    <BlazorContextMenu.Item CssClass='context-item' OnClick='@OnClickCopyId'>Copy Id</BlazorContextMenu.Item>
 </ContextMenu>
 
 @code {
@@ -58,7 +58,7 @@
 
     public async Task OnClickCopyId()
     {
-        await JS.InvokeVoidAsync("clipboardCopy.copyText", Planet.Id);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Planet.Id);
     }
 
     public async Task OnClickLeavePlanet()
