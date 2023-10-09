@@ -1,7 +1,7 @@
 ﻿@using Valour.Shared.Models;
 @using Valour.Api.Client
 
-<div class="@Class" style="color: white">
+<div class="@Class" style="color: white" @onclick="ShowProfileAsync">
     @if (User == null)
     {
         <div>@@NotFound</div>
@@ -60,5 +60,13 @@
         User = await User.FindAsync(Mention.TargetId);
 
         StateHasChanged();
+    }
+    
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (User is null)
+            return;
+        
+        await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomRight");
     }
 }

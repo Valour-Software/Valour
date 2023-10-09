@@ -42,6 +42,8 @@
 }
 
 .profile-card .inner-card {
+    display: flex;
+    flex-direction: column;
     position: relative;
     border-radius: 16px;
     background-color: var(--main-1);
@@ -109,9 +111,18 @@
     font-size: 0.8em;
 }
 
+.bottom-btns {
+    display: flex;
+}
+
+.bottom-btns .v-btn {
+    border-radius: 0;
+}
+
 .mid-section {
     padding: 16px;
     padding-top: 0;
+    flex-grow: 1;
 }
 
 .mid-section .mid-inner {

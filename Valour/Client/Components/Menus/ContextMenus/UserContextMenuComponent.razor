@@ -1,6 +1,8 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
+@inject WindowManager WindowManager
 
 <ContextMenu Id='user-context' CssClass='context' class='member-context'>
+	<BlazorContextMenu.Item OnClick='OnClickMessage' CssClass='context-model'>Message</BlazorContextMenu.Item>
 	@if (IsFriend)
 	{
 		<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-item'>Remove Friend</BlazorContextMenu.Item>
@@ -69,10 +71,25 @@
 	}
 
 	public async Task OnClickCopyUsername(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", User.NameAndTag); 
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", User.NameAndTag); 
 	}
 
 	public async Task OnClickCopyUserId(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", User.Id);
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", User.Id);
+	}
+	
+	public async Task OnClickMessage()
+	{
+		var channel = await DirectChatChannel.FindAsyncByUser(User.Id);
+
+		var newWindow = new DirectChatChannelWindow(channel);
+
+		var oldWindow = WindowManager.GetSelectedWindow();
+		
+		Console.WriteLine($"Switching window {oldWindow.Id} to direct chat channel {channel.Id}");
+
+		await WindowManager.ReplaceWindow(oldWindow, newWindow);
+		await WindowManager.SetSelectedWindow(newWindow);
+		await WindowManager.SetFocusedPlanet(null);
 	}
 }
