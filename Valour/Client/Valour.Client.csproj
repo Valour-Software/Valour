@@ -35,6 +35,7 @@
     <AdditionalFiles Include="Components\Sidebar\ChannelList\VoiceChannelListComponent.razor" />
     <AdditionalFiles Include="Components\Sidebar\FriendsList\FriendListComponent.razor" />
     <AdditionalFiles Include="Components\Sidebar\MemberList\MemberListComponent.razor" />
+    <AdditionalFiles Include="Layout\MainLayout.razor" />
   </ItemGroup>
 
   <ItemGroup>

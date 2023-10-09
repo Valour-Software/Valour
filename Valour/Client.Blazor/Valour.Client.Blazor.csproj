@@ -28,4 +28,8 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Layout\MainLayout.razor" />
+  </ItemGroup>
+
 </Project>
