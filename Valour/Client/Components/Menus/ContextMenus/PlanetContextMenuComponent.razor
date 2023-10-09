@@ -84,7 +84,12 @@
 
         ModalParameters modParams = new();
         modParams.Add("Data", modalData);
+        
+        var options = new ModalOptions() 
+        { 
+            DisableBackgroundCancel = true 
+        };
 
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams, options);
     }
 }
