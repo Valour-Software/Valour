@@ -17,7 +17,9 @@ public static class UserProfileMapper
             PrimaryColor = profile.PrimaryColor,
             SecondaryColor = profile.SecondaryColor,
             TertiaryColor = profile.TertiaryColor,
-            AnimatedBorder = profile.AnimatedBorder
+            TextColor = profile.TextColor,
+            AnimatedBorder = profile.AnimatedBorder,
+            BackgroundImage = profile.BackgroundImage
         };
     }
     
@@ -36,7 +38,9 @@ public static class UserProfileMapper
             PrimaryColor = profile.PrimaryColor,
             SecondaryColor = profile.SecondaryColor,
             TertiaryColor = profile.TertiaryColor,
-            AnimatedBorder = profile.AnimatedBorder
+            TextColor = profile.TextColor,
+            AnimatedBorder = profile.AnimatedBorder,
+            BackgroundImage = profile.BackgroundImage
         };
     }
 }

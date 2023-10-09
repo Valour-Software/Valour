@@ -70,7 +70,8 @@ public class UserService
             ValidateColorCode(updated.GlowColor) &&
             ValidateColorCode(updated.PrimaryColor) &&
             ValidateColorCode(updated.SecondaryColor) &&
-            ValidateColorCode(updated.TertiaryColor);
+            ValidateColorCode(updated.TertiaryColor) &&
+            ValidateColorCode(updated.TextColor);
         
         if (!colorsValid)
             return new TaskResult<UserProfile>(false, "Invalid color code. Must be Hex and start with #.");
@@ -87,6 +88,12 @@ public class UserService
         {
             if (updated.Bio.Length > 500)
                 return new TaskResult<UserProfile>(false, "Bio must be less than 500 characters.");
+        }
+        
+        // Bg image validation
+        if (updated.BackgroundImage is not null && old.BackgroundImage != updated.BackgroundImage)
+        {
+            return new TaskResult<UserProfile>(false, "Background images must be updated via the content api.");
         }
 
         try

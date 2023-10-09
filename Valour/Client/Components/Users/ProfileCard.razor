@@ -9,24 +9,28 @@
                 class="profile-card">
                 <span class="card-bg" style="@CardBackground"></span>
                 <div class="inner-card">
+                    @if (!string.IsNullOrWhiteSpace(Profile.BackgroundImage))
+                    {
+                        <div class="inner-bg" style="@BackgroundImage"></div>
+                    }
                     <div class="top-section">
                         <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
                         <div class="online-bubble @_statusClass"></div>
                         <div class="names">
                             <p class="nickname">@_name</p>
-                            <p class="name-and-tag">@_nameAndTag</p>
+                            <p class="name-and-tag" style="@CustomText">@_nameAndTag</p>
                             <div class="status-bubble">
                                 <div class="arrow"></div>
                                 <p class="status-text">"@(_status)"</p>
                             </div>
                         </div>
                     </div>
-                    <p class="headline">@Profile.Headline</p>
+                    <p class="headline" style="@CustomText">@Profile.Headline</p>
                     <div class="mid-section">
-                        <b class="card-subtitle">Bio</b>
+                        <b class="card-subtitle" style="@CustomText">Bio</b>
                         <hr/>
                         <div class="mid-inner">
-                            <p class="body-text">@Profile.Bio</p>
+                            <p class="body-text" style="@CustomText">@Profile.Bio</p>
                         </div>
                     </div>
 
@@ -67,6 +71,33 @@
     [Parameter]
     public string CssStyle { get; set; }
 
+    public string CustomText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Profile.TextColor))
+            {
+                return $"color: {Profile.TextColor};";
+            }
+
+            return string.Empty;
+        }
+    }
+
+    public string BackgroundImage
+    {
+        get
+        {
+            if (User.Subscription == null)
+                return string.Empty;
+
+            if (string.IsNullOrWhiteSpace(Profile.BackgroundImage))
+                return string.Empty;
+
+            return $"background: url({Profile.BackgroundImage})";
+        }
+    }
+
     public string CardBackground
     {
         get
@@ -90,9 +121,9 @@
     private string _status;
     private string _pfpUrl;
     private string _statusClass = "offline";
-    
-    private bool _isFriend { get; set; }
-    private bool _isFriendRequested { get; set; }
+
+    private bool _isFriend;
+    private bool _isFriendRequested;
     
     public async Task LoadDetailsAsync()
     {

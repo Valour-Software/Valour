@@ -1,3 +1,4 @@
+@using System.Net.Http.Headers
 @if (_profile is null)
 {
     <h4>Error loading profile.</h4>
@@ -103,7 +104,55 @@
                 <ColorPickerComponent StartColor="@_profile.GlowColor" OnColorChange="@(async (color) => { _profile.GlowColor = color; StateHasChanged(); })"></ColorPickerComponent>
             </div>
         </div>
+        <div class="d-inline-block m-1">
+            <span class="v-span">Text color</span>
+            <div class="m-1">
+                <ColorPickerComponent StartColor="@_profile.TextColor" OnColorChange="@(async (color) => { _profile.TextColor = color; StateHasChanged(); })"></ColorPickerComponent>
+            </div>
+        </div>
     </div>
+    
+    @if (ValourClient.Self.Subscription is null)
+    {
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                Custom Background Image
+            </div>
+            <div type="button" style="float:right">
+                <label class="switch">
+                    <input type="checkbox" disabled>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="perm-list-desc mt-1">
+                You need a Valour Plus subscription to use this feature.
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                Custom Background Image
+            </div>
+            <div type="button" style="float:right">
+                <label class="switch">
+                    <input type="checkbox" checked="@_isCustomBackgroundEnabled" @onclick="OnCustomBackgroundClick">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="perm-list-desc mt-1">
+                Choose a custom (safe for work) 300x400 image as your background!
+            </div>
+            
+            @if (_isCustomBackgroundEnabled)
+            {
+                <div class="mt-4">
+                    <InputFile OnChange="LoadBackgroundImage" AdditionalAttributes="@_bgInputAttributes"></InputFile>
+                </div>
+            }
+        </div>
+    }
     
     <button class="v-btn m-1" @onclick="OnClickSaveAsync">Save Changes</button>
     
@@ -115,6 +164,7 @@
     {
         <span class="m-1 v-text-cyan">@_successSpan</span>
     }
+    
 </section>
 
 <ProfileCard
@@ -125,11 +175,19 @@
 </ProfileCard>
 
 @code {
+    
+    private Dictionary<string, object> _bgInputAttributes = new Dictionary<string, object>()
+    {
+        { "accept", ".png,.jpg,.jpeg,.gif" }
+    };
+    
     private ProfileCard _profileCard;
     private UserProfile _profile;
 
     private bool _isGradientEnabled;
     private bool _isGradientBlocked;
+    
+    private bool _isCustomBackgroundEnabled;
     
     private bool _isAnimEnabled;
     private bool _isAnimBlocked;
@@ -145,6 +203,7 @@
             _profile = profileResult.Data;
         }
 
+        _isCustomBackgroundEnabled = !string.IsNullOrWhiteSpace(_profile.BackgroundImage);
         _isGradientEnabled = !string.IsNullOrWhiteSpace(_profile.PrimaryColor);
         _isAnimEnabled = _profile.AnimatedBorder;
     }
@@ -175,6 +234,12 @@
         StateHasChanged();
     }
     
+    private void OnCustomBackgroundClick()
+    {
+        _isCustomBackgroundEnabled = !_isCustomBackgroundEnabled;
+        StateHasChanged();
+    }
+    
     private void OnAnimClick()
     {
         _isAnimEnabled = !_isAnimEnabled;
@@ -186,6 +251,11 @@
     {
         _errorSpan = null;
         _successSpan = null;
+
+        if (!_isCustomBackgroundEnabled)
+        {
+            _profile.BackgroundImage = null;
+        }
         
         var result = await UserProfile.UpdateAsync(_profile);
 
@@ -198,6 +268,48 @@
             _errorSpan = "An error occured. Sorry! Refresh and try again?";
         }
         
+        StateHasChanged();
+    }
+    
+    private async Task LoadBackgroundImage(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file == null)
+        {
+            _errorSpan = "Could not load file as an image.";
+            StateHasChanged();
+            return;
+        }
+
+        if (file.Size > 10485760)
+        {
+            _errorSpan = "Max background image size is 10mb.";
+            StateHasChanged();
+            return;
+        }
+
+        byte[] data = new byte[file.Size];
+        var read = await file.OpenReadStream(10485760).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/profilebg", content);
+
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+        }
+        else
+        {
+            _profile.BackgroundImage = result.Data;
+            _successSpan = "Background image uploaded successfully.";
+        }
+
         StateHasChanged();
     }
 }

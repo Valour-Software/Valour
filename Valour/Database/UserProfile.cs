@@ -39,6 +39,12 @@ public class UserProfile : ISharedUserProfile
     public string GlowColor { get; set; }
     
     /// <summary>
+    /// The color of the main text
+    /// </summary>
+    [Column("text_color")]
+    public string TextColor { get; set; }
+    
+    /// <summary>
     /// Primary color, used in border and other details
     /// </summary>
     [Column("primary_color")]
@@ -61,4 +67,10 @@ public class UserProfile : ISharedUserProfile
     /// </summary>
     [Column("anim_border")]
     public bool AnimatedBorder { get; set; }
+    
+    /// <summary>
+    /// The background image for the profile (should be 300x400)
+    /// </summary>
+    [Column("bg_image")]
+    public string BackgroundImage { get; set; }
 }

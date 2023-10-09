@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     secondary_color VARCHAR(7),
     tertiary_color VARCHAR(7),
     anim_border BOOLEAN,
+    bg_image TEXT,
     CONSTRAINT fk_user FOREIGN KEY(id) REFERENCES users(id)  
 );
 
