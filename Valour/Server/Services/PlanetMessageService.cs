@@ -31,7 +31,7 @@ public class PlanetMessageService
     /// <summary>
     /// Returns the message with the given id
     /// </summary>
-    public async ValueTask<PlanetMessage> GetAsync(long id)
+    public async ValueTask<Message> GetAsync(long id)
     {
         var message = (await _db.PlanetMessages.FindAsync(id)).ToModel();
         if (message is null)
@@ -55,11 +55,11 @@ public class PlanetMessageService
             // Try to find in staged
             message = PlanetMessageWorker.GetStagedMessage(message_id);
             if (message is null)
-                return ValourResult.NotFound<PlanetMessage>();
+                return ValourResult.NotFound<Message>();
         }
 
         if (message.ChannelId != channel.Id)
-            return ValourResult.NotFound<PlanetMessage>();
+            return ValourResult.NotFound<Message>();
 
         if (member.Id != message.AuthorMemberId)
         {

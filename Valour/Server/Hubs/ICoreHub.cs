@@ -20,8 +20,8 @@ public interface ICoreHub
     Task JoinInteractionGroup(long planetId);
     Task LeaveInteractionGroup(long planetId);
 
-    void RelayMessage(PlanetMessage message);
-    void NotifyMessageDeletion(PlanetMessage message);
+    void RelayMessage(Message message);
+    void NotifyMessageDeletion(Message message);
     
     void RelayDirectMessage(DirectMessage message, long targetUserId);
     void NotifyDirectMessageDeletion(DirectMessage message, long targetUserId);

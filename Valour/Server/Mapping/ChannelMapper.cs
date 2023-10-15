@@ -9,7 +9,12 @@ public static class ChannelMapper
         
         return new Channel()
         {
-            Id = channel.Id
+            Id = channel.Id,
+            Name = channel.Name,
+            Description = channel.Description,
+            ChannelType = channel.ChannelType,
+            
+            
         };
     }
     

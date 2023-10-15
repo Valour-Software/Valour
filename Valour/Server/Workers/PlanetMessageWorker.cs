@@ -11,13 +11,13 @@ namespace Valour.Server.Workers
         private readonly ILogger<PlanetMessageWorker> _logger;
 
         // A queue of all messages that need to be processed
-        private static readonly BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
+        private static readonly BlockingCollection<Message> MessageQueue = new(new ConcurrentQueue<Message>());
         
         // A map from channel id to the messages currently queued for that channel
-        private static readonly ConcurrentDictionary<long, List<PlanetMessage>> StagedChannelMessages = new();
+        private static readonly ConcurrentDictionary<long, List<Message>> StagedChannelMessages = new();
         
         // A map from message id to the message queued
-        private static readonly ConcurrentDictionary<long, PlanetMessage> StagedMessages = new();
+        private static readonly ConcurrentDictionary<long, Message> StagedMessages = new();
 
         // Prevents deleted messages from being staged
         private static readonly HashSet<long> BlockSet = new();
@@ -37,13 +37,13 @@ namespace Valour.Server.Workers
             _serviceProvider = serviceProvider;
         }
         
-        public static void AddToQueue(PlanetMessage message)
+        public static void AddToQueue(Message message)
         {
             // Generate Id for message
             MessageQueue.Add(message);
         }
 
-        public static void RemoveFromQueue(PlanetMessage message)
+        public static void RemoveFromQueue(Message message)
         {
             // Remove currently staged
             StagedChannelMessages.Remove(message.Id, out _);
@@ -52,16 +52,16 @@ namespace Valour.Server.Workers
             BlockSet.Add(message.Id);
         }
 
-        public static PlanetMessage GetStagedMessage(long messageId)
+        public static Message GetStagedMessage(long messageId)
         {
             StagedMessages.TryGetValue(messageId, out var staged);
             return staged;
         }
         
-        public static List<PlanetMessage> GetStagedMessages(long channelId)
+        public static List<Message> GetStagedMessages(long channelId)
         {
             StagedChannelMessages.TryGetValue(channelId, out var stagedList);
-            return stagedList ?? new List<PlanetMessage>();
+            return stagedList ?? new List<Message>();
         }
         
         public Task StartAsync(CancellationToken stoppingToken)
@@ -178,7 +178,7 @@ namespace Valour.Server.Workers
                 StagedChannelMessages.TryGetValue(message.ChannelId, out var channelStaged);
                 if (channelStaged is null)
                 {
-                    channelStaged = new List<PlanetMessage>();
+                    channelStaged = new List<Message>();
                     StagedChannelMessages[message.ChannelId] = channelStaged;
                 }
                 channelStaged.Add(message);

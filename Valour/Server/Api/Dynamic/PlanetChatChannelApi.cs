@@ -286,7 +286,7 @@ public class PlanetChatChannelApi
     [ValourRoute(HttpVerbs.Post, "api/chatchannels/{id}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostMessageRouteAsync(
-        [FromBody] PlanetMessage message,
+        [FromBody] Message message,
         long id,
         HttpClient client, 
         ValourDB valourDb, 
@@ -501,7 +501,7 @@ public class PlanetChatChannelApi
     [ValourRoute(HttpVerbs.Put, "api/chatchannels/{id}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> EditMessageRouteAsync(
-        [FromBody] PlanetMessage editedMessage,
+        [FromBody] Message editedMessage,
         long id,
         HttpClient client, 
         ValourDB valourDb, 
@@ -594,7 +594,7 @@ public class PlanetChatChannelApi
         }
         
         // yeah ok so there's a chance the message has not yet hit the database which makes this painful
-        PlanetMessage stagedMessage = PlanetMessageWorker.GetStagedMessage(editedMessage.Id);
+        Message stagedMessage = PlanetMessageWorker.GetStagedMessage(editedMessage.Id);
         if (stagedMessage is null)
         {
 	        Valour.Database.PlanetMessage dbMessage = await valourDb.PlanetMessages.FindAsync(editedMessage.Id);

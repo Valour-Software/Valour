@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
+using Valour.Api.Items;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Server.Config;
 using Valour.Server.Database;
@@ -111,6 +112,9 @@ public class CoreHubService
 
     public async void NotifyPlanetItemDelete(ISharedPlanetItem item) =>
         await _hub.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Delete", item);
+    
+    public async void NotifyPlanetItemDelete(long planetId, Item item) =>
+        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{item.GetType().Name}-Delete", item);
 
     public async void NotifyPlanetChange(Planet item, int flags = 0) =>
         await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Update", item, flags);

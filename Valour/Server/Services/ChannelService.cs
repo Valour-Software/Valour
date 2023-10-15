@@ -39,18 +39,22 @@ public class ChannelService
     /// <summary>
     /// Soft deletes the given channel
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(PlanetChatChannel channel)
+    public async Task<TaskResult> DeleteAsync(Channel channel)
     {
         var dbChannel = await _db.Channels.FindAsync(channel.Id);
-        if (dbChannel.IsDefault)
+        if (dbChannel is null)
+            return new TaskResult(false, "Channel not found.");
+        
+        if (dbChannel.IsDefault == true)
             return new TaskResult(false, "You cannot delete the default channel.");
         
         dbChannel.IsDeleted = true;
-        _db.PlanetChatChannels.Update(dbChannel);
+        _db.Channels.Update(dbChannel);
         await _db.SaveChangesAsync();
 
-        _coreHub.NotifyPlanetItemDelete(channel);
-
+        if (channel.PlanetId is not null)
+            _coreHub.NotifyPlanetItemDelete(channel.PlanetId.Value, channel);
+        
         return TaskResult.SuccessResult;
     }
 }

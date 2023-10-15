@@ -21,10 +21,7 @@ public class Planet : Item, ISharedPlanet
     public virtual ICollection<PlanetMember> Members { get; set; }
 
     [InverseProperty("Planet")]
-    public virtual ICollection<PlanetChatChannel> ChatChannels { get; set; }
-
-    [InverseProperty("Planet")]
-    public virtual ICollection<PlanetCategory> Categories { get; set; }
+    public virtual ICollection<Channel> Channels { get; set; }
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }

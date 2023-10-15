@@ -39,12 +39,6 @@ public class ValourDB : DbContext
         // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
         // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false); 
         
-
-        // Time fixes
-        modelBuilder.Entity<PlanetCategory>()
-            .Property(x => x.TimeLastActive)
-            .HasConversion(x => x, x => new DateTime(x.Ticks, DateTimeKind.Utc));
-
         //base.OnModelCreating(modelBuilder);
     }
 
