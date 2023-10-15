@@ -291,13 +291,10 @@ namespace Valour.Server
             services.AddScoped<CurrentlyTypingService>();
             services.AddScoped<OauthAppService>();
             services.AddScoped<PermissionsNodeService>();
-
-            services.AddScoped<DirectChatChannelService>();
+            
             services.AddScoped<OauthAppService>();
             services.AddScoped<PlanetBanService>();
-            services.AddScoped<PlanetCategoryService>();
-            services.AddScoped<PlanetChannelService>();
-            services.AddScoped<PlanetChatChannelService>();
+            services.AddScoped<ChannelService>();
             services.AddScoped<PlanetInviteService>();
             services.AddScoped<PlanetMemberService>();
             services.AddScoped<PlanetMessageService>();

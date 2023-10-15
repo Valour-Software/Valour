@@ -124,31 +124,6 @@ public class ValourDB : DbContext
     public DbSet<Channel> Channels { get; set; }
 
     /// <summary>
-    /// Table for all direct chat channels
-    /// </summary>
-    public DbSet<DirectChatChannel> DirectChatChannels { get; set; }
-
-    /// <summary>
-    /// Table for all planet channels
-    /// </summary>
-    public DbSet<PlanetChannel> PlanetChannels { get; set; }
-
-    /// <summary>
-    /// Table for all planet chat channels
-    /// </summary>
-    public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
-
-    /// <summary>
-    /// Table for all planet voice channels
-    /// </summary>
-    public DbSet<PlanetVoiceChannel> PlanetVoiceChannels { get; set; }
-
-    /// <summary>
-    /// Table for all planet chat categories
-    /// </summary>
-    public DbSet<PlanetCategory> PlanetCategories { get; set; }
-
-    /// <summary>
     /// Table for all banned members
     /// </summary>
     public DbSet<PlanetBan> PlanetBans { get; set; }

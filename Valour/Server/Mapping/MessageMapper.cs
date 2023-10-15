@@ -1,13 +1,13 @@
 namespace Valour.Server.Mapping;
 
-public static class PlanetMessageMapper
+public static class MessageMapper
 {
-    public static PlanetMessage ToModel(this Valour.Database.PlanetMessage message)
+    public static Message ToModel(this Valour.Database.Message message)
     {
         if (message is null)
             return null;
         
-        return new PlanetMessage()
+        return new Message()
         {
             Id = message.Id,
             PlanetId = message.PlanetId,
@@ -24,12 +24,12 @@ public static class PlanetMessageMapper
         };
     }
     
-    public static Valour.Database.PlanetMessage ToDatabase(this PlanetMessage message)
+    public static Valour.Database.Message ToDatabase(this Message message)
     {
         if (message is null)
             return null;
         
-        return new Valour.Database.PlanetMessage()
+        return new Valour.Database.Message()
         {
             Id = message.Id,
             PlanetId = message.PlanetId,

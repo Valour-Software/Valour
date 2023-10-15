@@ -293,13 +293,13 @@ public class NodeService
             }
             case NodeEventType.DirectMessage:
             {
-                var message = (DirectMessage) data.Payload;
+                var message = (Message) data.Payload;
                 OnRelayDirectMessage(message, data.TargetUser);
                 break;
             }
             case NodeEventType.DirectMessageEdit:
             {
-                var message = (DirectMessage) data.Payload;
+                var message = (Message) data.Payload;
                 OnRelayDirectMessageEdit(message, data.TargetUser);
                 break;
             }
@@ -329,12 +329,12 @@ public class NodeService
         _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
     }
 
-    private void OnRelayDirectMessage(DirectMessage message, long targetUser)
+    private void OnRelayDirectMessage(Message message, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
     }
     
-    private void OnRelayDirectMessageEdit(DirectMessage message, long targetUser)
+    private void OnRelayDirectMessageEdit(Message message, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirectEdit", message);
     }
