@@ -1,10 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Models;
 
 namespace Valour.Database;
 
-[Table("planet_messages")]
-public class PlanetMessage : Item, ISharedPlanetMessage
+[Table("messages")]
+public class Message : Item
 {
     ///////////////////////////
     // Relational Properties //
@@ -20,14 +19,14 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     public PlanetMember AuthorMember { get; set; }
 
     [ForeignKey("ReplyToId")]
-    public PlanetMessage ReplyToMessage { get; set; }
+    public Message ReplyToMessage { get; set; }
     
     ///////////////////////
     // Entity Properties //
     ///////////////////////
     
     [Column("planet_id")]
-    public long PlanetId { get; set; }
+    public long? PlanetId { get; set; }
 
     /// <summary>
     /// The message (if any) this is a reply to
@@ -45,7 +44,7 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     /// The author's member ID
     /// </summary>
     [Column("author_member_id")]
-    public long AuthorMemberId { get; set; }
+    public long? AuthorMemberId { get; set; }
 
     /// <summary>
     /// String representation of message

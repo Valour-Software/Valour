@@ -52,15 +52,10 @@ public class ValourDB : DbContext
     //public DbSet<ClientPlanetMessage> Messages { get; set; }
     
     /// <summary>
-    /// Table for message cache
+    /// Table for messages
     /// </summary>
-    public DbSet<PlanetMessage> PlanetMessages { get; set; }
-
-    /// <summary>
-    /// Table for direct messages
-    /// </summary>
-    public DbSet<DirectMessage> DirectMessages { get; set; }
-
+    public DbSet<Message> Messages { get; set; }
+    
     /// <summary>
     /// Table for Valour users
     /// </summary>

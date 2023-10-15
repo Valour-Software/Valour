@@ -2,11 +2,11 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PlanetMessage : Item, ISharedPlanetMessage
+public class Message : Item, ISharedMessage
 {
-    public PlanetMessage ReplyTo { get; set; }
+    public Message ReplyTo { get; set; }
 
-    public PlanetMessage AddReplyTo(PlanetMessage replyTo)
+    public Message AddReplyTo(Message replyTo)
     {
         ReplyTo = replyTo;
         return this;
@@ -15,7 +15,7 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     /// <summary>
     /// The id of the planet this message belongs to
     /// </summary>
-    public long PlanetId { get; set; }
+    public long? PlanetId { get; set; }
 
     /// <summary>
     /// The message (if any) this is a reply to
@@ -30,7 +30,7 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     /// <summary>
     /// The author's member ID
     /// </summary>
-    public long AuthorMemberId { get; set; }
+    public long? AuthorMemberId { get; set; }
 
     /// <summary>
     /// String representation of message

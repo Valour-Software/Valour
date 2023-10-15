@@ -18,6 +18,11 @@ namespace Valour.Shared.Models;
 public interface ISharedMessage : ISharedItem
 {
     /// <summary>
+    /// The planet this message belongs to (if any)
+    /// </summary>
+    long? PlanetId { get; set; }
+    
+    /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
     long? ReplyToId { get; set; }
@@ -26,6 +31,11 @@ public interface ISharedMessage : ISharedItem
     /// The author's user ID
     /// </summary>
     long AuthorUserId { get; set; }
+    
+    /// <summary>
+    /// The author's member ID (if this is a planet message)
+    /// </summary>
+    long? AuthorMemberId { get; set; }
 
     /// <summary>
     /// String representation of message
