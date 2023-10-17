@@ -1115,7 +1115,7 @@ public static class ValourClient
         int pos = 0;
         foreach (var data in eventData.Order)
         {
-            var channel = PlanetChannel.GetCachedByType(data.Id, data.Type);
+            var channel = PlanetChannel.GetCachedByType(data.Id, data.ChannelType);
             if (channel is not null)
             {
                 Console.WriteLine($"{pos}: {channel.Name}");

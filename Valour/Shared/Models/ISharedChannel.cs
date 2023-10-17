@@ -2,17 +2,34 @@
 
 public enum ChannelTypeEnum
 {
-    PlanetChat,
-    DirectChat,
-    GroupChat,
-    PlanetCategory,
-    PlanetVoice,
-    DirectVoice,
-    GroupVoice,
+    Undefined = -1,
+    
+    PlanetChat = 0,
+    PlanetCategory = 1,
+    PlanetVoice = 2,
+    
+    DirectChat = 3,
+    DirectVoice = 4,
+    
+    GroupChat = 5,
+    GroupVoice = 6,
 }
 
 public interface ISharedChannel : ISharedItem
 {
+    public static readonly HashSet<ChannelTypeEnum> PlanetChannelTypes = new ()
+    {
+        ChannelTypeEnum.PlanetChat,
+        ChannelTypeEnum.PlanetCategory,
+        ChannelTypeEnum.PlanetVoice
+    };
+    
+    public static readonly HashSet<ChannelTypeEnum> MessageChannelTypes = new ()
+    {
+        ChannelTypeEnum.PlanetChat,
+        ChannelTypeEnum.DirectChat
+    };
+    
     /////////////////////////////////
     // Shared between all channels //
     /////////////////////////////////

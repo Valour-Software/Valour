@@ -4,12 +4,12 @@
 public struct ChannelOrderData
 {
     public long Id { get; set; }
-    public ChannelType Type { get; set; }
+    public ChannelTypeEnum ChannelType { get; set; }
     
-    public ChannelOrderData(long id, ChannelType type)
+    public ChannelOrderData(long id, ChannelTypeEnum type)
     {
         Id = id;
-        Type = type;
+        ChannelType = type;
     }
 }
 

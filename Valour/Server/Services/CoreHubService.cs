@@ -107,6 +107,9 @@ public class CoreHubService
     public async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
         await _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
 
+    public async void NotifyPlanetItemChange(long planetId, Item item, int flags = 0) =>
+        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{item.GetType().Name}-Update", item, flags);
+    
     public async void NotifyPlanetItemChange(ISharedPlanetItem item, int flags = 0) =>
         await _hub.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Update", item, flags);
 

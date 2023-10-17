@@ -11,20 +11,12 @@ using Valour.Shared.Models;
 
 namespace Valour.Shared.Models;
 
-public enum ChannelType
-{
-    Undefined = -1,
-    PlanetChatChannel = 0,
-    PlanetCategoryChannel = 1,
-    PlanetVoiceChannel = 2
-}
-
 public interface ISharedPermissionsTarget
 {
     /// <summary>
     /// The type of target this item is
     /// </summary>
-    public ChannelType Type { get; }
+    public ChannelTypeEnum Type { get; }
 }
 
 /// <summary>
@@ -56,7 +48,7 @@ public interface ISharedPermissionsNode : ISharedPlanetItem
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public ChannelType TargetType { get; set; }
+    public ChannelTypeEnum TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node

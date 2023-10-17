@@ -117,7 +117,7 @@ public class PlanetMemberService
     /// Returns the roles for the given PlanetMember id,
     /// including the permissions node for a specific target channel
     /// </summary>
-    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
+    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
        await _db.PlanetRoleMembers
             .AsNoTracking()
             .Where(x => x.MemberId == member.Id)
@@ -136,7 +136,7 @@ public class PlanetMemberService
     /// including the permissions node for a specific target channel
     /// this will return role ids that no node
     /// </summary>
-    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
+    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
         await _db.PlanetRoleMembers
             .AsNoTracking()
             .Where(x => x.MemberId == member.Id)
@@ -154,7 +154,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the permission nodes for the given target in order of role position
     /// </summary>
-    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
+    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
         await _db.PlanetRoleMembers
             .AsNoTracking()
             .Where(x => x.MemberId == member.Id)
@@ -261,10 +261,16 @@ public class PlanetMemberService
     /// <summary>
     /// Returns if the member has the given channel permission
     /// </summary>
-    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetChannel target, Permission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, Channel target, Permission permission)
     {
         if (target is null)
             return false;
+        
+        // If not planet channel, this doesn't apply
+        if (!ISharedChannel.PlanetChannelTypes.Contains(target.ChannelType))
+        {
+            return false;
+        }
         
         var planet = await _db.Planets.FindAsync(target.PlanetId);
         // Fail if the planet does not exist
@@ -275,9 +281,11 @@ public class PlanetMemberService
             return true;
 
         // If the channel inherits from its parent, move up until it does not
-        while (target.InheritsPerms && target.ParentId is not null)
+        while (target.InheritsPerms is not null && 
+               target.InheritsPerms == true && 
+               target.ParentId is not null)
         {
-            target = (await _db.PlanetCategories.FindAsync(target.ParentId.Value)).ToModel();
+            target = (await _db.Channels.FindAsync(target.ParentId.Value)).ToModel();
         }
         
         // Get permission nodes in order of role position
