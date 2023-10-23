@@ -213,7 +213,7 @@ public class ClientMessageWrapper
                             TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
-                            Type = MentionType.Member,
+                            Type = MentionType.PlanetMember,
                             PlanetId = planetMessage.PlanetId                     
                         };
                         
@@ -545,7 +545,7 @@ public class ClientMessageWrapper
 
                 switch (mention.Type)
                 {
-                    case MentionType.Member:
+                    case MentionType.PlanetMember:
                     {
                         fragment = new MemberMentionFragment()
                         {

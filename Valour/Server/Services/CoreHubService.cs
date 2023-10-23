@@ -72,18 +72,20 @@ public class CoreHubService
         await nodeService.RelayUserEventAsync(targetId, NodeService.NodeEventType.Friend, eventData);
     }
 
-    public async Task RelayDirectMessage(Message message, NodeService nodeService)
+    public async Task RelayDirectMessage(Message message, NodeService nodeService, List<long> userIds)
     {
-        var channel = await _db.Channels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
-        await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessage, message);
-        await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessage, message);
+        foreach (var userId in userIds)
+        {
+            await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.DirectMessage, message);
+        }
     }
     
-    public async Task RelayDirectMessageEdit(Message message, NodeService nodeService)
+    public async Task RelayDirectMessageEdit(Message message, NodeService nodeService, List<long> userIds)
     {
-        var channel = await _db.Channels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
-        await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessageEdit, message);
-        await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessageEdit, message);
+        foreach (var userId in userIds)
+        {
+            await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.DirectMessageEdit, message);
+        }
     }
 
     public async void RelayNotification(Notification notif, NodeService nodeService)

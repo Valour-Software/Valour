@@ -116,6 +116,11 @@ public class ValourDB : DbContext
     /// Table for all channels
     /// </summary>
     public DbSet<Channel> Channels { get; set; }
+    
+    /// <summary>
+    /// Table for all channel members (not to be confused with planet members)
+    /// </summary>
+    public DbSet<ChannelMember> ChannelMembers { get; set; }
 
     /// <summary>
     /// Table for all banned members

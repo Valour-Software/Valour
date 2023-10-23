@@ -20,7 +20,8 @@ public static class MessageMapper
             EmbedData = message.EmbedData,
             MentionsData = message.MentionsData,
             AttachmentsData = message.AttachmentsData,
-            EditedTime = message.EditedTime
+            EditedTime = message.EditedTime,
+            ReplyTo = message.ReplyToMessage?.ToModel()
         };
     }
     
@@ -42,7 +43,7 @@ public static class MessageMapper
             EmbedData = message.EmbedData,
             MentionsData = message.MentionsData,
             AttachmentsData = message.AttachmentsData,
-            EditedTime = message.EditedTime
+            EditedTime = message.EditedTime,
         };
     }
 }

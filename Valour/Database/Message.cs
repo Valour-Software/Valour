@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("messages")]
-public class Message : Item
+public class Message : Item, ISharedMessage
 {
     ///////////////////////////
     // Relational Properties //

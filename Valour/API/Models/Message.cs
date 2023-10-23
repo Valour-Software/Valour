@@ -270,7 +270,7 @@ public class Message : LiveModel, ISharedMessage
 
                     break;
                 }
-                case MentionType.Member:
+                case MentionType.PlanetMember:
                 {
                     if (PlanetId is null)
                         continue;

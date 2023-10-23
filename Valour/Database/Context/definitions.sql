@@ -177,6 +177,14 @@ CREATE TABLE IF NOT EXISTS channels (
     is_deleted BOOLEAN NOT NULL DEFAULT false
 );
 
+CREATE TABLE IF NOT EXISTS channel_members (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    channel_id BIGINT NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id)
+);
+
 CREATE TABLE IF NOT EXISTS planet_channels (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,

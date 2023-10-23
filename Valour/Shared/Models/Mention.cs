@@ -10,7 +10,7 @@ namespace Valour.Shared.Models;
 
 public enum MentionType
 {
-    Member,
+    PlanetMember,
     Channel,
     Category,
     Role,

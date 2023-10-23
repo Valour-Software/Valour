@@ -437,7 +437,7 @@ public class PlanetChatChannelApi
 	                var sendingUser = await userService.GetAsync(member.UserId);
 	                var planet = await planetService.GetAsync(message.PlanetId);
 	                
-                    if (mention.Type == MentionType.Member)
+                    if (mention.Type == MentionType.PlanetMember)
                     {
                         var targetMember = await memberService.GetAsync(mention.TargetId);
                         if (targetMember is null)
