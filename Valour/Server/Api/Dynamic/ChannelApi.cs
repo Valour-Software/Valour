@@ -233,4 +233,64 @@ public class ChannelApi
         
         return Results.Ok();
     }
+
+    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/messages/{messageId}")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> GetMessageAsync(
+        long channelId,
+        long messageId,
+        ChannelService channelService,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        var message = await channelService.GetMessageAsync(messageId);
+        if (message is null)
+            return ValourResult.NotFound<Message>();
+        
+        if (message.ChannelId != channelId)
+            return ValourResult.BadRequest("Channel id in message does not match channel id in route");
+
+        var channel = await channelService.GetAsync(channelId);
+        if (!await channelService.IsMemberAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+        
+        if (message.PlanetId is null)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission to delete messages in this channel");
+            }
+        }
+        
+        return Results.Json(message);
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> GetMessagesAsync(
+        long channelId,
+        ChannelService channelService,
+        TokenService tokenService,
+        long index = long.MaxValue,
+        int count = 10)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var channel = await channelService.GetAsync(channelId);
+        
+        if (!await channelService.IsMemberAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+        
+        if (channel.PlanetId is null)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission to delete messages in this channel");
+            }
+        }
+        
+        var messages = await channelService.GetMessagesAsync(channelId, index, count);
+        
+        return Results.Json(messages);
+    }
 }
