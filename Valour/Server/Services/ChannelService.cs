@@ -9,6 +9,7 @@ using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using ChannelMember = Valour.Database.ChannelMember;
 
 namespace Valour.Server.Services;
 
@@ -51,6 +52,66 @@ public class ChannelService
     /// </summary>
     public async ValueTask<Channel> GetAsync(long id) =>
         (await _db.Channels.FindAsync(id)).ToModel();
+
+    /// <summary>
+    /// Given two user ids, returns the direct chat channel between them
+    /// </summary>
+    public async ValueTask<Channel> GetDirectChatAsync(long userOneId, long userTwoId, bool create = true)
+    {
+        var channel = await _db.Channels
+            .AsNoTracking()
+            .Include(x => x.Members)
+            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat)
+            .Where(x => x.Members.Any(m => m.UserId == userOneId) &&
+                        x.Members.Any(m => m.UserId == userTwoId))
+            .FirstOrDefaultAsync();
+
+        // If there is no channel and we have this set to create it if missing...
+        if (channel is null && create)
+        {
+            var newId = IdManager.Generate();
+            
+            // Create channel
+            channel = new Valour.Database.Channel()
+            {
+                Id = newId,
+
+                // Build the members
+                Members = new List<ChannelMember>()
+                {
+                    new ChannelMember()
+                    {
+                        ChannelId = newId,
+                        UserId = userOneId
+                    },
+                    new ChannelMember()
+                    {
+                        ChannelId = newId,
+                        UserId = userTwoId
+                    }
+                },
+
+                Name = "Direct Chat",
+                Description = "A private discussion",
+                ChannelType = ChannelTypeEnum.DirectChat,
+                LastUpdateTime = DateTime.UtcNow,
+                IsDeleted = false,
+
+                // These are null and technically we don't have to show this
+                // but I am showing it so you know it SHOULD be null!
+                PlanetId = null,
+                ParentId = null,
+                Position = null,
+                InheritsPerms = null,
+                IsDefault = null
+            };
+            
+            await _db.Channels.AddAsync(channel);
+            await _db.SaveChangesAsync();
+        }
+        
+        return channel?.ToModel();
+    }
     
     /// <summary>
     /// Soft deletes the given channel
@@ -314,9 +375,6 @@ public class ChannelService
     /// <summary>
     /// Returns if the given category id is the last remaining category
     /// in its planet (used to prevent deletion of the last category)
-    /// </summary>
-    /// <param name="categoryId"></param>
-    /// <returns></returns>
     public async Task<bool> IsLastCategory(long categoryId) =>
         await _db.Channels.CountAsync(x => x.PlanetId == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
 
@@ -425,6 +483,12 @@ public class ChannelService
         
         return message?.ToModel();
     }
+
+    /// <summary>
+    /// Returns the message with the given id (no reply!)
+    /// </summary>
+    public async Task<Message> GetMessageNoReplyAsync(long id) =>
+        (await _db.Messages.FindAsync(id)).ToModel();
 
     /// <summary>
     /// Returns the last (count) messages before the given index

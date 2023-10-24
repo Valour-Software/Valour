@@ -37,7 +37,7 @@ public class OauthAPI : BaseAPI
         [FromBody] AuthorizeModel model,
         [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null || model.UserId != authToken.UserId)
             return ValourResult.InvalidToken();
 
@@ -107,7 +107,7 @@ public class OauthAPI : BaseAPI
 
     public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
 
         if (authToken is null)
         {
@@ -129,7 +129,7 @@ public class OauthAPI : BaseAPI
 
     public static async Task GetApps(HttpContext context, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
 
         if (authToken is null)
         {
@@ -155,7 +155,7 @@ public class OauthAPI : BaseAPI
     public static async Task<IResult> GetApp(HttpContext context, ValourDB db, TokenService tokenService, long app_id,
     [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null)
             return ValourResult.InvalidToken();
 
@@ -173,7 +173,7 @@ public class OauthAPI : BaseAPI
     public static async Task<IResult> GetAppPublic(HttpContext context, ValourDB db, TokenService tokenService, long app_id,
     [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null)
             return ValourResult.InvalidToken();
 
@@ -194,7 +194,7 @@ public class OauthAPI : BaseAPI
 
     public static async Task<IResult> CreateApp(HttpContext context, ValourDB db, TokenService tokenService, [FromBody] OauthApp app, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null)
             return ValourResult.NoToken();
 

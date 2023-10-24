@@ -54,7 +54,7 @@ public class UploadApi
     [RequestSizeLimit(20480000)]
     private static async Task<IResult> ImageRoutePlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload images larger than 10MB");
@@ -66,7 +66,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> ImageRouteNonPlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         return await ImageRoute(ctx, valourDb, db, authToken, authorization);
     }
 
@@ -104,7 +104,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
         var file = ctx.Request.Form.Files.FirstOrDefault();
@@ -142,7 +142,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
         
         var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
@@ -195,7 +195,7 @@ public class UploadApi
         long planetId, 
         [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
         var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
@@ -239,7 +239,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, long appId, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
         var app = await valourDb.OauthApps.FindAsync(appId);
@@ -280,7 +280,7 @@ public class UploadApi
     [RequestSizeLimit(20480000)]
     private static async Task<IResult> FileRoutePlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload files larger than 10MB");
@@ -292,7 +292,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> FileRouteNonPlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         return await FileRoute(ctx, valourDb, db, authToken, authorization);
     }
     

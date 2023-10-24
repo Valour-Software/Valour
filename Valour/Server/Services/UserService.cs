@@ -420,7 +420,7 @@ public class UserService
 
     public async Task<User> GetCurrentUserAsync()
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null) return null;
         _currentUser = await GetAsync(token.UserId);
         return _currentUser;
@@ -432,7 +432,7 @@ public class UserService
 
     public async Task<long> GetCurrentUserIdAsync()
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         return token?.UserId ?? long.MinValue;
     }
     

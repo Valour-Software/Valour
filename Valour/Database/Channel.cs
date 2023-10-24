@@ -17,6 +17,8 @@ public class Channel : Item, ISharedChannel
     [ForeignKey("ParentId")]
     public Channel Parent { get; set; }
     
+    [InverseProperty("Channel")]
+    public virtual List<ChannelMember> Members { get; set; }
     
     ///////////////////////
     // Entity Properties //

@@ -13,8 +13,12 @@ public static class ChannelMapper
             Name = channel.Name,
             Description = channel.Description,
             ChannelType = channel.ChannelType,
-            
-            
+            LastUpdateTime = channel.LastUpdateTime,
+            PlanetId = channel.PlanetId,
+            ParentId = channel.ParentId,
+            Position = channel.Position,
+            InheritsPerms = channel.InheritsPerms,
+            IsDefault = channel.IsDefault,
         };
     }
     
@@ -26,6 +30,15 @@ public static class ChannelMapper
         return new Valour.Database.Channel()
         {
             Id = channel.Id,
+            Name = channel.Name,
+            Description = channel.Description,
+            ChannelType = channel.ChannelType,
+            LastUpdateTime = channel.LastUpdateTime,
+            PlanetId = channel.PlanetId,
+            ParentId = channel.ParentId,
+            Position = channel.Position,
+            InheritsPerms = channel.InheritsPerms,
+            IsDefault = channel.IsDefault,
         };
     }
 }

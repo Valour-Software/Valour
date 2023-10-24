@@ -14,7 +14,7 @@ public class UserPermissionsRequiredFilter : IEndpointFilter
     
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
 
         if (token is null)
             return ValourResult.InvalidToken();

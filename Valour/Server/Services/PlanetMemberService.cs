@@ -39,7 +39,7 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetCurrentAsync(long planetId)
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null)
             return null;
 
@@ -63,7 +63,7 @@ public class PlanetMemberService
     /// </summary>
     public async Task<bool> CurrentExistsAsync(long planetId)
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null)
             return false;
         

@@ -14,7 +14,7 @@ public class ChannelApi
         ChannelService channelService,
         TokenService tokenService)
     {
-        var token = await tokenService.GetCurrentToken();
+        var token = await tokenService.GetCurrentTokenAsync();
         
         var channel = await channelService.GetAsync(id);
         if (channel is null)
@@ -23,8 +23,34 @@ public class ChannelApi
         if (!await channelService.IsMemberAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
         
+        if (channel.ChannelType == ChannelTypeEnum.DirectChat)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission to post messages in direct chat channels");
+            }
+        }
+        
         return Results.Json(channel);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/{otherUserId}")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> GetDirectRouteAsync(
+        long otherUserId,
+        ChannelService channelService,
+        UserService userService,
+        [FromQuery] bool create = true)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        
+        var channel = await channelService.GetDirectChatAsync(userId, otherUserId, create);
+        if (channel is null)
+            return ValourResult.NotFound<Channel>();
+
+        return Results.Json(channel);
+    }
+    
     
     [ValourRoute(HttpVerbs.Post, "api/channels/{channelId}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
@@ -36,7 +62,7 @@ public class ChannelApi
         TokenService tokenService,
         PlanetRoleService roleService)
     {
-        var token = await tokenService.GetCurrentToken();
+        var token = await tokenService.GetCurrentTokenAsync();
         var userId = token.UserId;
         
         if (message is null)
@@ -118,21 +144,31 @@ public class ChannelApi
     }
 
     [ValourRoute(HttpVerbs.Put, "api/channels/{channelId}/messages/{messageId}")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> EditMessageRouteAsync(
         [FromBody] Message message,
         long channelId,
         long messageId,
         ChannelService channelService,
-        UserService userService)
+        TokenService tokenService)
     {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        if (message.PlanetId is null)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission to delete messages in direct chat channels");
+            }
+        }
+        
         if (message.Id != messageId)
             return ValourResult.BadRequest("Message id in body does not match message id in route");
         
         if (message.ChannelId != channelId)
             return ValourResult.BadRequest("Channel id in body does not match channel id in route");
         
-        var userId = await userService.GetCurrentUserIdAsync();
-        if (message.AuthorUserId != userId)
+        if (message.AuthorUserId != token.UserId)
             return ValourResult.Forbid("You are not the author of this message");
         
         var result = await channelService.EditMessageAsync(message);
@@ -142,5 +178,59 @@ public class ChannelApi
         }
 
         return Results.Json(result.Data);
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/channels/{channelId}/messages/{messageId}")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> DeleteMessageRouteAsync(
+        long id,
+        long channelId,
+        ChannelService channelService,
+        TokenService tokenService,
+        PlanetMemberService memberService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var message = await channelService.GetMessageNoReplyAsync(id);
+        
+        if (message.ChannelId != channelId)
+            return ValourResult.BadRequest("Channel id in message does not match channel id in route");
+
+        // Direct messages require stronger token perms
+        if (message.PlanetId is null)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission to delete messages in direct chat channels");
+            }
+        }
+        
+        // Determine permissions
+
+        // First off, if the user is the sender they can always delete
+        if (message.AuthorUserId != token.UserId)
+        {
+            if (message.PlanetId is null)
+                return ValourResult.Forbid("Only the sender can delete these messages");
+            
+            // Otherwise, we check planet channel permissions
+            var member = await memberService.GetCurrentAsync(message.PlanetId.Value);
+            if (member is null)
+                return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
+
+            var channel = await channelService.GetAsync(message.ChannelId);
+
+            if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageMessages))
+            {
+                return ValourResult.Forbid("You do not have permission to manage messages in this channel");
+            }
+        }
+        
+        var result = await channelService.DeleteMessageAsync(message.Id);
+        if (!result.Success)
+        {
+            return ValourResult.BadRequest(result.Message);
+        }
+        
+        return Results.Ok();
     }
 }
