@@ -12,7 +12,7 @@ namespace Valour.Api.Models;
 */
 
 
-public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
+public class DirectChatChannel : Channel, IChatChannel
 {
     #region IPlanetModel implementation
 

@@ -13,6 +13,8 @@ public class PlanetMemberService
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly ILogger<PlanetMemberService> _logger;
+    
+    private static readonly Dictionary<(long, long), long> MemberIdLookup = new();
 
     public PlanetMemberService(
         ValourDB db,
@@ -40,10 +42,8 @@ public class PlanetMemberService
         var token = await _tokenService.GetCurrentToken();
         if (token is null)
             return null;
-        
-        return (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && 
-                                                                             x.UserId == token.UserId))
-            .ToModel();
+
+        return await GetByUserAsync(token.UserId, planetId);
     }
 
     /// <summary>
@@ -73,8 +73,21 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the PlanetMember for a given user id and planet id
     /// </summary>
-    public async Task<Models.PlanetMember> GetByUserAsync(long userId, long planetId) =>
-        (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId)).ToModel();
+    public async Task<PlanetMember> GetByUserAsync(long userId, long planetId)
+    {
+        if (MemberIdLookup.TryGetValue((userId, planetId), out var memberId))
+        {
+            var member = await _db.PlanetMembers.FindAsync(memberId);
+            return member.ToModel();
+        }
+        else
+        {
+            var member = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            MemberIdLookup.Add((userId, planetId), member.Id);
+            return member.ToModel();
+        }
+    }
+        
 
     /// <summary>
     /// Returns the roles for the given member id
@@ -614,6 +627,8 @@ public class PlanetMemberService
             await trans.RollbackAsync();
             return new(false, "An unexpected error occurred.");
         }
+
+        MemberIdLookup.Remove((dbMember.UserId, dbMember.PlanetId));
 
         _coreHub.NotifyPlanetItemDelete(dbMember.ToModel());
 

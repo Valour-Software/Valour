@@ -319,8 +319,31 @@ public class ChannelService
     /// <returns></returns>
     public async Task<bool> IsLastCategory(long categoryId) =>
         await _db.Channels.CountAsync(x => x.PlanetId == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
+
+    /// <summary>
+    /// Returns if the given user id is a member of the given channel id
+    /// </summary>
+    public async ValueTask<bool> IsMemberAsync(long channelId, long userId)
+        => await IsMemberAsync(await GetAsync(channelId), userId);
     
-    
+    /// <summary>
+    /// Returns if the given user id is a member of the given channel
+    /// </summary>
+    public async Task<bool> IsMemberAsync(Channel channel, long userId)
+    {
+        if (channel.PlanetId is null)
+        {
+            return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
+        }
+        else
+        {
+            var member = await _memberService.GetByUserAsync(userId, channel.PlanetId.Value);
+            if (member is null)
+                return false;
+
+            return await _memberService.HasPermissionAsync(member, channel, ChannelPermissions.View);
+        }
+    }
     
     #region Permissions
     
@@ -427,6 +450,15 @@ public class ChannelService
     {
         if (message is null)
             return TaskResult<Message>.FromError("Include message");
+
+        // Handle node planet ownership
+        if (message.PlanetId is not null)
+        {
+            if (!await _nodeService.IsPlanetHostedLocally(message.PlanetId.Value))
+            {
+                return TaskResult<Message>.FromError("Planet belongs to another node.");
+            }
+        }
         
         var user = await _db.Users.FindAsync(message.AuthorUserId);
         if (user is null)
@@ -435,6 +467,9 @@ public class ChannelService
         var channel = await _db.Channels.FindAsync(message.ChannelId);
         if (channel is null)
             return TaskResult<Message>.FromError("Channel not found.");
+
+        if (channel.PlanetId != message.PlanetId)
+            return TaskResult<Message>.FromError("Invalid planet id. Must match channel's planet id.");
         
         if (!ISharedChannel.MessageChannelTypes.Contains(channel.ChannelType))
             return TaskResult<Message>.FromError("Channel is not a message channel.");
@@ -611,6 +646,8 @@ public class ChannelService
 	                    var targetRole = await _db.PlanetRoles.FindAsync(mention.TargetId);
 	                    if (targetRole is null)
                             return TaskResult<Message>.FromError($"Mentioned role {mention.TargetId} not found.");
+                        
+                        
 
                         /* Handle in API; service is not for permissions!
 	                    if (!targetRole.AnyoneCanMention)

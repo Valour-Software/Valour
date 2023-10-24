@@ -211,7 +211,7 @@ public static class ValourClient
     /// <summary>
     /// Run when a planet is deleted
     /// </summary>
-    public static event Func<PlanetMessage, Task> OnMessageDeleted;
+    public static event Func<Message, Task> OnMessageDeleted;
 
     /// <summary>
     /// Run when a notification is received
@@ -347,7 +347,7 @@ public static class ValourClient
     /// <summary>
     /// Sends a message
     /// </summary>
-    public static async Task<TaskResult> SendMessage(PlanetMessage message)
+    public static async Task<TaskResult> SendMessage(Message message)
         => await message.PostMessageAsync();
 
     /// <summary>
@@ -1012,7 +1012,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task HandlePlanetMessageReceived(PlanetMessage message)
+    public static async Task HandlePlanetMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1028,7 +1028,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task HandlePlanetMessageEdited(PlanetMessage message)
+    public static async Task HandlePlanetMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1044,7 +1044,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task HandleDirectMessageReceived(DirectMessage message)
+    public static async Task HandleDirectMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1060,7 +1060,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task HandleDirectMessageEdited(DirectMessage message)
+    public static async Task HandleDirectMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1073,7 +1073,7 @@ public static class ValourClient
             await OnMessageEdited.Invoke(message);
     }
 
-    public static async Task HandleMessageDeleted(PlanetMessage message)
+    public static async Task HandleMessageDeleted(Message message)
     {
         if (OnMessageDeleted is not null)
             await OnMessageDeleted.Invoke(message);

@@ -95,6 +95,7 @@ namespace Valour.Server
             DynamicApis = new() {
                 new DynamicAPI<UserApi>()                     .RegisterRoutes(app),
                 new DynamicAPI<PlanetApi>()                   .RegisterRoutes(app),
+                new DynamicAPI<ChannelApi>()                  .RegisterRoutes(app),
                 new DynamicAPI<PlanetChatChannelApi>()        .RegisterRoutes(app),
                 new DynamicAPI<PlanetVoiceChannelApi>()       .RegisterRoutes(app),
                 new DynamicAPI<PlanetCategoryApi>()           .RegisterRoutes(app),

@@ -80,7 +80,7 @@ public class Message : LiveModel, ISharedMessage
     /// <summary>
     /// If we are replying to a message, this is the message we are replying to
     /// </summary>
-    private Message ReplyTo { get; set; }
+    public Message ReplyTo { get; set; }
     
     #region Generation
     
