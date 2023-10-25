@@ -138,11 +138,8 @@ public class ChannelService
     /// <summary>
     /// Creates the given channel
     /// </summary>
-    public async Task<TaskResult<Channel>> CreateAsync(CreateChannelRequest request)
+    public async Task<TaskResult<Channel>> CreateAsync(Channel channel, List<PermissionsNode> nodes = null)
     {
-        var channel = request.Channel;
-        List<PermissionsNode> nodes = null;
-        
         var baseValid = await ValidateChannel(channel);
         if (!baseValid.Success)
             return new(false, baseValid.Message);
@@ -165,21 +162,25 @@ public class ChannelService
             var authority = await _memberService.GetAuthorityAsync(member);
             
             // Handle bundled permissions
-            nodes = new();
-            if (request.Nodes is not null)
+            if (nodes is not null && nodes.Count > 0)
             {
-                foreach (var node in request.Nodes)
+                foreach (var node in nodes)
                 {
-                    node.TargetId = channel.Id;
-                    node.PlanetId = channel.PlanetId.Value;
+                    if (node.TargetId != channel.Id)
+                        return TaskResult<Channel>.FromError("Node target id does not match channel id");
+                
+                    if (node.PlanetId != channel.PlanetId)
+                        return TaskResult<Channel>.FromError("Node planet id does not match channel planet id");
                     
-                    var role = await _planetRoleService.GetAsync(node.RoleId);
-                    if (role.GetAuthority() > authority)
-                        return TaskResult<Channel>.FromError(
-                            "You have a lower authority than the permission node you are trying to create.");
-
                     node.Id = IdManager.Generate();
                 }
+            }
+        }
+        else
+        {
+            if (channel.ParentId is not null)
+            {
+                return TaskResult<Channel>.FromError("Only planet channels can have a parent.");
             }
         }
 

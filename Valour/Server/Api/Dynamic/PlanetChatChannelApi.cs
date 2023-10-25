@@ -13,31 +13,7 @@ using Valour.Api.Models.Messages.Embeds;
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetChatChannelApi
-{
-	[ValourRoute(HttpVerbs.Get, "api/chatchannels/{id}")]
-	[UserRequired(UserPermissionsEnum.Membership)]
-	public static async Task<IResult> GetRouteAsync(
-		long id,
-		PlanetChatChannelService service,
-		PlanetMemberService memberService)
-	{
-		// Get the channel
-		var channel = await service.GetAsync(id);
-		if (channel is null)
-			return ValourResult.NotFound("Channel not found");
-
-		// Get member
-		var member = await memberService.GetCurrentAsync(channel.PlanetId);
-		if (member is null)
-			return ValourResult.NotPlanetMember();
-
-		// Ensure member has permission to view this channel
-		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
-			return ValourResult.LacksPermission(ChatChannelPermissions.View);
-
-		// Return json
-		return Results.Json(channel);
-	}
+{ 
 
 	[ValourRoute(HttpVerbs.Post, "api/chatchannels")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]

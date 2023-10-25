@@ -38,8 +38,11 @@ public class PlanetService
     /// <summary>
     /// Returns the primary channel for the given planet
     /// </summary>
-    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(long planetId) =>
-        (await _db.PlanetChatChannels.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.IsDefault)).ToModel();
+    public async Task<Channel> GetPrimaryChannelAsync(long planetId) =>
+        (await _db.Channels.FirstOrDefaultAsync(x => 
+            x.PlanetId == planetId && 
+            x.IsDefault != null &&
+            x.IsDefault.Value)).ToModel();
 
     /// <summary>
     /// Returns the default role for the given planet
@@ -158,32 +161,38 @@ public class PlanetService
     /// <summary>
     /// Returns the channels for the given planet
     /// </summary>
-    public async Task<List<PlanetChannel>> GetChannelsAsync(long planetId) =>
-        await _db.PlanetChannels.Where(x => x.PlanetId == planetId)
+    public async Task<List<Channel>> GetChannelsAsync(long planetId) =>
+        await _db.Channels.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
     
     /// <summary>
     /// Returns the chat channels for the given planet
     /// </summary>
-    public async Task<List<PlanetChatChannel>> GetChatChannelsAsync(long planetId) =>
-        await _db.PlanetChatChannels.Where(x => x.PlanetId == planetId)
+    public async Task<List<Channel>> GetChatChannelsAsync(long planetId) =>
+        await _db.Channels.Where(x => 
+                x.PlanetId == planetId &&
+                x.ChannelType == ChannelTypeEnum.PlanetChat)
             .Select(x => x.ToModel())
             .ToListAsync();
 
     /// <summary>
     /// Returns the categories for the given planet
     /// </summary>
-    public async Task<List<PlanetCategory>> GetCategoriesAsync(long planetId) =>
-        await _db.PlanetCategories.Where(x => x.PlanetId == planetId)
+    public async Task<List<Channel>> GetCategoriesAsync(long planetId) =>
+        await _db.Channels.Where(x => 
+                x.PlanetId == planetId &&
+                x.ChannelType == ChannelTypeEnum.PlanetCategory)
             .Select(x => x.ToModel())
             .ToListAsync();
     
     /// <summary>
     /// Returns the voice channels for the given planet
     /// </summary>
-    public async Task<List<PlanetVoiceChannel>> GetVoiceChannelsAsync(long planetId) =>
-        await _db.PlanetVoiceChannels.Where(x => x.PlanetId == planetId)
+    public async Task<List<Channel>> GetVoiceChannelsAsync(long planetId) =>
+        await _db.Channels.Where(x => 
+                x.PlanetId == planetId &&
+                x.ChannelType == ChannelTypeEnum.PlanetVoice)
             .Select(x => x.ToModel())
             .ToListAsync();
     
@@ -251,7 +260,7 @@ public class PlanetService
             planet.Id = IdManager.Generate();
 
             // Create general category
-            var category = new Valour.Database.PlanetCategory()
+            var category = new Valour.Database.Channel()
             {
                 Planet = planet,
                 
@@ -260,15 +269,12 @@ public class PlanetService
                 ParentId = null,
                 Description = "General category",
                 Position = 0,
+                
+                ChannelType = ChannelTypeEnum.PlanetCategory
             };
-
-            planet.Categories = new List<Valour.Database.PlanetCategory>()
-            {
-                category
-            };
-
+            
             // Create general chat channel
-            var chatChannel = new Valour.Database.PlanetChatChannel()
+            var chatChannel = new Valour.Database.Channel()
             {
                 Planet = planet,
                 Parent = category,
@@ -278,10 +284,13 @@ public class PlanetService
                 Description = "General chat channel",
                 Position = 0,
                 IsDefault = true,
+                
+                ChannelType = ChannelTypeEnum.PlanetChat
             };
 
-            planet.ChatChannels = new List<Valour.Database.PlanetChatChannel>()
+            planet.Channels = new List<Valour.Database.Channel>()
             {
+                category,
                 chatChannel
             };
 
@@ -404,16 +413,16 @@ public class PlanetService
         if (categoryId == insertId)
             return new TaskResult(false, "A category cannot contain itself. Nice try though.");
         
-        Valour.Database.PlanetCategory category = null;
+        Valour.Database.Channel category = null;
         
         if (categoryId is not null)
         {
-            category = await _db.PlanetCategories.FindAsync(categoryId);
-            if (category is null)
+            category = await _db.Channels.FindAsync(categoryId);
+            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return new TaskResult(false, "Category not found.");
         }
 
-        var insert = await _db.PlanetChannels.FindAsync(insertId);
+        var insert = await _db.Channels.FindAsync(insertId);
         if (insert is null)
             return new TaskResult(false, "Child to insert not found.");
         
@@ -423,7 +432,7 @@ public class PlanetService
             var parentId = category.ParentId;
             while (parentId is not null)
             {
-                var parent = await _db.PlanetCategories.FindAsync(parentId);
+                var parent = await _db.Channels.FindAsync(parentId);
                 if (parent is null)
                     return new TaskResult(false, "Error in hierarchy.");
 
@@ -434,7 +443,7 @@ public class PlanetService
             }
         }
 
-        var children = await _db.PlanetChannels
+        var children = await _db.Channels
             .Where(x => x.ParentId == categoryId)
             .OrderBy(x => x.Position)
             .ToListAsync();
@@ -452,11 +461,11 @@ public class PlanetService
 
         if (oldCategoryId is not null)
         {
-            var oldCategory = await _db.PlanetCategories.FindAsync(insert.ParentId);
-            if (oldCategory is null)
+            var oldCategory = await _db.Channels.FindAsync(insert.ParentId);
+            if (oldCategory is null || oldCategory.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return new TaskResult(false, "Error getting old parent category.");
 
-            var oldCategoryChildren = await _db.PlanetChannels
+            var oldCategoryChildren = await _db.Channels
                 .Where(x => x.ParentId == oldCategory.Id)
                 .OrderBy(x => x.Position)
                 .ToListAsync();
@@ -471,7 +480,7 @@ public class PlanetService
             foreach (var child in oldCategoryChildren)
             {
                 child.Position = opos;
-                oldCategoryOrder.Add(new(child.Id, child.Type));
+                oldCategoryOrder.Add(new(child.Id, child.ChannelType));
                 opos++;
             }
         }
@@ -497,7 +506,7 @@ public class PlanetService
         foreach (var child in children)
         {
             child.Position = pos;
-            newCategoryOrder.Add(new(child.Id, child.Type));
+            newCategoryOrder.Add(new(child.Id, child.ChannelType));
             pos++;
         }
         
@@ -515,7 +524,7 @@ public class PlanetService
         // New parent
         _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
         {
-            PlanetId = insert.PlanetId,
+            PlanetId = insert.PlanetId!.Value,
             CategoryId = categoryId,
             Order = newCategoryOrder
         });
@@ -524,7 +533,7 @@ public class PlanetService
         {
             _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
             {
-                PlanetId = insert.PlanetId,
+                PlanetId = insert.PlanetId.Value,
                 CategoryId = oldCategoryId,
                 Order = oldCategoryOrder,
             });

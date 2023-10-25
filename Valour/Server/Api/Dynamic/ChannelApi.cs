@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Valour.Server.Requests;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -32,6 +33,73 @@ public class ChannelApi
         }
         
         return Results.Json(channel);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/channels")]
+    [UserRequired]
+    public async Task<IResult> CreateAsync(
+        [FromBody] CreateChannelRequest request,
+        ChannelService channelService,
+        TokenService tokenService,
+        PlanetMemberService memberService,
+        PlanetRoleService roleService)
+    {
+        var channel = request.Channel;
+        
+        if (channel is null)
+            return ValourResult.BadRequest("Include channel in body");
+        
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        // Planet channel fun
+        if (channel.PlanetId is null)
+        {
+            return ValourResult.BadRequest("Only planet channels can be created through this endpoint");
+        }
+        
+        var member = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+        
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+        {
+            return ValourResult.BadRequest("You do not have permission to create channels");
+        }
+        
+        // Check permission for the category we are inserting into
+        if (channel.ParentId is not null)
+        {
+            var parent = await channelService.GetAsync(channel.ParentId.Value);
+            if (parent is null || parent.ChannelType != ChannelTypeEnum.PlanetCategory)
+            {
+                return ValourResult.BadRequest("Invalid parent id");
+            }
+
+            if (!await memberService.HasPermissionAsync(member, parent, CategoryPermissions.ManageCategory))
+            {
+                return ValourResult.BadRequest("You do not have permission to insert into this category");
+            }
+        }
+
+        if (request.Nodes is not null && request.Nodes.Count > 0)
+        {
+            var memberAuthority = await memberService.GetAuthorityAsync(member);
+            
+            foreach (var node in request.Nodes)
+            {
+                var role = await roleService.GetAsync(node.RoleId);
+                if (memberAuthority < role.GetAuthority())
+                {
+                    return ValourResult.Forbid("A permission node's role cannot have higher authority than the member creating it");
+                }
+            }
+        }
+        
+        var result = await channelService.CreateAsync(request.Channel, request.Nodes);
+        if (!result.Success)
+        {
+            return ValourResult.BadRequest(result.Message);
+        }
+        
+        return Results.Json(result.Data);
     }
     
     [ValourRoute(HttpVerbs.Get, "api/channels/direct/{otherUserId}")]
@@ -275,6 +343,9 @@ public class ChannelApi
         long index = long.MaxValue,
         int count = 10)
     {
+        if (count > 64)
+            return Results.BadRequest("Maximum count is 64.");
+        
         var token = await tokenService.GetCurrentTokenAsync();
         var channel = await channelService.GetAsync(channelId);
         
