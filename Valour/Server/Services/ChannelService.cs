@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using IdGen;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models.Messages.Embeds.Items;
@@ -423,6 +424,14 @@ public class ChannelService
     /// </summary>
     public async Task<bool> HasPermissionAsync(Channel channel, PlanetMember member, VoiceChannelPermission permission) =>
         await _memberService.HasPermissionAsync(member, channel, permission);
+
+    /// <summary>
+    /// Returns the permissions nodes for the given channel id
+    /// </summary>
+    public async Task<List<PermissionsNode>> GetPermissionNodesAsync(long channelId) =>
+        await _db.PermissionsNodes.Where(x => x.TargetId == channelId)
+            .Select(x => x.ToModel())
+            .ToListAsync();
     
     #endregion
     

@@ -364,4 +364,48 @@ public class ChannelApi
         
         return Results.Json(messages);
     }
+
+    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/children")]
+    [UserRequired]
+    public static async Task<IResult> GetChildrenAsync(
+        long channelId,
+        ChannelService channelService,
+        PlanetMemberService memberService)
+    {
+        var channel = await channelService.GetAsync(channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Results.Json(Array.Empty<long>());
+
+        var member = await memberService.GetCurrentAsync(channel.PlanetId!.Value);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        var children = await channelService.GetChildrenIdsAsync(channelId);
+        return Results.Json(children);
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/nodes")]
+    [UserRequired]
+    public static async Task<IResult> GetNodesAsync(
+        long channelId,
+        ChannelService channelService,
+        PlanetMemberService memberService)
+    {
+        var channel = await channelService.GetAsync(channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Results.Json(Array.Empty<PermissionsNode>());
+
+        var member = await memberService.GetCurrentAsync(channel.PlanetId!.Value);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        var nodes = await channelService.GetPermissionNodesAsync(channelId);
+        return Results.Json(nodes);
+    }
 }
