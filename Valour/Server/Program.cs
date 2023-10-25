@@ -106,7 +106,6 @@ namespace Valour.Server
                 new DynamicAPI<PlanetBanApi>()                .RegisterRoutes(app),
                 new DynamicAPI<PermissionsNodeApi>()          .RegisterRoutes(app),
                 new DynamicAPI<UserFriendApi>()               .RegisterRoutes(app),
-                new DynamicAPI<DirectChatChannelApi>()        .RegisterRoutes(app),
                 new DynamicAPI<OauthAppAPI>()                 .RegisterRoutes(app),
                 new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app),
                 new DynamicAPI<EcoApi>()                      .RegisterRoutes(app),
@@ -298,10 +297,8 @@ namespace Valour.Server
             services.AddScoped<ChannelService>();
             services.AddScoped<PlanetInviteService>();
             services.AddScoped<PlanetMemberService>();
-            services.AddScoped<PlanetMessageService>();
             services.AddScoped<PlanetRoleService>();
             services.AddScoped<PlanetService>();
-            services.AddScoped<PlanetVoiceChannelService>();
             services.AddScoped<TenorFavoriteService>();
             services.AddScoped<TokenService>();
             services.AddScoped<UserFriendService>();

@@ -1,5 +1,5 @@
 ﻿using Valour.Database;
-using Valour.Server.Database;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Workers;
 
@@ -8,7 +8,7 @@ public class StatWorker : IHostedService, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<StatWorker> _logger;
     private Timer _timer;
-    private static int _messageCount = 0;
+    private static int _messageCount;
 
     public StatWorker(ILogger<StatWorker> logger,
                         IServiceScopeFactory scopeFactory)
@@ -46,9 +46,9 @@ public class StatWorker : IHostedService, IDisposable
             stats.UserCount = await context.Users.CountAsync();
             stats.PlanetCount = await context.Planets.CountAsync();
             stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();
-            stats.ChannelCount = await context.PlanetChatChannels.CountAsync();
-            stats.CategoryCount = await context.PlanetCategories.CountAsync();
-            stats.MessageDayCount = await context.PlanetMessages.CountAsync();
+            stats.ChannelCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetChat);
+            stats.CategoryCount = await context.Channels.CountAsync(x => x.ChannelType == ChannelTypeEnum.PlanetCategory);
+            stats.MessageDayCount = await context.Messages.CountAsync();
             stats.MessagesSent = _messageCount;
             _messageCount = 0;
             
@@ -57,12 +57,12 @@ public class StatWorker : IHostedService, IDisposable
             _logger.LogInformation($"Saved Stats Successfully");
         }
             
-        _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now.ToString()}");
+        _logger.LogInformation("Stat Worker running at: {Time}", DateTimeOffset.Now.ToString());
     }
 
     public Task StopAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Stat Worker is Stopping.");
+        _logger.LogInformation("Stat Worker is Stopping");
 
         _timer?.Change(Timeout.Infinite, 0);
 
