@@ -36,7 +36,7 @@ public class PermissionsNodeService
     public async Task<PermissionsNode> GetAsync(long id) =>
         (await _db.PermissionsNodes.FindAsync(id)).ToModel();
 
-    public async Task<PermissionsNode> GetAsync(long? targetId, long roleId, ChannelType type) =>
+    public async Task<PermissionsNode> GetAsync(long? targetId, long roleId, ChannelTypeEnum type) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == targetId && x.RoleId == roleId && x.TargetType == type)).ToModel();
     
     public async Task<List<PermissionsNode>> GetAllAsync(long planetId) =>
