@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Drawing;
-using Valour.Api.Client;
-using Valour.Api.Models;
+﻿using Valour.Api.Client;
 using Valour.Api.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -127,9 +124,9 @@ public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
         };
     }
 
-    public static async Task<PlanetRole> FindAsync(long id, long planetId, bool force_refresh = false)
+    public static async Task<PlanetRole> FindAsync(long id, long planetId, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PlanetRole>(id);
             if (cached is not null)
@@ -197,6 +194,6 @@ public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
         if (PermissionsNodes is null)
             await LoadPermissionNodesAsync();
 
-        return PermissionsNodes.FirstOrDefault(x => x.TargetId == targetId);
+        return PermissionsNodes!.FirstOrDefault(x => x.TargetId == targetId);
     }
 }

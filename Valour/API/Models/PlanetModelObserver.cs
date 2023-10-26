@@ -130,7 +130,7 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Live
         // we need to sort.
         else if (_sorted)
         {
-            if (e.PropsChanged.Contains(nameof(PlanetChannel.Position)))
+            if (e.PropsChanged.Contains(nameof(Channel.Position)))
                 Sort();
         }
 

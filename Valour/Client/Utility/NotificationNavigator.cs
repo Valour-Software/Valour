@@ -25,7 +25,7 @@ public static class NotificationNavigator
                 if (planet is null)
                     break;
 
-                var channel = (await planet.GetChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
+                var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
                 if (channel is null)
                     break;
 						

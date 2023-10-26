@@ -16,7 +16,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class Channel : LiveModel, IChannel, ISharedChannel
+public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 {
     // Cached values
     // Will only be used for planet channels
@@ -57,7 +57,26 @@ public class Channel : LiveModel, IChannel, ISharedChannel
     /// The id of the planet this channel belongs to, if any
     /// </summary>
     public long? PlanetId { get; set; }
-    
+
+    /// <summary>
+    /// This is used to allow the IPlanetModel interface to be used
+    /// Please ensure you know what you're doing if you use this
+    /// </summary>
+    long IPlanetModel.PlanetId
+    {
+        get
+        {
+            if (PlanetId is null)
+            {
+                Console.WriteLine("[!!!] Unexpected null PlanetId! This should not happen!");
+                return 0;
+            }
+
+            return PlanetId.Value;
+        }
+        set => PlanetId = value;
+    }
+
     /// <summary>
     /// The id of the parent of the channel, if any
     /// </summary>

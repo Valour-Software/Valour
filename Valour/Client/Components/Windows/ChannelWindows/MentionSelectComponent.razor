@@ -87,7 +87,7 @@
                 PlanetChannelWindow = ChannelComponent as PlanetChatChannelWindowComponent;
                 Planet = await ((PlanetChatChannel)Channel).GetPlanetAsync();
                 Members = (await Planet.GetMembersAsync()).DistinctBy(x => x.Id).ToList();
-                Channels = (await Planet.GetChannelsAsync())
+                Channels = (await Planet.GetChatChannelsAsync())
                     .Cast<IChatChannel>().ToList();
                 Roles = await Planet.GetRolesAsync();
             }

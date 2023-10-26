@@ -60,7 +60,7 @@
 						if (planet is null)
 							break;
 
-						var channel = (await planet.GetChannelsAsync()).FirstOrDefault(x => x.Id == StartData.StartChannelId);
+						var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == StartData.StartChannelId);
 						if (channel is null)
 							break;
 						
