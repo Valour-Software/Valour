@@ -23,8 +23,8 @@ public interface ICoreHub
     void RelayMessage(Message message);
     void NotifyMessageDeletion(Message message);
     
-    void RelayDirectMessage(DirectMessage message, long targetUserId);
-    void NotifyDirectMessageDeletion(DirectMessage message, long targetUserId);
+    void RelayDirectMessage(Message message, long targetUserId);
+    void NotifyDirectMessageDeletion(Message message, long targetUserId);
 
     void NotifyUserChange(User user, int flags = 0);
     void NotifyUserDelete(User user);

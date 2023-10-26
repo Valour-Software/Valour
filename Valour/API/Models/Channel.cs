@@ -9,6 +9,8 @@ using Microsoft.VisualBasic.CompilerServices;
 using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Nodes;
+using Valour.Api.Requests;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -18,7 +20,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel
 {
     // Cached values
     // Will only be used for planet channels
-    protected List<PermissionsNode> PermissionsNodes { get; set; }
+    private List<PermissionsNode> PermissionsNodes { get; set; }
     
     public override string BaseRoute =>
         $"api/channels";
@@ -109,6 +111,29 @@ public class Channel : LiveModel, IChannel, ISharedChannel
     }
 
     /// <summary>
+    /// Used to create channels. Allows specifying permissions nodes.
+    /// </summary>
+    public static async Task<TaskResult<Channel>> CreateWithDetails(CreateChannelRequest request)
+    {
+        Node node;
+        if (request.Channel.PlanetId is not null)
+        {
+            node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId.Value);
+        }
+        else
+        {
+            node = ValourClient.PrimaryNode;
+        }
+        
+        return await node.PostAsyncWithResponse<Channel>($"{request.Channel.BaseRoute}/detailed", request);
+    }
+    
+    /// <summary>
+    /// Used to speed up direct channel lookups
+    /// </summary>
+    private static readonly Dictionary<(long, long), long> DirectChannelIdLookup = new();
+
+    /// <summary>
     /// Given a user id, returns the direct channel between them and the requester.
     /// If create is true, this will create the channel if it is not found.
     /// </summary>
@@ -125,14 +150,22 @@ public class Channel : LiveModel, IChannel, ISharedChannel
             (lowerId, higherId) = (higherId, lowerId);
         }
 
-        var cached = ValourCache.Get<DirectChatChannel>((lowerId, higherId));
-        if (cached is not null)
-            return cached;
+        var key = (lowerId, higherId);
+
+        if (DirectChannelIdLookup.TryGetValue(key, out var id))
+        {
+            var cached = ValourCache.Get<Channel>(id);
+            if (cached is not null)
+                return cached;
+        }
         
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>($"api/channels/direct/{otherUserId}?create={create}")).Data;
 
         if (item is not null)
+        {
+            DirectChannelIdLookup.Add(key, item.Id);
             await item.AddToCache(item);
+        }
 
         return item;
     }
@@ -157,6 +190,28 @@ public class Channel : LiveModel, IChannel, ISharedChannel
             return ValueTask.FromResult<Channel>(null);
 
         return FindAsync(ParentId.Value, PlanetId, refresh);
+    }
+
+    /// <summary>
+    /// Returns if the channel is unread
+    /// </summary>
+    public bool DetermineUnread()
+    {
+        if (!ISharedChannel. MessageChannelTypes.Contains(ChannelType))
+            return false;
+
+        return ValourClient.GetChannelUnreadState(Id);
+    }
+
+    /// <summary>
+    /// Sends a ping to the server that the user is typing
+    /// </summary>
+    public async Task SendIsTyping()
+    {
+        if (!ISharedChannel. MessageChannelTypes.Contains(ChannelType))
+            return;
+        
+        await Node.PostAsync($"{IdRoute}/typing", null);
     }
     
     /// <summary>
@@ -311,13 +366,52 @@ public class Channel : LiveModel, IChannel, ISharedChannel
         }
     }
 
+    /// <summary>
+    /// Returns the last (count) messages
+    /// </summary>
+    public Task<List<Message>> GetLastMessagesAsync(int count = 10) =>
+        GetMessagesAsync(long.MaxValue, count);
+    
+    /// <summary>
+    /// Returns the last (count) messages starting at (index)
+    /// </summary>
+    public async Task<List<Message>> GetMessagesAsync(long index = long.MaxValue,
+        int count = 10)
+    {
+        if (!ISharedChannel.MessageChannelTypes.Contains(ChannelType))
+            return new List<Message>();
+        
+        var result = await ValourClient.PrimaryNode.GetJsonAsync<List<Message>>($"{IdRoute}/messages?index={index}&count={count}");
+        if (!result.Success)
+        {
+            Console.WriteLine($"Failed to get messages from {Id}: {result.Message}");
+            return new List<Message>();
+        }
+        
+        return result.Data;
+    }
+
     public async Task Open()
     {
-        
+        switch (ChannelType)
+        {
+            case ChannelTypeEnum.PlanetChat:
+                await ValourClient.OpenPlanetChannel(this);
+                break;
+            default:
+                break;
+        }
     }
 
     public async Task Close()
     {
-        
+        switch (ChannelType)
+        {
+            case ChannelTypeEnum.PlanetChat:
+                await ValourClient.ClosePlanetChannel(this);
+                break;
+            default:
+                break;
+        }
     }
 }

@@ -1,4 +1,5 @@
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Server.API;
 
@@ -14,8 +15,8 @@ public class VoiceSignallingApi
     
     public static async Task<IResult> HasChannelAccess(ValourDB db, PlanetMemberService memberService, long channelId, string userToken)
     {
-        var dbChannel = await db.PlanetVoiceChannels.FindAsync(channelId);
-        if (dbChannel is null)
+        var dbChannel = await db.Channels.FindAsync(channelId);
+        if (dbChannel is null || dbChannel.ChannelType != ChannelTypeEnum.PlanetVoice)
             return ValourResult.NotFound("Channel does not exist");
 
         var channel = dbChannel.ToModel();
@@ -24,7 +25,7 @@ public class VoiceSignallingApi
         if (authToken is null)
             return Results.Json(false);
         
-        var member = await memberService.GetByUserAsync(authToken.UserId, dbChannel.PlanetId);
+        var member = await memberService.GetByUserAsync(authToken.UserId, dbChannel.PlanetId!.Value);
         return Results.Json(await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.Join));
     }
 }

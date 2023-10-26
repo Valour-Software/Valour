@@ -51,7 +51,7 @@ public class EmbedAPI : BaseAPI
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
 
-        var targetmessage = await db.PlanetMessages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == ceu.TargetMessageId);
+        var targetmessage = await db.Messages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == ceu.TargetMessageId);
         if (targetmessage is null)
         {
             targetmessage = PlanetMessageWorker.GetStagedMessage(ceu.TargetMessageId).ToDatabase();
@@ -59,7 +59,8 @@ public class EmbedAPI : BaseAPI
                 return Results.NotFound("Target message not found");
         }
 
-        var botmember = await memberService.GetByUserAsync(botUser.Id, targetmessage.PlanetId);
+        // TODO: Jacob check this change for PlanetId nullability
+        var botmember = await memberService.GetByUserAsync(botUser.Id, targetmessage.PlanetId.Value);
 
         if (botmember is null)
             return Results.NotFound("Bot's member not found");
@@ -77,12 +78,12 @@ public class EmbedAPI : BaseAPI
         if (targetmessage.EmbedData == null || targetmessage.EmbedData == "")
             return Results.BadRequest("Target message does not contain an embed!");
 
-        var channel = (await db.PlanetChatChannels.FindAsync(targetmessage.ChannelId)).ToModel();
+        var channel = (await db.Channels.FindAsync(targetmessage.ChannelId)).ToModel();
 
         if (!await memberService.HasPermissionAsync(botmember, channel, ChatChannelPermissions.View))
             return Results.BadRequest("Member lacks ChatChannelPermissions.View");
 
-        channel = (await db.PlanetChatChannels.FindAsync(ceu.TargetChannelId)).ToModel();
+        channel = (await db.Channels.FindAsync(ceu.TargetChannelId)).ToModel();
 
         if (!await memberService.HasPermissionAsync(botmember, channel, ChatChannelPermissions.View))
             return Results.BadRequest("Member lacks ChatChannelPermissions.View");
@@ -141,7 +142,7 @@ public class EmbedAPI : BaseAPI
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
 
-        var targetmessage = await db.PlanetMessages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == peu.TargetMessageId);
+        var targetmessage = await db.Messages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == peu.TargetMessageId);
         if (targetmessage is null)
         {
             targetmessage = PlanetMessageWorker.GetStagedMessage(peu.TargetMessageId).ToDatabase();
@@ -149,7 +150,8 @@ public class EmbedAPI : BaseAPI
                 return Results.NotFound("Target message not found");
         }
 
-        var botmember = await memberService.GetByUserAsync(botUser.Id, targetmessage.PlanetId);
+        // TODO: And here
+        var botmember = await memberService.GetByUserAsync(botUser.Id, targetmessage.PlanetId.Value);
 
         if (botmember is null)
             return Results.NotFound("Bot's member not found");
@@ -171,7 +173,7 @@ public class EmbedAPI : BaseAPI
         if (targetmessage.EmbedData == null || targetmessage.EmbedData == "")
             return Results.BadRequest("Target message does not contain an embed!");
 
-        var channel = (await db.PlanetChatChannels.FindAsync(targetmessage.ChannelId)).ToModel();
+        var channel = (await db.Channels.FindAsync(targetmessage.ChannelId)).ToModel();
 
         if (!await memberService.HasPermissionAsync(botmember, channel, ChatChannelPermissions.View))
             return Results.BadRequest("Member lacks ChatChannelPermissions.View");
@@ -192,7 +194,7 @@ public class EmbedAPI : BaseAPI
         if (member == null) { await NotFound("Member not found", ctx); return; }
         if (botUser.Id != member.UserId) { await BadRequest("Member id mismatch", ctx); return; }
 
-        var channel = await db.PlanetChatChannels.FindAsync(e.ChannelId);
+        var channel = await db.Channels.FindAsync(e.ChannelId);
 
         if (!await memberService.HasPermissionAsync(member.ToModel(), channel.ToModel(), ChatChannelPermissions.View)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
 

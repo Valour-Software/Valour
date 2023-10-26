@@ -287,7 +287,7 @@ public class ChannelService
     /// Sets the order of the children of a category. The order should contain all the children of the category.
     /// The list should contain the ids of the children in the order they should be displayed.
     /// </summary>
-    public async Task<TaskResult> SetChildOrderAsync(long categoryId, List<long> order)
+    public async Task<TaskResult> SetChildOrderAsync(long planetId, long? categoryId, List<long> order)
     {
         var category = await _db.Channels.FirstOrDefaultAsync(x =>
             x.Id == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory);
@@ -342,7 +342,7 @@ public class ChannelService
         {
             _coreHub.NotifyCategoryOrderChange(new()
             {
-                PlanetId = category.PlanetId.Value,
+                PlanetId = planetId,
                 CategoryId = categoryId,
                 Order = newOrder
             });
