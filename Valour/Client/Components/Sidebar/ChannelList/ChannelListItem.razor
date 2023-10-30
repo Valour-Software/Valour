@@ -116,7 +116,7 @@
 
 
 @code {
-    [CascadingParameter]
+    [Parameter]
     public PlanetListComponent PlanetComponent { get; set; }
     
     [Parameter]
@@ -133,6 +133,8 @@
     
     [Parameter]
     public int Depth { get; set; }
+    
+    public Planet Planet { get; set; }
     
     private string ChosenCss
     {
@@ -152,22 +154,15 @@
     
     public bool IsPrivate  { get; set; }
     public bool IsUnread { get; set; }
-
-    private Planet _planet;
+    
     private List<Channel> _children;
     private bool _isOpen = true;
     private int _notificationCount = 0;
     
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        ModelObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
-        ModelObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
-        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
-
-        // Handle Deletions
-        ModelObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
-        ModelObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
-        ModelObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
+        ModelObserver<Channel>.OnAnyUpdated += OnChannelUpdate;
+        ModelObserver<Channel>.OnAnyDeleted += OnChannelDeletion;
 
         ValourClient.OnChannelOpen += OnChannelOpenedChange;
         ValourClient.OnChannelClose += OnChannelOpenedChange;
@@ -175,24 +170,25 @@
 
         ValourClient.OnNotificationReceived += OnNotification;
 
-        _planet = PlanetComponent.Planet;
+        Planet = PlanetComponent.Planet;
 
-        IsOpen = CategoryManager.IsOpen(Category);
+        _isOpen = CategoryManager.IsOpen(Channel);
 
-        BuildItemList();
+        BuildChildren();
         DetermineNotifications();
         DetermineUnread();
     }
 
-    public void BuildChildren()
+    private void BuildChildren()
     {
         if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
             return;
         
         _children = AllChannels.Where(x => x.ParentId == Channel.Id).ToList();
+        SortChildren();
     }
     
-    public void SortChildren()
+    private void SortChildren()
     {
         _children.Sort((x, y) =>
         {
@@ -204,7 +200,7 @@
     
     private async Task OnClick()
     {
-        ListManager.OnItemClickInCategory(Channel, ParentCategory);
+        ListManager.OnItemClickInCategory(Channel, ParentComponent);
 
         // Chat channels
         if (ISharedChannel.MessageChannelTypes.Contains(Channel.ChannelType))
@@ -241,6 +237,12 @@
     public void DetermineNotifications()
     {
         _notificationCount = ValourClient.GetChannelNotifications(Channel.Id);
+    }
+    
+    // Get local index
+    public int GetIndex(Channel item)
+    {
+        return _children.FindIndex(x => x.Id == item.Id);
     }
     
     #region Icon Stuff
