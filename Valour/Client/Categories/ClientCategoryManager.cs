@@ -7,7 +7,7 @@ namespace Valour.Client.Categories
     {
         private ConcurrentDictionary<long, bool> CategoryOpenStates = new ConcurrentDictionary<long, bool>();
 
-        public bool IsOpen(PlanetCategory category)
+        public bool IsOpen(Channel category)
         {
             return IsOpen(category.Id);
         }
@@ -22,7 +22,7 @@ namespace Valour.Client.Categories
             return CategoryOpenStates[categoryId];
         }
 
-        public void SetOpen(PlanetCategory category, bool value)
+        public void SetOpen(Channel category, bool value)
         {
             SetOpen(category.Id, value);
         }

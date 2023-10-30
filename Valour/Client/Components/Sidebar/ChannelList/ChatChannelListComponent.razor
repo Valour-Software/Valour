@@ -78,110 +78,13 @@
 </div>
 
 @code {
-
-    private static string[] _lockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg", "Private chat channel with unread messages" };
-    private static string[] _unlockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon.svg", "Chat channel with unread messages" };
-    private static string[] _lockNotifSrc = new[] { "_content/Valour.Client/media/Channel-Notif-Icon-with-lock.svg", "Private chat channel with notifications" };
-    private static string[] _unlockNotifSrc = new[] { "_content/Valour.Client/media/Channel-Notif-Icon.svg", "Chat channel with notifications" };
-    private static string[] _lockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon-with-lock.svg", "Private chat channel without unread messages" };
-    private static string[] _unlockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon.svg", "Chat channel without unread messages" };
-
-    private string[] GetIconData()
-    {
-        if (_notificationCount > 0)
-        {
-            if (HasLock)
-            {
-                return _lockNotifSrc;
-            }
-            else
-            {
-                return _unlockNotifSrc;
-            }
-        }
-        else if (IsUnread)
-        {
-            if (HasLock)
-            {
-                return _lockUnreadSrc;
-            }
-            else
-            {
-                return _unlockUnreadSrc;
-            }
-        }
-        else
-        {
-            if (HasLock)
-            {
-                return _lockReadSrc;
-            }
-            else
-            {
-                return _unlockReadSrc;
-            }
-        }
-    }
     
-    // Demonstrates how a parent component can supply parameters
-    [Parameter]
-    public PlanetChatChannel Channel { get; set; }
-    public override PlanetChannel GetItem() => Channel;
+
+   
+
     
-    public bool HasLock  { get; set; }
+
     
-    public bool IsUnread { get; set; }
-
-    private int _notificationCount = 0;
-
-    public string ChosenCss
-    {
-        get
-        {
-            var css = "channel";
-
-            if (WindowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
-                css += " open";
-
-            if (ListManager.DragOverId == Channel.Id)
-                css += " drag-over";
-            
-            return css;
-        }
-    }
-
-    private void OnDragEnterTop()
-    {
-        ListManager.OnDragEnterItem(this.Channel.Id, true);
-        Refresh();
-    }
-    
-    private void OnDragEnterBottom()
-    {
-        ListManager.OnDragEnterItem(this.Channel.Id, false);
-        Refresh();
-    }
-
-    private void OnDragLeave()
-    {
-        Refresh();
-    }
-
-    private async Task OnDropOn()
-    {
-        await ListManager.OnItemDropOnItem(this);
-        Refresh();
-    }
-
-    private async Task PrepareContext()
-    {
-        await ChannelListContextMenuComponent.SetSelectedItem(Channel);
-    }
-
-    private void OnDragStart()
-    {
-        ListManager.OnItemStartDragInCategory(Channel, ParentCategory);
-    }
 
     private async Task OnClick()
     {

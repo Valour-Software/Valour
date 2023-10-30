@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using Microsoft.VisualBasic.CompilerServices;
-using Valour.Api.Client;
-using Valour.Api.Models;
+﻿using Valour.Api.Client;
 using Valour.Api.Nodes;
 using Valour.Api.Requests;
 using Valour.Shared;
@@ -294,14 +285,25 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 
         return ChannelTypeNames[index];
     }
-    
+
     public async Task<bool> HasPermissionAsync(long userId, Permission permission)
+    {
+        if (PlanetId is null)
+            return true;
+        
+        var member = await PlanetMember.FindAsyncByUser(userId, PlanetId.Value);
+        return await HasPermissionAsync(member, permission);
+    }
+    
+    public async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
     {
         // No permission rules for non-planet channels (at least for now)
         if (PlanetId is null)
             return true;
 
-        var member = await PlanetMember.FindAsyncByUser(userId, PlanetId.Value);
+        // Member is from another planet
+        if (member.PlanetId != PlanetId)
+            return false;
         
         var planet = await member.GetPlanetAsync();
 

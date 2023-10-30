@@ -102,16 +102,7 @@
     }
     @if (ItemList.Count == 0)
     {
-        <!-- Makes it so you can insert into empty categories -->
-        <div
-            class="inner-drop @((ListManager.HighlightInner?.GetItem()?.Id ?? 0) == this.Category.Id ? "highlight" : "")"
-            @ondrop:stopPropagation="true"
-            @ondrop="async () => await ListManager.OnItemDropIntoCategory(this)"
-            @ondragenter:stopPropagation="true"
-            @ondragenter="@OnDragEnterInnerDrop"
-            @ondragleave="@Refresh">
-            <span>Insert into @Category.Name</span>
-        </div>
+        
     }
     
     @if (ListManager.DragOverId == Category.Id &&
@@ -191,7 +182,6 @@
         IsOpen = CategoryManager.IsOpen(Category);
 
         BuildItemList();
-        
         DetermineNotifications();
         DetermineUnread();
     }
@@ -477,7 +467,7 @@
     }
 
     // Get local index
-    public int GetIndex(PlanetChannel item)
+    public int GetIndex(Channel item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
     }

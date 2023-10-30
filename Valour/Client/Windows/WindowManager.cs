@@ -7,6 +7,7 @@ using Valour.Api.Models;
 using Valour.Client.Windows.ChatWindows;
 using Valour.Api.Models;
 using System.Collections.Concurrent;
+using Valour.Shared.Models;
 
 namespace Valour.Client.Windows;
 
@@ -156,10 +157,14 @@ public class WindowManager
     /// <summary>
     /// Swaps the channel a chat channel window is showing
     /// </summary>
-    public async Task SwapWindowChannel(ChatChannelWindow window, IChatChannel newChannel)
+    public async Task SwapWindowChannel(ChatChannelWindow window, Channel newChannel)
     {
         // Already that channel
         if (window.Channel.Id == newChannel.Id)
+            return;
+        
+        // Not a chat channel
+        if (!ISharedChannel.MessageChannelTypes.Contains(newChannel.ChannelType))
             return;
 
         await Log("[WindowManager]: Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);

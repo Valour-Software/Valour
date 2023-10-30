@@ -98,11 +98,11 @@
         await MessageHolder.AddMessages(messages, true, true);
     }
 
-    public async Task SwapChannel(IChatChannel newchannel)
+    public async Task SwapChannel(Channel newChannel)
     {
-        Channel = newchannel;
+        Channel = newChannel;
 
-        await WindowManager.SwapWindowChannel(Window, newchannel);
+        await WindowManager.SwapWindowChannel(Window, newChannel);
 
         await SetupNewChannelAsync();
         await InputComponent.SetupNewChannelAsync();

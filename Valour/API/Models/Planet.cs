@@ -21,6 +21,7 @@ public class Planet : LiveModel, ISharedPlanet
 
     // Cached values
 
+    private PlanetModelObserver<Channel> AllChannels { get; set; }
     private PlanetModelObserver<Channel> ChatChannels { get; set; }
     private PlanetModelObserver<Channel> VoiceChannels { get; set; }
     private PlanetModelObserver<Channel> Categories { get; set; }
@@ -72,6 +73,7 @@ public class Planet : LiveModel, ISharedPlanet
     public Planet()
     {
         // Setup self-observing collections
+        AllChannels = new(this);
         ChatChannels = new(this);
         VoiceChannels = new(this);
         Categories = new(this);
@@ -173,6 +175,14 @@ public class Planet : LiveModel, ISharedPlanet
 
         return Roles?.FirstOrDefault(x => x.IsDefault);
     }
+    
+    public async ValueTask<List<Channel>> GetAllChannelsAsync(bool refresh = false)
+    {
+        if (!AllChannels.Initialized || refresh)
+            await LoadChannelsAsync();
+
+        return AllChannels.GetContents();
+    }
 
     /// <summary>
     /// Returns the categories of this planet
@@ -228,6 +238,7 @@ public class Planet : LiveModel, ISharedPlanet
             }
         }
 
+        await AllChannels.Initialize(channels);
         await ChatChannels.Initialize(chatChannels);
         await Categories.Initialize(categories);
         await VoiceChannels.Initialize(voiceChannels);

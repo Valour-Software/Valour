@@ -41,7 +41,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemStartDragInCategory(PlanetChannel item,
+        public void OnItemStartDragInCategory(Channel item,
                                               CategoryListComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -53,7 +53,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// </summary>
         /// <param name="item">The item</param>
         /// <param name="parent">The parent category</param>
-        public void SetTargetInCategory(PlanetChannel item,
+        public void SetTargetInCategory(Channel item,
                                         CategoryListComponent parent)
         {
             _currentDragIndex = 0;
