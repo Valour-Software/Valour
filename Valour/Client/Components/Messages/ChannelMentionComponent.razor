@@ -1,17 +1,13 @@
-﻿@using Valour.Shared.Models;
-@using Valour.Api.Client
-@using Valour.Client.Windows.ChatWindows
+﻿@inject WindowManager WindowManager
 
-@inject WindowManager windowManager
-
-<div class="channel-mention" @onclick='OnClicked'>
-    @if (Channel == null)
+<div class="channel-mention" @onclick="@OnClicked">
+    @if (_channel == null)
     {
         <div>#NotFound!</div>
     }
     else
     {
-        <div>#@Channel.Name</div>
+        <div>#@_channel.Name</div>
     }
 </div>
 
@@ -20,18 +16,18 @@
     [Parameter]
     public Mention Mention { get; set; }
 
-    public PlanetChatChannel Channel { get; set; }
+    private Channel _channel;
 
-    protected async override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         await Build();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Channel != null)
+        if (_channel != null)
         {
-            if (Mention.TargetId != Channel.Id)
+            if (Mention.TargetId != _channel.Id)
             {
                 await Build();
             }
@@ -44,19 +40,16 @@
 
     public async Task Build()
     {
-        Channel = await PlanetChatChannel.FindAsync(Mention.TargetId, Mention.PlanetId);
-
+        _channel = await Channel.FindAsync(Mention.TargetId, Mention.PlanetId);
         StateHasChanged();
     }
 
     public async Task OnClicked(){
 
-        var win = windowManager.GetSelectedWindow();
-
-        if (win is ChatChannelWindow)
+        var window = WindowManager.GetSelectedWindow();
+        if (window is ChatChannelWindow chatWindow)
         {
-            var comp = ((ChatChannelWindow)win).Component;
-            await comp.SwapChannel(Channel);
+            await chatWindow.Component.SwapChannel(_channel);
         }
     }
 }
