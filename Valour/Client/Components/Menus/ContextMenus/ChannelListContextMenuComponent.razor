@@ -60,6 +60,7 @@
         var planet = await SelectedItem.GetPlanetAsync();
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetChat);
 
         if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
             modalParams.Add("Parent", SelectedItem);
@@ -73,25 +74,27 @@
         var planet = await SelectedItem.GetPlanetAsync();
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetVoice);
 
         if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
             modalParams.Add("Parent", SelectedItem);
         }
 
-        Modal.Show<CreateVoiceChannelComponent>("Create Voice Channel", modalParams);
+        Modal.Show<CreateChannelComponent>("Create Voice Channel", modalParams);
     }
     
     public async Task OpenCreateCategory(){
         var planet = await SelectedItem.GetPlanetAsync();
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetCategory);
 
         if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
             modalParams.Add("Parent", SelectedItem);
         }
 
-        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
+        Modal.Show<CreateChannelComponent>("Create Category", modalParams);
     }
 
     public async Task DeleteChannelListItem(){
@@ -103,20 +106,21 @@
             // Ensure category has no children if we are deleting it
             if (channels.Any(x => x.ParentId == SelectedItem.Id)){
 
-                InfoModalData imodalData = 
+                InfoModalData iModalData = 
                 new($"You can't delete this!",
                     "This is due to this category having channels and/or categories inside of it.",
                     "Okay",
-                    async () =>
+                    () =>
                     {
                         Console.WriteLine("User Clicked Ok");
+                        return Task.CompletedTask;
                     }
                 );
 
-                ModalParameters imodParams = new();
-                imodParams.Add("Data", imodalData);
+                ModalParameters iModParams = new();
+                iModParams.Add("Data", iModalData);
 
-                Modal.Show<InfoModalComponent>("Info", imodParams);
+                Modal.Show<InfoModalComponent>("Info", iModParams);
             }
         }
 
@@ -130,9 +134,10 @@
                  Console.WriteLine("Confirmed channel model deletion.");
                  var result = await Item.DeleteAsync(SelectedItem);
              },
-             async () =>
+             () =>
              {
                  Console.WriteLine("Cancelled channel model deletion.");
+                 return Task.CompletedTask;
              }
         );
 
@@ -142,7 +147,7 @@
         Modal.Show<ConfirmModalComponent>("Confirm", modParams);
     }
 
-    public async Task EditChannelListItem()
+    private void EditChannelListItem()
     {
         ModalParameters modParams = new();
         modParams.Add("ChannelListItem", SelectedItem);
