@@ -9,7 +9,7 @@
     
     <p>Name</p>
     <input class="form-control" type="text" @bind-value="@_nameValue"/>
-    <span id="result-span" class="text-info">@_nameSpan</span>
+    <span class="text-info">@_nameSpan</span>
 
     <div class="mb-2"></div>
 
@@ -17,7 +17,7 @@
 
     <p>Description</p>
     <textarea class="form-control" type="text" @bind="@_descValue" @bind:event="oninput"></textarea>
-    <span id="result-span" class="text-info">@_descSpan</span>
+    <span class="text-info">@_descSpan</span>
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 </div>
@@ -44,15 +44,14 @@
         StateHasChanged();
     }
 
-    public async Task OnSaveChanges()
+    private async Task OnSaveChanges()
     {
         if (_nameValue != Channel.Name || _descValue != Channel.Description)
         {
             Channel.Name = _nameValue;
             Channel.Description = _descValue;
 
-            TaskResult<Channel> result = await Api.Items.LiveModel.UpdateAsync(Channel);
-
+            var result = await LiveModel.UpdateAsync(Channel);
             if (!result.Success)
             {
                 _errorSpan = "Failed to save changes. Try again?";
