@@ -63,9 +63,9 @@
         MessageComponent = component;
         MessageWrapper = messageWrapper;
 
-        if (messageWrapper.Message is PlanetMessage)
+        if (messageWrapper.Message.PlanetId is not null)
         {
-            AuthorMember = await ((PlanetMessage)messageWrapper.Message).GetAuthorMemberAsync();
+            AuthorMember = await messageWrapper.Message.GetAuthorMemberAsync();
             await InnerMemberContextMenuComponent.Initialize(AuthorMember, window.Window);
         }
         else
@@ -125,12 +125,8 @@
             ReportingUserId = ValourClient.Self.Id,
             MessageId = MessageComponent.MessageData.Message.Id,
             ChannelId = MessageComponent.MessageData.Message.ChannelId,
+            PlanetId = MessageComponent.MessageData.Message.PlanetId
         };
-
-        if (MessageComponent.MessageData.Message is PlanetMessage planetMessage)
-        {
-            report.PlanetId = planetMessage.PlanetId;
-        }
         
         ModalParameters par = new();
         par.Add("Report", report);
