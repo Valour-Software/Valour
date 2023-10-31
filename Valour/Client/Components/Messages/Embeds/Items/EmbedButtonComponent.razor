@@ -1,21 +1,21 @@
 @inject HttpClient Http
 @using Valour.Api.Models.Messages
 @implements IDisposable
-@inject IJSRuntime JS
+@inject IJSRuntime JsRuntime
 @inherits BaseEmbedItemComponent
 
-<button type="button" class="btn embed-item" style="color: #ffffff;background: #000000;@Item.GetStyle()" @onclick="(async () => {await OnEmbedButtonClick();})">
-    @foreach (var child in Item.Children)
+<button type="button" class="btn embed-item" style="color: #ffffff;background: #000000;@_buttonItem.GetStyle()" @onclick="(async () => {await OnEmbedButtonClick();})">
+    @foreach (var child in _buttonItem.Children)
     {
         <EmbedItemComponent item="@child"></EmbedItemComponent>
     }
 </button>
 @code {
     [Parameter]
-    public ClientMessageWrapper Message {get; set;}
+    public ClientMessageWrapper MessageWrapper {get; set;}
 
     [Parameter]
-    public Embed embed { get; set;}
+    public Embed Embed { get; set;}
 
     [Parameter]
     public EmbedFormItem FormItem { get; set; }
@@ -23,51 +23,51 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    EmbedButtonItem Item;
+    private EmbedButtonItem _buttonItem;
 
-    private bool ProcessClick = false;
+    private bool _processClick = false;
 
     protected override void OnInitialized()
     {
-        Item = (EmbedButtonItem)_item;
+        _buttonItem = (EmbedButtonItem)_item;
         embedComponent.RefreshItemComponents += Refresh;
-        if (Item.Id is not null)
-			embedComponent.ItemComponents[Item.Id] = this;
+        if (_buttonItem.Id is not null)
+			embedComponent.ItemComponents[_buttonItem.Id] = this;
     }
 
     public override void Refresh()
     {
-        Item = (EmbedButtonItem)_item;
-        if (Item.Id is not null)
-			embedComponent.ItemComponents[Item.Id] = this;
+        _buttonItem = (EmbedButtonItem)_item;
+        if (_buttonItem.Id is not null)
+			embedComponent.ItemComponents[_buttonItem.Id] = this;
         StateHasChanged();
     }
 
     public void Dispose()
     {
         embedComponent.RefreshItemComponents -= Refresh;
-        if (Item.Id is not null)
-            embedComponent.ItemComponents.Remove(Item.Id, out var _);
+        if (_buttonItem.Id is not null)
+            embedComponent.ItemComponents.Remove(_buttonItem.Id, out var _);
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
-        if (ProcessClick)
+        if (_processClick)
         {
-            ProcessClick = false;
-            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(Item, embedComponent, Modal, JS)));
+            _processClick = false;
+            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(_buttonItem, embedComponent, Modal, JsRuntime)));
         }
         return base.OnAfterRenderAsync(firstRender);
     }
 
     public async Task OnEmbedButtonClick()
     {
-        if (Item.ClickTarget is null)
+        if (_buttonItem.ClickTarget is null)
             return;
 
-        if (Item.ClickTarget.Type != TargetType.SubmitForm)
+        if (_buttonItem.ClickTarget.Type != TargetType.SubmitForm)
         {
-            ProcessClick = true;
+            _processClick = true;
             return;
         }
 
@@ -77,23 +77,22 @@
 
         var interaction = new EmbedInteractionEvent()
         {
-            MessageId = Message.Message.Id,
-            ChannelId = Message.Message.ChannelId,
+            MessageId = MessageWrapper.Message.Id,
+            ChannelId = MessageWrapper.Message.ChannelId,
             TimeInteracted = DateTime.UtcNow,
-            ElementId = ((EmbedFormSubmitTarget)Item.ClickTarget).EventElementId
+            ElementId = ((EmbedFormSubmitTarget)_buttonItem.ClickTarget).EventElementId
         };
 
-        if (Message.Message is PlanetMessage)
+        if (MessageWrapper.Message.PlanetId is not null)
         {
-            var planetMessage = Message.Message as PlanetMessage;
-            PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, planetMessage.PlanetId);
+            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, MessageWrapper.Message.PlanetId.Value);
 
-            interaction.PlanetId = SelfMember.PlanetId;
-            interaction.Author_MemberId = planetMessage.AuthorMemberId;
-            interaction.MemberId = SelfMember.Id;
+            interaction.PlanetId = selfMember.PlanetId;
+            interaction.Author_MemberId = MessageWrapper.Message.AuthorMemberId!.Value;
+            interaction.MemberId = selfMember.Id;
         }
 
-        if (FormItem is not null && Item.ClickTarget.Type == TargetType.SubmitForm)
+        if (FormItem is not null && _buttonItem.ClickTarget.Type == TargetType.SubmitForm)
         {
             interaction.FormData = FormItem.GetFormData();
             interaction.FormId = FormItem.Id;
