@@ -100,7 +100,7 @@
         {
             <!-- Makes it so you can insert into empty categories -->
             <div
-                class="inner-drop @((ListManager.HighlightInner?.GetItem()?.Id ?? 0) == this.Channel.Id ? "highlight" : "")"
+                class="inner-drop @((ListManager.HighlightInner?.Channel?.Id ?? 0) == this.Channel.Id ? "highlight" : "")"
                 @ondrop:stopPropagation="true"
                 @ondrop="async () => await ListManager.OnItemDropIntoCategory(this)"
                 @ondragenter:stopPropagation="true"
@@ -157,7 +157,7 @@
     
     private List<Channel> _children;
     private bool _isOpen = true;
-    private int _notificationCount = 0;
+    private int _notificationCount;
     
     protected override void OnInitialized()
     {
@@ -216,8 +216,7 @@
             }
             else
             {
-                var planet = await Channel.GetPlanetAsync();
-                await WindowManager.ReplaceWindow(window, new PlanetChatChannelWindow(planet, Channel));
+                await WindowManager.ReplaceWindow(window, new ChatChannelWindow(Channel));
             }
         }
         
@@ -229,12 +228,12 @@
         await ChannelListContextMenuComponent.SetSelectedItem(Channel);
     }
     
-    public void DetermineUnread()
+    private void DetermineUnread()
     {
         IsUnread = ValourClient.GetChannelUnreadState(Channel.Id);
     }
 
-    public void DetermineNotifications()
+    private void DetermineNotifications()
     {
         _notificationCount = ValourClient.GetChannelNotifications(Channel.Id);
     }
@@ -244,10 +243,163 @@
     {
         return _children.FindIndex(x => x.Id == item.Id);
     }
+
+    // Get children
+    public List<Channel> GetChildren()
+    {
+        return _children;
+    }
+    
+    #region Event Handlers
+    
+    private Task OnChannelUpdate(ModelUpdateEvent<Channel> eventData)
+    {
+        var updated = eventData.Model;
+        
+        if (Channel.Id == updated.Id)
+        {
+            Refresh();
+        }
+        else if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            // If we contain the channel and its position or category changed we need to factor for that
+            var old = _children.FirstOrDefault(x => x.Id == updated.Id);
+            if (old != null)
+            {
+                // If removed from this category
+                if (updated.ParentId != Channel.Id)
+                {
+                    _children.Remove(old);
+                    BuildChildren();
+                    Refresh();
+                }
+            }
+            // In this case it was just added to this category
+            else if (updated.ParentId == Channel.Id)
+            {
+                // Insert
+                _children.Add(updated);
+                // Resort
+                BuildChildren();
+
+                Console.WriteLine($"Inserted {updated.Name} into {Channel.Name}");
+
+                Refresh();
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChannelDeletion(Channel channel)
+    {
+        if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return Task.CompletedTask;
+        
+        var old = _children.FirstOrDefault(x => x.Id == channel.Id);
+        if (old is not null)
+        {
+             _children.Remove(old);
+            BuildChildren();
+            Refresh();
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    private Task OnCategoryOrderUpdate(CategoryOrderEvent eventData)
+    {
+        if (eventData.CategoryId != Channel.Id)
+            return Task.CompletedTask;
+
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            BuildChildren();
+            SortChildren();
+        }
+
+        DetermineNotifications();
+        DetermineUnread();
+        Refresh();
+
+        return Task.CompletedTask;
+    }
+    
+    private Task OnUserChannelStateUpdate(UserChannelState state)
+    {
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            var channel = _children.FirstOrDefault(x => x.Id == state.ChannelId);
+            if (channel is null || channel.ParentId != Channel.Id)
+                return Task.CompletedTask;
+        }
+        else
+        {
+            if (Channel.Id != state.ChannelId)
+                return Task.CompletedTask;
+        }
+        
+        DetermineUnread();
+        Refresh();
+        
+        return Task.CompletedTask;
+    }
+
+    private Task OnChannelStateUpdate(ChannelStateUpdate state)
+    {
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            var channel = _children.FirstOrDefault(x => x.Id == state.ChannelId);
+            if (channel is null || channel.ParentId != Channel.Id)
+                return Task.CompletedTask;
+        }
+        else
+        {
+            if (Channel.Id != state.ChannelId)
+                return Task.CompletedTask;
+        }
+            
+        DetermineUnread();
+        Refresh();
+
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChannelOpenedChange(Channel channel)
+    {
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+            return Task.CompletedTask;
+            
+        Refresh();
+
+        return Task.CompletedTask;
+    }
+    
+    private Task OnNotification(Notification notification)
+    {
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            var channel = _children.FirstOrDefault(x => x.Id == notification.ChannelId);
+            if (channel is null || channel.ParentId != Channel.Id)
+                return Task.CompletedTask;
+        }
+        else
+        {
+            if (Channel.Id != notification.ChannelId)
+                return Task.CompletedTask;
+        }
+        
+        DetermineNotifications();
+        Refresh();
+
+        return Task.CompletedTask;
+    }
+    
+    #endregion
     
     #region Icon Stuff
     
-    private static readonly string[] _iconLookup = new[]
+    private static readonly string[] IconLookup = new[]
     {
         "chat",     // PlanetChat
         "category", // PlanetCategory
@@ -266,7 +418,7 @@
         var urlBuilder = new StringBuilder("_content/Valour.Client/media/channel-icons/");
         var altBuilder = new StringBuilder();
 
-        var channelType = _iconLookup[(int)Channel.ChannelType];
+        var channelType = IconLookup[(int)Channel.ChannelType];
         
         urlBuilder.Append(channelType);
 
@@ -295,19 +447,19 @@
     
     private void OnDragEnterTop()
     {
-        ListManager.OnDragEnterItem(this.Channel.Id, true);
+        ListManager.OnDragEnterItem(Channel.Id, true);
         Refresh();
     }
     
     private void OnDragEnterBottom()
     {
-        ListManager.OnDragEnterItem(this.Channel.Id, false);
+        ListManager.OnDragEnterItem(Channel.Id, false);
         Refresh();
     }
     
     private void OnDragStart()
     {
-        ListManager.OnItemStartDragInCategory(Channel, ParentCategory);
+        ListManager.OnItemStartDragInCategory(Channel, ParentComponent);
     }
 
     private void OnDragLeave()
@@ -318,6 +470,12 @@
     private async Task OnDropOn()
     {
         await ListManager.OnItemDropOnItem(this);
+        Refresh();
+    }
+    
+    private void OnDragEnterInnerDrop()
+    {
+        ListManager.HighlightInner = this;
         Refresh();
     }
     

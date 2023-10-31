@@ -42,7 +42,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
         public void OnItemStartDragInCategory(Channel item,
-                                              CategoryListComponent parent)
+                                              ChannelListItem parent)
         {
             SetTargetInCategory(item, parent);
             Console.WriteLine($"Starting drag for {item.GetHumanReadableName()} {item.Name} at position {_currentDragIndex}");
@@ -74,12 +74,13 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// <param name="target">The category component that the item was dropped onto</param>
         public async Task OnItemDropIntoCategory(ChannelListItem target)
         {
+            if (target == null)
+                return;
+            
             OnDragEnterItem(0);
             target.Refresh();
             
             // Insert item into the next slot in the category
-            if (target == null)
-                return;
 
             // Already parent
             if (target.Channel.Id == _currentDragItem.ParentId)
@@ -133,7 +134,9 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 }
                 else
                 {
-                    childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                    childrenOrder = target.ParentComponent.GetChildren()
+                        .Select(x => x.Id)
+                        .ToList();
                 }
                 
                 childrenOrder.Remove(_currentDragItem.Id);
@@ -153,8 +156,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
                 var model = new OrderChannelsModel()
                 {
-                    PlanetId = _currentDragItem.PlanetId,
-                    CategoryId = target.GetItem().ParentId,
+                    PlanetId = _currentDragItem.PlanetId!.Value,
+                    CategoryId = target.Channel.ParentId,
                     Order = childrenOrder,
                 };
                 
@@ -167,7 +170,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             {
                 List<long> childrenOrder = null;
                 
-                if (target.ParentCategory is null)
+                if (target.ParentComponent is null)
                 {
                     childrenOrder = target.PlanetComponent.TopChannels
                         .Select(x => x.Id)
@@ -175,7 +178,9 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 }
                 else
                 {
-                    childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                    childrenOrder = target.ParentComponent.GetChildren()
+                        .Select(x => x.Id)
+                        .ToList();
                 }
                 
                 
@@ -186,8 +191,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 var model = new InsertChannelChildModel()
                 {
                     InsertId = _currentDragItem.Id,
-                    ParentId = target.GetItem().ParentId,
-                    PlanetId = _currentDragItem.PlanetId,
+                    ParentId = target.Channel.ParentId,
+                    PlanetId = _currentDragItem.PlanetId!.Value,
                     Position = newIndex
                 };
 
@@ -201,7 +206,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
         public long DragOverId = 0;
         public bool DragIsTop = true;
-        public ChannelListItemComponent HighlightInner = null;
+        public ChannelListItem HighlightInner = null;
 
         public void OnDragEnterItem(long id, bool top = false)
         {
