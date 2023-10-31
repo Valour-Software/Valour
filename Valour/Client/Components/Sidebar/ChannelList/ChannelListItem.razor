@@ -203,7 +203,7 @@
         ListManager.OnItemClickInCategory(Channel, ParentComponent);
 
         // Chat channels
-        if (ISharedChannel.MessageChannelTypes.Contains(Channel.ChannelType))
+        if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
             var window = WindowManager.GetSelectedWindow();
             if (window is ChatChannelWindow channelWindow)

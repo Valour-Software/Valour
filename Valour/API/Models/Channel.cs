@@ -207,7 +207,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public bool DetermineUnread()
     {
-        if (!ISharedChannel. MessageChannelTypes.Contains(ChannelType))
+        if (!ISharedChannel. ChatChannelTypes.Contains(ChannelType))
             return false;
 
         return ValourClient.GetChannelUnreadState(Id);
@@ -218,7 +218,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public async Task SendIsTyping()
     {
-        if (!ISharedChannel. MessageChannelTypes.Contains(ChannelType))
+        if (!ISharedChannel. ChatChannelTypes.Contains(ChannelType))
             return;
         
         await Node.PostAsync($"{IdRoute}/typing", null);
@@ -399,7 +399,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     public async Task<List<Message>> GetMessagesAsync(long index = long.MaxValue,
         int count = 10)
     {
-        if (!ISharedChannel.MessageChannelTypes.Contains(ChannelType))
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return new List<Message>();
         
         var result = await ValourClient.PrimaryNode.GetJsonAsync<List<Message>>($"{IdRoute}/messages?index={index}&count={count}");

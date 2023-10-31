@@ -24,10 +24,18 @@ public interface ISharedChannel : ISharedItem
         ChannelTypeEnum.PlanetVoice
     };
     
-    public static readonly HashSet<ChannelTypeEnum> MessageChannelTypes = new ()
+    public static readonly HashSet<ChannelTypeEnum> ChatChannelTypes = new ()
     {
         ChannelTypeEnum.PlanetChat,
-        ChannelTypeEnum.DirectChat
+        ChannelTypeEnum.DirectChat,
+        ChannelTypeEnum.GroupChat
+    };
+    
+    public static readonly HashSet<ChannelTypeEnum> VoiceChannelTypes = new ()
+    {
+        ChannelTypeEnum.PlanetVoice,
+        ChannelTypeEnum.DirectVoice,
+        ChannelTypeEnum.GroupVoice
     };
     
     /////////////////////////////////

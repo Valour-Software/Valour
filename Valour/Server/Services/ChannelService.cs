@@ -445,7 +445,7 @@ public class ChannelService
         if (channel is null)
             return null;
         
-        if (!ISharedChannel.MessageChannelTypes.Contains(channel.ChannelType))
+        if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return null;
 
         // Not sure why this request would even be made
@@ -545,7 +545,7 @@ public class ChannelService
         if (channel.PlanetId != message.PlanetId)
             return TaskResult<Message>.FromError("Invalid planet id. Must match channel's planet id.");
         
-        if (!ISharedChannel.MessageChannelTypes.Contains(channel.ChannelType))
+        if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return TaskResult<Message>.FromError("Channel is not a message channel.");
 
         Valour.Database.Planet planet = null;

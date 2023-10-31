@@ -164,7 +164,7 @@ public class WindowManager
             return;
         
         // Not a chat channel
-        if (!ISharedChannel.MessageChannelTypes.Contains(newChannel.ChannelType))
+        if (!ISharedChannel.ChatChannelTypes.Contains(newChannel.ChannelType))
             return;
 
         await Log("[WindowManager]: Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);
