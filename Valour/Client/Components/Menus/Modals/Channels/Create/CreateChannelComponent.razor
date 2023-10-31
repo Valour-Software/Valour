@@ -1,62 +1,54 @@
-@inject HttpClient Http
-@inject NavigationManager navManager
-@inject IJSRuntime JS
-@using Valour.Shared.Categories
-
 <section>
-    <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
+    <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
     <div class="top-section">
-        <h2 class="title">Create a Channel</h2>
-
-        <center>
-            <span id="image-span" style="color:white">@imageSpan</span>
-        </center>
+        <h2 class="title">Create a @ISharedChannel.GetTypeName(ChannelType)</h2>
+        
+        <span id="image-span" style="color:white; text-align: center">@_imageSpan</span>
 
         <div asp-validation-summary="All" class="text-info"></div>
         <div class="form-group mt-2 new-input-style">
-            <label>Channel Name</label>
-            <input class="form-control" placeholder="New Channel" @bind-value="@name" />
+            <label>Category Name</label>
+            <input class="form-control" placeholder="New Category" @bind-value="@_name" />
         </div>
         <div style="margin-top:20px;">
             <img class="lock-icon" src="_content/Valour.Client/media/lock-icon.svg">
             <div class="perm-list-name mb-1">
-                Private Channel
+                Private Category
             </div>
             <div type="button" style="float: right">
                 <label class="switch">
-                    <input type="checkbox" @onclick="PrivateSwitch" checked="@isprivate">
+                    <input type="checkbox" @onclick="PrivateSwitch" checked="@_isPrivate">
                     <span class="slider round"></span>
                 </label>
             </div>
         </div>
     </div>
 
-    @if (isprivate)
-    {
+    @if (_isPrivate) {
         <div class="private">
             <div class="inner-private">
-                <label style="margin-top: 12px;">Who can see and send messages in this channel?</label>
+                <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
                 <div class="roles-box">
-                    @foreach (PlanetRole role in Roles)
+                    @foreach (PlanetRole role in _roles)
                     {
                         <div class="role">
-                            <div class="perm-list-name mb-1" style="color: @role.Color">
+                           <div class="perm-list-name mb-1" style="color: @role.Color">
                                 @role.Name
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
                                     @if (role.GetAuthority() == SelfAuthority)
                                     {
-                                        <input type="checkbox" @onclick="@(() => SwitchRole(role))" checked="@SelectedRoles[role]" disabled>
+                                        <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@_selectedRoles[role]" disabled>
                                         <span class="slider round" cursor: not-allowed;></span>
                                     }
                                     else
                                     {
-                                        <input type="checkbox" @onclick="@(() => SwitchRole(role))" checked="@SelectedRoles[role]">
+                                        <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@_selectedRoles[role]">
                                         <span class="slider round"></span>
                                     }
                                 </label>
-                            </div>
+                            </div> 
                         </div>
                     }
                 </div>
@@ -64,10 +56,11 @@
         </div>
     }
     
-    @if (isprivate) {
+    @if (_isPrivate)
+    {
         <div class="form-group mt-4 bottom" style="margin-top: 0px !important;">
             <center>
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Channel</button>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Category</button>
             </center>
         </div>
     }
@@ -75,33 +68,39 @@
     {
         <div class="form-group mt-4 bottom">
             <center>
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Channel</button>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Category</button>
             </center>
         </div>
     }
 </section>
+
 @code {
 
+    // Input fields
+    string _name;
+
+    // Spans
+    string _imageSpan = "";
+    Dictionary<PlanetRole, bool> _selectedRoles = new();
+    List<PlanetRole> _roles = new();
+    bool _isPrivate = false;
+
+    int SelfAuthority { get; set; }
+
+    /// <summary>
+    /// The type of channel to be created
+    /// </summary>
+    [Parameter, EditorRequired]
+    public ChannelTypeEnum ChannelType { get; set; }
+    
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
 
     [Parameter]
-    public PlanetCategory Parent { get; set; }
+    public Channel Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
-
-    public int SelfAuthority { get; set; }
-
-    // Input fields
-    string name;
-
-    // Spans
-    string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
-
-    List<PlanetRole> Roles = new List<PlanetRole>();
-    bool isprivate = false;
 
     public async Task ClickEscape(MouseEventArgs e)
     {
@@ -109,129 +108,212 @@
     }
 
     protected override async Task OnInitializedAsync() {
-        Roles.Clear();
-        SelectedRoles.Clear();
+        _roles.Clear();
+        _selectedRoles.Clear();
 
-        PlanetMember SelfMember = await ValourClient.GetSelfMember(Planet);
+        PlanetMember selfMember = await ValourClient.GetSelfMember(Planet);
 
-        SelfAuthority = await SelfMember.GetAuthorityAsync();
+        var roles = await Planet.GetRolesAsync();
 
-        var roleResponse = await Planet.GetRolesAsync();
-
-        foreach (PlanetRole item in roleResponse)
+        SelfAuthority = await selfMember.GetAuthorityAsync();
+        foreach (PlanetRole item in roles)
         {
             if (item.GetAuthority() > SelfAuthority)
                 continue;
-                
-            Roles.Add(item);
+
+            _roles.Add(item);
+
             if (item.GetAuthority() == SelfAuthority)
-                SelectedRoles.Add(item, true);
+                _selectedRoles.Add(item, true);
             else
-                SelectedRoles.Add(item, false);
+                _selectedRoles.Add(item, false);
         }
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
-        SelectedRoles[role] = !SelectedRoles[role];
+    private void SwitchRole(PlanetRole role)
+    {
+        _selectedRoles[role] = !_selectedRoles[role];
     }
-
     private void PrivateSwitch() {
-        isprivate = !isprivate;
+        _isPrivate = !_isPrivate;
     }
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
 
         // Require a name
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(_name))
         {
-            imageSpan = "Please input a channel name!";
+            _imageSpan = "Please input a category name!";
             return;
         }
 
+        long planetId = Planet.Id;
+        long? parentId = null;
+
+        if (Parent != null)
+            parentId = Parent.Id;
 
         long userId = ValourClient.Self.Id;
+        //string token = ValourClient.Token;
 
-        long parentId = Parent.Id;
-        long planetId = Planet.Id;
-
-        CreatePlanetChatChannelRequest createRequest = new()
+        CreateChannelRequest createRequest = new()
         {
-            Channel = new  PlanetChatChannel()
+            Channel = new()
             {
-                Name = name,
-                Description = "A chat channel",
-                PlanetId = planetId,
+                Name = _name,
+                Description = "A category",
                 ParentId = parentId,
-                Position = -1
+                PlanetId = planetId,
+                Position = -1,
+                
+                ChannelType = ChannelType
             },
             Nodes = new()
         };
 
-        if (isprivate)
+        if (_isPrivate)
         {
-            // set the default role channel view perms to false
-            
             var defaultRoleId = (await Planet.GetDefaultRoleAsync()).Id;
+            
+            // set the default role channel view perms to false
 
-            PermissionsNode defaultNode = new()
+            // only need category node for categories, but if it IS a category, we need every type of node
+            
+            bool doCategory = ChannelType == ChannelTypeEnum.PlanetCategory;
+            bool doChat = ChannelType == ChannelTypeEnum.PlanetCategory ||
+                          ChannelType == ChannelTypeEnum.PlanetChat;
+            bool doVoice = ChannelType == ChannelTypeEnum.PlanetCategory ||
+                           ChannelType == ChannelTypeEnum.PlanetVoice;
+
+            if (doCategory)
             {
-                TargetId = 0,
-                PlanetId = Planet.Id,
-                RoleId = defaultRoleId,
-                Mask = 0x00,
-                Code = 0x00,
-                TargetType = ChannelType.PlanetChatChannel
-            };
+                PermissionsNode defCatNode = new()
+                {
+                    TargetId = 0,
+                    PlanetId = planetId,
+                    RoleId = defaultRoleId,
+                    Mask = 0x00,
+                    Code = 0x00,
 
-            defaultNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
-            defaultNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
-            defaultNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+                    TargetType = ChannelTypeEnum.PlanetCategory,
+                };
 
-            createRequest.Nodes.Add(defaultNode);
+                defCatNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            foreach (PlanetRole role in Roles)
+                createRequest.Nodes.Add(defCatNode);
+            }
+
+            if (doChat)
             {
-                if (!SelectedRoles[role])
+                PermissionsNode defChatNode = new()
+                {
+                    TargetId = 0,
+                    PlanetId = planetId,
+                    RoleId = defaultRoleId,
+                    Mask = 0x00,
+                    Code = 0x00,
+
+                    TargetType = ChannelTypeEnum.PlanetChat,
+                };
+
+                defChatNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+
+                createRequest.Nodes.Add(defChatNode);
+            }
+
+            if (doVoice)
+            {
+                PermissionsNode defVoiceNode = new()
+                {
+                    TargetId = 0,
+                    PlanetId = Planet.Id,
+                    RoleId = defaultRoleId,
+                    Mask = 0x00,
+                    Code = 0x00,
+                    
+                    TargetType = ChannelTypeEnum.PlanetVoice
+                };
+
+                defVoiceNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.False);
+                defVoiceNode.SetPermission(VoiceChannelPermissions.Speak, PermissionState.False);
+                defVoiceNode.SetPermission(VoiceChannelPermissions.View, PermissionState.False);
+
+                createRequest.Nodes.Add(defVoiceNode);
+            }
+
+            foreach (PlanetRole role in _roles)
+            {
+                if (!_selectedRoles[role])
                 {
                     continue;
                 }
 
-                var roleNode = new PermissionsNode()
+                if (doCategory)
                 {
-                    TargetId = 0,
-                    PlanetId = Planet.Id,
-                    RoleId = role.Id,
-                    Mask = 0x00,
-                    Code = 0x00,
-                    TargetType = ChannelType.PlanetChatChannel
-                };
+                    PermissionsNode catNode = new()
+                    {
+                        TargetId = 0,
+                        PlanetId = planetId,
+                        RoleId = role.Id,
+                        Mask = 0x00,
+                        Code = 0x00,
+                        TargetType = ChannelTypeEnum.PlanetCategory
+                    };
 
-                roleNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
-                roleNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
-                roleNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+                    catNode.SetPermission(CategoryPermissions.View, PermissionState.True);
+                    createRequest.Nodes.Add(catNode);
+                }
 
-                createRequest.Nodes.Add(roleNode);
+                if (doChat)
+                {
+                    PermissionsNode chatNode = new()
+                    {
+                        TargetId = 0,
+                        PlanetId = planetId,
+                        RoleId = role.Id,
+                        Mask = 0x00,
+                        Code = 0x00,
+                        TargetType = ChannelTypeEnum.PlanetChat
+                    };
+
+                    chatNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+                    createRequest.Nodes.Add(chatNode);
+                }
+
+                if (doVoice)
+                {
+                    var voiceNode = new PermissionsNode()
+                    {
+                        TargetId = 0,
+                        PlanetId = Planet.Id,
+                        RoleId = role.Id,
+                        Mask = 0x00,
+                        Code = 0x00,
+                        TargetType = ChannelTypeEnum.PlanetVoice
+                    };
+
+                    voiceNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.True);
+                    voiceNode.SetPermission(VoiceChannelPermissions.Speak, PermissionState.True);
+                    voiceNode.SetPermission(VoiceChannelPermissions.View, PermissionState.True);
+
+                    createRequest.Nodes.Add(voiceNode);
+                }
             }
         }
 
-        var result = await PlanetChatChannel.CreateWithDetails(createRequest);
+        var result = await Channel.CreateWithDetails(createRequest);
 
         if (!result.Success)
         {
-            string errorText = result.Message;
+            var errorText = result.Message;
             Console.WriteLine(errorText);
-            imageSpan = errorText;
+            _imageSpan = errorText;
             return;
         }
 
         // close modal
-        await ModalInstance.CloseAsync();   
-    }
-
-    private async Task OnImageInput()
-    {
-
+        await ModalInstance.CloseAsync();
     }
 }

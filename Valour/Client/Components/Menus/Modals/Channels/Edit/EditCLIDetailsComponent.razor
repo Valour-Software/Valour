@@ -3,21 +3,21 @@
 <br />
 
 <div class="settings-inner">
-    <span class="text-danger">@errorSpan</span>
+    <span class="text-danger">@_errorSpan</span>
     
     <br/>
     
     <p>Name</p>
-    <input class="form-control" type="text" @bind-value="@nameValue"/>
-    <span id="result-span" class="text-info">@nameSpan</span>
+    <input class="form-control" type="text" @bind-value="@_nameValue"/>
+    <span id="result-span" class="text-info">@_nameSpan</span>
 
     <div class="mb-2"></div>
 
     <br/>
 
     <p>Description</p>
-    <textarea class="form-control" type="text" @bind="@descValue" @bind:event="oninput"></textarea>
-    <span id="result-span" class="text-info">@descSpan</span>
+    <textarea class="form-control" type="text" @bind="@_descValue" @bind:event="oninput"></textarea>
+    <span id="result-span" class="text-info">@_descSpan</span>
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 </div>
@@ -25,42 +25,41 @@
 
 @code {
     [Parameter]
-    public PlanetChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
-    public string nameValue;
-    public string descValue;
+    private string _nameValue;
+    private string _descValue;
 
-    public string errorSpan;
+    private string _errorSpan;
 
-    public string nameSpan;
-    public string descSpan;
+    private string _nameSpan;
+    private string _descSpan;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        nameValue = Channel.Name;
-        descValue = Channel.Description;
-
-        errorSpan = "";
+        _nameValue = Channel.Name;
+        _descValue = Channel.Description;
+        _errorSpan = "";
         
         StateHasChanged();
     }
 
     public async Task OnSaveChanges()
     {
-        if (nameValue != Channel.Name || descValue != Channel.Description)
+        if (_nameValue != Channel.Name || _descValue != Channel.Description)
         {
-            Channel.Name = nameValue;
-            Channel.Description = descValue;
+            Channel.Name = _nameValue;
+            Channel.Description = _descValue;
 
-            TaskResult<PlanetChannel> result = await Api.Items.LiveModel.UpdateAsync(Channel);
+            TaskResult<Channel> result = await Api.Items.LiveModel.UpdateAsync(Channel);
 
             if (!result.Success)
             {
-                errorSpan = "Failed to save changes. Try again?";
+                _errorSpan = "Failed to save changes. Try again?";
             }
             else
             {
-                nameSpan = "Changes saved successfully.";
+                _nameSpan = "Changes saved successfully.";
             }
         }
 

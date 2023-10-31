@@ -15,8 +15,31 @@ public enum ChannelTypeEnum
     GroupVoice = 6,
 }
 
+public class SharedChannelNames
+{
+    public static readonly string[] ChannelTypeNames = new string[]
+    {
+        "Planet Chat Channel",
+        "Planet Category",
+        "Planet Voice Channel",
+        "Direct Chat Channel",
+        "Direct Voice Channel",
+        "Group Chat Channel",
+        "Group Voice Channel"
+    };
+}
+
 public interface ISharedChannel : ISharedItem
 {
+    public static string GetTypeName(ChannelTypeEnum type)
+    {
+        var i = (int)type;
+        if (i < 0 || i >= SharedChannelNames.ChannelTypeNames.Length)
+            return "UNDEFINED";
+        
+        return SharedChannelNames.ChannelTypeNames[(int)type];
+    }
+    
     public static readonly HashSet<ChannelTypeEnum> PlanetChannelTypes = new ()
     {
         ChannelTypeEnum.PlanetChat,
