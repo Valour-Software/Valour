@@ -1,4 +1,4 @@
-<div class="@("item " + Selected_Class)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
+<div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
      <p class='title noselect'>#@Channel.Name</p>
 </div>
 
@@ -11,12 +11,12 @@
     public MentionSelectComponent Parent { get; set; }
 
     [Parameter]
-    public IChatChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
     [Parameter]
     public bool Selected { get; set; }
 
-    public string Selected_Class
+    private string SelectedClass
     {
         get
         {
@@ -27,14 +27,9 @@
         }
     }
 
-    public async Task OnClickAsync()
+    private async Task OnClickAsync()
     {
         Parent.Selected = Index;
         await Parent.Submit();
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-
     }
 }
