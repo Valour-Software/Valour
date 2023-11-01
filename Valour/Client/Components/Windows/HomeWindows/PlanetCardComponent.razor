@@ -1,12 +1,12 @@
 @using System.Text
-@inject WindowManager windowManager
-@inject IJSRuntime JS
+@inject WindowManager WindowManager
+@inject IJSRuntime JsRuntime
 
 <div id="flipper-planet-@Planet.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 240)" @onclick="OnClick"> 
     <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='planet-context' @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
         
         <div class="outer-circle">
-            <div class="text-hide-circle"/>
+            <div class="text-hide-circle"></div>
             @if (!string.IsNullOrWhiteSpace(_iconText))
             {
                 <svg style="transform: rotate(@(_iconImageColor >> 1)deg)" class="icon" id="svg8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 567 567">
@@ -56,11 +56,11 @@
             }
             else
             {
-                <img src='@iconUrl' class="icon" @onerror='OnIconError'/>
+                <img alt="planet icon" src='@_iconUrl' class="icon" @onerror='OnIconError'/>
             }
             
             
-            @if (IsUnread || _notificationCount > 0)
+            @if (_isUnread || _notificationCount > 0)
             {
                 <div class="noti @(_notificationCount > 0 ? "purple" : "")">
                     @(_notificationCount > 9 ? "+" : _notificationCount)
@@ -97,15 +97,14 @@
     private string _iconTextStyle = "";
     private int _iconImageColor;
 
-    private string iconUrl = DefaultImage;
-
-    private bool IsUnread = false;
+    private string _iconUrl = DefaultImage;
+    private bool _isUnread = false;
     private int _notificationCount = 0;
 
-    protected override async Task OnInitializedAsync(){
+    protected override void OnInitialized(){
         if (!string.IsNullOrWhiteSpace(Planet.IconUrl))
         {
-            iconUrl = Planet.IconUrl;
+            _iconUrl = Planet.IconUrl;
         }
         else
         {
@@ -116,14 +115,16 @@
         ValourClient.OnNotificationReceived += OnNotification;
     }
 
-    private async Task OnNotification(Notification notification)
+    private Task OnNotification(Notification notification)
     {
         if (notification.PlanetId != Planet.Id)
-            return;
+            return Task.CompletedTask;
         
         // Unread
         _notificationCount = ValourClient.GetPlanetNotifications(Planet.Id);
         StateHasChanged();
+
+        return Task.CompletedTask;
     }
     
     public string GetCommunityShortCode(string communityName)
@@ -166,36 +167,38 @@
         return sb.ToString();
     }
     
-    public void GenerateAutoGraphic()
+    private void GenerateAutoGraphic()
     {
-        iconUrl = "_content/Valour.Client/media/logo-circle.svg";
+        _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
         _iconText = GetCommunityShortCode(Planet.Name);
         _iconImageColor = Planet.Id.GetHashCode();
 
         _iconTextStyle = $"font-size: {100f / (_iconText.Length + 1)}px;";
     }
 
-    public async Task Refresh()
+    private Task Refresh()
     {
-        IsUnread = ValourClient.GetPlanetUnreadState(Planet.Id);
+        _isUnread = ValourClient.GetPlanetUnreadState(Planet.Id);
         _notificationCount = ValourClient.GetPlanetNotifications(Planet.Id);
         StateHasChanged();
+
+        return Task.CompletedTask;
     }
     
-    public async Task OnClick()
+    private async Task OnClick()
     {
         // Load planet first for personal reasons (let me keep the kids thanks)
         await ValourClient.OpenPlanet(Planet);
-        await windowManager.SetFocusedPlanet(Planet);
+        await WindowManager.SetFocusedPlanet(Planet);
 
-        PlanetChatChannel channel = await Planet.GetPrimaryChannelAsync();
+        Channel channel = await Planet.GetPrimaryChannelAsync();
 
         Console.WriteLine($"Switching window {Window.Id} to {channel.Name}");
 
-        var newWindow = new PlanetChatChannelWindow(Planet, channel);
+        var newWindow = new ChatChannelWindow(channel);
 
-        await windowManager.ReplaceWindow(Window, newWindow);
-        await windowManager.SetSelectedWindow(newWindow);
+        await WindowManager.ReplaceWindow(Window, newWindow);
+        await WindowManager.SetSelectedWindow(newWindow);
 
         StateHasChanged();
     }

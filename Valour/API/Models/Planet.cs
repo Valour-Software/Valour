@@ -417,12 +417,21 @@ public class Planet : LiveModel, ISharedPlanet
         Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
+    
+    /// <summary>
+    /// Returns the member for the current user in this planet (if it exists)
+    /// </summary>
+    public ValueTask<PlanetMember> GetSelfMemberAsync(bool forceRefresh = false)
+    {
+        return GetMemberByUserAsync(ValourClient.Self.Id, forceRefresh);
+    }
+
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
+    public ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool forceRefresh = false)
     {
-        return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
+        return PlanetMember.FindAsyncByUser(userId, Id, forceRefresh);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

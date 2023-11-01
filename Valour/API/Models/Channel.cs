@@ -12,6 +12,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     // Cached values
     // Will only be used for planet channels
     private List<PermissionsNode> PermissionsNodes { get; set; }
+    private List<User> NonPlanetMembers { get; set; }
     
     public override string BaseRoute =>
         $"api/channels";
@@ -386,6 +387,77 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
                 throw new Exception("Unexpected permission type: " + permission.GetType().Name);
         }
     }
+    
+    /// <summary>
+    /// Returns the current total permissions for this channel for a member.
+    /// This result is NOT SYNCED, since it flattens several nodes into one!
+    /// </summary>
+    public async ValueTask<PermissionsNode> GetFlattenedPermissionsAsync(long memberId, bool forceRefresh = false)
+    {
+        if (PlanetId is null)
+            return null;
+        
+        var member = await PlanetMember.FindAsync(memberId, PlanetId.Value);
+        var roles = await member.GetRolesAsync();
+
+        // Start with no permissions
+        var dummyNode = new PermissionsNode()
+        {
+            // Full, since values should either be yes or no
+            Mask = Permission.FULL_CONTROL,
+            // Default to no permission
+            Code = 0x0,
+
+            PlanetId = PlanetId.Value,
+            TargetId = Id,
+            TargetType = ChannelType
+        };
+
+        var planet = await GetPlanetAsync();
+
+        // Easy cheat for owner
+        if (planet.OwnerId == member.UserId)
+        {
+            dummyNode.Code = Permission.FULL_CONTROL;
+            return dummyNode;
+        }
+
+        // Should be in order of most power -> least,
+        // so we reverse it here
+        for (int i = roles.Count - 1; i >= 0; i--)
+        {
+            var role = roles[i];
+            PermissionsNode node;
+            // If true, we grab the parent's permission node
+            if (InheritsPerms == true)
+                node = await (await GetParentAsync()).GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
+            else
+                node = await GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
+
+            if (node is null)
+                continue;
+
+            //Console.WriteLine($"{role.Name}: {node.Mask} {node.Code}");
+
+            foreach (var perm in ChatChannelPermissions.Permissions)
+            {
+                var val = node.GetPermissionState(perm);
+
+                // Change nothing if undefined. Otherwise overwrite.
+                // Since most important nodes come last, we will end with correct perms.
+                if (val == PermissionState.True)
+                {
+                    dummyNode.SetPermission(perm, PermissionState.True);
+                }
+                else if (val == PermissionState.False)
+                {
+                    dummyNode.SetPermission(perm, PermissionState.False);
+                }
+            }
+        }
+
+        return dummyNode;
+    }
 
     /// <summary>
     /// Returns the last (count) messages
@@ -410,6 +482,27 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         }
         
         return result.Data;
+    }
+    
+    /// <summary>
+    /// Returns the list of users in the channel but DO NOT use this for
+    /// planet channels please we will figure that out soon
+    /// </summary>
+    public async Task<List<User>> GetNonPlanetMembersAsync(bool refresh = false)
+    {
+        if (PlanetId is null)
+            return new List<User>();
+
+        if (NonPlanetMembers is null)
+        {
+            var result =  await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
+            if (result.Success)
+                NonPlanetMembers = result.Data;
+            else
+                return new List<User>();
+        }
+
+        return NonPlanetMembers;
     }
 
     public async Task Open()

@@ -1,11 +1,9 @@
 ﻿using Valour.Api.Client;
 using Valour.Client.Components.Windows;
-using Valour.Api.Items;
 using Valour.Shared;
 using Valour.Api.Nodes;
 using Valour.Api.Models;
 using Valour.Client.Windows.ChatWindows;
-using Valour.Api.Models;
 using System.Collections.Concurrent;
 using Valour.Shared.Models;
 
@@ -40,7 +38,7 @@ public class WindowManager
     /// <summary>
     /// The window currently selected by the user (last clicked)
     /// </summary>
-    private ClientWindow SelectedWindow;
+    private ClientWindow _selectedWindow;
 
     /// <summary>
     /// Event for when a new window is selected
@@ -70,7 +68,7 @@ public class WindowManager
 	/// <summary>
 	/// channel.Id : text content
 	/// </summary>
-	public ConcurrentDictionary<long, string> NotYetSentMessages = new();
+	public readonly ConcurrentDictionary<long, string> NotYetSentMessages = new();
 
 	public WindowManager()
     {
@@ -192,18 +190,17 @@ public class WindowManager
     public async Task SetSelectedWindow(ClientWindow window)
     {
         // Check to ensure window is new and valid
-        if (window == null || (SelectedWindow == window)) return;
+        if (window == null || (_selectedWindow == window)) return;
 
         // Set selected window
-        SelectedWindow = window;
+        _selectedWindow = window;
 
         await Log($"[WindowManager]: Set active window to {window.Id}");
-
+        
         // If Chat Channel, set focused planet to the channel's planet
-        if (window is PlanetChatChannelWindow)
+        if (window is ChatChannelWindow chatWindow)
         {
-            var chatW = window as PlanetChatChannelWindow;
-            await SetFocusedPlanet(await chatW.PlanetChannel.GetPlanetAsync());
+            await SetFocusedPlanet(await chatWindow.Channel.GetPlanetAsync());
         }
 
 
@@ -211,7 +208,9 @@ public class WindowManager
         if (OnWindowSelect != null)
         {
             await Log($"[WindowManager]: Invoking window change event");
-            await OnWindowSelect?.Invoke();
+            
+            if (OnWindowSelect is not null)
+                await OnWindowSelect.Invoke();
         }
     }
 
@@ -220,10 +219,10 @@ public class WindowManager
     /// </summary>
     public ClientWindow GetSelectedWindow()
     {
-        if (SelectedWindow is null)
-            SelectedWindow = Windows.FirstOrDefault();
+        if (_selectedWindow is null)
+            _selectedWindow = Windows.FirstOrDefault();
             
-        return SelectedWindow;
+        return _selectedWindow;
     }
 
     /// <summary>
@@ -307,11 +306,11 @@ public class WindowManager
             await OnWindowClosed.Invoke(window);
     }
 
-    public async Task ForceChatRefresh()
+    private async Task ForceChatRefresh()
     {
         foreach (var chat in Windows.OfType<ChatChannelWindow>())
         {
-            if (chat != null && chat.Component != null && chat.Component.MessageHolder != null)
+            if (chat.Component != null && chat.Component.MessageHolder != null)
             {
                 // Force full window refresh
                 await chat.Component.SetupNewChannelAsync();

@@ -32,9 +32,9 @@
                 var windows = WindowManager.Instance.GetWindows();
                 foreach (var window in windows)
                 {
-                    if (window is DirectChatChannelWindow directChat)
+                    if (window is ChatChannelWindow directChat)
                     {
-                        if (directChat.DirectChannel.Id == notification.ChannelId)
+                        if (directChat.Channel.Id == notification.ChannelId)
                         {
                             return;
                         }

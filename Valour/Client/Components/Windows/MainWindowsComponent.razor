@@ -67,16 +67,16 @@
 						await ValourClient.OpenPlanet(planet);
 						await WindowManager.SetFocusedPlanet(planet);
 
-						newWindow = new PlanetChatChannelWindow(planet, channel);
+						newWindow = new ChatChannelWindow(channel);
 						break;
 					}
 					case StartScreen.DirectChannel:
 					{
-						var channel = ValourCache.Get<DirectChatChannel>(StartData.StartChannelId);
+						var channel = ValourCache.Get<Channel>(StartData.StartChannelId);
 						if (channel is null)
 							break;
 						
-						newWindow = new DirectChatChannelWindow(channel);
+						newWindow = new ChatChannelWindow(channel);
 						
 						break;
 					}

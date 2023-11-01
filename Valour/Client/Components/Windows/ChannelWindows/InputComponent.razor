@@ -1,5 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
-@inject WindowManager windowManager
+@inject WindowManager WindowManager
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
 @using Valour.Api.Models.Messages;
@@ -13,7 +13,7 @@
             {
                 MessageData = PreviewMessage,
                 Ghost = true,
-                LastMessage = WindowComponent.MessageHolder.GetLastMessage(),
+                LastMessage = MessageHolder.GetLastMessage(),
             };
             
             <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
@@ -29,8 +29,8 @@
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
         <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
         
-        <div class="textbox" @ref="DropZoneElement">
-            <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+        <div class="textbox" @ref="_dropZoneElement">
+            <InputFile id="@("upload-core-" + Window.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
                 <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
             </button>
@@ -92,15 +92,21 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
     
+    [Parameter]
+    public PlanetMember SelfMember { get; set; }
+    
     /// <summary>
     /// A reference to the container for message rendering
     /// </summary>
-    protected MessageHolderComponent MessageHolder { get; set; }
+    [Parameter]
+    public MessageHolderComponent MessageHolder { get; set; }
+    
+    /* End Planet Stuff */
 
     /// <summary>
     /// Placeholder text shown in the input box when empty
     /// </summary>
-    protected virtual string PlaceholderText { get; }
+    private string PlaceholderText => $"Discuss in {Window.Channel.Name}";
 
     /// <summary>
     /// The tenor menu component
@@ -234,25 +240,33 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+        WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
         _thisRef.Dispose();
         await _jsModule.DisposeAsync();
     }
 
     public virtual async Task SetupNewChannelAsync()
     {
-        WindowComponent.InputComponent = this;
-        MessageHolder = WindowComponent.MessageHolder;
-
         PreviewMessage = new(BuildNewMessage());
-
+        CanUserPost = await WindowComponent.Channel.HasPermissionAsync(SelfMember, ChatChannelPermissions.PostMessages);
+        
         Refresh();
     }
 
     public virtual Message BuildNewMessage()
     {
-        // Other message building
-        return null;
+        WindowManager.NotYetSentMessages.TryGetValue(WindowComponent.Channel.Id, out var prevContent);
+        return new Message()
+        {
+            AuthorUserId = ValourClient.Self.Id,
+            Content = prevContent,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = SelfMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            PlanetId = WindowComponent.Channel.PlanetId,
+            Fingerprint = Guid.NewGuid().ToString(),
+        };
     }
 
     private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
@@ -271,8 +285,8 @@
         {
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=2");
-            await SetupJSAsync();
-            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
+            await SetupJsAsync();
+            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();
 
@@ -282,17 +296,25 @@
         CanRenderFlag = false;
     }
 
-    public virtual Task OnAfterJsSetupAsync()
+    public virtual async Task OnAfterJsSetupAsync()
     {
-        return Task.CompletedTask;
+        if (PreviewMessage.Message.Content is not null)
+        {
+            await SetInputContent(PreviewMessage.Message.Content);
+            await RefreshPreviewMessage();
+        }
+        else {
+            await SetInputContent("");
+            await RefreshPreviewMessage();
+        }
     }
 
     #region File Drop System
 
     // Drop zone stuff
-    public InputFile InputFile_Ref { get; set; }
-    ElementReference DropZoneElement { get; set; }
-    IJSObjectReference dropZoneInstance;
+    private InputFile _inputFileRef;
+    private ElementReference _dropZoneElement;
+    IJSObjectReference _dropZoneInstance;
 
     public async Task OnBeginEdit(MessageComponent component, ClientMessageWrapper message)
     {
@@ -337,11 +359,13 @@
 
         var file = e.File;
 
+        var maxSize = 10240000;
+        
         if (ValourClient.Self.SubscriptionType is null)
         {
-            if (file.Size > 10240000)
+            if (file.Size > maxSize)
             {
-                InfoModalData imodalData = 
+                InfoModalData infoModalData = 
                     new($"File too large!",
                         "The max upload size is 10MB. To raise this limit, consider subscribing to Plus!",
                         "Okay",
@@ -349,7 +373,7 @@
                 );
                 
                 ModalParameters imodParams = new();
-                imodParams.Add("Data", imodalData);
+                imodParams.Add("Data", infoModalData);
                 
                 Modal.Show<InfoModalComponent>("Info", imodParams);
                 return;
@@ -357,26 +381,27 @@
         }
         else
         {
-            if (file.Size > 20480000)
+            maxSize = 20480000;
+            
+            if (file.Size > maxSize)
             {
-                InfoModalData imodalData = 
+                InfoModalData infoModalData = 
                     new($"File too large!",
                         "The max upload size is 20MB for Plus members.",
                         "Okay",
                         null
                         );
                 
-                ModalParameters imodParams = new();
-                imodParams.Add("Data", imodalData);
+                ModalParameters infoModalParams = new();
+                infoModalParams.Add("Data", infoModalData);
                 
-                Modal.Show<InfoModalComponent>("Info", imodParams);
+                Modal.Show<InfoModalComponent>("Info", infoModalParams);
                 return;
             }
         }
 
         byte[] data = new byte[file.Size];
-
-        await file.OpenReadStream(10240000).ReadAsync(data);
+        await file.OpenReadStream(maxSize).ReadAsync(data);
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);
@@ -562,7 +587,7 @@
             {
                 MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
 
-                DirectMessage errorMsg = new()
+                Message errorMsg = new()
                 {
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
@@ -581,7 +606,7 @@
             PreviewMessageComponent.MessageData.Reply = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
-            windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+            WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
         }
         // Editing message
         else
@@ -589,7 +614,7 @@
             var result = await messageWrapper.Message.EditMessageAsync();
             if (!result.Success)
             {
-                DirectMessage errorMsg = new()
+                Message errorMsg = new()
                 {
                     Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
@@ -613,19 +638,19 @@
     /////////////////////
 
     // C# -> JS
-    private async Task SetupJSAsync()
+    private ValueTask SetupJsAsync()
     {
-        await _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
+        return _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
     }
 
-    public async Task InjectElementAsync(string text, string coverText, string classList, string styleList)
+    public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
-        await _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
     }
     
-    public async Task InjectEmojiAsync(string emoji, string native)
+    public ValueTask InjectEmojiAsync(string emoji, string native)
     {
-        await _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
     }
 
     public async Task OnSubmitClick()
@@ -633,16 +658,16 @@
         await _jsModule.InvokeVoidAsync("submitMessage", Window.Id, true);
     }
 
-    private async Task SelectEnd()
+    private ValueTask SelectEnd()
     {
-        await _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
+        return _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
     }
 
     // JS -> C#
     [JSInvokable]
-    public async Task OnCaretUpdate(string currentWord)
+    public Task OnCaretUpdate(string currentWord)
     {
-        await UpdateMentionMenu(currentWord);
+        return UpdateMentionMenu(currentWord);
     }
 
     /// <summary>
@@ -661,7 +686,7 @@
             input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
         }
 
-        windowManager.NotYetSentMessages[WindowComponent.Channel.Id] = input;
+        WindowManager.NotYetSentMessages[WindowComponent.Channel.Id] = input;
         PreviewMessage.Message.Content = input;
         await RefreshPreviewMessage();
 
@@ -685,7 +710,6 @@
     public async Task MentionSubmit()
     {
         await MentionSelector.Submit();
-
         Refresh();
     }
 

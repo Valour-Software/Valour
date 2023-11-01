@@ -1,4 +1,5 @@
-﻿@implements IDisposable
+﻿@using System.Text
+@implements IDisposable
 @inject WindowManager WindowManager
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
@@ -10,7 +11,7 @@
                 <CascadingValue Value='ChannelPermissions'>
                     <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
                 </CascadingValue>
-                <DynamicComponent Type="Window.Component.GetInputComponentType()" />
+                <InputComponent @ref="@_inputComponent" MessageHolder="@MessageHolder" SelfMember="@_selfMember" />
             </WindowFrameComponent>
         </CascadingValue>
     </CascadingValue>
@@ -24,22 +25,26 @@
     public IModalService Modal { get; set; }
 
     public WindowFrameComponent WindowFrame { get; set; }
-    
-    public IChatChannel Channel;
 
-    public event Func<IChatChannel, Task> OnChannelChange;
+    public event Func<Channel, Task> OnChannelChange;
 
     public MessageHolderComponent MessageHolder { get; set; }
 
-    public InputComponent InputComponent { get; set; }
-
     public PermissionsNode ChannelPermissions { get; set; }
-
-    public bool CanRenderFlag { get; set; }
 
     public string Title { get; set; }
 
     public string Description { get; set; }
+    
+    /* Planet Only */
+    private Planet _planet;
+    private PlanetMember _selfMember;
+    
+    private bool _canRenderFlag;
+    
+    public Channel Channel;
+    
+    private InputComponent _inputComponent;
 
     private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
 
@@ -62,21 +67,65 @@
 
     public void Refresh()
     {
-        CanRenderFlag = true;
+        _canRenderFlag = true;
         StateHasChanged();
     }
 
     public virtual Type GetInputComponentType() => 
         typeof(InputComponent);
 
-    public virtual Task<string> GetChannelDisplayTitleAsync() =>
-        Task.FromResult(Channel.Name);
+    public async Task<string> GetChannelDisplayTitleAsync()
+    {
+        if (Window.Channel.PlanetId is not null)
+        {
+            return Channel.Name;
+        }
+        else
+        {
+            
+            var members = await Channel.GetNonPlanetMembersAsync();
+            var others = members.Where(x => x.Id != ValourClient.Self.Id).ToList();
+
+            if (!others.Any())
+                return "Chat with yourself";
+            
+            var sb = new StringBuilder("Chat with ");
+            
+            var i = 0;
+            foreach (var other in others)
+            {
+                sb.Append(other.Name);
+                if (i > 0)
+                    sb.Append(", ");
+                else
+                    sb.Append(" ");
+                
+                i++;
+            }
+
+            return sb.ToString();
+        }
+    }
 
     public virtual Task<string> GetChannelDisplayDescriptionAsync() =>
         Task.FromResult(Channel.Description);
 
     public virtual async Task SetupNewChannelAsync()
     {
+        // Planet stuff
+        if (Channel.PlanetId is not null)
+        {
+            _planet = await Channel.GetPlanetAsync();
+            _selfMember = await _planet.GetSelfMemberAsync();
+
+            _planet.OnDeleted += OnPlanetDeleted;
+            _selfMember.OnDeleted += OnSelfMemberDeleted;
+            
+            ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(_selfMember.Id);
+        }
+        
+        Channel.OnUpdated += OnChatChannelUpdate;
+        
         Title = await GetChannelDisplayTitleAsync();
         Description = await GetChannelDisplayDescriptionAsync();
         
@@ -84,7 +133,7 @@
         
         MessageHolder.Clear();
 
-        var messages = ClientMessageWrapper.FromList(await Channel.GetLastMessagesGenericAsync(64));
+        var messages = ClientMessageWrapper.FromList(await Channel.GetLastMessagesAsync(64));
 
         foreach (var msg in messages)
         {
@@ -96,6 +145,8 @@
         }
 
         await MessageHolder.AddMessages(messages, true, true);
+        
+        _inputComponent.Refresh();
     }
 
     public async Task SwapChannel(Channel newChannel)
@@ -105,7 +156,7 @@
         await WindowManager.SwapWindowChannel(Window, newChannel);
 
         await SetupNewChannelAsync();
-        await InputComponent.SetupNewChannelAsync();
+        await _inputComponent.SetupNewChannelAsync();
 
         if (OnChannelChange is not null)
             await OnChannelChange.Invoke(Channel);
@@ -121,7 +172,7 @@
         }
         
         await base.OnAfterRenderAsync(firstRender);
-        CanRenderFlag = false;
+        _canRenderFlag = false;
     }
 
     public async Task OnWindowClosed()
@@ -132,23 +183,16 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-        await InputComponent.OnBeginEdit(message, message.MessageData);
+        await _inputComponent.OnBeginEdit(message, message.MessageData);
     }
 
     public async Task CloseEditMode(bool cancel = false)
     {
-        await InputComponent.OnStopEdit(cancel);
+        await _inputComponent.OnStopEdit(cancel);
     }
 
     protected override bool ShouldRender()
-        => CanRenderFlag;
-
-    void IDisposable.Dispose()
-    {
-        ValourClient.OnMessageReceived -= OnReceiveMessage;
-
-        _thisRef.Dispose();
-    }
+        => _canRenderFlag;
 
     public Task OnChatChannelUpdate(ModelUpdateEvent eventData)
     {
@@ -168,9 +212,9 @@
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
 
         await MessageHolder.AddMessage(wrapper);
-        InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
-        InputComponent.PreviewMessageComponent.CheckMinimal();
-        InputComponent.PreviewMessageComponent.ReRender();
+        _inputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
+        _inputComponent.PreviewMessageComponent.CheckMinimal();
+        _inputComponent.PreviewMessageComponent.ReRender();
     }
     
     public virtual async Task OnReceiveMessageEdit(Message message)
@@ -199,6 +243,50 @@
         }
     }
 
-    public virtual Task OnClickWindow()
-        => Task.CompletedTask;
+    public  Task OnClickWindow()
+    {
+        return WindowManager.SetFocusedPlanet(_planet);
+    }
+    
+    public async Task OnPlanetDeleted()
+        => await Window.CloseAsync();
+
+    public async Task OnSelfMemberDeleted()
+    {
+        var newWindow = new HomeWindow();
+        await WindowManager.ReplaceWindow(Window, newWindow);
+        _canRenderFlag = true;
+        StateHasChanged();
+    }
+    
+    public async Task<List<PlanetMember>> GetLastChatMembers(int count)
+    {
+        // Not applicable for non-planet channels
+        if (Channel.PlanetId is null)
+            return new List<PlanetMember>();
+        
+        var lastMessages = MessageHolder.DisplayedMessageData.TakeLast(20).Reverse();
+        List<PlanetMember> chatters = new();
+
+        foreach (var wrapper in lastMessages)
+        {
+            var member = await wrapper.Message.GetAuthorMemberAsync();
+            if (!chatters.Contains(member))
+                chatters.Add(member);
+        }
+
+        return chatters;
+    }
+    
+    void IDisposable.Dispose()
+    {
+        if (_planet is not null)
+            _planet.OnDeleted -= OnPlanetDeleted;
+        
+        if (_selfMember is not null)
+            _selfMember.OnDeleted -= OnSelfMemberDeleted;
+        
+        ValourClient.OnMessageReceived -= OnReceiveMessage;
+        _thisRef.Dispose();
+    }
 }

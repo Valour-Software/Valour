@@ -79,9 +79,8 @@ public class ClientMessageWrapper
     public ClientMessageWrapper(Message message)
     {
         Message = message;
-        var reply = message.GetReply();
-        if (reply is not null)
-            Reply = new ClientMessageWrapper(reply);
+        if (Message.ReplyTo is not null)
+            Reply = new ClientMessageWrapper(Message.ReplyTo);
     }
 
     public string MarkdownContent
@@ -157,10 +156,7 @@ public class ClientMessageWrapper
         var pos = 0;
 
         var text = MarkdownContent;
-
-        var planetMessage = Message as PlanetMessage;
-        var directMessage = Message as DirectMessage;
-
+        
         while (pos < text.Length)
         {
             if (text[pos] == '«')
@@ -178,7 +174,7 @@ public class ClientMessageWrapper
                     text[pos + 3] == '-')
                 {
                     // Member mention (<@m-)
-                    if (planetMessage is not null && text[pos + 2] == 'm')
+                    if (Message.PlanetId is not null && text[pos + 2] == 'm')
                     {
                         // Extract id
                         char c = ' ';
@@ -214,13 +210,13 @@ public class ClientMessageWrapper
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.PlanetMember,
-                            PlanetId = planetMessage.PlanetId                     
+                            PlanetId = Message.PlanetId.Value                     
                         };
                         
                         Message.SetupMentionsList();
                         Message.Mentions.Add(memberMention);
                     }
-                    else if (planetMessage is not null && text[pos + 2] == 'r')
+                    else if (Message.PlanetId is not null && text[pos + 2] == 'r')
                     {
                         // Extract id
                         char c = ' ';
@@ -256,14 +252,14 @@ public class ClientMessageWrapper
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Role,
-                            PlanetId = planetMessage.PlanetId
+                            PlanetId = Message.PlanetId.Value
                         };
 
                         Message.SetupMentionsList();
                         Message.Mentions.Add(roleMention);
                     }
                     // Other mentions go here
-                    else if (directMessage is not null && text[pos + 2] == 'u')
+                    else if (text[pos + 2] == 'u')
                     {
                         // Extract id
                         char c = ' ';
@@ -315,7 +311,7 @@ public class ClientMessageWrapper
                     text[pos + 3] == '-')
                 {
                     // Chat Channel mention (<#c-)
-                    if (planetMessage is not null && text[pos + 2] == 'c')
+                    if (Message.PlanetId is not null && text[pos + 2] == 'c')
                     {
                         // Extract id
                         char c = ' ';
@@ -351,7 +347,7 @@ public class ClientMessageWrapper
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Channel,
-                            PlanetId = planetMessage.PlanetId
+                            PlanetId = Message.PlanetId.Value
                         };
 
                         Message.SetupMentionsList();

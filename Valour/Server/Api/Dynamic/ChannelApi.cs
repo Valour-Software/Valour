@@ -408,4 +408,20 @@ public class ChannelApi
         var nodes = await channelService.GetPermissionNodesAsync(channelId);
         return Results.Json(nodes);
     }
+
+    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/nonPlanetMembers")]
+    [UserRequired]
+    // Note: DOES NOT RETURN PLANET MEMBERS!
+    public static async Task<IResult> GetChannelMembersAsync(
+        long channelId,
+        ChannelService channelService,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        if (!await channelService.IsMemberAsync(channelId, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        return Results.Json(await channelService.GetMembersNonPlanetAsync(channelId));
+    }
 }

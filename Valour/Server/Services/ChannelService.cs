@@ -1,16 +1,12 @@
 ﻿using System.Text.Json;
-using IdGen;
-using Microsoft.AspNetCore.Mvc;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models.Messages.Embeds.Items;
 using Valour.Server.Cdn;
 using Valour.Server.Database;
-using Valour.Server.Requests;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using ChannelMember = Valour.Database.ChannelMember;
 
 namespace Valour.Server.Services;
 
@@ -78,14 +74,14 @@ public class ChannelService
                 Id = newId,
 
                 // Build the members
-                Members = new List<ChannelMember>()
+                Members = new List<Valour.Database.ChannelMember>()
                 {
-                    new ChannelMember()
+                    new Valour.Database.ChannelMember()
                     {
                         ChannelId = newId,
                         UserId = userOneId
                     },
-                    new ChannelMember()
+                    new Valour.Database.ChannelMember()
                     {
                         ChannelId = newId,
                         UserId = userTwoId
@@ -354,8 +350,8 @@ public class ChannelService
     /// <summary>
     /// Returns the children of the given channel id
     /// </summary>
-    public async Task<List<Channel>> GetChildrenAsync(long id) =>
-        await _db.Channels.Where(x => x.ParentId == id)
+    public Task<List<Channel>> GetChildrenAsync(long id) =>
+        _db.Channels.Where(x => x.ParentId == id)
             .OrderBy(x => x.Position)
             .Select(x => x.ToModel())
             .ToListAsync();
@@ -363,20 +359,21 @@ public class ChannelService
     /// <summary>
     /// Returns the number of children for the given channel id
     /// </summary>
-    public async Task<int> GetChildCountAsync(long id) =>
-        await _db.Channels.CountAsync(x => x.ParentId == id);
+    public Task<int> GetChildCountAsync(long id) =>
+        _db.Channels.CountAsync(x => x.ParentId == id);
 
     /// <summary>
     /// Returns the ids of all of the children of the given channel id
     /// </summary>
-    public async Task<List<long>> GetChildrenIdsAsync(long id) =>
-        await _db.Channels.Where(x => x.ParentId == id)
+    public Task<List<long>> GetChildrenIdsAsync(long id) =>
+        _db.Channels.Where(x => x.ParentId == id)
             .Select(x => x.Id)
             .ToListAsync();
     
     /// <summary>
     /// Returns if the given category id is the last remaining category
     /// in its planet (used to prevent deletion of the last category)
+    /// </summary>
     public async Task<bool> IsLastCategory(long categoryId) =>
         await _db.Channels.CountAsync(x => x.PlanetId == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
 
@@ -403,6 +400,18 @@ public class ChannelService
 
             return await _memberService.HasPermissionAsync(member, channel, ChannelPermissions.View);
         }
+    }
+    
+    /// <summary>
+    /// Returns the channel members for a given channel id,
+    /// which is NOT planet members
+    /// </summary>
+    public Task<List<User>> GetMembersNonPlanetAsync(long channelId)
+    {
+        return _db.ChannelMembers.Include(x => x.User)
+            .Where(x => x.ChannelId == channelId)
+            .Select(x => x.User.ToModel())
+            .ToListAsync();
     }
     
     #region Permissions
@@ -476,10 +485,6 @@ public class ChannelService
 
         return messages;
     }
-    
-    ///////////////
-    // Messaging //
-    ///////////////
 
     /// <summary>
     /// Returns the message with the given id
