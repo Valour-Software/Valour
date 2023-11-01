@@ -177,9 +177,8 @@
     
     public async Task OnClickMessage()
     {
-        var channel = await DirectChatChannel.FindAsyncByUser(User.Id);
-
-        var newWindow = new DirectChatChannelWindow(channel);
+        var channel = await Channel.GetDirectChannelAsync(User.Id, true);
+        var newWindow = new ChatChannelWindow(channel);
 
         var oldWindow = WindowManager.GetSelectedWindow();
 		

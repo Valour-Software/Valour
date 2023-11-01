@@ -11,7 +11,7 @@
                 <CascadingValue Value='ChannelPermissions'>
                     <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
                 </CascadingValue>
-                <InputComponent @ref="@_inputComponent" MessageHolder="@MessageHolder" SelfMember="@_selfMember" />
+                <InputComponent @ref="@InputComponent" MessageHolder="@MessageHolder" SelfMember="@_selfMember" />
             </WindowFrameComponent>
         </CascadingValue>
     </CascadingValue>
@@ -44,7 +44,7 @@
     
     public Channel Channel;
     
-    private InputComponent _inputComponent;
+    public InputComponent InputComponent;
 
     private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
 
@@ -146,7 +146,7 @@
 
         await MessageHolder.AddMessages(messages, true, true);
         
-        _inputComponent.Refresh();
+        InputComponent.Refresh();
     }
 
     public async Task SwapChannel(Channel newChannel)
@@ -156,7 +156,7 @@
         await WindowManager.SwapWindowChannel(Window, newChannel);
 
         await SetupNewChannelAsync();
-        await _inputComponent.SetupNewChannelAsync();
+        await InputComponent.SetupNewChannelAsync();
 
         if (OnChannelChange is not null)
             await OnChannelChange.Invoke(Channel);
@@ -183,12 +183,12 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-        await _inputComponent.OnBeginEdit(message, message.MessageData);
+        await InputComponent.OnBeginEdit(message, message.MessageData);
     }
 
     public async Task CloseEditMode(bool cancel = false)
     {
-        await _inputComponent.OnStopEdit(cancel);
+        await InputComponent.OnStopEdit(cancel);
     }
 
     protected override bool ShouldRender()
@@ -212,9 +212,9 @@
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
 
         await MessageHolder.AddMessage(wrapper);
-        _inputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
-        _inputComponent.PreviewMessageComponent.CheckMinimal();
-        _inputComponent.PreviewMessageComponent.ReRender();
+        InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
+        InputComponent.PreviewMessageComponent.CheckMinimal();
+        InputComponent.PreviewMessageComponent.ReRender();
     }
     
     public virtual async Task OnReceiveMessageEdit(Message message)

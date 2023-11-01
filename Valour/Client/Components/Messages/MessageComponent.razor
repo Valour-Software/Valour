@@ -121,7 +121,7 @@
             IsInnerReply = true
         };
 
-        builder.OpenComponent(0, Holder.MessageType);
+        builder.OpenComponent<MessageComponent>(0);
         builder.AddAttribute(0, "ParamData", messageParams);
         builder.SetKey($"r-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}");
         builder.CloseComponent();

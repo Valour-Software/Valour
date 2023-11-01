@@ -10,7 +10,7 @@
     
     <!-- Actual messages -->
     <CascadingValue Value="this" IsFixed="true">
-        @MessagesTemplate
+        @MessagesFragment
     </CascadingValue>
 
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
@@ -58,13 +58,11 @@
     private string _id;
 
     private bool _canRenderFlag = false;
-    
-    public Type MessageType;
 
-    public void TypedMessagesTemplate<T>(RenderTreeBuilder builder) where T : MessageComponent
+    private RenderFragment MessagesFragment => builder =>
     {
         ClientMessageWrapper lastMessage = null;
-        
+
         // Displayed messages
         if (DisplayedMessageData is not null && DisplayedMessageData.Count > 0)
         {
@@ -79,7 +77,7 @@
                     Ghost = false,
                 };
 
-                builder.OpenComponent<T>(0);
+                builder.OpenComponent<MessageComponent>(0);
                 builder.AddAttribute(1, "ParamData", messageParams);
                 builder.SetKey(messageData.RenderKey);
                 builder.CloseComponent();
@@ -87,7 +85,7 @@
                 lastMessage = messageData;
             }
         }
-        
+
         // Queued messages
         if (QueuedMessageData is not null && QueuedMessageData.Count > 0)
         {
@@ -102,7 +100,7 @@
                     Ghost = true,
                 };
 
-                builder.OpenComponent<T>(0);
+                builder.OpenComponent<MessageComponent>(0);
                 builder.AddAttribute(1, "ParamData", messageParams);
                 builder.SetKey($"q-{messageData.RenderKey}");
                 builder.CloseComponent();
@@ -110,38 +108,11 @@
                 lastMessage = messageData;
             }
         }
-    }
-
-
-    public RenderFragment MessagesTemplate;
+    };
+    
 
     protected override void OnInitialized()
     {
-        
-         // Using generics instead of reflection gives better performance,
-         // and we only have to set the render template once
-        switch (Window)
-        {
-            case PlanetChatChannelWindow:
-            {
-                MessagesTemplate = TypedMessagesTemplate<PlanetMessageComponent>;
-                MessageType = typeof(PlanetMessageComponent);
-                break;
-            }
-            case DirectChatChannelWindow:
-            {
-                MessagesTemplate = TypedMessagesTemplate<DirectMessageComponent>;
-                MessageType = typeof(DirectMessageComponent);
-                break;
-            }
-            default:
-            {
-                MessagesTemplate = TypedMessagesTemplate<MessageComponent>;
-                MessageType = typeof(MessageComponent);
-                break;
-            }
-        }
-        
         _id = $"innerWindow-{Window.Id}";
         
         RenderedMessages = new List<MessageComponent>();
@@ -283,7 +254,7 @@
         await _jsModule.DisposeAsync();
     }
 
-    public async Task OnDeleteMessage(PlanetMessage message)
+    public async Task OnDeleteMessage(Message message)
     {
         if (message.ChannelId != Window.Channel.Id)
             return;
@@ -368,7 +339,7 @@
 
         Console.WriteLine($"Fetching older messages from id {firstId} for window {Window.Id}");
 
-        var messages = await Window.Channel.GetMessagesGenericAsync(firstId, 64);
+        var messages = await Window.Channel.GetMessagesAsync(firstId, 64);
 
         if (messages is null || !messages.Any())
             return;
@@ -376,7 +347,7 @@
         foreach (var msg in messages)
         {
             await msg.AddToCache(msg);
-            var reply = msg.GetReply();
+            var reply = msg.ReplyTo;
             if (reply is not null)
             {
                 await reply.AddToCache(reply);

@@ -219,6 +219,15 @@
                 await WindowManager.ReplaceWindow(window, new ChatChannelWindow(Channel));
             }
         }
+        else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
+        {
+            await CallComponent.Instance.Initialize(Channel);
+        }
+        else if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            _isOpen = !_isOpen;
+            CategoryManager.SetOpen(Channel, _isOpen);
+        }
         
         Refresh();
     }

@@ -1,5 +1,5 @@
 ﻿<div class="eco-pay-container">
-    @if (Input.WindowComponent is PlanetChatChannelWindowComponent)
+    @if (Input.WindowComponent.Channel.PlanetId is not null)
     {
         <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
             <TabOne>

@@ -56,12 +56,13 @@
         ParentComponent.OnChannelChange += OnParentChannelChange;
     }
 
-    public async Task OnParentChannelChange(IChatChannel channel)
+    private Task OnParentChannelChange(Channel channel)
     {
         Clear();
+        return Task.CompletedTask;
     }
 
-    public void Clear()
+    private void Clear()
     {
         TotalCount = 0;
         DisplayData.Clear();
