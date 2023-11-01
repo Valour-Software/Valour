@@ -1488,7 +1488,7 @@ public static class ValourClient
 
     public static async Task LoadDirectChatChannelsAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<Channel>>("api/directchatchannels/self");
+        var response = await PrimaryNode.GetJsonAsync<List<Channel>>("api/channels/direct/self");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load direct chat channels **");

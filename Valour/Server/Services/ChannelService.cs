@@ -109,6 +109,18 @@ public class ChannelService
         
         return channel?.ToModel();
     }
+
+    /// <summary>
+    /// Returns all the direct chat channels for the given user id
+    /// </summary>
+    public Task<List<Channel>> GetAllDirectAsync(long userId)
+    {
+        return _db.Channels.Include(x => x.Members)
+            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+                        x.Members.Any(m => m.UserId == userId))
+            .Select(x => x.ToModel())
+            .ToListAsync();
+    }
     
     /// <summary>
     /// Soft deletes the given channel

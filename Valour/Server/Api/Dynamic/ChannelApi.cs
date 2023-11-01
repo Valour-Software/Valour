@@ -37,7 +37,7 @@ public class ChannelApi
 
     [ValourRoute(HttpVerbs.Post, "api/channels")]
     [UserRequired]
-    public async Task<IResult> CreateAsync(
+    public static async Task<IResult> CreateAsync(
         [FromBody] CreateChannelRequest request,
         ChannelService channelService,
         TokenService tokenService,
@@ -117,6 +117,20 @@ public class ChannelApi
             return ValourResult.NotFound<Channel>();
 
         return Results.Json(channel);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/self")] [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> GetAllDirectRouteAsync(
+        ChannelService channelService,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var channels = await channelService.GetAllDirectAsync(token.UserId);
+        
+        if (channels is null)
+            channels = new List<Channel>();
+
+        return Results.Json(channels);
     }
     
     
