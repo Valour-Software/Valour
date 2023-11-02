@@ -189,6 +189,39 @@ public class NodeStateWorker : IHostedService, IDisposable
         Console.WriteLine("Finished migrate");
         */
         
+        var dChannels = await db.DirectChatChannels.IgnoreQueryFilters().ToListAsync();
+        
+        foreach (var d in dChannels)
+        {
+            if (!await db.ChannelMembers.AnyAsync(x => x.ChannelId == d.Id && x.UserId == d.UserOneId))
+            {
+                var m1 = new ChannelMember()
+                {
+                    Id = IdManager.Generate(),
+                    ChannelId = d.Id,
+                    UserId = d.UserOneId,
+                };
+
+                db.ChannelMembers.Add(m1);
+            }
+
+            if (!await db.ChannelMembers.AnyAsync(x => x.ChannelId == d.Id && x.UserId == d.UserTwoId))
+            {
+                var m2 = new ChannelMember()
+                {
+                    Id = IdManager.Generate(),
+                    ChannelId = d.Id,
+                    UserId = d.UserTwoId,
+                };
+                
+                db.ChannelMembers.Add(m2);
+            }
+            
+            Console.WriteLine("added");
+        }
+       
+        await db.SaveChangesAsync();
+        
         await _longNodeService.AnnounceNode();
         
         _timer = new Timer(UpdateNodeState, null, TimeSpan.Zero,
