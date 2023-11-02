@@ -359,12 +359,15 @@ public class Message : LiveModel, ISharedMessage
                         return null;
                     }
                     _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
-                    foreach (var page in _embed.Pages)
+                    if (_embed.Pages is not null)
                     {
-                        foreach (var item in page.Children)
+                        foreach (var page in _embed.Pages)
                         {
-                            item.Embed = _embed;
-                            item.Init(_embed, page);
+                            foreach (var item in page.Children)
+                            {
+                                item.Embed = _embed;
+                                item.Init(_embed, page);
+                            }
                         }
                     }
                 }
