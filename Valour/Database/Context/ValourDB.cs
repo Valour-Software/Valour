@@ -55,6 +55,8 @@ public class ValourDB : DbContext
     
     public DbSet<NewChannel> NewChannels { get; set; }
     
+    public DbSet<ChannelMember> ChannelMembers { get; set; }
+    
     /// <summary>
     /// Table for message cache
     /// </summary>

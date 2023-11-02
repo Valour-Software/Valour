@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Database;
 
-[Table("channels")]
+[Table("channels_old")]
 [JsonDerivedType(typeof(PlanetChannel), typeDiscriminator: nameof(PlanetChannel))]
 [JsonDerivedType(typeof(DirectChatChannel), typeDiscriminator: nameof(DirectChatChannel))]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]

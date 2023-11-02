@@ -16,6 +16,8 @@ public class ChannelWatchingWorker : BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        return;
+        
         while (!stoppingToken.IsCancellationRequested)
         {
             Task task = Task.Run(async () => {

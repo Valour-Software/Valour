@@ -146,6 +146,27 @@ public class NodeStateWorker : IHostedService, IDisposable
         
         await db.SaveChangesAsync();
         
+        foreach (var d in dChannels)
+        {
+           var m1 = new ChannelMember()
+           {
+           Id = IdManager.Generate(),
+           ChannelId = d.Id,
+           UserId = d.UserOneId,
+           };
+           
+           var m2 = new ChannelMember()
+           {
+           Id = IdManager.Generate(),
+           ChannelId = d.Id,
+           UserId = d.UserTwoId,
+           };
+           
+           db.ChannelMembers.AddRange(m1, m2);
+        }
+       
+        await db.SaveChangesAsync();
+        
         */
         
         /*
