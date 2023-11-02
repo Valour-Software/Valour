@@ -12,10 +12,10 @@ public class Channel : Item, ISharedChannel
     ///////////////////////////
     
     [ForeignKey("PlanetId")]
-    public Planet Planet { get; set; }
+    public virtual Planet Planet { get; set; }
     
     [ForeignKey("ParentId")]
-    public Channel Parent { get; set; }
+    public virtual Channel Parent { get; set; }
     
     [InverseProperty("Channel")]
     public virtual List<ChannelMember> Members { get; set; }
@@ -23,10 +23,6 @@ public class Channel : Item, ISharedChannel
     ///////////////////////
     // Entity Properties //
     ///////////////////////
-
-    /////////////////////////////////
-    // Shared between all channels //
-    /////////////////////////////////
     
     /// <summary>
     /// The name of the channel
