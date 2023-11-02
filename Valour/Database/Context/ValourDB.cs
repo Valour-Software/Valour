@@ -51,6 +51,10 @@ public class ValourDB : DbContext
     // These are the database sets we can access
     //public DbSet<ClientPlanetMessage> Messages { get; set; }
     
+    public DbSet<Message> Messages { get; set; }
+    
+    public DbSet<NewChannel> NewChannels { get; set; }
+    
     /// <summary>
     /// Table for message cache
     /// </summary>
@@ -122,7 +126,7 @@ public class ValourDB : DbContext
     /// Table for all planet membership
     /// </summary>
     public DbSet<PlanetMember> PlanetMembers { get; set; }
-
+    
     /// <summary>
     /// Table for all channels
     /// </summary>

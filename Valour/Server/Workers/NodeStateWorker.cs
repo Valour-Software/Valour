@@ -1,4 +1,5 @@
 ﻿using StackExchange.Redis;
+using Valour.Database;
 using Valour.Server.Database;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
@@ -31,8 +32,123 @@ public class NodeStateWorker : IHostedService, IDisposable
         using var scope = _serviceProvider.CreateScope();
         _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
 
-        /*
+        
         var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+
+        /*
+        var npMessages = db.PlanetMessages.Select(x => new Message()
+        {
+            Id = x.Id,
+            PlanetId = x.PlanetId,
+            ReplyToId = x.ReplyToId,
+            AuthorUserId = x.AuthorUserId,
+            AuthorMemberId = x.AuthorMemberId,
+            Content = x.Content,
+            TimeSent = x.TimeSent.ToUniversalTime(),
+            ChannelId = x.ChannelId,
+            EmbedData = x.EmbedData,
+            MentionsData = x.MentionsData,
+            AttachmentsData = x.AttachmentsData,
+            EditedTime = x.EditedTime == null ? null : x.EditedTime.Value.ToUniversalTime(),
+        });
+        
+        db.Messages.AddRange(npMessages);
+        
+        var dMessages = db.DirectMessages.Select(x => new Message()
+        {
+            Id = x.Id,
+            PlanetId = null,
+            ReplyToId = x.ReplyToId,
+            AuthorUserId = x.AuthorUserId,
+            AuthorMemberId = null,
+            Content = x.Content,
+            TimeSent = x.TimeSent.ToUniversalTime(),
+            ChannelId = x.ChannelId,
+            EmbedData = x.EmbedData,
+            MentionsData = x.MentionsData,
+            AttachmentsData = x.AttachmentsData,
+            EditedTime = x.EditedTime == null ? null : x.EditedTime.Value.ToUniversalTime(),
+        });
+        
+        db.Messages.AddRange(dMessages);
+        
+        var pCategoryChannels = db.PlanetCategories.IgnoreQueryFilters().Select(x => new NewChannel()
+           {
+           Id = x.Id,
+           Name = x.Name,
+           Description = x.Description,
+           ChannelType = ChannelTypeEnum.PlanetCategory,
+           LastUpdateTime = x.TimeLastActive.ToUniversalTime(),
+           IsDeleted = x.IsDeleted,
+           
+           PlanetId = x.PlanetId,
+           ParentId = x.ParentId,
+           Position = x.Position,
+           InheritsPerms = x.InheritsPerms,
+           IsDefault = false
+        });
+           
+        db.NewChannels.AddRange(pCategoryChannels);
+
+        var pChatChannels = db.PlanetChatChannels.IgnoreQueryFilters().Select(x => new NewChannel()
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Description = x.Description,
+            ChannelType = ChannelTypeEnum.PlanetChat,
+            LastUpdateTime = x.TimeLastActive.ToUniversalTime(),
+            IsDeleted = x.IsDeleted,
+            
+            PlanetId = x.PlanetId,
+            ParentId = x.ParentId,
+            Position = x.Position,
+            InheritsPerms = x.InheritsPerms,
+            IsDefault = x.IsDefault
+        });
+        
+        db.NewChannels.AddRange(pChatChannels);
+        
+        var pVoiceChannels = db.PlanetVoiceChannels.IgnoreQueryFilters().Select(x => new NewChannel()
+           {
+           Id = x.Id,
+           Name = x.Name,
+           Description = x.Description,
+           ChannelType = ChannelTypeEnum.PlanetVoice,
+           LastUpdateTime = x.TimeLastActive.ToUniversalTime(),
+           IsDeleted = x.IsDeleted,
+           
+           PlanetId = x.PlanetId,
+           ParentId = x.ParentId,
+           Position = x.Position,
+           InheritsPerms = x.InheritsPerms,
+           IsDefault = false
+        });
+           
+        db.NewChannels.AddRange(pVoiceChannels);
+
+        var dChannels = db.DirectChatChannels.IgnoreQueryFilters().Select(x => new NewChannel()
+        {
+            Id = x.Id,
+            Name = "Direct Chat",
+            Description = "Talk with your friend",
+            ChannelType = ChannelTypeEnum.DirectChat,
+            LastUpdateTime = x.TimeLastActive.ToUniversalTime(),
+            IsDeleted = x.IsDeleted,
+           
+            PlanetId = null,
+            ParentId = null,
+            Position = null,
+            InheritsPerms = null,
+            IsDefault = null
+        });
+           
+        db.NewChannels.AddRange(dChannels);
+        
+        await db.SaveChangesAsync();
+        
+        */
+        
+        /*
         foreach (var account in await db.EcoAccounts.IgnoreQueryFilters().Where(x => x.PlanetMemberId == null).ToListAsync())
         {
             if (account.PlanetMemberId is not null)
