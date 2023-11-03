@@ -13,12 +13,12 @@
         <div style="cursor:pointer" id="list-inner-@Planet.Id">
             <div @onclick='@OnClick'
                  class="header" ondragover="event.preventDefault();">
-                <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@GetArrowStyle()">
+                <img alt="planet dropdown arrow" class="arrow" src="_content/Valour.Client/media/channel-icons/category_unread.svg" style="@GetArrowStyle()">
                 <p class="planet-name">
                     @Planet.Name
                 </p>
 
-                <img src="@Planet.IconUrl" class="icon" />
+                <img alt="planet icon" src="@Planet.IconUrl" class="icon" />
             </div>
         </div>
         <div class="channel-list">
