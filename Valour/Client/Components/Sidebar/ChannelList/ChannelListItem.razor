@@ -5,8 +5,9 @@
 @inject ClientCategoryManager CategoryManager
 
 <div
-    class="channel-wrapper"
+    class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
     draggable="true"
+    depth="@Depth"
 
     @onclick:stopPropagation="true"
     @onclick="OnClick"
