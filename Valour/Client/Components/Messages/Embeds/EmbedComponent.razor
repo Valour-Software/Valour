@@ -16,9 +16,12 @@
 					</div>
 				}
 
-				foreach (EmbedItem item in embed.CurrentlyDisplayed.Children)
+				if (embed.CurrentlyDisplayed.Children is not null)
 				{
-					<EmbedItemComponent embed="@embed" Message="@MessageWrapper" item="@item"></EmbedItemComponent>
+					foreach (EmbedItem item in embed.CurrentlyDisplayed.Children)
+					{
+						<EmbedItemComponent embed="@embed" Message="@MessageWrapper" item="@item"></EmbedItemComponent>
+					}
 				}
 
 				if (embed.Pages is not null && embed.Pages.Count > 1 && !embed.HideChangePageArrows)

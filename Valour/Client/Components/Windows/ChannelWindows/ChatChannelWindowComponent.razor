@@ -11,7 +11,6 @@
                 <CascadingValue Value='ChannelPermissions'>
                     <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
                 </CascadingValue>
-                <InputComponent @ref="@InputComponent" MessageHolder="@MessageHolder" SelfMember="@_selfMember" />
             </WindowFrameComponent>
         </CascadingValue>
     </CascadingValue>
@@ -43,8 +42,6 @@
     private bool _canRenderFlag;
     
     public Channel Channel;
-    
-    public InputComponent InputComponent;
 
     private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
 
@@ -63,6 +60,8 @@
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
 
         await Channel.Open();
+
+        await SetupNewChannelAsync();
     }
 
     public void Refresh()
@@ -83,7 +82,7 @@
         else
         {
             
-            var members = await Channel.GetNonPlanetMembersAsync();
+            var members = await Channel.GetChannelMemberUsersAsync();
             var others = members.Where(x => x.Id != ValourClient.Self.Id).ToList();
 
             if (!others.Any())
@@ -146,7 +145,7 @@
 
         await MessageHolder.AddMessages(messages, true, true);
         
-        InputComponent.Refresh();
+        MessageHolder.InputComponent.Refresh();
     }
 
     public async Task SwapChannel(Channel newChannel)
@@ -156,7 +155,7 @@
         await WindowManager.SwapWindowChannel(Window, newChannel);
 
         await SetupNewChannelAsync();
-        await InputComponent.SetupNewChannelAsync();
+        await MessageHolder.InputComponent.SetupNewChannelAsync();
 
         if (OnChannelChange is not null)
             await OnChannelChange.Invoke(Channel);
@@ -166,12 +165,6 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await SetupNewChannelAsync();
-        }
-        
-        await base.OnAfterRenderAsync(firstRender);
         _canRenderFlag = false;
     }
 
@@ -183,12 +176,12 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-        await InputComponent.OnBeginEdit(message, message.MessageData);
+        await MessageHolder.InputComponent.OnBeginEdit(message, message.MessageData);
     }
 
     public async Task CloseEditMode(bool cancel = false)
     {
-        await InputComponent.OnStopEdit(cancel);
+        await MessageHolder.InputComponent.OnStopEdit(cancel);
     }
 
     protected override bool ShouldRender()
@@ -212,9 +205,9 @@
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
 
         await MessageHolder.AddMessage(wrapper);
-        InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
-        InputComponent.PreviewMessageComponent.CheckMinimal();
-        InputComponent.PreviewMessageComponent.ReRender();
+        MessageHolder.InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
+        MessageHolder.InputComponent.PreviewMessageComponent.CheckMinimal();
+        MessageHolder.InputComponent.PreviewMessageComponent.ReRender();
     }
     
     public virtual async Task OnReceiveMessageEdit(Message message)

@@ -8,6 +8,8 @@ public class Channel : Item, ISharedChannel
     // Shared between all channels //
     /////////////////////////////////
     
+    public List<ChannelMember> Members { get; set; }
+    
     /// <summary>
     /// The name of the channel
     /// </summary>

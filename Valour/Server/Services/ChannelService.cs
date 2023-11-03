@@ -78,11 +78,13 @@ public class ChannelService
                 {
                     new Valour.Database.ChannelMember()
                     {
+                        Id = IdManager.Generate(),
                         ChannelId = newId,
                         UserId = userOneId
                     },
                     new Valour.Database.ChannelMember()
                     {
+                        Id = IdManager.Generate(),
                         ChannelId = newId,
                         UserId = userTwoId
                     }

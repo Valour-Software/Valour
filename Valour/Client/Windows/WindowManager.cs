@@ -107,14 +107,7 @@ public class WindowManager
         await Log($"[WindowManager]: Added window {window.Id}");
         
         await SetSelectedWindow(window);
-        if (window is IPlanetWindow planetWindow)
-        {
-            await SetFocusedPlanet(planetWindow.Planet);
-        }
-        else
-        {
-            await SetFocusedPlanet(null);
-        }
+        await SetFocusedPlanet(await window.GetPlanetAsync());
     }
 
 
@@ -197,13 +190,8 @@ public class WindowManager
 
         await Log($"[WindowManager]: Set active window to {window.Id}");
         
-        // If Chat Channel, set focused planet to the channel's planet
-        if (window is ChatChannelWindow chatWindow)
-        {
-            await SetFocusedPlanet(await chatWindow.Channel.GetPlanetAsync());
-        }
-
-
+        await SetFocusedPlanet(await window.GetPlanetAsync());
+        
         // Run event for window selection
         if (OnWindowSelect != null)
         {
@@ -271,14 +259,7 @@ public class WindowManager
         //await ForceChatRefresh();
         
         await SetSelectedWindow(newWindow);
-        if (newWindow is IPlanetWindow planetWindow)
-        {
-            await SetFocusedPlanet(planetWindow.Planet);
-        }
-        else
-        {
-            await SetFocusedPlanet(null);
-        }
+        await SetFocusedPlanet(await newWindow.GetPlanetAsync());
     }
 
     /// <summary>

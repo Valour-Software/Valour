@@ -65,10 +65,10 @@ public class ClientMessageWrapper
 
     public static List<ClientMessageWrapper> FromList(List<Message> data)
     {
-        List<ClientMessageWrapper> result = new();
-
         if (data is null)
-            return result;
+            return new List<ClientMessageWrapper>(0);
+        
+        List<ClientMessageWrapper> result = new(data.Count);
 
         foreach (var msg in data)
             result.Add(new ClientMessageWrapper(msg));

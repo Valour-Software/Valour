@@ -89,6 +89,7 @@
                 @foreach (var child in _children)
                 {
                     <ChannelListItem @key="@($"{Channel.Id}-{child.Id}")"
+                                     PlanetComponent="@PlanetComponent"
                                      ParentComponent="@this"
                                      Channel="@child"
                                      AllChannels="@AllChannels"

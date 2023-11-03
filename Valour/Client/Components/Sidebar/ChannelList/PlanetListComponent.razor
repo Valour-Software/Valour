@@ -36,11 +36,11 @@
                     <!-- The Modal -->
                     @foreach (var channel in TopChannels)
                     {
-                        <CategoryListComponent @key="@channel.Id"
-                                               PlanetComponent="@this"
-                                               AllChannels="@AllChannels"
-                                               Channel="@channel"
-                                               IsTopLevel="@true" />
+                        <ChannelListItem @key="@channel.Id"
+                                         PlanetComponent="@this"
+                                         AllChannels="@AllChannels"
+                                         Channel="@channel"
+                                         IsTopLevel="@true" />
                     }
                 </ContextMenuTrigger>
             }
@@ -93,11 +93,12 @@
     {
         if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
             eventData.Model.ParentId is not null) // We only render top level
-        return Task.CompletedTask; 
+                return Task.CompletedTask; 
 
         // Add and sort new item
         if (!TopChannels.Any(x => x.Id == eventData.Model.Id))
             TopChannels.Add(eventData.Model);
+        
         SortTopItems();
         
         StateHasChanged();
@@ -147,7 +148,9 @@
         foreach (var item in AllChannels)
         {
             if (item.ParentId is null)
+            {
                 TopChannels.Add(item);
+            }
         }
 
         SortTopItems();
@@ -157,7 +160,7 @@
 
     private async Task GetAllChannels()
     {
-        AllChannels = await Planet.GetChatChannelsAsync();
+        AllChannels = await Planet.GetAllChannelsAsync();
     }
     
     private async Task OnClickPlanetInfo()

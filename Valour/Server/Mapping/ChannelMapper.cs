@@ -19,6 +19,8 @@ public static class ChannelMapper
             Position = channel.Position,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
+            
+            Members = channel.Members?.Select(x => x.ToModel()).ToList()
         };
     }
     
@@ -39,6 +41,8 @@ public static class ChannelMapper
             Position = channel.Position,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
+            
+            Members = channel.Members?.Select(x => x.ToDatabase()).ToList()
         };
     }
 }

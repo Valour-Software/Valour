@@ -1500,6 +1500,30 @@ public static class ValourClient
         foreach (var channel in response.Data)
         {
             // Custom cache insert behavior
+            if (channel.Members is not null && channel.Members.Count > 0)
+            {
+                var id0 = channel.Members[0].Id;
+                
+                // Self channel
+                if (channel.Members.Count == 1)
+                {
+                    Channel.DirectChannelIdLookup.Add((id0, id0), channel.Id);
+                }
+                // Other channel
+                else if (channel.Members.Count == 2)
+                {
+                    var id1 = channel.Members[1].Id;
+                    
+                    if (id0 > id1)
+                    {
+                        // Swap
+                        (id0, id1) = (id1, id0);
+                    }
+                    
+                    Channel.DirectChannelIdLookup.Add((id0, id1), channel.Id);
+                }
+            }
+            
             await channel.AddToCache(channel);
         }
 
@@ -1513,6 +1537,8 @@ public static class ValourClient
         {
             DirectChatChannels.Add(ValourCache.Get<Channel>(channel.Id));
         }
+        
+        Console.WriteLine($"Loaded {DirectChatChannels.Count} direct chat channels...");
     }
     
     public static async Task LoadChannelStatesAsync()

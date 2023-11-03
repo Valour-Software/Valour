@@ -16,6 +16,8 @@
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
 </ContextMenuTrigger>
 
+<InputComponent @ref="@InputComponent" MessageHolder="@this" />
+
 @code {
 
     /*
@@ -43,8 +45,9 @@
 
     [CascadingParameter]
     public ChatChannelWindow Window { get; set; }
-
-    [Parameter]
+    
+    public InputComponent InputComponent { get; set; }
+    
     public List<ClientMessageWrapper> DisplayedMessageData { get; set; }
 
     public List<ClientMessageWrapper> QueuedMessageData { get; set; }

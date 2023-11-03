@@ -211,7 +211,7 @@ public class Planet : LiveModel, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels/chat")).Data;
+        var channels = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels")).Data;
         if (channels is null)
             return;
         

@@ -119,7 +119,8 @@ public class ChannelApi
         return Results.Json(channel);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/channels/direct/self")] [UserRequired(UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/self")] 
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetAllDirectRouteAsync(
         ChannelService channelService,
         TokenService tokenService)

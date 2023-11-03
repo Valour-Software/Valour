@@ -233,7 +233,7 @@ public class Message : LiveModel, ISharedMessage
         var member = await GetAuthorMemberAsync();
         if (member is not null)
         {
-            return await GetAuthorColorAsync();
+            return await member.GetRoleColorAsync();
         }
         
         if (ValourClient.FriendFastLookup.Contains(AuthorUserId))
@@ -363,10 +363,13 @@ public class Message : LiveModel, ISharedMessage
                     {
                         foreach (var page in _embed.Pages)
                         {
-                            foreach (var item in page.Children)
+                            if (page.Children is not null)
                             {
-                                item.Embed = _embed;
-                                item.Init(_embed, page);
+                                foreach (var item in page.Children)
+                                {
+                                    item.Embed = _embed;
+                                    item.Init(_embed, page);
+                                }
                             }
                         }
                     }

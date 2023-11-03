@@ -95,7 +95,7 @@
 
     public async Task OnClickReply()
     {
-        var input = MessageComponent.Holder.Window.Component.InputComponent;
+        var input = MessageComponent.Holder.Window.Component.MessageHolder.InputComponent;
         await input.SetReplyMessage(MessageWrapper);
     }
 

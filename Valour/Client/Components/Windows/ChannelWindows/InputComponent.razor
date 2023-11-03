@@ -9,14 +9,17 @@
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
         @{
-            var messageParams = new MessageHolderComponent.MessageComponentParams()
+            if (PreviewMessage is not null)
             {
-                MessageData = PreviewMessage,
-                Ghost = true,
-                LastMessage = MessageHolder.GetLastMessage(),
-            };
-            
-            <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+                var messageParams = new MessageHolderComponent.MessageComponentParams()
+                {
+                    MessageData = PreviewMessage,
+                    Ghost = true,
+                    LastMessage = MessageHolder.GetLastMessage(),
+                };
+
+                <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+            }
         }
     </div>
 
@@ -92,9 +95,6 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
     
-    [Parameter]
-    public PlanetMember SelfMember { get; set; }
-    
     /// <summary>
     /// A reference to the container for message rendering
     /// </summary>
@@ -163,6 +163,8 @@
     /// Allows this component to render when true
     /// </summary>
     public bool CanRenderFlag { get; set; }
+    
+    private PlanetMember _selfMember { get; set; }
 
     private DateTime _lastTypingUpdateSent = DateTime.MinValue;
 
@@ -190,7 +192,6 @@
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
         await SetupNewChannelAsync();
     }
 
@@ -247,8 +248,19 @@
 
     public virtual async Task SetupNewChannelAsync()
     {
+        var planet = await WindowComponent.Channel.GetPlanetAsync();
+        if (planet is not null)
+        {
+            _selfMember = await planet.GetSelfMemberAsync();
+            CanUserPost = await WindowComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
+        }
+        else
+        {
+            _selfMember = null;
+            CanUserPost = await WindowComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
+        }
+        
         PreviewMessage = new(BuildNewMessage());
-        CanUserPost = await WindowComponent.Channel.HasPermissionAsync(SelfMember, ChatChannelPermissions.PostMessages);
         
         Refresh();
     }
@@ -256,12 +268,13 @@
     public virtual Message BuildNewMessage()
     {
         WindowManager.NotYetSentMessages.TryGetValue(WindowComponent.Channel.Id, out var prevContent);
+        
         return new Message()
         {
             AuthorUserId = ValourClient.Self.Id,
             Content = prevContent,
             ChannelId = Window.Channel.Id,
-            AuthorMemberId = SelfMember.Id,
+            AuthorMemberId = _selfMember?.Id,
             TimeSent = DateTime.UtcNow,
             ReplyToId = null,
             PlanetId = WindowComponent.Channel.PlanetId,

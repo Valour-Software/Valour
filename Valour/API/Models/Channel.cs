@@ -12,7 +12,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     // Cached values
     // Will only be used for planet channels
     private List<PermissionsNode> PermissionsNodes { get; set; }
-    private List<User> NonPlanetMembers { get; set; }
+    private List<User> MemberUsers { get; set; }
     
     public override string BaseRoute =>
         $"api/channels";
@@ -20,6 +20,8 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /////////////////////////////////
     // Shared between all channels //
     /////////////////////////////////
+    
+    public List<ChannelMember> Members { get; set; }
     
     /// <summary>
     /// The name of the channel
@@ -142,7 +144,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// <summary>
     /// Used to speed up direct channel lookups
     /// </summary>
-    private static readonly Dictionary<(long, long), long> DirectChannelIdLookup = new();
+    public static readonly Dictionary<(long, long), long> DirectChannelIdLookup = new();
 
     /// <summary>
     /// Given a user id, returns the direct channel between them and the requester.
@@ -488,21 +490,21 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// Returns the list of users in the channel but DO NOT use this for
     /// planet channels please we will figure that out soon
     /// </summary>
-    public async Task<List<User>> GetNonPlanetMembersAsync(bool refresh = false)
+    public async Task<List<User>> GetChannelMemberUsersAsync(bool refresh = false)
     {
         if (PlanetId is null)
             return new List<User>();
 
-        if (NonPlanetMembers is null)
+        if (Members is null)
         {
             var result =  await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
             if (result.Success)
-                NonPlanetMembers = result.Data;
+                MemberUsers = result.Data;
             else
                 return new List<User>();
         }
 
-        return NonPlanetMembers;
+        return MemberUsers;
     }
 
     public async Task Open()
