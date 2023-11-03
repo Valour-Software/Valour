@@ -485,7 +485,7 @@ public class ChannelService
         var messages = await _db.Messages.AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id < index)
             .Include(x => x.ReplyToMessage)
-            .OrderByDescending(x => x.TimeSent)
+            .OrderByDescending(x => x.Id)
             .Take(count)
             .Reverse()
             .Select(x => x.ToModel().AddReplyTo(x.ReplyToMessage.ToModel()))
@@ -518,23 +518,6 @@ public class ChannelService
     /// </summary>
     public async Task<Message> GetMessageNoReplyAsync(long id) =>
         (await _db.Messages.FindAsync(id)).ToModel();
-
-    /// <summary>
-    /// Returns the last (count) messages before the given index
-    /// For non-chat channels, this will return an empty list
-    /// </summary>
-    public async Task<List<Message>> GetMessagesAsync(long channelId, long index = long.MaxValue, int count = 50)
-    {
-        if (count > 64)
-            count = 64;
-
-        return await _db.Messages.AsNoTracking()
-            .Include(x => x.ReplyToMessage)
-            .OrderBy(x => x.Id)
-            .Where(x => x.Id < index && x.ChannelId == channelId)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-    }
 
     /// <summary>
     /// Used to post a message 

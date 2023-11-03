@@ -375,7 +375,7 @@ public class ChannelApi
             }
         }
         
-        var messages = await channelService.GetMessagesAsync(channelId, index, count);
+        var messages = await channelService.GetMessagesAsync(channelId, count, index);
         
         return Results.Json(messages);
     }

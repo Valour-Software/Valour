@@ -19,22 +19,6 @@
 <InputComponent @ref="@InputComponent" MessageHolder="@this" />
 
 @code {
-
-    /*
-     *
-     * switch (messageData.Message) {
-            case PlanetMessage:
-                <PlanetMessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last"  />
-                break;
-            case DirectMessage: 
-                <DirectMessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last" />
-                break;
-            default:
-                <MessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last" />
-                break;
-        }
-     */
-    
     public class MessageComponentParams
     {
         public ClientMessageWrapper MessageData { get; set; }
