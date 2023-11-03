@@ -60,8 +60,6 @@
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
 
         await Channel.Open();
-
-        await SetupNewChannelAsync();
     }
 
     public void Refresh()
@@ -82,8 +80,7 @@
         else
         {
             
-            var members = await Channel.GetChannelMemberUsersAsync();
-            var others = members.Where(x => x.Id != ValourClient.Self.Id).ToList();
+            var others = Channel.Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
 
             if (!others.Any())
                 return "Chat with yourself";
@@ -93,8 +90,10 @@
             var i = 0;
             foreach (var other in others)
             {
-                sb.Append(other.Name);
-                if (i > 0)
+                var user = await User.FindAsync(other.UserId);
+                
+                sb.Append(user.Name);
+                if (i < others.Count - 1)
                     sb.Append(", ");
                 else
                     sb.Append(" ");
@@ -165,6 +164,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await SetupNewChannelAsync();
+        }
+        
         _canRenderFlag = false;
     }
 

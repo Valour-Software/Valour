@@ -199,20 +199,27 @@ public class ChannelApi
             if (!string.IsNullOrWhiteSpace(message.MentionsData))
             {
                 var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
-                foreach (var mention in mentions)
+                if (mentions is not null)
                 {
-                    if (mention.Type == MentionType.Role)
+                    foreach (var mention in mentions)
                     {
-                        var role = await roleService.GetAsync(mention.TargetId);
-                        if (role is null)
-                            return ValourResult.BadRequest("Invalid role mention");
+                        if (mention.Type == MentionType.Role)
+                        {
+                            var role = await roleService.GetAsync(mention.TargetId);
+                            if (role is null)
+                                return ValourResult.BadRequest("Invalid role mention");
 
-                        if (role.AnyoneCanMention)
-                            continue;
-                        
-                        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.MentionAll))
-                            return ValourResult.Forbid($"You lack permission to mention the role {role.Name}");
+                            if (role.AnyoneCanMention)
+                                continue;
+
+                            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.MentionAll))
+                                return ValourResult.Forbid($"You lack permission to mention the role {role.Name}");
+                        }
                     }
+                }
+                else
+                {
+                    message.MentionsData = null;
                 }
             }
         }
