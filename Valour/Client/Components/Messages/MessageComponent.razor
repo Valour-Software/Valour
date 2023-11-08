@@ -1,4 +1,6 @@
 ﻿@using Valour.Api.Models.Messages
+@using Markdig
+@using global::Markdig.Blazor
 @inject IJSRuntime JsRuntime
 @implements IDisposable
 
@@ -88,7 +90,7 @@
             }
             else
             {
-                @MessageContent
+                @RenderContent
 
                 @if (Edit)
                 {
@@ -111,6 +113,18 @@
 
 @code {
 
+    private RenderFragment RenderContent => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "fragments");
+        Markdown.RenderToFragment(
+            MessageData.Message.Content, 
+            builder, 
+            MarkdownManager.Pipeline, 
+            MarkdownManager.Renderer);
+        builder.CloseElement();
+    };
+    
     private RenderFragment RenderReply => builder =>
     {
         var messageParams = new MessageHolderComponent.MessageComponentParams()
@@ -125,23 +139,6 @@
         builder.AddAttribute(0, "ParamData", messageParams);
         builder.SetKey($"r-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}");
         builder.CloseComponent();
-    };
-
-    private RenderFragment RenderContent(ClientMessageWrapper message) => builder =>
-    {
-        var fragments = message.GetMessageFragments();
-        int stage = 0;
-
-        builder.OpenElement(0, "div");
-        builder.AddAttribute(0, "class", "fragments");
-
-        foreach (var frag in fragments)
-        {
-            stage++;
-            frag.BuildRenderTree(builder, ref stage);
-        }
-
-        builder.CloseElement();
     };
 
     [CascadingParameter]
@@ -164,8 +161,6 @@
     private PlanetMember _member;
     
     /* End Planet Message Only */
-
-    private RenderFragment MessageContent { get; set; }
 
     public User User { get; set; }
 
@@ -387,9 +382,6 @@
 
         CalculateClass();
         CalculateTime();
-
-        // Build actual message content
-        MessageContent = RenderContent(MessageData);
 
         if (Minimal)
         {

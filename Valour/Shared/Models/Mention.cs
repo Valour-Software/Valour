@@ -12,7 +12,6 @@ public enum MentionType
 {
     PlanetMember,
     Channel,
-    Category,
     Role,
     User,
     Stock
