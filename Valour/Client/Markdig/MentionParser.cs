@@ -18,7 +18,6 @@ public class MentionParser : InlineParser
         { 'u', MentionType.User },
         { 'c', MentionType.Channel },
         { 'r', MentionType.Role },
-        { 's', MentionType.Stock },
     };
 
     public override bool Match(InlineProcessor processor, ref StringSlice slice)

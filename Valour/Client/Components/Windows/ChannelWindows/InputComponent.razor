@@ -69,7 +69,7 @@
             {
                 <p class="input-placeholder">You lack permission to send messages in this channel</p>
             }
-            else if (PreviewMessage is null || PreviewMessage.IsEmpty)
+            else if (PreviewMessage is null || PreviewMessage.IsEmpty())
             {
                 <p class="input-placeholder">@PlaceholderText</p>
             }
@@ -142,7 +142,7 @@
     /// <summary>
     /// The preview message
     /// </summary>
-    protected ClientMessageWrapper PreviewMessage { get; set; }
+    protected Message PreviewMessage { get; set; }
 
     /// <summary>
     /// Dotnet object reference for use in Javascript
@@ -259,8 +259,8 @@
             _selfMember = null;
             CanUserPost = await WindowComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
         }
-        
-        PreviewMessage = new(BuildNewMessage());
+
+        PreviewMessage = BuildNewMessage();
         
         Refresh();
     }
@@ -311,9 +311,9 @@
 
     public virtual async Task OnAfterJsSetupAsync()
     {
-        if (PreviewMessage.Message.Content is not null)
+        if (PreviewMessage.Content is not null)
         {
-            await SetInputContent(PreviewMessage.Message.Content);
+            await SetInputContent(PreviewMessage.Content);
             await RefreshPreviewMessage();
         }
         else {
@@ -329,11 +329,11 @@
     private ElementReference _dropZoneElement;
     IJSObjectReference _dropZoneInstance;
 
-    public async Task OnBeginEdit(MessageComponent component, ClientMessageWrapper message)
+    public async Task OnBeginEdit(MessageComponent component, Message message)
     {
         EditingMessageComponent = component;
         PreviewMessage = message;
-        EditingOriginalText = PreviewMessage.Message.Content;
+        EditingOriginalText = PreviewMessage.Content;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(message.Message.Content, message.Message.Content.Split(' ').LastOrDefault());
@@ -351,7 +351,7 @@
         {
             // Return to original
             //EditingMessageComponent.MessageData.Clear();
-            EditingMessageComponent.MessageData.Message.Content = EditingOriginalText;
+            EditingMessageComponent.Message.Message.Content = EditingOriginalText;
         }
 
         // Clear preview
@@ -560,17 +560,19 @@
         Refresh();
     }
 
-    public async Task RefreshPreviewMessage() {
-        PreviewMessage.Clear();
+    public async Task RefreshPreviewMessage()
+    {
+        PreviewMessage.Message.Content = string.Empty;
+        
         PreviewMessage.Message.TimeSent = DateTime.UtcNow;
         PreviewMessage.GenerateForPost();
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
-    public async Task SetReplyMessage(ClientMessageWrapper message)
+    public async Task SetReplyMessage(Message message)
     {
-        PreviewMessageComponent.MessageData.Reply = message;
-        PreviewMessage.Message.ReplyToId = message?.Message?.Id;
+        PreviewMessageComponent.Message.ReplyTo = message;
+        PreviewMessage.ReplyToId = message?.Id;
 
         await RefreshPreviewMessage();
         Refresh();
@@ -580,25 +582,23 @@
 
     public async Task RemoveReply()
     {
-        PreviewMessage.Message.ReplyToId = null;
-        PreviewMessageComponent.MessageData.Reply = null;
+        PreviewMessage.ReplyToId = null;
+        PreviewMessageComponent.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
     }
 
-    public async Task PostMessage(ClientMessageWrapper messageWrapper)
+    public async Task PostMessage(Message message)
     {
-        messageWrapper.GenerateForPost();
-        
         // New message
-        if (messageWrapper.Message.Id == 0)
+        if (message.Id == 0)
         {
-            MessageHolder.AddQueuedMessage(messageWrapper);
+            MessageHolder.AddQueuedMessage(message);
             
-            var result = await messageWrapper.Message.PostMessageAsync();
+            var result = await message.Message.PostMessageAsync();
 
             if (!result.Success)
             {
-                MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
+                MessageHolder.RemoveQueuedMessage(message.Message.Fingerprint);
 
                 Message errorMsg = new()
                 {
@@ -616,7 +616,7 @@
                 MessageHolder.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.MessageData.Reply = null;
+            PreviewMessageComponent.Message.Reply = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
             WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
@@ -624,7 +624,7 @@
         // Editing message
         else
         {
-            var result = await messageWrapper.Message.EditMessageAsync();
+            var result = await message.Message.EditMessageAsync();
             if (!result.Success)
             {
                 Message errorMsg = new()
@@ -742,7 +742,7 @@
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.MessageData.Message.AuthorUserId == ValourClient.Self.Id);
+            .LastOrDefault(m => m.Message.Message.AuthorUserId == ValourClient.Self.Id);
 
         if (lastMessage is null)
         {

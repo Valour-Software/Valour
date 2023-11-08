@@ -180,7 +180,7 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-        await MessageHolder.InputComponent.OnBeginEdit(message, message.MessageData);
+        await MessageHolder.InputComponent.OnBeginEdit(message, message.Message);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -222,13 +222,12 @@
 
         foreach (var m in MessageHolder.RenderedMessages)
         {
-            if (m.MessageData.Message.Id == message.Id)
+            if (m.Message.Message.Id == message.Id)
             {
-                m.MessageData.Message.EditedTime = DateTime.UtcNow;
-                m.MessageData.Message.Content = message.Content;
-                m.MessageData.Message.AttachmentsData = message.AttachmentsData;
-                m.MessageData.Message.MentionsData = message.MentionsData;
-                m.MessageData.Clear();
+                m.Message.Message.EditedTime = DateTime.UtcNow;
+                m.Message.Message.Content = message.Content;
+                m.Message.Message.AttachmentsData = message.AttachmentsData;
+                m.Message.Message.MentionsData = message.MentionsData;
 
                 if (m.Edit)
                 {
@@ -262,7 +261,7 @@
         if (Channel.PlanetId is null)
             return new List<PlanetMember>();
         
-        var lastMessages = MessageHolder.DisplayedMessageData.TakeLast(20).Reverse();
+        var lastMessages = MessageHolder.DisplayedMessages.TakeLast(20).Reverse();
         List<PlanetMember> chatters = new();
 
         foreach (var wrapper in lastMessages)

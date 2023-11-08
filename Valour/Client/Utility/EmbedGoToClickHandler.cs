@@ -24,22 +24,22 @@ internal static class EmbedGoToClickHandler
 			var interaction = new EmbedInteractionEvent()
 			{
 				EventType = EmbedIteractionEventType.ItemClicked,
-				MessageId = embedComponent.MessageWrapper.Message.Id,
-				ChannelId = embedComponent.MessageWrapper.Message.ChannelId,
+				MessageId = embedComponent.Message.Message.Id,
+				ChannelId = embedComponent.Message.Message.ChannelId,
 				TimeInteracted = DateTime.UtcNow,
 				ElementId = ((EmbedEventTarget)item.ClickTarget).EventElementId
 			};
 
-			if (embedComponent.MessageWrapper.Message.PlanetId is not null)
+			if (embedComponent.Message.Message.PlanetId is not null)
 			{
-				var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, embedComponent.MessageWrapper.Message.PlanetId.Value);
+				var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, embedComponent.Message.Message.PlanetId.Value);
 
 				interaction.PlanetId = selfMember.PlanetId;
-				interaction.Author_MemberId = embedComponent.MessageWrapper.Message.AuthorMemberId!.Value;
+				interaction.Author_MemberId = embedComponent.Message.Message.AuthorMemberId!.Value;
 				interaction.MemberId = selfMember.Id;
 			}
 
-			var response = await embedComponent.MessageWrapper.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
+			var response = await embedComponent.Message.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
 
 			Console.WriteLine(response.Content.ReadAsStringAsync());
 		}

@@ -4,7 +4,7 @@
 @inject IJSRuntime JsRuntime
 @implements IDisposable
 
-@if (MessageData == null || MessageData.IsEmpty || !_isBuilt)
+@if (Message == null || Message.IsEmpty() || !_isBuilt)
 {
     return;
 }
@@ -51,19 +51,19 @@
             </div>
         }
 
-        @if (MessageData.Reply is not null && !IsInnerReply)
+        @if (Message.ReplyTo is not null && !IsInnerReply)
         {
             @RenderReply
         }
 
         <div class="content" @ref="InnerRef">
 
-            @if (MessageData.Message.Attachments != null)
+            @if (Message.Attachments != null)
             {
-                @for (var i = 0; i < MessageData.Message.Attachments.Count; i++)
+                @for (var i = 0; i < Message.Attachments.Count; i++)
                 {
                     var id = i;
-                    var attachment = MessageData.Message.Attachments[id];
+                    var attachment = Message.Attachments[id];
                     var par = new Dictionary<string, object>()
                     {
                         { "Attachment", attachment },
@@ -80,10 +80,10 @@
                 }
             }
 
-            @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
+            @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
             {
-                <EmbedComponent MessageWrapper="MessageData" MessageComponent="@this"></EmbedComponent>
-                @if (MessageData.Message.EditedTime != null)
+                <EmbedComponent Message="@Message" MessageComponent="@this"></EmbedComponent>
+                @if (Message.EditedTime != null)
                 {
                     <p class="edited-flag"> (Edited)</p>
                 }
@@ -97,7 +97,7 @@
                     <p class="edit-flag">(Editing)</p>
                 }
 
-                @if (MessageData.Message.EditedTime != null)
+                @if (Message.EditedTime != null)
                 {
                     <p class="edited-flag"> (Edited)</p>
                 }
@@ -118,7 +118,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
         Markdown.RenderToFragment(
-            MessageData.Message.Content, 
+            Message.Content, 
             builder, 
             MarkdownManager.Pipeline, 
             MarkdownManager.Renderer);
@@ -129,7 +129,7 @@
     {
         var messageParams = new MessageHolderComponent.MessageComponentParams()
         {
-            MessageData = MessageData.Reply,
+            MessageData = Message.ReplyTo,
             LastMessage = null,
             Ghost = Ghost,
             IsInnerReply = true
@@ -137,7 +137,7 @@
 
         builder.OpenComponent<MessageComponent>(0);
         builder.AddAttribute(0, "ParamData", messageParams);
-        builder.SetKey($"r-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}");
+        builder.SetKey($"r-{Message.Id}-{Message.ReplyTo.Id}");
         builder.CloseComponent();
     };
 
@@ -151,8 +151,8 @@
     [Parameter]
     public MessageHolderComponent.MessageComponentParams ParamData { get; set; }
 
-    public ClientMessageWrapper MessageData { get; set; }
-    public ClientMessageWrapper LastMessage { get; set; }
+    public Message Message { get; set; }
+    public Message LastMessage { get; set; }
     public bool Ghost { get; set; }
     public bool IsInnerReply { get; set; }
     /* End Set Params */
@@ -165,8 +165,6 @@
     public User User { get; set; }
 
     public MessageComponent ReplyComponent;
-
-    public MessageContentComponent ContentComponent;
 
     public ElementReference InnerRef;
 
@@ -211,7 +209,7 @@
         if (Ghost)
             newClass += " ghost";
 
-        if (MessageData.Reply is not null)
+        if (Message.ReplyTo is not null)
             newClass += " hasreply";
 
         _class = newClass;
@@ -219,8 +217,8 @@
 
     private void CalculateTime()
     {
-        var hoursAgo = (DateTime.UtcNow - MessageData.Message.TimeSent).TotalHours;
-        var localTime = MessageData.Message.TimeSent.ToLocalTime();
+        var hoursAgo = (DateTime.UtcNow - Message.TimeSent).TotalHours;
+        var localTime = Message.TimeSent.ToLocalTime();
 
         if (hoursAgo >= 24)
         {
@@ -293,7 +291,7 @@
             await WindowManager.Instance.SetSelectedWindow(Window);
 
             // Initialize message
-            await MessageContextMenuComponent.Initialize(MessageData, Window.Component, this);
+            await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
         }
     }
 
@@ -313,7 +311,7 @@
         if (firstRender)
         {
             // Clear notification if one exists for this message
-            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(MessageData.Message.Id, out var notification);
+            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(Message.Id, out var notification);
             if (found && notification.TimeRead is null)
             {
                 await ValourClient.MarkNotificationRead(notification, true);
@@ -350,9 +348,9 @@
         ReRender();
     }
 
-    public async Task SetMessage(ClientMessageWrapper message)
+    public async Task SetMessage(Message message)
     {
-        this.MessageData = message;
+        Message = message;
         await BuildMessage();
 
         ReRender();
@@ -364,21 +362,21 @@
         StateHasChanged();
     }
 
-    public void SetLast(ClientMessageWrapper msg)
+    public void SetLast(Message msg)
     {
         LastMessage = msg;
     }
 
     public async Task BuildMessage(bool render = true)
     {
-        if (MessageData == null)
+        if (Message == null)
             return;
 
         // Check if we are a minimal message
         CheckMinimal();
 
         if (!IsInnerReply)
-            _mentioned = await MessageData.Message.CheckIfMentioned();
+            _mentioned = await Message.Message.CheckIfMentioned();
 
         CalculateClass();
         CalculateTime();
@@ -393,10 +391,10 @@
             return;
         }
 
-        _name = await MessageData.Message.GetAuthorNameAsync();
-        _nameColor = await MessageData.Message.GetAuthorColorAsync();
-        _nameTag = await MessageData.Message.GetAuthorRoleTagAsync();
-        _pfpUrl = await MessageData.Message.GetAuthorImageUrlAsync();
+        _name = await Message.Message.GetAuthorNameAsync();
+        _nameColor = await Message.Message.GetAuthorColorAsync();
+        _nameTag = await Message.Message.GetAuthorRoleTagAsync();
+        _pfpUrl = await Message.Message.GetAuthorImageUrlAsync();
 
         _isBuilt = true;
 
@@ -406,12 +404,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        this.MessageData = ParamData.MessageData;
+        this.Message = ParamData.MessageData;
         this.LastMessage = ParamData.LastMessage;
         this.Ghost = ParamData.Ghost;
         this.IsInnerReply = ParamData.IsInnerReply;
         
-        if (MessageData is null)
+        if (Message is null)
         {
             await Logger.Log("[!!!] MessageData is null", "red");
             return;
@@ -419,9 +417,9 @@
         
         await base.OnInitializedAsync();
 
-        Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.Id}";
+        Id = $"m-{Message.Message.ChannelId}-{Message.Message.Id}";
 
-        User = await MessageData.Message.GetAuthorUserAsync();
+        User = await Message.Message.GetAuthorUserAsync();
 
         await BuildMessage(false);
 
@@ -434,11 +432,11 @@
         }
 
         // Planet message logic
-        if (MessageData.Message.PlanetId is not null)
+        if (Message.Message.PlanetId is not null)
         {
             _contextMenuId = "member-context";
             
-            _member = await MessageData.Message.GetAuthorMemberAsync();
+            _member = await Message.Message.GetAuthorMemberAsync();
             
             // Hook events
             
@@ -452,13 +450,13 @@
         if (eventData.PropsChanged.Contains(nameof(User.Name)))
         {
             render = true;
-            _name = await MessageData.Message.GetAuthorNameAsync();
+            _name = await Message.Message.GetAuthorNameAsync();
         }
 
         if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
         {
             render = true;
-            _pfpUrl = await MessageData.Message.GetAuthorImageUrlAsync();
+            _pfpUrl = await Message.Message.GetAuthorImageUrlAsync();
         }
 
         if (render)
@@ -480,13 +478,13 @@
         if (eventData.PropsChanged.Contains(nameof(_member.Nickname)))
         {
             render = true;
-            _name = await MessageData.Message.GetAuthorNameAsync();
+            _name = await Message.Message.GetAuthorNameAsync();
         }
 
         if (eventData.PropsChanged.Contains(nameof(_member.MemberPfp)))
         {
             render = true;
-            _pfpUrl = await MessageData.Message.GetAuthorImageUrlAsync();
+            _pfpUrl = await Message.Message.GetAuthorImageUrlAsync();
         }
 
         if (render)
@@ -509,14 +507,14 @@
 
     public void CheckMinimal()
     {
-        if (LastMessage != null && MessageData != null)
+        if (LastMessage != null && Message != null)
         {
-            if (MessageData.Reply is not null)
+            if (Message.Reply is not null)
             {
                 Minimal = false;
                 return;
             }
-            if (LastMessage.Message.AuthorUserId == MessageData.Message.AuthorUserId)
+            if (LastMessage.Message.AuthorUserId == Message.Message.AuthorUserId)
             {
                 Minimal = true;
                 return;
@@ -531,8 +529,6 @@
         if (Ghost && IsInnerReply) return;
 
         ShouldRenderValue = true;
-
-        ContentComponent?.ReRender();
 
         StateHasChanged();
 

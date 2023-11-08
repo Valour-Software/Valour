@@ -14,7 +14,6 @@ public enum MentionType
     Channel,
     Role,
     User,
-    Stock
 }
 
 /// <summary>
@@ -36,24 +35,5 @@ public class Mention
 
     [JsonPropertyName("PlanetId")]
     public long PlanetId { get; set; }
-
-    /// <summary>
-    /// The position of the mention, in chars.
-    /// For example, the message "Hey @SpikeViper!" would have Position = 4
-    /// </summary>
-    [JsonPropertyName("Position")]
-    public ushort Position { get; set; }
-
-    /// <summary>
-    /// The length of this mention, in chars
-    /// </summary>
-    [JsonPropertyName("Length")]
-    public ushort Length { get; set; }
-    
-    /// <summary>
-    /// Additional data used for some mentions
-    /// </summary>
-    [JsonPropertyName("Data")]
-    public string Data { get; set; }
 }
 

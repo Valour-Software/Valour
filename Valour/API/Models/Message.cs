@@ -76,6 +76,14 @@ public class Message : LiveModel, ISharedMessage
     public DateTime? EditedTime { get; set; }
     
     #endregion
+
+    private string _renderKey;
+
+    public string RenderKey
+    {
+        get => _renderKey ??= Guid.NewGuid().ToString();
+        set => _renderKey = value;
+    }
     
     /// <summary>
     /// If we are replying to a message, this is the message we are replying to
@@ -452,6 +460,29 @@ public class Message : LiveModel, ISharedMessage
     /// </summary> 
     public async ValueTask<User> GetAuthorUserAsync(bool refresh = false) =>
         await User.FindAsync(AuthorUserId, refresh);
+
+    public bool IsEmpty()
+    {
+        return string.IsNullOrWhiteSpace(Content) && string.IsNullOrWhiteSpace(EmbedData) &&
+               string.IsNullOrWhiteSpace(AttachmentsData);
+    }
+    
+    public void Clear()
+    {
+        MentionsData = null;
+        AttachmentsData = null;
+        EmbedData = null;
+        Content = null;
+        
+        _mentions = null;
+        _attachments = null;
+        _embed = null;
+
+        _mentionsParsed = false;
+        _attachmentsParsed = false;
+        _embedParsed = false;
+    }
+    
     
     #region Route implementations
     

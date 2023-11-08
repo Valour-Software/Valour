@@ -12,7 +12,7 @@
 </button>
 @code {
     [Parameter]
-    public ClientMessageWrapper MessageWrapper {get; set;}
+    public Message Message {get; set;}
 
     [Parameter]
     public Embed Embed { get; set;}
@@ -77,18 +77,18 @@
 
         var interaction = new EmbedInteractionEvent()
         {
-            MessageId = MessageWrapper.Message.Id,
-            ChannelId = MessageWrapper.Message.ChannelId,
+            MessageId = Message.Id,
+            ChannelId = Message.ChannelId,
             TimeInteracted = DateTime.UtcNow,
             ElementId = ((EmbedFormSubmitTarget)_buttonItem.ClickTarget).EventElementId
         };
 
-        if (MessageWrapper.Message.PlanetId is not null)
+        if (Message.PlanetId is not null)
         {
-            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, MessageWrapper.Message.PlanetId.Value);
+            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.PlanetId.Value);
 
             interaction.PlanetId = selfMember.PlanetId;
-            interaction.Author_MemberId = MessageWrapper.Message.AuthorMemberId!.Value;
+            interaction.Author_MemberId = Message.AuthorMemberId!.Value;
             interaction.MemberId = selfMember.Id;
         }
 
@@ -99,7 +99,7 @@
             interaction.EventType = EmbedIteractionEventType.FormSubmitted;
         }
 
-        var response = await embedComponent.MessageWrapper.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
+        var response = await embedComponent.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }
