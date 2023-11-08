@@ -13,7 +13,7 @@
             {
                 var messageParams = new MessageHolderComponent.MessageComponentParams()
                 {
-                    MessageData = PreviewMessage,
+                    Message = PreviewMessage,
                     Ghost = true,
                     LastMessage = MessageHolder.GetLastMessage(),
                 };
@@ -336,9 +336,9 @@
         EditingOriginalText = PreviewMessage.Content;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
-        await OnChatboxUpdate(message.Message.Content, message.Message.Content.Split(' ').LastOrDefault());
+        await OnChatboxUpdate(message.Content, message.Content.Split(' ').LastOrDefault());
 
-        await SetInputContent(message.Message.Content);
+        await SetInputContent(message.Content);
 
         Refresh();
 
@@ -351,12 +351,12 @@
         {
             // Return to original
             //EditingMessageComponent.MessageData.Clear();
-            EditingMessageComponent.Message.Message.Content = EditingOriginalText;
+            EditingMessageComponent.Message.Content = EditingOriginalText;
         }
 
         // Clear preview
         EditingMessageComponent = null;
-        PreviewMessage = new(BuildNewMessage());
+        PreviewMessage = BuildNewMessage();
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
         // Clear input
@@ -484,7 +484,7 @@
 
     public async Task RemoveAttachment(int id)
     {
-        var attachments = PreviewMessage.Message.Attachments;
+        var attachments = PreviewMessage.Attachments;
         if (attachments is null)
             return;
 
@@ -493,7 +493,7 @@
 
         attachments.RemoveAt(id);
 
-        PreviewMessage.Message.SetAttachments(attachments);
+        PreviewMessage.SetAttachments(attachments);
 
         await RefreshPreviewMessage();
         Refresh();
@@ -550,11 +550,11 @@
 
     public async Task AddMessageAttachment(MessageAttachment attachment)
     {
-        var attachments = PreviewMessage.Message.Attachments;
+        var attachments = PreviewMessage.Attachments;
         attachments ??= new List<MessageAttachment>();
 
         attachments.Add(attachment);
-        PreviewMessage.Message.SetAttachments(attachments);
+        PreviewMessage.SetAttachments(attachments);
 
         await RefreshPreviewMessage();
         Refresh();
@@ -562,10 +562,8 @@
 
     public async Task RefreshPreviewMessage()
     {
-        PreviewMessage.Message.Content = string.Empty;
-        
-        PreviewMessage.Message.TimeSent = DateTime.UtcNow;
-        PreviewMessage.GenerateForPost();
+        PreviewMessage.Content = string.Empty;
+        PreviewMessage.TimeSent = DateTime.UtcNow;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
@@ -594,11 +592,11 @@
         {
             MessageHolder.AddQueuedMessage(message);
             
-            var result = await message.Message.PostMessageAsync();
+            var result = await message.PostMessageAsync();
 
             if (!result.Success)
             {
-                MessageHolder.RemoveQueuedMessage(message.Message.Fingerprint);
+                MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
                 Message errorMsg = new()
                 {
@@ -609,14 +607,14 @@
                 };
 
                 MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+                await MessageHolder.AddMessage(errorMsg);
             }
             else
             {
                 MessageHolder.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.Message.Reply = null;
+            PreviewMessageComponent.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
             WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
@@ -624,7 +622,7 @@
         // Editing message
         else
         {
-            var result = await message.Message.EditMessageAsync();
+            var result = await message.EditMessageAsync();
             if (!result.Success)
             {
                 Message errorMsg = new()
@@ -636,11 +634,11 @@
                 };
 
                 MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+                await MessageHolder.AddMessage(errorMsg);
             }
             else
             {
-                PreviewMessage = new(BuildNewMessage());
+                PreviewMessage = BuildNewMessage();
                 await PreviewMessageComponent.SetMessage(PreviewMessage);
             }
         }
@@ -700,7 +698,7 @@
         }
 
         WindowManager.NotYetSentMessages[WindowComponent.Channel.Id] = input;
-        PreviewMessage.Message.Content = input;
+        PreviewMessage.Content = input;
         await RefreshPreviewMessage();
 
         if (EditingMessageComponent is not null)
@@ -735,14 +733,14 @@
     [JSInvokable]
     public async Task OnUpArrowNonMention()
     {
-        if (!string.IsNullOrEmpty((PreviewMessage.Message.Content)))
+        if (!string.IsNullOrEmpty(PreviewMessage.Content))
         {
             return;
         }
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Message.Message.AuthorUserId == ValourClient.Self.Id);
+            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Self.Id);
 
         if (lastMessage is null)
         {
@@ -765,24 +763,24 @@
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
-        if (PreviewMessage.Message.Content is not null)
+        if (PreviewMessage.Content is not null)
         {
-            PreviewMessage.Message.Content =
-                PreviewMessage.Message.Content.TrimEnd('\n');
+            PreviewMessage.Content =
+                PreviewMessage.Content.TrimEnd('\n');
 
-            PreviewMessage.Message.Content =
-                PreviewMessage.Message.Content.Trim();
+            PreviewMessage.Content =
+                PreviewMessage.Content.Trim();
         }
 
-        if (PreviewMessage.IsEmpty)
+        if (PreviewMessage.IsEmpty())
         {
             return;
         }
 
-        var postMessage = new ClientMessageWrapper(PreviewMessage.Message);
+        var postMessage = PreviewMessage;
 
         // New message for preview
-        PreviewMessage = new(BuildNewMessage());
+        PreviewMessage = BuildNewMessage();
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(null, "");
