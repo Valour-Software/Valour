@@ -129,7 +129,7 @@
     {
         var messageParams = new MessageHolderComponent.MessageComponentParams()
         {
-            MessageData = Message.ReplyTo,
+            Message = Message.ReplyTo,
             LastMessage = null,
             Ghost = Ghost,
             IsInnerReply = true
@@ -376,7 +376,7 @@
         CheckMinimal();
 
         if (!IsInnerReply)
-            _mentioned = await Message.Message.CheckIfMentioned();
+            _mentioned = await Message.CheckIfMentioned();
 
         CalculateClass();
         CalculateTime();
@@ -391,10 +391,10 @@
             return;
         }
 
-        _name = await Message.Message.GetAuthorNameAsync();
-        _nameColor = await Message.Message.GetAuthorColorAsync();
-        _nameTag = await Message.Message.GetAuthorRoleTagAsync();
-        _pfpUrl = await Message.Message.GetAuthorImageUrlAsync();
+        _name = await Message.GetAuthorNameAsync();
+        _nameColor = await Message.GetAuthorColorAsync();
+        _nameTag = await Message.GetAuthorRoleTagAsync();
+        _pfpUrl = await Message.GetAuthorImageUrlAsync();
 
         _isBuilt = true;
 
@@ -404,7 +404,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        this.Message = ParamData.MessageData;
+        this.Message = ParamData.Message;
         this.LastMessage = ParamData.LastMessage;
         this.Ghost = ParamData.Ghost;
         this.IsInnerReply = ParamData.IsInnerReply;
@@ -417,9 +417,9 @@
         
         await base.OnInitializedAsync();
 
-        Id = $"m-{Message.Message.ChannelId}-{Message.Message.Id}";
+        Id = $"m-{Message.ChannelId}-{Message.Id}";
 
-        User = await Message.Message.GetAuthorUserAsync();
+        User = await Message.GetAuthorUserAsync();
 
         await BuildMessage(false);
 
@@ -432,14 +432,15 @@
         }
 
         // Planet message logic
-        if (Message.Message.PlanetId is not null)
+        if (Message.PlanetId is not null)
         {
             _contextMenuId = "member-context";
             
-            _member = await Message.Message.GetAuthorMemberAsync();
+            _member = await Message.GetAuthorMemberAsync();
             
             // Hook events
-            
+            _member.OnRoleModified += OnMemberRoleChange;
+            _member.OnUpdated += OnMemberUpdated;
         }
     }
 
@@ -450,13 +451,13 @@
         if (eventData.PropsChanged.Contains(nameof(User.Name)))
         {
             render = true;
-            _name = await Message.Message.GetAuthorNameAsync();
+            _name = await Message.GetAuthorNameAsync();
         }
 
         if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
         {
             render = true;
-            _pfpUrl = await Message.Message.GetAuthorImageUrlAsync();
+            _pfpUrl = await Message.GetAuthorImageUrlAsync();
         }
 
         if (render)
@@ -478,13 +479,13 @@
         if (eventData.PropsChanged.Contains(nameof(_member.Nickname)))
         {
             render = true;
-            _name = await Message.Message.GetAuthorNameAsync();
+            _name = await Message.GetAuthorNameAsync();
         }
 
         if (eventData.PropsChanged.Contains(nameof(_member.MemberPfp)))
         {
             render = true;
-            _pfpUrl = await Message.Message.GetAuthorImageUrlAsync();
+            _pfpUrl = await Message.GetAuthorImageUrlAsync();
         }
 
         if (render)
@@ -509,12 +510,12 @@
     {
         if (LastMessage != null && Message != null)
         {
-            if (Message.Reply is not null)
+            if (Message.ReplyTo is not null)
             {
                 Minimal = false;
                 return;
             }
-            if (LastMessage.Message.AuthorUserId == Message.Message.AuthorUserId)
+            if (LastMessage.AuthorUserId == Message.AuthorUserId)
             {
                 Minimal = true;
                 return;

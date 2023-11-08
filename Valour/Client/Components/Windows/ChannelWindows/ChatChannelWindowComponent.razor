@@ -131,14 +131,14 @@
         
         MessageHolder.Clear();
 
-        var messages = ClientMessageWrapper.FromList(await Channel.GetLastMessagesAsync(64));
+        var messages = await Channel.GetLastMessagesAsync(64);
 
         foreach (var msg in messages)
         {
-            await ValourCache.Put(msg.Message.Id, msg.Message);
-            if (msg.Reply is not null)
+            await ValourCache.Put(msg.Id, msg);
+            if (msg.ReplyTo is not null)
             {
-                await ValourCache.Put(msg.Reply.Message.Id, msg.Reply.Message);
+                await ValourCache.Put(msg.ReplyTo.Id, msg.ReplyTo);
             }
         }
 
@@ -204,11 +204,8 @@
             return;
         
         ValourClient.SetChannelLastViewedState(Channel.Id, message.TimeSent);
-
-        // Create client wrapper
-        ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
-
-        await MessageHolder.AddMessage(wrapper);
+        
+        await MessageHolder.AddMessage(message);
         MessageHolder.InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
         MessageHolder.InputComponent.PreviewMessageComponent.CheckMinimal();
         MessageHolder.InputComponent.PreviewMessageComponent.ReRender();
@@ -220,21 +217,21 @@
         if (message.ChannelId != Channel.Id)
             return;
 
-        foreach (var m in MessageHolder.RenderedMessages)
+        foreach (var messageComponent in MessageHolder.RenderedMessages)
         {
-            if (m.Message.Message.Id == message.Id)
+            if (messageComponent.Message.Id == message.Id)
             {
-                m.Message.Message.EditedTime = DateTime.UtcNow;
-                m.Message.Message.Content = message.Content;
-                m.Message.Message.AttachmentsData = message.AttachmentsData;
-                m.Message.Message.MentionsData = message.MentionsData;
+                messageComponent.Message.EditedTime = DateTime.UtcNow;
+                messageComponent.Message.Content = message.Content;
+                messageComponent.Message.AttachmentsData = message.AttachmentsData;
+                messageComponent.Message.MentionsData = message.MentionsData;
 
-                if (m.Edit)
+                if (messageComponent.Edit)
                 {
-                    await m.CloseEditMode();
+                    await messageComponent.CloseEditMode();
                 }
                 
-                await m.BuildMessage(true);
+                await messageComponent.BuildMessage(true);
             }
         }
     }
@@ -264,9 +261,9 @@
         var lastMessages = MessageHolder.DisplayedMessages.TakeLast(20).Reverse();
         List<PlanetMember> chatters = new();
 
-        foreach (var wrapper in lastMessages)
+        foreach (var message in lastMessages)
         {
-            var member = await wrapper.Message.GetAuthorMemberAsync();
+            var member = await message.GetAuthorMemberAsync();
             if (!chatters.Contains(member))
                 chatters.Add(member);
         }
