@@ -57,12 +57,15 @@
     {
         Role = await PlanetRole.FindAsync(Mention.TargetId, Mention.PlanetId);
         RoleColor = Role is null ? "#fff" : Role.Color;
-        
-        var selfMember = await PlanetMember.FindAsync(ValourClient.Self.Id, Mention.PlanetId);
-        if (selfMember is not null)
+
+        if (Role is not null)
         {
-            var selfRoles = await selfMember.GetRolesAsync();
-            IsTarget = selfRoles.Any(r => r.Id == Role.Id);
+            var selfMember = await PlanetMember.FindAsync(ValourClient.Self.Id, Role.PlanetId);
+            if (selfMember is not null)
+            {
+                var selfRoles = await selfMember.GetRolesAsync();
+                IsTarget = selfRoles.Any(r => r.Id == Role.Id);
+            }
         }
 
         StateHasChanged();
