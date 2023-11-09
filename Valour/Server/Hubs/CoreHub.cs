@@ -190,7 +190,16 @@ namespace Valour.Server.Database
 
         public async Task LeaveInteractionGroup(long planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
-        
-        public string Ping() => "pong";
+
+        public async Task<string> Ping(bool userState = false)
+        {
+            if (userState)
+            {
+                var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+                await _onlineService.UpdateOnlineState(authToken.UserId);
+            }
+            
+            return "pong";
+        }
     }
 }

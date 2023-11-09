@@ -132,7 +132,7 @@ public class Node
         await Logger.Log("Doing node ping...", "lime");
         
         _pingStopwatch.Start();
-        var response = await HubConnection.InvokeAsync<string>("ping");
+        var response = await HubConnection.InvokeAsync<string>("ping", IsPrimary);
         _pingStopwatch.Stop();
         
         if (response == "pong")
