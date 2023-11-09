@@ -12,14 +12,6 @@ public class MentionParser : InlineParser
         OpeningCharacters = new[] { '«' };
     }
 
-    public static readonly Dictionary<char, MentionType> CharToMentionType = new()
-    {
-        { 'm', MentionType.PlanetMember },
-        { 'u', MentionType.User },
-        { 'c', MentionType.Channel },
-        { 'r', MentionType.Role },
-    };
-
     public override bool Match(InlineProcessor processor, ref StringSlice slice)
     {
         var match = slice.CurrentChar;
@@ -39,7 +31,7 @@ public class MentionParser : InlineParser
         }
 
         // Ensure type of mention is valid (comes after @)
-        if (!CharToMentionType.TryGetValue(slice.PeekCharExtra(2), out type))
+        if (!Mention.CharToMentionType.TryGetValue(slice.PeekCharExtra(2), out type))
         {
             return false;
         }

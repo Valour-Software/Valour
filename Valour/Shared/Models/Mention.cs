@@ -21,6 +21,14 @@ public enum MentionType
 /// </summary>
 public class Mention
 {
+    public static readonly Dictionary<char, MentionType> CharToMentionType = new()
+    {
+        { 'm', MentionType.PlanetMember },
+        { 'u', MentionType.User },
+        { 'c', MentionType.Channel },
+        { 'r', MentionType.Role },
+    };
+    
     /// <summary>
     /// The type of mention this is
     /// </summary>
