@@ -144,12 +144,14 @@ public class CoreHubService
     
     public async Task NotifyUserChange(User user, int flags = 0)
     {
-        var members = await _db.PlanetMembers.Where(x => x.UserId == user.Id).ToListAsync();
+        var planetIds = await _db.PlanetMembers.Where(x => x.UserId == user.Id)
+            .Select(x => x.PlanetId)
+            .ToListAsync();
 
-        foreach (var m in members)
+        foreach (var id in planetIds)
         {
             // TODO: This will not work with node scaling
-            await _hub.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Update", user, flags);
+            await _hub.Clients.Group($"p-{planetIds}").SendAsync("User-Update", user, flags);
         }
     }
 
