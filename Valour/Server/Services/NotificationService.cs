@@ -242,4 +242,96 @@ public class NotificationService
         if (dbChange)
             await _db.SaveChangesAsync();
     }
+
+    public async Task HandleMentionAsync(Mention mention, Valour.Database.Planet planet, Message message, PlanetMember member, User user, Channel channel)
+    {
+        switch (mention.Type)
+        {
+            case MentionType.PlanetMember:
+            {
+                // Member mentions only work in planet channels
+                if (planet is null)
+                    return;
+            
+                var targetMember = await _db.PlanetMembers.FindAsync(mention.TargetId);
+                if (targetMember is null)
+                    return;
+
+                var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
+
+                Notification notif = new()
+                {
+                    Title = member.Nickname + " in " + planet.Name,
+                    Body = content,
+                    ImageUrl = user.PfpUrl,
+                    UserId = targetMember.UserId,
+                    PlanetId = planet.Id,
+                    ChannelId = channel.Id,
+                    SourceId = message.Id,
+                    Source = NotificationSource.PlanetMemberMention,
+                    ClickUrl = $"/channels/{channel.Id}/{message.Id}"
+                };
+
+                await AddNotificationAsync(notif);
+                
+                break;
+            }
+            case MentionType.User:
+            {
+                // Ensure that the user is a member of the channel
+                if (await _db.ChannelMembers.AnyAsync(x =>
+                        x.UserId == mention.TargetId && x.ChannelId == message.ChannelId))
+                    return;
+            
+                var mentionTargetUser = await _db.Users.FindAsync(mention.TargetId);
+
+                var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
+
+                Notification notif = new()
+                {
+                    Title = user.Name + " mentioned you in DMs",
+                    Body = content,
+                    ImageUrl = user.PfpUrl,
+                    ClickUrl = $"/channels/{channel.Id}/{message.Id}",
+                    ChannelId = channel.Id,
+                    Source = NotificationSource.DirectMention,
+                    SourceId = message.Id,
+                    UserId = mentionTargetUser.Id,
+                };
+            
+                await AddNotificationAsync(notif);
+                
+                break;
+            }
+            case MentionType.Role:
+            {
+                // Member mentions only work in planet channels
+                if (planet is null)
+                    return;
+            
+                var targetRole = await _db.PlanetRoles.FindAsync(mention.TargetId);
+                if (targetRole is null)
+                    return;
+	        
+                var content = message.Content.Replace($"«@r-{mention.TargetId}»", $"@{targetRole.Name}");
+
+                Notification notif = new()
+                {
+                    Title = member.Nickname + " in " + planet.Name,
+                    Body = content,
+                    ImageUrl = user.PfpUrl,
+                    PlanetId = planet.Id,
+                    ChannelId = channel.Id,
+                    SourceId = message.Id,
+                    ClickUrl = $"/channels/{channel.Id}/{message.Id}"
+                };
+
+                await AddRoleNotificationAsync(notif, targetRole.Id);
+                
+                break;
+            }
+            default:
+                return;
+        }
+    }
 }

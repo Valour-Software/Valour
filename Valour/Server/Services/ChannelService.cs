@@ -3,6 +3,7 @@ using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models.Messages.Embeds.Items;
 using Valour.Server.Cdn;
 using Valour.Server.Database;
+using Valour.Server.Utilities;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -679,100 +680,16 @@ public class ChannelService
         }
         
         // Handle mentions
-        if (!string.IsNullOrWhiteSpace(message.MentionsData))
+        var mentions = MentionParser.Parse(message.Content);
+        if (mentions is not null)
         {
-            var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
-            if (mentions is not null)
+            foreach (var mention in mentions)
             {
-                foreach (var mention in mentions.DistinctBy(x => x.TargetId))
-                {
-                    if (mention.Type == MentionType.PlanetMember)
-                    {
-                        // Member mentions only work in planet channels
-                        if (planet is null)
-                            continue;
-                        
-                        var targetMember = await _db.PlanetMembers.FindAsync(mention.TargetId);
-                        if (targetMember is null)
-                            return TaskResult<Message>.FromError($"Mentioned member {mention.TargetId} not found.");
-
-                        var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
-
-                        Notification notif = new()
-                        {
-	                        Title = member.Nickname + " in " + planet.Name,
-	                        Body = content,
-	                        ImageUrl = user.PfpUrl,
-	                        UserId = targetMember.UserId,
-	                        PlanetId = planet.Id,
-	                        ChannelId = channel.Id,
-	                        SourceId = message.Id,
-	                        Source = NotificationSource.PlanetMemberMention,
-	                        ClickUrl = $"/channels/{channel.Id}/{message.Id}"
-                        };
-
-                        await _notificationService.AddNotificationAsync(notif);
-                    }
-                    else if (mention.Type == MentionType.Role)
-                    {
-                        // Member mentions only work in planet channels
-                        if (planet is null)
-                            continue;
-                        
-	                    var targetRole = await _db.PlanetRoles.FindAsync(mention.TargetId);
-	                    if (targetRole is null)
-                            return TaskResult<Message>.FromError($"Mentioned role {mention.TargetId} not found.");
-                        
-                        
-
-                        /* Handle in API; service is not for permissions!
-	                    if (!targetRole.AnyoneCanMention)
-	                    {
-		                    if (!await memberService.HasPermissionAsync(member, channel, PlanetPermissions.MentionAll))
-			                    return ValourResult.LacksPermission(PlanetPermissions.MentionAll);
-	                    }
-	                    */
-	                    
-	                    var content = message.Content.Replace($"«@r-{mention.TargetId}»", $"@{targetRole.Name}");
-
-	                    Notification notif = new()
-	                    {
-		                    Title = member.Nickname + " in " + planet.Name,
-		                    Body = content,
-		                    ImageUrl = user.PfpUrl,
-		                    PlanetId = planet.Id,
-		                    ChannelId = channel.Id,
-		                    SourceId = message.Id,
-		                    ClickUrl = $"/channels/{channel.Id}/{message.Id}"
-	                    };
-
-	                    await _notificationService.AddRoleNotificationAsync(notif, targetRole.Id);
-                    }
-                    else if (mention.Type == MentionType.User)
-                    {
-                        // Ensure that the user is a member of the channel
-                        if (await _db.ChannelMembers.AnyAsync(x => x.UserId == mention.TargetId && x.ChannelId == message.ChannelId))
-                            return TaskResult<Message>.FromError($"Mentioned user {mention.TargetId} is not in this channel. If this a a planet channel, please use Member mentions");
-                        
-                        var mentionTargetUser = await _db.Users.FindAsync(mention.TargetId);
-
-                        var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
-
-                        Notification notif = new()
-                        {
-                            Title = user.Name + " mentioned you in DMs",
-                            Body = content,
-                            ImageUrl = user.PfpUrl,
-                            ClickUrl = $"/channels/{channel.Id}/{message.Id}",
-                            ChannelId = channel.Id,
-                            Source = NotificationSource.DirectMention,
-                            SourceId = message.Id,
-                            UserId = mentionTargetUser.Id,
-                        };
-                        await _notificationService.AddNotificationAsync(notif);
-                    }
-                }
+                await _notificationService.HandleMentionAsync(mention, planet, message, member, user, channel);
             }
+            
+            // Serialize mentions to the message
+            message.MentionsData = JsonSerializer.Serialize(mentions);
         }
 
         if (planet is null)

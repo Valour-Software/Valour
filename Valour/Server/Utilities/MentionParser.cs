@@ -74,6 +74,14 @@ public static class MentionParser
                 pos++;
                 continue;
             }
+            
+            // Check if mention already exists, if so cancel
+            if (mentions is not null &&  mentions.Any(x => x.TargetId == id))
+            {
+                pos++;
+                continue;
+            }
+            
             // Create object
             Mention mention = new()
             {
