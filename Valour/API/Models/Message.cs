@@ -464,7 +464,7 @@ public class Message : LiveModel, ISharedMessage
     public bool IsEmpty()
     {
         return string.IsNullOrWhiteSpace(Content) && string.IsNullOrWhiteSpace(EmbedData) &&
-               string.IsNullOrWhiteSpace(AttachmentsData);
+               string.IsNullOrWhiteSpace(AttachmentsData) && (_attachments is null || _attachments.Count == 0);
     }
     
     public void Clear()

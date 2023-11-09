@@ -115,6 +115,9 @@
 
     private RenderFragment RenderContent => builder =>
     {
+        if (string.IsNullOrWhiteSpace(Message.Content))
+            return;
+        
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
         Markdown.RenderToFragment(

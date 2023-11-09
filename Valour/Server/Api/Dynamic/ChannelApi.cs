@@ -453,7 +453,6 @@ public class ChannelApi
         long id, 
         CurrentlyTypingService typingService,
         ChannelService channelService,
-        PlanetMemberService memberService,
         TokenService tokenService)
     {
         var token = await tokenService.GetCurrentTokenAsync();

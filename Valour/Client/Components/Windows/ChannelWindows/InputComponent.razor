@@ -562,7 +562,7 @@
 
     public async Task RefreshPreviewMessage()
     {
-        PreviewMessage.Content = string.Empty;
+        //PreviewMessage.Content = string.Empty;
         PreviewMessage.TimeSent = DateTime.UtcNow;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
