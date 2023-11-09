@@ -564,6 +564,7 @@
     {
         //PreviewMessage.Content = string.Empty;
         PreviewMessage.TimeSent = DateTime.UtcNow;
+        PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
