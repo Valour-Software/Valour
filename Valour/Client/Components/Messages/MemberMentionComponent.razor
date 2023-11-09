@@ -29,6 +29,8 @@
         }
     }
 
+    [CascadingParameter]
+    public Channel Channel { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -59,8 +61,11 @@
 
     public async Task Build()
     {
-        Member = await PlanetMember.FindAsync(Mention.TargetId, Mention.PlanetId);
-
+        if (Channel.PlanetId is not null)
+        {
+            Member = await PlanetMember.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+        }
+        
         if (Member != null)
         {
             Role_Color = await Member.GetRoleColorAsync();

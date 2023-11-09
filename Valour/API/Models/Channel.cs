@@ -221,7 +221,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public async Task SendIsTyping()
     {
-        if (!ISharedChannel. ChatChannelTypes.Contains(ChannelType))
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return;
         
         await Node.PostAsync($"{IdRoute}/typing", null);

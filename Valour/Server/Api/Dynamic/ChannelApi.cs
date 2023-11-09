@@ -446,4 +446,30 @@ public class ChannelApi
 
         return Results.Json(await channelService.GetMembersNonPlanetAsync(channelId));
     }
+    
+    [ValourRoute(HttpVerbs.Post, "api/channels/{id}/typing")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> PostTypingAsync(
+        long id, 
+        CurrentlyTypingService typingService,
+        ChannelService channelService,
+        PlanetMemberService memberService,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        // Get the channel
+        var channel = await channelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        if (!await channelService.IsMemberAsync(channel, token.UserId))
+        {
+            return ValourResult.Forbid("You are not a member of this channel");
+        }
+
+        typingService.AddCurrentlyTyping(id, token.UserId);
+        
+        return Results.Ok();
+    }
 }

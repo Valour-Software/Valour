@@ -46,6 +46,7 @@ public static class MarkdownManager
 
         Renderer = new BlazorRenderer(null, true);
         Renderer.ObjectRenderers.Add(new MentionRenderer());
+        Renderer.ObjectRenderers.Add(new StockRenderer());
     }
 
     public static string GetHtml(string content)

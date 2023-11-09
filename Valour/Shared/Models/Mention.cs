@@ -32,8 +32,5 @@ public class Mention
     /// </summary>
     [JsonPropertyName("TargetId")]
     public long TargetId { get; set; }
-
-    [JsonPropertyName("PlanetId")]
-    public long PlanetId { get; set; }
 }
 

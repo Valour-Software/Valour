@@ -1,22 +1,25 @@
 ﻿@inject WindowManager WindowManager
 
 <div class="channel-mention" @onclick="@OnClicked">
-    @if (_channel == null)
+    @if (_targetChannel == null)
     {
         <div>#NotFound!</div>
     }
     else
     {
-        <div>#@_channel.Name</div>
+        <div>#@_targetChannel.Name</div>
     }
 </div>
 
 @code {
+    
+    [CascadingParameter]
+    public Channel Channel { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
 
-    private Channel _channel;
+    private Channel _targetChannel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -25,9 +28,9 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_channel != null)
+        if (_targetChannel != null)
         {
-            if (Mention.TargetId != _channel.Id)
+            if (Mention.TargetId != _targetChannel.Id)
             {
                 await Build();
             }
@@ -40,7 +43,10 @@
 
     public async Task Build()
     {
-        _channel = await Channel.FindAsync(Mention.TargetId, Mention.PlanetId);
+        if (Channel.PlanetId is not null)
+        {
+            _targetChannel = await Channel.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+        }
         StateHasChanged();
     }
 
@@ -49,7 +55,7 @@
         var window = WindowManager.GetSelectedWindow();
         if (window is ChatChannelWindow chatWindow)
         {
-            await chatWindow.Component.SwapChannel(_channel);
+            await chatWindow.Component.SwapChannel(_targetChannel);
         }
     }
 }

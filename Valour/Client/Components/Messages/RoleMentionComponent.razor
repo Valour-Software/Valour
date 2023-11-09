@@ -25,10 +25,13 @@
             }
         }
     }
-
-
+    
+    [CascadingParameter]
+    public Channel Channel { get; set; }
+    
     [Parameter]
     public Mention Mention { get; set; }
+    
     public PlanetRole Role { get; set; }
     public bool IsTarget { get; set; }
     public string RoleColor = "#ffffff";
@@ -55,7 +58,10 @@
 
     public async Task Build()
     {
-        Role = await PlanetRole.FindAsync(Mention.TargetId, Mention.PlanetId);
+        if (Channel.PlanetId is not null)
+        {
+            Role = await PlanetRole.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+        }
         RoleColor = Role is null ? "#fff" : Role.Color;
 
         if (Role is not null)
