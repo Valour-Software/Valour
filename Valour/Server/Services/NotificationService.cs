@@ -243,7 +243,13 @@ public class NotificationService
             await _db.SaveChangesAsync();
     }
 
-    public async Task HandleMentionAsync(Mention mention, Valour.Database.Planet planet, Message message, PlanetMember member, User user, Channel channel)
+    public async Task HandleMentionAsync(
+        Mention mention, 
+        Valour.Database.Planet planet, 
+        Message message, 
+        Valour.Database.PlanetMember member, 
+        Valour.Database.User user, 
+        Valour.Database.Channel channel)
     {
         switch (mention.Type)
         {
