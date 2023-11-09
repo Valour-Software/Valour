@@ -191,6 +191,6 @@ namespace Valour.Server.Database
         public async Task LeaveInteractionGroup(long planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
         
-        public string Ping() => "Pong";
+        public string Ping() => "pong";
     }
 }
