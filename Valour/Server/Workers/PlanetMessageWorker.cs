@@ -1,7 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Server.Database;
-using Valour.Server.Services;
-using Valour.Shared.Models;
 
 namespace Valour.Server.Workers
 {
@@ -11,13 +8,13 @@ namespace Valour.Server.Workers
         private readonly ILogger<PlanetMessageWorker> _logger;
 
         // A queue of all messages that need to be processed
-        private static readonly BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
+        private static readonly BlockingCollection<Message> MessageQueue = new(new ConcurrentQueue<Message>());
         
         // A map from channel id to the messages currently queued for that channel
-        private static readonly ConcurrentDictionary<long, List<PlanetMessage>> StagedChannelMessages = new();
+        private static readonly ConcurrentDictionary<long, List<Message>> StagedChannelMessages = new();
         
         // A map from message id to the message queued
-        private static readonly ConcurrentDictionary<long, PlanetMessage> StagedMessages = new();
+        private static readonly ConcurrentDictionary<long, Message> StagedMessages = new();
 
         // Prevents deleted messages from being staged
         private static readonly HashSet<long> BlockSet = new();
@@ -37,13 +34,19 @@ namespace Valour.Server.Workers
             _serviceProvider = serviceProvider;
         }
         
-        public static void AddToQueue(PlanetMessage message)
+        public static void AddToQueue(Message message)
         {
+            if (message.PlanetId is null)
+            {
+                Console.WriteLine("[!!!] Tried to add a message to the planet message queue queue without a planet id");
+                return;
+            }
+
             // Generate Id for message
             MessageQueue.Add(message);
         }
 
-        public static void RemoveFromQueue(PlanetMessage message)
+        public static void RemoveFromQueue(Message message)
         {
             // Remove currently staged
             StagedChannelMessages.Remove(message.Id, out _);
@@ -52,16 +55,16 @@ namespace Valour.Server.Workers
             BlockSet.Add(message.Id);
         }
 
-        public static PlanetMessage GetStagedMessage(long messageId)
+        public static Message GetStagedMessage(long messageId)
         {
             StagedMessages.TryGetValue(messageId, out var staged);
             return staged;
         }
         
-        public static List<PlanetMessage> GetStagedMessages(long channelId)
+        public static List<Message> GetStagedMessages(long channelId)
         {
             StagedChannelMessages.TryGetValue(channelId, out var stagedList);
-            return stagedList ?? new List<PlanetMessage>();
+            return stagedList ?? new List<Message>();
         }
         
         public Task StartAsync(CancellationToken stoppingToken)
@@ -69,7 +72,7 @@ namespace Valour.Server.Workers
             _logger.LogInformation("Starting Message Worker");
 
             // Start the queue task
-            _queueTask = Task.Run(ConsumeMessageQueue);
+            _queueTask = Task.Run(ConsumeMessageQueue, stoppingToken);
             
             _timer = new Timer(DoWork, null, TimeSpan.Zero, 
                 TimeSpan.FromSeconds(20));
@@ -77,7 +80,7 @@ namespace Valour.Server.Workers
             return Task.CompletedTask;
         }
 
-        private async void DoWork(object? state)
+        private async void DoWork(object state)
         {
             // First check if queue task is running
             if (_queueTask.IsCompleted)
@@ -85,8 +88,7 @@ namespace Valour.Server.Workers
                 // If not, restart it
                 _queueTask = Task.Run(ConsumeMessageQueue);
                 
-                _logger.LogInformation($@"Planet Message Worker queue task stopped at: {DateTime.UtcNow}
-                                                 Restarting queue task.");
+                _logger.LogInformation("Planet Message Worker queue task stopped at: {Time}, Restarting queue task", DateTime.UtcNow);
             }
             
             // Don't work if there's no staged messages
@@ -97,9 +99,9 @@ namespace Valour.Server.Workers
             await using var scope = _serviceProvider.CreateAsyncScope();
             await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
             
-            _logger.LogInformation($@"Planet Message Worker running at: {DateTimeOffset.Now.ToString()}
-                                             Queue size: {MessageQueue.Count.ToString()}
-                                             Saving {StagedMessages.Count.ToString()} messages to DB.");
+            _logger.LogInformation(@"Planet Message Worker running at: {Time}
+                                             Queue size: {QueueSize}
+                                             Saving {StagedCount} messages to DB", DateTimeOffset.Now, MessageQueue.Count, StagedMessages.Count);
 
             var staged = StagedMessages.Values;
             var channelIds = staged.Select(x => x.ChannelId).Distinct();
@@ -128,7 +130,7 @@ namespace Valour.Server.Workers
                 }
             }
             
-            await db.PlanetMessages.AddRangeAsync(StagedMessages.Values.Select(x => x.ToDatabase()));
+            await db.Messages.AddRangeAsync(StagedMessages.Values.Select(x => x.ToDatabase()));
             await db.SaveChangesAsync();
             BlockSet.Clear();
             StagedMessages.Clear();
@@ -161,11 +163,11 @@ namespace Valour.Server.Workers
                 message.TimeSent = DateTime.UtcNow;
                 
                 stateService.SetChannelStateTime(message.ChannelId, message.TimeSent);
-                hubService.NotifyChannelStateUpdate(message.PlanetId, message.ChannelId, message.TimeSent);
+                hubService.NotifyChannelStateUpdate(message.PlanetId!.Value, message.ChannelId, message.TimeSent);
                 
-                if (message.ReplyToId is not null)
+                if (message.ReplyToId is not null && message.ReplyTo is null)
                 {
-                    var replyTo = (await dbService.PlanetMessages.FindAsync(message.ReplyToId)).ToModel();
+                    var replyTo = (await dbService.Messages.FindAsync(message.ReplyToId)).ToModel();
                     message.ReplyTo = replyTo;
                 }
                 
@@ -178,7 +180,7 @@ namespace Valour.Server.Workers
                 StagedChannelMessages.TryGetValue(message.ChannelId, out var channelStaged);
                 if (channelStaged is null)
                 {
-                    channelStaged = new List<PlanetMessage>();
+                    channelStaged = new List<Message>();
                     StagedChannelMessages[message.ChannelId] = channelStaged;
                 }
                 channelStaged.Add(message);
@@ -187,7 +189,7 @@ namespace Valour.Server.Workers
         
         public Task StopAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Message Worker is Stopping.");
+            _logger.LogInformation("Message Worker is Stopping");
 
             _timer?.Change(Timeout.Infinite, 0);
 

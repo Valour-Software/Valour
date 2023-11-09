@@ -96,7 +96,7 @@ public static class ValourClient
     /// <summary>
     /// Currently opened channels
     /// </summary>
-    public static List<PlanetChatChannel> OpenPlanetChannels { get; private set; }
+    public static List<Channel> OpenPlanetChannels { get; private set; }
 
     /// <summary>
     /// The state of channels this user has access to
@@ -139,7 +139,7 @@ public static class ValourClient
     /// <summary>
     /// The direct chat channels (dms) of this user
     /// </summary>
-    public static List<DirectChatChannel> DirectChatChannels { get; set; }
+    public static List<Channel> DirectChatChannels { get; set; }
     
     /// <summary>
     /// The Tenor favorites of this user
@@ -191,12 +191,12 @@ public static class ValourClient
     /// <summary>
     /// Run when SignalR opens a channel
     /// </summary>
-    public static event Func<PlanetChatChannel, Task> OnChannelOpen;
+    public static event Func<Channel, Task> OnChannelOpen;
 
     /// <summary>
     /// Run when SignalR closes a channel
     /// </summary>
-    public static event Func<PlanetChatChannel, Task> OnChannelClose;
+    public static event Func<Channel, Task> OnChannelClose;
 
     /// <summary>
     /// Run when a message is received
@@ -211,7 +211,7 @@ public static class ValourClient
     /// <summary>
     /// Run when a planet is deleted
     /// </summary>
-    public static event Func<PlanetMessage, Task> OnMessageDeleted;
+    public static event Func<Message, Task> OnMessageDeleted;
 
     /// <summary>
     /// Run when a notification is received
@@ -288,7 +288,7 @@ public static class ValourClient
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
         OpenPlanets = new List<Planet>();
-        OpenPlanetChannels = new List<PlanetChatChannel>();
+        OpenPlanetChannels = new List<Channel>();
         JoinedPlanets = new List<Planet>();
         PlanetLocks = new();
         UnreadNotifications = new();
@@ -347,7 +347,7 @@ public static class ValourClient
     /// <summary>
     /// Sends a message
     /// </summary>
-    public static async Task<TaskResult> SendMessage(PlanetMessage message)
+    public static async Task<TaskResult> SendMessage(Message message)
         => await message.PostMessageAsync();
 
     /// <summary>
@@ -606,7 +606,7 @@ public static class ValourClient
     /// <summary>
     /// Returns if the channel is open
     /// </summary>
-    public static bool IsChannelOpen(PlanetChatChannel channel) =>
+    public static bool IsPlanetChannelOpen(Channel channel) =>
         OpenPlanetChannels.Any(x => x.Id == channel.Id);
 
     /// <summary>
@@ -649,10 +649,8 @@ public static class ValourClient
         // Load member data early for the same reason (speed)
         tasks.Add(planet.LoadMemberDataAsync());
 
-        // Load channels and categories
+        // Load channels
         tasks.Add(planet.LoadChannelsAsync());
-        tasks.Add(planet.LoadCategoriesAsync());
-        tasks.Add(planet.LoadVoiceChannelsAsync());
         
         // Load permissions nodes
         tasks.Add(planet.LoadPermissionsNodesAsync());
@@ -725,8 +723,11 @@ public static class ValourClient
     /// <summary>
     /// Opens a SignalR connection to a channel
     /// </summary>
-    public static async Task OpenPlanetChannel(PlanetChatChannel channel)
+    public static async Task OpenPlanetChannel(Channel channel)
     {
+        if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
+            return;
+        
         // Already opened
         if (OpenPlanetChannels.Contains(channel))
             return;
@@ -755,8 +756,11 @@ public static class ValourClient
     /// <summary>
     /// Closes a SignalR connection to a channel
     /// </summary>
-    public static async Task ClosePlanetChannel(PlanetChatChannel channel)
+    public static async Task ClosePlanetChannel(Channel channel)
     {
+        if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
+            return;
+        
         // Not opened
         if (!OpenPlanetChannels.Contains(channel))
             return;
@@ -854,7 +858,7 @@ public static class ValourClient
     public static async Task HandleUpdateChannelState(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
-        var channel = ValourCache.Get<PlanetChatChannel>(update.ChannelId);
+        var channel = ValourCache.Get<Channel>(update.ChannelId);
         if (channel is null)
             return;
         
@@ -1012,7 +1016,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task HandlePlanetMessageReceived(PlanetMessage message)
+    public static async Task HandlePlanetMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1028,7 +1032,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task HandlePlanetMessageEdited(PlanetMessage message)
+    public static async Task HandlePlanetMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1044,7 +1048,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task HandleDirectMessageReceived(DirectMessage message)
+    public static async Task HandleDirectMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1060,7 +1064,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static async Task HandleDirectMessageEdited(DirectMessage message)
+    public static async Task HandleDirectMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1073,7 +1077,7 @@ public static class ValourClient
             await OnMessageEdited.Invoke(message);
     }
 
-    public static async Task HandleMessageDeleted(PlanetMessage message)
+    public static async Task HandleMessageDeleted(Message message)
     {
         if (OnMessageDeleted is not null)
             await OnMessageDeleted.Invoke(message);
@@ -1115,7 +1119,7 @@ public static class ValourClient
         int pos = 0;
         foreach (var data in eventData.Order)
         {
-            var channel = PlanetChannel.GetCachedByType(data.Id, data.Type);
+            var channel = ValourCache.Get<Channel>(data.Id);
             if (channel is not null)
             {
                 Console.WriteLine($"{pos}: {channel.Name}");
@@ -1438,7 +1442,7 @@ public static class ValourClient
 
                 await OpenPlanet(planet);
 
-                var channels = await planet.GetChannelsAsync();
+                var channels = await planet.GetChatChannelsAsync();
 
                 foreach (var channel in channels)
                 {
@@ -1484,7 +1488,7 @@ public static class ValourClient
 
     public static async Task LoadDirectChatChannelsAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<DirectChatChannel>>("api/directchatchannels/self");
+        var response = await PrimaryNode.GetJsonAsync<List<Channel>>("api/channels/direct/self");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load direct chat channels **");
@@ -1496,6 +1500,30 @@ public static class ValourClient
         foreach (var channel in response.Data)
         {
             // Custom cache insert behavior
+            if (channel.Members is not null && channel.Members.Count > 0)
+            {
+                var id0 = channel.Members[0].Id;
+                
+                // Self channel
+                if (channel.Members.Count == 1)
+                {
+                    Channel.DirectChannelIdLookup.Add((id0, id0), channel.Id);
+                }
+                // Other channel
+                else if (channel.Members.Count == 2)
+                {
+                    var id1 = channel.Members[1].Id;
+                    
+                    if (id0 > id1)
+                    {
+                        // Swap
+                        (id0, id1) = (id1, id0);
+                    }
+                    
+                    Channel.DirectChannelIdLookup.Add((id0, id1), channel.Id);
+                }
+            }
+            
             await channel.AddToCache(channel);
         }
 
@@ -1507,8 +1535,10 @@ public static class ValourClient
         // This second step is necessary because we need to ensure we only use the cache objects
         foreach (var channel in response.Data)
         {
-            DirectChatChannels.Add(ValourCache.Get<DirectChatChannel>(channel.Id));
+            DirectChatChannels.Add(ValourCache.Get<Channel>(channel.Id));
         }
+        
+        Console.WriteLine($"Loaded {DirectChatChannels.Count} direct chat channels...");
     }
     
     public static async Task LoadChannelStatesAsync()

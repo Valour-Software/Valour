@@ -46,7 +46,7 @@ public class Permission
 
     public virtual string ReadableName => "Base";
     
-    public virtual ChannelType TargetType => ChannelType.Undefined;
+    public virtual ChannelTypeEnum TargetType => ChannelTypeEnum.Undefined;
 
     public virtual long GetDefault() => 0;
 
@@ -112,7 +112,7 @@ public class Permission
 
 public class ChannelPermissionGroup
 {
-    public ChannelType TargetType { get; set; }
+    public ChannelTypeEnum TargetType { get; set; }
     public Permission[] Permissions { get; set; }
 }
 
@@ -136,15 +136,15 @@ public static class ChannelPermissions
         ManagePermissions = new CategoryPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel/category.");
     }
     
-    public static Permission[] GetChannelPermissionSet(ChannelType type)
+    public static Permission[] GetChannelPermissionSet(ChannelTypeEnum type)
     {
         switch (type)
         {
-            case ChannelType.PlanetChatChannel:
+            case ChannelTypeEnum.PlanetChat:
                 return ChatChannelPermissions.Permissions;
-            case ChannelType.PlanetCategoryChannel:
+            case ChannelTypeEnum.PlanetCategory:
                 return CategoryPermissions.Permissions;
-            case ChannelType.PlanetVoiceChannel:
+            case ChannelTypeEnum.PlanetVoice:
                 return VoiceChannelPermissions.Permissions;
             default:
                 throw new Exception($"Invalid channel type {type}");
@@ -154,7 +154,7 @@ public static class ChannelPermissions
 
 public class ChatChannelPermission : Permission
 {
-    public override ChannelType TargetType => ChannelType.PlanetChatChannel;
+    public override ChannelTypeEnum TargetType => ChannelTypeEnum.PlanetChat;
     public override string ReadableName => "Chat Channel";
     public override long GetDefault() => ChatChannelPermissions.Default;
     public ChatChannelPermission(long value, string name, string description) : base(value, name, description)
@@ -164,7 +164,7 @@ public class ChatChannelPermission : Permission
 
 public class CategoryPermission : Permission
 {
-    public override ChannelType TargetType => ChannelType.PlanetCategoryChannel;
+    public override ChannelTypeEnum TargetType => ChannelTypeEnum.PlanetCategory;
     public override string ReadableName => "Category";
     public override long GetDefault() => CategoryPermissions.Default;
     public CategoryPermission(long value, string name, string description) : base(value, name, description)
@@ -174,7 +174,7 @@ public class CategoryPermission : Permission
 
 public class VoiceChannelPermission : Permission
 {
-    public override ChannelType TargetType => ChannelType.PlanetVoiceChannel;
+    public override ChannelTypeEnum TargetType => ChannelTypeEnum.PlanetVoice;
     public override string ReadableName => "Voice Channel";
     public override long GetDefault() => VoiceChannelPermissions.Default;
     public VoiceChannelPermission(long value, string name, string description) : base(value, name, description)
@@ -349,7 +349,7 @@ public static class ChatChannelPermissions
 
         ChannelPermissions.ChannelTypes[0] = new ChannelPermissionGroup()
         {
-            TargetType = ChannelType.PlanetChatChannel,
+            TargetType = ChannelTypeEnum.PlanetChat,
             Permissions = ChatChannelPermissions.Permissions
         };
     }
@@ -404,7 +404,7 @@ public static class CategoryPermissions
 
         ChannelPermissions.ChannelTypes[1] = new ChannelPermissionGroup()
         {
-            TargetType = ChannelType.PlanetCategoryChannel,
+            TargetType = ChannelTypeEnum.PlanetCategory,
             Permissions = CategoryPermissions.Permissions
         };
     }
@@ -467,7 +467,7 @@ public static class VoiceChannelPermissions
 
         ChannelPermissions.ChannelTypes[2] = new ChannelPermissionGroup()
         {
-            TargetType = ChannelType.PlanetVoiceChannel,
+            TargetType = ChannelTypeEnum.PlanetVoice,
             Permissions = VoiceChannelPermissions.Permissions
         };
     }

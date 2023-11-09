@@ -9,7 +9,10 @@
         <div class="icons">
             @foreach (var user in DisplayData)
             {
-                <WatchingIconComponent @key='@user.Id' User="@user" />
+                if (user.UserStateCode != UserState.Offline.Value)
+                {
+                    <WatchingIconComponent @key='@user.Id' User="@user"/>
+                }
             }
 
             @{
@@ -53,12 +56,13 @@
         ParentComponent.OnChannelChange += OnParentChannelChange;
     }
 
-    public async Task OnParentChannelChange(IChatChannel channel)
+    private Task OnParentChannelChange(Channel channel)
     {
         Clear();
+        return Task.CompletedTask;
     }
 
-    public void Clear()
+    private void Clear()
     {
         TotalCount = 0;
         DisplayData.Clear();

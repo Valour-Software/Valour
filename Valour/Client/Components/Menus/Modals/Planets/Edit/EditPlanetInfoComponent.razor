@@ -25,7 +25,7 @@
 <p>Icon</p>
 
 <div>
-    <img @bind-src='IconUrl' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
+    <img @bind-src='IconUrl' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 50%;" @onerror="OnPfpError" />
     <div style="display:inline-block">
         <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
         <span id="result-span" style="display:block" class="text-info">@Image_Output</span>

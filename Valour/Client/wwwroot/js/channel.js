@@ -1,33 +1,26 @@
-﻿function OnMessageLoad(innerContent) {
+﻿function hljsHighlight(el){
+    const prior = el.parentElement.querySelector('.hljs-clone');
+    if (prior) {
+        el.parentElement.removeChild(prior);
+    }
+
+    const clone = el.cloneNode(true);
+    clone.classList.add('hljs-clone');
+    clone.style.display = 'inherit';
+    hljs.highlightElement(clone);
+
+    el.parentElement.insertBefore(clone, el.nextSibling);
+    el.style.display = 'none';
+}
+
+function OnMessageLoad(innerContent) {
     if (innerContent != null && innerContent.getElementsByTagName) {
-        var code_els = innerContent.getElementsByTagName('code');
-
-        if (code_els != null) {
-            for (let item of code_els) {
-                hljs.highlightElement(item);
-            }
-        }
-
-        /*
-        var images = innerContent.getElementsByTagName('img');
-        if (images != null) {
-            for (let image of images) {
-                if (!image.classList.contains('attached-image')) { 
-                    image.addEventListener('click', function () {
-                        image.classList.toggle('enlarged');
-                    });
-                }
-            }
-        }
-        */
-
         twemoji.parse(innerContent, {
             folder: 'svg',
             ext: '.svg'
         })
     }
 }
-
 
 // Drop zone logic (thanks to https://www.meziantou.net/upload-files-with-drag-drop-or-paste-from-clipboard-in-blazor.htm)
 

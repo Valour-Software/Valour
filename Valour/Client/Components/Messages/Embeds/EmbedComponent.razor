@@ -16,9 +16,12 @@
 					</div>
 				}
 
-				foreach (EmbedItem item in embed.CurrentlyDisplayed.Children)
+				if (embed.CurrentlyDisplayed.Children is not null)
 				{
-					<EmbedItemComponent embed="@embed" Message="@MessageWrapper" item="@item"></EmbedItemComponent>
+					foreach (EmbedItem item in embed.CurrentlyDisplayed.Children)
+					{
+						<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
+					}
 				}
 
 				if (embed.Pages is not null && embed.Pages.Count > 1 && !embed.HideChangePageArrows)
@@ -48,7 +51,7 @@
 	public MessageHolderComponent Holder { get; set; }
 
 	[Parameter]
-	public ClientMessageWrapper MessageWrapper { get; set; }
+	public Message Message { get; set; }
 
 	[Parameter]
 	public MessageComponent MessageComponent { get; set; }
@@ -94,7 +97,7 @@
 		IdToParentEmbedItem = new();
 		IdToNameItemEmbedItem = new();
 
-		embed = MessageWrapper.Message.Embed;
+		embed = Message.Embed;
 		foreach (var page in embed.Pages) {
 			foreach (var item in page.GetAllItems()) {
 				if (item.Id is not null) {
@@ -115,25 +118,25 @@
 	public async Task OnReceiveMessageEdit(Message message)
     {
         // Ignore messages not meant for this channel
-        if (message.Id != MessageWrapper.Message.Id)
+        if (message.Id != Message.Id)
             return;
 
-        MessageWrapper.Message.EmbedData = message.EmbedData;
+        Message.EmbedData = message.EmbedData;
 		//Console.WriteLine(update.NewEmbedContent);
-		MessageWrapper.Message.SetEmbedParsed(false);
-		embed = MessageWrapper.Message.Embed;
+		Message.SetEmbedParsed(false);
+		embed = Message.Embed;
 		ProcessPageChange = true;
 		StateHasChanged();
 	}
 
 	public async Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
 	{
-		if (update.TargetMessageId == MessageWrapper.Message.Id)
+		if (update.TargetMessageId == Message.Id)
 		{
 			int currentpage = embed.currentPage;
-			MessageWrapper.Message.EmbedData = update.NewEmbedContent;
-			MessageWrapper.Message.SetEmbedParsed(false);
-			embed = MessageWrapper.Message.Embed;
+			Message.EmbedData = update.NewEmbedContent;
+			Message.SetEmbedParsed(false);
+			embed = Message.Embed;
 			if (!embed.KeepPageOnUpdate)
 			{
 				embed.currentPage = embed.StartPage;
@@ -153,17 +156,17 @@
 
 	public async Task OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
 	{
-		if (update.TargetMessageId == MessageWrapper.Message.Id)
+		if (update.TargetMessageId == Message.Id)
 		{
 			try
 			{
 				if (update.NewEmbedContent is not null) {
 					IdToParentEmbedItem = new();
 					int currentpage = embed.currentPage;
-					MessageWrapper.Message.EmbedData = update.NewEmbedContent;
+					Message.EmbedData = update.NewEmbedContent;
 					//Console.WriteLine(update.NewEmbedContent);
-					MessageWrapper.Message.SetEmbedParsed(false);
-					embed = MessageWrapper.Message.Embed;
+					Message.SetEmbedParsed(false);
+					embed = Message.Embed;
 					if (!embed.KeepPageOnUpdate)
 					{
 						embed.currentPage = embed.StartPage;
@@ -200,7 +203,7 @@
 					// this also means that EmbedData will get more and more out of sync with the embed but that *should not* be an issue
 
 					var data = JsonSerializer.Deserialize<List<EmbedItem>>(update.ChangedEmbedItemsContent);
-					var embed = MessageWrapper.Message.Embed;
+					var embed = Message.Embed;
 
 					foreach (var item in data) {
 						if (item.ItemType == EmbedItemType.EmbedRow) {

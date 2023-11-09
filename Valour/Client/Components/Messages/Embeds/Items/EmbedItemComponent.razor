@@ -6,7 +6,7 @@
 		<EmbedTextItemComponent _item="@item"></EmbedTextItemComponent>
 		break;
 	case EmbedItemType.Button:
-		<EmbedButtonComponent _item="@item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
+		<EmbedButtonComponent _item="@item" Message="@Message" Embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
 		break;
 	case EmbedItemType.InputBox:
 		<EmbedInputBoxComponent _item="@item"></EmbedInputBoxComponent>
@@ -35,7 +35,7 @@
 	public EmbedItem item { get; set; }
 
 	[Parameter]
-	public ClientMessageWrapper Message { get; set; }
+	public Message Message { get; set; }
 
 	[Parameter]
 	public Embed embed { get; set; }

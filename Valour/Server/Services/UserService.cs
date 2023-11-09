@@ -70,7 +70,8 @@ public class UserService
             ValidateColorCode(updated.GlowColor) &&
             ValidateColorCode(updated.PrimaryColor) &&
             ValidateColorCode(updated.SecondaryColor) &&
-            ValidateColorCode(updated.TertiaryColor);
+            ValidateColorCode(updated.TertiaryColor) &&
+            ValidateColorCode(updated.TextColor);
         
         if (!colorsValid)
             return new TaskResult<UserProfile>(false, "Invalid color code. Must be Hex and start with #.");
@@ -87,6 +88,12 @@ public class UserService
         {
             if (updated.Bio.Length > 500)
                 return new TaskResult<UserProfile>(false, "Bio must be less than 500 characters.");
+        }
+        
+        // Bg image validation
+        if (updated.BackgroundImage is not null && old.BackgroundImage != updated.BackgroundImage)
+        {
+            return new TaskResult<UserProfile>(false, "Background images must be updated via the content api.");
         }
 
         try
@@ -413,7 +420,7 @@ public class UserService
 
     public async Task<User> GetCurrentUserAsync()
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null) return null;
         _currentUser = await GetAsync(token.UserId);
         return _currentUser;
@@ -425,7 +432,7 @@ public class UserService
 
     public async Task<long> GetCurrentUserIdAsync()
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         return token?.UserId ?? long.MinValue;
     }
     
@@ -530,8 +537,8 @@ public class UserService
             return;
         
         // Remove messages
-        var pMsgs = _db.PlanetMessages.Where(x => x.AuthorUserId == dbUser.Id);
-        _db.PlanetMessages.RemoveRange(pMsgs);
+        var pMsgs = _db.Messages.Where(x => x.AuthorUserId == dbUser.Id);
+        _db.Messages.RemoveRange(pMsgs);
         
         // Channel states
         var states = _db.UserChannelStates.Where(x => x.UserId == dbUser.Id);
@@ -539,9 +546,17 @@ public class UserService
 
         await _db.SaveChangesAsync();
 
+        // Channel membership
+        var dchannelMembers = _db.ChannelMembers.Where(x => x.UserId == dbUser.Id);
+        _db.ChannelMembers.RemoveRange(dchannelMembers);
+
+        await _db.SaveChangesAsync();
+        
         // Direct Message Channels
-        var dChannels = await _db.DirectChatChannels
-            .Where(x => x.UserOneId == dbUser.Id || x.UserTwoId == dbUser.Id)
+        var dChannels = await _db.Channels
+            .Include(x => x.Members)
+            .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat && 
+                                x.Members.Any(m => m.UserId == dbUser.Id))
             .ToListAsync();
 
         foreach (var dc in dChannels)
@@ -558,15 +573,9 @@ public class UserService
             _db.Notifications.RemoveRange(dnots);
             
             await _db.SaveChangesAsync();
-
-            // messages
-            var dMsgs = _db.DirectMessages.Where(x => x.ChannelId == dc.Id);
-            _db.DirectMessages.RemoveRange(dMsgs);
-            
-            await _db.SaveChangesAsync();
         }
 
-        _db.DirectChatChannels.RemoveRange(dChannels);
+        _db.Channels.RemoveRange(dChannels);
         
         await _db.SaveChangesAsync();
 
@@ -675,9 +684,9 @@ public class UserService
     public async Task<List<long>> GetAccessiblePlanetChatChannelIdsAsync(long userId)
     {
         var channelIds = await _db.PlanetMembers.Include(x => x.Planet)
-            .ThenInclude(x => x.ChatChannels)
+            .ThenInclude(x => x.Channels)
             .Where(x => x.UserId == userId)
-            .SelectMany(x => x.Planet.ChatChannels.Select(x => x.Id))
+            .SelectMany(x => x.Planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat).Select(x => x.Id))
             .ToListAsync();
         
         return channelIds;

@@ -33,6 +33,7 @@
     height: 22px;
     float: right;
     margin-right: 4px;
+    border-radius: 50%;
 }
 
 .planet-about-icon {

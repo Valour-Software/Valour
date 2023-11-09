@@ -4,14 +4,14 @@ using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows.ChatWindows;
 
-public abstract class ChatChannelWindow : ClientWindow
+public class ChatChannelWindow : ClientWindow
 {
     private readonly string _lockKey = Guid.NewGuid().ToString();
 
     /// <summary>
     /// The channel for this chat window
     /// </summary>
-    public IChatChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
     /// <summary>
     /// The component that belongs to this window
@@ -32,19 +32,19 @@ public abstract class ChatChannelWindow : ClientWindow
         Component = newComponent;
     }
 
-    public ChatChannelWindow(IChatChannel channel)
+    public ChatChannelWindow(Channel channel)
     {
         Channel = channel;
 
-        if (channel is PlanetChannel planetChannel)
+        if (channel.PlanetId is not null)
         {
-            ValourClient.AddPlanetLock(_lockKey, planetChannel.PlanetId);
+            ValourClient.AddPlanetLock(_lockKey, channel.PlanetId.Value);
         }
     }
 
     public override async Task OnClosedAsync()
     {
-        if (Channel is PlanetChannel)
+        if (Channel.PlanetId is not null)
         {
             await ValourClient.RemovePlanetLock(_lockKey);
         }

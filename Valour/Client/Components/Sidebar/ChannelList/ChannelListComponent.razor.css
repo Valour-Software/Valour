@@ -126,11 +126,11 @@
     position: relative;
 }
 
-::deep .channel-wrapper:hover .channel {
+::deep .channel-wrapper:hover > .channel {
     background: rgba(255, 255, 255, 0.075);
 }
 
-::deep .channel-wrapper:active .channel {
+::deep .channel-wrapper:active > .channel {
     background: rgba(255, 255, 255, 0.125);
 }
 

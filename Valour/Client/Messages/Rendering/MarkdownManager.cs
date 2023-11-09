@@ -1,9 +1,13 @@
 ﻿using Markdig;
 using Markdig.Extensions;
 using System.Text.RegularExpressions;
+using Markdig.Blazor;
+using Markdig.Extensions.AutoLinks;
 using Markdig.Extensions.MediaLinks;
 using Valour.Client.Device;
+using Valour.Client.Markdig;
 using Valour.Client.Messages;
+using Markdown = Markdig.Markdown;
 
 namespace Valour.Client.Messages;
 
@@ -15,19 +19,9 @@ namespace Valour.Client.Messages;
 
 public static class MarkdownManager
 {
-    public static MarkdownPipeline pipeline;
+    public static BlazorRenderer Renderer;
+    public static MarkdownPipeline Pipeline;
     private static readonly MediaOptions MediaOptions = new();
-
-    public static MarkdownPipelineBuilder UseVooperMediaLinks(this MarkdownPipelineBuilder pipeline,
-        MediaOptions? options = null)
-    {
-        if (!pipeline.Extensions.Contains<VooperMediaLinkExtension>())
-        {
-            pipeline.Extensions.Add(new VooperMediaLinkExtension(options));
-        }
-
-        return pipeline;
-    }
 
     static MarkdownManager()
     {
@@ -36,29 +30,25 @@ public static class MarkdownManager
 
     public static void RegenPipeline()
     {
-        pipeline = new MarkdownPipelineBuilder().DisableHtml()
-            //.UseVooperMediaLinks()
-            .UseAutoLinks()
-            .UseMathematics()
-            .UseAbbreviations()
-            .UseCitations()
-            .UseCustomContainers()
-            .UseDiagrams()
-            .UseFigures()
-            .UseFootnotes()
-            .UseGlobalization()
+        Pipeline = new MarkdownPipelineBuilder()
+            .DisableHtml()
+            .UseAutoLinks(options: new AutoLinkOptions()
+            {
+                OpenInNewWindow = true,
+            })
+            .UsePipeTables()
             .UseGridTables()
             .UseListExtras()
-            .UsePipeTables()
-            .UseTaskLists()
             .UseEmphasisExtras()
             .UseEmojiAndSmiley(DevicePreferences.AutoEmoji)
-            .UseReferralLinks("nofollow")
-            .UseSoftlineBreakAsHardlineBreak()
+            .UseMentionExtension()
+            .UseStockExtension()
             .Build();
-    }
 
-    public static readonly Regex sanitizeLink = new("(?<=follow\">).+?(?=<)");
+        Renderer = new BlazorRenderer(null, true);
+        Renderer.ObjectRenderers.Add(new MentionRenderer());
+        Renderer.ObjectRenderers.Add(new StockRenderer());
+    }
 
     public static string GetHtml(string content)
     {
@@ -69,7 +59,7 @@ public static class MarkdownManager
 
         try
         {
-            markdown = Markdown.ToHtml(content, pipeline);
+            markdown = Markdown.ToHtml(content, Pipeline);
         }
         catch (Exception e)
         {
@@ -77,9 +67,7 @@ public static class MarkdownManager
             Console.WriteLine("This may be nothing to worry about, a user may have added an insane table or such.");
             Console.WriteLine(e.Message);
         }
-
-        markdown = markdown.Replace("<a", "<a target='_blank'");
-
+        
         return markdown;
     }
 }

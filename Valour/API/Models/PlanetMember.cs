@@ -241,8 +241,8 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given permission
     /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetChannel channel, Permission permission) =>
-        await channel.HasPermissionAsync(this, permission);
+    public async Task<bool> HasPermissionAsync(Channel channel, Permission permission) =>
+        await channel.HasPermissionAsync(UserId, permission);
 
     public async Task<bool> HasPermissionAsync(PlanetPermission permission)
     {

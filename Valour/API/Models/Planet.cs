@@ -21,9 +21,10 @@ public class Planet : LiveModel, ISharedPlanet
 
     // Cached values
 
-    private PlanetModelObserver<PlanetChatChannel> ChatChannels { get; set; }
-    private PlanetModelObserver<PlanetVoiceChannel> VoiceChannels { get; set; }
-    private PlanetModelObserver<PlanetCategory> Categories { get; set; }
+    private PlanetModelObserver<Channel> AllChannels { get; set; }
+    private PlanetModelObserver<Channel> ChatChannels { get; set; }
+    private PlanetModelObserver<Channel> VoiceChannels { get; set; }
+    private PlanetModelObserver<Channel> Categories { get; set; }
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
     private List<PlanetInvite> Invites { get; set; }
@@ -72,6 +73,7 @@ public class Planet : LiveModel, ISharedPlanet
     public Planet()
     {
         // Setup self-observing collections
+        AllChannels = new(this);
         ChatChannels = new(this);
         VoiceChannels = new(this);
         Categories = new(this);
@@ -158,12 +160,12 @@ public class Planet : LiveModel, ISharedPlanet
     /// <summary>
     /// Returns the primary channel of the planet
     /// </summary>
-    public async ValueTask<PlanetChatChannel> GetPrimaryChannelAsync(bool refresh = false)
+    public async ValueTask<Channel> GetPrimaryChannelAsync(bool refresh = false)
     {
         if (!ChatChannels.Initialized || refresh)
             await LoadChannelsAsync();
         
-        return ChatChannels.FirstOrDefault(x => x.IsDefault);
+        return ChatChannels.FirstOrDefault(x => x.IsDefault == true);
     }
 
     public async ValueTask<PlanetRole> GetDefaultRoleAsync(bool refresh = false)
@@ -173,35 +175,30 @@ public class Planet : LiveModel, ISharedPlanet
 
         return Roles?.FirstOrDefault(x => x.IsDefault);
     }
+    
+    public async ValueTask<List<Channel>> GetAllChannelsAsync(bool refresh = false)
+    {
+        if (!AllChannels.Initialized || refresh)
+            await LoadChannelsAsync();
+
+        return AllChannels.GetContents();
+    }
 
     /// <summary>
     /// Returns the categories of this planet
     /// </summary>
-    public async ValueTask<List<PlanetCategory>> GetCategoriesAsync(bool refresh = false)
+    public async ValueTask<List<Channel>> GetCategoriesAsync(bool refresh = false)
     {
         if (!Categories.Initialized || refresh)
-            await LoadCategoriesAsync();
+            await LoadChannelsAsync();
 
         return Categories.GetContents();
     }
 
     /// <summary>
-    /// Requests and caches categories from the server
-    /// </summary>
-    public async Task LoadCategoriesAsync()
-    {
-        var categories = (await Node.GetJsonAsync<List<PlanetCategory>>($"{IdRoute}/categories")).Data;
-
-        if (categories is null)
-            return;
-
-        await Categories.Initialize(categories);
-    }
-
-    /// <summary>
     /// Returns the channels of a planet
     /// </summary>
-    public async ValueTask<List<PlanetChatChannel>> GetChannelsAsync(bool refresh = false)
+    public async ValueTask<List<Channel>> GetChatChannelsAsync(bool refresh = false)
     {
         if (!ChatChannels.Initialized || refresh)
             await LoadChannelsAsync();
@@ -214,35 +211,48 @@ public class Planet : LiveModel, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = (await Node.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/channels/chat")).Data;
+        var channels = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels")).Data;
         if (channels is null)
             return;
+        
+        List<Channel> chatChannels = new();
+        List<Channel> voiceChannels = new();
+        List<Channel> categories = new();
 
-        await ChatChannels.Initialize(channels);
+        foreach (var channel in channels)
+        {
+            switch (channel.ChannelType)
+            {
+                case ChannelTypeEnum.PlanetChat:
+                    chatChannels.Add(channel);
+                    break;
+                case ChannelTypeEnum.PlanetCategory:
+                    categories.Add(channel);
+                    break;
+                case ChannelTypeEnum.PlanetVoice:
+                    voiceChannels.Add(channel);
+                    break;
+                default:
+                    Console.WriteLine("[!!!] Planet returned unknown or non-planet channel type!");
+                    break;
+            }
+        }
+
+        await AllChannels.Initialize(channels);
+        await ChatChannels.Initialize(chatChannels);
+        await Categories.Initialize(categories);
+        await VoiceChannels.Initialize(voiceChannels);
     }
 
     /// <summary>
     /// Returns the voice channels of a planet
     /// </summary>
-    public async ValueTask<List<PlanetVoiceChannel>> GetVoiceChannelsAsync(bool refresh = false)
+    public async ValueTask<List<Channel>> GetVoiceChannelsAsync(bool refresh = false)
     {
         if (!VoiceChannels.Initialized || refresh)
-            await LoadVoiceChannelsAsync();
+            await LoadChannelsAsync();
 
         return VoiceChannels.GetContents();
-    }
-
-    /// <summary>
-    /// Requests and caches voice channels from the server
-    /// </summary>
-    public async Task LoadVoiceChannelsAsync()
-    {
-        var channels = (await Node.GetJsonAsync<List<PlanetVoiceChannel>>($"{IdRoute}/channels/voice")).Data;
-
-        if (channels is null)
-            return;
-        
-        await VoiceChannels.Initialize(channels);
     }
 
     /// <summary>
@@ -407,12 +417,21 @@ public class Planet : LiveModel, ISharedPlanet
         Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
+    
+    /// <summary>
+    /// Returns the member for the current user in this planet (if it exists)
+    /// </summary>
+    public ValueTask<PlanetMember> GetSelfMemberAsync(bool forceRefresh = false)
+    {
+        return GetMemberByUserAsync(ValourClient.Self.Id, forceRefresh);
+    }
+
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
+    public ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool forceRefresh = false)
     {
-        return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
+        return PlanetMember.FindAsyncByUser(userId, Id, forceRefresh);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

@@ -142,36 +142,12 @@ public class PlanetApi
         var channels = await planetService.GetChannelsAsync(id);
         
         // Collection for channels that member can see
-        var allowedChannels = new List<PlanetChannel>();
+        var allowedChannels = new List<Channel>();
 
         foreach (var channel in channels)
         {
-            switch (channel)
-            {
-                case PlanetChatChannel:
-                {
-                    if (await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
-                        allowedChannels.Add(channel);
-
-                    break;
-                }
-                case PlanetVoiceChannel:
-                {
-                    if (await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.View))
-                        allowedChannels.Add(channel);
-
-                    break;
-                }
-                case PlanetCategory:
-                {
-                    if (await memberService.HasPermissionAsync(member, channel, CategoryPermissions.View))
-                        allowedChannels.Add(channel);
-                    
-                    break;
-                }
-                default:
-                    throw new NotImplementedException($"Case for Permission with type {channel.Type} not implemented");
-            }
+            if (await memberService.HasPermissionAsync(member, channel, ChannelPermissions.View))
+                allowedChannels.Add(channel);
         }
 
         return Results.Json(allowedChannels);
@@ -190,7 +166,7 @@ public class PlanetApi
         
         var chatChannels = await planetService.GetChatChannelsAsync(id);
 
-        var allowedChannels = new List<PlanetChatChannel>();
+        var allowedChannels = new List<Channel>();
 
         foreach (var channel in chatChannels)
         {
@@ -214,7 +190,7 @@ public class PlanetApi
         
         var voiceChannels = await planetService.GetVoiceChannelsAsync(id);
 
-        var allowedChannels = new List<PlanetVoiceChannel>();
+        var allowedChannels = new List<Channel>();
 
         foreach (var channel in voiceChannels)
         {
@@ -238,7 +214,7 @@ public class PlanetApi
         
         var categories = await planetService.GetCategoriesAsync(id);
 
-        var allowedCategories = new List<PlanetCategory>();
+        var allowedCategories = new List<Channel>();
 
         foreach (var category in categories)
         {
@@ -450,9 +426,8 @@ public class PlanetApi
     public static async Task<IResult> InsertChildRouteAsync(
         [FromBody] InsertChannelChildModel model,
         long planetId,
-        PlanetCategoryService categoryService,
         PlanetMemberService memberService,
-        PlanetChannelService channelService,
+        ChannelService channelService,
         PlanetService planetService)
     {
         if (planetId != model.PlanetId)
@@ -466,8 +441,8 @@ public class PlanetApi
         if (model.ParentId is not null)
         {
             // Get the category
-            var category = await categoryService.GetAsync(model.ParentId.Value);
-            if (category is null)
+            var category = await channelService.GetAsync(model.ParentId.Value);
+            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
             if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
@@ -482,7 +457,7 @@ public class PlanetApi
         // We need to get the old category and ensure we have permissions in it
         if (inserting.ParentId is not null)
         {
-            var oldCategory = await categoryService.GetAsync(inserting.ParentId.Value);
+            var oldCategory = await channelService.GetAsync(inserting.ParentId.Value);
             if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
@@ -501,10 +476,8 @@ public class PlanetApi
     public static async Task<IResult> SetChildOrderRouteAsync(
         [FromBody] OrderChannelsModel model,
         long planetId,
-        PlanetCategoryService categoryService,
         PlanetMemberService memberService,
-        PlanetChannelService channelService,
-        PlanetService planetService)
+        ChannelService channelService)
     {
         if (model.PlanetId != planetId)
             return ValourResult.BadRequest("PlanetId mismatch.");
@@ -517,8 +490,8 @@ public class PlanetApi
         // Get the category
         if (model.CategoryId is not null)
         {
-            var category = await categoryService.GetAsync(model.CategoryId.Value);
-            if (category is null)
+            var category = await channelService.GetAsync(model.CategoryId.Value);
+            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
             if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
@@ -561,7 +534,7 @@ public class PlanetApi
         }
         
         // Actually do the changes
-        var result = await categoryService.SetChildOrderAsync(planetId, model.CategoryId, model.Order);
+        var result = await channelService.SetChildOrderAsync(planetId, model.CategoryId, model.Order);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

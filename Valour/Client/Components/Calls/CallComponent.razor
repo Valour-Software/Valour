@@ -45,7 +45,7 @@
         </div>;
         
     
-    public PlanetVoiceChannel ActiveChannel { get; set; } = null;
+    public Channel ActiveChannel { get; set; } = null;
     
     public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
     
@@ -112,17 +112,23 @@
 
     /* Methods that invoke JS */
 
-    public async Task Initialize(PlanetVoiceChannel channel)
+    public async Task Initialize(Channel channel)
     {
+        if (!ISharedChannel.VoiceChannelTypes.Contains(channel.ChannelType))
+        {
+            return;
+        }
+        
         if (ActiveChannel is not null)
         {
             // Cleanup old call
             PeerComponents.Clear();
+            await LeaveRoom();
         }
 
         ActiveChannel = channel;
 
-        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, channel.PlanetId);
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, channel.PlanetId!.Value);
 
         _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
         

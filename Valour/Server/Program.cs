@@ -95,17 +95,13 @@ namespace Valour.Server
             DynamicApis = new() {
                 new DynamicAPI<UserApi>()                     .RegisterRoutes(app),
                 new DynamicAPI<PlanetApi>()                   .RegisterRoutes(app),
-                new DynamicAPI<PlanetChatChannelApi>()        .RegisterRoutes(app),
-                new DynamicAPI<PlanetVoiceChannelApi>()       .RegisterRoutes(app),
-                new DynamicAPI<PlanetCategoryApi>()           .RegisterRoutes(app),
-                new DynamicAPI<PlanetChannelApi>()            .RegisterRoutes(app),
+                new DynamicAPI<ChannelApi>()                  .RegisterRoutes(app),
                 new DynamicAPI<PlanetMemberApi>()             .RegisterRoutes(app),
                 new DynamicAPI<PlanetRoleApi>()               .RegisterRoutes(app),
                 new DynamicAPI<PlanetInviteApi>()             .RegisterRoutes(app),
                 new DynamicAPI<PlanetBanApi>()                .RegisterRoutes(app),
                 new DynamicAPI<PermissionsNodeApi>()          .RegisterRoutes(app),
                 new DynamicAPI<UserFriendApi>()               .RegisterRoutes(app),
-                new DynamicAPI<DirectChatChannelApi>()        .RegisterRoutes(app),
                 new DynamicAPI<OauthAppAPI>()                 .RegisterRoutes(app),
                 new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app),
                 new DynamicAPI<EcoApi>()                      .RegisterRoutes(app),
@@ -291,19 +287,14 @@ namespace Valour.Server
             services.AddScoped<CurrentlyTypingService>();
             services.AddScoped<OauthAppService>();
             services.AddScoped<PermissionsNodeService>();
-
-            services.AddScoped<DirectChatChannelService>();
+            
             services.AddScoped<OauthAppService>();
             services.AddScoped<PlanetBanService>();
-            services.AddScoped<PlanetCategoryService>();
-            services.AddScoped<PlanetChannelService>();
-            services.AddScoped<PlanetChatChannelService>();
+            services.AddScoped<ChannelService>();
             services.AddScoped<PlanetInviteService>();
             services.AddScoped<PlanetMemberService>();
-            services.AddScoped<PlanetMessageService>();
             services.AddScoped<PlanetRoleService>();
             services.AddScoped<PlanetService>();
-            services.AddScoped<PlanetVoiceChannelService>();
             services.AddScoped<TenorFavoriteService>();
             services.AddScoped<TokenService>();
             services.AddScoped<UserFriendService>();

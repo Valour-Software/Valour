@@ -1,43 +1,43 @@
-@inject IJSRuntime JS
-@inject IBlazorContextMenuService contextService
+@inject IJSRuntime JsRuntime
+@inject IBlazorContextMenuService ContextService
 @using Valour.Api.Models.Messages
 
-<ContextMenu Id='message-context' CssClass='context' class='member-context'>
+<ContextMenu Id="message-context" CssClass="context" class='member-context'>
     <BlazorContextMenu.Item CssClass='context-item'>
         Copy
-        <SubMenu CssClass='context-sub'>
-            <BlazorContextMenu.Item OnClick='OnClickCopyText' CssClass='context-item'>Text</BlazorContextMenu.Item>
-            <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-item'>Message Id</BlazorContextMenu.Item>
+        <SubMenu CssClass="context-sub">
+            <BlazorContextMenu.Item OnClick="@OnClickCopyText" CssClass="context-item">Text</BlazorContextMenu.Item>
+            <BlazorContextMenu.Item OnClick="@OnClickCopyId" CssClass="context-item">Message Id</BlazorContextMenu.Item>
         </SubMenu>
     </BlazorContextMenu.Item>
 
-    <BlazorContextMenu.Item OnClick='OnClickReply' CssClass='context-item'>
+    <BlazorContextMenu.Item OnClick="@OnClickReply" CssClass="context-item">
         Reply
     </BlazorContextMenu.Item>
     
-    <BlazorContextMenu.Item OnClick='OnClickReport' CssClass='context-item danger'>
+    <BlazorContextMenu.Item OnClick="@OnClickReport" CssClass="context-item danger">
         Report
     </BlazorContextMenu.Item>
 
-    @if (MessageWrapper.Message.AuthorUserId == ValourClient.Self.Id)
+    @if (Message.AuthorUserId == ValourClient.Self.Id)
     {
-        <BlazorContextMenu.Item OnClick='OnClickEdit' CssClass='context-item'>
+        <BlazorContextMenu.Item OnClick="@OnClickEdit" CssClass="context-item">
             Edit
         </BlazorContextMenu.Item>
     }
 
     @if (DeletePermission == PermissionState.True)
     {
-        <BlazorContextMenu.Item OnClick='OnClickDelete' CssClass='context-item'>
+        <BlazorContextMenu.Item OnClick="@OnClickDelete" CssClass="context-item">
             Delete
         </BlazorContextMenu.Item>
     }
 
     @if (AuthorMember is not null)
     {
-        <BlazorContextMenu.Item CssClass='context-item'>
+        <BlazorContextMenu.Item CssClass="context-item">
             Member
-            <SubMenu CssClass='context-sub'>
+            <SubMenu CssClass="context-sub">
                 <InnerMemberContextMenuComponent></InnerMemberContextMenuComponent>
             </SubMenu>
         </BlazorContextMenu.Item>
@@ -52,20 +52,20 @@
 
     public static MessageComponent MessageComponent { get; set; }
 
-    public static ClientMessageWrapper MessageWrapper { get; set; }
+    public static Message Message { get; set; }
 
     public static PlanetMember AuthorMember { get; set; }
 
     public static PermissionState DeletePermission = PermissionState.False;
 
-    public static async Task Initialize(ClientMessageWrapper messageWrapper, ChatChannelWindowComponent window, MessageComponent component)
+    public static async Task Initialize(Message message, ChatChannelWindowComponent window, MessageComponent component)
     {
         MessageComponent = component;
-        MessageWrapper = messageWrapper;
+        Message = message;
 
-        if (messageWrapper.Message is PlanetMessage)
+        if (message.PlanetId is not null)
         {
-            AuthorMember = await ((PlanetMessage)messageWrapper.Message).GetAuthorMemberAsync();
+            AuthorMember = await message.GetAuthorMemberAsync();
             await InnerMemberContextMenuComponent.Initialize(AuthorMember, window.Window);
         }
         else
@@ -75,7 +75,7 @@
 
         // Console.WriteLine(window.Channel_Permissions.Code + " | " + window.Channel_Permissions.Mask);
 
-        if (messageWrapper.Message.AuthorUserId == ValourClient.Self.Id)
+        if (message.AuthorUserId == ValourClient.Self.Id)
         {
             DeletePermission = PermissionState.True;
         }
@@ -95,16 +95,16 @@
 
     public async Task OnClickReply()
     {
-        var input = MessageComponent.Holder.Window.Component.InputComponent;
-        await input.SetReplyMessage(MessageWrapper);
+        var input = MessageComponent.Holder.Window.Component.MessageHolder.InputComponent;
+        await input.SetReplyMessage(Message);
     }
 
     public async Task OnClickDelete()
     {
-        ConfirmModalData confirm = new("Delete message?", MessageWrapper.Message.Content, "Delete", "Cancel",
+        ConfirmModalData confirm = new("Delete message?", Message.Content, "Delete", "Cancel",
             async () =>
             {
-                await MessageWrapper.Message.DeleteAsync();
+                await Message.DeleteAsync();
             },
             async () =>
             {
@@ -123,14 +123,10 @@
         var report = new Report()
         {
             ReportingUserId = ValourClient.Self.Id,
-            MessageId = MessageComponent.MessageData.Message.Id,
-            ChannelId = MessageComponent.MessageData.Message.ChannelId,
+            MessageId = MessageComponent.Message.Id,
+            ChannelId = MessageComponent.Message.ChannelId,
+            PlanetId = MessageComponent.Message.PlanetId
         };
-
-        if (MessageComponent.MessageData.Message is PlanetMessage planetMessage)
-        {
-            report.PlanetId = planetMessage.PlanetId;
-        }
         
         ModalParameters par = new();
         par.Add("Report", report);
@@ -144,10 +140,10 @@
     }
 
 	public async Task OnClickCopyText(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", MessageWrapper.Message.Content);
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Message.Content);
 	}
 
 	public async Task OnClickCopyId(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", MessageWrapper.Message.Id);
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Message.Id);
 	}
 }

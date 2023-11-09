@@ -42,11 +42,17 @@
 }
 
 .profile-card .inner-card {
+    display: flex;
+    flex-direction: column;
     position: relative;
     border-radius: 16px;
     background-color: var(--main-1);
     height: 100%;
     width: 100%;
+}
+
+.inner-card > * {
+    position: relative;
 }
 
 .card-subtitle {
@@ -107,11 +113,21 @@
 .top-section .names .name-and-tag {
     color: #7A7A7A;
     font-size: 0.8em;
+    text-shadow: 0 0 10px black;
+}
+
+.bottom-btns {
+    display: flex;
+}
+
+.bottom-btns .v-btn {
+    border-radius: 0;
 }
 
 .mid-section {
     padding: 16px;
     padding-top: 0;
+    flex-grow: 1;
 }
 
 .mid-section .mid-inner {
@@ -120,6 +136,7 @@
 
 .mid-section hr {
     border-color: #7A7A7A;
+    text-shadow: 0 0 10px black;
 }
 
 .headline {
@@ -127,6 +144,7 @@
     text-align: center;
     margin: 0;
     margin-bottom: 1em;
+    text-shadow: 0 0 10px black;
 }
 
 
@@ -138,6 +156,7 @@
     padding: 8px;
     display: inline-block;
     border-radius: 8px;
+    text-shadow: 0 0 10px black;
 }
 
 .status-bubble {
@@ -158,4 +177,13 @@
 .body-text {
     color: #7A7A7A;
     margin: 0;
+    text-shadow: 0 0 10px black;
+}
+
+.inner-bg {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    filter: brightness(0.4);
+    border-radius: 30px;
 }

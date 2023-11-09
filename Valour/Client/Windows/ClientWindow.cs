@@ -1,4 +1,6 @@
+using Valour.Api.Models;
 using Valour.Client.Components.Windows;
+using Valour.Client.Windows.ChatWindows;
 
 namespace Valour.Client.Windows;
 public abstract class ClientWindow
@@ -20,6 +22,17 @@ public abstract class ClientWindow
     }
 
     public abstract Type GetComponentType();
+
+    // TODO: Probably a better way to do this
+    public async Task<Planet> GetPlanetAsync()
+    {
+        if (this is ChatChannelWindow chat)
+        {
+            return await chat.Channel.GetPlanetAsync();
+        }
+
+        return null;
+    }
 
     public virtual async Task OnClosedAsync()
     {

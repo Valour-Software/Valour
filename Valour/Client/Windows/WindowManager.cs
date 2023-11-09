@@ -1,12 +1,11 @@
 ﻿using Valour.Api.Client;
 using Valour.Client.Components.Windows;
-using Valour.Api.Items;
 using Valour.Shared;
 using Valour.Api.Nodes;
 using Valour.Api.Models;
 using Valour.Client.Windows.ChatWindows;
-using Valour.Api.Models;
 using System.Collections.Concurrent;
+using Valour.Shared.Models;
 
 namespace Valour.Client.Windows;
 
@@ -39,7 +38,7 @@ public class WindowManager
     /// <summary>
     /// The window currently selected by the user (last clicked)
     /// </summary>
-    private ClientWindow SelectedWindow;
+    private ClientWindow _selectedWindow;
 
     /// <summary>
     /// Event for when a new window is selected
@@ -69,7 +68,7 @@ public class WindowManager
 	/// <summary>
 	/// channel.Id : text content
 	/// </summary>
-	public ConcurrentDictionary<long, string> NotYetSentMessages = new();
+	public readonly ConcurrentDictionary<long, string> NotYetSentMessages = new();
 
 	public WindowManager()
     {
@@ -108,14 +107,7 @@ public class WindowManager
         await Log($"[WindowManager]: Added window {window.Id}");
         
         await SetSelectedWindow(window);
-        if (window is IPlanetWindow planetWindow)
-        {
-            await SetFocusedPlanet(planetWindow.Planet);
-        }
-        else
-        {
-            await SetFocusedPlanet(null);
-        }
+        await SetFocusedPlanet(await window.GetPlanetAsync());
     }
 
 
@@ -156,10 +148,14 @@ public class WindowManager
     /// <summary>
     /// Swaps the channel a chat channel window is showing
     /// </summary>
-    public async Task SwapWindowChannel(ChatChannelWindow window, IChatChannel newChannel)
+    public async Task SwapWindowChannel(ChatChannelWindow window, Channel newChannel)
     {
         // Already that channel
         if (window.Channel.Id == newChannel.Id)
+            return;
+        
+        // Not a chat channel
+        if (!ISharedChannel.ChatChannelTypes.Contains(newChannel.ChannelType))
             return;
 
         await Log("[WindowManager]: Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);
@@ -187,26 +183,22 @@ public class WindowManager
     public async Task SetSelectedWindow(ClientWindow window)
     {
         // Check to ensure window is new and valid
-        if (window == null || (SelectedWindow == window)) return;
+        if (window == null || (_selectedWindow == window)) return;
 
         // Set selected window
-        SelectedWindow = window;
+        _selectedWindow = window;
 
         await Log($"[WindowManager]: Set active window to {window.Id}");
-
-        // If Chat Channel, set focused planet to the channel's planet
-        if (window is PlanetChatChannelWindow)
-        {
-            var chatW = window as PlanetChatChannelWindow;
-            await SetFocusedPlanet(await chatW.PlanetChannel.GetPlanetAsync());
-        }
-
-
+        
+        await SetFocusedPlanet(await window.GetPlanetAsync());
+        
         // Run event for window selection
         if (OnWindowSelect != null)
         {
             await Log($"[WindowManager]: Invoking window change event");
-            await OnWindowSelect?.Invoke();
+            
+            if (OnWindowSelect is not null)
+                await OnWindowSelect.Invoke();
         }
     }
 
@@ -215,10 +207,10 @@ public class WindowManager
     /// </summary>
     public ClientWindow GetSelectedWindow()
     {
-        if (SelectedWindow is null)
-            SelectedWindow = Windows.FirstOrDefault();
+        if (_selectedWindow is null)
+            _selectedWindow = Windows.FirstOrDefault();
             
-        return SelectedWindow;
+        return _selectedWindow;
     }
 
     /// <summary>
@@ -267,14 +259,7 @@ public class WindowManager
         //await ForceChatRefresh();
         
         await SetSelectedWindow(newWindow);
-        if (newWindow is IPlanetWindow planetWindow)
-        {
-            await SetFocusedPlanet(planetWindow.Planet);
-        }
-        else
-        {
-            await SetFocusedPlanet(null);
-        }
+        await SetFocusedPlanet(await newWindow.GetPlanetAsync());
     }
 
     /// <summary>
@@ -302,11 +287,11 @@ public class WindowManager
             await OnWindowClosed.Invoke(window);
     }
 
-    public async Task ForceChatRefresh()
+    private async Task ForceChatRefresh()
     {
         foreach (var chat in Windows.OfType<ChatChannelWindow>())
         {
-            if (chat != null && chat.Component != null && chat.Component.MessageHolder != null)
+            if (chat.Component != null && chat.Component.MessageHolder != null)
             {
                 // Force full window refresh
                 await chat.Component.SetupNewChannelAsync();

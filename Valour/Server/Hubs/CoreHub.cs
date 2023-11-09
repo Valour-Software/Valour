@@ -130,7 +130,7 @@ namespace Valour.Server.Database
             if (authToken == null) return new TaskResult(false, "Failed to connect to Channel: SignalR was not authenticated.");
             
             // Grab channel
-            var channel = await _db.PlanetChatChannels.FindAsync(channelId);
+            var channel = await _db.Channels.FindAsync(channelId);
             if (channel is null)
                 return new TaskResult(false, "Failed to connect to Channel: Channel was not found.");
             

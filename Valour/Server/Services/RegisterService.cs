@@ -18,7 +18,7 @@ public class RegisterService
                                          "\n- Valour (desktop) supports opening multiple windows with controls on the top right of each window. ";
     
     private readonly PlanetMemberService _memberService;
-    private readonly DirectChatChannelService _dmService;
+    private readonly ChannelService _channelService;
     private readonly UserFriendService _friendService;
     private readonly UserService _userService;
 
@@ -28,14 +28,14 @@ public class RegisterService
     
     public RegisterService(
         PlanetMemberService memberService,
-        DirectChatChannelService dmService,
+        ChannelService channelService,
         UserFriendService friendService,
         UserService userService,
         ILogger<RegisterService> logger,
         ValourDB db)
     {
         _memberService = memberService;
-        _dmService = dmService;
+        _channelService = channelService;
         _friendService = friendService;
         _userService = userService;
         _logger = logger;
@@ -243,28 +243,21 @@ public class RegisterService
             }
 
             // Send direct message from Victor to user
-            var victorDm = await _dmService.CreateAsync(user.Id, ISharedUser.VictorUserId);
-            if (victorDm.Success)
-            {
-                var victorMessage = await _dmService.PostMessageAsync(victorDm.Data, new DirectMessage()
-                {
-                    Content = ValourWelcome,
-                    TimeSent = DateTime.UtcNow,
-                    ChannelId = victorDm.Data.Id,
-                    AuthorUserId = ISharedUser.VictorUserId,
-                    Fingerprint = Guid.NewGuid().ToString(),
-                }, ISharedUser.VictorUserId);
+            var victorDm = await _channelService.GetDirectChatAsync(user.Id, ISharedUser.VictorUserId, true);
 
-                if (!victorMessage.Success)
-                {
-                    Console.WriteLine("-- Error sending Victor DM! --");
-                    Console.WriteLine(victorMessage.Message);
-                }
-            }
-            else
+            var victorMessage = await _channelService.PostMessageAsync(new Message()
             {
-                Console.WriteLine("-- Error adding Victor DM channel! --");
-                Console.WriteLine(victorDm.Message);
+                Content = ValourWelcome,
+                TimeSent = DateTime.UtcNow,
+                ChannelId = victorDm.Id,
+                AuthorUserId = ISharedUser.VictorUserId,
+                Fingerprint = Guid.NewGuid().ToString(),
+            });
+
+            if (!victorMessage.Success)
+            {
+                Console.WriteLine("-- Error sending Victor DM! --");
+                Console.WriteLine(victorMessage.Message);
             }
 
         }

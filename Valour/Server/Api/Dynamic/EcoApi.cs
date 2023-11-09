@@ -126,7 +126,7 @@ public class EcoApi
         if (account is null)
             return ValourResult.NotFound("Account not found");
 
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
 
         if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
         {
@@ -277,7 +277,7 @@ public class EcoApi
         EcoService ecoService, 
         TokenService tokenService)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var accounts = await ecoService.GetAccountsAsync(authToken.UserId);
 
         List<EcoAccount> results = new();
@@ -308,7 +308,7 @@ public class EcoApi
         EcoService ecoService, 
         TokenService tokenService)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var account = await ecoService.GetGlobalAccountAsync(authToken.UserId);
         if (account is null)
             return ValourResult.NotFound("Account not found");
@@ -355,7 +355,7 @@ public class EcoApi
         EcoService ecoService,
         PlanetMemberService memberService)
     {
-        var token = await tokenService.GetCurrentToken();
+        var token = await tokenService.GetCurrentTokenAsync();
         
         if (account.UserId != token.UserId)
             return ValourResult.Forbid("You cannot create an account for another user");
@@ -398,7 +398,7 @@ public class EcoApi
         if (id != account.Id)
             return ValourResult.BadRequest("Id mismatch");
         
-        var token = await tokenService.GetCurrentToken();
+        var token = await tokenService.GetCurrentTokenAsync();
 
         if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
         {
@@ -448,7 +448,7 @@ public class EcoApi
         EcoService ecoService,
         PlanetMemberService memberService)
     {
-        var token = await tokenService.GetCurrentToken();
+        var token = await tokenService.GetCurrentTokenAsync();
 
         var account = await ecoService.GetAccountAsync(id);
         
@@ -530,7 +530,7 @@ public class EcoApi
         if (transaction is null)
             return ValourResult.BadRequest("Include transaction in body");
 
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var account = await ecoService.GetAccountAsync(transaction.AccountFromId);
         if (account is null)
             return ValourResult.NotFound("Account not found");

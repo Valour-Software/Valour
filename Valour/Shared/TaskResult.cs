@@ -30,7 +30,7 @@ namespace Valour.Shared
             Success = success;
             Message = message;
         }
-
+        
         public static TaskResult FromError(ITaskResult error) => new(false, error.Message);
 
         public static TaskResult FromError(string error) => new(false, error);
@@ -73,6 +73,8 @@ namespace Valour.Shared
             Message = message;
             Data = data;
         }
+
+        public static TaskResult<T> FromData(T data) => new(true, "Success", data);
 
         public static TaskResult<T> FromError(ITaskResult error) => new(false, error.Message);
 

@@ -15,39 +15,38 @@ namespace Valour.Client.Utility;
 
 internal static class EmbedGoToClickHandler
 {
-    public static async Task HandleClick(EmbedItem _item, EmbedComponent embedComponent, IModalService Modal, IJSRuntime JS)
+    public static async Task HandleClick(EmbedItem embedItem, EmbedComponent embedComponent, IModalService modal, IJSRuntime jsRuntime)
     {
-		var item = (IClickable)_item;
+		var item = (IClickable)embedItem;
 
         if (item.ClickTarget.Type == TargetType.Event)
         {
 			var interaction = new EmbedInteractionEvent()
 			{
 				EventType = EmbedIteractionEventType.ItemClicked,
-				MessageId = embedComponent.MessageWrapper.Message.Id,
-				ChannelId = embedComponent.MessageWrapper.Message.ChannelId,
+				MessageId = embedComponent.Message.Id,
+				ChannelId = embedComponent.Message.ChannelId,
 				TimeInteracted = DateTime.UtcNow,
 				ElementId = ((EmbedEventTarget)item.ClickTarget).EventElementId
 			};
 
-			if (embedComponent.MessageWrapper.Message is PlanetMessage)
+			if (embedComponent.Message.PlanetId is not null)
 			{
-				var planetMessage = embedComponent.MessageWrapper.Message as PlanetMessage;
-				PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, planetMessage.PlanetId);
+				var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, embedComponent.Message.PlanetId.Value);
 
-				interaction.PlanetId = SelfMember.PlanetId;
-				interaction.Author_MemberId = planetMessage.AuthorMemberId;
-				interaction.MemberId = SelfMember.Id;
+				interaction.PlanetId = selfMember.PlanetId;
+				interaction.Author_MemberId = embedComponent.Message.AuthorMemberId!.Value;
+				interaction.MemberId = selfMember.Id;
 			}
 
-			var response = await embedComponent.MessageWrapper.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
+			var response = await embedComponent.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
 
 			Console.WriteLine(response.Content.ReadAsStringAsync());
 		}
 
         else if (item.ClickTarget.Type == TargetType.EmbedPage)
         {
-			_item.Embed.currentPage = ((EmbedPageTarget)item.ClickTarget).PageNumber;
+			embedItem.Embed.currentPage = ((EmbedPageTarget)item.ClickTarget).PageNumber;
             embedComponent.UpdateItems();
         }
 
@@ -61,8 +60,7 @@ internal static class EmbedGoToClickHandler
 				"Cancel", 
 				async () =>
 				{
-					JS.InvokeAsync<object>("open", target.Href, "_blank");
-
+					await jsRuntime.InvokeAsync<object>("open", target.Href, "_blank");
 				},
 				async () =>
 				{
@@ -73,7 +71,7 @@ internal static class EmbedGoToClickHandler
 			ModalParameters modParams = new();
 			modParams.Add("Data", modalData);
 
-			Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+			modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
 		}
     }
 }

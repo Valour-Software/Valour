@@ -1,7 +1,7 @@
 @inject IJSRuntime JsRuntime
 
 <div class="stock-mention" style="@(_state == "closed" ? "display: inline-block;" : "")">
-    $@Mention.Data
+    $@Symbol
     
     <div class="stock-buttons">
         <button class="v-btn btn-left" @onclick="OnClickClose">
@@ -16,7 +16,7 @@
 @if (_state != "closed")
 {
     <!-- TradingView Widget BEGIN -->
-    <div @key="@Mention.Data" id="@_summaryId" class="tradingview-widget-container" style="@(_state == "chart" ? "display: none" : "")">
+    <div @key="@Symbol" id="@_summaryId" class="tradingview-widget-container" style="@(_state == "chart" ? "display: none" : "")">
         <div class="tradingview-widget-container__widget"></div>
         <div class="tradingview-widget-copyright">
             <a class="nohide" href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
@@ -33,7 +33,7 @@
 
 @code {
     [Parameter]
-    public Mention Mention { get; set; }
+    public string Symbol { get; set; }
     
     /// <summary>
     /// Module for calling Javascript functions
@@ -86,7 +86,7 @@
             return;
         
         _initCard = true;
-        await _jsModule.InvokeVoidAsync("setupSummary", _summaryId, Mention.Data);
+        await _jsModule.InvokeVoidAsync("setupSummary", _summaryId, Symbol);
     }
 
     private async Task LoadChart()
@@ -95,7 +95,7 @@
             return;
         
         _initChart = true;
-        await _jsModule.InvokeVoidAsync("setupChart", _chartId, Mention.Data);
+        await _jsModule.InvokeVoidAsync("setupChart", _chartId, Symbol);
     }
 
     private async Task OnClick(bool value)

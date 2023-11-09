@@ -13,6 +13,8 @@ public class PlanetMemberService
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly ILogger<PlanetMemberService> _logger;
+    
+    private static readonly Dictionary<(long, long), long> MemberIdLookup = new();
 
     public PlanetMemberService(
         ValourDB db,
@@ -37,13 +39,11 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetCurrentAsync(long planetId)
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null)
             return null;
-        
-        return (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && 
-                                                                             x.UserId == token.UserId))
-            .ToModel();
+
+        return await GetByUserAsync(token.UserId, planetId);
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public class PlanetMemberService
     /// </summary>
     public async Task<bool> CurrentExistsAsync(long planetId)
     {
-        var token = await _tokenService.GetCurrentToken();
+        var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null)
             return false;
         
@@ -73,14 +73,29 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the PlanetMember for a given user id and planet id
     /// </summary>
-    public async Task<Models.PlanetMember> GetByUserAsync(long userId, long planetId) =>
-        (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId)).ToModel();
+    public async Task<PlanetMember> GetByUserAsync(long userId, long planetId)
+    {
+        if (MemberIdLookup.TryGetValue((userId, planetId), out var memberId))
+        {
+            var member = await _db.PlanetMembers.FindAsync(memberId);
+            return member.ToModel();
+        }
+        else
+        {
+            var member = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            MemberIdLookup.Add((userId, planetId), member.Id);
+            return member.ToModel();
+        }
+    }
+        
 
     /// <summary>
     /// Returns the roles for the given member id
     /// </summary>
     public async Task<List<PlanetRole>> GetRolesAsync(long memberId) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == memberId)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.ToModel())
@@ -90,7 +105,9 @@ public class PlanetMemberService
     /// Returns the role ids for the given member id
     /// </summary>
     public async Task<List<long>> GetRoleIdsAsync(long memberId) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == memberId)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.Id)
@@ -113,8 +130,10 @@ public class PlanetMemberService
     /// Returns the roles for the given PlanetMember id,
     /// including the permissions node for a specific target channel
     /// </summary>
-    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
-       await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
+       await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes)
             .OrderBy(x => x.Role.Position)
@@ -130,8 +149,10 @@ public class PlanetMemberService
     /// including the permissions node for a specific target channel
     /// this will return role ids that no node
     /// </summary>
-    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
             .OrderBy(x => x.Role.Position)
@@ -146,8 +167,10 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the permission nodes for the given target in order of role position
     /// </summary>
-    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
+        await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
             .OrderBy(x => x.Role.Position)
@@ -203,7 +226,9 @@ public class PlanetMemberService
             return int.MaxValue;
         
         // Otherwise, we get the primary role's position
-        var rolePos = await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+        var rolePos = await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.Position)
@@ -239,6 +264,7 @@ public class PlanetMemberService
             return true;
 
         return await _db.PlanetRoleMembers
+            .AsNoTracking()
             .Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .AnyAsync(x => x.Role.IsAdmin || // Admins have all permissions
@@ -248,10 +274,16 @@ public class PlanetMemberService
     /// <summary>
     /// Returns if the member has the given channel permission
     /// </summary>
-    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetChannel target, Permission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, Channel target, Permission permission)
     {
         if (target is null)
             return false;
+        
+        // If not planet channel, this doesn't apply
+        if (!ISharedChannel.PlanetChannelTypes.Contains(target.ChannelType))
+        {
+            return false;
+        }
         
         var planet = await _db.Planets.FindAsync(target.PlanetId);
         // Fail if the planet does not exist
@@ -262,9 +294,11 @@ public class PlanetMemberService
             return true;
 
         // If the channel inherits from its parent, move up until it does not
-        while (target.InheritsPerms && target.ParentId is not null)
+        while (target.InheritsPerms is not null && 
+               target.InheritsPerms == true && 
+               target.ParentId is not null)
         {
-            target = (await _db.PlanetCategories.FindAsync(target.ParentId.Value)).ToModel();
+            target = (await _db.Channels.FindAsync(target.ParentId.Value)).ToModel();
         }
         
         // Get permission nodes in order of role position
@@ -593,6 +627,8 @@ public class PlanetMemberService
             await trans.RollbackAsync();
             return new(false, "An unexpected error occurred.");
         }
+
+        MemberIdLookup.Remove((dbMember.UserId, dbMember.PlanetId));
 
         _coreHub.NotifyPlanetItemDelete(dbMember.ToModel());
 

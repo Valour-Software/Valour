@@ -1,15 +1,17 @@
-@inject IJSRuntime JS
+@inject IJSRuntime JsRuntime
 
 @using Item = Valour.Api.Items.LiveModel
 <ContextMenu Id='list-context' CssClass='context'>
-
-    @if (SelectedItem is PlanetCategory && CanModifyCategory){
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
-    }
-
-    @if ((SelectedItem is PlanetCategory && CanModifyCategory) || (SelectedItem is PlanetChannel && CanModifyChannel)) {
+    @if (CanModify)
+    {
+        // Only allow adding channels to categories
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
+            <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
+            <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
+            <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
+        }
+        
+        // All channels have these options
         <BlazorContextMenu.Item CssClass='context-model' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
         <BlazorContextMenu.Item CssClass='context-model' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
     }
@@ -21,63 +23,47 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public static PlanetChannel SelectedItem { get; set; }
+    public static Channel SelectedItem { get; set; }
 
     public static ChannelListContextMenuComponent Instance;
 
-    public static bool CanModifyChannel { get; set; }
-    public static bool CanModifyCategory { get; set; }
+    public static bool CanModify { get; set; }
 
-    public static async Task SetSelectedItem(PlanetChannel item){
+    public static async Task SetSelectedItem(Channel item){
 
         SelectedItem = item;
         var planet = await item.GetPlanetAsync();
         if (planet.OwnerId == ValourClient.Self.Id)
         {
-            CanModifyCategory = true;
-            CanModifyChannel = true;
+            CanModify = true;
         }
         else {
-            var selfmember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, item.PlanetId);
-            var primaryrole = await selfmember.GetPrimaryRoleAsync();
-            if (item is PlanetCategory)
-            {
-                CanModifyCategory = await item.HasPermissionAsync(selfmember, CategoryPermissions.ManageCategory);
-            }
-            else if (item is PlanetChatChannel)
-            {
-                CanModifyChannel = await item.HasPermissionAsync(selfmember, ChatChannelPermissions.ManageChannel);
-            }
-            else if (item is PlanetVoiceChannel)
-            {
-                CanModifyChannel = await item.HasPermissionAsync(selfmember, VoiceChannelPermissions.ManageChannel);
-            }
+            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, item.PlanetId!.Value);
+            CanModify = await item.HasPermissionAsync(selfMember, ChannelPermissions.Manage);
         }
         Instance.Refresh();
     }
 
-    protected override async Task OnInitializedAsync(){
+    protected override void OnInitialized(){
         Instance = this;
     }
 
-    public void Refresh(){
+    private void Refresh(){
         StateHasChanged();
     }
 
     public async Task OnClickCopyId(){
-        await JS.InvokeVoidAsync("clipboardCopy.copyText", SelectedItem.Id);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", SelectedItem.Id);
     }
 
     public async Task OpenCreateChannel(){
         var planet = await SelectedItem.GetPlanetAsync();
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetChat);
 
-        if (SelectedItem is PlanetCategory){
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
             modalParams.Add("Parent", SelectedItem);
-        }
-        else{
-            modalParams.Add("Parent", null);
         }
 
         Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
@@ -88,59 +74,53 @@
         var planet = await SelectedItem.GetPlanetAsync();
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetVoice);
 
-        if (SelectedItem is PlanetCategory)
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
             modalParams.Add("Parent", SelectedItem);
         }
-        else
-        {
-            modalParams.Add("Parent", null);
-        }
 
-        Modal.Show<CreateVoiceChannelComponent>("Create Voice Channel", modalParams);
+        Modal.Show<CreateChannelComponent>("Create Voice Channel", modalParams);
     }
     
     public async Task OpenCreateCategory(){
         var planet = await SelectedItem.GetPlanetAsync();
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetCategory);
 
-        if (SelectedItem is PlanetCategory){
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
             modalParams.Add("Parent", SelectedItem);
         }
-        else{
-            modalParams.Add("Parent", null);
-        }
 
-        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
+        Modal.Show<CreateChannelComponent>("Create Category", modalParams);
     }
 
     public async Task DeleteChannelListItem(){
-        if (SelectedItem is PlanetCategory){
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
             var planet = await SelectedItem.GetPlanetAsync();
 
-            var channels = await planet.GetChannelsAsync();
-            var categories = await planet.GetCategoriesAsync();
+            var channels = await planet.GetAllChannelsAsync();
 
             // Ensure category has no children if we are deleting it
-            if (channels.Count(x => x.ParentId == SelectedItem.Id) > 0 || 
-                categories.Count(x => x.ParentId == SelectedItem.Id) > 0){
+            if (channels.Any(x => x.ParentId == SelectedItem.Id)){
 
-                InfoModalData imodalData = 
+                InfoModalData iModalData = 
                 new($"You can't delete this!",
                     "This is due to this category having channels and/or categories inside of it.",
                     "Okay",
-                    async () =>
+                    () =>
                     {
                         Console.WriteLine("User Clicked Ok");
+                        return Task.CompletedTask;
                     }
                 );
 
-                ModalParameters imodParams = new();
-                imodParams.Add("Data", imodalData);
+                ModalParameters iModParams = new();
+                iModParams.Add("Data", iModalData);
 
-                Modal.Show<InfoModalComponent>("Info", imodParams);
+                Modal.Show<InfoModalComponent>("Info", iModParams);
             }
         }
 
@@ -154,9 +134,10 @@
                  Console.WriteLine("Confirmed channel model deletion.");
                  var result = await Item.DeleteAsync(SelectedItem);
              },
-             async () =>
+             () =>
              {
                  Console.WriteLine("Cancelled channel model deletion.");
+                 return Task.CompletedTask;
              }
         );
 
@@ -166,7 +147,7 @@
         Modal.Show<ConfirmModalComponent>("Confirm", modParams);
     }
 
-    public async Task EditChannelListItem()
+    private void EditChannelListItem()
     {
         ModalParameters modParams = new();
         modParams.Add("ChannelListItem", SelectedItem);

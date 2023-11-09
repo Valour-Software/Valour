@@ -1,5 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
-@inject WindowManager windowManager
+@inject WindowManager WindowManager
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
 @using Valour.Api.Models.Messages;
@@ -9,14 +9,17 @@
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
         @{
-            var messageParams = new MessageHolderComponent.MessageComponentParams()
+            if (PreviewMessage is not null)
             {
-                MessageData = PreviewMessage,
-                Ghost = true,
-                LastMessage = WindowComponent.MessageHolder.GetLastMessage(),
-            };
-            
-            <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+                var messageParams = new MessageHolderComponent.MessageComponentParams()
+                {
+                    Message = PreviewMessage,
+                    Ghost = true,
+                    LastMessage = MessageHolder.GetLastMessage(),
+                };
+
+                <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+            }
         }
     </div>
 
@@ -29,8 +32,8 @@
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
         <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
         
-        <div class="textbox" @ref="DropZoneElement">
-            <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+        <div class="textbox" @ref="_dropZoneElement">
+            <InputFile id="@("upload-core-" + Window.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
                 <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
             </button>
@@ -66,7 +69,7 @@
             {
                 <p class="input-placeholder">You lack permission to send messages in this channel</p>
             }
-            else if (PreviewMessage is null || PreviewMessage.IsEmpty)
+            else if (PreviewMessage is null || PreviewMessage.IsEmpty())
             {
                 <p class="input-placeholder">@PlaceholderText</p>
             }
@@ -95,12 +98,15 @@
     /// <summary>
     /// A reference to the container for message rendering
     /// </summary>
-    protected MessageHolderComponent MessageHolder { get; set; }
+    [Parameter]
+    public MessageHolderComponent MessageHolder { get; set; }
+    
+    /* End Planet Stuff */
 
     /// <summary>
     /// Placeholder text shown in the input box when empty
     /// </summary>
-    protected virtual string PlaceholderText { get; }
+    private string PlaceholderText => $"Discuss in {Window.Channel.Name}";
 
     /// <summary>
     /// The tenor menu component
@@ -136,7 +142,7 @@
     /// <summary>
     /// The preview message
     /// </summary>
-    protected ClientMessageWrapper PreviewMessage { get; set; }
+    protected Message PreviewMessage { get; set; }
 
     /// <summary>
     /// Dotnet object reference for use in Javascript
@@ -157,6 +163,8 @@
     /// Allows this component to render when true
     /// </summary>
     public bool CanRenderFlag { get; set; }
+    
+    private PlanetMember _selfMember { get; set; }
 
     private DateTime _lastTypingUpdateSent = DateTime.MinValue;
 
@@ -184,7 +192,6 @@
     /// </summary>
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
         await SetupNewChannelAsync();
     }
 
@@ -234,25 +241,45 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+        WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
         _thisRef.Dispose();
         await _jsModule.DisposeAsync();
     }
 
     public virtual async Task SetupNewChannelAsync()
     {
-        WindowComponent.InputComponent = this;
-        MessageHolder = WindowComponent.MessageHolder;
+        var planet = await WindowComponent.Channel.GetPlanetAsync();
+        if (planet is not null)
+        {
+            _selfMember = await planet.GetSelfMemberAsync();
+            CanUserPost = await WindowComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
+        }
+        else
+        {
+            _selfMember = null;
+            CanUserPost = await WindowComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
+        }
 
-        PreviewMessage = new(BuildNewMessage());
-
+        PreviewMessage = BuildNewMessage();
+        
         Refresh();
     }
 
     public virtual Message BuildNewMessage()
     {
-        // Other message building
-        return null;
+        WindowManager.NotYetSentMessages.TryGetValue(WindowComponent.Channel.Id, out var prevContent);
+        
+        return new Message()
+        {
+            AuthorUserId = ValourClient.Self.Id,
+            Content = prevContent,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = _selfMember?.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            PlanetId = WindowComponent.Channel.PlanetId,
+            Fingerprint = Guid.NewGuid().ToString(),
+        };
     }
 
     private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
@@ -271,8 +298,8 @@
         {
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=2");
-            await SetupJSAsync();
-            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
+            await SetupJsAsync();
+            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();
 
@@ -282,28 +309,36 @@
         CanRenderFlag = false;
     }
 
-    public virtual Task OnAfterJsSetupAsync()
+    public virtual async Task OnAfterJsSetupAsync()
     {
-        return Task.CompletedTask;
+        if (PreviewMessage.Content is not null)
+        {
+            await SetInputContent(PreviewMessage.Content);
+            await RefreshPreviewMessage();
+        }
+        else {
+            await SetInputContent("");
+            await RefreshPreviewMessage();
+        }
     }
 
     #region File Drop System
 
     // Drop zone stuff
-    public InputFile InputFile_Ref { get; set; }
-    ElementReference DropZoneElement { get; set; }
-    IJSObjectReference dropZoneInstance;
+    private InputFile _inputFileRef;
+    private ElementReference _dropZoneElement;
+    IJSObjectReference _dropZoneInstance;
 
-    public async Task OnBeginEdit(MessageComponent component, ClientMessageWrapper message)
+    public async Task OnBeginEdit(MessageComponent component, Message message)
     {
         EditingMessageComponent = component;
         PreviewMessage = message;
-        EditingOriginalText = PreviewMessage.Message.Content;
+        EditingOriginalText = PreviewMessage.Content;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
-        await OnChatboxUpdate(message.Message.Content, message.Message.Content.Split(' ').LastOrDefault());
+        await OnChatboxUpdate(message.Content, message.Content.Split(' ').LastOrDefault());
 
-        await SetInputContent(message.Message.Content);
+        await SetInputContent(message.Content);
 
         Refresh();
 
@@ -316,12 +351,12 @@
         {
             // Return to original
             //EditingMessageComponent.MessageData.Clear();
-            EditingMessageComponent.MessageData.Message.Content = EditingOriginalText;
+            EditingMessageComponent.Message.Content = EditingOriginalText;
         }
 
         // Clear preview
         EditingMessageComponent = null;
-        PreviewMessage = new(BuildNewMessage());
+        PreviewMessage = BuildNewMessage();
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
         // Clear input
@@ -337,11 +372,13 @@
 
         var file = e.File;
 
+        var maxSize = 10240000;
+        
         if (ValourClient.Self.SubscriptionType is null)
         {
-            if (file.Size > 10240000)
+            if (file.Size > maxSize)
             {
-                InfoModalData imodalData = 
+                InfoModalData infoModalData = 
                     new($"File too large!",
                         "The max upload size is 10MB. To raise this limit, consider subscribing to Plus!",
                         "Okay",
@@ -349,7 +386,7 @@
                 );
                 
                 ModalParameters imodParams = new();
-                imodParams.Add("Data", imodalData);
+                imodParams.Add("Data", infoModalData);
                 
                 Modal.Show<InfoModalComponent>("Info", imodParams);
                 return;
@@ -357,26 +394,27 @@
         }
         else
         {
-            if (file.Size > 20480000)
+            maxSize = 20480000;
+            
+            if (file.Size > maxSize)
             {
-                InfoModalData imodalData = 
+                InfoModalData infoModalData = 
                     new($"File too large!",
                         "The max upload size is 20MB for Plus members.",
                         "Okay",
                         null
                         );
                 
-                ModalParameters imodParams = new();
-                imodParams.Add("Data", imodalData);
+                ModalParameters infoModalParams = new();
+                infoModalParams.Add("Data", infoModalData);
                 
-                Modal.Show<InfoModalComponent>("Info", imodParams);
+                Modal.Show<InfoModalComponent>("Info", infoModalParams);
                 return;
             }
         }
 
         byte[] data = new byte[file.Size];
-
-        await file.OpenReadStream(10240000).ReadAsync(data);
+        await file.OpenReadStream(maxSize).ReadAsync(data);
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);
@@ -446,7 +484,7 @@
 
     public async Task RemoveAttachment(int id)
     {
-        var attachments = PreviewMessage.Message.Attachments;
+        var attachments = PreviewMessage.Attachments;
         if (attachments is null)
             return;
 
@@ -455,7 +493,7 @@
 
         attachments.RemoveAt(id);
 
-        PreviewMessage.Message.SetAttachments(attachments);
+        PreviewMessage.SetAttachments(attachments);
 
         await RefreshPreviewMessage();
         Refresh();
@@ -512,27 +550,27 @@
 
     public async Task AddMessageAttachment(MessageAttachment attachment)
     {
-        var attachments = PreviewMessage.Message.Attachments;
+        var attachments = PreviewMessage.Attachments;
         attachments ??= new List<MessageAttachment>();
 
         attachments.Add(attachment);
-        PreviewMessage.Message.SetAttachments(attachments);
+        PreviewMessage.SetAttachments(attachments);
 
         await RefreshPreviewMessage();
         Refresh();
     }
 
-    public async Task RefreshPreviewMessage() {
-        PreviewMessage.Clear();
-        PreviewMessage.Message.TimeSent = DateTime.UtcNow;
-        PreviewMessage.GenerateForPost();
+    public async Task RefreshPreviewMessage()
+    {
+        //PreviewMessage.Content = string.Empty;
+        PreviewMessage.TimeSent = DateTime.UtcNow;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
-    public async Task SetReplyMessage(ClientMessageWrapper message)
+    public async Task SetReplyMessage(Message message)
     {
-        PreviewMessageComponent.MessageData.Reply = message;
-        PreviewMessage.Message.ReplyToId = message?.Message?.Id;
+        PreviewMessageComponent.Message.ReplyTo = message;
+        PreviewMessage.ReplyToId = message?.Id;
 
         await RefreshPreviewMessage();
         Refresh();
@@ -542,27 +580,25 @@
 
     public async Task RemoveReply()
     {
-        PreviewMessage.Message.ReplyToId = null;
-        PreviewMessageComponent.MessageData.Reply = null;
+        PreviewMessage.ReplyToId = null;
+        PreviewMessageComponent.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
     }
 
-    public async Task PostMessage(ClientMessageWrapper messageWrapper)
+    public async Task PostMessage(Message message)
     {
-        messageWrapper.GenerateForPost();
-        
         // New message
-        if (messageWrapper.Message.Id == 0)
+        if (message.Id == 0)
         {
-            MessageHolder.AddQueuedMessage(messageWrapper);
+            MessageHolder.AddQueuedMessage(message);
             
-            var result = await messageWrapper.Message.PostMessageAsync();
+            var result = await message.PostMessageAsync();
 
             if (!result.Success)
             {
-                MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
+                MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
-                DirectMessage errorMsg = new()
+                Message errorMsg = new()
                 {
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
@@ -571,25 +607,25 @@
                 };
 
                 MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+                await MessageHolder.AddMessage(errorMsg);
             }
             else
             {
                 MessageHolder.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.MessageData.Reply = null;
+            PreviewMessageComponent.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
-            windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+            WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
         }
         // Editing message
         else
         {
-            var result = await messageWrapper.Message.EditMessageAsync();
+            var result = await message.EditMessageAsync();
             if (!result.Success)
             {
-                DirectMessage errorMsg = new()
+                Message errorMsg = new()
                 {
                     Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
@@ -598,11 +634,11 @@
                 };
 
                 MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+                await MessageHolder.AddMessage(errorMsg);
             }
             else
             {
-                PreviewMessage = new(BuildNewMessage());
+                PreviewMessage = BuildNewMessage();
                 await PreviewMessageComponent.SetMessage(PreviewMessage);
             }
         }
@@ -613,19 +649,19 @@
     /////////////////////
 
     // C# -> JS
-    private async Task SetupJSAsync()
+    private ValueTask SetupJsAsync()
     {
-        await _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
+        return _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
     }
 
-    public async Task InjectElementAsync(string text, string coverText, string classList, string styleList)
+    public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
-        await _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
     }
     
-    public async Task InjectEmojiAsync(string emoji, string native)
+    public ValueTask InjectEmojiAsync(string emoji, string native)
     {
-        await _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
     }
 
     public async Task OnSubmitClick()
@@ -633,16 +669,16 @@
         await _jsModule.InvokeVoidAsync("submitMessage", Window.Id, true);
     }
 
-    private async Task SelectEnd()
+    private ValueTask SelectEnd()
     {
-        await _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
+        return _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
     }
 
     // JS -> C#
     [JSInvokable]
-    public async Task OnCaretUpdate(string currentWord)
+    public Task OnCaretUpdate(string currentWord)
     {
-        await UpdateMentionMenu(currentWord);
+        return UpdateMentionMenu(currentWord);
     }
 
     /// <summary>
@@ -661,8 +697,8 @@
             input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
         }
 
-        windowManager.NotYetSentMessages[WindowComponent.Channel.Id] = input;
-        PreviewMessage.Message.Content = input;
+        WindowManager.NotYetSentMessages[WindowComponent.Channel.Id] = input;
+        PreviewMessage.Content = input;
         await RefreshPreviewMessage();
 
         if (EditingMessageComponent is not null)
@@ -685,7 +721,6 @@
     public async Task MentionSubmit()
     {
         await MentionSelector.Submit();
-
         Refresh();
     }
 
@@ -698,14 +733,14 @@
     [JSInvokable]
     public async Task OnUpArrowNonMention()
     {
-        if (!string.IsNullOrEmpty((PreviewMessage.Message.Content)))
+        if (!string.IsNullOrEmpty(PreviewMessage.Content))
         {
             return;
         }
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.MessageData.Message.AuthorUserId == ValourClient.Self.Id);
+            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Self.Id);
 
         if (lastMessage is null)
         {
@@ -728,24 +763,24 @@
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
-        if (PreviewMessage.Message.Content is not null)
+        if (PreviewMessage.Content is not null)
         {
-            PreviewMessage.Message.Content =
-                PreviewMessage.Message.Content.TrimEnd('\n');
+            PreviewMessage.Content =
+                PreviewMessage.Content.TrimEnd('\n');
 
-            PreviewMessage.Message.Content =
-                PreviewMessage.Message.Content.Trim();
+            PreviewMessage.Content =
+                PreviewMessage.Content.Trim();
         }
 
-        if (PreviewMessage.IsEmpty)
+        if (PreviewMessage.IsEmpty())
         {
             return;
         }
 
-        var postMessage = new ClientMessageWrapper(PreviewMessage.Message);
+        var postMessage = PreviewMessage;
 
         // New message for preview
-        PreviewMessage = new(BuildNewMessage());
+        PreviewMessage = BuildNewMessage();
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(null, "");

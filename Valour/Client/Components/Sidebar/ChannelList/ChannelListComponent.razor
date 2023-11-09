@@ -1,13 +1,13 @@
-﻿@inject WindowManager windowManager
-@inject ChannelListManager listManager
+﻿@inject WindowManager WindowManager
+@inject ChannelListManager ListManager
 
 
 <div 
     class="full-channel-list hide-scrollbar"
     ondragover="event.preventDefault();"
-    @ondragenter="() => listManager.OnDragEnterItem(0)"
+    @ondragenter="@OnDragEnter"
     style="padding-bottom:80px">
-    @foreach (Planet planet in ValourClient.OpenPlanets)
+    @foreach (var planet in ValourClient.OpenPlanets)
     {
         <PlanetListComponent Planet="planet" @key='planet.Id'></PlanetListComponent>
     }
@@ -25,40 +25,50 @@
         _render = false;
     }
 
-    public void Refresh()
+    private void Refresh()
     {
         _render = true;
         StateHasChanged();
     }
     
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        windowManager.OnPlanetFocused += OnPlanetChange;
+        WindowManager.OnPlanetFocused += OnPlanetChange;
         ValourClient.OnPlanetOpen += OnPlanetOpen;
         ValourClient.OnPlanetClose += OnPlanetClose;
     }
 
-    public async Task OnPlanetOpen(Planet planet)
+    private void OnDragEnter()
     {
-        if (planet == null)
+        ListManager.OnDragEnterItem(0);
+    }
+
+    private Task OnPlanetOpen(Planet planet)
+    {
+        if (planet is not null)
             Console.WriteLine("Rebuilding channel list due to planet open: " + planet.Name);
         else
             Console.WriteLine("Rebuilding channel list due to planet open: null");
 
         Refresh();
+
+        return Task.CompletedTask;
     }
 
-    public async Task OnPlanetClose(Planet planet)
+   private Task OnPlanetClose(Planet planet)
     {
-        if (planet == null)
+        if (planet is not null)
             Console.WriteLine("Rebuilding channel list due to planet close: " + planet.Name);
         else
             Console.WriteLine("Rebuilding channel list due to planet close: null");
 
         Refresh();
+       
+       return Task.CompletedTask;
     }
 
-    public async Task OnPlanetChange(Planet planet)
+    private Task OnPlanetChange(Planet planet)
     {
+        return Task.CompletedTask;
     }
 }

@@ -1,6 +1,4 @@
-@inject HttpClient Http
-@inject NavigationManager navManager
-@inject WindowManager windowManager
+@inject WindowManager WindowManager
 
 <div class="col-md-12 modal-bg">
 	<section>
@@ -14,19 +12,19 @@
 
 		<div class="form-group mt-4">
 			<label>Community Name</label>
-			<input class="form-control" @bind-value="@name" type='' />
-			<span id="name-span" style="color:#888888">@nameSpan</span>
+			<input class="form-control" @bind-value="@_name" type='' />
+			<span style="color:#888888">@_nameSpan</span>
 		</div>
 
 		<div class="form-group mt-4">
 			<label>Description</label>
-			<input class="form-control" @bind-value="@desc" />
-			<span id="name-span" style="color:#888888">@descSpan</span>
+			<input class="form-control" @bind-value="@_desc" />
+			<span style="color:#888888">@_descSpan</span>
 		</div>
 
-		@if (!string.IsNullOrEmpty(errorSpan))
+		@if (!string.IsNullOrEmpty(_errorSpan))
 		{
-			<span class="danger-text mt-4 mb-4">@errorSpan</span>
+			<span class="danger-text mt-4 mb-4">@_errorSpan</span>
 		}
 
 		<div class="form-group mt-4">
@@ -37,15 +35,14 @@
 
 @code {
 	// Input fields
-	string name;
-	string desc;
+	string _name;
+	string _desc;
 
 	// Spans
-	string nameSpan = "The name of your community";
+	string _nameSpan = "The name of your community";
+	string _descSpan = "A description of your community";
 
-	string descSpan = "A description of your community";
-
-	string errorSpan = null;
+	string _errorSpan;
 
 	[Parameter]
 	public ClientWindow Window { get; set; }
@@ -56,50 +53,46 @@
 	private async Task OnClickSubmit(MouseEventArgs e)
 	{
 		// Require a name
-		if (string.IsNullOrWhiteSpace(name))
+		if (string.IsNullOrWhiteSpace(_name))
 		{
-			name = "Please input a planet name.";
+			_name = "Please input a planet name.";
 			return;
 		}
 
-		var new_planet = new Planet()
+		var newPlanet = new Planet()
 		{
-			Name = name,
-			Description = desc
+			Name = _name,
+			Description = _desc
 		};
 
-		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planets", new_planet);
+		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planets", newPlanet);
 
 		if (!response.Success)
 		{
-			errorSpan = response.Message;
+			_errorSpan = response.Message;
 			StateHasChanged();
 			return;
 		}
 
 		await ModalInstance.CloseAsync();
 
-		descSpan = "Planet created.";
+		_descSpan = "Planet created.";
 
 		var planet = response.Data;
 
 		await ValourCache.Put(planet.Id, planet);
 
-		PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+		var mainChannel = await planet.GetPrimaryChannelAsync();
 
-		await windowManager.ClearWindows();
+		await WindowManager.ClearWindows();
 
-		var newChannel = new PlanetChatChannelWindow(planet, mainChannel);
+		var newChannel = new ChatChannelWindow(mainChannel);
 
 		// Get the new main window
-		var mainWindow = windowManager.GetWindows()[0];
+		var mainWindow = WindowManager.GetWindows()[0];
 
-		await windowManager.ReplaceWindow(mainWindow, newChannel);
-		await windowManager.SetSelectedWindow(newChannel);
-	}
-
-	private async Task OnImageInput()
-	{
+		await WindowManager.ReplaceWindow(mainWindow, newChannel);
+		await WindowManager.SetSelectedWindow(newChannel);
 	}
 
 }

@@ -10,12 +10,10 @@ namespace Valour.Shared.Models;
 
 public enum MentionType
 {
-    Member,
+    PlanetMember,
     Channel,
-    Category,
     Role,
     User,
-    Stock
 }
 
 /// <summary>
@@ -23,6 +21,14 @@ public enum MentionType
 /// </summary>
 public class Mention
 {
+    public static readonly Dictionary<char, MentionType> CharToMentionType = new()
+    {
+        { 'm', MentionType.PlanetMember },
+        { 'u', MentionType.User },
+        { 'c', MentionType.Channel },
+        { 'r', MentionType.Role },
+    };
+    
     /// <summary>
     /// The type of mention this is
     /// </summary>
@@ -34,27 +40,5 @@ public class Mention
     /// </summary>
     [JsonPropertyName("TargetId")]
     public long TargetId { get; set; }
-
-    [JsonPropertyName("PlanetId")]
-    public long PlanetId { get; set; }
-
-    /// <summary>
-    /// The position of the mention, in chars.
-    /// For example, the message "Hey @SpikeViper!" would have Position = 4
-    /// </summary>
-    [JsonPropertyName("Position")]
-    public ushort Position { get; set; }
-
-    /// <summary>
-    /// The length of this mention, in chars
-    /// </summary>
-    [JsonPropertyName("Length")]
-    public ushort Length { get; set; }
-    
-    /// <summary>
-    /// Additional data used for some mentions
-    /// </summary>
-    [JsonPropertyName("Data")]
-    public string Data { get; set; }
 }
 

@@ -45,7 +45,17 @@ public class UserProfile : ISharedUserProfile
     public string TertiaryColor { get; set; }
     
     /// <summary>
+    /// The color of the main text
+    /// </summary>
+    public string TextColor { get; set; }
+    
+    /// <summary>
     /// True if the border should be animated
     /// </summary>
     public bool AnimatedBorder { get; set; }
+    
+    /// <summary>
+    /// The background image for the profile (should be 300x400)
+    /// </summary>
+    public string BackgroundImage { get; set; }
 }

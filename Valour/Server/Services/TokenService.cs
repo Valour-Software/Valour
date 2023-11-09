@@ -58,7 +58,7 @@ public class TokenService
         return authKey;
     }
     
-    public async ValueTask<AuthToken> GetCurrentToken()
+    public async ValueTask<AuthToken> GetCurrentTokenAsync()
     {
         if (_currentToken is not null)
             return _currentToken;

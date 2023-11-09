@@ -71,6 +71,14 @@ public class DynamicAPI<T> where T : class
                         /* Does filtering */
                         builder.AddEndpointFilter<UserPermissionsRequiredFilter>();
                     }
+                    
+                    // Add staff validation
+
+                    foreach (var attr in attributes.Where(x => x is StaffRequiredAttribute))
+                    {
+                        /* Does filtering */
+                        builder.AddEndpointFilter<StaffRequiredFilter>();
+                    }
                 }
             }
         }

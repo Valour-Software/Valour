@@ -1,7 +1,7 @@
 ﻿@using Valour.Shared.Models;
 @using Valour.Api.Client
 
-<div class="@Class" style="color: @Role_Color">
+<div class="@Class" style="color: @Role_Color" @onclick="ShowProfileAsync">
     @if (Member == null)
     {
         <div>@@NotFound</div>
@@ -29,6 +29,8 @@
         }
     }
 
+    [CascadingParameter]
+    public Channel Channel { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -59,8 +61,11 @@
 
     public async Task Build()
     {
-        Member = await PlanetMember.FindAsync(Mention.TargetId, Mention.PlanetId);
-
+        if (Channel.PlanetId is not null)
+        {
+            Member = await PlanetMember.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+        }
+        
         if (Member != null)
         {
             Role_Color = await Member.GetRoleColorAsync();
@@ -71,5 +76,13 @@
         }
 
         StateHasChanged();
+    }
+    
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (Member is null)
+            return;
+
+        await ProfilePopup.Instance.OpenAsync(Member, (int)e.ClientX, (int)e.ClientY, "bottomRight");
     }
 }

@@ -1,14 +1,14 @@
-﻿@if (loading)
+﻿@if (_loading)
 {
     <h4>Loading details...</h4>
     return;
 }
-@if (!HasTargetManagePerm)
+@if (!_hasTargetManagePerm)
 {
     <h4>You do not have permission to manage this @Target.GetHumanReadableName()!</h4>
     return;
 }
-@if (!HasTargetPermissionPerm)
+@if (!_hasTargetPermissionPerm)
 {
     <h4>You do not have permission to manage this @Target.GetHumanReadableName()'s permissions!</h4>
     return;
@@ -18,20 +18,20 @@
 <p class="subtitle">CHOOSE ROLE</p>
 
 
-<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.Color;
+<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @_selectedRole.Color;
         background-color: var(--main-1)">
 
     @{
         int options = 0; 
     }
 
-    @foreach (var role in Roles)
+    @foreach (var role in _roles)
     {
         // Don't show roles we can't edit
 
         var authority = role.GetAuthority();
 
-        if (authority >= SelfAuthority)
+        if (authority >= _selfAuthority)
             continue;
 
         options++;
@@ -48,7 +48,7 @@
     return;
 }
 
-@if (SelectedRole == null)
+@if (_selectedRole == null)
 {
     // This actually cuts the HTML off early and is way cleaner than a massive 'if' statement
     return;
@@ -74,7 +74,7 @@
 </div>
 
 <!-- If the channel inherits the permissions, we do not give the option to edit them -->
-@if (Target.InheritsPerms)
+@if (Target.InheritsPerms == true)
 {
     return;
 }
@@ -82,7 +82,7 @@
 @foreach (var channelType in ChannelPermissions.ChannelTypes.OrderBy(x => x.TargetType.ToString()))
 {
     // Only show if we should
-    if (!ShowStates[(int)channelType.TargetType])
+    if (!_showStates[(int)channelType.TargetType])
         continue;
 
     <br />
@@ -101,7 +101,7 @@
                     @perm.Name
                 </div>
                 <div class="perm-switch">
-                    <TriButtonComponent @ref="ButtonGroups[(int)channelType.TargetType][i2]" OnStateChange="(async (state) => SwitchPermission(state, perm, channelType.TargetType))">
+                    <TriButtonComponent @ref="_buttonGroups[(int)channelType.TargetType][i2]" OnStateChange="(async (state) => SwitchPermission(state, perm, channelType.TargetType))">
                     </TriButtonComponent>
                 </div>
                 <div class="perm-list-desc mt-1">
@@ -112,7 +112,7 @@
     </div>
 }
 
-@if (changed)
+@if (_changed)
 {
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 }
@@ -120,128 +120,99 @@
 @code {
 
     // For permission checking
-    public bool HasTargetManagePerm { get; set; }
-    public bool HasTargetPermissionPerm { get; set; }
+    private bool _hasTargetManagePerm;
+    private bool _hasTargetPermissionPerm;
 
     // Show states for permission sections
-    public bool[] ShowStates { get; set; } = new bool[ChannelPermissions.ChannelTypes.Length];
+    private bool[] _showStates = new bool[ChannelPermissions.ChannelTypes.Length];
 
     // Available buttons
-    public TriButtonComponent[][] ButtonGroups { get; set; } = new TriButtonComponent[ChannelPermissions.ChannelTypes.Length][];
+    private TriButtonComponent[][] _buttonGroups = new TriButtonComponent[ChannelPermissions.ChannelTypes.Length][];
 
     // Permission nodes
-    public PermissionsNode[] Nodes { get; set; } = new PermissionsNode[ChannelPermissions.ChannelTypes.Length];
+    private PermissionsNode[] _nodes = new PermissionsNode[ChannelPermissions.ChannelTypes.Length];
 
-    public bool[] NeedCreate { get; set; } = new bool[ChannelPermissions.ChannelTypes.Length];
-    public bool[] NeedUpdate { get; set; } = new bool[ChannelPermissions.ChannelTypes.Length];
-
-
+    private bool[] _needCreate = new bool[ChannelPermissions.ChannelTypes.Length];
+    private bool[] _needUpdate  = new bool[ChannelPermissions.ChannelTypes.Length];
+    
     /////////////////////////////////////////////////////////////////////
 
-
-    public PlanetRole SelectedRole { get; set; }
-
-    private PlanetRole _lastRole;
-
-    public List<PlanetRole> Roles { get; set; }
-
-    public Planet Planet { get; set; }
-
     [Parameter]
-    public PlanetChannel Target { get; set; }
+    public Channel Target { get; set; }
 
-    public PlanetMember SelfMember { get; set; }
+    private PlanetRole _selfPrimaryRole;
+    private Planet _planet;
+    private PlanetMember _selfMember;
+    private List<PlanetRole> _roles;
+    private PlanetRole _lastRole;
+    private PlanetRole _selectedRole;
+    
+    private int _selfAuthority;
+    private bool _changed = false;
+    private bool _loading = true;
 
-    public PlanetRole SelfPrimaryRole { get; set; }
-
-    public int SelfAuthority { get; set; }
-
-    public bool changed = false;
-
-    public bool loading = true;
-
-    public async Task SwitchInherit()
+    private async Task SwitchInherit()
     {
         if (Target is null)
             return;
 
         Target.InheritsPerms = !Target.InheritsPerms;
-
-        // TODO: Make this prettier. Json deserialization freaks out for PlanetChannel.UpdateAsync
-        switch (Target)
-        {
-            case PlanetChatChannel chat: 
-                {
-                    await PlanetChatChannel.UpdateAsync(chat);
-                    break;
-                }
-            case PlanetCategory cat:
-                {
-                    await PlanetCategory.UpdateAsync(cat);
-                    break;
-                }
-            case PlanetVoiceChannel voice:
-                {
-                    await PlanetVoiceChannel.UpdateAsync(voice);
-                    break;
-                }
-            default:
-                throw new Exception("Invalid channel type.");
-        }
+        
+        await LiveModel.UpdateAsync(Target);
 
         StateHasChanged();
     }
 
-    public void SwitchPermission(TriButtonComponent.TriButtonState state, Permission permission, ChannelType type)
+    public void SwitchPermission(TriButtonComponent.TriButtonState state, Permission permission, ChannelTypeEnum type)
     {
         // If the node for the type is null, we create it and set a flag that it
         // needs to be created on the server
-        if (Nodes[(int)type] is null)
+        if (_nodes[(int)type] is null)
         {
-            Nodes[(int)type] = new()
+            _nodes[(int)type] = new()
             {
                 TargetId = Target.Id,
-                PlanetId = Target.PlanetId,
-                RoleId = SelectedRole.Id,
+                PlanetId = Target.PlanetId!.Value,
+                RoleId = _selectedRole.Id,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = type
             };
 
-            NeedCreate[(int)type] = true;
+            _needCreate[(int)type] = true;
         }
         else
         {
-            NeedUpdate[(int)type] = true;
+            _needUpdate[(int)type] = true;
         }
 
-        PermissionState newState = PermissionState.Undefined;
+        var newState = PermissionState.Undefined;
         if (state == TriButtonComponent.TriButtonState.Yes) newState = PermissionState.True;
         else if (state == TriButtonComponent.TriButtonState.No) newState = PermissionState.False;
 
-        Nodes[(int)type].SetPermission(permission, newState);
+        _nodes[(int)type].SetPermission(permission, newState);
 
-        changed = true;
+        _changed = true;
 
         StateHasChanged();
     }
 
-    public async Task OnSaveChanges()
+    private async Task OnSaveChanges()
     {
         for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
-            if (NeedCreate[i])
+            if (_needCreate[i])
             {
-                var result = await PermissionsNode.CreateAsync(Nodes[i]);
+                var result = await LiveModel.CreateAsync(_nodes[i]);
                 if (!result.Success)
                 {
                     Console.WriteLine("Error in channel permission node creation!");
                     Console.WriteLine(result.Message);
                 }
             }
-            else if (NeedUpdate[i])
+            else if (_needUpdate[i])
             {
-                var result = await PermissionsNode.UpdateAsync(Nodes[i]);
+                var result = await LiveModel.UpdateAsync(_nodes[i]);
                 if (!result.Success)
                 {
                     Console.WriteLine("Error in channel permission node update!");
@@ -257,90 +228,56 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Planet = await Target.GetPlanetAsync();
-        Roles = await Planet.GetRolesAsync();
+        _planet = await Target.GetPlanetAsync();
+        _roles = await _planet.GetRolesAsync();
 
         for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
-            ButtonGroups[i] = new TriButtonComponent[ChannelPermissions.ChannelTypes[i].Permissions.Length];
+            _buttonGroups[i] = new TriButtonComponent[ChannelPermissions.ChannelTypes[i].Permissions.Length];
         }
 
-        if (Roles.Count > 0)
-            SelectedRole = Roles[0];
+        if (_roles.Count > 0)
+            _selectedRole = _roles[0];
 
         // Get self membership
-        SelfMember = await ValourClient.GetSelfMember(Planet);
-        SelfAuthority = await SelfMember.GetAuthorityAsync();
-        SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
+        _selfMember = await ValourClient.GetSelfMember(_planet);
+        _selfAuthority = await _selfMember.GetAuthorityAsync();
+        _selfPrimaryRole = await _selfMember.GetPrimaryRoleAsync();
 
-        int _i = 1;
-        while (SelectedRole.GetAuthority() >= SelfAuthority && _i < Roles.Count)
+        var j = 1;
+        while (_selectedRole.GetAuthority() >= _selfAuthority && j < _roles.Count)
         {
-            SelectedRole = Roles[_i];
-            _i += 1;
+            _selectedRole = _roles[j];
+            j += 1;
         }
+        
+        _hasTargetManagePerm = await Target.HasPermissionAsync(_selfMember, ChannelPermissions.Manage);
+        _hasTargetPermissionPerm = await Target.HasPermissionAsync(_selfMember, ChannelPermissions.ManagePermissions);
 
+        _loading = false;
 
-        Permission managePerm;
-        Permission permissionsPerm;
-
-        switch (Target)
-        {
-            case PlanetChatChannel:
-                {
-                    managePerm = ChatChannelPermissions.ManageChannel;
-                    permissionsPerm = ChatChannelPermissions.ManagePermissions;
-                    break;
-                }
-            case PlanetCategory:
-                {
-                    managePerm = CategoryPermissions.ManageCategory;
-                    permissionsPerm = CategoryPermissions.ManagePermissions;
-                    break;
-                }
-            case PlanetVoiceChannel:
-                {
-                    managePerm = VoiceChannelPermissions.ManageChannel;
-                    permissionsPerm = VoiceChannelPermissions.ManagePermissions;
-                    break;
-                }
-            default:
-                throw new NotImplementedException($"Unexpected target type {Target.GetType().Name}");
-        }
-
-        HasTargetManagePerm = await Target.HasPermissionAsync(SelfMember, managePerm);
-        HasTargetPermissionPerm = await Target.HasPermissionAsync(SelfMember, permissionsPerm);
-
-        loading = false;
-
-        await OnRoleChange(SelectedRole);
+        await OnRoleChange(_selectedRole);
 
         await RefreshButtons();
 
         ModelObserver<PermissionsNode>.OnAnyUpdated += OnPermissionNodeUpdate;
     }
 
-    public async Task OnPermissionNodeUpdate(ModelUpdateEvent<PermissionsNode> eventData)
+    private async Task OnPermissionNodeUpdate(ModelUpdateEvent<PermissionsNode> eventData)
     {
         var node = eventData.Model;
         if (node.TargetId == Target.Id) {
-            await OnRoleChange(await PlanetRole.FindAsync(node.RoleId, Target.PlanetId));
+            await OnRoleChange(await PlanetRole.FindAsync(node.RoleId, Target.PlanetId!.Value));
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task OnRoleSelect(ChangeEventArgs e)
     {
-
+        var newRoleId = long.Parse(e.Value.ToString());
+        await OnRoleChange(_roles.FirstOrDefault(x => x.Id == newRoleId));
     }
 
-    public async Task OnRoleSelect(ChangeEventArgs e)
-    {
-        long newRoleId = long.Parse(e.Value.ToString());
-
-        await OnRoleChange(Roles.FirstOrDefault(x => x.Id == newRoleId));
-    }
-
-    public async Task OnRoleChange(PlanetRole role)
+    private async Task OnRoleChange(PlanetRole role)
     {
         if (_lastRole == role)
             return;
@@ -349,45 +286,38 @@
 
         for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
-            NeedCreate[i] = false;
-            NeedUpdate[i] = false;
+            _needCreate[i] = false;
+            _needUpdate[i] = false;
         }
 
-        SelectedRole = role;
+        _selectedRole = role;
 
-        Console.WriteLine($"Selected role {SelectedRole.Name}");
+        Console.WriteLine($"Selected role {_selectedRole.Name}");
 
-        switch (Target)
+        if (Target.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
-            // Special case for PlanetCategory, which has multiple nodes
-            case PlanetCategory category:
-                {
-                    foreach (var type in ChannelPermissions.ChannelTypes){
-                        Nodes[(int)type.TargetType] = await category.GetPermNodeAsync(SelectedRole.Id, type.TargetType);
-                        ShowStates[(int)type.TargetType] = true;
-                    }
+            foreach (var type in ChannelPermissions.ChannelTypes){
+                _nodes[(int)type.TargetType] = await Target.GetPermNodeAsync(_selectedRole.Id, type.TargetType);
+                _showStates[(int)type.TargetType] = true;
+            }
+        }
+        else
+        {
+            foreach (var type in ChannelPermissions.ChannelTypes)
+            {
+                _showStates[(int)type.TargetType] = false;
+            }
 
-                    break;
-                }
-            default:
-                {
-                    foreach (var type in ChannelPermissions.ChannelTypes)
-                    {
-                        ShowStates[(int)type.TargetType] = false;
-                    }
-
-                    Nodes[(int)Target.Type] = await Target.GetPermNodeAsync(SelectedRole.Id, Target.Type);
-                    ShowStates[(int)Target.Type] = true;
-                    break;
-                }
+            _nodes[(int)Target.ChannelType] = await Target.GetPermNodeAsync(_selectedRole.Id, Target.ChannelType);
+            _showStates[(int)Target.ChannelType] = true;
         }
 
-        changed = false;
+        _changed = false;
 
         await RefreshButtons();
     }
 
-    public PermissionState GetPermissionStateForViewing(PermissionsNode node, Permission permission)
+    private PermissionState GetPermissionStateForViewing(PermissionsNode node, Permission permission)
     {
 
         // super confusing to users why when they hit save, all the buttons go to off if the View perm is not set to True
@@ -406,34 +336,31 @@
         return PermissionState.True;
     }
 
-    public async Task RefreshButtons()
+    private async Task RefreshButtons()
     {
-
-        var egg = ChannelPermissions.ChannelTypes;
-
-        if (ButtonGroups == null || ButtonGroups.Length == 0)
+        if (_buttonGroups == null || _buttonGroups.Length == 0)
             return;
 
         for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
             // Only set up buttons for visible
-            if (ShowStates[i])
+            if (_showStates[i])
             {
                 var perms = ChannelPermissions.ChannelTypes[i].Permissions;
                 for (int j = 1; j < perms.Length; j++)
                 {
-                    if (ButtonGroups[i][j] is null)
+                    if (_buttonGroups[i][j] is null)
                         continue;
 
                     TriButtonComponent.TriButtonState buttonState = TriButtonComponent.TriButtonState.Disabled;
-                    if(Nodes[i] is not null)
+                    if(_nodes[i] is not null)
                     {
-                        var state = GetPermissionStateForViewing(Nodes[i], perms[j]);
+                        var state = GetPermissionStateForViewing(_nodes[i], perms[j]);
                         if (state == PermissionState.True) buttonState = TriButtonComponent.TriButtonState.Yes;
                         else if (state == PermissionState.False) buttonState = TriButtonComponent.TriButtonState.No;
                     }
 
-                    await ButtonGroups[i][j].OnChangeState(buttonState, false);
+                    await _buttonGroups[i][j].OnChangeState(buttonState, false);
                 }
             }
         }

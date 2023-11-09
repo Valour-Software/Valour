@@ -25,7 +25,7 @@ public static class NotificationNavigator
                 if (planet is null)
                     break;
 
-                var channel = (await planet.GetChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
+                var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
                 if (channel is null)
                     break;
 						
@@ -33,19 +33,19 @@ public static class NotificationNavigator
                 await windowManager.SetFocusedPlanet(planet);
 
                 var selectedWindow = windowManager.GetSelectedWindow();
-                await windowManager.ReplaceWindow(selectedWindow, new PlanetChatChannelWindow(planet, channel));
+                await windowManager.ReplaceWindow(selectedWindow, new ChatChannelWindow(channel));
 
                 break;
             }
             case NotificationSource.DirectMention:
             case NotificationSource.DirectReply:
             {
-                var channel = ValourCache.Get<DirectChatChannel>(notification.ChannelId);
+                var channel = ValourCache.Get<Channel>(notification.ChannelId);
                 if (channel is null)
                     break;
 						
                 var selectedWindow = windowManager.GetSelectedWindow();
-                await windowManager.ReplaceWindow(selectedWindow, new DirectChatChannelWindow(channel));
+                await windowManager.ReplaceWindow(selectedWindow, new ChatChannelWindow(channel));
                 
                 break;
             }

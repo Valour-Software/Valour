@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 
 @if (Visible)
 {
@@ -6,7 +6,7 @@
         @{
             var i = 0;
 
-            foreach (var match in Matches)
+            foreach (var match in _matches)
             {
                 var x = i;
                 switch (match.Item)
@@ -20,7 +20,7 @@
                     case User user:
                         <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" ></MentionSelectUserComponent>
                         break;
-                    case IChatChannel channel:
+                    case Channel channel:
                         <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" ></MentionSelectChannelComponent>
                         break;
                 }
@@ -34,7 +34,7 @@
 @code {
 
     [CascadingParameter]
-    public IChatChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
     [CascadingParameter]
     public ChatChannelWindowComponent ChannelComponent { get; set; }
@@ -56,22 +56,18 @@
         public object Item { get; set; }
     }
     
-    private List<MentionMatch> Matches;
+    private List<MentionMatch> _matches;
 
-    public PlanetChatChannel PlanetChannel { get; set; }
+    private Planet _planet;
 
-    public PlanetChatChannelWindowComponent PlanetChannelWindow { get; set; }
+    private List<Channel> _chatChannels;
+    private List<PlanetMember> _members;
+    private List<PlanetRole> _roles;
+    private List<User> _users;
 
-    public Planet Planet { get; set; }
-
-    public List<IChatChannel> Channels;
-    public List<PlanetMember> Members;
-    public List<PlanetRole> Roles;
-    public List<User> Users;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        Matches = new();
+        _matches = new();
     }
 
     public async Task SetVisible(bool value, char mode = ' ')
@@ -81,25 +77,16 @@
         if (value)
         {
             // On made visible, fetch all needed data
-            if (Channel is PlanetChatChannel)
+            if (Channel.PlanetId is not null)
             {
-                PlanetChannel = Channel as PlanetChatChannel;
-                PlanetChannelWindow = ChannelComponent as PlanetChatChannelWindowComponent;
-                Planet = await ((PlanetChatChannel)Channel).GetPlanetAsync();
-                Members = (await Planet.GetMembersAsync()).DistinctBy(x => x.Id).ToList();
-                Channels = (await Planet.GetChannelsAsync())
-                    .Cast<IChatChannel>().ToList();
-                Roles = await Planet.GetRolesAsync();
+                _planet = await Channel.GetPlanetAsync();
+                _members = await _planet.GetMembersAsync();
+                _chatChannels = await _planet.GetChatChannelsAsync();
+                _roles = await _planet.GetRolesAsync();
             }
-            else if (Channel is DirectChatChannel)
+            else
             {
-                var channel = Channel as DirectChatChannel;
-                Users = new();
-                var userOne = await User.FindAsync(channel.UserOneId);
-                var userTwo = await User.FindAsync(channel.UserTwoId);
-
-                Users.Add(userOne);
-                Users.Add(userTwo);
+                _users = await Channel.GetChannelMemberUsersAsync();
             }
             
             // Set mode
@@ -111,7 +98,7 @@
 
     public async Task Submit()
     {
-        var selected = Matches[Selected].Item;
+        var selected = _matches[Selected].Item;
         switch (selected)
         {
             case PlanetMember member:
@@ -143,7 +130,7 @@
                 await InputComponent.InjectElementAsync(tag, text, classList, styleList);
                 break;
             }
-            case IChatChannel channel:
+            case Channel channel:
             {
                 var tag = $"«#c-{channel.Id}» ";
                 var text = "#" + channel.Name;
@@ -159,34 +146,34 @@
         Selected = 0;
     }
 
-    public async Task SetText(string new_text)
+    public async Task SetText(string newText)
     {
-        Text = new_text.TrimStart(Mode).ToLower();
+        Text = newText.TrimStart(Mode).ToLower();
         
-        Matches.Clear();
+        _matches.Clear();
 
         if (Mode == '@')
         {
-            if (Channel is PlanetChatChannel planetChannel)
+            if (Channel.PlanetId is not null)
             {
                 if (string.IsNullOrEmpty(Text))
                 {
-                    Matches.AddRange((await PlanetChannelWindow.GetLastChatters(10))
+                    _matches.AddRange((await ChannelComponent.GetLastChatMembers(10))
                         .Select(x => new MentionMatch { Id = x.Id, Item = x }));
                 }
                 else
                 {
                     // Get members which may match
-                    var members = Members.Where(x => x.Nickname.ToLower().Contains(Text))
+                    var members = _members.Where(x => x.Nickname.ToLower().Contains(Text))
                                      .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
                                      .ThenBy(x => x.Nickname.Length)
                                      .Take(10)
                                      .Select(x => new MentionMatch(){ Id = x.Id, Item = x });
                     
-                    Matches.AddRange(members);
+                    _matches.AddRange(members);
 
-                    bool canMentionAll = false;
-                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, planetChannel.PlanetId);
+                    var canMentionAll = false;
+                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId.Value);
                     if (selfMember is not null)
                     {
                         if (await selfMember.HasPermissionAsync(PlanetPermissions.MentionAll))
@@ -195,7 +182,7 @@
                         }
                     }
 
-                    var roleQuery = Roles.Where(x => x.Name.ToLower().Contains(Text));
+                    var roleQuery = _roles.Where(x => x.Name.ToLower().Contains(Text));
                     if (!canMentionAll)
                         roleQuery = roleQuery.Where(x => x.AnyoneCanMention);
                     
@@ -205,12 +192,12 @@
                         .Take(5)
                         .Select(x => new MentionMatch() { Id = x.Id, Item = x });
                     
-                    Matches.AddRange(roles);
+                    _matches.AddRange(roles);
                 }
             }
             else
             {
-                Matches.AddRange(Users.Where(x => x.Name.ToLower().Contains(Text))
+                _matches.AddRange(_users.Where(x => x.Name.ToLower().Contains(Text))
                                                  .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                                                  .ThenBy(x => x.Name.Length)
                                                  .Take(10)
@@ -218,7 +205,7 @@
             }
         }
         else if (Mode == '#'){
-            Matches.AddRange(Channels.Where(x => x.Name.ToLower().Contains(Text))
+            _matches.AddRange(_chatChannels.Where(x => x.Name.ToLower().Contains(Text))
                              .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                              .ThenBy(x => x.Name.Length)
                              .Take(10)
@@ -232,13 +219,13 @@
     {
         Selected += n;
         
-        if (Selected > Matches.Count - 1)
+        if (Selected > _matches.Count - 1)
         {
             Selected = 0;
         }
         else if (Selected < 0)
         {
-            Selected = Matches.Count - 1;
+            Selected = _matches.Count - 1;
         }
         
         StateHasChanged();

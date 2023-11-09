@@ -10,44 +10,31 @@
     
     <!-- Actual messages -->
     <CascadingValue Value="this" IsFixed="true">
-        @MessagesTemplate
+        @MessagesFragment
     </CascadingValue>
 
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
 </ContextMenuTrigger>
 
-@code {
+<InputComponent @ref="@InputComponent" MessageHolder="@this" />
 
-    /*
-     *
-     * switch (messageData.Message) {
-            case PlanetMessage:
-                <PlanetMessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last"  />
-                break;
-            case DirectMessage: 
-                <DirectMessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last" />
-                break;
-            default:
-                <MessageComponent MessageData="@messageData" IsInnerReply="@false" LastMessage="@last" />
-                break;
-        }
-     */
-    
+@code {
     public class MessageComponentParams
     {
-        public ClientMessageWrapper MessageData { get; set; }
+        public Message Message { get; set; }
+        public Message LastMessage { get; set; }
         public bool IsInnerReply { get; set; }
-        public ClientMessageWrapper LastMessage { get; set; }
         public bool Ghost { get; set; }
     }
 
     [CascadingParameter]
     public ChatChannelWindow Window { get; set; }
+    
+    public InputComponent InputComponent { get; set; }
+    
+    public List<Message> DisplayedMessages { get; set; }
 
-    [Parameter]
-    public List<ClientMessageWrapper> DisplayedMessageData { get; set; }
-
-    public List<ClientMessageWrapper> QueuedMessageData { get; set; }
+    public List<Message> QueuedMessages { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
 
@@ -58,156 +45,127 @@
     private string _id;
 
     private bool _canRenderFlag = false;
-    
-    public Type MessageType;
 
-    public void TypedMessagesTemplate<T>(RenderTreeBuilder builder) where T : MessageComponent
+    private RenderFragment MessagesFragment => builder =>
     {
-        ClientMessageWrapper lastMessage = null;
-        
+        Message lastMessage = null;
+
         // Displayed messages
-        if (DisplayedMessageData is not null && DisplayedMessageData.Count > 0)
+        if (DisplayedMessages is not null && DisplayedMessages.Count > 0)
         {
             // Render each message
-            foreach (var messageData in DisplayedMessageData)
+            foreach (var message in DisplayedMessages)
             {
                 var messageParams = new MessageComponentParams()
                 {
-                    MessageData = messageData,
+                    Message = message,
                     IsInnerReply = false,
                     LastMessage = lastMessage,
                     Ghost = false,
                 };
 
-                builder.OpenComponent<T>(0);
+                builder.OpenComponent<MessageComponent>(0);
                 builder.AddAttribute(1, "ParamData", messageParams);
-                builder.SetKey(messageData.RenderKey);
+                builder.SetKey(message.RenderKey);
                 builder.CloseComponent();
 
-                lastMessage = messageData;
+                lastMessage = message;
             }
         }
-        
+
         // Queued messages
-        if (QueuedMessageData is not null && QueuedMessageData.Count > 0)
+        if (QueuedMessages is not null && QueuedMessages.Count > 0)
         {
             // Render each message
-            foreach (var messageData in QueuedMessageData)
+            foreach (var message in QueuedMessages)
             {
                 var messageParams = new MessageComponentParams()
                 {
-                    MessageData = messageData,
+                    Message = message,
                     IsInnerReply = false,
                     LastMessage = lastMessage,
                     Ghost = true,
                 };
 
-                builder.OpenComponent<T>(0);
+                builder.OpenComponent<MessageComponent>(0);
                 builder.AddAttribute(1, "ParamData", messageParams);
-                builder.SetKey($"q-{messageData.RenderKey}");
+                builder.SetKey($"q-{message.RenderKey}");
                 builder.CloseComponent();
 
-                lastMessage = messageData;
+                lastMessage = message;
             }
         }
-    }
-
-
-    public RenderFragment MessagesTemplate;
+    };
+    
 
     protected override void OnInitialized()
     {
-        
-         // Using generics instead of reflection gives better performance,
-         // and we only have to set the render template once
-        switch (Window)
-        {
-            case PlanetChatChannelWindow:
-            {
-                MessagesTemplate = TypedMessagesTemplate<PlanetMessageComponent>;
-                MessageType = typeof(PlanetMessageComponent);
-                break;
-            }
-            case DirectChatChannelWindow:
-            {
-                MessagesTemplate = TypedMessagesTemplate<DirectMessageComponent>;
-                MessageType = typeof(DirectMessageComponent);
-                break;
-            }
-            default:
-            {
-                MessagesTemplate = TypedMessagesTemplate<MessageComponent>;
-                MessageType = typeof(MessageComponent);
-                break;
-            }
-        }
-        
         _id = $"innerWindow-{Window.Id}";
         
         RenderedMessages = new List<MessageComponent>();
-        DisplayedMessageData = new List<ClientMessageWrapper>();
-        QueuedMessageData = new List<ClientMessageWrapper>();
+        DisplayedMessages = new List<Message>();
+        QueuedMessages = new List<Message>();
 
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 
         _thisRef = DotNetObjectReference.Create(this);
     }
 
-    public void AddQueuedMessage(ClientMessageWrapper message)
+    public void AddQueuedMessage(Message message)
     {
         //Console.WriteLine("Queued Message");
-        QueuedMessageData.Add(message);
+        QueuedMessages.Add(message);
         Refresh();
     }
 
     public void RemoveQueuedMessage(string fingerprint)
     {
         
-        var queued = QueuedMessageData.FirstOrDefault(x => x.Message.Fingerprint == fingerprint);
+        var queued = QueuedMessages.FirstOrDefault(x => x.Fingerprint == fingerprint);
         if (queued != null)
         {
             //Console.WriteLine("Removed Queued Message");
-            QueuedMessageData.Remove(queued);
+            QueuedMessages.Remove(queued);
             Refresh();
         }
     }
 
     public void RemoveErrorMessage()
     {
-        var error = DisplayedMessageData.FirstOrDefault(x => x.Message.Id == long.MaxValue);
+        var error = DisplayedMessages.FirstOrDefault(x => x.Id == long.MaxValue);
         if (error != null) { 
            //Console.WriteLine("Removed error message");
-           DisplayedMessageData.Remove(error); 
+           DisplayedMessages.Remove(error); 
            Refresh();
         }
     }
 
     public void Clear()
     {
-        DisplayedMessageData.Clear();
-        QueuedMessageData.Clear();
+        DisplayedMessages.Clear();
+        QueuedMessages.Clear();
         RenderedMessages.Clear();
         
         Refresh();
     }
 
-    public ClientMessageWrapper GetLastMessage()
+    public Message GetLastMessage()
     {
-        if (QueuedMessageData != null && QueuedMessageData.Any())
+        if (QueuedMessages != null && QueuedMessages.Any())
         {
-            return QueuedMessageData.Last();
+            return QueuedMessages.Last();
         }
-        else if (DisplayedMessageData != null && DisplayedMessageData.Any())
+        else if (DisplayedMessages != null && DisplayedMessages.Any())
         {
-            return DisplayedMessageData.Last();
+            return DisplayedMessages.Last();
         }
 
         return null;
     }
 
-    public async Task AddMessages(List<ClientMessageWrapper> messages, bool refresh = true, bool scroll = false)
+    public async Task AddMessages(List<Message> messages, bool refresh = true, bool scroll = false)
     {
-        DisplayedMessageData.AddRange(messages);
+        DisplayedMessages.AddRange(messages);
 
         if (refresh)
         {
@@ -220,9 +178,9 @@
         }
     }
 
-    public void InsertMessages(int position, List<ClientMessageWrapper> messages, bool refresh = true)
+    public void InsertMessages(int position, List<Message> messages, bool refresh = true)
     {
-        DisplayedMessageData.InsertRange(position, messages);
+        DisplayedMessages.InsertRange(position, messages);
 
         if (refresh)
         {
@@ -230,20 +188,20 @@
         }
     }
 
-    public async Task AddMessage(ClientMessageWrapper renderData, bool refresh = true)
+    public async Task AddMessage(Message message, bool refresh = true)
     {
-        QueuedMessageData.RemoveAll(x => x.Message.Fingerprint == renderData.Message.Fingerprint);
+        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
 
         //Get current window scroll pos
         var atBottom = await _jsModule.InvokeAsync<bool>("isAtBottom", _id);
 
         // check if theres too many messages
-        if (atBottom && DisplayedMessageData.Count > 120)
+        if (atBottom && DisplayedMessages.Count > 120)
         {
-            DisplayedMessageData.RemoveRange(0, DisplayedMessageData.Count - 120);
+            DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - 120);
         }
 
-        DisplayedMessageData.Add(renderData);
+        DisplayedMessages.Add(message);
 
         // Flag for UI refresh
         if (refresh)
@@ -283,22 +241,22 @@
         await _jsModule.DisposeAsync();
     }
 
-    public async Task OnDeleteMessage(PlanetMessage message)
+    public async Task OnDeleteMessage(Message message)
     {
         if (message.ChannelId != Window.Channel.Id)
             return;
 
-        DisplayedMessageData.RemoveAll(x => x.Message.Id == message.Id);
-        QueuedMessageData.RemoveAll(x => x.Message.Id == message.Id);
+        DisplayedMessages.RemoveAll(x => x.Id == message.Id);
+        QueuedMessages.RemoveAll(x => x.Id == message.Id);
 
-        var nextMessage = RenderedMessages.FirstOrDefault(x => x.MessageData.Message.Id > message.Id);
+        var nextMessage = RenderedMessages.FirstOrDefault(x => x.Message.Id > message.Id);
         if (nextMessage != null){
             var lastMessage = RenderedMessages
-                .OrderByDescending(x => x.MessageData.Message.Id)
-                .FirstOrDefault(x => x.MessageData.Message.Id < message.Id);
+                .OrderByDescending(x => x.Message.Id)
+                .FirstOrDefault(x => x.Message.Id < message.Id);
             
             if (lastMessage is not null)
-                nextMessage.SetLast(lastMessage.MessageData);
+                nextMessage.SetLast(lastMessage.Message);
             
             await nextMessage.RefreshMessage();
             nextMessage.ReRender();
@@ -358,17 +316,17 @@
     [JSInvokable("OnScrollTopInvoke")]
     public async Task OnScrollTop()
     {
-        if (DisplayedMessageData == null ||
-            DisplayedMessageData.Count == 0)
+        if (DisplayedMessages == null ||
+            DisplayedMessages.Count == 0)
         {
             return;
         }
 
-        var firstId = DisplayedMessageData[0].Message.Id;
+        var firstId = DisplayedMessages[0].Id;
 
         Console.WriteLine($"Fetching older messages from id {firstId} for window {Window.Id}");
 
-        var messages = await Window.Channel.GetMessagesGenericAsync(firstId, 64);
+        var messages = await Window.Channel.GetMessagesAsync(firstId, 64);
 
         if (messages is null || !messages.Any())
             return;
@@ -376,7 +334,7 @@
         foreach (var msg in messages)
         {
             await msg.AddToCache(msg);
-            var reply = msg.GetReply();
+            var reply = msg.ReplyTo;
             if (reply is not null)
             {
                 await reply.AddToCache(reply);
@@ -385,7 +343,7 @@
 
         await UpdateScrollPosition(); // This saves the scroll position
 
-        InsertMessages(0, ClientMessageWrapper.FromList(messages));
+        InsertMessages(0, messages);
 
         await ScaleScrollPosition(); // This ensures the page doesnt move harshly
     }

@@ -1,10 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using System.Xml.Linq;
-using Valour.Api.Client;
-using Valour.Api.Items;
+﻿using Valour.Api.Client;
 using Valour.Shared.Authorization;
-using Valour.Shared.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
@@ -45,7 +40,7 @@ public class PermissionsNode : LiveModel, ISharedPermissionsNode
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public ChannelType TargetType { get; set; }
+    public ChannelTypeEnum TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node
@@ -68,7 +63,7 @@ public class PermissionsNode : LiveModel, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static ValueTask<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, ChannelType targetType) =>
+    public static ValueTask<PermissionsNode> FindAsync(Channel channel, PlanetRole role, ChannelTypeEnum targetType) =>
         FindAsync(channel.Id, role.Id, targetType);
 
     public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
@@ -79,9 +74,9 @@ public class PermissionsNode : LiveModel, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, ChannelType type, bool force_refresh = false)
+    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, ChannelTypeEnum type, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PermissionsNode>((targetId, (roleId, type)));
             if (cached is not null)

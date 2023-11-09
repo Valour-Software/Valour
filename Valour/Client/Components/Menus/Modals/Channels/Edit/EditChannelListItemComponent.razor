@@ -24,7 +24,7 @@
 
 @code {
     [Parameter]
-    public PlanetChannel ChannelListItem { get; set; }
+    public Channel ChannelListItem { get; set; }
 
     private BigMenuComponent BigMenu { get; set; }
 
@@ -43,7 +43,7 @@
         return base.OnAfterRenderAsync(firstRender);
     }
 
-    public void Refresh()
+    private void Refresh()
     {
         StateHasChanged();
     }

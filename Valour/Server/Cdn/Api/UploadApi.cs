@@ -21,6 +21,7 @@ public class UploadApi
     public static void AddRoutes(WebApplication app)
     {
         app.MapPost("/upload/profile", ProfileImageRoute);
+        app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute);
         app.MapPost("/upload/image", ImageRouteNonPlus);
         app.MapPost("/upload/image/plus", ImageRoutePlus);
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
@@ -53,7 +54,7 @@ public class UploadApi
     [RequestSizeLimit(20480000)]
     private static async Task<IResult> ImageRoutePlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload images larger than 10MB");
@@ -65,7 +66,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> ImageRouteNonPlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         return await ImageRoute(ctx, valourDb, db, authToken, authorization);
     }
 
@@ -82,7 +83,7 @@ public class UploadApi
         if (!file.ContentType.StartsWith("image"))
             return Results.BadRequest("Unsupported file type");
 
-        var imageData = await ProcessImage(file);
+        var imageData = await ProcessImage(file, -1, -1);
         if (imageData is null)
             return Results.BadRequest("Unable to process image. Check format and size.");
 
@@ -95,7 +96,7 @@ public class UploadApi
         }
         else
         {
-            return ValourResult.Problem(bucketResult.Message);
+            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
     }
 
@@ -103,7 +104,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
         var file = ctx.Request.Form.Files.FirstOrDefault();
@@ -113,7 +114,7 @@ public class UploadApi
         if (!file.ContentType.StartsWith("image"))
             return Results.BadRequest("Unsupported file type");
 
-        var imageData = await ProcessImage(file, 256);
+        var imageData = await ProcessImage(file, 256, 256);
         if (imageData is null)
             return Results.BadRequest("Unable to process image. Check format and size.");
 
@@ -133,8 +134,52 @@ public class UploadApi
         }
         else
         {
-            return ValourResult.Problem(bucketResult.Message);
+            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
+    }
+    
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(10240000)]
+    private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null) return ValourResult.InvalidToken();
+        
+        var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
+        if (!isPlus)
+            return ValourResult.Forbid("You must be a Valour Plus subscriber to upload profile backgrounds!");
+
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return Results.BadRequest("Please attach a file");
+
+        if (!file.ContentType.StartsWith("image"))
+            return Results.BadRequest("Unsupported file type");
+
+        var imageData = await ProcessImage(file, 300, 400);
+        if (imageData is null)
+            return Results.BadRequest("Unable to process image. Check format and size.");
+
+        using MemoryStream ms = imageData.Value.stream;
+
+        try
+        {
+            var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension,
+                authToken.UserId, imageData.Value.mime, ContentCategory.Profile, db);
+
+            if (bucketResult.Success)
+            {
+                var userProfile = new Valour.Database.UserProfile()
+                    { Id = authToken.UserId, BackgroundImage = bucketResult.Message };
+                valourDb.UserProfiles.Attach(userProfile);
+                valourDb.Entry(userProfile).Property(x => x.BackgroundImage).IsModified = true;
+                await valourDb.SaveChangesAsync();
+
+                return ValourResult.Ok(bucketResult.Message);
+            }
+        }
+        catch (Exception e) { Console.WriteLine(e.StackTrace); }
+        return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
     }
 
     [FileUploadOperation.FileContentType]
@@ -150,7 +195,7 @@ public class UploadApi
         long planetId, 
         [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
         var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
@@ -167,7 +212,7 @@ public class UploadApi
         if (!file.ContentType.StartsWith("image"))
             return Results.BadRequest("Unsupported file type");
 
-        var imageData = await ProcessImage(file, 512);
+        var imageData = await ProcessImage(file, 512, 512);
         if (imageData is null)
             return Results.BadRequest("Unable to process image. Check format and size.");
 
@@ -186,7 +231,7 @@ public class UploadApi
         }
         else
         {
-            return ValourResult.Problem(bucketResult.Message);
+            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
     }
 
@@ -194,7 +239,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, long appId, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
         var app = await valourDb.OauthApps.FindAsync(appId);
@@ -211,7 +256,7 @@ public class UploadApi
         if (!file.ContentType.StartsWith("image"))
             return Results.BadRequest("Unsupported file type");
 
-        var imageData = await ProcessImage(file, 512);
+        var imageData = await ProcessImage(file, 512, 512);
         if (imageData is null)
             return Results.BadRequest("Unable to process image. Check format and size.");
 
@@ -227,7 +272,7 @@ public class UploadApi
         }
         else
         {
-            return ValourResult.Problem(bucketResult.Message);
+            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
     }
 
@@ -235,7 +280,7 @@ public class UploadApi
     [RequestSizeLimit(20480000)]
     private static async Task<IResult> FileRoutePlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload files larger than 10MB");
@@ -247,7 +292,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> FileRouteNonPlus(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await tokenService.GetCurrentToken();
+        var authToken = await tokenService.GetCurrentTokenAsync();
         return await FileRoute(ctx, valourDb, db, authToken, authorization);
     }
     
@@ -274,20 +319,20 @@ public class UploadApi
         }
         else
         {
-            return ValourResult.Problem(bucketResult.Message);
+            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
         }
     }
 
-    private static async Task<(MemoryStream stream, string mime, string extension)?> ProcessImage(IFormFile file, int size = -1)
+    private static async Task<(MemoryStream stream, string mime, string extension)?> ProcessImage(IFormFile file, int sizeX, int sizeY)
     {
         var stream = file.OpenReadStream();
 
         Image image;
         
-        if (size != -1)
+        if (sizeX + sizeY > 1)
         {
             image = await Image.LoadAsync(
-                new() { TargetSize = new(size, size) }, 
+                new() { TargetSize = new(sizeX, sizeY) }, 
                 stream
             );
         }

@@ -1,3 +1,5 @@
+@inject WindowManager WindowManager
+
 <div id="@Id" class="card-wrapper" style="@CssStyle">
         <TiltCard ShineCssStyle="border-radius: 20px">
             <div class="card-glow" style="background-color: @Profile.GlowColor">
@@ -7,28 +9,49 @@
                 class="profile-card">
                 <span class="card-bg" style="@CardBackground"></span>
                 <div class="inner-card">
+                    @if (!string.IsNullOrWhiteSpace(Profile.BackgroundImage))
+                    {
+                        <div class="inner-bg" style="@BackgroundImage"></div>
+                    }
                     <div class="top-section">
                         <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
                         <div class="online-bubble @_statusClass"></div>
                         <div class="names">
                             <p class="nickname">@_name</p>
-                            <p class="name-and-tag">@_nameAndTag</p>
+                            <p class="name-and-tag" style="@CustomText">@_nameAndTag</p>
                             <div class="status-bubble">
                                 <div class="arrow"></div>
                                 <p class="status-text">"@(_status)"</p>
                             </div>
                         </div>
                     </div>
-                    <p class="headline">@Profile.Headline</p>
+                    <p class="headline" style="@CustomText">@Profile.Headline</p>
                     <div class="mid-section">
-                        <b class="card-subtitle">Bio</b>
+                        <b class="card-subtitle" style="@CustomText">Bio</b>
                         <hr/>
                         <div class="mid-inner">
-                            <p class="body-text">@Profile.Bio</p>
+                            <p class="body-text" style="@CustomText">@Profile.Bio</p>
                         </div>
                     </div>
 
-
+                    @if (User.Id != ValourClient.Self.Id)
+                    {
+                        <div class="bottom-btns">
+                            <button class="v-btn large" @onclick="OnClickMessage"><i class="bi bi-envelope-fill"></i> Message</button>
+                            @if (_isFriend)
+                            {
+                                <button class="v-btn large" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Remove Friend</button>
+                            }
+                            else if (_isFriendRequested)
+                            {
+                                <button class="v-btn large" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Cancel Request</button>
+                            }
+                            else
+                            {
+                                <button class="v-btn large" @onclick="OnClickAddFriend"><i class="bi bi-person-heart"></i> Add Friend</button>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </TiltCard>
@@ -47,6 +70,33 @@
     
     [Parameter]
     public string CssStyle { get; set; }
+
+    public string CustomText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Profile.TextColor))
+            {
+                return $"color: {Profile.TextColor};";
+            }
+
+            return string.Empty;
+        }
+    }
+
+    public string BackgroundImage
+    {
+        get
+        {
+            if (User.Subscription == null)
+                return string.Empty;
+
+            if (string.IsNullOrWhiteSpace(Profile.BackgroundImage))
+                return string.Empty;
+
+            return $"background: url({Profile.BackgroundImage})";
+        }
+    }
 
     public string CardBackground
     {
@@ -71,9 +121,15 @@
     private string _status;
     private string _pfpUrl;
     private string _statusClass = "offline";
+
+    private bool _isFriend;
+    private bool _isFriendRequested;
     
     public async Task LoadDetailsAsync()
     {
+        _isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
+        _isFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
+        
         _name = User.Name;
         _nameAndTag = User.NameAndTag;
         _status = User.Status;
@@ -88,5 +144,48 @@
     {
         _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
         StateHasChanged();
+    }
+    
+    public async Task OnClickAddFriend()
+    {
+        var result = await ValourClient.AddFriendAsync(User.NameAndTag);
+
+        if (!result.Success)
+        {
+            await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+            return;
+        }
+
+        _isFriend = true;
+        StateHasChanged();
+    }
+
+    public async Task OnClickRemoveFriend()
+    {
+        var result = await ValourClient.RemoveFriendAsync(User.NameAndTag);
+
+        if (!result.Success)
+        {
+            await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+            return;
+        }
+
+        _isFriend = false;
+        _isFriendRequested = false;
+        StateHasChanged();
+    }
+    
+    public async Task OnClickMessage()
+    {
+        var channel = await Channel.GetDirectChannelAsync(User.Id, true);
+        var newWindow = new ChatChannelWindow(channel);
+
+        var oldWindow = WindowManager.GetSelectedWindow();
+		
+        Console.WriteLine($"Switching window {oldWindow.Id} to direct chat channel {channel.Id}");
+
+        await WindowManager.ReplaceWindow(oldWindow, newWindow);
+        await WindowManager.SetSelectedWindow(newWindow);
+        await WindowManager.SetFocusedPlanet(null);
     }
 }
