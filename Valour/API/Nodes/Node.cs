@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Valour.Api.Client;
@@ -52,11 +53,16 @@ public class Node
     /// True if this is the primary node for this client
     /// </summary>
     public bool IsPrimary { get; set; }
+    
+    /// <summary>
+    /// Timer that updates the user's online status
+    /// </summary>
+    private static Timer _onlineTimer;
 
-    public async Task<T> WaitUntilReadyThen<T>(Func<Task<T>> next)
+    public async Task<T> WaitUntilReadyThen<T>(Task<T> next)
     {
         if (IsReady)
-            return await next.Invoke();
+            return await next;
 
         // Don't allocate or do any of this unless IsReady is false...
         var tries = 0;
@@ -69,7 +75,7 @@ public class Node
             tries++;
         }
 
-        return await next.Invoke();
+        return await next;
     }
 
 
@@ -106,6 +112,39 @@ public class Node
             IsReady = true;
         }
     }
+    
+    /// <summary>
+    /// Starts pinging for online state
+    /// </summary>
+    private async Task BeginPings()
+    {
+        await Logger.Log($"[{Name}] Beginning online pings...", "lime");
+        _onlineTimer = new Timer(OnPingTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
+    }
+    
+    private readonly Stopwatch _pingStopwatch = new();
+
+    /// <summary>
+    /// Run by the online timer
+    /// </summary>
+    private async void OnPingTimer(object state = null)
+    {
+        await Logger.Log("Doing node ping...", "lime");
+        
+        _pingStopwatch.Reset();
+        _pingStopwatch.Start();
+        var response = await HubConnection.InvokeAsync<string>("ping", IsPrimary);
+        _pingStopwatch.Stop();
+        
+        if (response == "pong")
+        {
+            await Logger.Log($"[{Name}] Pinged successfully in {_pingStopwatch.ElapsedMilliseconds}ms", "lime");
+        }
+        else
+        {
+            await Logger.Log($"[{Name}] Ping failed. Response: {response}", "salmon");
+        }
+    }
 
     public async Task Log(string text, string color = "orange")
     {
@@ -136,6 +175,8 @@ public class Node
         await HubConnection.StartAsync();
 
         await HookSignalREvents();
+
+        await BeginPings();
     }
 
     public async Task AuthenticateSignalR()
@@ -326,75 +367,75 @@ public class Node
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allowNull = false)
-        => await WaitUntilReadyThen(async () => await ValourClient.GetJsonAsync<T>(uri, allowNull, HttpClient));
+    public Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allowNull = false)
+        => WaitUntilReadyThen(ValourClient.GetJsonAsync<T>(uri, allowNull, HttpClient));
 
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public async Task<TaskResult<string>> GetAsync(string uri)
-        => await WaitUntilReadyThen(async () => await ValourClient.GetAsync(uri, HttpClient));
+    public Task<TaskResult<string>> GetAsync(string uri)
+        => WaitUntilReadyThen(ValourClient.GetAsync(uri, HttpClient));
 
     /// <summary>
     /// Puts a string resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult> PutAsync(string uri, string content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PutAsync(uri, content, HttpClient));
+    public Task<TaskResult> PutAsync(string uri, string content)
+        => WaitUntilReadyThen(ValourClient.PutAsync(uri, content, HttpClient));
 
     /// <summary>
     /// Puts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult> PutAsync(string uri, object content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PutAsync(uri, content, HttpClient));
+    public Task<TaskResult> PutAsync(string uri, object content)
+        => WaitUntilReadyThen(ValourClient.PutAsync(uri, content, HttpClient));
 
     /// <summary>
     /// Puts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, T content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PutAsyncWithResponse<T>(uri, content, HttpClient));
+    public Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, T content)
+        => WaitUntilReadyThen(ValourClient.PutAsyncWithResponse<T>(uri, content, HttpClient));
 
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult> PostAsync(string uri, string content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PostAsync(uri, content, HttpClient));
+    public Task<TaskResult> PostAsync(string uri, string content)
+        => WaitUntilReadyThen(ValourClient.PostAsync(uri, content, HttpClient));
 
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult> PostAsync(string uri, object content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PostAsync(uri, content, HttpClient));
+    public Task<TaskResult> PostAsync(string uri, object content)
+        => WaitUntilReadyThen(ValourClient.PostAsync(uri, content, HttpClient));
 
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
+    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
+        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
 
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
-        => await WaitUntilReadyThen(async () => await ValourClient.PostAsyncWithResponse<T>(uri, HttpClient));
+    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
+        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, HttpClient));
 
     /// <summary>
     /// Posts a multipart resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, MultipartFormDataContent content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
+    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, MultipartFormDataContent content)
+        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
 
 
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content)
-        => await WaitUntilReadyThen(async () => await ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
+    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content)
+        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
 
     /// <summary>
     /// Deletes a resource in the specified uri and returns the response message
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(string uri)
-        => await WaitUntilReadyThen(async () => await ValourClient.DeleteAsync(uri, HttpClient));
+    public Task<TaskResult> DeleteAsync(string uri)
+        => WaitUntilReadyThen(ValourClient.DeleteAsync(uri, HttpClient));
 
     #endregion
 }
