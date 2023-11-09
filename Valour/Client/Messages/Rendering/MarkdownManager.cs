@@ -42,6 +42,7 @@ public static class MarkdownManager
             .UseEmphasisExtras()
             .UseEmojiAndSmiley(DevicePreferences.AutoEmoji)
             .UseMentionExtension()
+            .UseStockExtension()
             .Build();
 
         Renderer = new BlazorRenderer(null, true);
