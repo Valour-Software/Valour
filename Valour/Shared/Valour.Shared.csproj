@@ -11,7 +11,7 @@
     <PackageIcon>logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.2.5.0</Version>
+    <Version>0.3.0.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>
