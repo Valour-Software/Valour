@@ -6,21 +6,34 @@
 }
 
 <div class="change-log" @onclick="OnClose">
-    <h4>Valour 0.2.5.0 Changelog (Click to close)</h4>
+    <h4>Valour 0.3.0.0 Changelog (Click to close)</h4>
     
-    <img alt="Valour logo for version 0.2.5.0 changelog" style="width: 95%; margin-bottom: 18px" src="_content/Valour.Client/media/0.2.5.0.jpg" />
+    <img alt="Valour logo for version 0.3.0.0 changelog" style="width: 95%; margin-bottom: 18px" src="_content/Valour.Client/media/0.3.0.0.jpg" />
     
-    <p style="color: #00ffff">SOUND IS HERE!</p>
+    <p style="color: #00ffff">THE SPEED UPDATE</p>
+    <p>
+        This update introduced massive overhauls in how Valour works under the hood. You may notice that the app is more responsive than ever! 
+        Please keep in mind these major changes may have introduced some bugs. If you find any, please report them!
+    </p>
     <ul>
-        <li style="color: #ff00ff">Add ability to create and join voice channels!</li>
+        <li style="color: #ff00ff">Major Optimizations</li>
         <ul>
-            <li>This is highly alpha</li>
-            <li>There is zero channel security implemented at the moment</li>
-            <li>Use at your own sanity</li>
+            <li>Channels are now enum-typed rather than strongly typed</li>
+            <li>The Markdown pipeline now renders directly into Blazor, rather than being parsed several times</li>
+            <li>Node requests now have 75% less useless state machines (whoops)</li>
+            <li>Direct message channels now use ChannelMembers rather than hardcoded user id properties</li>
+            <li>The above change also makes Group Chats more easily implemented in the future</li>
+            <li>The "ClientMessageWrapper" wrapper object has been murdered, which should significantly reduce ram usage</li>
+            <li>...and over 50 other changes for performance and code readability.</li>
         </ul>
-        <li>Bug fixes</li>
+        <li>Profiles now can have background images for Stargazers</li>
+        <li>Other profile improvements</li>
+        <li>Fix voice channels not closing before opening a new one</li>
+        <li>Fix preview message being full size when it should be minimal</li>
+        <li>Move online pings to SignalR to reduce connection drops (also adds a ping logger)</li>
+        <li>Don't show offline users in watching panel</li>
     </ul>
-    <p>Thank you for using Valour! BIG THINGS are coming ;) - Spike</p>
+    <p>The codebase is looking better than ever, and now new features are in line! - Spike</p>
 </div>
 
 @code {
