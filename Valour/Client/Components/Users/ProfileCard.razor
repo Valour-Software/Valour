@@ -25,6 +25,40 @@
                             </div>
                         </div>
                     </div>
+                    @if (User.Id == ValourClient.Self.Id)
+                    {
+                        <div class="bottom-btns">
+                            
+                            @{
+                                var friendBtnColor = "#ffffff55";
+                                var messageBtnColor = "#ffffff55";
+                                
+                                if (!string.IsNullOrWhiteSpace(Profile.SecondaryColor))
+                                {
+                                    messageBtnColor = Profile.SecondaryColor + "55";
+                                }
+                                
+                                if (!string.IsNullOrWhiteSpace(Profile.TertiaryColor))
+                                {
+                                    friendBtnColor = Profile.TertiaryColor + "55";
+                                }
+                            }
+                            
+                            <button class="v-btn large" style="background-color: @messageBtnColor;" @onclick="OnClickMessage"><i class="bi bi-envelope-fill"></i> Message</button>
+                            @if (_isFriend)
+                            {
+                                <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Remove Friend</button>
+                            }
+                            else if (_isFriendRequested)
+                            {
+                                <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Cancel Request</button>
+                            }
+                            else
+                            {
+                                <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickAddFriend"><i class="bi bi-person-heart"></i> Add Friend</button>
+                            }
+                        </div>
+                    }
                     <p class="headline" style="@CustomText">@Profile.Headline</p>
                     <div class="mid-section">
                         <b class="card-subtitle" style="@CustomText">Bio</b>
@@ -33,25 +67,6 @@
                             <p class="body-text" style="@CustomText">@Profile.Bio</p>
                         </div>
                     </div>
-
-                    @if (User.Id != ValourClient.Self.Id)
-                    {
-                        <div class="bottom-btns">
-                            <button class="v-btn large" @onclick="OnClickMessage"><i class="bi bi-envelope-fill"></i> Message</button>
-                            @if (_isFriend)
-                            {
-                                <button class="v-btn large" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Remove Friend</button>
-                            }
-                            else if (_isFriendRequested)
-                            {
-                                <button class="v-btn large" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Cancel Request</button>
-                            }
-                            else
-                            {
-                                <button class="v-btn large" @onclick="OnClickAddFriend"><i class="bi bi-person-heart"></i> Add Friend</button>
-                            }
-                        </div>
-                    }
                 </div>
             </div>
         </TiltCard>
