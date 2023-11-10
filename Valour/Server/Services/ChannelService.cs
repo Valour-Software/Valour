@@ -752,22 +752,6 @@ public class ChannelService
             }
         }
         
-        // Things that CANNOT be changed (like my lack of sanity)
-        if (old.PlanetId != updated.PlanetId)
-            return TaskResult<Message>.FromError("Cannot change PlanetId.");
-    
-        if (old.ChannelId != updated.ChannelId)
-            return TaskResult<Message>.FromError("Cannot change ChannelId.");
-    
-        if (old.AuthorUserId != updated.AuthorUserId)
-            return TaskResult<Message>.FromError("Cannot change AuthorUserId.");
-    
-        if (old.AuthorMemberId != updated.AuthorMemberId)
-            return TaskResult<Message>.FromError("Cannot change AuthorMemberId.");
-    
-        if (old.TimeSent != updated.TimeSent)
-            return TaskResult<Message>.FromError("Cannot change TimeSent.");
-        
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) &&
             string.IsNullOrEmpty(updated.EmbedData) &&
@@ -830,7 +814,6 @@ public class ChannelService
 
         old.Content = updated.Content;
         old.AttachmentsData = updated.AttachmentsData;
-        old.MentionsData = updated.MentionsData;
         old.EmbedData = updated.EmbedData;
         old.EditedTime = DateTime.UtcNow;
         

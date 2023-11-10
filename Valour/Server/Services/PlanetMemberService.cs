@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Server.Database;
@@ -14,7 +15,7 @@ public class PlanetMemberService
     private readonly TokenService _tokenService;
     private readonly ILogger<PlanetMemberService> _logger;
     
-    private static readonly Dictionary<(long, long), long> MemberIdLookup = new();
+    private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
 
     public PlanetMemberService(
         ValourDB db,
@@ -83,7 +84,7 @@ public class PlanetMemberService
         else
         {
             var member = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
-            MemberIdLookup.Add((userId, planetId), member.Id);
+            MemberIdLookup.TryAdd((userId, planetId), member.Id);
             return member.ToModel();
         }
     }
