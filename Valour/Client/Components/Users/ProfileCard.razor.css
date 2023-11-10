@@ -118,10 +118,14 @@
 
 .bottom-btns {
     display: flex;
+    justify-content: space-evenly;
+    margin-bottom: 12px;
 }
 
 .bottom-btns .v-btn {
-    border-radius: 0;
+    font-size: 14px;
+    padding: 6px;
+    width: 45%;
 }
 
 .mid-section {

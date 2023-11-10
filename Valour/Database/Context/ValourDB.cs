@@ -40,6 +40,16 @@ public class ValourDB : DbContext
         // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false); 
         
         //base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Entity<Message>()
+            .Property(x => x.TimeSent)
+            .HasConversion(x => x, x => new DateTime(x.Ticks, DateTimeKind.Utc));
+        
+        modelBuilder.Entity<Message>()
+            .Property(x => x.EditedTime)
+            .HasConversion(x => x, x =>
+                x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
+            );
     }
 
     // These are the database sets we can access

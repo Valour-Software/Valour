@@ -463,8 +463,11 @@ public class Message : LiveModel, ISharedMessage
 
     public bool IsEmpty()
     {
-        return string.IsNullOrWhiteSpace(Content) && string.IsNullOrWhiteSpace(EmbedData) &&
-               string.IsNullOrWhiteSpace(AttachmentsData) && (_attachments is null || _attachments.Count == 0);
+        return string.IsNullOrWhiteSpace(Content) && 
+               string.IsNullOrWhiteSpace(EmbedData) &&
+               string.IsNullOrWhiteSpace(AttachmentsData) && 
+               (_attachments is null || _attachments.Count == 0) && 
+               ReplyToId is null;
     }
     
     public void Clear()
@@ -527,7 +530,7 @@ public class Message : LiveModel, ISharedMessage
             node = await NodeManager.GetNodeForPlanetAsync(PlanetId.Value);
         }
         
-        return await node.PutAsync($"api/channels/{ChannelId}/messages", this);
+        return await node.PutAsync($"api/channels/{ChannelId}/messages/{Id}", this);
     }
     
     #endregion
