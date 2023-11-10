@@ -530,7 +530,7 @@ public class Message : LiveModel, ISharedMessage
             node = await NodeManager.GetNodeForPlanetAsync(PlanetId.Value);
         }
         
-        return await node.PutAsync($"api/channels/{ChannelId}/messages", this);
+        return await node.PutAsync($"api/channels/{ChannelId}/messages/{Id}", this);
     }
     
     #endregion
