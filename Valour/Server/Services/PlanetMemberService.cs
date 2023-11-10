@@ -629,7 +629,7 @@ public class PlanetMemberService
             return new(false, "An unexpected error occurred.");
         }
 
-        MemberIdLookup.Remove((dbMember.UserId, dbMember.PlanetId));
+        MemberIdLookup.Remove((dbMember.UserId, dbMember.PlanetId), out _);
 
         _coreHub.NotifyPlanetItemDelete(dbMember.ToModel());
 
