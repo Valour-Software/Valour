@@ -283,27 +283,41 @@ export function injectEmoji(text, native, id) {
         if (sel.getRangeAt && sel.rangeCount) {
             range = sel.getRangeAt(0);
             range.deleteContents();
+            
+            // Just used to get url for emoji
             const dummySpan = document.createElement('span');
-            const outerSpan = document.createElement('span');
             dummySpan.innerHTML =  native;
             twemoji.parse(dummySpan, {
                 folder: 'svg',
                 ext: '.svg'
             })
             
+            const spacer = document.createElement('span');
+            const textSpan = document.createElement('span');
+            const outerSpan = document.createElement('span');
+            
+            const buffer = document.createElement('span');
+            
+            
             //outerSpan.style.marginRight = '-1em';
             //outerSpan.style.color = 'transparent';
             
-            outerSpan.innerHTML = native;
+            spacer.style.display = 'inline-block';
+            spacer.style.width = '1em';
+            textSpan.innerText = `:${text}:`;
+            textSpan.style.fontSize = '0';
             outerSpan.style.color = 'transparent';
             outerSpan.style.caretColor = 'white';
             outerSpan.style.display = 'inline-block';
-            outerSpan.style.lineHeight = '16px';
             outerSpan.contentEditable = 'false';
             outerSpan.style.backgroundImage = 'url(' + dummySpan.querySelector('img').src + ')';
             outerSpan.style.backgroundRepeat = 'round';
             
+            outerSpan.appendChild(spacer);
+            outerSpan.appendChild(textSpan);
+            
             range.insertNode(outerSpan);
+            range.insertNode(buffer);
             range.setStartAfter(outerSpan);
         }
     } else if (document.selection && document.selection.createRange) {
