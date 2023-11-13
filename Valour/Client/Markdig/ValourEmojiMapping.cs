@@ -1761,7 +1761,7 @@ public class ValourEmojiMapping
         {
             if (string.IsNullOrEmpty(shortcode.Key) || string.IsNullOrEmpty(shortcode.Value))
                 MDThrowHelper.ArgumentException("The dictionaries cannot contain null or empty keys/values", nameof(shortcodeToUnicode));
-
+            
             firstChars.Add(shortcode.Key[0]);
             PrefixTree.Add(shortcode);
         }
@@ -1773,7 +1773,7 @@ public class ValourEmojiMapping
 
             if (!shortcodeToUnicode.TryGetValue(smiley.Value, out string? unicode))
                 MDThrowHelper.ArgumentException(string.Format("Invalid smiley target: {0} is not present in the emoji shortcodes dictionary", smiley.Value));
-
+            
             firstChars.Add(smiley.Key[0]);
 
             if (!PrefixTree.TryAdd(smiley.Key, unicode))

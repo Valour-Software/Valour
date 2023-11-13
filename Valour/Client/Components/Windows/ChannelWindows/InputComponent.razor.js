@@ -17,10 +17,33 @@ export function setup(id, ref) {
     input.element.addEventListener('input', () => inputInputHandler(input));
 }
 
+// Thank you to https://www.456bereastreet.com/archive/201105/get_element_text_including_alt_text_for_images_with_javascript/
+var getElementText = function(el) {
+    var text = '';
+    // Text node (3) or CDATA node (4) - return its text
+    if ( (el.nodeType === 3) || (el.nodeType === 4) ) {
+        text = el.nodeValue;
+        // If node is an element (1) and an img
+    } else if ((el.nodeType === 1) && el.tagName.toLowerCase() == 'img') {
+        text = el.getAttribute('alt') || '';
+        // Traverse children unless this is a script or style element
+    } else if ( (el.nodeType === 1) && !el.tagName.match(/^(script|style)$/i) ) {
+        var children = el.childNodes;
+        for (var i = 0, l = children.length; i < l; i++) {
+            text += getElementText(children[i]);
+        }
+    }
+    return text;
+};
+
+function getCurrentValue(input) {
+    return getElementText(input.element);
+}
+
 // Handles content being input into the input (not confusing at all)
 export function inputInputHandler(input) {
     input.currentWord = getCurrentWord(0);
-    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, input.currentWord);
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), input.currentWord);
 }
 
 // Handles content being pasted into the input
@@ -267,10 +290,10 @@ export function injectElement(text, covertext, classlist, stylelist, id) {
         document.selection.createRange().text = text;
     }
     
-    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), '');
 }
 
-export function injectEmoji(text, native, id) {
+export function injectEmoji(text, native, unified, id) {
     const input = inputs[id];
     
     if (document.activeElement != input.element) {
@@ -284,47 +307,20 @@ export function injectEmoji(text, native, id) {
             range = sel.getRangeAt(0);
             range.deleteContents();
             
-            // Just used to get url for emoji
-            const dummySpan = document.createElement('span');
-            dummySpan.innerHTML =  native;
-            twemoji.parse(dummySpan, {
-                folder: 'svg',
-                ext: '.svg'
-            })
+            const img = document.createElement('img');
+            img.src = 'https://twemoji.maxcdn.com/v/latest/svg/' + unified + '.svg';
+            img.alt = native;
+            img.classList.add('emoji');
+            img.style.width = '1em';
             
-            const spacer = document.createElement('span');
-            const textSpan = document.createElement('span');
-            const outerSpan = document.createElement('span');
-            
-            const buffer = document.createElement('span');
-            
-            
-            //outerSpan.style.marginRight = '-1em';
-            //outerSpan.style.color = 'transparent';
-            
-            spacer.style.display = 'inline-block';
-            spacer.style.width = '1em';
-            textSpan.innerText = `:${text}:`;
-            textSpan.style.fontSize = '0';
-            outerSpan.style.color = 'transparent';
-            outerSpan.style.caretColor = 'white';
-            outerSpan.style.display = 'inline-block';
-            outerSpan.contentEditable = 'false';
-            outerSpan.style.backgroundImage = 'url(' + dummySpan.querySelector('img').src + ')';
-            outerSpan.style.backgroundRepeat = 'round';
-            
-            outerSpan.appendChild(spacer);
-            outerSpan.appendChild(textSpan);
-            
-            range.insertNode(outerSpan);
-            range.insertNode(buffer);
-            range.setStartAfter(outerSpan);
+            range.insertNode(img);
+            range.setStartAfter(img);
         }
     } else if (document.selection && document.selection.createRange) {
         document.selection.createRange().text = text;
     }
 
-    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), '');
 }
 
 export function OpenUploadFile(windowId){

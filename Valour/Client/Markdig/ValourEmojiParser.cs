@@ -34,9 +34,18 @@ public class ValourEmojiParser : InlineParser
         {
             return false;
         }
-
+        
+        //Console.WriteLine(match.Key);
+        //Console.WriteLine(match.Value);
+        //Console.WriteLine(string.Concat(match.Value.Select(x => ((ushort)x).ToString("x"))));
+        
+        // Get the twemoji code
+        var twemoji = EmojiHelpers.EmojiToTwemoji(match.Value);
+        if (twemoji == null)
+            return false;
+        
         // Push the EmojiInline
-        processor.Inline = new EmojiInline(match.Value)
+        processor.Inline = new ValourEmojiInline()
         {
             Span =
             {
@@ -44,7 +53,8 @@ public class ValourEmojiParser : InlineParser
             },
             Line = line,
             Column = column,
-            Match = match.Key
+            Match = match.Value,
+            Twemoji = twemoji
         };
         processor.Inline.Span.End = processor.Inline.Span.Start + match.Key.Length - 1;
 

@@ -21,7 +21,6 @@ public static class MarkdownManager
 {
     public static BlazorRenderer Renderer;
     public static MarkdownPipeline Pipeline;
-    private static readonly MediaOptions MediaOptions = new();
 
     static MarkdownManager()
     {
@@ -49,6 +48,7 @@ public static class MarkdownManager
         Renderer = new BlazorRenderer(null, true);
         Renderer.ObjectRenderers.Add(new MentionRenderer());
         Renderer.ObjectRenderers.Add(new StockRenderer());
+        Renderer.ObjectRenderers.Add(new ValourEmojiRenderer());
     }
 
     public static string GetHtml(string content)

@@ -14,12 +14,14 @@
 }
 
 function OnMessageLoad(innerContent) {
+    /*
     if (innerContent != null && innerContent.getElementsByTagName) {
         twemoji.parse(innerContent, {
             folder: 'svg',
             ext: '.svg'
         })
     }
+     */
 }
 
 // Drop zone logic (thanks to https://www.meziantou.net/upload-files-with-drag-drop-or-paste-from-clipboard-in-blazor.htm)

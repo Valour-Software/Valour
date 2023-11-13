@@ -284,7 +284,8 @@
 
     private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
     {
-        await InjectEmojiAsync(e.Id, e.Native);
+        Console.WriteLine(JsonSerializer.Serialize(e));
+        await InjectEmojiAsync(e.Id, e.Native, e.Unified);
     }
 
     public async Task SetInputContent(string content)
@@ -660,9 +661,9 @@
         return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
     }
     
-    public ValueTask InjectEmojiAsync(string emoji, string native)
+    public ValueTask InjectEmojiAsync(string emoji, string native, string unified)
     {
-        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, Window.Id);
     }
 
     public async Task OnSubmitClick()
