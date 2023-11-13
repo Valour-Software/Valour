@@ -40,9 +40,10 @@ public static class MarkdownManager
             .UseGridTables()
             .UseListExtras()
             .UseEmphasisExtras()
-            .UseEmojiAndSmiley(DevicePreferences.AutoEmoji)
+            //.UseEmojiAndSmiley(DevicePreferences.AutoEmoji)
             .UseMentionExtension()
             .UseStockExtension()
+            .UseValourEmojiExtension(DevicePreferences.AutoEmoji)
             .Build();
 
         Renderer = new BlazorRenderer(null, true);
