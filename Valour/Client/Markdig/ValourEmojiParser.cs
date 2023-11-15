@@ -112,7 +112,7 @@ public class ValourEmojiParser : InlineParser
         int codePoint = currentChar;
         if (char.IsHighSurrogate(currentChar))
         {
-            char? nextChar = (i + 1 < input.Length) ? input.PeekChar(i + 1) : (char?)null;
+            char? nextChar = (i + 1 < input.Length) ? input.PeekChar(i + 1) : null;
             if (nextChar.HasValue && char.IsLowSurrogate(nextChar.Value))
             {
                 codePoint = char.ConvertToUtf32(currentChar, nextChar.Value);
@@ -145,23 +145,21 @@ public class ValourEmojiParser : InlineParser
                 break;
 
             case EmojiState.Emoji:
-                if (IsJoiner(currentChar, char.IsLowSurrogate(input.PeekChar(i)) ? input.PeekChar(i) : (char?)null))
+                if (IsJoiner(currentChar, char.IsLowSurrogate(input.PeekChar(i)) ? input.PeekChar(i) : null))
                 {
                     sb?.Append(currentChar);
                     if (char.IsLowSurrogate(input.PeekChar(i)))
                     {
                         sb.Append(input.PeekChar(i));
-                        i++;
                     }
                     state = EmojiState.Joiner;
                 }
-                else if (IsModifier(currentChar, char.IsLowSurrogate(input.PeekChar(i)) ? input.PeekChar(i) : (char?)null))
+                else if (IsModifier(currentChar, char.IsLowSurrogate(input.PeekChar(i)) ? input.PeekChar(i) : null))
                 {
                     sb?.Append(currentChar);
                     if (char.IsLowSurrogate(input.PeekChar(i)))
                     {
                         sb.Append(input.PeekChar(i));
-                        i++;
                     }
                     state = EmojiState.Modifier;
                 }
