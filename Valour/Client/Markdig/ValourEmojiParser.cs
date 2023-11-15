@@ -44,7 +44,7 @@ public class ValourEmojiParser : InlineParser
         OpeningCharacters = openers.ToArray();
     }
     
-    public static bool IsJoiner(char highSurrogate, char? lowSurrogate)
+    public static int GetJoiner(char highSurrogate, char? lowSurrogate)
     {
         int codePoint;
         if (lowSurrogate is not null)
@@ -55,11 +55,12 @@ public class ValourEmojiParser : InlineParser
         {
             codePoint = highSurrogate;
         }
-    
-        return codePoint == 0x200D; // Only ZWJ is considered a joiner
+
+        return codePoint == 0x200D ? 
+            codePoint : 0; // Only ZWJ is considered a joiner
     }
 
-    public static bool IsModifier(char highSurrogate, char? lowSurrogate)
+    public static int GetModifier(char highSurrogate, char? lowSurrogate)
     {
         int codePoint;
         if (lowSurrogate is not null)
@@ -70,8 +71,10 @@ public class ValourEmojiParser : InlineParser
         {
             codePoint = highSurrogate;
         }
+        
 
-        return codePoint == 0xfe0f || (codePoint >= 0x1F3FB && codePoint <= 0x1F3FF); // Range for skin tone modifiers
+        return codePoint == 0xfe0f || (codePoint >= 0x1F3FB && codePoint <= 0x1F3FF) ? 
+                codePoint : 0; // Range for skin tone modifiers
     }
     
     public static void AddCachedRange(List<char> list, int start, int end)
@@ -91,106 +94,195 @@ public class ValourEmojiParser : InlineParser
         Modifier,
     }
     
-    public static string GetEmoji(StringSlice input)
-{
-    if (input.Length == 0)
+    // TODO: This is an optimization that also makes multithreading
+    // impossible. But Blazor doesn't support true multithreading anyway,
+    // so it's not a big deal... yet.
+    public static int charCount = 0;
+    public static List<int> codePoints = new();
+    
+    public static void ParseSliceEmojis(StringSlice input)
     {
-        return null;
-    }
-
-    StringBuilder sb = null;
-    EmojiState state = EmojiState.Start;
-
-    for (int i = 0; i < input.Length; i++)
-    {
-        char currentChar = input.PeekChar(i);
-        if (currentChar <= 127) // Quick check for ASCII
+        charCount = 0;
+        codePoints.Clear();
+        
+        if (input.Length == 0)
         {
-            return sb?.ToString();
+            return;
         }
 
-        int codePoint = currentChar;
-        if (char.IsHighSurrogate(currentChar))
+        //int s = 0;
+        //while (input.PeekChar(s) != '\0')
+        //{
+        //    Console.WriteLine("0x{0:x}", Convert.ToInt32(input.PeekChar(s)));
+        //    Console.WriteLine(input.PeekChar(s));
+        //    s++;
+        //}
+
+        EmojiState state = EmojiState.Start;
+
+        for (int i = 0; i < input.Length; i++)
         {
-            char? nextChar = (i + 1 < input.Length) ? input.PeekChar(i + 1) : null;
-            if (nextChar.HasValue && char.IsLowSurrogate(nextChar.Value))
+            //Console.WriteLine("State: " + state.ToString());
+            
+            char currentChar = input.PeekChar(i);
+            //Console.WriteLine("Current char: {0} (0x{1:x})", currentChar, Convert.ToInt32(currentChar));
+            
+            // States where the next character should be an emoji
+            if (state == EmojiState.Start || state == EmojiState.Joiner)
             {
-                codePoint = char.ConvertToUtf32(currentChar, nextChar.Value);
-                i++; // Move past the low surrogate
+                // Early exit for ASCII characters
+                if (currentChar <= 127)
+                {
+                    // Finished
+                    return;
+                }
+
+                char? lowSurrogate = null;
+
+                int codePoint;
+                if (char.IsHighSurrogate(currentChar))
+                {
+                    //Console.WriteLine("High Surrogate!");
+                    
+                    lowSurrogate = input.PeekChar(i + 1);
+                    if (char.IsLowSurrogate(lowSurrogate.Value))
+                    {
+                        //Console.WriteLine("Low Surrogate!");
+                        codePoint = char.ConvertToUtf32(currentChar, lowSurrogate.Value);
+                    }
+                    else
+                    {
+                        //Console.WriteLine("STOP: Invalid surrogate pair");
+                        return;
+                    }
+                }
+                else
+                {
+                    codePoint = currentChar;
+                }
+                
+                //Console.WriteLine("Codepoint: 0x{0:x}", codePoint);
+
+                // Add valid emoji characters to the string builder
+                if (EmojiCodePoints.Contains(codePoint))
+                {
+                    codePoints.Add(codePoint);
+                    charCount++;
+                    
+                    if (lowSurrogate is not null)
+                    {
+                        charCount++;
+                        // Advance the slice by one more character
+                        i++;
+                    }
+
+                    state = EmojiState.Emoji;
+                    //Console.WriteLine("Emoji: " + sb.ToString());
+                }
+                else
+                {
+                    // Finished (not an emoji)
+                    //Console.WriteLine("STOP: Not an emoji");
+                    return;
+                }
+            }
+            else if (state == EmojiState.Emoji)
+            {
+                char? lowSurrogate = null;
+                if (char.IsHighSurrogate(currentChar))
+                {
+                    //Console.WriteLine("High Surrogate! (Modifier/Joiner)");
+                    var next = input.PeekChar(i + 1);
+                    if (char.IsLowSurrogate(next))
+                    {
+                        lowSurrogate = next;
+                    }
+                    else
+                    {
+                        //Console.WriteLine("STOP: Invalid surrogate pair");
+                        return;
+                    }
+                }
+
+                int j = GetJoiner(currentChar, lowSurrogate);
+                // Only thing allowed after emoji is joiner or modifier
+                if (j != 0)
+                {
+                    state = EmojiState.Joiner;
+                    codePoints.Add(j);
+                    charCount++;
+                    
+                    if (lowSurrogate is not null)
+                    {
+                        charCount++;
+                        // Advance the slice by one more character
+                        i++;
+                    }
+                    
+                    continue;
+                }
+                
+                var m = GetModifier(currentChar, lowSurrogate);
+                if (m != 0)
+                {
+                    state = EmojiState.Modifier;
+                    codePoints.Add(m);
+                    charCount++;
+                    
+                    // Add modifier to the string builder
+                    if (lowSurrogate is not null)
+                    {
+                        charCount++;
+                        // Advance the slice by one more character
+                        i++;
+                    }
+
+                    //Console.WriteLine("Modifier!");
+                }
+                else
+                {
+                    // Finished (invalid character)
+                    //Console.WriteLine("STOP: Invalid character");
+                    return;
+                }
             }
             else
             {
-                return sb?.ToString(); // Invalid surrogate pair
+                //Console.WriteLine("STOP: Invalid state");
+                return;
             }
         }
 
-        switch (state)
-        {
-            case EmojiState.Start:
-            case EmojiState.Joiner:
-                if (EmojiCodePoints.Contains(codePoint))
-                {
-                    sb ??= new StringBuilder();
-                    sb.Append(currentChar);
-                    if (char.IsLowSurrogate(input.PeekChar(i)))
-                    {
-                        sb.Append(input.PeekChar(i));
-                    }
-                    state = EmojiState.Emoji;
-                }
-                else
-                {
-                    return sb?.ToString(); // Not an emoji
-                }
-                break;
-
-            case EmojiState.Emoji:
-                if (IsJoiner(currentChar, char.IsLowSurrogate(input.PeekChar(i)) ? input.PeekChar(i) : null))
-                {
-                    sb?.Append(currentChar);
-                    if (char.IsLowSurrogate(input.PeekChar(i)))
-                    {
-                        sb.Append(input.PeekChar(i));
-                    }
-                    state = EmojiState.Joiner;
-                }
-                else if (IsModifier(currentChar, char.IsLowSurrogate(input.PeekChar(i)) ? input.PeekChar(i) : null))
-                {
-                    sb?.Append(currentChar);
-                    if (char.IsLowSurrogate(input.PeekChar(i)))
-                    {
-                        sb.Append(input.PeekChar(i));
-                    }
-                    state = EmojiState.Modifier;
-                }
-                else
-                {
-                    return sb?.ToString(); // End of emoji sequence
-                }
-                break;
-        }
+        return;
     }
 
-    return sb?.ToString();
-}
-
+    StringBuilder _nativeBuilder = new StringBuilder();
     public override bool Match(InlineProcessor processor, ref StringSlice slice)
     {
         // First: Native emoji parsing
         
         //Console.WriteLine("START");
-        var native = GetEmoji(slice);
+        ParseSliceEmojis(slice);
         //Console.WriteLine("STOP");
-        if (native != null)
+        if (codePoints.Count > 0)
         {
+            _nativeBuilder.Clear();
+            
+            for (int i = 0; i < codePoints.Count; i++)
+            {
+                _nativeBuilder.AppendFormat("{0:x}", codePoints[i]);
+                if (i != codePoints.Count - 1)
+                    _nativeBuilder.Append('-');
+            }
+            
             ValourEmojiInline emoji = new()
             {
-                Native = EmojiHelpers.EmojiToUnified(native),
+                Native = _nativeBuilder.ToString(),
                 CustomId = null,
             };
             
             processor.Inline = emoji;
-            slice.Start += native.Length;
+            slice.Start += charCount;
             return true;
         }
         
