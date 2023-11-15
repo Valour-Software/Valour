@@ -1003,6 +1003,7 @@ img.emoji {
     cursor: default !important;
     user-select: all;
     display: inline-block !important;
+    vertical-align: -0.1em;
 }
 
 .new-input-style {

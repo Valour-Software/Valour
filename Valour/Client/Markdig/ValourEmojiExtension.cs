@@ -10,19 +10,16 @@ namespace Valour.Client.Markdig;
 /// <seealso cref="IMarkdownExtension" />
 public class ValourEmojiExtension : IMarkdownExtension
 {
-    public ValourEmojiExtension(ValourEmojiMapping emojiMapping)
+    public ValourEmojiExtension()
     {
-        EmojiMapping = emojiMapping;
     }
-
-    public ValourEmojiMapping EmojiMapping { get; }
 
     public void Setup(MarkdownPipelineBuilder pipeline)
     {
         if (!pipeline.InlineParsers.Contains<ValourEmojiParser>())
         {
             // Insert the parser before any other parsers
-            pipeline.InlineParsers.Insert(0, new ValourEmojiParser(EmojiMapping));
+            pipeline.InlineParsers.Insert(0, new ValourEmojiParser());
         }
     }
 
@@ -35,7 +32,7 @@ public static class ValourEmojiMarkdownExtension
 {
     public static MarkdownPipelineBuilder UseValourEmojiExtension(this MarkdownPipelineBuilder pipeline, bool enableAutoSmileys)
     {
-        pipeline.Extensions.AddIfNotAlready(new ValourEmojiExtension(new ValourEmojiMapping(enableAutoSmileys)));
+        pipeline.Extensions.AddIfNotAlready(new ValourEmojiExtension());
         return pipeline;
     }
 }

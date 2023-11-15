@@ -13,11 +13,8 @@ public class ValourEmojiInline : LeafInline
     public ValourEmojiInline()
     {
     }
-    
-    public string Twemoji { get; set; }
 
-    /// <summary>
-    /// Gets or sets the original match string (either an emoji shortcode or a text smiley)
-    /// </summary>
+    public string Native { get; set; }
     public string Match { get; set; }
+    public long? CustomId { get; set; }
 }

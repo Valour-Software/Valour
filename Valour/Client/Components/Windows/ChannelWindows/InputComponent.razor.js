@@ -1,4 +1,6 @@
-﻿export const inputs = {};
+﻿//EmojiMart.init({});
+
+export const inputs = {};
 
 export function setup(id, ref) {
     let input = {
@@ -14,7 +16,7 @@ export function setup(id, ref) {
     input.element.addEventListener('keydown', (e) => inputKeyDownHandler(e, input));
     input.element.addEventListener('click', () => inputCaretMoveHandler(input));
     input.element.addEventListener('paste', (e) => inputPasteHandler(e, input));
-    input.element.addEventListener('input', () => inputInputHandler(input));
+    input.element.addEventListener('input', (e) => inputInputHandler(input, e));
 }
 
 // Thank you to https://www.456bereastreet.com/archive/201105/get_element_text_including_alt_text_for_images_with_javascript/
@@ -25,7 +27,8 @@ var getElementText = function(el) {
         text = el.nodeValue;
         // If node is an element (1) and an img
     } else if ((el.nodeType === 1) && el.tagName.toLowerCase() == 'img') {
-        text = el.getAttribute('alt') || '';
+        text = el.dataset.text || el.getAttribute('data-text') || '';
+        // text = el.getAttribute('alt') || '';
         // Traverse children unless this is a script or style element
     } else if ( (el.nodeType === 1) && !el.tagName.match(/^(script|style)$/i) ) {
         var children = el.childNodes;
@@ -40,8 +43,13 @@ function getCurrentValue(input) {
     return getElementText(input.element);
 }
 
+const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)(\p{Emoji_Modifier_Base}\p{Emoji_Modifier}|\u200D\p{Emoji_Component}|\ufe0f)*\uFE0F?$/u;
+function isEmoji(str) {
+    return emojiRegex.test(str);
+}
+
 // Handles content being input into the input (not confusing at all)
-export function inputInputHandler(input) {
+export function inputInputHandler(input, e) {
     input.currentWord = getCurrentWord(0);
     input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), input.currentWord);
 }
@@ -293,7 +301,7 @@ export function injectElement(text, covertext, classlist, stylelist, id) {
     input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), '');
 }
 
-export function injectEmoji(text, native, unified, id) {
+export function injectEmoji(text, native, unified, shortcodes, id) {
     const input = inputs[id];
     
     if (document.activeElement != input.element) {
@@ -308,7 +316,9 @@ export function injectEmoji(text, native, unified, id) {
             range.deleteContents();
             
             const img = document.createElement('img');
-            img.src = 'https://twemoji.maxcdn.com/v/latest/svg/' + unified + '.svg';
+            img.src = 'https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/' + unified + '.png';
+            
+            img.setAttribute('data-text', native);
             img.alt = native;
             img.classList.add('emoji');
             img.style.width = '1em';
