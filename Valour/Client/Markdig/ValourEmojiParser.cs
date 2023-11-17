@@ -13,6 +13,9 @@ namespace Valour.Client.Markdig;
 public class ValourEmojiParser : InlineParser
 {
 
+    /// <summary>
+    /// The lookup table for if a unicode codepoint is an emoji
+    /// </summary>
     private static readonly HashSet<int> EmojiCodePoints = new HashSet<int>();
     
     /// <summary>
@@ -20,8 +23,10 @@ public class ValourEmojiParser : InlineParser
     /// </summary>
     public ValourEmojiParser()
     {
-        List<char> openers = new List<char>(1024){ '«' };
+        var openers = new List<char>(1024){ '«' };
         
+        // These are all in the BMP and can be detected with a single char
+        // The BMP ends at 0xFFFF, so we don't need to check for anything higher
         AddCachedRange(openers, 0x1F600, 0x1F64F, true); // Emoticons
         AddCachedRange(openers, 0x2600, 0x26FF, true); // Misc Symbols
         AddCachedRange(openers, 0x2700, 0x27BF, true); // Dingbats
@@ -38,48 +43,57 @@ public class ValourEmojiParser : InlineParser
         AddCachedRange(openers, 0x1F32D, 0x1F37F); // Food & Drink
         AddCachedRange(openers, 0x1F3A0, 0x1F3FF); // Activities
 
+        // Cover all of the high surrogates
         for (int codePoint = 0xD800; codePoint <= 0xDBFF; codePoint++)
         {
             char highSurrogate = (char)codePoint;
             openers.Add(highSurrogate);
         }
 
+        // Set array of opening character
         OpeningCharacters = openers.ToArray();
     }
     
-    public static int GetJoiner(char highSurrogate, char? lowSurrogate)
+    /// <summary>
+    /// Returns if a character is an emoji joiner.
+    /// </summary>
+    /// <param name="highSurrogate">The first UTF-16 character if a surrogate pair, otherwise the target char</param>
+    /// <param name="lowSurrogate">The second UTF-16 character if a surrogate pair. Null otherwise.</param>
+    /// <returns>The codepoint if this is a joiner, otherwise returns 0</returns>
+    private static int GetJoiner(char highSurrogate, char? lowSurrogate)
     {
-        int codePoint;
-        if (lowSurrogate is not null)
-        {
-            codePoint = Char.ConvertToUtf32(highSurrogate, lowSurrogate.Value);
-        }
-        else
-        {
-            codePoint = highSurrogate;
-        }
-
+        var codePoint = lowSurrogate is not null ? 
+            char.ConvertToUtf32(highSurrogate, lowSurrogate.Value) : 
+            highSurrogate;
+        
         return codePoint == 0x200D ? 
             codePoint : 0; // Only ZWJ is considered a joiner
     }
 
-    public static int GetModifier(char highSurrogate, char? lowSurrogate)
+    /// <summary>
+    /// Returns if a character is an emoji modifier.
+    /// </summary>
+    /// <param name="highSurrogate">The first UTF-16 character if a surrogate pair, otherwise the target char</param>
+    /// <param name="lowSurrogate">The second UTF-16 character if a surrogate pair. Null otherwise.</param>
+    /// <returns>The codepoint if this is a modifier, otherwise returns 0</returns>
+    private static int GetModifier(char highSurrogate, char? lowSurrogate)
     {
-        int codePoint;
-        if (lowSurrogate is not null)
-        {
-            codePoint = Char.ConvertToUtf32(highSurrogate, lowSurrogate.Value);
-        }
-        else
-        {
-            codePoint = highSurrogate;
-        }
-        
+        var codePoint = lowSurrogate is not null ? 
+            char.ConvertToUtf32(highSurrogate, lowSurrogate.Value) : 
+            highSurrogate;
 
         return codePoint == 0xfe0f || (codePoint >= 0x1F3FB && codePoint <= 0x1F3FF) ? 
                 codePoint : 0; // Range for skin tone modifiers
     }
     
+    /// <summary>
+    /// Adds a range of code points to the emoji lookup table. Optionally adds them to the
+    /// opener list, which is used for starting the parsing process.
+    /// </summary>
+    /// <param name="list">The opener list</param>
+    /// <param name="start">The start of the range to add</param>
+    /// <param name="end">The end of the range to add</param>
+    /// <param name="opener">True if the range should be added as opening characters</param>
     public static void AddCachedRange(List<char> list, int start, int end, bool opener = false)
     {
         for (var i = start; i <= end; i++)
@@ -93,6 +107,9 @@ public class ValourEmojiParser : InlineParser
         }
     }
 
+    /// <summary>
+    /// Used to track the state of the parser
+    /// </summary>
     enum EmojiState
     {
         Start,
