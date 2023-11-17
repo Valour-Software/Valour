@@ -159,138 +159,144 @@ public class ValourEmojiParser : InlineParser
             var currentChar = input.PeekChar(i);
             
             //Console.WriteLine("Current char: {0} (0x{1:x})", currentChar, Convert.ToInt32(currentChar));
-            
-            // States where the next character should be an emoji
-            if (state == EmojiState.Start || state == EmojiState.Joiner)
+
+            switch (state)
             {
-                // Early exit for ASCII characters
-                if (currentChar <= 127)
+                // States where the next character should be an emoji
+                case EmojiState.Start:
+                case EmojiState.Joiner:
                 {
-                    // Finished
-                    return;
-                }
-
-                // Prepare low surrogate variable 
-                char? lowSurrogate = null;
-
-                // Codepoint is always needed
-                int codePoint;
-                
-                // If the current character is a high surrogate, we need to check for a low surrogate
-                if (char.IsHighSurrogate(currentChar))
-                {
-                    // Get the next character
-                    lowSurrogate = input.PeekChar(i + 1);
-                    
-                    // If it's a low surrogate, we can convert the pair to a codepoint
-                    if (char.IsLowSurrogate(lowSurrogate.Value))
+                    // Early exit for ASCII characters
+                    if (currentChar <= 127)
                     {
-                        codePoint = char.ConvertToUtf32(currentChar, lowSurrogate.Value);
+                        // Finished
+                        return;
+                    }
+
+                    // Prepare low surrogate variable 
+                    char? lowSurrogate = null;
+
+                    // Codepoint is always needed
+                    int codePoint;
+                    
+                    // If the current character is a high surrogate, we need to check for a low surrogate
+                    if (char.IsHighSurrogate(currentChar))
+                    {
+                        // Get the next character
+                        lowSurrogate = input.PeekChar(i + 1);
+                        
+                        // If it's a low surrogate, we can convert the pair to a codepoint
+                        if (char.IsLowSurrogate(lowSurrogate.Value))
+                        {
+                            codePoint = char.ConvertToUtf32(currentChar, lowSurrogate.Value);
+                        }
+                        else
+                        {
+                            //Console.WriteLine("STOP: Invalid surrogate pair");
+                            return;
+                        }
+                    }
+                    // Otherwise, we can just use the current character as the codepoint
+                    else
+                    {
+                        codePoint = currentChar;
+                    }
+                    
+                    // Add valid emoji characters to the string builder
+                    if (EmojiCodePoints.Contains(codePoint))
+                    {
+                        // Add to emoji codepoints
+                        CodePoints.Add(codePoint);
+                        
+                        // Increment number of emoji characters
+                        _charCount++;
+                        
+                        if (lowSurrogate is not null)
+                        {
+                            _charCount++;
+                            // Advance the slice by one more character
+                            i++;
+                        }
+
+                        state = EmojiState.Emoji;
                     }
                     else
                     {
-                        //Console.WriteLine("STOP: Invalid surrogate pair");
+                        // Finished (not an emoji)
                         return;
                     }
+
+                    break;
                 }
-                // Otherwise, we can just use the current character as the codepoint
-                else
+                case EmojiState.Emoji:
                 {
-                    codePoint = currentChar;
-                }
-                
-                // Add valid emoji characters to the string builder
-                if (EmojiCodePoints.Contains(codePoint))
-                {
-                    // Add to emoji codepoints
-                    CodePoints.Add(codePoint);
+                    // Prepare low surrogate variable
+                    char? lowSurrogate = null;
                     
-                    // Increment number of emoji characters
-                    _charCount++;
-                    
-                    if (lowSurrogate is not null)
+                    // If the current character is a high surrogate, we need to check for a low surrogate
+                    if (char.IsHighSurrogate(currentChar))
                     {
-                        _charCount++;
-                        // Advance the slice by one more character
-                        i++;
+                        // Get the next character
+                        var next = input.PeekChar(i + 1);
+                        
+                        // If it's a low surrogate, we set the low surrogate variable
+                        if (char.IsLowSurrogate(next))
+                        {
+                            lowSurrogate = next;
+                        }
+                        else
+                        {
+                            // Finished (invalid surrogate pair)
+                            return;
+                        }
                     }
 
-                    state = EmojiState.Emoji;
-                }
-                else
-                {
-                    // Finished (not an emoji)
-                    return;
-                }
-            }
-            else if (state == EmojiState.Emoji)
-            {
-                // Prepare low surrogate variable
-                char? lowSurrogate = null;
-                
-                // If the current character is a high surrogate, we need to check for a low surrogate
-                if (char.IsHighSurrogate(currentChar))
-                {
-                    // Get the next character
-                    var next = input.PeekChar(i + 1);
-                    
-                    // If it's a low surrogate, we set the low surrogate variable
-                    if (char.IsLowSurrogate(next))
+                    // Get the joiner value. It will be 0 if it's not a joiner
+                    var j = GetJoiner(currentChar, lowSurrogate);
+                    // Only thing allowed after emoji is joiner or modifier
+                    if (j != 0)
                     {
-                        lowSurrogate = next;
+                        state = EmojiState.Joiner;
+                        CodePoints.Add(j);
+                        _charCount++;
+                        
+                        if (lowSurrogate is not null)
+                        {
+                            _charCount++;
+                            // Advance the slice by one more character
+                            i++;
+                        }
+                        
+                        continue;
+                    }
+                    
+                    // Get the modifier value. It will be 0 if it's not a modifier
+                    var m = GetModifier(currentChar, lowSurrogate);
+                    if (m != 0)
+                    {
+                        state = EmojiState.Modifier;
+                        CodePoints.Add(m);
+                        _charCount++;
+                        
+                        // Add modifier to the string builder
+                        if (lowSurrogate is not null)
+                        {
+                            _charCount++;
+                            // Advance the slice by one more character
+                            i++;
+                        }
                     }
                     else
                     {
-                        // Finished (invalid surrogate pair)
+                        // Finished (invalid character)
                         return;
                     }
-                }
 
-                // Get the joiner value. It will be 0 if it's not a joiner
-                var j = GetJoiner(currentChar, lowSurrogate);
-                // Only thing allowed after emoji is joiner or modifier
-                if (j != 0)
-                {
-                    state = EmojiState.Joiner;
-                    CodePoints.Add(j);
-                    _charCount++;
-                    
-                    if (lowSurrogate is not null)
-                    {
-                        _charCount++;
-                        // Advance the slice by one more character
-                        i++;
-                    }
-                    
-                    continue;
+                    break;
                 }
-                
-                // Get the modifier value. It will be 0 if it's not a modifier
-                var m = GetModifier(currentChar, lowSurrogate);
-                if (m != 0)
-                {
-                    state = EmojiState.Modifier;
-                    CodePoints.Add(m);
-                    _charCount++;
-                    
-                    // Add modifier to the string builder
-                    if (lowSurrogate is not null)
-                    {
-                        _charCount++;
-                        // Advance the slice by one more character
-                        i++;
-                    }
-                }
-                else
-                {
-                    // Finished (invalid character)
-                    return;
-                }
-            }
-            else
-            {
                 // Finished (Invalid state)
-                return;
+                default:
+                    return;
             }
         }
     }
