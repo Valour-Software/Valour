@@ -113,7 +113,7 @@ public class ValourEmojiParser : InlineParser
     /// <summary>
     /// Used to track the state of the parser
     /// </summary>
-    enum EmojiState
+    private enum EmojiState
     {
         // Optimization:
         // We can use a bitmask to track the state of the parser
@@ -125,10 +125,10 @@ public class ValourEmojiParser : InlineParser
         Modifier = 0b0100,
     }
     
-    // TODO: This is an optimization that also makes multithreading
+    // This is an optimization that also makes multithreading
     // impossible. But Blazor doesn't support true multithreading anyway,
     // so it's not a big deal... yet.
-    private static int _charCount = 0;
+    private static int _charCount;
     private static readonly List<int> CodePoints = new();
     
     private static void ParseSliceEmojis(StringSlice input)
@@ -178,15 +178,18 @@ public class ValourEmojiParser : InlineParser
                 // Prepare low surrogate variable 
                 char? lowSurrogate = null;
 
+                // Codepoint is always needed
                 int codePoint;
+                
+                // If the current character is a high surrogate, we need to check for a low surrogate
                 if (char.IsHighSurrogate(currentChar))
                 {
-                    //Console.WriteLine("High Surrogate!");
-                    
+                    // Get the next character
                     lowSurrogate = input.PeekChar(i + 1);
+                    
+                    // If it's a low surrogate, we can convert the pair to a codepoint
                     if (char.IsLowSurrogate(lowSurrogate.Value))
                     {
-                        //Console.WriteLine("Low Surrogate!");
                         codePoint = char.ConvertToUtf32(currentChar, lowSurrogate.Value);
                     }
                     else
@@ -195,17 +198,19 @@ public class ValourEmojiParser : InlineParser
                         return;
                     }
                 }
+                // Otherwise, we can just use the current character as the codepoint
                 else
                 {
                     codePoint = currentChar;
                 }
                 
-                //Console.WriteLine("Codepoint: 0x{0:x}", codePoint);
-
                 // Add valid emoji characters to the string builder
                 if (EmojiCodePoints.Contains(codePoint))
                 {
+                    // Add to emoji codepoints
                     CodePoints.Add(codePoint);
+                    
+                    // Increment number of emoji characters
                     _charCount++;
                     
                     if (lowSurrogate is not null)
@@ -216,34 +221,38 @@ public class ValourEmojiParser : InlineParser
                     }
 
                     state = EmojiState.Emoji;
-                    //Console.WriteLine("Emoji: " + sb.ToString());
                 }
                 else
                 {
                     // Finished (not an emoji)
-                    //Console.WriteLine("STOP: Not an emoji");
                     return;
                 }
             }
             else if (state == EmojiState.Emoji)
             {
+                // Prepare low surrogate variable
                 char? lowSurrogate = null;
+                
+                // If the current character is a high surrogate, we need to check for a low surrogate
                 if (char.IsHighSurrogate(currentChar))
                 {
-                    //Console.WriteLine("High Surrogate! (Modifier/Joiner)");
+                    // Get the next character
                     var next = input.PeekChar(i + 1);
+                    
+                    // If it's a low surrogate, we set the low surrogate variable
                     if (char.IsLowSurrogate(next))
                     {
                         lowSurrogate = next;
                     }
                     else
                     {
-                        //Console.WriteLine("STOP: Invalid surrogate pair");
+                        // Finished (invalid surrogate pair)
                         return;
                     }
                 }
 
-                int j = GetJoiner(currentChar, lowSurrogate);
+                // Get the joiner value. It will be 0 if it's not a joiner
+                var j = GetJoiner(currentChar, lowSurrogate);
                 // Only thing allowed after emoji is joiner or modifier
                 if (j != 0)
                 {
@@ -261,6 +270,7 @@ public class ValourEmojiParser : InlineParser
                     continue;
                 }
                 
+                // Get the modifier value. It will be 0 if it's not a modifier
                 var m = GetModifier(currentChar, lowSurrogate);
                 if (m != 0)
                 {
@@ -275,27 +285,32 @@ public class ValourEmojiParser : InlineParser
                         // Advance the slice by one more character
                         i++;
                     }
-
-                    //Console.WriteLine("Modifier!");
                 }
                 else
                 {
                     // Finished (invalid character)
-                    //Console.WriteLine("STOP: Invalid character");
                     return;
                 }
             }
             else
             {
-                //Console.WriteLine("STOP: Invalid state");
+                // Finished (Invalid state)
                 return;
             }
         }
-
-        return;
     }
 
-    StringBuilder _nativeBuilder = new StringBuilder();
+    /// <summary>
+    /// Used for turning emojis into their unified representation
+    /// </summary>
+    private readonly StringBuilder _unifiedBuilder = new StringBuilder();
+    
+    /// <summary>
+    /// Matches any emojis in the current slice position
+    /// </summary>
+    /// <param name="processor">The current inline processor</param>
+    /// <param name="slice">The slice, starting at the current character</param>
+    /// <returns>If there was a match found</returns>
     public override bool Match(InlineProcessor processor, ref StringSlice slice)
     {
         // First: Native emoji parsing
@@ -305,18 +320,18 @@ public class ValourEmojiParser : InlineParser
         //Console.WriteLine("STOP");
         if (CodePoints.Count > 0)
         {
-            _nativeBuilder.Clear();
+            _unifiedBuilder.Clear();
             
             for (int i = 0; i < CodePoints.Count; i++)
             {
-                _nativeBuilder.AppendFormat("{0:x}", CodePoints[i]);
+                _unifiedBuilder.AppendFormat("{0:x}", CodePoints[i]);
                 if (i != CodePoints.Count - 1)
-                    _nativeBuilder.Append('-');
+                    _unifiedBuilder.Append('-');
             }
             
             ValourEmojiInline emoji = new()
             {
-                Native = _nativeBuilder.ToString(),
+                Native = _unifiedBuilder.ToString(),
                 CustomId = null,
             };
             
@@ -324,6 +339,8 @@ public class ValourEmojiParser : InlineParser
             slice.Start += _charCount;
             return true;
         }
+        
+        // TODO: Move custom emojis into separate parser
         
         // Format: «e-:smile:» for normal emojis
         //         «e-:custom:-id» for custom emojis (where x is the emoji id)
