@@ -113,7 +113,6 @@ public class ValourEmojiParser : InlineParser
     /// <summary>
     /// Used to track the state of the parser
     /// </summary>
-    [Flags]
     enum EmojiState
     {
         // Optimization:
