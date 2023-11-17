@@ -115,14 +115,10 @@ public class ValourEmojiParser : InlineParser
     /// </summary>
     private enum EmojiState
     {
-        // Optimization:
-        // We can use a bitmask to track the state of the parser
-        // Start and Joiner both have the last bit set to 1
-        // This reduces a branch on each iteration
-        Start =    0b0001,
-        Emoji =    0b0010,
-        Joiner =   0b0011,
-        Modifier = 0b0100,
+        Start,
+        Emoji,
+        Joiner,
+        Modifier,
     }
     
     // This is an optimization that also makes multithreading
@@ -165,8 +161,7 @@ public class ValourEmojiParser : InlineParser
             //Console.WriteLine("Current char: {0} (0x{1:x})", currentChar, Convert.ToInt32(currentChar));
             
             // States where the next character should be an emoji
-            // This is equivalent to IF state == Start OR state == Joiner
-            if (((int)state & 0b01) == 0b01)
+            if (state == EmojiState.Start || state == EmojiState.Joiner)
             {
                 // Early exit for ASCII characters
                 if (currentChar <= 127)
