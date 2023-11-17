@@ -2,7 +2,6 @@ using System.Text;
 using Markdig.Extensions.Emoji;
 using Markdig.Helpers;
 using Markdig.Parsers;
-using Microsoft.Extensions.Primitives;
 
 namespace Valour.Client.Markdig;
 
@@ -62,6 +61,7 @@ public class ValourEmojiParser : InlineParser
     /// <returns>The codepoint if this is a joiner, otherwise returns 0</returns>
     private static int GetJoiner(char highSurrogate, char? lowSurrogate)
     {
+        // Merge the surrogate pair if necessary
         var codePoint = lowSurrogate is not null ? 
             char.ConvertToUtf32(highSurrogate, lowSurrogate.Value) : 
             highSurrogate;
@@ -78,6 +78,7 @@ public class ValourEmojiParser : InlineParser
     /// <returns>The codepoint if this is a modifier, otherwise returns 0</returns>
     private static int GetModifier(char highSurrogate, char? lowSurrogate)
     {
+        // Merge the surrogate pair if necessary
         var codePoint = lowSurrogate is not null ? 
             char.ConvertToUtf32(highSurrogate, lowSurrogate.Value) : 
             highSurrogate;
@@ -98,8 +99,10 @@ public class ValourEmojiParser : InlineParser
     {
         for (var i = start; i <= end; i++)
         {
+            // Add to the lookup table
             EmojiCodePoints.Add(i);
 
+            // Add to the opener list if necessary
             if (opener)
             {
                 list.Add((char)i);
@@ -110,25 +113,32 @@ public class ValourEmojiParser : InlineParser
     /// <summary>
     /// Used to track the state of the parser
     /// </summary>
+    [Flags]
     enum EmojiState
     {
-        Start,
-        Emoji,
-        Joiner,
-        Modifier,
+        // Optimization:
+        // We can use a bitmask to track the state of the parser
+        // Start and Joiner both have the last bit set to 1
+        // This reduces a branch on each iteration
+        Start =    0b0001,
+        Emoji =    0b0010,
+        Joiner =   0b0011,
+        Modifier = 0b0100,
     }
     
     // TODO: This is an optimization that also makes multithreading
     // impossible. But Blazor doesn't support true multithreading anyway,
     // so it's not a big deal... yet.
-    public static int charCount = 0;
-    public static List<int> codePoints = new();
+    private static int _charCount = 0;
+    private static readonly List<int> CodePoints = new();
     
-    public static void ParseSliceEmojis(StringSlice input)
+    private static void ParseSliceEmojis(StringSlice input)
     {
-        charCount = 0;
-        codePoints.Clear();
+        // Clear last slice's data
+        _charCount = 0;
+        CodePoints.Clear();
         
+        // Cancel if the slice is empty
         if (input.Length == 0)
         {
             return;
@@ -142,17 +152,22 @@ public class ValourEmojiParser : InlineParser
         //    s++;
         //}
 
-        EmojiState state = EmojiState.Start;
+        // Start the parser with the special 'start' state
+        var state = EmojiState.Start;
 
-        for (int i = 0; i < input.Length; i++)
+        // Loop through the remainder of the slice
+        for (var i = 0; i < input.Length; i++)
         {
             //Console.WriteLine("State: " + state.ToString());
             
-            char currentChar = input.PeekChar(i);
+            // Get the character at the current position
+            var currentChar = input.PeekChar(i);
+            
             //Console.WriteLine("Current char: {0} (0x{1:x})", currentChar, Convert.ToInt32(currentChar));
             
             // States where the next character should be an emoji
-            if (state == EmojiState.Start || state == EmojiState.Joiner)
+            // This is equivalent to IF state == Start OR state == Joiner
+            if (((int)state & 0b01) == 0b01)
             {
                 // Early exit for ASCII characters
                 if (currentChar <= 127)
@@ -161,6 +176,7 @@ public class ValourEmojiParser : InlineParser
                     return;
                 }
 
+                // Prepare low surrogate variable 
                 char? lowSurrogate = null;
 
                 int codePoint;
@@ -190,12 +206,12 @@ public class ValourEmojiParser : InlineParser
                 // Add valid emoji characters to the string builder
                 if (EmojiCodePoints.Contains(codePoint))
                 {
-                    codePoints.Add(codePoint);
-                    charCount++;
+                    CodePoints.Add(codePoint);
+                    _charCount++;
                     
                     if (lowSurrogate is not null)
                     {
-                        charCount++;
+                        _charCount++;
                         // Advance the slice by one more character
                         i++;
                     }
@@ -233,12 +249,12 @@ public class ValourEmojiParser : InlineParser
                 if (j != 0)
                 {
                     state = EmojiState.Joiner;
-                    codePoints.Add(j);
-                    charCount++;
+                    CodePoints.Add(j);
+                    _charCount++;
                     
                     if (lowSurrogate is not null)
                     {
-                        charCount++;
+                        _charCount++;
                         // Advance the slice by one more character
                         i++;
                     }
@@ -250,13 +266,13 @@ public class ValourEmojiParser : InlineParser
                 if (m != 0)
                 {
                     state = EmojiState.Modifier;
-                    codePoints.Add(m);
-                    charCount++;
+                    CodePoints.Add(m);
+                    _charCount++;
                     
                     // Add modifier to the string builder
                     if (lowSurrogate is not null)
                     {
-                        charCount++;
+                        _charCount++;
                         // Advance the slice by one more character
                         i++;
                     }
@@ -288,14 +304,14 @@ public class ValourEmojiParser : InlineParser
         //Console.WriteLine("START");
         ParseSliceEmojis(slice);
         //Console.WriteLine("STOP");
-        if (codePoints.Count > 0)
+        if (CodePoints.Count > 0)
         {
             _nativeBuilder.Clear();
             
-            for (int i = 0; i < codePoints.Count; i++)
+            for (int i = 0; i < CodePoints.Count; i++)
             {
-                _nativeBuilder.AppendFormat("{0:x}", codePoints[i]);
-                if (i != codePoints.Count - 1)
+                _nativeBuilder.AppendFormat("{0:x}", CodePoints[i]);
+                if (i != CodePoints.Count - 1)
                     _nativeBuilder.Append('-');
             }
             
@@ -306,7 +322,7 @@ public class ValourEmojiParser : InlineParser
             };
             
             processor.Inline = emoji;
-            slice.Start += charCount;
+            slice.Start += _charCount;
             return true;
         }
         

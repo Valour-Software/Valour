@@ -1,5 +1,4 @@
 using Markdig.Extensions.Emoji;
-using Markdig.Helpers;
 using Markdig.Syntax.Inlines;
 
 namespace Valour.Client.Markdig;
@@ -13,7 +12,7 @@ public class ValourEmojiInline : LeafInline
     public ValourEmojiInline()
     {
     }
-
+    
     public string Native { get; set; }
     public string Match { get; set; }
     public long? CustomId { get; set; }
