@@ -22,10 +22,13 @@ public class ValourEmojiParser : InlineParser
     {
         List<char> openers = new List<char>(1024){ '«' };
         
-        AddCachedRange(openers, 0x1F600, 0x1F64F); // Emoticons
-        AddCachedRange(openers, 0x2600, 0x26FF); // Misc Symbols
-        AddCachedRange(openers, 0x2700, 0x27BF); // Dingbats
-        AddCachedRange(openers, 0x1F300, 0x1F5FF); // Other emojis
+        AddCachedRange(openers, 0x1F600, 0x1F64F, true); // Emoticons
+        AddCachedRange(openers, 0x2600, 0x26FF, true); // Misc Symbols
+        AddCachedRange(openers, 0x2700, 0x27BF, true); // Dingbats
+        AddCachedRange(openers, 0x1F300, 0x1F5FF, true); // Other emojis
+        
+        // These are all outside of the BMP and are covered by high surrogate detection
+        
         AddCachedRange(openers, 0x1F900, 0x1F9FF); // Supplemental Symbols and Pictographs
         AddCachedRange(openers, 0x1F680, 0x1F6FF); // Transport and Map Symbols
         AddCachedRange(openers, 0x1F700, 0x1F77F); // Alchemical Symbols
@@ -77,12 +80,16 @@ public class ValourEmojiParser : InlineParser
                 codePoint : 0; // Range for skin tone modifiers
     }
     
-    public static void AddCachedRange(List<char> list, int start, int end)
+    public static void AddCachedRange(List<char> list, int start, int end, bool opener = false)
     {
         for (var i = start; i <= end; i++)
         {
             EmojiCodePoints.Add(i);
-            list.Add((char)i);
+
+            if (opener)
+            {
+                list.Add((char)i);
+            }
         }
     }
 
