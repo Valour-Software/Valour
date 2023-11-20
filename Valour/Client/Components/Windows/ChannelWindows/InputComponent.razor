@@ -2,6 +2,7 @@
 @inject WindowManager WindowManager
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
+@using System.Text.RegularExpressions
 @using Valour.Api.Models.Messages;
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
@@ -284,7 +285,7 @@
 
     private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
     {
-        await InjectEmojiAsync(e.Id, e.Native);
+        await InjectEmojiAsync(e.Id, e.Native, e.Unified, e.Shortcodes);
     }
 
     public async Task SetInputContent(string content)
@@ -660,9 +661,9 @@
         return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
     }
     
-    public ValueTask InjectEmojiAsync(string emoji, string native)
+    public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes)
     {
-        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, Window.Id);
     }
 
     public async Task OnSubmitClick()

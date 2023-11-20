@@ -1,4 +1,6 @@
-﻿export const inputs = {};
+﻿//EmojiMart.init({});
+
+export const inputs = {};
 
 export function setup(id, ref) {
     let input = {
@@ -14,13 +16,42 @@ export function setup(id, ref) {
     input.element.addEventListener('keydown', (e) => inputKeyDownHandler(e, input));
     input.element.addEventListener('click', () => inputCaretMoveHandler(input));
     input.element.addEventListener('paste', (e) => inputPasteHandler(e, input));
-    input.element.addEventListener('input', () => inputInputHandler(input));
+    input.element.addEventListener('input', (e) => inputInputHandler(input, e));
+}
+
+// Thank you to https://www.456bereastreet.com/archive/201105/get_element_text_including_alt_text_for_images_with_javascript/
+var getElementText = function(el) {
+    var text = '';
+    // Text node (3) or CDATA node (4) - return its text
+    if ( (el.nodeType === 3) || (el.nodeType === 4) ) {
+        text = el.nodeValue;
+        // If node is an element (1) and an img
+    } else if ((el.nodeType === 1) && el.tagName.toLowerCase() == 'img') {
+        text = el.dataset.text || el.getAttribute('data-text') || '';
+        // text = el.getAttribute('alt') || '';
+        // Traverse children unless this is a script or style element
+    } else if ( (el.nodeType === 1) && !el.tagName.match(/^(script|style)$/i) ) {
+        var children = el.childNodes;
+        for (var i = 0, l = children.length; i < l; i++) {
+            text += getElementText(children[i]);
+        }
+    }
+    return text;
+};
+
+function getCurrentValue(input) {
+    return getElementText(input.element);
+}
+
+const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)(\p{Emoji_Modifier_Base}\p{Emoji_Modifier}|\u200D\p{Emoji_Component}|\ufe0f)*\uFE0F?$/u;
+function isEmoji(str) {
+    return emojiRegex.test(str);
 }
 
 // Handles content being input into the input (not confusing at all)
-export function inputInputHandler(input) {
+export function inputInputHandler(input, e) {
     input.currentWord = getCurrentWord(0);
-    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, input.currentWord);
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), input.currentWord);
 }
 
 // Handles content being pasted into the input
@@ -267,10 +298,10 @@ export function injectElement(text, covertext, classlist, stylelist, id) {
         document.selection.createRange().text = text;
     }
     
-    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), '');
 }
 
-export function injectEmoji(text, native, id) {
+export function injectEmoji(text, native, unified, shortcodes, id) {
     const input = inputs[id];
     
     if (document.activeElement != input.element) {
@@ -283,34 +314,23 @@ export function injectEmoji(text, native, id) {
         if (sel.getRangeAt && sel.rangeCount) {
             range = sel.getRangeAt(0);
             range.deleteContents();
-            const dummySpan = document.createElement('span');
-            const outerSpan = document.createElement('span');
-            dummySpan.innerHTML =  native;
-            twemoji.parse(dummySpan, {
-                folder: 'svg',
-                ext: '.svg'
-            })
             
-            //outerSpan.style.marginRight = '-1em';
-            //outerSpan.style.color = 'transparent';
+            const img = document.createElement('img');
+            img.src = 'https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/' + unified + '.png';
             
-            outerSpan.innerHTML = native;
-            outerSpan.style.color = 'transparent';
-            outerSpan.style.caretColor = 'white';
-            outerSpan.style.display = 'inline-block';
-            outerSpan.style.lineHeight = '16px';
-            outerSpan.contentEditable = 'false';
-            outerSpan.style.backgroundImage = 'url(' + dummySpan.querySelector('img').src + ')';
-            outerSpan.style.backgroundRepeat = 'round';
+            img.setAttribute('data-text', native);
+            img.alt = native;
+            img.classList.add('emoji');
+            img.style.width = '1em';
             
-            range.insertNode(outerSpan);
-            range.setStartAfter(outerSpan);
+            range.insertNode(img);
+            range.setStartAfter(img);
         }
     } else if (document.selection && document.selection.createRange) {
         document.selection.createRange().text = text;
     }
 
-    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', getCurrentValue(input), '');
 }
 
 export function OpenUploadFile(windowId){

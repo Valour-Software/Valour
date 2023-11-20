@@ -254,6 +254,8 @@ public class PlanetService
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         var planet = model.ToDatabase();
+
+        planet.Description ??= "A new planet!";
         
         try
         {

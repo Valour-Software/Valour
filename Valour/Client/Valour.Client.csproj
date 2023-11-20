@@ -12,7 +12,7 @@
     <PackageReference Include="BlazorDateRangePicker" Version="4.4.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
     <PackageReference Include="Blazored.Modal" Version="7.1.0" />
-    <PackageReference Include="EmojiMartBlazor" Version="1.0.1" />
+    <PackageReference Include="EmojiMartBlazor" Version="1.0.3" />
     <PackageReference Include="FastDragBlazor" Version="1.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-rc.1.23421.29" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-rc.1.23421.29" PrivateAssets="all" />

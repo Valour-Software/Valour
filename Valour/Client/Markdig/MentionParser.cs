@@ -63,7 +63,7 @@ public class MentionParser : InlineParser
                     TargetId = long.Parse(idBuilder.ToString()),
                 };
                 processor.Inline = new MentionInline(mention);
-                slice.Start += i + 6;
+                slice.Start += i + 5;
                 return true;
             }
             else

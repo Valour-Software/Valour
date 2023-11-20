@@ -56,7 +56,7 @@
             @RenderReply
         }
 
-        <div class="content" @ref="InnerRef">
+        <div class="content">
 
             @if (Message.Attachments != null)
             {
@@ -168,8 +168,6 @@
     public User User { get; set; }
 
     public MessageComponent ReplyComponent;
-
-    public ElementReference InnerRef;
 
     public bool ShouldRenderValue = false;
 
@@ -309,8 +307,6 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JsRuntime.InvokeVoidAsync("OnMessageLoad", InnerRef);
-
         if (firstRender)
         {
             // Clear notification if one exists for this message
@@ -533,7 +529,7 @@
         if (Ghost && IsInnerReply) return;
 
         ShouldRenderValue = true;
-
+        
         StateHasChanged();
 
         ShouldRenderValue = false;
