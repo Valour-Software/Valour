@@ -18,7 +18,7 @@ public class BaseAPI
 
     public static void AddRoutes(WebApplication app)
     {
-        VERSION = typeof(ISharedUser).Assembly.GetName().Version.ToString() + $"({Version.ShortHash})";
+        VERSION = typeof(ISharedUser).Assembly.GetName().Version.ToString() + $" ({Version.ShortHash})";
         app.MapGet("api/version", () => VERSION);
     }
 
