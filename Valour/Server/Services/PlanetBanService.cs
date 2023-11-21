@@ -64,7 +64,7 @@ public class PlanetBanService
             await _db.SaveChangesAsync();
 
             // Delete target member
-            var memberResult = await _memberService.DeleteAsync(target.Id);
+            var memberResult = await _memberService.DeleteAsync(target.Id, false); // False because we already have a db transaction
             if (!memberResult.Success)
                 throw new Exception("Failed to delete member.");
 

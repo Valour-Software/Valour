@@ -603,9 +603,16 @@ public class PlanetMemberService
     /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(long memberId)
+    public async Task<TaskResult> DeleteAsync(long memberId, bool doTransaction = true)
     {
-        await using var trans = await _db.Database.BeginTransactionAsync();
+        IDbContextTransaction trans = null;
+        
+        if (doTransaction)
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            trans = transaction;
+        }
+
         var dbMember = await _db.PlanetMembers.FindAsync(memberId);
 
         if (dbMember is null)
@@ -620,12 +627,21 @@ public class PlanetMemberService
             dbMember.IsDeleted = true;
 
             await _db.SaveChangesAsync();
-            await trans.CommitAsync();
+            
+            if (trans is not null) 
+            {
+                await trans.CommitAsync();
+            }
         }
         catch (System.Exception e)
         {
             _logger.LogError("Critical error deleting member.", e);
-            await trans.RollbackAsync();
+            
+            if (trans is not null)
+            {
+                await trans.RollbackAsync();
+            }
+
             return new(false, "An unexpected error occurred.");
         }
 
