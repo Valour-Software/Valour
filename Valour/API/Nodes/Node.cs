@@ -129,20 +129,35 @@ public class Node
     /// </summary>
     private async void OnPingTimer(object state = null)
     {
-        await Logger.Log("Doing node ping...", "lime");
-        
-        _pingStopwatch.Reset();
-        _pingStopwatch.Start();
-        var response = await HubConnection.InvokeAsync<string>("ping", IsPrimary);
-        _pingStopwatch.Stop();
-        
-        if (response == "pong")
+        if (HubConnection.State != HubConnectionState.Connected)
         {
-            await Logger.Log($"[{Name}] Pinged successfully in {_pingStopwatch.ElapsedMilliseconds}ms", "lime");
+            await Logger.Log($"[{Name}] Ping failed. Hub state is disconnected.", "salmon");
+            return;
         }
-        else
+
+        try
         {
-            await Logger.Log($"[{Name}] Ping failed. Response: {response}", "salmon");
+            await Logger.Log("Doing node ping...", "lime");
+
+            _pingStopwatch.Reset();
+            _pingStopwatch.Start();
+            var response = await HubConnection.InvokeAsync<string>("ping", IsPrimary);
+            _pingStopwatch.Stop();
+
+            if (response == "pong")
+            {
+                await Logger.Log($"[{Name}] Pinged successfully in {_pingStopwatch.ElapsedMilliseconds}ms", "lime");
+            }
+            else
+            {
+                await Logger.Log($"[{Name}] Ping failed. Response: {response}", "salmon");
+            }
+        }
+        catch (Exception e)
+        {
+            await Logger.Log($"[{Name}] Ping failed. Exception:", "salmon");
+            await Logger.Log(e.Message, "salmon");
+            await Logger.Log(e.StackTrace, "salmon");
         }
     }
 
@@ -271,10 +286,20 @@ public class Node
         // Reconnect
         int tries = 0;
 
-        // Test connection if it thinks it's safe
-        if (HubConnection.State == HubConnectionState.Connected)
+        bool safe = false;
+
+        try
         {
-            var ping = await HubConnection.InvokeAsync<string>("ping");
+            // Test connection if it thinks it's safe
+            if (HubConnection.State == HubConnectionState.Connected)
+            {
+                var ping = await HubConnection.InvokeAsync<string>("ping");
+                safe = true;
+            }
+        }
+        catch (System.Exception)
+        {
+            Console.WriteLine("[Disconnect] Hub reports connection, but ping failed. Will attempt reconnect...");
         }
 
         while (HubConnection.State == HubConnectionState.Disconnected)
