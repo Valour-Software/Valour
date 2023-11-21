@@ -1,4 +1,5 @@
 ﻿using Valour.Shared.Models;
+using Version = Valour.Shared.Version;
 
 namespace Valour.Server.API;
 
@@ -17,7 +18,7 @@ public class BaseAPI
 
     public static void AddRoutes(WebApplication app)
     {
-        VERSION = typeof(ISharedUser).Assembly.GetName().Version.ToString();
+        VERSION = typeof(ISharedUser).Assembly.GetName().Version.ToString() + $" ({Version.ShortHash})";
         app.MapGet("api/version", () => VERSION);
     }
 

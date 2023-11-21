@@ -17,6 +17,7 @@
 @using Valour.Client.Components.Sounds
 @using Valour.Client.Components
 @using Valour.Client.Utility
+@using Version = Valour.Shared.Version
 
 @inject IJSRuntime JS
 @inject ILocalStorageService LocalStorage
@@ -51,7 +52,7 @@ else
     <div class="update-footer">
         <p class="update-text">There is a new version of Valour available! Refresh to blast into new features! 🚀🚀🚀</p>
         <p style="display: inline-block" class="update-text">Current version:&nbsp;</p>
-        <p style="color:red; display:inline-block" class="update-text">@(typeof(ISharedUser).Assembly.GetName().Version.ToString())</p>
+        <p style="color:red; display:inline-block" class="update-text">@(typeof(ISharedUser).Assembly.GetName().Version.ToString()) (@(Version.ShortHash))</p>
         <p style="display: inline-block" class="update-text">&nbsp;|&nbsp;</p>
         <p style="display: inline-block" class="update-text">New version:&nbsp;</p>
         <p style="color:lawngreen; display:inline-block" class="update-text">@newVersion</p>

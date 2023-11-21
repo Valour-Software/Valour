@@ -273,14 +273,14 @@ public class ChannelApi
     [ValourRoute(HttpVerbs.Delete, "api/channels/{channelId}/messages/{messageId}")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> DeleteMessageRouteAsync(
-        long id,
+        long messageId,
         long channelId,
         ChannelService channelService,
         TokenService tokenService,
         PlanetMemberService memberService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
-        var message = await channelService.GetMessageNoReplyAsync(id);
+        var message = await channelService.GetMessageNoReplyAsync(messageId);
         
         if (message.ChannelId != channelId)
             return ValourResult.BadRequest("Channel id in message does not match channel id in route");
