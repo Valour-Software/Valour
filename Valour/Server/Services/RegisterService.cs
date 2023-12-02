@@ -1,4 +1,5 @@
 using SendGrid;
+using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
@@ -149,7 +150,8 @@ public class RegisterService
                 JoinSource = request.Source
             };
 
-            _db.UserEmails.Add(userPrivateInfo.ToDatabase());
+            var privateInfo = userPrivateInfo.ToDatabase();
+            _db.UserEmails.Add(privateInfo);
 
             Valour.Database.Credential cred = new()
             {
@@ -187,23 +189,33 @@ public class RegisterService
         
             _db.EcoAccounts.Add(globalAccount);
 
-            var emailCode = Guid.NewGuid().ToString();
-            EmailConfirmCode confirmCode = new()
+            // Helper for dev environment
+            if (EmailConfig.instance.ApiKey == "fake-value")
             {
-                Code = emailCode,
-                UserId = user.Id
-            };
-
-            _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
-            await _db.SaveChangesAsync();
-
-            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
-
-            if (!result.IsSuccessStatusCode)
+                privateInfo.Verified = true;
+                _db.UserEmails.Update(privateInfo);
+                await _db.SaveChangesAsync();
+            }
+            else
             {
-                _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
-                await tran.RollbackAsync();
-                return new(false, "Sorry! We had an issue emailing your confirmation. Try again?");
+                var emailCode = Guid.NewGuid().ToString();
+                EmailConfirmCode confirmCode = new()
+                {
+                    Code = emailCode,
+                    UserId = user.Id
+                };
+
+                _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
+                await _db.SaveChangesAsync();
+
+                Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
+
+                if (!result.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
+                    await tran.RollbackAsync();
+                    return new(false, "Sorry! We had an issue emailing your confirmation. Try again?");
+                }
             }
         }
         catch (Exception e)
