@@ -149,9 +149,8 @@ public class RegisterService
                 JoinInviteCode = request.InviteCode,
                 JoinSource = request.Source
             };
-
-            var privateInfo = userPrivateInfo.ToDatabase();
-            _db.UserEmails.Add(privateInfo);
+            
+            _db.UserEmails.Add(userPrivateInfo.ToDatabase());
 
             Valour.Database.Credential cred = new()
             {
@@ -188,10 +187,16 @@ public class RegisterService
             };
         
             _db.EcoAccounts.Add(globalAccount);
-
+            
+            await _db.SaveChangesAsync();
+            
             // Helper for dev environment
             if (EmailConfig.instance.ApiKey == "fake-value")
             {
+                var privateInfo = await _db.UserEmails.FindAsync(request.Email);
+                if (privateInfo is null)
+                    throw new Exception("Something went very wrong!");
+                
                 privateInfo.Verified = true;
                 _db.UserEmails.Update(privateInfo);
                 await _db.SaveChangesAsync();
