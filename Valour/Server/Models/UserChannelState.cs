@@ -9,4 +9,5 @@ public class UserChannelState : ISharedUserChannelState
     public long UserId { get; set; }
     
     public DateTime LastViewedTime { get; set; }
+    public long FlatPermissions { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Client.Components.Sidebar.ChannelList;
 using Valour.Server.Cdn;
 using Valour.Server.Database;
 using Valour.Server.Utilities;
@@ -456,6 +457,59 @@ public class ChannelService
         await _db.PermissionsNodes.Where(x => x.TargetId == channelId)
             .Select(x => x.ToModel())
             .ToListAsync();
+    
+    
+    public async ValueTask<long> GetUserFlattenedChannelPermissionsAsync(long userId, long channelId)
+    {
+        var channel = await _db.Channels.FindAsync(channelId);
+        if (channel is null)
+            return 0;
+        
+        var planet = await _db.Planets.FindAsync(channel.PlanetId);
+        if (planet is null)
+            return 0;
+
+        if (planet.OwnerId == userId)
+            return Permission.FullControl; // long value of -1 has all bits set to 1
+        
+        // Get all user roles (ordered)
+        var roleMembership = await _db.PlanetRoleMembers.Where(x => x.UserId == userId && x.PlanetId == planet.Id)
+            .Select(x => new
+            {
+                roleId = x.RoleId, 
+                isAdmin = x.Role.IsAdmin,
+                pos = x.Role.Position,
+                node = x.Role.PermissionNodes.FirstOrDefault(x => x.TargetId == channelId), // Get the node for this channel
+            })
+            .OrderByDescending(x => x.pos)
+            .ToListAsync(); // Order weakest -> strongest
+
+        // If the user has an admin role, they have full control
+        if (roleMembership.Any(x => x.isAdmin))
+            return Permission.FullControl;
+        
+        var channelType = await _db.Channels.Where(x => x.Id == channelId)
+            .Select(x => x.ChannelType)
+            .FirstOrDefaultAsync();
+        
+        // At this point we have to calculate the hard way
+        var permissionValue = ISharedChannel.GetDefaultPermissions(channelType);
+
+        // Has to be ordered weakest permission -> strongest permission
+        foreach (var membership in roleMembership)
+        {
+            var node = membership.node;
+            
+            // Apply mask: zero out bits where mask is 0
+            var maskedValue = node.Code & node.Mask;
+
+            // Override the finalPermission with the masked value
+            permissionValue = (permissionValue & ~node.Mask) | maskedValue;
+        }
+
+        return permissionValue;
+        
+    }
     
     #endregion
     

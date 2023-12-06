@@ -4,4 +4,5 @@ public interface ISharedUserChannelState
     long ChannelId { get; set; }
     long UserId { get; set; }
     DateTime LastViewedTime { get; set; }
+    long FlatPermissions { get; set; } 
 }

@@ -17,7 +17,7 @@ public class Permission
     /// <summary>
     /// Permission node to have complete control
     /// </summary>
-    public const long FULL_CONTROL = ~(0x0);
+    public const long FullControl = ~(0x0);
 
     /// <summary>
     /// The name of this permission
@@ -66,7 +66,7 @@ public class Permission
     public static bool HasPermission(long code, Permission permission)
     {
         // Case if full control is granted
-        if (code == FULL_CONTROL) return true;
+        if (code == FullControl) return true;
 
         // Otherwise check for specific permission
         return (code & permission.Value) == permission.Value;
@@ -252,7 +252,7 @@ public static class UserPermissions
     }
 
     // Use shared full control definition
-    public static readonly UserPermission FullControl = new UserPermission(Permission.FULL_CONTROL, "Full Control", "Control every part of your account.");
+    public static readonly UserPermission FullControl = new UserPermission(Permission.FullControl, "Full Control", "Control every part of your account.");
 
     // Every subsequent permission has double the value (the next bit)
     // An update should NEVER change the order or value of old permissions
@@ -320,7 +320,7 @@ public static class ChatChannelPermissions
 
     static ChatChannelPermissions()
     {
-        FullControl = new ChatChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
+        FullControl = new ChatChannelPermission(Permission.FullControl, "Full Control", "Allow members full control of the channel");
         View = new ChatChannelPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel in the channel list.");
         ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within the channel.");
         PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to the channel.");
@@ -387,7 +387,7 @@ public static class CategoryPermissions
 
     static CategoryPermissions()
     {
-        FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the category");
+        FullControl = new CategoryPermission(Permission.FullControl, "Full Control", "Allow members full control of the category");
         View = new CategoryPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the category in the channel list.");
         ManageCategory = new CategoryPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the category's details.");
         ManagePermissions = new CategoryPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the category.");
@@ -446,7 +446,7 @@ public static class VoiceChannelPermissions
 
     static VoiceChannelPermissions()
     {
-        FullControl = new VoiceChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
+        FullControl = new VoiceChannelPermission(Permission.FullControl, "Full Control", "Allow members full control of the channel");
         View = new VoiceChannelPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel in the channel list.");
         Join = new VoiceChannelPermission(0x02, "Join Channel", "Allow members to connect to the voice channel.");
         Speak = new VoiceChannelPermission(0x04, "Speak", "Allow members to speak in the channel.");
@@ -532,7 +532,7 @@ public static class PlanetPermissions
     }
 
     // Use shared full control definition
-    public static readonly PlanetPermission FullControl = new PlanetPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the planet (owner)");
+    public static readonly PlanetPermission FullControl = new PlanetPermission(Permission.FullControl, "Full Control", "Allow members full control of the planet (owner)");
 
     public static readonly PlanetPermission View = new PlanetPermission(0x01, "View", "Allow members to view the planet. This is implicitly granted to members."); // Implicitly granted to members
     public static readonly PlanetPermission Invite = new PlanetPermission(0x02, "Invite", "Allow members to send invites to the planet.");

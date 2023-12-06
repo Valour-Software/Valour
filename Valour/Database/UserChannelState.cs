@@ -18,4 +18,7 @@ public class UserChannelState : ISharedUserChannelState
 
     [Column("last_viewed_time")]
     public DateTime LastViewedTime { get; set; }
+    
+    [Column("flat_permissions")]
+    public long FlatPermissions { get; set; } 
 }

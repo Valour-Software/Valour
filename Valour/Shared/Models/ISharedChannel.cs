@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Models;
+﻿using Valour.Shared.Authorization;
+
+namespace Valour.Shared.Models;
 
 public enum ChannelTypeEnum
 {
@@ -39,6 +41,26 @@ public interface ISharedChannel : ISharedItem
         
         return SharedChannelNames.ChannelTypeNames[(int)type];
     }
+
+    /// <summary>
+    /// Returns the default permissions for the given channel type
+    /// </summary>
+    public static long GetDefaultPermissions(ChannelTypeEnum type)
+    {
+        var i = (int)type;
+        if (i < 0 || i >= DefaultPermissionsLookup.Length)
+            return 0;
+        
+        return DefaultPermissionsLookup[(int)type];
+    }
+    
+    public static readonly long[] DefaultPermissionsLookup = new long[]
+    {
+        ChatChannelPermissions.Default,
+        CategoryPermissions.Default,
+        VoiceChannelPermissions.Default,
+        // Non planet channels do not have permissions
+    };
     
     public static readonly HashSet<ChannelTypeEnum> PlanetChannelTypes = new ()
     {

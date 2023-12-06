@@ -406,7 +406,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         var dummyNode = new PermissionsNode()
         {
             // Full, since values should either be yes or no
-            Mask = Permission.FULL_CONTROL,
+            Mask = Permission.FullControl,
             // Default to no permission
             Code = 0x0,
 
@@ -420,7 +420,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         // Easy cheat for owner
         if (planet.OwnerId == member.UserId)
         {
-            dummyNode.Code = Permission.FULL_CONTROL;
+            dummyNode.Code = Permission.FullControl;
             return dummyNode;
         }
 
