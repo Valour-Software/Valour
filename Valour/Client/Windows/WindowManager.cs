@@ -287,6 +287,9 @@ public class WindowManager
             await OnWindowClosed.Invoke(window);
     }
 
+    /// <summary>
+    /// Resets number of windows and returns main window to home
+    /// </summary>
     public async Task ResetAllWindows()
     {
         await SetSelectedWindow(Windows[0]);
