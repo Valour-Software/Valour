@@ -287,6 +287,16 @@ public class WindowManager
             await OnWindowClosed.Invoke(window);
     }
 
+    public async Task ResetAllWindows()
+    {
+        await SetSelectedWindow(Windows[0]);
+        for (var i = GetWindowCount() - 1; i > 0; i--)
+        {
+            await CloseWindow(Windows[i]);
+        }
+        await GetSelectedWindow().ReturnHomeAsync();
+    }
+    
     private async Task ForceChatRefresh()
     {
         foreach (var chat in Windows.OfType<ChatChannelWindow>())

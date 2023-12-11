@@ -1,13 +1,18 @@
+@inject WindowManager windowManager
 @using Version = Valour.Shared.Version
+
 <div class="version">
     @if (DeviceInfo.IsMobile)
     {
         <i class="bi bi-list open-menu" @onclick="Sidebar.ToggleMobileSidebar"></i>
     }
-    <img alt="Valour logo" class="logo" src="_content/Valour.Client/media/logo/logo-256.png"/>
+    <img alt="Valour logo" class="logo" src="_content/Valour.Client/media/logo/logo-256.png" @onclick="OnClickLogo" style="cursor: pointer;"/>
     <p class="text">Valour Alpha <br/> V@(typeof(ISharedUser).Assembly.GetName().Version.ToString()) <span style="font-size: 10px; color: #7A7A7A">(@Version.ShortHash)</span></p>
 </div>
 
 @code {
-    
+    private async Task OnClickLogo()
+    {
+        await windowManager.ResetAllWindows();
+    }
 }
