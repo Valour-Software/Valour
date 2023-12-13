@@ -1,0 +1,68 @@
+﻿@implements IDisposable
+
+<div class="container" style="color: @_color" @onclick="@OnClick">
+    @if (Reaction is null)
+    {
+        <p>THIS REACTION DOES NOT EXIST, @_userName :(</p>
+    }
+    else
+    {
+        <p class="emoji-icon"></p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Reaction Reaction { get; set; }
+
+    private User _user;
+    private string _userName = "NOT FOUND";
+
+    private string _color = "blue";
+
+    private bool _renderFlag = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await User.FindAsync(Reaction.UserId);
+        _userName = _user.Name;
+
+        Reaction.OnUpdated += OnReactionUpdated;
+    }
+    
+    private void OnClick()
+    {
+        _color = "red";
+    }
+
+    private async Task OnReactionUpdated(ModelUpdateEvent modelEvent)
+    {
+        if (modelEvent.PropsChanged.Contains(nameof(Reaction.MessageId)))
+        {
+            _color = "green";
+            StateHasChanged();
+        }
+    }
+
+    public void Render()
+    {
+        _renderFlag = true;
+        StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        StateHasChanged();
+    }
+
+    protected override bool ShouldRender()
+    {
+        return _renderFlag;
+    }
+
+    void IDisposable.Dispose()
+    {
+        Reaction.OnUpdated -= OnReactionUpdated;
+    }
+
+}

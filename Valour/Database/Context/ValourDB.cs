@@ -188,6 +188,11 @@ public class ValourDB : DbContext
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
+    
+    /// <summary>
+    /// Set for all reactions
+    /// </summary>
+    public DbSet<Reaction> Reactions { get; set; }
 
     ////////////////
     // Eco System //
