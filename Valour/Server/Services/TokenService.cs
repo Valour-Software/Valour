@@ -27,7 +27,7 @@ public class TokenService
     }
 
     /// <summary>
-    /// Will return the auth object for a valid token.
+    /// Will return the auth object for a valid token .
     /// A null response means the key was invalid.
     /// </summary>
     public async ValueTask<AuthToken> GetAsync(string key)
