@@ -1,19 +1,19 @@
 <section>
     <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
     <div class="top-section">
-        <h2 class="title">Create a @ISharedChannel.GetTypeName(ChannelType)</h2>
+        <h2 class="title">Create</h2>
         
         <span id="image-span" style="color:white; text-align: center">@_imageSpan</span>
 
         <div asp-validation-summary="All" class="text-info"></div>
         <div class="form-group mt-2 new-input-style">
-            <label>Category Name</label>
+            <label>Name</label>
             <input class="form-control" placeholder="New Category" @bind-value="@_name" />
         </div>
         <div style="margin-top:20px;">
             <img class="lock-icon" src="_content/Valour.Client/media/lock-icon.svg">
             <div class="perm-list-name mb-1">
-                Private Category
+                Private
             </div>
             <div type="button" style="float: right">
                 <label class="switch">
@@ -27,7 +27,7 @@
     @if (_isPrivate) {
         <div class="private">
             <div class="inner-private">
-                <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
+                <label style="margin-top: 12px;">Who has access to this?</label>
                 <div class="roles-box">
                     @foreach (PlanetRole role in _roles)
                     {
@@ -60,7 +60,7 @@
     {
         <div class="form-group mt-4 bottom" style="margin-top: 0px !important;">
             <center>
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Category</button>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
             </center>
         </div>
     }
@@ -68,7 +68,7 @@
     {
         <div class="form-group mt-4 bottom">
             <center>
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Category</button>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
             </center>
         </div>
     }

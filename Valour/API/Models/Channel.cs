@@ -138,7 +138,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             node = ValourClient.PrimaryNode;
         }
         
-        return await node.PostAsyncWithResponse<Channel>($"{request.Channel.BaseRoute}/detailed", request);
+        return await node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
     }
     
     /// <summary>
