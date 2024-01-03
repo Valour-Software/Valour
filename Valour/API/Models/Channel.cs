@@ -1,4 +1,5 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json;
+using Valour.Api.Client;
 using Valour.Api.Nodes;
 using Valour.Api.Requests;
 using Valour.Shared;
@@ -236,11 +237,11 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (type is null)
             type = ChannelType;
-        
+
         if (PermissionsNodes is null || refresh)
             await LoadPermissionNodesAsync(refresh);
         
-        return PermissionsNodes!.FirstOrDefault(x => x.TargetId == roleId && x.TargetType == type);
+        return PermissionsNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
     }
     
     /// <summary>
