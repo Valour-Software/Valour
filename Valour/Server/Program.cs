@@ -37,6 +37,9 @@ namespace Valour.Server
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
 
+            // Dev on linux will literally explode without this. Took a fun 5 hours to figure out.
+            builder.WebHost.UseStaticWebAssets();
+            
             // Load configs
             LoadConfigsAsync(builder);
 
