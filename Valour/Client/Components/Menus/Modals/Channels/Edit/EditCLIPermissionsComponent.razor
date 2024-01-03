@@ -114,11 +114,28 @@
 
 @if (_changed)
 {
-    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+    <div class="save-wrapper">
+        <button class="v-btn save-btn" @onclick="@OnSaveChanges">Save</button>
+        
+        @if (_saveButtonText is not null)
+        {
+            <span class="text-info">@_saveButtonText</span>
+        }
+        
+        @if (_saveButtonErrorText is not null)
+        {
+            <span class="text-danger">@_saveButtonErrorText</span>
+        }
+    </div>
+    
+    <br />
 }
 
 @code {
-
+    
+    private string _saveButtonText;
+    private string _saveButtonErrorText;
+    
     // For permission checking
     private bool _hasTargetManagePerm;
     private bool _hasTargetPermissionPerm;
@@ -174,11 +191,11 @@
                 TargetId = Target.Id,
                 PlanetId = Target.PlanetId!.Value,
                 RoleId = _selectedRole.Id,
-                Mask = 0x00,
+                Mask = 0x00, 
                 Code = 0x00,
                 TargetType = type
             };
-
+            
             _needCreate[(int)type] = true;
         }
         else
@@ -208,6 +225,12 @@
                 {
                     Console.WriteLine("Error in channel permission node creation!");
                     Console.WriteLine(result.Message);
+                    
+                    _saveButtonErrorText = "Error saving!";
+                }
+                else
+                {
+                    _saveButtonText = "Saved successfully!";
                 }
             }
             else if (_needUpdate[i])
@@ -217,8 +240,16 @@
                 {
                     Console.WriteLine("Error in channel permission node update!");
                     Console.WriteLine(result.Message);
+                    
+                    _saveButtonErrorText = "Error saving!";
+                }
+                else
+                {
+                    _saveButtonText = "Saved successfully!";
                 }
             }
+            
+            StateHasChanged();
         }
 
         Console.WriteLine("Permission nodes updated.");
