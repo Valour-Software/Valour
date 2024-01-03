@@ -43,8 +43,24 @@
     }
 </div>
 
-<div class="mt-2">
-    <h5>Profile Image (pfp)</h5>
+<div class="mb-4">
+    <h6>Your tag</h6>
+    <div class="input-group" style="max-width: 400px;">
+        <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" />
+        <button class="btn v-button" @onclick="@OnTagApply">Apply</button>
+    </div>
+    @if (_tagChangeError is not null)
+    {
+        <p class="text-danger">@_tagChangeError</p>
+    }
+    @if (_tagChangeText is not null)
+    {
+        <p class="text-info">@_tagChangeText</p>
+    }
+</div>
+
+<div class="mt-4 mb-4">
+    <h6>Profile Image (pfp)</h6>
     <img style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
     <div style="display:inline-block">
         <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
@@ -57,6 +73,8 @@
 
 <h3>DANGER ZONE</h3>
 <button class="v-btn" @onclick="OnClickDeleteAccount">Delete my account</button>
+<br/>
+<br/>
 
 @code {
     [CascadingParameter]
@@ -64,6 +82,10 @@
     
     [Parameter]
     public User User { get; set; }
+    
+    private string _tag { get; set; }
+    private string _tagChangeText;
+    private string _tagChangeError;
 
     public string Pfp_Url { get; set; }
 
@@ -96,6 +118,36 @@
 
         StateHasChanged();
     }
+    
+    private async Task OnTagApply()
+    {
+        if (_tag.Length != 4)
+        {
+            _tagChangeError = "Tag must be 4 characters long.";
+            StateHasChanged();
+            return;
+        }
+
+        foreach (var c in _tag)
+        {
+            if (!char.IsLetterOrDigit(c))
+            {
+                _tagChangeError = "Tag must be alphanumeric.";
+                StateHasChanged();
+                return;
+            }
+        }
+        
+        User.Tag = _tag;
+        var result = await Valour.Api.Items.LiveModel.UpdateAsync(User);
+
+        if (result.Success)
+            _tagChangeText = "Updated successfully.";
+        else
+            statusCodeResult = "Failed to update.";
+
+        StateHasChanged();
+    }
 
     private async Task OnStatusCodeApply()
     {
@@ -116,6 +168,7 @@
         Pfp_Url = User.PfpUrl;
         Status = User.Status;
         StatusCode = User.UserStateCode;
+        _tag = User.Tag;
     }
 
     protected async Task OnPfpError()

@@ -352,6 +352,32 @@ public class UserService
         old.Status = updatedUser.Status;
         old.UserStateCode = updatedUser.UserStateCode;
 
+        // Validate tag change
+        if (updatedUser.Tag != old.Tag)
+        {
+            if (updatedUser.Tag.Length != 4)
+            {
+                return new TaskResult<User>(false, "Tag must be 4 characters long.");
+            }
+            
+            // Ensure tag is alphanumeric
+            foreach (var c in updatedUser.Tag)
+            {
+                if (!char.IsAsciiLetterOrDigit(c))
+                {
+                    return new TaskResult<User>(false, "Tag must be alphanumeric.");
+                }
+            }
+            
+            // Check if the tag is already taken
+            if (await IsTagTaken(old.Name, updatedUser.Tag))
+            {
+                return new TaskResult<User>(false, "Tag already taken");
+            }
+
+            old.Tag = updatedUser.Tag;
+        }
+
         try
         {
             await _db.SaveChangesAsync();
@@ -699,5 +725,32 @@ public class UserService
             .Where(x => x.ReferrerId == userId)
             .Select(x => new ReferralDataModel(){ Name = $"{x.User.Name}#{x.User.Tag}", Time = x.Created, Reward = x.Reward })
             .ToListAsync();
+    }
+    
+    public async Task<bool> IsTagTaken(string username, string tag)
+    {
+        return await _db.Users.AnyAsync(x => x.Tag == tag && x.Name.ToLower() == username.ToLower());
+    }
+    
+    public async Task<string> GetUniqueTag(string username)
+    {
+        var existing = await _db.Users.Where(x => x.Name.ToLower() == username.ToLower()).Select(x => x.Tag).ToListAsync();
+
+        string tag;
+        
+        do
+        {
+            tag = GenerateRandomTag();
+        } while (existing.Contains(tag));
+
+        return tag;
+    }
+    
+    // TODO: Prevent the one in 1.6 million chance that you will get the tag F***, along with other 'bad words'
+    // Just passed by this and realized the chances are far higher when accounting for similar-looking characters
+    private string GenerateRandomTag()
+    {
+        return new string(Enumerable.Repeat(ISharedUser.TagChars, 4)
+            .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
     }
 }

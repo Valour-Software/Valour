@@ -117,7 +117,7 @@ public class RegisterService
             {
                 Id = IdManager.Generate(),
                 Name = request.Username,
-                Tag = await GetUniqueTag(request.Username),
+                Tag = await _userService.GetUniqueTag(request.Username),
                 TimeJoined = DateTime.UtcNow,
                 TimeLastActive = DateTime.UtcNow,
                 Compliance = true, // All new users should be compliant
@@ -276,29 +276,7 @@ public class RegisterService
 
         return new(true, "Success");
     }
-    
-    public async Task<string> GetUniqueTag(string username)
-    {
-        var existing = await _db.Users.Where(x => x.Name.ToLower() == username.ToLower()).Select(x => x.Tag).ToListAsync();
 
-        string tag;
-        
-        do
-        {
-            tag = GenerateRandomTag();
-        } while (existing.Contains(tag));
-
-        return tag;
-    }
-    
-    // TODO: Prevent the one in 1.6 million chance that you will get the tag F***, along with other 'bad words'
-    // Just passed by this and realized the chances are far higher when accounting for similar-looking characters
-    private string GenerateRandomTag()
-    {
-        return new string(Enumerable.Repeat(ISharedUser.TagChars, 4)
-            .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
-    }
-    
     public async Task<TaskResult> ResendRegistrationEmail(UserPrivateInfo userPrivateInfo, HttpContext ctx, RegisterUserRequest request)
     {
         await using var tran = await _db.Database.BeginTransactionAsync();
