@@ -1,3 +1,8 @@
+@if (Result is null)
+{
+    return;
+}
+
 @if (Result.Success)
 {
     <p class="text-info">@(Result.Message ?? "Success!")</p>
