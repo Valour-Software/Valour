@@ -20,17 +20,22 @@ namespace Valour.Shared
         [JsonInclude]
         [JsonPropertyName("Message")]
         public string Message { get; set; }
+        
+        [JsonInclude]
+        [JsonPropertyName("Details")]
+        public string Details { get; set; }
 
         [JsonInclude]
         [JsonPropertyName("Success")]
         public bool Success { get; set; }
 
-        public TaskResult(bool success, string message)
+        public TaskResult(bool success, string message, string details = null)
         {
             Success = success;
             Message = message;
+            Details = details;
         }
-        
+
         public static TaskResult FromError(ITaskResult error) => new(false, error.Message);
 
         public static TaskResult FromError(string error) => new(false, error);
@@ -51,6 +56,10 @@ namespace Valour.Shared
         [JsonInclude]
         [JsonPropertyName("Message")]
         public string Message { get; set; }
+        
+        [JsonInclude]
+        [JsonPropertyName("Details")]
+        public string Details { get; set; }
 
         [JsonInclude]
         [JsonPropertyName("Success")]
@@ -64,21 +73,21 @@ namespace Valour.Shared
         {
             Success = success;
             Message = message;
-            Data = default;
         }
 
-        public TaskResult(bool success, string message, T data)
+        public TaskResult(bool success, string message, T data, string details = null)
         {
             Success = success;
             Message = message;
             Data = data;
+            Details = details;
         }
 
         public static TaskResult<T> FromData(T data) => new(true, "Success", data);
 
-        public static TaskResult<T> FromError(ITaskResult error) => new(false, error.Message);
+        public static TaskResult<T> FromError(ITaskResult error) => new(false, error.Message, default(T), error.Details);
 
-        public static TaskResult<T> FromError(string error) => new(false, error);
+        public static TaskResult<T> FromError(string error, string details = null) => new(false, error, default(T), details);
 
         public bool IsSuccessful(out T value)
         {
@@ -100,6 +109,8 @@ namespace Valour.Shared
     public interface ITaskResult
     {
         string Message { get; set; }
+        
+        string Details { get; set; }
 
         bool Success { get; set; }
     }

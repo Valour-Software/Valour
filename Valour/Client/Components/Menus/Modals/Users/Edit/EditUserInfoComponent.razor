@@ -1,8 +1,13 @@
 ﻿@using System.Net.Http.Headers
-@inject HttpClient http
+@inject HttpClient Http
 @inject NavigationManager NavManager
 
-<h3>Edit Basic Info</h3>
+<div class="title-container">
+	<h3>Basic Info <i class="bi bi-info-circle-fill"></i></h3>
+	<p class="subtitle">Change your basic account settings</p>
+</div>
+
+<hr />
 
 <div class="mt-4 mb-4">
     <h6>Your Status Message</h6>
@@ -49,16 +54,8 @@
         <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" />
         <button class="btn v-button" @onclick="@OnTagApply">Apply</button>
     </div>
-    @if (_tagChangeError is not null)
-    {
-        <p class="text-danger">@_tagChangeError</p>
-    }
-    @if (_tagChangeText is not null)
-    {
-        <p class="text-info">@_tagChangeText</p>
-    }
+    <ResultLabel Result="@_tagChangeResult" />
 </div>
-
 <div class="mt-4 mb-4">
     <h6>Profile Image (pfp)</h6>
     <img style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
@@ -84,8 +81,7 @@
     public User User { get; set; }
     
     private string _tag { get; set; }
-    private string _tagChangeText;
-    private string _tagChangeError;
+    private ITaskResult _tagChangeResult;
 
     public string Pfp_Url { get; set; }
 
@@ -123,7 +119,7 @@
     {
         if (_tag.Length != 4)
         {
-            _tagChangeError = "Tag must be 4 characters long.";
+            _tagChangeResult = new TaskResult(false, "Tag must be 4 characters long.");
             StateHasChanged();
             return;
         }
@@ -132,20 +128,15 @@
         {
             if (!char.IsLetterOrDigit(c))
             {
-                _tagChangeError = "Tag must be alphanumeric.";
+                _tagChangeResult = new TaskResult(false, "Tag must be alphanumeric.");
                 StateHasChanged();
                 return;
             }
         }
         
         User.Tag = _tag;
-        var result = await Valour.Api.Items.LiveModel.UpdateAsync(User);
-
-        if (result.Success)
-            _tagChangeText = "Updated successfully.";
-        else
-            statusCodeResult = "Failed to update.";
-
+        _tagChangeResult = await LiveModel.UpdateAsync(User);
+        
         StateHasChanged();
     }
 

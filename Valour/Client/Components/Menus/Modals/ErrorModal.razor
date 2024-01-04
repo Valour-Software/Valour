@@ -1,0 +1,33 @@
+@inject IJSRuntime JsRuntime
+
+<section class="outer">
+    <div class="title-container">
+    	<h3>Error Details <i class="bi bi-bug-fill"></i></h3>
+    	<p class="subtitle">Send to us... or maybe <a href="https://github.com/Valour-Software/Valour">contribute?</a></p>
+    </div>
+    <pre class="inner">
+        @(Result.Details ?? "No details available")
+    </pre>
+    <div class="btns-wrapper">
+        <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
+        <button @onclick="@OnClickCloseAsync" class="v-btn">Close</button>
+    </div>
+</section>
+
+@code {
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public TaskResult Result { get; set; }
+
+    private async Task OnClickCloseAsync()
+    {
+        await ModalInstance.CloseAsync();
+    }
+    
+    private async Task OnClickCopyAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Result.Details);
+    }
+}

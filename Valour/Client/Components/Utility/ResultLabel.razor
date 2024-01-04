@@ -1,0 +1,27 @@
+@if (Result.Success)
+{
+    <p class="text-info">@(Result.Message ?? "Success!")</p>
+}
+else
+{
+    <p class="text-danger">@(Result.Message ?? "An error occured.") 
+        @if (Result.Details is not null)
+        {
+            <span>&nbsp;</span>
+            <i class="bi bi-info-circle-fill info-icon" @onclick="@OnDetails"></i>
+        }
+    </p>
+}
+
+@code {
+    
+    [Parameter]
+    public ITaskResult Result { get; set; }
+    
+    private void OnDetails()
+    {
+        ModalParameters imodParams = new();
+        imodParams.Add("Result", Result);
+        ModalInjector.Service.Show<ErrorModal>("Error Details", imodParams);
+    }
+}

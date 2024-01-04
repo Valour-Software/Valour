@@ -1,0 +1,22 @@
+.outer {
+    background-color: var(--main-3);
+    border-radius: 1em;
+    padding: 1em;
+}
+
+.inner {
+    background-color: var(--main-1);
+    width: min(400px, 75vw);
+    height: 400px;
+    overflow-y: auto;
+    padding: 1em;
+    color: white;
+    border-radius: 0.5em;
+    font-family: monospace;
+}
+
+.btns-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1em;
+}
