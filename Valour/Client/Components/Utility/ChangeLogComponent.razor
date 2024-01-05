@@ -43,15 +43,26 @@
     protected override async Task OnInitializedAsync()
     {
         var version = typeof(ValourClient).Assembly.GetName().Version.ToString();
-        
-        if (!await LocalStorage.ContainKeyAsync("LastVersion") ||
-            await LocalStorage.GetItemAsync<string>("LastVersion") != version)
+        var versionSplit = version.Split('.');
+
+        if (!await LocalStorage.ContainKeyAsync("LastVersion"))
         {
             _show = true;
-            await LocalStorage.SetItemAsync<string>("LastVersion", version);
-            
-            StateHasChanged();
         }
+        else
+        {
+            var newVersionStr = await LocalStorage.GetItemAsync<string>("LastVersion");
+            string[] newVersionSplit = newVersionStr.Split('.');
+            
+            // Only show changelog if a non-minor update was released
+            if (versionSplit[0] != newVersionSplit[0] || versionSplit[1] != newVersionSplit[1])
+            {
+                _show = true;
+            }
+        }
+        
+        await LocalStorage.SetItemAsync<string>("LastVersion", version);
+        StateHasChanged();
     }
     
     private void OnClose()
