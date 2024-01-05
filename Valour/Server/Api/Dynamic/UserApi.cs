@@ -62,13 +62,13 @@ public class UserApi
         [FromBody] User user, 
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserIdAsync();
+        var currentUser = await userService.GetCurrentUserAsync();
 
         // Unlike most other entities, we are just copying over a few fields here and
         // ignoring the rest. There are so many things that *should not* be touched by
         // the API it's smarter to just only do what *should*
 
-        if (user.Id != userId)
+        if (user.Id != currentUser.Id)
             return ValourResult.Forbid("You can only change your own user info.");
 
         if (user.Status.Length > 64)
@@ -76,6 +76,17 @@ public class UserApi
 
         if (user.UserStateCode > 4)
             return ValourResult.BadRequest($"User state {user.UserStateCode} does not exist.");
+        
+        // If we are changing the tag, make sure we are stargazer or above
+        if (currentUser.Tag != user.Tag)
+        {
+            // Make sure user is a stargazer or above
+            if (currentUser.SubscriptionType is null)
+            {
+                return ValourResult.Forbid("You must be a stargazer or above to change your tag.");
+            }
+        }
+        
 
         var result = await userService.UpdateAsync(user);
         if (!result.Success)

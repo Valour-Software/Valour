@@ -581,15 +581,21 @@ public class ChannelService
         // Handle replies
         if (message.ReplyToId is not null)
         {
-            var replyTo = await _db.Messages.FindAsync(message.ReplyToId);
+            var replyTo = (await _db.Messages.FindAsync(message.ReplyToId)).ToModel();
             if (replyTo is null)
-                return TaskResult<Message>.FromError("ReplyToId does not exist.");
+            {
+                // Try to get from cache if it has not yet posted
+                replyTo = PlanetMessageWorker.GetStagedMessage(message.ReplyToId.Value);
+                
+                if (replyTo is null)
+                    return TaskResult<Message>.FromError("ReplyToId does not exist.");
+            }
 
             // TODO: Technically we could support this in the future
             if (replyTo.ChannelId != channel.Id)
                 return TaskResult<Message>.FromError("Cannot reply to a message from another channel.");
             
-            message.ReplyTo = replyTo.ToModel();
+            message.ReplyTo = replyTo;
         }
         
         if (string.IsNullOrEmpty(message.Content) &&
