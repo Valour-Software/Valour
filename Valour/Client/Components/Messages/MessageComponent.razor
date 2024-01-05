@@ -549,9 +549,13 @@
         }
     }
 
+    // Always allow a re-render when the pfp fails to load
+    private bool _pfpErrorRender = false;
+    
     private void OnPfpError()
     {
         _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
+        _pfpErrorRender = true;
         ReRender();
     }
 
@@ -560,6 +564,12 @@
     /// </summary>
     protected override bool ShouldRender()
     {
+        if (_pfpErrorRender)
+        {
+            _pfpErrorRender = false;
+            return true;
+        }
+
         if (Ghost && IsInnerReply) return false;
 
         return ShouldRenderValue;
