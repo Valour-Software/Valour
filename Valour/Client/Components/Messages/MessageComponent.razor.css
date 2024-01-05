@@ -204,6 +204,10 @@
 .message:hover .left-info .author-pfp {
     width: 30px;
     height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
     margin-left: 8px;
     margin-right: 8px;
 }
