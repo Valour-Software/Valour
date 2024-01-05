@@ -114,6 +114,10 @@
 .message .author-pfp {
     width: 38px;
     height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    max-width: 38px;
+    max-height: 38px;
     border-radius: 50%;
     margin-top: 8px;
     margin-left: 4px;
@@ -239,6 +243,10 @@
 .reply .author-pfp {
     width: 30px;
     height: 30px;
+    max-width: 30px;
+    max-height: 30px;
+    min-width: 30px;
+    min-height: 30px;
     margin-bottom: -5px;
 }
 
