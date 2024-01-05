@@ -53,11 +53,15 @@
         {
             var newVersionStr = await LocalStorage.GetItemAsync<string>("LastVersion");
             string[] newVersionSplit = newVersionStr.Split('.');
-            
-            // Only show changelog if a non-minor update was released
-            if (versionSplit[0] != newVersionSplit[0] || versionSplit[1] != newVersionSplit[1])
+
+            // Should be 4, technically
+            if (versionSplit.Length == 4 && newVersionSplit.Length == 4)
             {
-                _show = true;
+                // Only show changelog if a non-minor update was released
+                if (versionSplit[0] != newVersionSplit[0] || versionSplit[1] != newVersionSplit[1] || versionSplit[2] != newVersionSplit[2])
+                {
+                    _show = true;
+                }
             }
         }
         
