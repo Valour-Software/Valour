@@ -11,3 +11,7 @@
     opacity: 100% !important;
     font-size: 0.8em;
 }
+
+.role-list div:nth-child(2) .role-title {
+    margin-top: 0;
+}
