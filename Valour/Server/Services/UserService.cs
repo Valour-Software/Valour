@@ -345,7 +345,7 @@ public class UserService
     
     public async Task<TaskResult<User>> UpdateAsync(User updatedUser)
     {
-        var old = await _db.Users.FindAsync(updatedUser.Id);
+        var old = await _db.Users.FindAsync(updatedUser.Id); 
         if (old is null)
             return new TaskResult<User>(false, "Could not find user");
 

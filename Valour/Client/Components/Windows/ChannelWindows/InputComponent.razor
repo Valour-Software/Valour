@@ -577,7 +577,7 @@
         await RefreshPreviewMessage();
         Refresh();
 
-        await InnerInputRef.FocusAsync();
+        await FocusInputAsync();
     }
 
     public async Task RemoveReply()
@@ -674,6 +674,11 @@
     private ValueTask SelectEnd()
     {
         return _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
+    }
+    
+    private ValueTask FocusInputAsync()
+    {
+        return _jsModule.InvokeVoidAsync("focusInput", Window.Id);
     }
 
     // JS -> C#

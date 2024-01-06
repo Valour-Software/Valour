@@ -152,13 +152,20 @@ export function inputKeyDownHandler(e, input) {
 }
 
 export function setInputContent(inputId, content) {
-    var input = inputs[inputId];
+    const input = inputs[inputId];
 
     input.element.innerText = content;
 }
 
+export function focusInput(id) {
+    const input = inputs[id];
+    setTimeout(function() {
+        input.element.focus();
+    }, 0);
+}
+
 export function submitMessage(inputId, keepOpen = false) {
-    var input = inputs[inputId];
+    const input = inputs[inputId];
 
     if (keepOpen) {
         input.element.focus();
