@@ -1,4 +1,5 @@
 ﻿@using System.Text
+@using Valour.Api.Nodes
 @implements IDisposable
 @inject WindowManager WindowManager
 
@@ -58,8 +59,17 @@
 
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
+        ValourClient.OnNodeReconnect += OnNodeReconnect;
 
         await Channel.Open();
+    }
+    
+    public async Task OnNodeReconnect(Node node)
+    {
+        await Logger.Log($"Chat window {Channel.Name} reloading due to node reconnect. Node: {node.Name}", "yellow");
+        
+        // Just reload the same channel
+        await SwapChannel(Channel);
     }
 
     public void Refresh()
@@ -280,6 +290,8 @@
             _selfMember.OnDeleted -= OnSelfMemberDeleted;
         
         ValourClient.OnMessageReceived -= OnReceiveMessage;
+        ValourClient.OnNodeReconnect -= OnNodeReconnect;
+        
         _thisRef.Dispose();
     }
 }

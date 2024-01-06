@@ -73,7 +73,6 @@ public class WindowManager
 	public WindowManager()
     {
         Instance = this;
-        ValourClient.OnNodeReconnect += OnNodeReconnect;
         ValourClient.OnPlanetClose += OnPlanetClose;
     }
 
@@ -138,11 +137,6 @@ public class WindowManager
 
         if (OnPlanetFocused is not null)
             await OnPlanetFocused.Invoke(planet);
-    }
-
-    public async Task OnNodeReconnect(Node node)
-    {
-        await ForceChatRefresh();
     }
 
     /// <summary>
@@ -298,17 +292,5 @@ public class WindowManager
             await CloseWindow(Windows[i]);
         }
         await GetSelectedWindow().ReturnHomeAsync();
-    }
-    
-    private async Task ForceChatRefresh()
-    {
-        foreach (var chat in Windows.OfType<ChatChannelWindow>())
-        {
-            if (chat.Component != null && chat.Component.MessageHolder != null)
-            {
-                // Force full window refresh
-                await chat.Component.SetupNewChannelAsync();
-            }
-        }
     }
 }
