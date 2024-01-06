@@ -270,6 +270,7 @@ public class WindowManager
         await window.OnClosedAsync();
         
         Windows.Remove(window);
+        
 
         if (window is ChatChannelWindow chatWindow)
         {
@@ -282,6 +283,8 @@ public class WindowManager
                 await chatWindow.Channel.Close();
             }
         }
+
+        await SetSelectedWindow(Windows[0]);
 
         if (OnWindowClosed is not null)
             await OnWindowClosed.Invoke(window);
