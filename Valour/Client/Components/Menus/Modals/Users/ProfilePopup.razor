@@ -32,16 +32,11 @@
     protected override void OnInitialized()
     {
         Instance = this;
+        KeyboardListener.OnKeyDown += OnKeyDown;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        
-        if (firstRender)
-        {
-            await JsRuntime.InvokeVoidAsync("blazorFuncs.addKeyboardListenerEvent", DotNetObjectReference.Create(this));
-        }
-        
         if (_needsPositioning && !_hidden)
         {
             await JsRuntime.InvokeVoidAsync("positionRelativeTo", _profileCard.Id, _posX, _posY, _corner);
@@ -104,12 +99,12 @@
         _hidden = true;
         StateHasChanged();
     }
-    
-    [JSInvokable("OnKeyDown")]
-    public Task OnKeyDown(string key)
+
+    private Task OnKeyDown(KeyboardListener.KeyboardEvent e)
     {
-        if (key == "Escape") Close();
+        if (e.Key == "Escape")
+            Close();
+
         return Task.CompletedTask;
     }
-
 }
