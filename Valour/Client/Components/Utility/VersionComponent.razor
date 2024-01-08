@@ -1,5 +1,7 @@
 @inject WindowManager windowManager
+@inject SoundManager soundManager
 @using Version = Valour.Shared.Version
+@using System.Runtime.InteropServices
 
 <div class="version">
     @if (DeviceInfo.IsMobile)
@@ -11,8 +13,15 @@
 </div>
 
 @code {
+    private int _logoClicks = 0;
     private async Task OnClickLogo()
     {
         await windowManager.ResetAllWindows();
+        _logoClicks++;
+        if (_logoClicks == 5)
+        {
+            _logoClicks = 0;
+            await soundManager.PlaySound("Notification.mp3");
+        }
     }
 }
