@@ -36,6 +36,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        
+        if (firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync("blazorFuncs.addKeyboardListenerEvent", DotNetObjectReference.Create(this));
+        }
+        
         if (_needsPositioning && !_hidden)
         {
             await JsRuntime.InvokeVoidAsync("positionRelativeTo", _profileCard.Id, _posX, _posY, _corner);
@@ -97,6 +103,13 @@
     {
         _hidden = true;
         StateHasChanged();
+    }
+    
+    [JSInvokable("OnKeyDown")]
+    public Task OnKeyDown(string key)
+    {
+        if (key == "Escape") Close();
+        return Task.CompletedTask;
     }
 
 }
