@@ -1,0 +1,19 @@
+@code {
+    private IJSInProcessObjectReference _jsModule;
+    [Inject] IJSRuntime JsRuntime { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/KeyboardListener.razor.js?version=$(SHORTHASH)");
+            await _jsModule.InvokeVoidAsync("init", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public Task OnKeyDown(object e)
+    {
+        return Task.CompletedTask;
+    }
+}

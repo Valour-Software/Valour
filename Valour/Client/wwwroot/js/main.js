@@ -139,9 +139,6 @@ window.blazorFuncs = {
                     caller.invokeMethodAsync("OnServiceUpdateUnvailable");
                 }
             });
-    },
-    addKeyboardListenerEvent: function (dotNetReference) {
-        document.addEventListener('keydown', event => dotNetReference.invokeMethodAsync('OnKeyDown', event.key));
     }
 };
 
