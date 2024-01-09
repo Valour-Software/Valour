@@ -1,3 +1,4 @@
+@using System.Globalization
 @inject WindowManager WindowManager
 
 <div id="@Id" class="card-wrapper" style="@CssStyle">
@@ -25,6 +26,12 @@
                             </div>
                         </div>
                     </div>
+                    @if (User.UserStateCode == 1)
+                    {
+                        <div class="last-active">
+                            Last online @_lastOnline hours ago
+                        </div>
+                    }
                     @if (User.Id != ValourClient.Self.Id)
                     {
                         <div class="bottom-btns">
@@ -136,6 +143,7 @@
     private string _status;
     private string _pfpUrl;
     private string _statusClass = "offline";
+    private string _lastOnline;
 
     private bool _isFriend;
     private bool _isFriendRequested;
@@ -149,6 +157,7 @@
         _nameAndTag = User.NameAndTag;
         _status = User.Status;
         _statusClass = User.UserState.CssClassName;
+        _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalHours).ToString();
 
         _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
         
