@@ -250,8 +250,8 @@ namespace Valour.Server
 
             services.Configure<FormOptions>(options =>
             {
-                options.MemoryBufferThreshold = 10240000;
-                options.MultipartBodyLengthLimit = 10240000;
+                options.MemoryBufferThreshold = 20480000;
+                options.MultipartBodyLengthLimit = 20480000;
             });
             
             services.AddDbContext<CdnDb>(options =>

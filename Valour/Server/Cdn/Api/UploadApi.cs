@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Cdn.Objects;
 using Valour.Shared.Authorization;
+using Valour.Shared.Cdn;
 
 namespace Valour.Server.Cdn.Api;
 
@@ -80,7 +82,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (!file.ContentType.StartsWith("image"))
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
         var imageData = await ProcessImage(file, -1, -1);
@@ -111,7 +113,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (!file.ContentType.StartsWith("image"))
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
         var imageData = await ProcessImage(file, 256, 256);
@@ -153,7 +155,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (!file.ContentType.StartsWith("image"))
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
         var imageData = await ProcessImage(file, 300, 400);
@@ -209,7 +211,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (!file.ContentType.StartsWith("image"))
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
         var imageData = await ProcessImage(file, 512, 512);
@@ -253,7 +255,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (!file.ContentType.StartsWith("image"))
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
         var imageData = await ProcessImage(file, 512, 512);
@@ -304,7 +306,7 @@ public class UploadApi
         if (file is null)
             return Results.BadRequest("Please attach a file");
 
-        if (file.ContentType.StartsWith("image"))
+        if (CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
 
         string ext = Path.GetExtension(file.FileName);

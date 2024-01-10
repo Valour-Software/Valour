@@ -452,6 +452,13 @@ function positionRelativeTo(id, x, y, corner) {
     }
 }
 
+// Helper function for taking in image from .net and compressing it before returning it back
+async function compressImage(data, quality) {
+    const blob = await fetch(data).then(r => r.blob());
+    
+    return createBlob(compressedBlob, blob.type);
+}
+
 async function injectTwitter(id, data) {
     const container = document.getElementById(id);
     if (!container) {

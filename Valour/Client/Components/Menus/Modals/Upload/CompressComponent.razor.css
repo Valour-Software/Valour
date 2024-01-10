@@ -1,0 +1,33 @@
+.outer {
+    background-color: var(--main-3);
+    border-radius: 1em;
+    padding: 1em;
+}
+
+.inner {
+    background-color: var(--main-1);
+    width: min(400px, 75vw);
+    overflow-y: auto;
+    padding: 1em;
+    border-radius: 0.5em;
+}
+
+.btns-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1em;
+}
+
+.victor {
+    width: 200px;
+    height: 200px;
+    text-align: center;
+    animation: ease-in-out 1s infinite squeeze;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.victor-text {
+    text-align: center;
+}

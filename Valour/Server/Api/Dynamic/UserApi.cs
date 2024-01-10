@@ -394,7 +394,6 @@ public class UserApi
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-
         return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
 

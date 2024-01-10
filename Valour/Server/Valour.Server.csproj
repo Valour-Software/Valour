@@ -20,7 +20,7 @@
     <PackageReference Include="SendGrid" Version="9.28.1" />
     <PackageReference Include="Sentry" Version="3.39.1" />
     <PackageReference Include="Sentry.AspNetCore" Version="3.39.1" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
     <PackageReference Include="StackExchange.Redis" Version="2.6.122" />
     <PackageReference Include="Swashbuckle" Version="5.6.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />

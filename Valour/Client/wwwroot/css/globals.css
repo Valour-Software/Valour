@@ -320,3 +320,15 @@
 
     100% { transform: translate3d(-50px, 105vh, 0) rotateX(10deg) rotateY(250deg); }
 }
+
+@keyframes squeeze {
+    0% {
+        transform: skewX(0deg) scale(1, 1);
+    }
+    65% {
+        transform: skewX(30deg) scale(1.5, 0.0);
+    }
+    100% {
+        transform: skewX(0deg) scale(1, 1);
+    }
+}

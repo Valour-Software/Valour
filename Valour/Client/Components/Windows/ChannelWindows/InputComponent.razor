@@ -4,8 +4,10 @@
 @using System.Net.Http.Headers
 @using System.Text.RegularExpressions
 @using Valour.Api.Models.Messages;
+@using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
+@using SixLabors.ImageSharp;
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
@@ -372,89 +374,98 @@
         //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
 
         var file = e.File;
-
         var maxSize = 10240000;
         
-        if (ValourClient.Self.SubscriptionType is null)
-        {
-            if (file.Size > maxSize)
-            {
-                InfoModalData infoModalData = 
-                    new($"File too large!",
-                        "The max upload size is 10MB. To raise this limit, consider subscribing to Plus!",
-                        "Okay",
-                        null
-                );
-                
-                ModalParameters imodParams = new();
-                imodParams.Add("Data", infoModalData);
-                
-                Modal.Show<InfoModalComponent>("Info", imodParams);
-                return;
-            }
-        }
-        else
-        {
-            maxSize = 20480000;
-            
-            if (file.Size > maxSize)
-            {
-                InfoModalData infoModalData = 
-                    new($"File too large!",
-                        "The max upload size is 20MB for Plus members.",
-                        "Okay",
-                        null
-                        );
-                
-                ModalParameters infoModalParams = new();
-                infoModalParams.Add("Data", infoModalData);
-                
-                Modal.Show<InfoModalComponent>("Info", infoModalParams);
-                return;
-            }
-        }
-
-        byte[] data = new byte[file.Size];
-        await file.OpenReadStream(maxSize).ReadAsync(data);
-
-        var content = new MultipartFormDataContent();
-        var arrContent = new ByteArrayContent(data);
-        if (!string.IsNullOrWhiteSpace(file.ContentType))
-        {
-            arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-        }
-
-        content.Add(arrContent, file.Name, file.Name);
-
-        MessageAttachmentType type = MessageAttachmentType.File;
+        var attachmentType = MessageAttachmentType.File;
 
         // Determine if audio or video or image
 
         var mime = file.ContentType;
-        string uploadPath = "file";
+        var uploadPath = "file";
         
         // We only actually need to check the first letter,
         // since only 'image/' starts with i
         if (mime[0] == 'i')
         {
-            type = MessageAttachmentType.Image;
-            uploadPath = "image";
+            // Ensure that the mime type is supported by ImageSharp processing
+            if (CdnUtils.ImageSharpSupported.Contains(mime))
+            {
+                attachmentType = MessageAttachmentType.Image;
+                uploadPath = "image";
+            }
         }
         // Same thing here - only 'video/' starts with v
         else if (mime[0] == 'v')
         {
-            type = MessageAttachmentType.Video;
+            attachmentType = MessageAttachmentType.Video;
         }
         // Unfortunately 'audio/' and 'application/' both start with 'a'
         else if (mime[0] == 'a' && mime[1] == 'u')
         {
-            type = MessageAttachmentType.Audio;
+            attachmentType = MessageAttachmentType.Audio;
         }
+
+        if (ValourClient.Self.SubscriptionType is not null)
+        {
+            maxSize = 20480000;
+        }
+        
+        Console.WriteLine($"Selected file {file.Name} with size {file.Size}");
+        
+        if (file.Size > maxSize)
+        {
+            
+            // Special case for images: ability to compress!
+            if (attachmentType == MessageAttachmentType.Image)
+            {
+                ModalParameters cmodParams = new();
+                cmodParams.Add("File", file);
+                cmodParams.Add("Input", this);
+                
+                Modal.Show<CompressComponent>("Compress Image", cmodParams);
+
+                return;
+            }
+            else
+            {
+                InfoModalData infoModalData = 
+                    new($"File too large!",
+                        maxSize == 10240000 ? $"The max upload size is 10MB. To raise this limit, consider subscribing to Plus!" : $"Your max upload size is 20MB.",
+                        "Okay",
+                        null
+                        );
+            
+                ModalParameters imodParams = new();
+                imodParams.Add("Data", infoModalData);
+            
+                Modal.Show<InfoModalComponent>("Info", imodParams);
+                return;
+            }
+        }
+        
+        byte[] data = new byte[file.Size];
+        await file.OpenReadStream(maxSize).ReadAsync(data);
+
+        ShowUploadMenu(data, attachmentType, file.ContentType, file.Name, uploadPath);
+
+        Refresh();
+    }
+
+    public void ShowUploadMenu(byte[] data, MessageAttachmentType type, string mime, string name, string path)
+    {
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        if (!string.IsNullOrWhiteSpace(mime))
+        {
+            arrContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+        }
+
+        content.Add(arrContent, name, name);
 
         MessageAttachment newAttachment = new(type)
         {
-            MimeType = file.ContentType,
-            FileName = file.Name,
+            MimeType = mime,
+            FileName = name,
         };
 
         var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
@@ -464,7 +475,7 @@
         modalParams.Add("Attachment", newAttachment);
         modalParams.Add("OnConfirm", 
             async () => {
-                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{uploadPath}{plusRoute}", content);
+                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
 
                 if (result.Success)
                 {
@@ -475,12 +486,9 @@
                 {
                     Console.WriteLine(result.Message);
                 }
-            }
-        );
+            });
 
         Modal.Show<FileUploadComponent>("File Upload", modalParams);
-
-        Refresh();
     }
 
     public async Task RemoveAttachment(int id)
