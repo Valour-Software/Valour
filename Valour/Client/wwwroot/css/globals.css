@@ -325,8 +325,8 @@
     0% {
         transform: skewX(0deg) scale(1, 1);
     }
-    65% {
-        transform: skewX(30deg) scale(1.5, 0.0);
+    75% {
+        transform: skewX(5deg) scale(0.3, 1.2);
     }
     100% {
         transform: skewX(0deg) scale(1, 1);

@@ -22,7 +22,7 @@
     width: 200px;
     height: 200px;
     text-align: center;
-    animation: ease-in-out 1s infinite squeeze;
+    animation: ease-in-out 2s infinite squeeze;
     display: block;
     margin-left: auto;
     margin-right: auto;
