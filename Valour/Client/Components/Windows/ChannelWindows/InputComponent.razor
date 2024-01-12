@@ -443,24 +443,21 @@
             }
         }
         
-        byte[] data = new byte[file.Size];
-        await file.OpenReadStream(maxSize).ReadAsync(data);
-
-        ShowUploadMenu(data, attachmentType, file.ContentType, file.Name, uploadPath);
+        ShowUploadMenu(file.OpenReadStream(maxSize), attachmentType, file.ContentType, file.Name, uploadPath);
 
         Refresh();
     }
 
-    public void ShowUploadMenu(byte[] data, MessageAttachmentType type, string mime, string name, string path)
+    public void ShowUploadMenu(Stream data, MessageAttachmentType type, string mime, string name, string path)
     {
         var content = new MultipartFormDataContent();
-        var arrContent = new ByteArrayContent(data);
+        var streamContent = new StreamContent(data);
         if (!string.IsNullOrWhiteSpace(mime))
         {
-            arrContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
         }
 
-        content.Add(arrContent, name, name);
+        content.Add(streamContent, name, name);
 
         MessageAttachment newAttachment = new(type)
         {
