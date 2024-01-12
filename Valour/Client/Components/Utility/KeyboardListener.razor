@@ -1,0 +1,52 @@
+@using System.Text.Json.Serialization
+@inject IJSRuntime JsRuntime
+
+@code {
+    
+    public class KeyboardEvent
+    {
+        [JsonPropertyName("code")]
+        public string Code { get; set; }
+        
+        [JsonPropertyName("key")]
+        public string Key { get; set; }
+        
+        [JsonPropertyName("location")]
+        public int Location { get; set; }
+        
+        [JsonPropertyName("repeat")]
+        public bool Repeat { get; set; }
+        
+        [JsonPropertyName("shiftKey")]
+        public bool ShiftKey { get; set; }
+        
+        [JsonPropertyName("ctrlKey")]
+        public bool CtrlKey { get; set; }
+        
+        [JsonPropertyName("altKey")]
+        public bool AltKey { get; set; }
+        
+        [JsonPropertyName("metaKey")]
+        public bool MetaKey { get; set; }
+    }
+    
+    public static event Func<KeyboardEvent, Task> OnKeyDown;
+    
+    private IJSInProcessObjectReference _jsModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/KeyboardListener.razor.js?version=$(SHORTHASH)");
+            await _jsModule.InvokeVoidAsync("init", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnKeyDownInteropAsync(KeyboardEvent e)
+    {
+        if (OnKeyDown is not null)
+            await OnKeyDown.Invoke(e);
+    }
+}

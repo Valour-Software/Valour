@@ -14,7 +14,8 @@
 }
 
 .tabstrip .item {
-    cursor:pointer;
+    flex-grow: 1;
+    cursor: pointer;
     text-align: center;
 }
 

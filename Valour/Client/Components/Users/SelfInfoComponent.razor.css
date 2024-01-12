@@ -10,10 +10,36 @@
     border-top: 4px solid var(--main-3);
 }
 
-.settings {
-    align-self: flex-start;
-    margin-right: 5px;
-    margin-top: 5px;
-    cursor: pointer;
+.settings-button {
+    background: none;
+    border: none;
+    
+    height: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 5px;
+    
+    &:hover .settings-icon, &:focus .settings-icon {
+            transform: rotate(45deg) scale(1.1);
+    }
+    
+    &:active .settings-icon {
+        transform: rotate(45deg) scale(0.9);
+    }
+    
+}
+ 
+.settings-button:hover .settings-icon, .settings-button:focus .settings-icon { 
+    transform: rotate(45deg) scale(1.1); 
+}
+
+.settings-button:focus {
+    outline: solid var(--main-5);
+}
+
+.settings-button .settings-icon {
+    height: 16px;
     width: 16px;
+    
+    aspect-ratio: 1/1;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
