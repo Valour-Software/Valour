@@ -71,8 +71,11 @@ public class UserApi
         if (user.Id != currentUser.Id)
             return ValourResult.Forbid("You can only change your own user info.");
 
-        if (user.Status.Length > 64)
-            return ValourResult.BadRequest("Max status length is 64 characters.");
+        if (user.Status is not null)
+        {
+            if (user.Status.Length > 64)
+                return ValourResult.BadRequest("Max status length is 64 characters.");
+        }
 
         if (user.UserStateCode > 4)
             return ValourResult.BadRequest($"User state {user.UserStateCode} does not exist.");
