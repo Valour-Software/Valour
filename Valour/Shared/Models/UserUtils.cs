@@ -12,7 +12,7 @@ public class UserUtils
     {
         try
         {
-            MailAddress address = new MailAddress(email);
+            MailAddress address = new MailAddress(EmailDomainToDotCom(email));
 
             Console.WriteLine($"Email address: <{address.Address}>");
 
@@ -69,6 +69,36 @@ public class UserUtils
         return new TaskResult(true, $"Success: The given password passed all tests.");
     }
 
+    /// <summary>
+    /// Returns the user's email domain as .com, filters for extended domains i.e. @example.test.me
+    /// </summary>
+    /// <param name="email"></param>
+    /// <returns>
+    /// Email as submitted or adjusted to .com
+    /// </returns>
+    private static string EmailDomainToDotCom(string email)
+    {
+        var dotCom = ".com";
+        var atIndex = email.IndexOf('@');
+        if (atIndex == -1)
+        {
+            return email;
+        }
+        var domain = email.Substring(atIndex + 1);
+
+
+        if (!domain.EndsWith(dotCom))
+        {
+            var lastDotIndex = email.LastIndexOf('.');
+            if (lastDotIndex <= atIndex)
+            {
+                return email;
+            }
+
+            email = email.Substring(0, lastDotIndex) + dotCom;
+        }
+        return email;
+    }
 }
 
 
