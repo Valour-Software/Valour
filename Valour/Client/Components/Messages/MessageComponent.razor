@@ -407,6 +407,7 @@
         this.LastMessage = ParamData.LastMessage;
         this.Ghost = ParamData.Ghost;
         this.IsInnerReply = ParamData.IsInnerReply;
+        KeyboardListener.OnKeyDown += OnKeyDown;
         
         if (Message is null)
         {
@@ -441,6 +442,29 @@
             _member.OnRoleModified += OnMemberRoleChange;
             _member.OnUpdated += OnMemberUpdated;
         }
+    }
+
+    private async Task<Task> OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key != "Escape") return Task.CompletedTask;
+        if (Edit) 
+        {
+            await CloseEditMode(true);
+        }
+ 
+        if (IsInnerReply)
+        {
+            var input = Window.Component.MessageHolder.InputComponent;
+            await input.RemoveReply(); 
+        }
+        
+        if (Ghost)
+        {
+            var input = Window.Component.MessageHolder.InputComponent;
+            await input.RemoveAttachment(-1);
+        }
+
+        return Task.CompletedTask;
     }
 
     public async Task OnUserUpdated(ModelUpdateEvent eventData)
