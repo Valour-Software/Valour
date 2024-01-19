@@ -89,13 +89,10 @@
             }
                             
             await Logger.Log($"New size: {File.Size} / {oldSize}", "cyan");
-                            
-            var data = new byte[File.Size];
-            await File.OpenReadStream(maxSize).ReadAsync(data);
 
             var uploadPath = ValourClient.Self.SubscriptionType is null ? "" : "/plus";
             
-            Input.ShowUploadMenu(data, MessageAttachmentType.Image, "image/jpeg", $"compressed-{File.Name}.jpg", uploadPath);
+            Input.ShowUploadMenu(File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{File.Name}.jpg", uploadPath);
             
             // Everything worked, close the modal
             await ModalInstance.CloseAsync();

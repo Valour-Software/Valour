@@ -16,11 +16,6 @@
     margin-bottom: 20px;
 }
 
-.new-input-style {
-    width: 488px;
-    display: inline-block;
-}
-
 button {
     width: 97px;
     height: 34px;
@@ -30,10 +25,8 @@ button {
     font-size: 12.5px;
 }
 
-#CreateRole {
-    margin-left: 17px;
+.create-button {
     display: inline-block;
-    margin-top: -3px !important;
 }
 
 .members-text {
@@ -77,17 +70,6 @@ button {
 .role-list-div-help-text {
     display: flex;
     justify-content: space-between;
-}
-
-@media only screen and (max-width: 800px) {
-    .new-input-style input {
-        width: 87vw;
-    }
-
-    #CreateRole {
-        margin-left: 0px;
-        margin-bottom: 0px;
-    }
 }
 
 .roles-row {
