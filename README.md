@@ -62,6 +62,6 @@ To contribute to Valour, getting a mock server environment set up is crucial. He
 Building a platform is hard work. You can directly support Valour at the following:
 - [Patreon](https://www.patreon.com/valourapp)
 - Bitcoin: bc1qcdzt989gszygpudjlrre0cmvkws77gagjglhav
-- Ethereum: 0x40B56C98Fc115f4e503d8FaBa77F8DeF6d8412F1
+- Ethereum: 0x40B56C98Fc115f4e503d8FaBa77F8DeF6d8412F1 
 
 
