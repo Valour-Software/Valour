@@ -25,6 +25,11 @@ public class CdnConfig
     public string S3Access { get; set; }
     public string S3Secret { get; set; }
     public string S3Endpoint { get; set; }
+    
+    // Public S3 properties
+    public string PublicS3Access { get; set; }
+    public string PublicS3Secret { get; set; }
+    public string PublicS3Endpoint { get; set; }
 }
 
 

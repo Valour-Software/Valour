@@ -10,13 +10,35 @@ namespace Valour.Server.Cdn;
 public static class BucketManager
 {
     public static AmazonS3Client Client { get; set; }
-    static SHA256 SHA256 = SHA256.Create();
+    public static AmazonS3Client PublicClient { get; set; }
+    
+    private static readonly SHA256 Sha256 = SHA256.Create();
+
+    public static async Task<TaskResult> UploadPublicImage(Stream data, string path)
+    {
+        PutObjectRequest request = new()
+        {
+            Key = path,
+            InputStream = data,
+            BucketName = "valour-public",
+            DisablePayloadSigning = true
+        };
+        
+        try {
+            var response = await PublicClient.PutObjectAsync(request);
+            return new TaskResult(true, $"https://public-cdn.valour.gg/{path}");
+        }
+        catch (Exception e)
+        {
+            return new TaskResult(false, e.Message);
+        }
+    }
 
     public static async Task<TaskResult> Upload(MemoryStream data, string fileName, string extension, long userId, string mime, 
         ContentCategory category, CdnDb db)
     {
         // Get hash from image
-        byte[] hashBytes = SHA256.ComputeHash(data.GetBuffer());
+        byte[] hashBytes = Sha256.ComputeHash(data.GetBuffer());
         string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 
         // Add file extension to the end

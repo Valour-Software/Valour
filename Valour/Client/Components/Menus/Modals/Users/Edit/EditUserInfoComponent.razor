@@ -161,14 +161,15 @@
     {
         var file = e.File;
         
-        if (file.Size > 2621440)
+        // 10mb limit
+        if (file.Size > 10240000)
         {
-            _pfpChangeResult = new TaskResult(false, "Max profile image size is 2mb.");
+            _pfpChangeResult = new TaskResult(false, "Max profile image size is 10mb.");
             StateHasChanged();
             return;
         }
         
-        var streamContent = new StreamContent(file.OpenReadStream(2621440));
+        var streamContent = new StreamContent(file.OpenReadStream(10240000));
         var content = new MultipartFormDataContent();
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
         content.Add(streamContent, file.Name, file.Name);
@@ -179,6 +180,7 @@
         if (_pfpChangeResult.Success)
         {
             User.PfpUrl = result.Data;
+            _pfpUrl = result.Data;
         }
         
         StateHasChanged();

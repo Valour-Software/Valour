@@ -86,8 +86,10 @@ namespace Valour.Server
             NotificationsAPI.AddRoutes(app);
 
             // s3 (r2) setup
+            
+            // private bucket
             BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
-            AmazonS3Config config = new AmazonS3Config()
+            var config = new AmazonS3Config()
             {
                 ServiceURL = CdnConfig.Current.S3Endpoint
             };
@@ -95,6 +97,16 @@ namespace Valour.Server
             AmazonS3Client client = new(cred, config);
             BucketManager.Client = client;
 
+            // public bucket
+            BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
+            var publicConfig = new AmazonS3Config()
+            {
+                ServiceURL = CdnConfig.Current.PublicS3Endpoint
+            };
+            
+            AmazonS3Client publicClient = new(publicCred, publicConfig);
+            BucketManager.PublicClient = publicClient;
+            
             DynamicApis = new() {
                 new DynamicAPI<UserApi>()                     .RegisterRoutes(app),
                 new DynamicAPI<PlanetApi>()                   .RegisterRoutes(app),

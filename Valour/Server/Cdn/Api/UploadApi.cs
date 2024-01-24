@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Processing;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Cdn.Objects;
 using Valour.Shared.Authorization;
@@ -22,7 +26,7 @@ public class UploadApi
 
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost("/upload/profile", ProfileImageRoute);
+        app.MapPost("/upload/profile", AvatarImageRoute);
         app.MapPost("/upload/profilebg", ProfileBackgroundImageRoute);
         app.MapPost("/upload/image", ImageRouteNonPlus);
         app.MapPost("/upload/image/plus", ImageRoutePlus);
@@ -71,7 +75,7 @@ public class UploadApi
         var authToken = await tokenService.GetCurrentTokenAsync();
         return await ImageRoute(ctx, valourDb, db, authToken, authorization);
     }
-
+    
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, Models.AuthToken authToken, string authorization)
@@ -102,9 +106,24 @@ public class UploadApi
         }
     }
 
+    public JpegEncoder avatarEncoder = new JpegEncoder()
+    {
+        Quality = 75,
+    };
+    
+    // Sizes to generate for avatar images
+    private static readonly int[] _avatarSizes =
+    {
+        256, 128, 64
+    };
+
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> AvatarImageRoute(
+        HttpContext ctx, 
+        ValourDB valourDb, 
+        CoreHubService hubService, 
+        TokenService tokenService)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -115,30 +134,67 @@ public class UploadApi
 
         if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
+        
+        var image = await Image.LoadAsync(
+            new() { TargetSize = new(_avatarSizes[0], _avatarSizes[0]) }, 
+            file.OpenReadStream()
+        );
+        
+        HandleExif(image);
 
-        var imageData = await ProcessImage(file, 256, 256);
-        if (imageData is null)
-            return Results.BadRequest("Unable to process image. Check format and size.");
-
-        using MemoryStream ms = imageData.Value.stream;
-        var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Profile, db);
-
-        if (bucketResult.Success)
+        // By default we use the medium quality image as the main image
+        string resultPath = $"avatars/{authToken.UserId}/{_avatarSizes[1]}.jpg";
+        
+        // If the image is a gif, we save an additional copy as a gif
+        if (image.Metadata.DecodedImageFormat?.Name == "GIF")
         {
-            var user = new Valour.Database.User() { Id = authToken.UserId, PfpUrl = bucketResult.Message };
-            valourDb.Users.Attach(user);
-            valourDb.Entry(user).Property(x => x.PfpUrl).IsModified = true;
-            await valourDb.SaveChangesAsync();
+            using MemoryStream ms = new();
+            // Save animated gif
+            await image.SaveAsync(ms, image.Metadata.DecodedImageFormat);
+            
+            var result = await BucketManager.UploadPublicImage(ms, $"avatars/{authToken.UserId}/animated.gif");
 
-            await hubService.NotifyUserChange(user.ToModel());
+            if (!result.Success)
+            {
+                return ValourResult.Problem("There was an issue uploading your gif. Try a different format or size.");
+            }
 
-            return ValourResult.Ok(bucketResult.Message);
+            // Set the result path to the animated gif
+            resultPath = $"avatars/{authToken.UserId}/animated.gif";
         }
-        else
+
+        bool first = true;
+        
+        foreach (var size in _avatarSizes)
         {
-            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
+            if (!first)
+            {
+                image.Mutate(x => x.Resize(size, size));
+            }
+            
+            using MemoryStream ms = new();
+            await image.SaveAsync(ms, JpegFormat.Instance);
+            
+            var bucketResult = await BucketManager.UploadPublicImage(ms, $"avatars/{authToken.UserId}/{size}.jpg");
+            
+            first = false;
+            
+            if (!bucketResult.Success)
+            {
+                return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
+            }
         }
-    }
+
+        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        
+        var user = new Valour.Database.User() { Id = authToken.UserId, PfpUrl = fullPath };
+        valourDb.Users.Attach(user);
+        valourDb.Entry(user).Property(x => x.PfpUrl).IsModified = true;
+        await valourDb.SaveChangesAsync();
+        await hubService.NotifyUserChange(user.ToModel());
+        
+        return ValourResult.Ok(fullPath);
+    } 
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
