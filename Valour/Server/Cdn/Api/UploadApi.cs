@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Cdn.Objects;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Cdn;
 
@@ -112,7 +113,7 @@ public class UploadApi
     };
     
     // Sizes to generate for avatar images
-    private static readonly int[] _avatarSizes =
+    private static readonly int[] AvatarSizes =
     {
         256, 128, 64
     };
@@ -136,54 +137,17 @@ public class UploadApi
             return Results.BadRequest("Unsupported file type");
         
         var image = await Image.LoadAsync(
-            new() { TargetSize = new(_avatarSizes[0], _avatarSizes[0]) }, 
+            new() { TargetSize = new(AvatarSizes[0], AvatarSizes[0]) }, 
             file.OpenReadStream()
         );
         
         HandleExif(image);
-
-        // By default we use the medium quality image as the main image
-        string resultPath = $"avatars/{authToken.UserId}/{_avatarSizes[1]}.jpg";
         
-        // If the image is a gif, we save an additional copy as a gif
-        if (image.Metadata.DecodedImageFormat?.Name == "GIF")
-        {
-            using MemoryStream ms = new();
-            // Save animated gif
-            await image.SaveAsync(ms, image.Metadata.DecodedImageFormat);
-            
-            var result = await BucketManager.UploadPublicImage(ms, $"avatars/{authToken.UserId}/animated.gif");
-
-            if (!result.Success)
-            {
-                return ValourResult.Problem("There was an issue uploading your gif. Try a different format or size.");
-            }
-
-            // Set the result path to the animated gif
-            resultPath = $"avatars/{authToken.UserId}/animated.gif";
-        }
-
-        bool first = true;
+        var result = await UploadImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 1, true);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
         
-        foreach (var size in _avatarSizes)
-        {
-            if (!first)
-            {
-                image.Mutate(x => x.Resize(size, size));
-            }
-            
-            using MemoryStream ms = new();
-            await image.SaveAsync(ms, JpegFormat.Instance);
-            
-            var bucketResult = await BucketManager.UploadPublicImage(ms, $"avatars/{authToken.UserId}/{size}.jpg");
-            
-            first = false;
-            
-            if (!bucketResult.Success)
-            {
-                return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
-            }
-        }
+        var resultPath = result.Message;
 
         var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
         
@@ -239,13 +203,23 @@ public class UploadApi
         catch (Exception e) { Console.WriteLine(e.StackTrace); }
         return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
     }
+    
+    public JpegEncoder planetEncoder = new JpegEncoder()
+    {
+        Quality = 75,
+    };
+    
+    // Sizes to generate for planet images
+    private static readonly int[] PlanetSizes =
+    {
+        256, 128, 64
+    };
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> PlanetImageRoute(
         HttpContext ctx, 
-        ValourDB valourDb, 
-        CdnDb db, 
+        ValourDB valourDb,
         CoreHubService hubService, 
         TokenService tokenService, 
         PlanetService planetService,
@@ -255,7 +229,7 @@ public class UploadApi
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
-
+        
         var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
@@ -269,28 +243,77 @@ public class UploadApi
 
         if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
             return Results.BadRequest("Unsupported file type");
+        
+        var image = await Image.LoadAsync(
+            new() { TargetSize = new(PlanetSizes[0], PlanetSizes[0]) }, 
+            file.OpenReadStream()
+        );
+        
+        HandleExif(image);
 
-        var imageData = await ProcessImage(file, 512, 512);
-        if (imageData is null)
-            return Results.BadRequest("Unable to process image. Check format and size.");
+        var result = await UploadImageVariants(image, "planets", planetId.ToString(), PlanetSizes, 0, true);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        var resultPath = result.Message;
+        
+        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        
+        var planet = await valourDb.Planets.FindAsync(planetId);
+        planet!.IconUrl = fullPath;
+        await valourDb.SaveChangesAsync();
 
-        using MemoryStream ms = imageData.Value.stream;
-        var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Planet, db);
+        hubService.NotifyPlanetChange(planet.ToModel());
+        
+        return ValourResult.Ok(fullPath);
+    }
 
-        if (bucketResult.Success)
+    private static async Task<TaskResult> UploadImageVariants(Image image, string folder, string id, int[] sizes, int defaultSizeIndex, bool doGifs)
+    {
+        // By default we use the high quality image as the main image
+        string resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.jpg";
+        
+        // If the image is a gif, we save an additional copy as a gif
+        if (doGifs && image.Metadata.DecodedImageFormat?.Name == "GIF")
         {
-            var planet = await valourDb.Planets.FindAsync(member.PlanetId);
-            planet.IconUrl = bucketResult.Message;
-            await valourDb.SaveChangesAsync();
+            using MemoryStream ms = new();
+            // Save animated gif
+            await image.SaveAsync(ms, image.Metadata.DecodedImageFormat);
+            
+            var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/animated.gif");
 
-            hubService.NotifyPlanetChange(planet.ToModel());
+            if (!result.Success)
+            {
+                return new TaskResult(false, "There was an issue uploading your gif. Try a different format or size.");
+            }
 
-            return ValourResult.Ok(bucketResult.Message);
+            // Set the result path to the animated gif
+            resultPath = $"{folder}/{id}/animated.gif";
         }
-        else
+
+        bool first = true;
+        
+        foreach (var size in sizes)
         {
-            return ValourResult.Problem("There was an issue uploading your image. Try a different format or size.");
+            if (!first)
+            {
+                image.Mutate(x => x.Resize(size, size));
+            }
+            
+            using MemoryStream ms = new();
+            await image.SaveAsync(ms, JpegFormat.Instance);
+            
+            var bucketResult = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
+            
+            first = false;
+            
+            if (!bucketResult.Success)
+            {
+                return new TaskResult(false, "There was an issue uploading your image. Try a different format or size.");
+            }
         }
+
+        return new TaskResult(true, resultPath);
     }
 
     [FileUploadOperation.FileContentType]
