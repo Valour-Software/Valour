@@ -494,6 +494,9 @@
         if (attachments is null)
             return;
 
+        if (id == -1)
+                id = attachments.Count - 1;
+        
         if (id > attachments.Count - 1)
             return;
 
