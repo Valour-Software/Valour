@@ -2,7 +2,7 @@
 
 <div class="container">
     <div class="file-icon">
-        <h4 class="extension">@extension</h4>
+        <h4 class="extension">@_extension</h4>
     </div>
     <a class="nohide" href="@Attachment.Location">@Attachment.FileName</a>
 </div>
@@ -13,18 +13,28 @@
     [Parameter]
     public string CustomStyle { get; set; }
 
-    private string extension = "?";
+    private string _extension = "?";
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if (Attachment is null)
             return;
 
-        var split = Attachment.Location.Split('.');
+        string[] split = null;
+        
+        if (Attachment.FileName is not null)
+        {
+            split = Attachment.FileName.Split('.');
+        }
+        else if (Attachment.Location is not null)
+        {
+            split = Attachment.Location.Split('.');
+        }
+
         if (split is null || split.Length < 2)
             return;
 
-        extension = split[split.Length - 1].ToUpper();
-        extension = extension.Substring(0, Math.Min(extension.Length, 11));
+        _extension = split[split.Length - 1].ToUpper();
+        _extension = _extension.Substring(0, Math.Min(_extension.Length, 11));
     }
 }

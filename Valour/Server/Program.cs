@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
@@ -86,8 +88,10 @@ namespace Valour.Server
             NotificationsAPI.AddRoutes(app);
 
             // s3 (r2) setup
+            
+            // private bucket
             BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
-            AmazonS3Config config = new AmazonS3Config()
+            var config = new AmazonS3Config()
             {
                 ServiceURL = CdnConfig.Current.S3Endpoint
             };
@@ -95,6 +99,16 @@ namespace Valour.Server
             AmazonS3Client client = new(cred, config);
             BucketManager.Client = client;
 
+            // public bucket
+            BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
+            var publicConfig = new AmazonS3Config()
+            {
+                ServiceURL = CdnConfig.Current.PublicS3Endpoint
+            };
+            
+            AmazonS3Client publicClient = new(publicCred, publicConfig);
+            BucketManager.PublicClient = publicClient;
+            
             DynamicApis = new() {
                 new DynamicAPI<UserApi>()                     .RegisterRoutes(app),
                 new DynamicAPI<PlanetApi>()                   .RegisterRoutes(app),
@@ -205,6 +219,7 @@ namespace Valour.Server
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapRazorPages();
@@ -244,14 +259,16 @@ namespace Valour.Server
                 });
             });
 
+            RateLimitDefs.AddRateLimitDefs(services);
+
             services.AddSignalR();
 
             services.AddHttpClient();
 
             services.Configure<FormOptions>(options =>
             {
-                options.MemoryBufferThreshold = 10240000;
-                options.MultipartBodyLengthLimit = 10240000;
+                options.MemoryBufferThreshold = 20480000;
+                options.MultipartBodyLengthLimit = 20480000;
             });
             
             services.AddDbContext<CdnDb>(options =>

@@ -12,23 +12,16 @@
 <div class="mt-4 mb-4">
     <h6>Your Status Message</h6>
     <div class="input-group" style="max-width: 400px;">
-        <input class="form-control" placeholder="Choose a status..." @bind="Status" />
+        <input class="form-control" placeholder="Choose a status..." @bind="_status" />
         <button class="btn v-button" @onclick="OnStatusApply">Apply</button>
     </div>
-    @if (statusError)
-    {
-        <span class="text-danger">@statusResult</span>
-    }
-    else
-    {
-        <span class="text-info">@statusResult</span>
-    }
+    <ResultLabel Result="@_statusChangeResult" />
 </div>
 
 <div class="mb-4">
     <h6>Your Status Code</h6>
     <div class="input-group" style="max-width: 400px;">
-        <InputSelect class="form-select" @bind-Value="StatusCode">
+        <InputSelect class="form-select" @bind-Value="_statusCode">
             <option value="0">Automatic</option>
             <option value="4">Online</option>
             <option value="2">Away</option>
@@ -37,15 +30,7 @@
         </InputSelect>
         <button class="btn v-button" @onclick="OnStatusCodeApply">Apply</button>
     </div>
-    @if (statusCodeError)
-    {
-        <span class="text-danger">@statusCodeResult</span>
-    }
-    else
-    {
-        <span class="text-info">@statusCodeResult</span>
-        <br />
-    }
+    <ResultLabel Result="@_statusCodeChangeResult" />
 </div>
 
 <div class="mb-4">
@@ -58,11 +43,10 @@
 </div>
 <div class="mt-4 mb-4">
     <h6>Profile Image (pfp)</h6>
-    <img style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
+    <img alt="Your profile picture" style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@_pfpUrl" @onerror="OnPfpError" />
     <div style="display:inline-block">
-        <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
-        <span id="result-span" style="display:block" class="text-info">@Pfp_Output</span>
-        <span id="error-span" style="display:block" class="text-danger">@Pfp_Error</span>
+        <InputFile OnChange="@LoadFiles" AdditionalAttributes="@_inputAttributes"></InputFile>
+        <ResultLabel Result="@_pfpChangeResult" />
     </div>
 </div>
 
@@ -79,38 +63,35 @@
     
     [Parameter]
     public User User { get; set; }
-    
-    private string _tag { get; set; }
+
+    private string _tag;
     private ITaskResult _tagChangeResult;
 
-    public string Pfp_Url { get; set; }
+    private string _pfpUrl;
+    private ITaskResult _pfpChangeResult;
 
-    public string Pfp_Output = "";
-    public string Pfp_Error = "";
+    private string _status;
+    private ITaskResult _statusChangeResult;
 
-    public string Status { get; set; }
-    public bool statusError;
-    public string statusResult;
+    private int _statusCode;
+    private ITaskResult _statusCodeChangeResult;
 
-    public int StatusCode { get; set; }
-    public bool statusCodeError;
-    public string statusCodeResult;
-
-    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
+    private static Dictionary<string, object> _inputAttributes = new ()
     {
         { "accept", ".png,.jpg,.jpeg,.gif" }
     };
 
     private async Task OnStatusApply()
     {
-        User.Status = Status;
-        var result = await Valour.Api.Items.LiveModel.UpdateAsync(User);
-        statusError = !result.Success;
-
-        if (statusError)
-            statusResult = result.Message;
-        else
-            statusResult = "Updated successfully.";
+        var oldStatus = User.Status;
+        User.Status = _status;
+        _statusChangeResult = await Valour.Api.Items.LiveModel.UpdateAsync(User);
+        
+        // Rollback change if it failed
+        if (!_statusChangeResult.Success)
+        {
+            User.Status = oldStatus;
+        }
 
         StateHasChanged();
     }
@@ -134,82 +115,74 @@
             }
         }
         
+        var oldTag = User.Tag;
         User.Tag = _tag;
         _tagChangeResult = await LiveModel.UpdateAsync(User);
+        
+        // Rollback change if it failed
+        if (!_tagChangeResult.Success)
+        {
+            User.Tag = oldTag;
+        }
         
         StateHasChanged();
     }
 
     private async Task OnStatusCodeApply()
     {
-        User.UserStateCode = StatusCode;
-        var result = await Valour.Api.Items.LiveModel.UpdateAsync(User);
-        statusCodeError = !result.Success;
-
-        if (statusCodeError)
-            statusCodeResult = result.Message;
-        else
-            statusCodeResult = "Updated successfully.";
+        var oldStatusCode = User.UserStateCode;
+        User.UserStateCode = _statusCode;
+        _statusCodeChangeResult = await Valour.Api.Items.LiveModel.UpdateAsync(User);
+       
+        // Rollback change if it failed
+        if (!_statusCodeChangeResult.Success)
+        {
+            User.UserStateCode = oldStatusCode;
+        }
 
         StateHasChanged();
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        Pfp_Url = User.PfpUrl;
-        Status = User.Status;
-        StatusCode = User.UserStateCode;
+        _pfpUrl = User.PfpUrl;
+        _status = User.Status;
+        _statusCode = User.UserStateCode;
         _tag = User.Tag;
     }
 
-    protected async Task OnPfpError()
+    private void OnPfpError()
     {
-        Pfp_Url = "_content/Valour.Client/icon-512.png";
-
+        _pfpUrl = "_content/Valour.Client/icon-512.png";
         StateHasChanged();
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        Pfp_Output = "";
-        Pfp_Error = "";
-
-        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
-
         var file = e.File;
-
-        if (file == null)
+        
+        // 10mb limit
+        if (file.Size > 10240000)
         {
-            Pfp_Error = "Could not load file as an image.";
+            _pfpChangeResult = new TaskResult(false, "Max profile image size is 10mb.");
+            StateHasChanged();
+            return;
         }
-
-        if (file.Size > 2621440)
-        {
-            Pfp_Error = "Max profile image size is 2mb.";
-        }
-
-        byte[] data = new byte[file.Size];
-
-        await file.OpenReadStream(2621440).ReadAsync(data);
-
+        
+        var streamContent = new StreamContent(file.OpenReadStream(10240000));
         var content = new MultipartFormDataContent();
-        var arrContent = new ByteArrayContent(data);
-        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-
-        content.Add(arrContent, file.Name, file.Name);
-
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        content.Add(streamContent, file.Name, file.Name);
+        
         var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/profile", content);
-
-        if (result.Success)
+        _pfpChangeResult = result;
+        
+        if (_pfpChangeResult.Success)
         {
-            Pfp_Url = result.Data;
-            Pfp_Output = "Successfully changed profile picture.";
+            User.PfpUrl = result.Data;
+            _pfpUrl = result.Data;
         }
-        else
-        {
-            Pfp_Error = result.Message;
-        }
-
+        
         StateHasChanged();
     }
 

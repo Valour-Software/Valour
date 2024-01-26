@@ -1,3 +1,4 @@
+@using System.Globalization
 @inject WindowManager WindowManager
 
 <div id="@Id" class="card-wrapper" style="@CssStyle">
@@ -25,6 +26,12 @@
                             </div>
                         </div>
                     </div>
+                    @if (User.UserStateCode == 1 && (DateTime.Now - User.TimeLastActive).TotalSeconds > 0)
+                    {
+                        <div class="last-active">
+                            Last online @_lastOnline ago
+                        </div>
+                    }
                     @if (User.Id != ValourClient.Self.Id)
                     {
                         <div class="bottom-btns">
@@ -136,19 +143,43 @@
     private string _status;
     private string _pfpUrl;
     private string _statusClass = "offline";
+    private string _lastOnline;
 
     private bool _isFriend;
     private bool _isFriendRequested;
-    
+
     public async Task LoadDetailsAsync()
     {
         _isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
         _isFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
-        
+
         _name = User.Name;
         _nameAndTag = User.NameAndTag;
         _status = User.Status;
         _statusClass = User.UserState.CssClassName;
+        if ((DateTime.Now - User.TimeLastActive).TotalHours >= 24)
+        {
+            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalDays).ToString();
+            if (_lastOnline == "1") _lastOnline += " day";
+            else _lastOnline += " days";
+        }
+        else if ((DateTime.Now - User.TimeLastActive).TotalMinutes>=60)
+        {
+            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalHours).ToString();
+            if (_lastOnline == "1") _lastOnline += " hour";
+            else _lastOnline += " hours";
+        } else if ((DateTime.Now - User.TimeLastActive).TotalSeconds>=60)
+        {
+            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalMinutes).ToString();
+            if (_lastOnline == "1") _lastOnline += " minute";
+            else _lastOnline += " minutes";
+        }
+        else
+        {
+            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalSeconds).ToString();
+            if (_lastOnline == "1") _lastOnline += " second";
+            else _lastOnline += " seconds";
+        }
 
         _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
         

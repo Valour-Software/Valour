@@ -1,4 +1,5 @@
 ﻿@using System.Text
+@using Valour.Api.Nodes
 @implements IDisposable
 @inject WindowManager WindowManager
 
@@ -58,7 +59,7 @@
 
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
-
+        
         await Channel.Open();
     }
 
@@ -130,21 +131,7 @@
         Refresh();
         
         MessageHolder.Clear();
-
-        var messages = await Channel.GetLastMessagesAsync(64);
-
-        foreach (var msg in messages)
-        {
-            await ValourCache.Put(msg.Id, msg);
-            if (msg.ReplyTo is not null)
-            {
-                await ValourCache.Put(msg.ReplyTo.Id, msg.ReplyTo);
-            }
-        }
-
-        await MessageHolder.AddMessages(messages, true, true);
-        
-        MessageHolder.InputComponent.Refresh();
+        await MessageHolder.LoadRecentMessages(64);
     }
 
     public async Task SwapChannel(Channel newChannel)

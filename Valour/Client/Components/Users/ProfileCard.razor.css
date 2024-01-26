@@ -49,6 +49,7 @@
     background-color: var(--main-1);
     height: 100%;
     width: 100%;
+    overflow: hidden;
 }
 
 .inner-card > * {
@@ -189,5 +190,14 @@
     height: 100%;
     width: 100%;
     filter: brightness(0.4);
-    border-radius: 30px;
+}
+
+.last-active {
+    margin-top: -10px;
+    text-align: center;
+    font-size: 0.8em;
+    color: #7A7A7A;
+    text-shadow: 0 0 10px black;
+    margin-bottom: 5px;
+    font-style: italic;
 }

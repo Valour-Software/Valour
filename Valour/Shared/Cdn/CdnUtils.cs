@@ -12,6 +12,17 @@ namespace Valour.Shared.Cdn
 {
     public static class CdnUtils
     {
+        public static readonly HashSet<string> ImageSharpSupported = new()
+        {
+            "image/png",
+            "image/jpeg",
+            "image/jpg", // "image/jpg" is not a valid mime type, but we'll support it anyway
+            "image/gif",
+            "image/bmp",
+            "image/tiff",
+            "image/webp"
+        };
+        
         public static readonly Regex UrlRegex = new Regex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\:\-\.\?\,\'\/\\\+&%\$#_]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_]+)(\))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         
         /// <summary>

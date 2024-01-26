@@ -1,0 +1,112 @@
+@inject IJSRuntime JsRuntime
+
+<section class="outer">
+    <div class="title-container">
+        <h3>Compress Image <i class="bi bi-file-earmark-zip-fill"></i></h3>
+        <p class="subtitle">Image is too large!</p>
+    </div>
+    @if (Result is not null)
+    {
+        <ResultLabel Result="@Result" />
+    }
+    else if (_loading)
+    {
+        <img alt="victor" class="victor" src="_content/Valour.Client/media/victor.svg" />
+        <p class="victor-text">Compressing...</p>
+    }
+    else
+    {
+        @if (ValourClient.Self.SubscriptionType is not null)
+        {
+            <p class="inner">
+                Your image is over the 20MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
+            </p>
+        }
+        else
+        {
+            <p class="inner">
+                Your image is over the 10MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable. You can also subscribe to Valour Plus to increase the limit to 20MB!
+            </p>
+        }
+    }
+    
+    <div class="btns-wrapper">
+        <button @onclick="@OnClickCloseAsync" class="v-btn">Close</button>
+        @if (!_loading)
+        {
+            <button @onclick="@OnClickCompressAsync" class="v-btn">Compress</button>
+        }
+    </div>
+</section>
+
+@code {
+    
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public IBrowserFile File { get; set; }
+    
+    [Parameter]
+    public InputComponent Input { get; set; }
+    
+    public ITaskResult Result { get; set; }
+
+    private bool _loading = false;
+
+    private async Task OnClickCompressAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        
+        var maxSize = 10240000;
+        
+        if (ValourClient.Self.SubscriptionType is not null)
+        {
+            maxSize = 20480000;
+        }
+        
+        await Logger.Log("Attempting to compress image...", "cyan");
+
+        try
+        {
+            var oldSize = File.Size;
+                            
+            File = await File.RequestImageFileAsync("jpeg", 1000, 1000);
+
+            if (File is null)
+            {
+                Result = new TaskResult(false, "Browser is unable to compress image :(");
+                StateHasChanged();
+                return;
+            }
+                            
+            if (File.Size > maxSize)
+            {
+                Result = new TaskResult(false, "Compressed image is still too large :(");
+                StateHasChanged();
+                return;
+            }
+                            
+            await Logger.Log($"New size: {File.Size} / {oldSize}", "cyan");
+
+            var uploadPath = ValourClient.Self.SubscriptionType is null ? "" : "/plus";
+            
+            Input.ShowUploadMenu(File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{File.Name}.jpg", uploadPath);
+            
+            // Everything worked, close the modal
+            await ModalInstance.CloseAsync();
+        }
+        catch (Exception ex)
+        {
+            Result = new TaskResult(false, "Failed to compress image :(" , ex.Message);
+            await Logger.Log($"Failed to compress image: {ex.Message}", "red");
+            return;
+        }
+    }
+    
+    private async Task OnClickCloseAsync()
+    {
+        await ModalInstance.CloseAsync();
+    }
+}

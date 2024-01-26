@@ -84,7 +84,11 @@ public class PlanetMemberService
         else
         {
             var member = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
-            MemberIdLookup.TryAdd((userId, planetId), member.Id);
+            if (member is not null)
+            {
+                MemberIdLookup.TryAdd((userId, planetId), member.Id);
+            }
+            
             return member.ToModel();
         }
     }

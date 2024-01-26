@@ -135,7 +135,7 @@
 
     public Planet Planet { get; set; }
 
-    public ActivityComparer comparer;
+    public NameComparer comparer;
 
     public CancellationToken ReloadToken { get; set; }
 
@@ -143,7 +143,7 @@
     {
         UserCache = new();
 
-        comparer = new ActivityComparer(UserCache);
+        comparer = new NameComparer(UserCache);
 
         DisplayedRoleMembers.Add(0, new());
         DisplayedRoleMembers.Add(1, new());
@@ -498,6 +498,27 @@
                 return -1;
             else
                 return 1;
+        }
+    }
+    
+    public class NameComparer : IComparer<PlanetMember>
+    {
+        private Dictionary<long, User> _userLookup;
+
+        public NameComparer(Dictionary<long, User> userLookup)
+        {
+            this._userLookup = userLookup;
+        }
+
+        public int Compare(PlanetMember a, PlanetMember b)
+        {
+            string nameA = a.Nickname ?? _userLookup[a.Id].Name;
+            string nameB = b.Nickname ?? _userLookup[b.Id].Name;
+            if (String.Compare(nameA, nameB, ignoreCase: true) == 0)
+            {
+                return -1;
+            }
+            return String.Compare(nameA, nameB, ignoreCase: true);
         }
     }
 }

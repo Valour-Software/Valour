@@ -71,8 +71,11 @@ public class UserApi
         if (user.Id != currentUser.Id)
             return ValourResult.Forbid("You can only change your own user info.");
 
-        if (user.Status.Length > 64)
-            return ValourResult.BadRequest("Max status length is 64 characters.");
+        if (user.Status is not null)
+        {
+            if (user.Status.Length > 64)
+                return ValourResult.BadRequest("Max status length is 64 characters.");
+        }
 
         if (user.UserStateCode > 4)
             return ValourResult.BadRequest($"User state {user.UserStateCode} does not exist.");
@@ -203,6 +206,7 @@ public class UserApi
         return Results.Json(stateData);
     }
 
+    [RateLimit("login")]
     [ValourRoute(HttpVerbs.Post, "api/users/token")]
     public static async Task<IResult> GetTokenRouteAsync(
         [FromBody] TokenRequest tokenRequest,
@@ -394,7 +398,6 @@ public class UserApi
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-
         return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
 

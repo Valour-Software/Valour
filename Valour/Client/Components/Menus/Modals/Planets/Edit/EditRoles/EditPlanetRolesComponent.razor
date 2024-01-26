@@ -1,17 +1,12 @@
 ﻿@inject IJSRuntime JS
 
-<h3 style="display: inline-block;">Edit Roles</h3>
-<img class="icon" src="_content/Valour.Client/media/Role-Icon.svg"/>
+<h3>Edit Roles <i class="bi bi-tag-fill"></i></h3>
 <p class="subtitle">PLANET SETTINGS</p>
 
 <div class="settings-inner" id="edit-inner-settings">
 
     @{
-        string editStyle = "display: none";
-        if (_editMode)
-        {
-            editStyle = "";
-        }
+        var editStyle = _editMode ? string.Empty : "display: none";
     }
 
     <div style="@editStyle">
@@ -30,25 +25,13 @@
 
         </div>
         <div class="mt-2" style="display: block">
-            @if (_role.Id == 0)
-            {
-                <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
-                    <p class="center-t">
-                        Create
-                    </p>
-                </div>
-            }
-            else {
-                <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
-                    <p class="center-t">
-                        Save
-                    </p>
-                </div>
-            }
-
+            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
+                <p class="center-t">
+                    @(_role.Id == 0 ? "Create" : "Save")
+                </p>
+            </div>
             <div class="mt-2">
-                <span id="result-span" class="text-info">@_resultSpan</span>
-                <span id="error-span" class="text-danger" style="display:block">@_errorSpan</span>
+                <ResultLabel Result="@_result" />
             </div>
         </div>
 
@@ -217,19 +200,11 @@
 
         <p class="help-text">Use roles to assign permissions and group planet members.</p>
 
-        @if (DeviceInfo.IsMobile)
-        {
-            <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
-        }
-
-        <div class="form-group mt-2 new-input-style">
+        <div class="form-group mt-2">
             <input class="form-control" placeholder="Search Roles" @bind="@_searchRolesValue" @bind:event="oninput" />
         </div>
-
-        @if (!DeviceInfo.IsMobile)
-        {
-            <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
-        }
+        
+        <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode">Create Role</button>
 
         <p class="help-text">Keep in mind the highest role a user has is the color they will appear as. Drag roles to reorder them</p>
 
@@ -290,8 +265,7 @@
     private bool _editMode = false;
 
     private string _roleNameSpan = "";
-    private string _resultSpan = "";
-    private string _errorSpan = "";
+    ITaskResult _result;
 
     private string _searchRolesValue = "";
 
@@ -417,9 +391,6 @@
     {
         _selected = editRole;
 
-        _resultSpan = "";
-        _errorSpan = "";
-
         _role = editRole;
         _editMode = true;
 
@@ -440,14 +411,7 @@
             "Confirm",
             "Cancel",
             async () => {
-                var response = await _selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
-
-                if (!response.Success)
-                {
-                    _errorSpan = "Error: " + response.Message;
-                    return;
-                }
-
+                _result = await _selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
                 StateHasChanged();
             },
             async () => {
@@ -501,9 +465,6 @@
 
     private async Task OnClickSave()
     {
-        _resultSpan = "";
-        _errorSpan = "";
-
         _role.Permissions = _rolePlanetPerms;
         _role.ChatPermissions = _roleChatPerms;
         _role.CategoryPermissions = _roleCategoryPerms;
@@ -521,19 +482,19 @@
         // If the id is not set, this is a new role to be created
         if (_role.Id == 0)
         {
-            response = await Api.Items.LiveModel.CreateAsync(_role);
+            response = await LiveModel.CreateAsync(_role);
             creating = true;
         }
         // Otherwise we are editing a prior role
         else
-            response = await Api.Items.LiveModel.UpdateAsync(_role);
-
+        {
+            response = await LiveModel.UpdateAsync(_role);
+        }
+        
+        _result = response;
+        
         if (response.Success)
         {
-            if (creating)
-                _resultSpan = "Successfully created role";
-            else
-                _resultSpan = response.Message;
 
             // get new role
             _role = await PlanetRole.FindAsync(response.Data.Id, Planet.Id);
@@ -545,8 +506,6 @@
                 RoleMemberCounts[_role.Id] = 0;
             }
         }
-        else
-            _errorSpan = response.Message;
 
         StateHasChanged();
 

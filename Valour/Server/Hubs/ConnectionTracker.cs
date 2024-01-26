@@ -163,7 +163,9 @@ public class ConnectionTracker
         
         var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
 
-        // Connection to node
+        // key: "node:emma" value: "1234:connectionid"
+        //      key.split [1] = "emma"  value.split [0] = "1234" value.split [1] = "connectionid"
+        // Connection to node  
         await rdb.SetAddAsync($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
         
         // Specific connection by user

@@ -20,8 +20,9 @@
     return;
 }
 
-<ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline'>
-    <div class="user-info" style="@Style">
+<ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline' tabindex="0"
+                    @onkeydown="@(e => { if (e.Key == "Enter") ShowProfileAsync(); })">
+    <div class="user-info" style="@Style" @onclick="ShowProfileAsync">
         <div class="left-block">
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
@@ -275,13 +276,18 @@
         StateHasChanged();
     }
     
-    private async Task ShowProfileAsync(MouseEventArgs e)
+    private async Task ShowProfileAsync(MouseEventArgs e = null)
     {
-        if (Member is not null){
-            await ProfilePopup.Instance.OpenAsync(Member, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        double x = e?.ClientX ?? 0;
+        double y = e?.ClientY ?? 0;
+        
+        if (Member is not null)
+        {
+            await ProfilePopup.Instance.OpenAsync(Member, (int)x, (int)y, "bottomRight");
         }
-        else{
-            await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        else
+        {
+            await ProfilePopup.Instance.OpenAsync(User, (int)x, (int)y, "bottomRight");
         }
     }
 }

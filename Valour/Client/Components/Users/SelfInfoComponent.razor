@@ -1,6 +1,10 @@
 <div class="self-info">
     <UserInfoComponent User="ValourClient.Self" />
-        <img id="user-edit-button" class="settings" alt="User settings button" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick="OnClickUserSettings">
+    <button id="user-edit-button" class="settings-button" aria-label="User settings button"
+            @onkeydown="@(e => { if (e.Key == "Enter") OnClickUserSettings(); })"
+            @onclick="OnClickUserSettings">
+        <img alt="User settings button" src="_content/Valour.Client/media/Settings-Icon.svg" class="settings-icon" />
+    </button>
 </div>
 @code {
     [CascadingParameter]
