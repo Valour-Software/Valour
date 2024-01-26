@@ -443,21 +443,26 @@
             }
         }
         
-        ShowUploadMenu(file.OpenReadStream(maxSize), attachmentType, file.ContentType, file.Name, uploadPath);
+        await ShowUploadMenu(file.OpenReadStream(maxSize), attachmentType, file.ContentType, file.Name, uploadPath);
 
         Refresh();
     }
 
-    public void ShowUploadMenu(Stream data, MessageAttachmentType type, string mime, string name, string path)
+    public async Task ShowUploadMenu(Stream data, MessageAttachmentType type, string mime, string name, string path)
     {
+        // Convert stream to byte array
+        var bytes = new byte[data.Length];
+        _ = await data.ReadAsync(bytes, 0, bytes.Length);
+        
         var content = new MultipartFormDataContent();
-        var streamContent = new StreamContent(data);
+        
+        var byteContent = new ByteArrayContent(bytes);
         if (!string.IsNullOrWhiteSpace(mime))
         {
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+            byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
         }
 
-        content.Add(streamContent, name, name);
+        content.Add(byteContent, name, name);
 
         MessageAttachment newAttachment = new(type)
         {
@@ -468,7 +473,7 @@
         var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
 
         ModalParameters modalParams = new();
-        modalParams.Add("Data", data);
+        modalParams.Add("Data", bytes);
         modalParams.Add("Attachment", newAttachment);
         modalParams.Add("OnConfirm", 
             async () => {
