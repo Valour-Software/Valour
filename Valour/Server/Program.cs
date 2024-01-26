@@ -259,16 +259,7 @@ namespace Valour.Server
                 });
             });
 
-            services.AddRateLimiter(_ =>
-            {
-                _.AddFixedWindowLimiter("login", options =>
-                {
-                    options.PermitLimit = 5;
-                    options.Window = TimeSpan.FromSeconds(30);
-                    options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                    options.QueueLimit = 2;
-                });
-            });
+            RateLimitDefs.AddRateLimitDefs(services);
 
             services.AddSignalR();
 
