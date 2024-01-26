@@ -41,7 +41,20 @@
     
     [Parameter]
     public MessageAttachment Attachment { get; set; }
-  
+
+    protected override void OnInitialized()
+    {
+        KeyboardListener.OnKeyDown += OnKeyDown;
+    }
+
+    private Task OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key == "Escape")
+            ModalInstance.CloseAsync();
+
+        return Task.CompletedTask;
+    }
+
     private Task OnClickClose()
     {
         return ModalInstance.CloseAsync();
