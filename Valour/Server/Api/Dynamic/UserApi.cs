@@ -206,6 +206,7 @@ public class UserApi
         return Results.Json(stateData);
     }
 
+    [RateLimit("login")]
     [ValourRoute(HttpVerbs.Post, "api/users/token")]
     public static async Task<IResult> GetTokenRouteAsync(
         [FromBody] TokenRequest tokenRequest,

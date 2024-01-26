@@ -79,6 +79,13 @@ public class DynamicAPI<T> where T : class
                         /* Does filtering */
                         builder.AddEndpointFilter<StaffRequiredFilter>();
                     }
+                    
+                    // Add rate limiting
+                    foreach (var attr in attributes.Where(x => x is RateLimitAttribute))
+                    {
+                        var rateLimitAttr = (RateLimitAttribute)attr;
+                        builder.RequireRateLimiting(rateLimitAttr.PolicyName);
+                    }
                 }
             }
         }

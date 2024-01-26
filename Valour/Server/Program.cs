@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
@@ -217,6 +219,7 @@ namespace Valour.Server
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapRazorPages();
@@ -253,6 +256,17 @@ namespace Valour.Server
                         "https://localhost:3000",
                         "http://localhost:3001",
                         "https://localhost:3001");
+                });
+            });
+
+            services.AddRateLimiter(_ =>
+            {
+                _.AddFixedWindowLimiter("login", options =>
+                {
+                    options.PermitLimit = 5;
+                    options.Window = TimeSpan.FromSeconds(30);
+                    options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    options.QueueLimit = 2;
                 });
             });
 
