@@ -60,7 +60,7 @@
     protected override async Task OnInitializedAsync(){
 
         objRef = DotNetObjectReference.Create(this);
-
+        
         // Load into blob form and get url
         string blobUrl = await JS.InvokeAsync<string>("createBlob", Data, Attachment.MimeType);
 
