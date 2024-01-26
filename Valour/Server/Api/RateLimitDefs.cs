@@ -12,7 +12,7 @@ public static class RateLimitDefs
             _.AddFixedWindowLimiter("login", options =>
             {
                 options.PermitLimit = 5;
-                options.Window = TimeSpan.FromSeconds(30);
+                options.Window = TimeSpan.FromSeconds(60);
                 options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                 options.QueueLimit = 2;
             });
