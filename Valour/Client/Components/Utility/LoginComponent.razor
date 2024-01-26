@@ -101,18 +101,29 @@
 
         if (!tokenResult.Success)
         {
-            Console.WriteLine("Failed to request user token.");
+            Console.WriteLine("Failed to request user token. Code: " + tokenResult.Code);
             Console.WriteLine(tokenResult.Data);
-            _passwordSpan = tokenResult.Message;
+
+            if (tokenResult.Code == 429)
+            {
+                _passwordSpan = "Too many requests. Please try again later.";
+            }
+            else
+            {
+                _passwordSpan = "Incorrect email or password. Are you using your username instead?";
+            }
+            
+            StateHasChanged();
+            
             return;
         }
 
-        var result = await ValourClient.InitializeUser(tokenResult.Data);
+        var result = await ValourClient.InitializeUser(tokenResult.Data.Id);
 
         if (result.Success)
         {
             _resultSpan = result.Message;
-            await JsRuntime.SetCookieAsync("token", tokenResult.Data);
+            await JsRuntime.SetCookieAsync("token", tokenResult.Data.Id);
 
             if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
             {

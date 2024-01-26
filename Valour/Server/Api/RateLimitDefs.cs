@@ -16,6 +16,13 @@ public static class RateLimitDefs
                 options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                 options.QueueLimit = 2;
             });
+            
+            _.OnRejected = (ctx, token) =>
+            {
+                ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                Console.WriteLine("Rate limit exceeded for " + ctx.HttpContext.Connection.RemoteIpAddress + " on " + ctx.HttpContext.Request.Path);
+                return ValueTask.CompletedTask;
+            };
         });
     }
 }

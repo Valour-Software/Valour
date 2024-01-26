@@ -1238,7 +1238,7 @@ public static class ValourClient
     /// <summary>
     /// Gets the Token for the client
     /// </summary>
-    public static async Task<TaskResult<string>> GetToken(string email, string password)
+    public static async Task<TaskResult<AuthToken>> GetToken(string email, string password)
     {
         TokenRequest request = new()
         {
@@ -1248,18 +1248,13 @@ public static class ValourClient
 
         var response = await PostAsyncWithResponse<AuthToken>($"api/users/token", request);
 
-        if (!response.Success)
+        if (response.Success)
         {
-            Console.WriteLine("Failed to request user token.");
-            Console.WriteLine(response.Message);
-            return new TaskResult<string>(false, $"Incorrect email or password. (Are you using your email?)", response.Message);
+            var token = response.Data.Id;
+            _token = token;
         }
-
-        var token = response.Data.Id;
-
-        _token = token;
-
-        return new TaskResult<string>(true, "Success", _token);
+        
+        return response;
     }
 
     /// <summary>
@@ -1701,7 +1696,8 @@ public static class ValourClient
         TaskResult<T> result = new()
         {
             Success = response.IsSuccessStatusCode,
-            Data = default(T)
+            Data = default(T),
+            Code = (int)response.StatusCode
         };
 
         if (!response.IsSuccessStatusCode)
@@ -1744,6 +1740,7 @@ public static class ValourClient
         TaskResult<string> result = new()
         {
             Success = response.IsSuccessStatusCode,
+            Code = (int)response.StatusCode
         };
 
         if (!response.IsSuccessStatusCode)
@@ -1785,7 +1782,8 @@ public static class ValourClient
         TaskResult result = new()
         {
             Success = response.IsSuccessStatusCode,
-            Message = msg
+            Message = msg,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -1819,7 +1817,8 @@ public static class ValourClient
         TaskResult result = new()
         {
             Success = response.IsSuccessStatusCode,
-            Message = msg
+            Message = msg,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -1852,6 +1851,7 @@ public static class ValourClient
         TaskResult<T> result = new()
         {
             Success = response.IsSuccessStatusCode,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -1897,7 +1897,8 @@ public static class ValourClient
         TaskResult result = new()
         {
             Success = response.IsSuccessStatusCode,
-            Message = msg
+            Message = msg,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -1926,22 +1927,15 @@ public static class ValourClient
         JsonContent jsonContent = JsonContent.Create(content);
 
         HttpResponseMessage response;
-
-        try
-        {
-            response = await http.PostAsync(BaseAddress + uri, jsonContent);
-        }
-        catch (Exception)
-        {
-            return new TaskResult(false, "Unable to reach server.");
-        }
-
+        
+        response = await http.PostAsync(BaseAddress + uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
             Success = response.IsSuccessStatusCode,
-            Message = msg
+            Message = msg,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -1973,7 +1967,8 @@ public static class ValourClient
 
         TaskResult<T> result = new TaskResult<T>()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -2014,7 +2009,8 @@ public static class ValourClient
 
         TaskResult<T> result = new TaskResult<T>()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -2055,7 +2051,8 @@ public static class ValourClient
 
         TaskResult<T> result = new TaskResult<T>()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -2099,7 +2096,8 @@ public static class ValourClient
 
         TaskResult<T> result = new TaskResult<T>()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
@@ -2144,7 +2142,8 @@ public static class ValourClient
         TaskResult result = new()
         {
             Success = response.IsSuccessStatusCode,
-            Message = msg
+            Message = msg,
+            Code = (int)response.StatusCode
         };
 
         if (!result.Success)
