@@ -1,4 +1,4 @@
 .smooth-drag {
     position: absolute;
-    z-index: 100;
+    z-index: 99; /* Changing 100 -> 99 fixes overlay from bigmenu-section*/
 }
