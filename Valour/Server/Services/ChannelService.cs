@@ -478,7 +478,8 @@ public class ChannelService
 
         List<Message> staged = null;
 
-        if (channel.ChannelType == ChannelTypeEnum.PlanetChat)
+        if (channel.ChannelType == ChannelTypeEnum.PlanetChat
+            && index == long.MaxValue) // ONLY INCLUDE STAGED FOR LATEST
         {
             staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
         }
