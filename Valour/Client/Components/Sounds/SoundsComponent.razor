@@ -1,5 +1,5 @@
-﻿@inject SoundManager soundManager
-@inject IJSRuntime JS
+﻿@inject SoundManager SoundManager
+@inject IJSRuntime JsRuntime
 
 @code {
 
@@ -10,12 +10,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        soundManager.Component = this;
+        SoundManager.Component = this;
         ValourClient.OnNotificationReceived += OnNotification;
     }
 
     public async Task PlaySound(string name) => 
-        await JS.InvokeVoidAsync("playSound", name);
+        await JsRuntime.InvokeVoidAsync("playSound", name);
 
 
     private async Task OnNotification(Notification notification)

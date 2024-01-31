@@ -1,8 +1,8 @@
-﻿using Valour.Api.Client;
+﻿using Valour.Sdk.Client;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

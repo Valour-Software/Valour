@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Items
+namespace Valour.Sdk.Items
 {
     /// <summary>
     /// The ModelObserver class allows global events to be hooked for entire item types

@@ -1,12 +1,12 @@
 ﻿using System.Text.Json;
-using Valour.Api.Client;
-using Valour.Api.Nodes;
-using Valour.Api.Requests;
+using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
+using Valour.Sdk.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 {

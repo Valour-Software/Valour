@@ -1,2 +1,2 @@
-﻿global using Valour.Api.Items;
-global using Valour.Api.Models;
+﻿global using Valour.Sdk.Items;
+global using Valour.Sdk.Models;

@@ -1,6 +1,6 @@
 ﻿@using Valour.Shared
-@using Valour.Api.Models;
-@using Valour.Api.Client
+@using Valour.Sdk.Models;
+@using Valour.Sdk.Client
 @using Valour.Client.Device
 @using Valour.Client.Layout
 @using Valour.Client.Components.Utility
@@ -155,7 +155,7 @@ else
         Console.WriteLine(key);
         Console.WriteLine(auth);
 
-        Api.Models.NotificationSubscription not = new()
+        Sdk.Models.NotificationSubscription not = new()
         {
             Endpoint = endpoint,
             Auth = auth,

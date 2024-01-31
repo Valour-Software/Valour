@@ -1,6 +1,6 @@
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /// <summary>
 /// Represents the state of a channel, used to determine

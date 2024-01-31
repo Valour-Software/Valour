@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Valour.Api.Extensions
+namespace Valour.Sdk.Extensions
 {
     public static class CopyToExtension
     {

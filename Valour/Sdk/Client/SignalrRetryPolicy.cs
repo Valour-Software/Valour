@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Valour.Api.Client;
+namespace Valour.Sdk.Client;
 
 public class SignalrRetryPolicy : IRetryPolicy
 {

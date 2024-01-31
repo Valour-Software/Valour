@@ -5,9 +5,9 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Valour.Api.Client;
+using Valour.Sdk.Client;
 
-namespace Valour.Api.Nodes
+namespace Valour.Sdk.Nodes
 {
     public static class NodeManager
     {

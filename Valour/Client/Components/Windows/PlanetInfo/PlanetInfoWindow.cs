@@ -1,5 +1,5 @@
-using Valour.Api.Client;
-using Valour.Api.Models;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
 using Valour.Client.Windows;
 
 namespace Valour.Client.Components.Windows.PlanetInfo;

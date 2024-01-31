@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Api.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Messages.Embeds.Items;
 
 public class EmbedButtonItem : EmbedItem, IClickable
 {

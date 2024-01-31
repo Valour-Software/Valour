@@ -1,6 +1,6 @@
 ﻿using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 public interface IChannel : ISharedItem
 {
     public string Name { get; set; }

@@ -1,12 +1,12 @@
 ﻿using System.Text.Json;
-using Valour.Api.Models.Messages.Embeds;
+using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
-using Valour.Api.Client;
-using Valour.Api.Nodes;
-using Valour.Api.Utility;
+using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
+using Valour.Sdk.Utility;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class Message : LiveModel, ISharedMessage
 {

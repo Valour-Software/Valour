@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /// <summary>
 /// For getting data from the server.  Must match!

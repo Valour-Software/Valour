@@ -1,7 +1,7 @@
 ﻿using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class AuthToken : ISharedAuthToken
 {

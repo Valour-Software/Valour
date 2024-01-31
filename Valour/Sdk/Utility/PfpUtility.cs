@@ -1,6 +1,6 @@
-using Valour.Api.Models;
+using Valour.Sdk.Models;
 
-namespace Valour.Api.Utility;
+namespace Valour.Sdk.Utility;
 
 public static class PfpUtility
 {

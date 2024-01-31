@@ -1,10 +1,10 @@
 using System.Web;
-using Valour.Api.Client;
-using Valour.Api.Nodes;
+using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
-namespace Valour.Api.Models.Economy;
+namespace Valour.Sdk.Models.Economy;
 
 /// <summary>
 /// An account is an economic storage system for planets and users to hold

@@ -1,10 +1,10 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Api.Client;
-using Valour.Api.Nodes;
+using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Items
+namespace Valour.Sdk.Items
 {
     /// <summary>
     /// A live model is a model that is updated in real time

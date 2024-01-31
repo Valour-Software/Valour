@@ -1,4 +1,4 @@
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /// <summary>
 /// Used to show what kind of role event occured

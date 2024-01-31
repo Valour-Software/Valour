@@ -1,4 +1,4 @@
-using Valour.Api.Models;
+using Valour.Sdk.Models;
 using Valour.Client.Components.Windows;
 using Valour.Client.Windows.ChatWindows;
 

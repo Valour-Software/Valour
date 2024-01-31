@@ -1,8 +1,8 @@
 ﻿using System;
-using Valour.Api.Client;
+using Valour.Sdk.Client;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models
+namespace Valour.Sdk.Models
 {
     public interface IPlanetModel : ISharedItem
     {

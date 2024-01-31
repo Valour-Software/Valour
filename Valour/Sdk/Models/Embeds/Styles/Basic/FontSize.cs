@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Api.Models.Messages.Embeds.Styles.Basic;
+namespace Valour.Sdk.Models.Messages.Embeds.Styles.Basic;
 
 public class FontSize : StyleBase
 {

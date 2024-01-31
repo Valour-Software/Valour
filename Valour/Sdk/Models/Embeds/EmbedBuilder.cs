@@ -2,16 +2,16 @@
 using System.Text.Json.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Valour.Api.Models.Messages.Embeds.Items;
-using Valour.Api.Models.Messages.Embeds.Styles;
-using Valour.Api.Nodes;
-using Valour.Api.Models.Messages.Embeds.Styles.Basic;
-using Valour.Api.Models.Messages.Embeds.Styles.Flex;
-using Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
+using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Sdk.Models.Messages.Embeds.Styles;
+using Valour.Sdk.Nodes;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Basic;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Flex;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Bootstrap;
 using System.Collections.Concurrent;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models.Messages.Embeds;
+namespace Valour.Sdk.Models.Messages.Embeds;
 
 public class EmbedBuilder
 {

@@ -1,7 +1,7 @@
 ﻿using Blazored.Modal;
 using Blazored.Modal.Services;
-using Valour.Api.Client;
-using Valour.Api.Models;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
 using Valour.Client.Components.Menus.Modals.Users.Edit;
 using Valour.Client.Windows;
 using Valour.Client.Windows.ChatWindows;

@@ -1,4 +1,4 @@
-using Valour.Api.Models;
+using Valour.Sdk.Models;
 
 namespace Valour.Client.Windows;
 

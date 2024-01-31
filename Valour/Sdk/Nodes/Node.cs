@@ -2,15 +2,15 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
-using Valour.Api.Client;
-using Valour.Api.Models;
-using Valour.Api.Models.Messages.Embeds;
-using Valour.Api.Models;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
+using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Nodes;
+namespace Valour.Sdk.Nodes;
 
 public class Node
 {

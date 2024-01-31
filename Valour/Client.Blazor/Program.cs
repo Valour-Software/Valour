@@ -2,7 +2,7 @@ using Blazored.LocalStorage;
 using Blazored.Modal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Valour.Api.Client;
+using Valour.Sdk.Client;
 using Valour.Client.Categories;
 using Valour.Client.Components.Sidebar.ChannelList;
 using Valour.Client.Windows;

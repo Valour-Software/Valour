@@ -1,10 +1,10 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
-using Valour.Api.Models.Messages.Embeds.Items;
-using Valour.Api.Models.Messages.Embeds.Styles;
+using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Sdk.Models.Messages.Embeds.Styles;
 
-namespace Valour.Api.Models.Messages.Embeds;
+namespace Valour.Sdk.Models.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

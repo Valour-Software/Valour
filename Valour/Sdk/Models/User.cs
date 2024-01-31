@@ -1,10 +1,10 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Api.Client;
-using Valour.Api.Models;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class User : LiveModel, ISharedUser
 {

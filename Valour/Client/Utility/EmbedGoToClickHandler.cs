@@ -1,15 +1,15 @@
-﻿using Valour.Api.Models.Messages.Embeds.Items;
-using Valour.Api.Models.Messages.Embeds;
+﻿using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Client.Components.Messages.Embeds;
-using Valour.Api.Client;
+using Valour.Sdk.Client;
 using System.Net.Http.Json;
 using Blazored.Modal.Services;
 using Valour.Client.Modals;
 using Microsoft.JSInterop;
 using Blazored.Modal;
 using Valour.Client.Components.Menus.Modals;
-using Valour.Api.Models;
-using Valour.Api.Nodes;
+using Valour.Sdk.Models;
+using Valour.Sdk.Nodes;
 
 namespace Valour.Client.Utility;
 

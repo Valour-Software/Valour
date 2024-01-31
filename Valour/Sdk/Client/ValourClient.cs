@@ -3,15 +3,15 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
-using Valour.Api.Extensions;
-using Valour.Api.Models.Messages.Embeds;
-using Valour.Api.Models.Economy;
-using Valour.Api.Nodes;
+using Valour.Sdk.Extensions;
+using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Models.Economy;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Client;
+namespace Valour.Sdk.Client;
 
 /*
      █████   █████           ████                               
@@ -40,7 +40,7 @@ public static class ValourClient
 #else
     // public static string BaseAddress = "https://app.valour.gg/";
     // public static string BaseAddress = "http://192.168.1.183:5000/";
-    public static string BaseAddress = "http://localhost:5000/";
+    public static string BaseAddress = "https://localhost:5001/";
 #endif
 
     /// <summary>

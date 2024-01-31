@@ -1,10 +1,10 @@
-﻿using Valour.Api.Models.Messages.Embeds;
+﻿using Valour.Sdk.Models.Messages.Embeds;
 using System;
 using System.Text.Json.Serialization;
-using Valour.Api.Models.Messages.Embeds.Styles.Flex;
-using Valour.Api.Models.Messages.Embeds.Styles;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Flex;
+using Valour.Sdk.Models.Messages.Embeds.Styles;
 
-namespace Valour.Api.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Messages.Embeds.Items;
 
 public enum TargetType
 {

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Channels;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class UserChannelState : ISharedUserChannelState
 {

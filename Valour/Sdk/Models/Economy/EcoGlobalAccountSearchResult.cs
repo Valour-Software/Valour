@@ -1,4 +1,4 @@
-namespace Valour.Api.Models.Economy;
+namespace Valour.Sdk.Models.Economy;
 
 public class EcoGlobalAccountSearchResult
 {

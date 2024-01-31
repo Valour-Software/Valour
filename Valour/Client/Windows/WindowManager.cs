@@ -1,8 +1,8 @@
-﻿using Valour.Api.Client;
+﻿using Valour.Sdk.Client;
 using Valour.Client.Components.Windows;
 using Valour.Shared;
-using Valour.Api.Nodes;
-using Valour.Api.Models;
+using Valour.Sdk.Nodes;
+using Valour.Sdk.Models;
 using Valour.Client.Windows.ChatWindows;
 using System.Collections.Concurrent;
 using Valour.Shared.Models;

@@ -85,7 +85,7 @@
     {
         var oldStatus = User.Status;
         User.Status = _status;
-        _statusChangeResult = await Valour.Api.Items.LiveModel.UpdateAsync(User);
+        _statusChangeResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(User);
         
         // Rollback change if it failed
         if (!_statusChangeResult.Success)
@@ -132,7 +132,7 @@
     {
         var oldStatusCode = User.UserStateCode;
         User.UserStateCode = _statusCode;
-        _statusCodeChangeResult = await Valour.Api.Items.LiveModel.UpdateAsync(User);
+        _statusCodeChangeResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(User);
        
         // Rollback change if it failed
         if (!_statusCodeChangeResult.Success)

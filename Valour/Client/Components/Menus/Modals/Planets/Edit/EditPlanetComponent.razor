@@ -97,7 +97,7 @@
                 async () =>
                 {
                     Console.WriteLine("Confirmed planet deletion.");
-                    var result = await Valour.Api.Items.LiveModel.DeleteAsync(Planet);
+                    var result = await Valour.Sdk.Items.LiveModel.DeleteAsync(Planet);
 
                     if (result.Success)
                     {

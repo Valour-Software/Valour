@@ -1,11 +1,11 @@
-﻿using Valour.Api.Models.Messages.Embeds;
+﻿using Valour.Sdk.Models.Messages.Embeds;
 using System;
 using System.Text.Json.Serialization;
-using Valour.Api.Models.Messages.Embeds.Styles.Flex;
-using Valour.Api.Models.Messages.Embeds.Styles;
-using Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Flex;
+using Valour.Sdk.Models.Messages.Embeds.Styles;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Bootstrap;
 
-namespace Valour.Api.Models.Messages.Embeds.Items;
+namespace Valour.Sdk.Models.Messages.Embeds.Items;
 
 public enum EmbedItemType
 {

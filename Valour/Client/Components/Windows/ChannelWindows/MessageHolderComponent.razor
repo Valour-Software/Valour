@@ -1,9 +1,9 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
-@using Valour.Api.Models.Messages
+@using Valour.Sdk.Models.Messages
 @using System.Reflection.Metadata
 @using Microsoft.AspNetCore.Components.Rendering
-@using Valour.Api.Nodes
+@using Valour.Sdk.Nodes
 
 <ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
     <!-- Pushes messages to bottom -->

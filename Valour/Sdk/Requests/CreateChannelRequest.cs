@@ -1,4 +1,4 @@
-namespace Valour.Api.Requests;
+namespace Valour.Sdk.Requests;
 
 public class CreateChannelRequest
 {

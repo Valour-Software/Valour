@@ -48,6 +48,7 @@ namespace Valour.Server
             // Initialize Email Manager
             EmailManager.SetupClient();
 
+            /*
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
                 options.Configure(builder.Configuration.GetSection("Kestrel"));
@@ -55,7 +56,8 @@ namespace Valour.Server
                 {
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
                 });
-            }); 
+            });
+            */ 
 
             builder.WebHost.UseSentry(x =>
             {

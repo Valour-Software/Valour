@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Numerics;
 using System.Text.Json;
-using Valour.Api.Client;
+using Valour.Sdk.Client;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : LiveModel, IPlanetModel
 {

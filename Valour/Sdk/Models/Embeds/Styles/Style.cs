@@ -1,9 +1,9 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Api.Models.Messages.Embeds.Items;
-using Valour.Api.Models.Messages.Embeds.Styles.Basic;
-using Valour.Api.Models.Messages.Embeds.Styles.Flex;
+using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Basic;
+using Valour.Sdk.Models.Messages.Embeds.Styles.Flex;
 
-namespace Valour.Api.Models.Messages.Embeds.Styles;
+namespace Valour.Sdk.Models.Messages.Embeds.Styles;
 
 public enum StyleType {
 	NotDefined,

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Api.Models.Messages.Embeds.Styles;
+namespace Valour.Sdk.Models.Messages.Embeds.Styles;
 
 public class Color
 {

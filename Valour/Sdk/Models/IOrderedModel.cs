@@ -1,4 +1,4 @@
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public interface IOrderedModel
 {

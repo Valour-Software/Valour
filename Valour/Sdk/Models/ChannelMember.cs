@@ -1,4 +1,4 @@
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /// <summary>
 /// Channel members represent members of a channel that is not a planet channel

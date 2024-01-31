@@ -1,12 +1,12 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Valour.Api.Client;
-using Valour.Api.Models;
-using Valour.Api.Models.Messages;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
+using Valour.Sdk.Models.Messages;
 using Valour.Shared.Models;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC

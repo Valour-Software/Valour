@@ -1,6 +1,6 @@
-using Valour.Api.Models.Economy;
+using Valour.Sdk.Models.Economy;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 public class EcoReceipt
 {

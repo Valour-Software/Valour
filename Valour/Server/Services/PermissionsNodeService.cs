@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 using System.Security.Cryptography;
-using Valour.Api.Nodes;
+using Valour.Sdk.Nodes;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;

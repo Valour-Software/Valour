@@ -1,13 +1,13 @@
 ﻿using System.Text.Json;
 using Markdig.Extensions.TaskLists;
-using Valour.Api.Client;
-using Valour.Api.Models;
-using Valour.Api.Models.Economy;
-using Valour.Api.Nodes;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
+using Valour.Sdk.Models.Economy;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Models;
+namespace Valour.Sdk.Models;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

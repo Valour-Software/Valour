@@ -1,5 +1,5 @@
-using Valour.Api.Client;
-using Valour.Api.Models;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models;
 using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows.ChatWindows;

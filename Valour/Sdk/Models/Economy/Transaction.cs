@@ -1,9 +1,9 @@
-using Valour.Api.Client;
-using Valour.Api.Nodes;
+using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models.Economy;
 
-namespace Valour.Api.Models.Economy;
+namespace Valour.Sdk.Models.Economy;
 
 /// <summary>
 /// A transaction represents a *completed* transaction between two accounts.

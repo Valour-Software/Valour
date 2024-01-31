@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Api.Models;
+using Valour.Sdk.Models;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Client;
+namespace Valour.Sdk.Client;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
