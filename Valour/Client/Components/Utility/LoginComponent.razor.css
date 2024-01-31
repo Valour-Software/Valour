@@ -1,0 +1,102 @@
+﻿.page {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.login-left {
+    background-color: var(--main-2);
+    max-width: 400px;
+    flex-grow: 1;
+}
+
+.mobile-image {
+    background-image: url(/_content/Valour.Client/media/Spookvooper-tall.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    height: 20vh;
+}
+
+.login-left form {
+    padding: 40px;
+    padding-top: 10px;
+}
+
+.login-background {
+    background-image: url(/_content/Valour.Client/media/Spookvooper-tall.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    /* height: 100vh; */
+    margin: 0px;
+    backdrop-filter: blur(5px);
+    position: absolute;
+    width: 100%;
+    /* bottom: 0px; */
+    height: 100vh;
+    z-index: -1;
+}
+
+.victor-wrapper {
+    text-align: center;
+}
+
+.victor-wrapper .victor {
+    width: 40%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.title {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.forgot-password {
+    color: #ffffffaa;
+    font-size: 14px;
+    display:block;
+    cursor: pointer;
+    text-align: right;
+}
+
+.forgot-password:hover {
+    color: #ffffff;
+}
+
+.hidden-victor {
+    position: absolute;
+    z-index: -1;
+    top: -33px;
+    scale: 0.4;
+    left: 45px;
+    width: 100px;
+    height: 100px;
+    transition: all 0.2s ease-in-out;
+}
+
+.v-btn-grad-wrapper:hover .hidden-victor {
+    z-index: 0;
+    scale: 0.6;
+    top: -67px;
+    left: 66px;
+    rotate: 12deg;
+    width: 100px;
+    height: 100px;
+}
+
+@media screen and (min-width: 400px){
+    .mobile-image {
+        display: none;
+    }
+
+    .login-background {
+        height: 100vh;
+    }
+
+    .login-left form {
+        padding-top: 40px;
+    }
+}

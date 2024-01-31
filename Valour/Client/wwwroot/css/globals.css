@@ -89,9 +89,10 @@
 
 .v-btn {
     color: var(--font-color);
+    font-weight: 400;
     background-color: #ffffff22;
     border: none;
-    border-radius: 0.5em;
+    border-radius: 1em;
     font-size: 1em;
     padding: 0.25em 0.5em;
     display: block;
@@ -122,7 +123,7 @@
 .v-btn-grad-wrapper {
     width: 100%;
     display: inline-block;
-    border-radius: 0.5em;
+    border-radius: 1em;
     font-size: 1em;
     padding: 0.2em;
     background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
@@ -140,7 +141,7 @@
     border: none;
     background-color: #111122;
     transition: all 0.3s ease-in-out;
-    border-radius: 0.35em;
+    border-radius: 1em;
     width: 100%;
 }
 
@@ -154,11 +155,7 @@
 }
 
 .v-btn-grad-wrapper p {
-    color: #111122;
-    text-decoration: none;
-    background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: white;
     transition: all 0.3s ease-in-out;
     margin: 0;
     text-align: center;

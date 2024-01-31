@@ -148,8 +148,11 @@ pre {
 }
 
 label {
-    color: var(--font-color);
+    color: #ffffffaa;
     user-select: text;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 1em;
 }
 
 .btn-primary {
@@ -160,8 +163,14 @@ label {
 
 .form-control {
     margin-top: 5px;
-    background-color: var(--main-1);
-    border-color: var(--main-5);
+    background-color: #FFFFFF15;
+    border-width: 0;
+    border-radius: 1em;
+    color: var(--font-color);
+}
+
+.form-control:focus {
+    background-color: #FFFFFF15;
     color: var(--font-color);
 }
 
@@ -508,7 +517,7 @@ app {
 
 .popup-box {
     background-color: var(--main-2);
-    border-radius: 10px;
+    border-radius: 1em;
     border-color: grey;
     padding: 50px;
     width: 400px;
@@ -540,20 +549,6 @@ app {
 *::-webkit-scrollbar-corner 
 { 
     background: rgba(0,0,0,0); 
-}
-
-.login-background {
-    background-image: url(/_content/Valour.Client/media/Spookvooper-tall.jpg);
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
-    /* height: 100vh; */
-    margin: 0px;
-    backdrop-filter: blur(5px);
-    position: absolute;
-    width: 100%;
-    /* bottom: 0px; */
-    min-height: 100vh;
 }
 
 .add-channel-button {
@@ -682,31 +677,6 @@ app {
     margin-left: 10px;
     padding: 0px;
     cursor: pointer;
-}
-
-.forgot-password {
-    display:block;
-    cursor: pointer;
-}
-
-.hidden-victor {
-    position: absolute;
-    z-index: -1;
-    top: -33px;
-    scale: 0.4;
-    left: 45px;
-    width: 100px;
-    height: 100px;
-    transition: all 0.2s ease-in-out;
-}
-
-.v-btn-grad-wrapper:hover .hidden-victor {
-    scale: 0.6;
-    top: -67px;
-    left: 66px;
-    rotate: 12deg;
-    width: 100px;
-    height: 100px;
 }
 
 #window-0:focus {
