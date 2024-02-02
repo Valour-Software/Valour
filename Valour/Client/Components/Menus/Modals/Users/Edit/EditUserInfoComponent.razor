@@ -1,25 +1,29 @@
 ﻿@using System.Net.Http.Headers
+@using Valour.Sdk.Extensions
 @inject HttpClient Http
 @inject NavigationManager NavManager
 
 <div class="title-container">
-	<h3>Basic Info <i class="bi bi-info-circle-fill"></i></h3>
-	<p class="subtitle">Change your basic account settings</p>
+    <h3>Basic Info <i class="bi bi-info-circle-fill"></i></h3>
+    <p class="subtitle">Change your basic account settings</p>
 </div>
 
-<hr />
+<br/>
+<div class="preview">
+    <UserInfoComponent User="@ValourClient.Self" @ref="@_infoPreview" />
+</div>
 
 <div class="mt-4 mb-4">
-    <h6>Your Status Message</h6>
+    <label>Status Message</label>
     <div class="input-group" style="max-width: 400px;">
         <input class="form-control" placeholder="Choose a status..." @bind="_status" />
-        <button class="btn v-button" @onclick="OnStatusApply">Apply</button>
+        <button class="btn v-btn round-right" @onclick="OnStatusApply">Apply</button>
     </div>
     <ResultLabel Result="@_statusChangeResult" />
 </div>
 
 <div class="mb-4">
-    <h6>Your Status Code</h6>
+    <label>Status Code</label>
     <div class="input-group" style="max-width: 400px;">
         <InputSelect class="form-select" @bind-Value="_statusCode">
             <option value="0">Automatic</option>
@@ -28,32 +32,32 @@
             <option value="3">Do Not Disturb</option>
             <option value="1">Offline</option>
         </InputSelect>
-        <button class="btn v-button" @onclick="OnStatusCodeApply">Apply</button>
+        <button class="btn v-btn round-right" @onclick="OnStatusCodeApply">Apply</button>
     </div>
     <ResultLabel Result="@_statusCodeChangeResult" />
 </div>
 
 <div class="mb-4">
-    <h6>Your tag</h6>
+    <label>Tag</label>
     <div class="input-group" style="max-width: 400px;">
         <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" />
-        <button class="btn v-button" @onclick="@OnTagApply">Apply</button>
+        <button class="btn v-btn round-right" @onclick="@OnTagApply">Apply</button>
     </div>
     <ResultLabel Result="@_tagChangeResult" />
 </div>
 <div class="mt-4 mb-4">
-    <h6>Profile Image (pfp)</h6>
-    <img alt="Your profile picture" style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@_pfpUrl" @onerror="OnPfpError" />
-    <div style="display:inline-block">
-        <InputFile OnChange="@LoadFiles" AdditionalAttributes="@_inputAttributes"></InputFile>
-        <ResultLabel Result="@_pfpChangeResult" />
+    <label>Profile Image (pfp)</label>
+    <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
+    <ResultLabel Result="@_pfpChangeResult" />
+    <div style="display:none">
+        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif" id="avatar-upload"></InputFile>
     </div>
 </div>
 
 <br/>
 
 <h3>DANGER ZONE</h3>
-<button class="v-btn" @onclick="OnClickDeleteAccount">Delete my account</button>
+<button class="btn v-btn danger" @onclick="OnClickDeleteAccount">Delete my account</button>
 <br/>
 <br/>
 
@@ -64,6 +68,8 @@
     [Parameter]
     public User User { get; set; }
 
+    private UserInfoComponent _infoPreview;
+    
     private string _tag;
     private ITaskResult _tagChangeResult;
 
@@ -75,12 +81,7 @@
 
     private int _statusCode;
     private ITaskResult _statusCodeChangeResult;
-
-    private static Dictionary<string, object> _inputAttributes = new ()
-    {
-        { "accept", ".png,.jpg,.jpeg,.gif" }
-    };
-
+    
     private async Task OnStatusApply()
     {
         var oldStatus = User.Status;
@@ -94,6 +95,7 @@
         }
 
         StateHasChanged();
+        await _infoPreview.UpdateAll();
     }
     
     private async Task OnTagApply()
@@ -126,6 +128,7 @@
         }
         
         StateHasChanged();
+        await _infoPreview.UpdateAll();
     }
 
     private async Task OnStatusCodeApply()
@@ -141,6 +144,7 @@
         }
 
         StateHasChanged();
+        await _infoPreview.UpdateAll();
     }
 
     protected override void OnInitialized()
@@ -184,6 +188,7 @@
         }
         
         StateHasChanged();
+        await _infoPreview.UpdateAll();
     }
 
     private void OnClickDeleteAccount()

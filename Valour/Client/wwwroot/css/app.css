@@ -26,6 +26,12 @@ html * {
     --v-purple: #bf06fd;
     --v-blue: #0c06fd;
     --v-cyan: #00faff;
+    
+    --p-cyan: #37a4ce;
+    --p-cyan-purple: #6278cd;
+    --p-purple: #8457cd;
+    --p-red: #cd5e5e;
+    
     --v2-danger-dark: #361515;
     --v2-danger-bright: #4f1e1e;
 }
@@ -153,6 +159,7 @@ label {
     font-size: 14px;
     font-weight: 500;
     border-radius: 1em;
+    margin-bottom: 0.3em;
 }
 
 .btn-primary {
@@ -162,7 +169,6 @@ label {
 }
 
 .form-control {
-    margin-top: 5px;
     background-color: #FFFFFF15;
     border-width: 0;
     border-radius: 1em;
@@ -181,9 +187,16 @@ label {
 }
 
 .form-select {
-    background-color: var(--main-1);
-    border-color: var(--main-5);
+    background-color: #FFFFFF15;
+    border-width: 0;
+    border-radius: 1em;
     color: var(--font-color);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.form-select option {
+    background-color: var(--main-3);
+    padding-top: 1em !important;
 }
 
 body {

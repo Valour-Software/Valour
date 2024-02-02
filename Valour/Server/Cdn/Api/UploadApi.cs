@@ -31,6 +31,14 @@ public class UploadApi
             this.Width = width;
             this.Height = height;
         }
+
+        public override string ToString()
+        {
+            if (Width == Height)
+                return Width.ToString();
+            
+            return $"{Width}x{Height}";
+        }
     }
     
     public static JpegEncoder JpegEncoder = new JpegEncoder()

@@ -123,14 +123,19 @@
             _contextMenu = "member-context";
         }
 
+        await CalculateAll();
+
+        StateHasChanged();
+    }
+
+    private async Task CalculateAll()
+    {
         CalculateName();
         CalculateTag();
         CalculatePfp();
         CalculateStatus();
         CalculateStatusCode();
         await DetermineColorChange();
-
-        StateHasChanged();
     }
 
     void IDisposable.Dispose()
@@ -289,5 +294,16 @@
         {
             await ProfilePopup.Instance.OpenAsync(User, (int)x, (int)y, "bottomRight");
         }
+    }
+
+    public async Task UpdateAll()
+    {
+        await CalculateAll();
+        StateHasChanged();
+    }
+    
+    public void Refresh()
+    {
+        StateHasChanged();
     }
 }
