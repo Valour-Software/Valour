@@ -34,6 +34,12 @@
 </div>
 
 @code {
+
+	public class ModalParams
+	{
+		public ClientWindow Window { get; set; }
+	}
+	
 	// Input fields
 	string _name;
 	string _desc;
@@ -44,11 +50,14 @@
 
 	string _errorSpan;
 
-	[Parameter]
-	public ClientWindow Window { get; set; }
-
 	[CascadingParameter]
-	public BlazoredModalInstance ModalInstance { get; set; }
+	public ModalRoot ModalRoot { get; set; }
+	
+	[Parameter]
+	public ModalParams Data { get; set; }
+	
+	[Parameter]
+	public string ModalId { get; set; }
 
 	private async Task OnClickSubmit(MouseEventArgs e)
 	{
@@ -73,8 +82,8 @@
 			StateHasChanged();
 			return;
 		}
-
-		await ModalInstance.CloseAsync();
+		
+		ModalRoot.CloseModal(ModalId);
 
 		_descSpan = "Planet created.";
 

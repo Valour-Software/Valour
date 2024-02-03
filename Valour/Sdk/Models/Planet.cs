@@ -111,7 +111,7 @@ public class Planet : LiveModel, ISharedPlanet
     {
         if (Members is null || member.PlanetId != Id)
             return Task.CompletedTask;
-        
+
         if (!Members.Any(x => x.Id == member.Id))
             Members.Add(member);
         
@@ -303,9 +303,8 @@ public class Planet : LiveModel, ISharedPlanet
 
             // Set in cache
             // Skip event for bulk loading
-            await ValourCache.Put(info.Member.Id, info.Member, true);
-            await ValourCache.Put((info.Member.PlanetId, info.Member.UserId), info.Member, true);
-            await ValourCache.Put(info.Member.UserId, info.User, true);
+            await info.Member.AddToCache(info.Member, true);
+            await info.User.AddToCache(info.User, true);
         }
 
         foreach (var info in allResults)

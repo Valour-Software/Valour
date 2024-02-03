@@ -131,7 +131,7 @@
     public HomeWindow Window { get; set; }
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     public List<Planet> Discoverables { get; set; } = new List<Planet>();
 
@@ -179,9 +179,13 @@
 
     public async Task OnClickCreatePlanet()
     {
-        var param = new ModalParameters();
-        param.Add("Window", Window);
-        Modal.Show<CreatePlanetComponent>("Create Planet", param);
+
+        var data = new CreatePlanetComponent.ModalParams()
+        {
+            Window = Window
+        };
+
+        ModalRoot.OpenModal<CreatePlanetComponent>(data);
     }
 
     public async Task OnClickAddFriend()
@@ -189,7 +193,7 @@
         var param = new ModalParameters();
         param.Add("StartTopMenu", "General Settings");
         param.Add("StartSubMenu", "Friends");
-        Modal.Show<EditUserComponent>("Edit User", param);
+        //Modal.Show<EditUserComponent>("Edit User", param);
     }
     
     private async Task FriendEventHandler(FriendEventData eventData)
