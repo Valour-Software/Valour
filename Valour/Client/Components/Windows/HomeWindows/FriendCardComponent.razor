@@ -3,7 +3,7 @@
 @implements IDisposable
 
 <div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" @onclick="OnClick"> 
-    <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='user-context' @onpointerdown='async () => await UserContextMenuComponent.Initialize(Friend)'>
+    <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='user-context' @onpointerdown='() => UserContextMenuComponent.Initialize(Friend)'>
         <div class="outer-circle">
             <div class="text-hide-circle"></div>
             <img alt="friend icon" src='@_iconUrl' class="icon" @onerror='OnIconError' style='@_imageStyle'/>

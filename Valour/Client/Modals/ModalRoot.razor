@@ -2,27 +2,27 @@
 
 <CascadingValue IsFixed="true" Value="@this">
     @ChildContent
-</CascadingValue>
-
-@foreach (var modal in _openModals)
-{
-    var data = new Dictionary<string, object>
-    {
-        { "ModalId", modal.Id },
-        { "Data", modal.Data }
-    };
     
-    <div class="fade-wrap">
-        <Fade @ref="@modal.FadeRef" OnFadeOut="@(() => { RemoveModal(modal.Id); return Task.CompletedTask; })">
-            <!-- Outer wrapper covers entire screen with darken effect -->
-            <div id="@modal.Id" class="modal-bg" @key="@(modal.Id + "-bg")" @onclick="CloseTopModal">
-                <div @onclick:stopPropagation="true">
-                    <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data"></DynamicComponent>
+    @foreach (var modal in _openModals)
+    {
+        var data = new Dictionary<string, object>
+        {
+            { "ModalId", modal.Id },
+            { "Data", modal.Data }
+        };
+        
+        <div class="fade-wrap">
+            <Fade @ref="@modal.FadeRef" OnFadeOut="@(() => { RemoveModal(modal.Id); return Task.CompletedTask; })">
+                <!-- Outer wrapper covers entire screen with darken effect -->
+                <div id="@modal.Id" class="modal-bg" @key="@(modal.Id + "-bg")" @onclick="CloseTopModal">
+                    <div @onclick:stopPropagation="true">
+                        <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data"></DynamicComponent>
+                    </div>
                 </div>
-            </div>
-        </Fade>
-    </div>
-}
+            </Fade>
+        </div>
+    }
+</CascadingValue>
 
 
 @code { 
@@ -49,7 +49,21 @@
     /// These are rendered in order, with the last one being the topmost
     /// </summary>
     private readonly List<ModalInstance> _openModals = new();
+
+    protected override void OnInitialized()
+    {
+        KeyboardListener.OnKeyDown += OnKeyDown;
+    }
     
+    /// <summary>
+    /// Closes the topmost modal when the escape key is pressed
+    /// </summary>
+    private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key == "Escape")
+            await CloseTopModal();
+    }
+
     public void OpenModal<T>(object data = null) where T : ComponentBase
     {
         var modal = new ModalInstance

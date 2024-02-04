@@ -1,3 +1,4 @@
+@inherits Modal<ErrorModal.ModalParams>
 @inject IJSRuntime JsRuntime
 
 <section class="outer">
@@ -6,7 +7,7 @@
     	<p class="subtitle">Send to us... or maybe <a href="https://github.com/Valour-Software/Valour">contribute?</a></p>
     </div>
     <pre class="inner">
-        @(Result.Details ?? "No details available")
+        @(Data.Result.Details ?? "No details available")
     </pre>
     <div class="btns-wrapper">
         <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
@@ -15,19 +16,15 @@
 </section>
 
 @code {
-    [CascadingParameter]
-    public BlazoredModalInstance ModalInstance { get; set; }
-    
-    [Parameter]
-    public TaskResult Result { get; set; }
-
-    private async Task OnClickCloseAsync()
+    public class ModalParams
     {
-        await ModalInstance.CloseAsync();
+        public ITaskResult Result;
     }
+
+    private Task OnClickCloseAsync() => CloseAsync();
     
     private async Task OnClickCopyAsync()
     {
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Result.Details);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Result.Details);
     }
 }

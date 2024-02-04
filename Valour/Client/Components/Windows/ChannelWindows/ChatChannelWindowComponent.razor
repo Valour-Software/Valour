@@ -1,15 +1,14 @@
 ﻿@using System.Text
-@using Valour.Sdk.Nodes
 @implements IDisposable
 @inject WindowManager WindowManager
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
-<CascadingValue Value='Channel' IsFixed="true">
-    <CascadingValue Value='Window' IsFixed="true">
-        <CascadingValue Value='this' IsFixed="true">
+<CascadingValue Value="@Channel" IsFixed="true">
+    <CascadingValue Value="@Window" IsFixed="true">
+        <CascadingValue Value="this" IsFixed="true">
             <WindowFrameComponent @ref="@WindowFrame" Window="@Window" Title="@Title" Description="@Description">
                 <ChannelWatchingComponent ParentComponent="this" Channel="Channel" />
-                <CascadingValue Value='ChannelPermissions'>
+                <CascadingValue Value="@ChannelPermissions">
                     <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
                 </CascadingValue>
             </WindowFrameComponent>
@@ -20,10 +19,7 @@
 @code {
     [Parameter]
     public ChatChannelWindow Window { get; set; }
-
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
-
+    
     public WindowFrameComponent WindowFrame { get; set; }
 
     public event Func<Channel, Task> OnChannelChange;

@@ -31,7 +31,7 @@
     public float MaxSize { get; set; } = 400f;
     
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     [Parameter]
     public bool Clickable { get; set; } = true;
@@ -75,8 +75,11 @@
     {
         if (!Clickable) return;
         
-        ModalParameters modalParams = new();
-        modalParams.Add("Attachment", Attachment);
-        Modal.Show<AttachmentModal>(Attachment.FileName, modalParams);
+        var modalParams = new AttachmentModal.ModalParams()
+        {
+            Attachment = Attachment
+        };
+        
+        ModalRoot.OpenModal<AttachmentModal>(modalParams);
     }
 }

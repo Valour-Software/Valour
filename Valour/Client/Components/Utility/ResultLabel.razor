@@ -21,13 +21,19 @@ else
 
 @code {
     
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
     [Parameter]
     public ITaskResult Result { get; set; }
     
     private void OnDetails()
     {
-        ModalParameters imodParams = new();
-        imodParams.Add("Result", Result);
-        ModalInjector.Service.Show<ErrorModal>("Error Details", imodParams);
+        var data = new ErrorModal.ModalParams()
+        {
+            Result = Result
+        };
+        
+        ModalRoot.OpenModal<ErrorModal>(data);
     }
 }

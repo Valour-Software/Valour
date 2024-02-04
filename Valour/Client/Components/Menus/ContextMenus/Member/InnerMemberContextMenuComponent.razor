@@ -44,7 +44,7 @@ else
 @code {
 
 	[CascadingParameter]
-	public IModalService Modal { get; set; }
+	public ModalRoot ModalRoot { get; set; }
 
 	public static PlanetMember Member { get; set; }
 	public static User User { get; set; }
@@ -137,10 +137,10 @@ else
 		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
 	}
 
-	public async Task OnClickKick()
+	private void OnClickKick()
 	{
-		ConfirmModalData modalData =
-        new($"Kick {Member.Nickname}?",
+		var modalData =
+        new ConfirmModalComponent.ModalParams($"Kick {Member.Nickname}?",
              $"This will remove them from the planet.",
              "Confirm",
              "Cancel", 
@@ -154,17 +154,17 @@ else
 
              }
         );
-
-        ModalParameters modParams = new();
-        modParams.Add("Data", modalData);
-
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
+		
+		ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
 	}
 
-	public async Task OnClickBan()
+	public void OnClickBan()
 	{
-		ModalParameters par = new();
-        par.Add("Member", Member);
-        Modal.Show<BanUserComponent>("Ban User", par);
+		var data = new BanUserComponent.ModalParams()
+		{
+			Member = Member
+		};
+		
+		ModalRoot.OpenModal<BanUserComponent>(data);
 	}
 }

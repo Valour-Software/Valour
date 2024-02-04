@@ -21,7 +21,7 @@
     public EmbedFormItem FormItem { get; set; }
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     private EmbedButtonItem _buttonItem;
 
@@ -55,7 +55,7 @@
         if (_processClick)
         {
             _processClick = false;
-            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(_buttonItem, embedComponent, Modal, JsRuntime)));
+            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(_buttonItem, embedComponent, ModalRoot, JsRuntime)));
         }
         return base.OnAfterRenderAsync(firstRender);
     }

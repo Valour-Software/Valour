@@ -1,5 +1,4 @@
 using Blazored.LocalStorage;
-using Blazored.Modal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Valour.Sdk.Client;
@@ -46,8 +45,7 @@ public class Program
         builder.Services.AddSingleton<ClientCategoryManager>();
         builder.Services.AddSingleton<ChannelListManager>();
         builder.Services.AddSingleton<SoundManager>();
-
-        builder.Services.AddBlazoredModal();
+        
         builder.Services.AddBlazorContextMenu(options =>
         {
             options.ConfigureTemplate("main", template =>

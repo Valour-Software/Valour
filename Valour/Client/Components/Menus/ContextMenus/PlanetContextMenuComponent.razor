@@ -1,26 +1,25 @@
 ﻿@inject IJSRuntime JsRuntime
 
-@using Item = Valour.Sdk.Items.LiveModel
-<ContextMenu Id='planet-context' CssClass='context'>
+<ContextMenu Id="planet-context" CssClass="context">
     @if (ValourClient.Self.Id != Planet.OwnerId)
     {
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='@OnClickLeavePlanet'>Leave Planet</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass="context-item" OnClick='@OnClickLeavePlanet'>Leave Planet</BlazorContextMenu.Item>
     }
     @if (CanEdit)
     {
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='@OnClickEdit'>Edit</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass="context-item" OnClick='@OnClickEdit'>Edit</BlazorContextMenu.Item>
     }
-    <BlazorContextMenu.Item CssClass='context-item' OnClick='@OnClickCopyId'>Copy Id</BlazorContextMenu.Item>
+    <BlazorContextMenu.Item CssClass="context-item" OnClick='@OnClickCopyId'>Copy Id</BlazorContextMenu.Item>
 </ContextMenu>
 
 @code {
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     public static Planet Planet { get; set; }
 
-    public static bool CanEdit { get; set; } = false;
+    public static bool CanEdit { get; set; }
 
     public static PlanetContextMenuComponent Instance;
 
@@ -41,14 +40,19 @@
         Instance.Refresh();
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Instance = this;
     }
 
     private void OnClickEdit()
     {
-        Modal.Show<EditPlanetComponent>("Edit Planet");
+        var data = new EditPlanetComponent.ModalParams()
+        {
+            Planet = Planet
+        };
+        
+        ModalRoot.OpenModal<EditPlanetComponent>(data);
     }
 
     public void Refresh()
@@ -61,35 +65,23 @@
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Planet.Id);
     }
 
-    public async Task OnClickLeavePlanet()
+    public void OnClickLeavePlanet()
     {
-        ConfirmModalData modalData =
-        new($"Leave {Planet.Name}?",
+        var modalData =
+        new ConfirmModalComponent.ModalParams(
+             $"Leave {Planet.Name}?",
              "Are you sure?",
              "Continue",
              "Cancel",
              async () =>
              {
                  Console.WriteLine("Confirmed leaving planet.");
-
                  var result = await ValourClient.LeavePlanetAsync(Planet);
                  Console.WriteLine("Leave: " + result.Message);
-
              },
-             async () =>
-             {
-                 Console.WriteLine("Cancelled planet leave.");
-             }
+             () => Task.CompletedTask
         );
-
-        ModalParameters modParams = new();
-        modParams.Add("Data", modalData);
         
-        var options = new ModalOptions() 
-        { 
-            DisableBackgroundCancel = true 
-        };
-
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams, options);
+        ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
     }
 }

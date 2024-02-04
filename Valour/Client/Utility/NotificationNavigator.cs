@@ -1,5 +1,4 @@
-﻿using Blazored.Modal;
-using Blazored.Modal.Services;
+﻿using Valour.Client.Components.Menus.Modals;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models;
 using Valour.Client.Components.Menus.Modals.Users.Edit;
@@ -11,7 +10,7 @@ namespace Valour.Client.Utility;
 
 public static class NotificationNavigator
 {
-    public static async Task NavigateTo(Notification notification, IModalService modalService)
+    public static async Task NavigateTo(Notification notification)
     {
         var windowManager = WindowManager.Instance;
         
@@ -51,10 +50,14 @@ public static class NotificationNavigator
             }
             case NotificationSource.FriendRequest:
             {
-                var param = new ModalParameters();
-                param.Add("StartTopMenu", "General Settings");
-                param.Add("StartSubMenu", "Friends");
-                modalService.Show<EditUserComponent>("Edit User", param);
+                var data = new EditUserComponent.ModalParams()
+                {
+                    StartTopMenu = "General Settings",
+                    StartSubMenu = "Friends",
+                    User = ValourClient.Self
+                };
+                
+                ModalInjector.Service.OpenModal<EditUserComponent>(data);
 
                 break;
             }

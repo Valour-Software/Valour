@@ -21,7 +21,7 @@
 @code {
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     public static Channel SelectedItem { get; set; }
 
@@ -57,44 +57,33 @@
     }
 
     public async Task OpenCreateChannel(){
-        var planet = await SelectedItem.GetPlanetAsync();
-        ModalParameters modalParams = new();
-        modalParams.Add("Planet", planet);
-        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetChat);
-
-        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
-            modalParams.Add("Parent", SelectedItem);
-        }
-
-        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+        await OpenCreate(ChannelTypeEnum.PlanetChat);
     }
 
     public async Task OpenCreateVoiceChannel()
     {
-        var planet = await SelectedItem.GetPlanetAsync();
-        ModalParameters modalParams = new();
-        modalParams.Add("Planet", planet);
-        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetVoice);
-
-        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory)
-        {
-            modalParams.Add("Parent", SelectedItem);
-        }
-
-        Modal.Show<CreateChannelComponent>("Create Voice Channel", modalParams);
+        await OpenCreate(ChannelTypeEnum.PlanetVoice);
     }
     
-    public async Task OpenCreateCategory(){
-        var planet = await SelectedItem.GetPlanetAsync();
-        ModalParameters modalParams = new();
-        modalParams.Add("Planet", planet);
-        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetCategory);
+    public async Task OpenCreateCategory()
+    {
+        await OpenCreate(ChannelTypeEnum.PlanetCategory);
+    }
 
+    private async Task OpenCreate(ChannelTypeEnum type)
+    {
+        var planet = await SelectedItem.GetPlanetAsync();
+        var data = new CreateChannelComponent.ModalParams()
+        {
+            Planet = planet,
+            ChannelType = type
+        };
+        
         if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
-            modalParams.Add("Parent", SelectedItem);
+            data.Parent = SelectedItem;
         }
 
-        Modal.Show<CreateChannelComponent>("Create Category", modalParams);
+        ModalRoot.OpenModal<CreateChannelComponent>(data);
     }
 
     public async Task DeleteChannelListItem(){
@@ -106,8 +95,8 @@
             // Ensure category has no children if we are deleting it
             if (channels.Any(x => x.ParentId == SelectedItem.Id)){
 
-                InfoModalData iModalData = 
-                new($"You can't delete this!",
+                var data = new InfoModalComponent.ModalParams(
+                    "You can't delete this!",
                     "This is due to this category having channels and/or categories inside of it.",
                     "Okay",
                     () =>
@@ -116,16 +105,14 @@
                         return Task.CompletedTask;
                     }
                 );
-
-                ModalParameters iModParams = new();
-                iModParams.Add("Data", iModalData);
-
-                Modal.Show<InfoModalComponent>("Info", iModParams);
+                
+                ModalRoot.OpenModal<InfoModalComponent>(data);
             }
         }
 
-        ConfirmModalData modalData =
-        new($"Delete {SelectedItem.Name}?",
+        var modalData =
+        new ConfirmModalComponent.ModalParams(
+            $"Delete {SelectedItem.Name}?",
              "Are you sure?",
              "Continue",
              "Cancel", 
@@ -140,17 +127,17 @@
                  return Task.CompletedTask;
              }
         );
-
-        ModalParameters modParams = new();
-        modParams.Add("Data", modalData);
-
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
+        
+        ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
     }
 
     private void EditChannelListItem()
     {
-        ModalParameters modParams = new();
-        modParams.Add("ChannelListItem", SelectedItem);
-        Modal.Show<EditChannelListItemComponent>("Edit Channel Item", modParams);
+        var data = new EditChannelListItemComponent.ModalParams()
+        {   
+            ChannelListItem = SelectedItem
+        };
+        
+        ModalRoot.OpenModal<EditChannelListItemComponent>(data);
     }
 }

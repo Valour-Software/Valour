@@ -1,15 +1,17 @@
-﻿<div class="eco-pay-container">
-    @if (Input.WindowComponent.Channel.PlanetId is not null)
+﻿@inherits Modal<EcoPayModal.ModalParams>
+
+<div class="eco-pay-container">
+    @if (Data.Input.WindowComponent.Channel.PlanetId is not null)
     {
         <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
             <TabOne>
                 <div class="tab-contents">
-                    <PlanetPayComponent Input="@Input" />
+                    <PlanetPayComponent Input="@Data.Input" />
                 </div>
             </TabOne>
             <TabTwo>
                 <div class="tab-contents">
-                    <GlobalPayComponent Input="@Input" />
+                    <GlobalPayComponent Input="@Data.Input" />
                 </div>
             </TabTwo>
         </TabContainerComponent>
@@ -19,7 +21,7 @@
         <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
             <TabOne>
                 <div class="tab-contents">
-                    <GlobalPayComponent Input="@Input" />
+                    <GlobalPayComponent Input="@Data.Input" />
                 </div>
             </TabOne>
         </TabContainerComponent>
@@ -28,9 +30,11 @@
 
 
 @code {
-    
-    [Parameter]
-    public InputComponent Input { get; set; }
+
+    public class ModalParams
+    {
+        public InputComponent Input;
+    }
     
     private static readonly string[] TabTitles = new [] { "Planet Pay", "Global Pay" };
 }

@@ -1,3 +1,5 @@
+@inherits Modal<ReportModalComponent.ModalParams>
+
 <div class="report-modal">
     @switch (_page)
     {
@@ -21,7 +23,7 @@
         {
             <h2>Describe the incident</h2>
             <br />
-            <textarea class="form-control" @bind="Report.LongReason" rows="5"></textarea>
+            <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5"></textarea>
             <button style="text-align: center" class="btn v-button" @onclick="OnClickSubmitAsync">Submit Report</button>
             break;
         }
@@ -36,26 +38,25 @@
 </div>
 
 @code {
-    
-    [CascadingParameter]
-    public BlazoredModalInstance ModalInstance { get; set; }
-    
-    [Parameter]
-    public Report Report { get; set; }
+
+    public class ModalParams
+    {
+        public Report Report;
+    }
 
     private int _page = 0;
     private string _response = "";
 
     private void OnSelectReason(ReportReasonCode reasonCode)
     {
-        Report.ReasonCode = reasonCode;
+        Data.Report.ReasonCode = reasonCode;
         _page = 1;
         StateHasChanged();
     }
 
     private async Task OnClickSubmitAsync()
     {
-        var result = await Report.PostReportAsync(Report);
+        var result = await Report.PostReportAsync(Data.Report);
         if (!result.Success)
             _response = result.Message;
         else
@@ -67,6 +68,6 @@
     
     private async Task OnClickCancelAsync()
     {
-        await ModalInstance.CloseAsync();
+        await CloseAsync();
     }
 }

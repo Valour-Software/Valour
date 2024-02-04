@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 
 <h3>Edit Roles <i class="bi bi-tag-fill"></i></h3>
 <p class="subtitle">PLANET SETTINGS</p>
@@ -19,13 +19,13 @@
             <div class="form-group mt-2" style="margin-left: 8px">
                 <label>Color</label>
                 <div class="color-wrapper">
-                    <input type="color" class="form-control color-picker" value="@_role.Color" oninput="@OnColorChange" />
+                    <input type="color" class="form-control color-picker" value="@_role.Color" @oninput="@OnColorChange" />
                 </div>
             </div>
 
         </div>
         <div class="mt-2" style="display: block">
-            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
+            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="@OnClickSave" id="role-save-button">
                 <p class="center-t">
                     @(_role.Id == 0 ? "Create" : "Save")
                 </p>
@@ -85,7 +85,7 @@
             
             @for (int i = 1; i < PlanetPermissions.Permissions.Length; i++)
             {
-                PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
+                var planetPerm = PlanetPermissions.Permissions[i];
 
                 <div class="perm-list-item">
                     <div class="perm-list-name mb-1">
@@ -111,7 +111,7 @@
         <div class="perm-section">
             @for (int i = 1; i < CategoryPermissions.Permissions.Length; i++)
             {
-                CategoryPermission categoryPerm = CategoryPermissions.Permissions[i];
+                var categoryPerm = CategoryPermissions.Permissions[i];
 
                 <div class="perm-list-item">
                     <div class="perm-list-name mb-1">
@@ -120,7 +120,7 @@
                     <div type="button" class="perm-switch">
                         <label class="switch">
                             <input type="checkbox"
-                               @onclick="(e => PermClick(categoryPerm.Value, ref _roleCategoryPerms))"
+                               @onclick="@(e => PermClick(categoryPerm.Value, ref _roleCategoryPerms))"
                                    checked="@((_roleCategoryPerms & categoryPerm.Value) != 0)" />
                             <span class="slider round"></span>
                         </label>
@@ -136,7 +136,7 @@
         <div class="perm-section">
             @for (int i = 1; i < ChatChannelPermissions.Permissions.Length; i++)
             {
-                ChatChannelPermission chatPerm = ChatChannelPermissions.Permissions[i];
+                var chatPerm = ChatChannelPermissions.Permissions[i];
 
                 <div class="perm-list-item">
                     <div class="perm-list-name mb-1">
@@ -146,7 +146,7 @@
                         <label class="switch">
                             <input 
                                 type="checkbox" 
-                                @onclick="(e => PermClick(chatPerm.Value, ref _rolePlanetPerms))" 
+                                @onclick="@(e => PermClick(chatPerm.Value, ref _rolePlanetPerms))" 
                                 checked="@((_roleChatPerms & chatPerm.Value) != 0)"
                             />
                             <span class="slider round"></span>
@@ -163,7 +163,7 @@
         <div class="perm-section">
             @for (int i = 1; i < VoiceChannelPermissions.Permissions.Length; i++)
             {
-                VoiceChannelPermission voicePerm = VoiceChannelPermissions.Permissions[i];
+                var voicePerm = VoiceChannelPermissions.Permissions[i];
 
                 <div class="perm-list-item">
                     <div class="perm-list-name mb-1">
@@ -172,7 +172,7 @@
                     <div type="button" class="perm-switch">
                         <label class="switch">
                             <input type="checkbox"
-                               @onclick="(e => PermClick(voicePerm.Value, ref _roleVoicePerms))"
+                               @onclick="@(e => PermClick(voicePerm.Value, ref _roleVoicePerms))"
                                    checked="@((_roleVoicePerms & voicePerm.Value) != 0)" />
                             <span class="slider round"></span>
                         </label>
@@ -209,32 +209,32 @@
         <p class="help-text">Keep in mind the highest role a user has is the color they will appear as. Drag roles to reorder them</p>
 
         <div class="role-list-div-help-text">
-            <p class="help-text" style="display: inline-block;margin-bottom: 10px;">Roles: @Roles.Count</p>
+            <p class="help-text" style="display: inline-block;margin-bottom: 10px;">Roles: @_roles.Count</p>
 
             <p class="help-text members-text">Members</p>
         </div>
 
         <div class="roles-list">
-            @foreach (PlanetRole role in Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
+            @foreach (PlanetRole role in _roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
             {
                 // For magic lambda
-                var role_x = role;
+                var roleX = role;
 
                 <div  
-                    @onpointerdown='e => OnRoleItemClick(role_x)' 
-                    @ondragstart='() => OnRoleDrag(role_x)' 
-                    @ondrop='async () => await OnRoleDrop(role_x)' 
+                    @onpointerdown="@(e => OnRoleItemClick(roleX))" 
+                    @ondragstart="@(() => OnRoleDrag(roleX))" 
+                    @ondrop="@(async () => await OnRoleDrop(roleX))" 
                     draggable="true"
                     ondragover="event.preventDefault();" 
-                    class='roles-row' @onclick="() => OnClickEdit(role_x)">
+                    class="roles-row" @onclick="@(() => OnClickEdit(roleX))">
                     <div class="role-name-div">
-                        <p class='roles-name' style="color:@role.Color">
-                                @role.Name
+                        <p class="roles-name" style="color:@role.Color">
+                            @role.Name
                         </p>
                     </div>
                     <div class="role-member-count-div">
-                        <p class="member-count">@RoleMemberCounts[role.Id]</p>
-                        <img class="member-icon" src="_content/Valour.Client/media/Person-Icon.svg" />
+                        <p class="member-count">@_roleMemberCounts[role.Id]</p>
+                        <img alt="Person" class="member-icon" src="_content/Valour.Client/media/Person-Icon.svg" />
                     </div>
                 </div>
             }
@@ -245,14 +245,14 @@
 @code {
     
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     [Parameter]
     public Planet Planet { get; set; }
 
-    public List<PlanetRole> Roles = new();
+    private List<PlanetRole> _roles = new();
 
-    public Dictionary<long, int> RoleMemberCounts = new();
+    private Dictionary<long, int> _roleMemberCounts = new();
 
     // Stuff for role creation //
 
@@ -276,7 +276,7 @@
 
     // Stuff for role editing //
 
-    private PlanetRole _selected { get; set; }
+    private PlanetRole _selected;
 
     private PlanetRole _draggingRole;
 
@@ -294,16 +294,16 @@
 
     private async Task OnRoleDrop(PlanetRole droppedOn){
 
-        var droppedOnIndex = Roles.IndexOf(droppedOn);
+        var droppedOnIndex = _roles.IndexOf(droppedOn);
         
         // Cannot move default role
         if (_draggingRole.IsDefault || droppedOn.IsDefault)
             return;
 
-        Roles.Remove(_draggingRole);
-        Roles.Insert(droppedOnIndex, _draggingRole);
+        _roles.Remove(_draggingRole);
+        _roles.Insert(droppedOnIndex, _draggingRole);
 
-        var ids = Roles.Select(x => x.Id);
+        var ids = _roles.Select(x => x.Id);
 
         var result = await droppedOn.Node.PostAsync($"api/planets/{droppedOn.PlanetId}/roles/order", ids);
 
@@ -312,11 +312,11 @@
         // StateHasChanged();
     }
 
-    public async Task OnRoleItemClick(PlanetRole role){
+    private void OnRoleItemClick(PlanetRole role){
         _draggingRole = role;
     }
 
-    public void PermClick(long value, ref long perms)
+    private void PermClick(long value, ref long perms)
     {
         perms ^= value;
         Console.WriteLine($"Toggled value for permission {value}");
@@ -324,7 +324,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Roles = await Planet.GetRolesAsync();
+        _roles = await Planet.GetRolesAsync();
 
         await UpdateRoleMemberCount();
 
@@ -335,25 +335,24 @@
         ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDelete;
     }
 
-    public async Task UpdateRoleMemberCount()
+    private async Task UpdateRoleMemberCount()
     {
-        var Members = await Planet.GetMembersAsync();
-        foreach (var role in Roles)
+        var members = await Planet.GetMembersAsync();
+        foreach (var role in _roles)
         {
-            RoleMemberCounts[role.Id] = 0;
+            _roleMemberCounts[role.Id] = 0;
         }
-        foreach (var member in Members)
+        foreach (var member in members)
         {
-            var memberroles = await member.GetRolesAsync();
-            foreach(var role in memberroles)
+            var memberRoles = await member.GetRolesAsync();
+            foreach(var role in memberRoles)
             {
-                RoleMemberCounts[role.Id] += 1;
+                _roleMemberCounts[role.Id] += 1;
             }
         }
     }
 
-
-    public async Task GoBack() 
+    private void GoBack() 
     {
         _role = new PlanetRole()
         {
@@ -387,7 +386,7 @@
         }
     }
 
-    public async Task OnClickEdit(PlanetRole editRole)
+    private void OnClickEdit(PlanetRole editRole)
     {
         _selected = editRole;
 
@@ -402,10 +401,10 @@
         StateHasChanged();
     }
 
-    public async Task DeleteRole(PlanetRole role)
+    private void DeleteRole(PlanetRole role)
     {
-        ConfirmModalData cData =
-        new ConfirmModalData(
+        var cData =
+        new ConfirmModalComponent.ModalParams(
             $"Delete {role.Name}?",
             "This cannot be undone",
             "Confirm",
@@ -414,18 +413,17 @@
                 _result = await _selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
                 StateHasChanged();
             },
-            async () => {
+            () =>
+            {
                 StateHasChanged();
+                return Task.CompletedTask;
             }
         );
-
-        ModalParameters mParams = new();
-        mParams.Add("Data", cData);
-
-        Modal.Show<ConfirmModalComponent>("Role Delete Confirm", mParams);
+        
+        ModalRoot.OpenModal<ConfirmModalComponent>(cData);
     }
 
-    public async Task OnClickCreateMode()
+    private void OnClickCreateMode()
     {
         _role = new PlanetRole()
         {
@@ -503,7 +501,7 @@
             if (creating)
             {
                 _editMode = false;
-                RoleMemberCounts[_role.Id] = 0;
+                _roleMemberCounts[_role.Id] = 0;
             }
         }
 
@@ -512,28 +510,28 @@
         _editMode = false;
     }
 
-    public async Task OnRoleDeletion(PlanetRole role)
+    private async Task OnRoleDeletion(PlanetRole role)
     {
-        Roles = await Planet.GetRolesAsync();
+        _roles = await Planet.GetRolesAsync();
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(ModelUpdateEvent<PlanetRole> eventData)
+    private async Task OnRolesUpdate(ModelUpdateEvent<PlanetRole> eventData)
     {
         var role = eventData.Model;
-        var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
+        var oldRole = _roles.FirstOrDefault(x => x.Id == role.Id);
 
         if (oldRole == null)
         {
-            Roles = await Planet.GetRolesAsync();
+            _roles = await Planet.GetRolesAsync();
             StateHasChanged();
             return;
         }
 
-        var index = Roles.IndexOf(oldRole);
+        var index = _roles.IndexOf(oldRole);
 
     // Set to new role
-        Roles[index] = role;
+        _roles[index] = role;
 
         StateHasChanged();
     }

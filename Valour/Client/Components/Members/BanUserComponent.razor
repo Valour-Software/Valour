@@ -1,7 +1,4 @@
-@inject NavigationManager navManager
-@inject IJSRuntime JS
-
-@using Valour.Shared.Categories
+@inherits Modal<BanUserComponent.ModalParams>
 
 <section>
     <h2>Ban user</h2>
@@ -10,87 +7,61 @@
     <div asp-validation-summary="All" class="text-info"></div>
     <div class="form-group mt-2">
         <label>Reason</label>
-        <input class="form-control" @bind-value="@reason" />
-        <span id="name-span" style="color:#888888">@ReasonSpan</span>
+        <input class="form-control" @bind-value="@_reason" />
+        <span style="color:#888888">Reason for ban</span>
     </div>
     <div class="form-group mt-2">
         <label>Time</label>
-        <input class="form-control" @bind-value="@time" />
-        <span id="name-span" style="color:#888888">@TimeSpan</span>
+        <input class="form-control" @bind-value="@_time" />
+        <span style="color:#888888">Time in days, put any number under 0 to ban permanently</span>
     </div>
-
-    @if (!string.IsNullOrWhiteSpace(infoSpan))
-    {
-        <span id="info-span" class="text-info mt-4">@infoSpan</span>
-    }
-    @if (!string.IsNullOrWhiteSpace(errorSpan))
-    {
-        <span id="error-span" class="text-danger mt-4">@errorSpan</span>
-    }
-
+    
+    <ResultLabel Result="@_result" />
+    
     <div class="form-group mt-4">
-        <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Ban</button>
+        <button class="btn btn-primary mt-2" @onclick="@OnClickSubmit">Ban</button>
     </div>
 </section>
 @code {
 
-    [Parameter]
-    public PlanetMember Member { get; set; }
+    public class ModalParams
+    {
+        public PlanetMember Member;
+    } 
 
     // Input fields
-    ulong time;
+    private ulong _time;
+    private string _reason;
 
-    string reason;
-
-    // Spans
-    string ReasonSpan = "Reason for ban";
-
-    string TimeSpan = "Time in days, put any number under 0 to ban permanently";
-    string infoSpan = "";
-    string errorSpan = "";
+    private ITaskResult _result;
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
-        infoSpan = "";
-        errorSpan = "";
-
         // Require a name
-        if (string.IsNullOrWhiteSpace(reason))
+        if (string.IsNullOrWhiteSpace(_reason))
         {
-            reason = "Please input a reason.";
+            _reason = "Please input a reason.";
             return;
         }
-
-        // Encode non-friendly characters
-        string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
-
-        var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Member.PlanetId);
+        
+        var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Data.Member.PlanetId);
 
         var ban = new PlanetBan()
         {
             IssuerId = selfMember.UserId,
-            TargetId = Member.UserId,
-            Reason = reason,
-            PlanetId = Member.PlanetId,
+            TargetId = Data.Member.UserId,
+            Reason = _reason,
+            PlanetId = Data.Member.PlanetId,
             TimeCreated = DateTime.UtcNow,
             TimeExpires = null,
         };
 
-        if (time != 0)
+        if (_time != 0)
         {
-            ban.TimeExpires = DateTime.UtcNow.AddDays(time);
+            ban.TimeExpires = DateTime.UtcNow.AddDays(_time);
         }
 
-        var response = await Member.Node.PostAsync($"api/bans", ban);
-
-        if (response.Success)
-        {
-            infoSpan = "User banned successfully.";
-        }
-        else
-        {
-            errorSpan = response.Message;
-        }
+        _result = await Data.Member.Node.PostAsync($"api/bans", ban);
 
         StateHasChanged();
     }

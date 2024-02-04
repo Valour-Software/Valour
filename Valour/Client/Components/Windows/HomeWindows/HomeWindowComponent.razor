@@ -1,7 +1,7 @@
 ﻿@inject WindowManager windowManager
 
 <WindowFrameComponent Title="Home" Description="Planets and Friends" Window="@Window">
-    <div class="inner-window @mobileTag">
+    <div class="inner-window @_mobileTag">
         <h6 class="mt-4 text-center icons-title">Your Planets</h6>
         <div class="icon-container">
             @foreach (Planet planet in ValourClient.JoinedPlanets)
@@ -139,9 +139,9 @@
 
     public event Func<Task> RerenderPlanetCards;
 
-    private string mobileTag = "";
+    private string _mobileTag = "";
 
-    protected async override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
         ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
@@ -160,26 +160,26 @@
         StateHasChanged();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
             if (DeviceInfo.IsMobile)
             {
-                mobileTag = "mobile";
+                _mobileTag = "mobile";
                 StateHasChanged();
             }
         }
     }
 
-    public async Task OnJoinedPlanetsUpdate()
+    private Task OnJoinedPlanetsUpdate()
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    public async Task OnClickCreatePlanet()
+    public void OnClickCreatePlanet()
     {
-
         var data = new CreatePlanetComponent.ModalParams()
         {
             Window = Window
@@ -188,22 +188,28 @@
         ModalRoot.OpenModal<CreatePlanetComponent>(data);
     }
 
-    public async Task OnClickAddFriend()
+    private void OnClickAddFriend()
     {
-        var param = new ModalParameters();
-        param.Add("StartTopMenu", "General Settings");
-        param.Add("StartSubMenu", "Friends");
-        //Modal.Show<EditUserComponent>("Edit User", param);
+        var data = new EditUserComponent.ModalParams()
+        {
+            StartTopMenu = "General Settings",
+            StartSubMenu = "Friends",
+            User = ValourClient.Self
+        };
+        
+        ModalRoot.OpenModal<EditUserComponent>(data);
     }
     
-    private async Task FriendEventHandler(FriendEventData eventData)
+    private Task FriendEventHandler(FriendEventData eventData)
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    public async Task OnFriendsListUpdate()
+    private Task OnFriendsListUpdate()
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     public void Refresh()

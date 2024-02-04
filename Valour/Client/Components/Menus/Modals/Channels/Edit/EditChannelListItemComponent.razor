@@ -1,8 +1,9 @@
-﻿@implements IDisposable
+﻿@inherits Modal<EditChannelListItemComponent.ModalParams>
+@implements IDisposable
 
 <BigMenuComponent @ref="BigMenu">
     <LeftSide>
-        <EditChannelListItemMenuComponent ChannelListItem="ChannelListItem"></EditChannelListItemMenuComponent>
+        <EditChannelListItemMenuComponent ChannelListItem="@Data.ChannelListItem"></EditChannelListItemMenuComponent>
     </LeftSide>
     <RightSide>
         @switch (BigMenu.SelectedTopLevelMenu?.Name)
@@ -11,10 +12,10 @@
                 switch (BigMenu.SelectedSubMenu.Name)
                 {
                     case "Info":
-                        <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
+                        <EditCLIDetailsComponent Channel="@Data.ChannelListItem"></EditCLIDetailsComponent>
                         break;
                     case "Permissions":
-                        <EditCLIPermissionsComponent Target="ChannelListItem"></EditCLIPermissionsComponent>
+                        <EditCLIPermissionsComponent Target="@Data.ChannelListItem"></EditCLIPermissionsComponent>
                         break;
                 }
                 break;
@@ -23,8 +24,11 @@
 </BigMenuComponent>
 
 @code {
-    [Parameter]
-    public Channel ChannelListItem { get; set; }
+
+    public class ModalParams
+    {
+        public Channel ChannelListItem;
+    }
 
     private BigMenuComponent BigMenu { get; set; }
 

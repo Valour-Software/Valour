@@ -82,9 +82,6 @@
 	[Parameter]
 	public ClientWindow Window { get; set; }
 
-	[CascadingParameter]
-	public BlazoredModalInstance ModalInstance { get; set; }
-
 	protected override void OnInitialized()
 	{
 		ValourClient.OnFriendEvent += FriendEventHandler;
@@ -95,9 +92,10 @@
 		ValourClient.OnFriendEvent -= FriendEventHandler;
 	}
 
-	private async Task FriendEventHandler(FriendEventData eventData)
+	private Task FriendEventHandler(FriendEventData eventData)
 	{
 		StateHasChanged();
+		return Task.CompletedTask;
 	}
 
 	private async Task OnClickSubmit(MouseEventArgs e)

@@ -96,7 +96,7 @@
     public ChatChannelWindow Window { get; set; }
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
     
     /// <summary>
     /// A reference to the container for message rendering
@@ -209,9 +209,12 @@
 
     private void OnClickSendCurrency()
     {
-        ModalParameters p = new();
-        p.Add("Input", this);
-        Modal.Show<EcoPayModal>("Send Currency", p);
+        var data = new EcoPayModal.ModalParams()
+        {
+            Input = this
+        };
+        
+        ModalRoot.OpenModal<EcoPayModal>(data);
     }
 
     public async Task ShowTenorMenu()
@@ -418,27 +421,27 @@
             // Special case for images: ability to compress!
             if (attachmentType == MessageAttachmentType.Image)
             {
-                ModalParameters cmodParams = new();
-                cmodParams.Add("File", file);
-                cmodParams.Add("Input", this);
+                var data = new CompressComponent.ModalParams()
+                {
+                    File = file,
+                    Input = this,
+                };
                 
-                Modal.Show<CompressComponent>("Compress Image", cmodParams);
+                ModalRoot.OpenModal<CompressComponent>(data);
 
                 return;
             }
             else
             {
-                InfoModalData infoModalData = 
-                    new($"File too large!",
-                        maxSize == 10240000 ? $"The max upload size is 10MB. To raise this limit, consider subscribing to Plus!" : $"Your max upload size is 20MB.",
-                        "Okay",
-                        null
-                        );
-            
-                ModalParameters imodParams = new();
-                imodParams.Add("Data", infoModalData);
-            
-                Modal.Show<InfoModalComponent>("Info", imodParams);
+                var data = 
+                new InfoModalComponent.ModalParams(
+                    $"File too large!",
+                    maxSize == 10240000 ? $"The max upload size is 10MB. To raise this limit, consider subscribing to Plus!" : $"Your max upload size is 20MB.",
+                    "Okay",
+                    null
+                );
+                
+                ModalRoot.OpenModal<InfoModalComponent>(data);
                 return;
             }
         }
@@ -472,11 +475,11 @@
 
         var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
 
-        ModalParameters modalParams = new();
-        modalParams.Add("Data", bytes);
-        modalParams.Add("Attachment", newAttachment);
-        modalParams.Add("OnConfirm", 
-            async () => {
+        var modalData = new FileUploadComponent.ModalParams()
+        {
+            Attachment = newAttachment,
+            OnConfirm = async () => 
+            {
                 var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
 
                 if (result.Success)
@@ -488,9 +491,10 @@
                 {
                     Console.WriteLine(result.Message);
                 }
-            });
-
-        Modal.Show<FileUploadComponent>("File Upload", modalParams);
+            }
+        };
+        
+        ModalRoot.OpenModal<FileUploadComponent>(modalData);
     }
 
     public async Task RemoveAttachment(int id)

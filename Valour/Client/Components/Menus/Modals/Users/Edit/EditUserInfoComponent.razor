@@ -32,7 +32,7 @@
             <option value="3">Do Not Disturb</option>
             <option value="1">Offline</option>
         </InputSelect>
-        <button class="btn v-btn round-right" @onclick="OnStatusCodeApply">Apply</button>
+        <button class="btn v-btn round-right" @onclick="@OnStatusCodeApply">Apply</button>
     </div>
     <ResultLabel Result="@_statusCodeChangeResult" />
 </div>
@@ -47,7 +47,7 @@
 </div>
 <div class="mt-4 mb-4">
     <label>Profile Image (pfp)</label>
-    <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
+    <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
     <ResultLabel Result="@_pfpChangeResult" />
     <div style="display:none">
         <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif" id="avatar-upload"></InputFile>
@@ -57,17 +57,18 @@
 <br/>
 
 <h3>DANGER ZONE</h3>
-<button class="btn v-btn danger" @onclick="OnClickDeleteAccount">Delete my account</button>
+<button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my account</button>
 <br/>
 <br/>
 
 @code {
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
-    
-    [Parameter]
-    public User User { get; set; }
 
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
+    [Parameter] 
+    public User User { get; set; }
+    
     private UserInfoComponent _infoPreview;
     
     private string _tag;
@@ -86,7 +87,7 @@
     {
         var oldStatus = User.Status;
         User.Status = _status;
-        _statusChangeResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(User);
+        _statusChangeResult = await LiveModel.UpdateAsync(User);
         
         // Rollback change if it failed
         if (!_statusChangeResult.Success)
@@ -135,7 +136,7 @@
     {
         var oldStatusCode = User.UserStateCode;
         User.UserStateCode = _statusCode;
-        _statusCodeChangeResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(User);
+        _statusCodeChangeResult = await LiveModel.UpdateAsync(User);
        
         // Rollback change if it failed
         if (!_statusCodeChangeResult.Success)
@@ -193,6 +194,7 @@
 
     private void OnClickDeleteAccount()
     {
-        Modal.Show<DeleteAccountModal>("Delete Account");
+        Console.WriteLine("ModalRoot is null: " + (ModalRoot == null));
+        ModalRoot.OpenModal<DeleteAccountModal>();
     }
 }

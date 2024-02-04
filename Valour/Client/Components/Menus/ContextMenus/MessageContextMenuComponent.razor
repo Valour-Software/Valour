@@ -48,7 +48,7 @@
 @code {
 
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
     public static MessageComponent MessageComponent { get; set; }
 
@@ -93,45 +93,39 @@
         // Console.WriteLine(Can_Delete);
     }
 
-    public async Task OnClickReply()
+    private async Task OnClickReply()
     {
         var input = MessageComponent.Holder.Window.Component.MessageHolder.InputComponent;
         await input.SetReplyMessage(Message);
     }
 
-    public async Task OnClickDelete()
+    private void OnClickDelete()
     {
-        ConfirmModalData confirm = new("Delete message?", Message.Content, "Delete", "Cancel",
+        var data = new ConfirmModalComponent.ModalParams("Delete message?", Message.Content, "Delete", "Cancel",
             async () =>
             {
                 await Message.DeleteAsync();
             },
-            async () =>
-            {
-                // Nothing
-            }
+            () => Task.CompletedTask
         );
 
-        ModalParameters par = new();
-        par.Add("Data", confirm);
-
-        Modal.Show<ConfirmModalComponent>("Delete Message", par);
+        ModalRoot.OpenModal<ConfirmModalComponent>(data);
     }
 
     private void OnClickReport()
     {
-        var report = new Report()
+        var data = new ReportModalComponent.ModalParams()
         {
-            ReportingUserId = ValourClient.Self.Id,
-            MessageId = MessageComponent.Message.Id,
-            ChannelId = MessageComponent.Message.ChannelId,
-            PlanetId = MessageComponent.Message.PlanetId
+            Report = new Report()
+            {
+                ReportingUserId = ValourClient.Self.Id,
+                MessageId = MessageComponent.Message.Id,
+                ChannelId = MessageComponent.Message.ChannelId,
+                PlanetId = MessageComponent.Message.PlanetId
+            }
         };
         
-        ModalParameters par = new();
-        par.Add("Report", report);
-        
-        Modal.Show<ReportModalComponent>("Report", par);
+        ModalRoot.OpenModal<ReportModalComponent>(data);
     }
 
     public async Task OnClickEdit()

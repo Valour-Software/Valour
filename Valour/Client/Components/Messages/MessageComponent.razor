@@ -251,7 +251,8 @@
         }
         else
         {
-            return UserContextMenuComponent.Initialize(User);
+            UserContextMenuComponent.Initialize(User);
+            return Task.CompletedTask;
         }
     }
 
