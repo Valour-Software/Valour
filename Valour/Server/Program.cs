@@ -57,13 +57,16 @@ namespace Valour.Server
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
                 });
             });
-            */ 
+            */
 
-            builder.WebHost.UseSentry(x =>
+            if (builder.Configuration.GetSection("Sentry").Exists())
             {
-                x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
-                x.ServerName = NodeConfig.Instance.Name;
-            });
+                builder.WebHost.UseSentry(x =>
+                {
+                    x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
+                    x.ServerName = NodeConfig.Instance.Name;
+                });
+            }
 
             // Set up services
             ConfigureServices(builder);
@@ -217,7 +220,12 @@ namespace Valour.Server
             });
 
             app.UseWebSockets();
-            app.UseSentryTracing();
+
+            if (app.Configuration.GetSection("Sentry").Exists())
+            {
+                app.UseSentryTracing();
+            }
+
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
             app.UseRouting();
