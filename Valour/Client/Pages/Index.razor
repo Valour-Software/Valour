@@ -19,39 +19,41 @@
 
 <div class="mobile-holder @MobileClass @EmbeddedClass">
 	<!-- Modal management -->
-	<ModalRoot>
-		<ModalInjector/>
+	<ContextMenuRoot>
+		<ModalRoot>
+			<ModalInjector/>
 
-		<body class="mainrow">
-		<Sidebar></Sidebar>
-		<div class="channel-and-topbar" id="mainwindow">
-			<div class="topbar">
-				@if (DeviceInfo.IsMobile)
-				{
-					<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
-				}
-				<QuickNotifComponent></QuickNotifComponent>
-				@if (DeviceInfo.IsMobile)
-				{
-					<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
-				}
+			<body class="mainrow">
+			<Sidebar></Sidebar>
+			<div class="channel-and-topbar" id="mainwindow">
+				<div class="topbar">
+					@if (DeviceInfo.IsMobile)
+					{
+						<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
+					}
+					<QuickNotifComponent></QuickNotifComponent>
+					@if (DeviceInfo.IsMobile)
+					{
+						<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
+					}
+				</div>
+				<div class="topline">
+				</div>
+
+				<CallComponent/>
+
+				<!-- It's so nice when it's hidden away, just like my fears -->
+				<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
 			</div>
-			<div class="topline">
-			</div>
+			@if (!DeviceInfo.IsMobile)
+			{
+				<Sidebar Flip="@true"></Sidebar>
+			}
 
-			<CallComponent/>
-
-			<!-- It's so nice when it's hidden away, just like my fears -->
-			<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
-		</div>
-		@if (!DeviceInfo.IsMobile)
-		{
-			<Sidebar Flip="@true"></Sidebar>
-		}
-
-		<ContextMenuHolderComponent></ContextMenuHolderComponent>
-		</body>
-	</ModalRoot>
+			<ContextMenuHolderComponent></ContextMenuHolderComponent>
+			</body>
+		</ModalRoot>
+	</ContextMenuRoot>
 </div>
 
 

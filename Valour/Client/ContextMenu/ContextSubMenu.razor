@@ -1,0 +1,109 @@
+<button
+    class="label context-btn @(_show ? "sub-open" : "")"
+    @onclick:stopPropagation="true"
+    @ontouchstart:stopPropagation="true"
+    @onclick="@OnClicked"
+    @onmouseenter="@OnMouseEnter"
+    @onmouseleave="@OnMouseLeave">
+    @Label
+
+    @if (_show)
+    {
+        <div 
+            @ontouchend:stopPropagation="true"
+            @onclick:stopPropagation="true"
+            @ref="@_contentElement" 
+            class="content-wrapper">
+            <div class="focus-bar"></div>
+            <div class="sub-content">
+                @Content
+                <div 
+                    class="mobile-back" 
+                    @onclick="@OnClickBack">
+                    <ContextMenuItem>◄ Go Back</ContextMenuItem>
+                </div>
+            </div>
+        </div>
+    }
+</button>
+
+@code {
+    
+    [CascadingParameter]
+    public ContextMenuRoot ContextMenuRoot { get; set; }
+    
+    [Parameter]
+    public RenderFragment Label { get; set; }
+    
+    [Parameter]
+    public RenderFragment Content { get; set; }
+
+    private DateTime _openTime;
+
+    private ElementReference _contentElement;
+
+    private bool _show;
+
+    private bool _render;
+    
+    private bool _wasClicked;
+
+    private void OnClicked()
+    {
+        _wasClicked = true;
+        
+        OnMouseEnter();
+    }
+    
+    private void OnMouseEnter()
+    {
+        _show = true;
+        _openTime = DateTime.Now;
+        Refresh();
+    }
+
+    private void OnMouseLeave()
+    {
+        // If it was a click, we do not want
+        // to close the menu when the mouse leaves
+        if (_wasClicked)
+            return;
+        
+        _show = false;
+        Refresh();
+    }
+
+    private void OnClickBack()
+    {
+        // Ensure at least 100ms passed since open
+        if ((DateTime.Now - _openTime).TotalMilliseconds < 100)
+            return;
+        
+        _show = false;
+        _wasClicked = false;
+        
+        Refresh();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_show)
+        {
+            await ContextMenuRoot.NotifySubmenuOpen(_contentElement);
+        }
+        else
+        {
+            await ContextMenuRoot.NotifySubmenuClose(_contentElement);
+        }
+        
+        _render = false;
+    }
+
+    protected override bool ShouldRender() => _render;
+    
+    public void Refresh()
+    {
+        _render = true;
+        StateHasChanged();
+    }
+}

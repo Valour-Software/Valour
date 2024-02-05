@@ -1,4 +1,5 @@
-﻿@implements IDisposable
+﻿@inject ContextMenuService ContextMenuService
+@implements IDisposable
 
 @* Placeholder *@
 @if (User is null)
@@ -20,8 +21,8 @@
     return;
 }
 
-<ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline' tabindex="0"
-                    @onkeydown="@(e => { if (e.Key == "Enter") ShowProfileAsync(); })">
+<div @onpointerdown="@OnContextMenu" style="display:inline" tabindex="0"
+     @onkeydown="@(async e => { if (e.Key == "Enter") await ShowProfileAsync(); })">
     <div class="user-info" style="@Style" @onclick="ShowProfileAsync">
         <div class="left-block">
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
@@ -56,7 +57,7 @@
             <div class="state-circle @_statusClass" />
         </div>
     </div>
-</ContextMenuTrigger>
+</div>
 
 @code {
     [Parameter]
@@ -75,7 +76,6 @@
 
     // The type, either "user" or "member"
     private string _type = "user";
-    private string _contextMenu = "user-context";
     
     // Internal cached values
     private string _name = DefaultName;
@@ -120,7 +120,6 @@
             Member.OnUpdated += OnMemberUpdate;
             Member.OnRoleModified += OnMemberRoleModified;
             _type = "member";
-            _contextMenu = "member-context";
         }
 
         await CalculateAll();
@@ -152,7 +151,7 @@
         }
     }
 
-    private async Task OnContextMenu()
+    private async Task OnContextMenu(MouseEventArgs e)
     {
         if (Member is not null)
         {
@@ -160,7 +159,12 @@
         }
         else
         {
-            UserContextMenuComponent.Initialize(User);
+            ContextMenuService.Root.OpenMenu<UserContextMenu>(e,
+                new UserContextMenu.UserContextParams()
+                {
+                    User = User
+                }
+            );
         }
     }
 

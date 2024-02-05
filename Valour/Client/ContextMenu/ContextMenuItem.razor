@@ -1,0 +1,19 @@
+<button class="context-btn" @OnClick="OnClicked">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public Func<Task> OnClick { get; set; }
+    
+    private Task OnClicked()
+    {
+        if (OnClick is not null)
+            return OnClick.Invoke();
+
+        return Task.CompletedTask;
+    }
+}

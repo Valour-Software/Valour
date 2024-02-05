@@ -1,8 +1,7 @@
 @inject IJSRuntime JsRuntime
-@inject IBlazorContextMenuService ContextService
 @using Valour.Sdk.Models.Messages
 
-<ContextMenu Id="message-context" CssClass="context" class='member-context'>
+<ContextMenuBase Id="message-context" CssClass="context" class='member-context'>
     <BlazorContextMenu.Item CssClass='context-item'>
         Copy
         <SubMenu CssClass="context-sub">
@@ -42,7 +41,7 @@
             </SubMenu>
         </BlazorContextMenu.Item>
     }
-</ContextMenu>
+</ContextMenuBase>
 
 
 @code {

@@ -1,0 +1,17 @@
+.context-btn {
+    display: block;
+    border: none;
+    background-color: transparent;
+    color: white;
+    font-size: 14px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    border-radius: 0.5em;
+    text-align: left;
+    width: 100%;
+    font-weight: 500;
+}
+
+.context-btn:hover {
+    background-color: #ffffff88;
+}

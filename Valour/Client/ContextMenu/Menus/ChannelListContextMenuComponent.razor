@@ -1,7 +1,7 @@
 @inject IJSRuntime JsRuntime
 
 @using Item = Valour.Sdk.Items.LiveModel
-<ContextMenu Id='list-context' CssClass='context'>
+<ContextMenuBase Id='list-context' CssClass='context'>
     @if (CanModify)
     {
         // Only allow adding channels to categories
@@ -16,7 +16,7 @@
         <BlazorContextMenu.Item CssClass='context-model' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
     }
     <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-model'>Copy Id</BlazorContextMenu.Item>
-</ContextMenu>
+</ContextMenuBase>
 
 @code {
 
