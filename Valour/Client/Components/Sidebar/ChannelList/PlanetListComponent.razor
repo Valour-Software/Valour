@@ -1,51 +1,47 @@
 ﻿@inject WindowManager WindowManager
 @inject ChannelListManager ListManager
+@inject ContextMenuService ContextMenuService
 
-<ContextMenuTrigger 
-    MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" 
-    MenuId='planet-context'>
-    <div 
-        class="@GetCssClass()" 
-        id="list-@Planet.Id"
-        @onpointerdown:stopPropagation="true"
-        @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
-        <div style="cursor:pointer" id="list-inner-@Planet.Id">
-            <div @onclick='@OnClick'
-                 class="header" ondragover="event.preventDefault();">
-                <img alt="planet dropdown arrow" class="arrow" src="_content/Valour.Client/media/channel-icons/category_unread.svg" style="@GetArrowStyle()">
-                <p class="planet-name">
-                    @Planet.Name
-                </p>
+<div 
+    class="@GetCssClass()" 
+    id="list-@Planet.Id"
+    @oncontextpress="@OnContextPress">
+    <div style="cursor:pointer" id="list-inner-@Planet.Id">
+        <div @onclick='@OnClick'
+             class="header" ondragover="event.preventDefault();">
+            <img alt="planet dropdown arrow" class="arrow" src="_content/Valour.Client/media/channel-icons/category_unread.svg" style="@GetArrowStyle()">
+            <p class="planet-name">
+                @Planet.Name
+            </p>
 
-                <img alt="planet icon" src="@Planet.IconUrl" class="icon" />
-            </div>
-        </div>
-        <div class="channel-list">
-            
-            @if (Open)
-            {
-                <div class="channel planet-about" @onclick="OnClickPlanetInfo">
-                    <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
-                    <p class="name">
-                        About Planet
-                    </p>
-                </div>
-
-                <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
-                    <!-- The Modal -->
-                    @foreach (var channel in TopChannels)
-                    {
-                        <ChannelListItem @key="@channel.Id"
-                                         PlanetComponent="@this"
-                                         AllChannels="@AllChannels"
-                                         Channel="@channel"
-                                         IsTopLevel="@true" />
-                    }
-                </ContextMenuTrigger>
-            }
+            <img alt="planet icon" src="@Planet.IconUrl" class="icon" />
         </div>
     </div>
-</ContextMenuTrigger>
+    <div class="channel-list">
+        
+        @if (Open)
+        {
+            <div class="channel planet-about" @onclick="OnClickPlanetInfo">
+                <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
+                <p class="name">
+                    About Planet
+                </p>
+            </div>
+
+            <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
+                <!-- The Modal -->
+                @foreach (var channel in TopChannels)
+                {
+                    <ChannelListItem @key="@channel.Id"
+                                     PlanetComponent="@this"
+                                     AllChannels="@AllChannels"
+                                     Channel="@channel"
+                                     IsTopLevel="@true" />
+                }
+            </ContextMenuTrigger>
+        }
+    </div>
+</div>
 
 @code {
     [Parameter]
@@ -72,6 +68,16 @@
         
         await GetAllChannels();
         GetTopLevelItems();
+    }
+
+    private void OnContextPress(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<PlanetContextMenu>(e,
+            new PlanetContextMenu.PlanetContextParams()
+            {
+                Planet = Planet
+            }
+        );
     }
 
     private Task OnOrderUpdate(CategoryOrderEvent eventData)

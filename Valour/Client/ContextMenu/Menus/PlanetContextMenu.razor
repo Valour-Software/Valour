@@ -1,0 +1,81 @@
+﻿@inherits ContextMenu<PlanetContextMenu.PlanetContextParams>
+@inject IJSRuntime JsRuntime
+
+@if (ValourClient.Self.Id != Data.Planet.OwnerId)
+{
+    <ContextMenuItem OnClick='@OnClickLeavePlanet'>Leave Planet</ContextMenuItem>
+}
+@if (CanEdit)
+{
+    <ContextMenuItem OnClick='@OnClickEdit'>Edit</ContextMenuItem>
+}
+<ContextMenuItem OnClick='@OnClickCopyId'>Copy Id</ContextMenuItem>
+
+@code {
+
+    public class PlanetContextParams
+    {
+        public Planet Planet;
+    }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    public static bool CanEdit { get; set; }
+
+    public static PlanetContextMenu Instance;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var selfMember = await ValourClient.GetSelfMember(Data.Planet.Id);
+        if (selfMember is null)
+        {
+            CanEdit = false;
+        }
+        else
+        {
+            CanEdit = await selfMember.HasPermissionAsync(PlanetPermissions.Manage);
+        }
+        
+        StateHasChanged();
+    }
+
+    private Task OnClickEdit()
+    {
+        var data = new EditPlanetComponent.ModalParams()
+        {
+            Planet = Data.Planet
+        };
+        
+        ModalRoot.OpenModal<EditPlanetComponent>(data);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnClickCopyId()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Planet.Id);
+    }
+
+    private Task OnClickLeavePlanet()
+    {
+        var modalData =
+        new ConfirmModalComponent.ModalParams(
+             $"Leave {Data.Planet.Name}?",
+             "Are you sure?",
+             "Continue",
+             "Cancel",
+             async () =>
+             {
+                 Console.WriteLine("Confirmed leaving planet.");
+                 var result = await ValourClient.LeavePlanetAsync(Data.Planet);
+                 Console.WriteLine("Leave: " + result.Message);
+             },
+             () => Task.CompletedTask
+        );
+        
+        ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
+
+        return Task.CompletedTask;
+    }
+}
