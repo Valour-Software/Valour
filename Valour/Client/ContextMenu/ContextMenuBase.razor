@@ -2,10 +2,8 @@
 
 <div 
     class="context-wrapper" 
-    @onclick="@ContextMenuRoot.CloseMenu"
-    @oncontextmenu="@ContextMenuRoot.CloseMenu">
-    <div @onclick:stopPropagation="true"
-         @oncontextmenu:stopPropagation="true">
+    @onpointerdown="@ContextMenuRoot.CloseMenu">
+    <div @onpointerdown:stopPropagation="true">
         <div 
             @ref="@_element" 
             class="context"

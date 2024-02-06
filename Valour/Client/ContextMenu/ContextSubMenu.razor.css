@@ -14,7 +14,7 @@
     padding: 6px;
     border-radius: 1em;
     white-space: nowrap;
-    background-color: #0b151dcc;
+    background-color: #000000cc;
     backdrop-filter: blur(5px);
 }
 
@@ -46,7 +46,7 @@
     display: none;
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 800px) {
     .sub-content {
         position: fixed;
         bottom: 0;
@@ -58,5 +58,11 @@
     
     .mobile-back {
         display: block;
+    }
+
+    .context-btn {
+        font-size: 18px;
+        padding-top: 8px;
+        padding-bottom: 8px;
     }
 }

@@ -21,14 +21,14 @@
     return;
 }
 
-<div @onpointerdown="@OnContextMenu" style="display:inline" tabindex="0"
+<div @oncontextpress="@OnContextMenu" style="display:inline" tabindex="0"
      @onkeydown="@(async e => { if (e.Key == "Enter") await ShowProfileAsync(); })">
-    <div class="user-info" style="@Style" @onclick="ShowProfileAsync">
+    <div class="user-info" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
-            <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
+            <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="@OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username" style="color: @_roleColor" @onclick="ShowProfileAsync">@_name</p>
+                    <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
                     <div class="dot-badge-holder">
                         @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                         {

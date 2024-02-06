@@ -12,15 +12,13 @@
     position: absolute;
     padding: 6px;
     border-radius: 0.7em;
-    background-color: #0b151dcc;
+    background-color: #000000cc;
     backdrop-filter: blur(5px);
     white-space: nowrap;
-    opacity: 1;
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 800px) {
     .context {
-        position: fixed;
         bottom: 0;
         left: 0 !important;
         right: 0 !important;
@@ -30,8 +28,10 @@
     }
     
     .context:has(.sub-open){
-        height: 0;
-        padding: 0;
+        /* it's crazy but it works */
+        height: 150vh;
+        background-color: transparent;
+        backdrop-filter: none;
     }
 }
 

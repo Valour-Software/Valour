@@ -43,8 +43,8 @@ export function reposition(){
     const windowWidth = document.documentElement.clientWidth;
     const windowHeight = document.documentElement.clientHeight;
 
-    let posX = targetX;
-    let posY = targetY;
+    let posX = targetX - 10;
+    let posY = targetY - 10;
 
     // Check if the element is going off the right side of the screen
     if(posX + width > windowWidth){

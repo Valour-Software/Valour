@@ -4,7 +4,7 @@
 @implements IDisposable
 
 <div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" @onclick="OnClick"> 
-    <div class="outer-circle" @oncontextmenu="@OnContextMenu">
+    <div class="outer-circle" @oncontextpress="@OnContextMenu">
         <div class="text-hide-circle"></div>
         <img alt="friend icon" src='@_iconUrl' class="icon" @onerror='OnIconError' style='@_imageStyle'/>
         @if (_isUnread || _notificationCount > 0)
@@ -47,7 +47,7 @@
         HomeWindowComponent.RerenderFriendCards += Refresh;
     }
 
-    private void OnContextMenu(MouseEventArgs e)
+    private void OnContextMenu(ContextPressEventArgs e)
     {
         ContextMenuService.Root.OpenMenu<UserContextMenu>(e, 
             new UserContextMenu.UserContextParams()
