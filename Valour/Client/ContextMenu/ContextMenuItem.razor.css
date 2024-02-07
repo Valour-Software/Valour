@@ -11,6 +11,7 @@
     text-align: left;
     width: 100%;
     font-weight: 500;
+    outline: none !important;
 }
 
 .context-bg {

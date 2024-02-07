@@ -12,9 +12,21 @@
     position: absolute;
     padding: 6px;
     border-radius: 0.7em;
-    background-color: #000000bb;
-    backdrop-filter: blur(5px);
     white-space: nowrap;
+}
+
+.context::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    margin-left: -6px;
+    margin-top: -6px;
+    border-radius: 0.7em;
+    background-color: #000000aa;
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    z-index: -1;
 }
 
 .mobile .context {
@@ -28,9 +40,7 @@
 
 .mobile .context:has(.sub-open){
     /* it's crazy but it works */
-    height: 150vh;
-    background-color: transparent;
-    backdrop-filter: none;
+    height: 0;
 }
 
 @keyframes slide-in {

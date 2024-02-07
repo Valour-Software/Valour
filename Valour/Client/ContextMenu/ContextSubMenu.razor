@@ -1,7 +1,6 @@
 <button
     class="label context-btn @(_show ? "sub-open" : "")"
     @onclick:stopPropagation="true"
-    @ontouchstart:stopPropagation="true"
     @onclick="@OnClicked"
     @onmouseenter="@OnMouseEnter"
     @onmouseleave="@OnMouseLeave">
@@ -22,17 +21,14 @@
     @if (_show)
     {
         <div
-            @ontouchend:stopPropagation="true"
-            @onclick:stopPropagation="true"
             @ref="@_contentElement"
             class="content-wrapper">
             <div class="focus-bar"></div>
             <div class="sub-content">
                 @Content
                 <div
-                    class="mobile-back"
-                    @onclick="@OnClickBack">
-                    <ContextMenuItem>◄ Go Back</ContextMenuItem>
+                    class="mobile-back">
+                    <ContextMenuItem OnClick="@OnClickBack">◄ Go Back</ContextMenuItem>
                 </div>
             </div>
         </div>
@@ -77,10 +73,18 @@
         
         _wasClicked = true;
         
-        OnMouseEnter();
+        DoOpen();
     }
     
     private void OnMouseEnter()
+    {
+        if (DeviceInfo.IsMobile)
+            return;
+        
+        DoOpen();
+    }
+
+    private void DoOpen()
     {
         _show = true;
         _openTime = DateTime.Now;
@@ -89,6 +93,9 @@
 
     private void OnMouseLeave()
     {
+        if (DeviceInfo.IsMobile)
+            return;
+        
         // If it was a click, we do not want
         // to close the menu when the mouse leaves
         if (_wasClicked)
@@ -98,16 +105,20 @@
         Refresh();
     }
 
-    private void OnClickBack()
+    private Task OnClickBack()
     {
+        Console.WriteLine("Clicked back");
+        
         // Ensure at least 100ms passed since open
-        if ((DateTime.Now - _openTime).TotalMilliseconds < 100)
-            return;
+        //if ((DateTime.Now - _openTime).TotalMilliseconds < 100)
+        //    return;
         
         _show = false;
         _wasClicked = false;
         
         Refresh();
+        
+        return Task.CompletedTask;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
