@@ -1,30 +1,34 @@
 ﻿@implements IDisposable
 
-@foreach (var role in Roles)
+@foreach (var role in _roles)
 {
 	var cRole = role;
-	var hasRole = MemberRoles.Any(x => x.Id == role.Id);
+	var hasRole = _memberRoles.Any(x => x.Id == role.Id);
 
-	<BlazorContextMenu.Item CssClass='context-model'>
-		<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
+	<ContextMenuItem>
+		<div class="role-row" @onpointerdown="@(() => OnRoleClick(cRole, !hasRole))">
+			<div class="v-checkmark-wrapper">
+				<input class="role-checkbox" type="checkbox"
+                			       checked="@hasRole" disabled />
+				<span class="v-checkmark" style="@(hasRole ? $"background-color: {role.Color};" : "")"></span>
+				<i class="bi bi-check v-checkmark-fill"></i>
+			</div>
 			<p style="color:@role.Color; display: inline-block; margin: 0;">@role.Name</p>
-			<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
-			   checked="@hasRole" disabled />
 		</div>
-	</BlazorContextMenu.Item>
+	</ContextMenuItem>
 }
 
 @code {
 	[Parameter]
 	public PlanetMember Member { get; set; }
 
-	public List<PlanetRole> Roles { get; set; }
-	public List<PlanetRole> MemberRoles { get; set; }
+	private List<PlanetRole> _roles { get; set; }
+	private List<PlanetRole> _memberRoles { get; set; }
 
 	protected override async Task OnInitializedAsync()
 	{
-		Roles = await (await Member.GetPlanetAsync()).GetRolesAsync();
-		MemberRoles = await Member.GetRolesAsync();
+		_roles = await (await Member.GetPlanetAsync()).GetRolesAsync();
+		_memberRoles = await Member.GetRolesAsync();
 
 		ModelObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
 		Member.OnRoleModified += OnMemberRoleUpdate;
@@ -36,24 +40,28 @@
 		Member.OnRoleModified -= OnMemberRoleUpdate;
 	}
 
-	public async Task OnRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
+	private Task OnRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
 	{
 		var role = eventData.Model;
-		if (Roles.Any(x => x.Id == role.Id))
+		if (_roles.Any(x => x.Id == role.Id))
 			StateHasChanged();
+
+		return Task.CompletedTask;
 	}
 
-	public async Task OnRoleDeleted(PlanetRole role)
+	private Task OnRoleDeleted(PlanetRole role)
 	{
-		if (Roles.Any(x => x.Id == role.Id))
+		if (_roles.Any(x => x.Id == role.Id))
 		{
-			Roles.RemoveAll(x => x.Id == role.Id);
-			MemberRoles.RemoveAll(x => x.Id == role.Id);
+			_roles.RemoveAll(x => x.Id == role.Id);
+			_memberRoles.RemoveAll(x => x.Id == role.Id);
 			StateHasChanged();
 		}
+
+		return Task.CompletedTask;
 	}
 
-	public async Task OnRoleClick(PlanetRole role, bool value)
+	private async Task OnRoleClick(PlanetRole role, bool value)
 	{
 		if (value)
 			// Add role
@@ -66,9 +74,9 @@
 		StateHasChanged();
 	}
 
-	public async Task OnMemberRoleUpdate(MemberRoleEvent eventData)
+	private async Task OnMemberRoleUpdate(MemberRoleEvent eventData)
 	{
-		MemberRoles = await Member.GetRolesAsync();
+		_memberRoles = await Member.GetRolesAsync();
 		StateHasChanged();
 	}
 }

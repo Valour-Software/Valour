@@ -28,7 +28,7 @@
                 </p>
             </div>
 
-            <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
+            <div>
                 <!-- The Modal -->
                 @foreach (var channel in TopChannels)
                 {
@@ -38,7 +38,7 @@
                                      Channel="@channel"
                                      IsTopLevel="@true" />
                 }
-            </ContextMenuTrigger>
+            </div>
         }
     </div>
 </div>

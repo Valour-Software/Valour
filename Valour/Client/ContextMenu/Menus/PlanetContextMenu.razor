@@ -5,7 +5,7 @@
 {
     <ContextMenuItem OnClick='@OnClickLeavePlanet'>Leave Planet</ContextMenuItem>
 }
-@if (CanEdit)
+@if (_canEdit)
 {
     <ContextMenuItem OnClick='@OnClickEdit'>Edit</ContextMenuItem>
 }
@@ -21,20 +21,18 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    public static bool CanEdit { get; set; }
-
-    public static PlanetContextMenu Instance;
-
+    private static bool _canEdit;
+    
     protected override async Task OnInitializedAsync()
     {
         var selfMember = await ValourClient.GetSelfMember(Data.Planet.Id);
         if (selfMember is null)
         {
-            CanEdit = false;
+            _canEdit = false;
         }
         else
         {
-            CanEdit = await selfMember.HasPermissionAsync(PlanetPermissions.Manage);
+            _canEdit = await selfMember.HasPermissionAsync(PlanetPermissions.Manage);
         }
         
         StateHasChanged();

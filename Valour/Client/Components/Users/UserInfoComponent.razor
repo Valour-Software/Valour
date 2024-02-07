@@ -151,11 +151,16 @@
         }
     }
 
-    private async Task OnContextMenu(MouseEventArgs e)
+    private void OnContextMenu(MouseEventArgs e)
     {
         if (Member is not null)
         {
-            await InnerMemberContextMenuComponent.Initialize(Member, null);
+            ContextMenuService.Root.OpenMenu<MemberContextMenu>(e,
+                new MemberContextMenu.MemberContextParams()
+                {
+                    Member = Member
+                }
+            );
         }
         else
         {

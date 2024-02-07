@@ -5,7 +5,7 @@
 @using Microsoft.AspNetCore.Components.Rendering
 @using Valour.Sdk.Nodes
 
-<ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
+<div @key="@_id" Id="@_id" class="chat-holder mt-auto">
     <!-- Pushes messages to bottom -->
     <div style="flex-grow: 1; flex-shrink: 1; height: 0"></div>
     
@@ -15,17 +15,17 @@
     </CascadingValue>
 
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
-</ContextMenuTrigger>
+</div>
 
 <InputComponent @ref="@InputComponent" MessageHolder="@this" />
 
 @code {
     public class MessageComponentParams
     {
-        public Message Message { get; set; }
-        public Message LastMessage { get; set; }
-        public bool IsInnerReply { get; set; }
-        public bool Ghost { get; set; }
+        public Message Message;
+        public Message LastMessage;
+        public bool IsInnerReply;
+        public bool Ghost;
     }
 
     [CascadingParameter]

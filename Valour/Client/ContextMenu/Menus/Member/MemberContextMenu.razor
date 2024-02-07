@@ -1,0 +1,193 @@
+@inherits ContextMenu<MemberContextMenu.MemberContextParams>
+@inject IJSRuntime JsRuntime
+@inject WindowManager WindowManager
+
+
+<ContextMenuItem OnClick="@OnClickMessage">
+	<Label>Message</Label>
+	<Icon>
+		<i class="bi bi-chat-dots-fill"></i>
+	</Icon>
+</ContextMenuItem>
+
+@if (_isFriend)
+{
+	<ContextMenuItem OnClick="@OnClickRemoveFriend">
+		<Label>Remove Friend</Label>
+		<Icon>-<i class="bi bi-person-fill"></i></Icon>
+	</ContextMenuItem>
+}
+else if (_isFriendRequested)
+{
+	<ContextMenuItem OnClick="@OnClickRemoveFriend">Cancel Request</ContextMenuItem>
+}
+else
+{
+	<ContextMenuItem OnClick="@OnClickAddFriend">
+		<Label>Add Friend</Label>
+		<Icon>+<i class="bi bi-person-fill"></i></Icon>
+	</ContextMenuItem>
+}
+@if (_canKick)
+{
+	<ContextMenuItem OnClick="@OnClickKick" Color="red">
+		<Label>Kick</Label>
+		<Icon><i class="bi bi-shield-fill-exclamation"></i></Icon>
+	</ContextMenuItem>
+}
+@if (_canBan) {
+	<ContextMenuItem OnClick="@OnClickBan" Color="red">
+		<Label>Ban</Label>
+		<Icon><i class="bi bi-hammer"></i></Icon>
+	</ContextMenuItem>
+}
+<ContextSubMenu>
+	<Label>Roles</Label>
+	<Icon><i class="bi bi-caret-right-fill"></i></Icon>
+	<Content>
+		<RolesMenuComponent Member="Data.Member"></RolesMenuComponent>
+	</Content>
+</ContextSubMenu>
+
+<ContextSubMenu>
+	<Label>Copy</Label>
+	<Icon><i class="bi bi-caret-right-fill"></i></Icon>
+	<Content>
+		<ContextMenuItem OnClick="@OnClickCopyNickname">Nickname</ContextMenuItem>
+        <ContextMenuItem OnClick="@OnClickCopyUsername">Username</ContextMenuItem>
+        <ContextMenuItem OnClick="@OnClickCopyMemberId">Member Id</ContextMenuItem>
+        <ContextMenuItem OnClick="@OnClickCopyUserId">User Id</ContextMenuItem>
+	</Content>
+</ContextSubMenu>
+
+@code {
+
+	public class MemberContextParams
+	{
+		public PlanetMember Member;
+		public ClientWindow Window;
+	}
+
+	[CascadingParameter]
+	public ModalRoot ModalRoot { get; set; }
+
+	private User _user;
+	private bool _canKick;
+	private bool _canBan;
+	private bool _isFriend;
+	private bool _isFriendRequested;
+
+	private async Task OnClickAddFriend()
+	{
+		var result = await ValourClient.AddFriendAsync(_user.NameAndTag);
+
+		if (!result.Success)
+		{
+			await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+			return;
+		}
+
+		_isFriend = true;
+		StateHasChanged();
+	}
+
+	private async Task OnClickRemoveFriend()
+	{
+		var result = await ValourClient.RemoveFriendAsync(_user.NameAndTag);
+
+		if (!result.Success)
+		{
+			await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+			return;
+		}
+
+		_isFriend = false;
+		_isFriendRequested = false;
+		StateHasChanged();
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		_user = await Data.Member.GetUserAsync();
+		_isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == _user.Id);
+		_isFriend = ValourClient.Friends.Any(x => x.Id == _user.Id);
+
+		if ((await Data.Member.GetPlanetAsync()).OwnerId == ValourClient.Self.Id)
+		{
+			_canKick = true;
+			_canBan = true;
+		}
+		else {
+			var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Data.Member.PlanetId);
+			var primaryRole = await selfMember.GetPrimaryRoleAsync();
+			_canKick = primaryRole.HasPermission(PlanetPermissions.Kick);
+			_canBan = primaryRole.HasPermission(PlanetPermissions.Kick);
+		}
+	}
+
+	private async Task OnClickMessage()
+	{
+		var channel = await Channel.GetDirectChannelAsync(_user.Id, true);
+		var newWindow = new ChatChannelWindow(channel);
+
+		if (Data.Window is null)
+			Data.Window = WindowManager.GetSelectedWindow();
+		
+		Console.WriteLine($"Switching window {Data.Window.Id} to direct chat channel {channel.Id}");
+		
+		await WindowManager.ReplaceWindow(Data.Window, newWindow);
+		await WindowManager.SetSelectedWindow(newWindow);
+		await WindowManager.SetFocusedPlanet(null);
+	}
+
+	private async Task OnClickCopyNickname(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", await Data.Member.GetNameAsync());
+	}
+
+	private async Task OnClickCopyUsername(){
+		var user = await Data.Member.GetUserAsync();
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", user.NameAndTag);
+	}
+
+	private async Task OnClickCopyMemberId(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Id);
+	}
+
+	private async Task OnClickCopyUserId(){
+		var user = await Data.Member.GetUserAsync();
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
+	}
+
+	private Task OnClickKick()
+	{
+		var modalData =
+        new ConfirmModalComponent.ModalParams($"Kick {Data.Member.Nickname}?",
+             $"This will remove them from the planet.",
+             "Confirm",
+             "Cancel", 
+             () =>
+             {
+				 var result = Data.Member.Node.DeleteAsync($"api/members/{Data.Member.Id}");
+                 Console.WriteLine(result);
+	             return Task.CompletedTask;
+             },
+             () => Task.CompletedTask
+        );
+		
+		ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
+
+		return Task.CompletedTask;
+	}
+
+	private Task OnClickBan()
+	{
+		var data = new BanUserComponent.ModalParams()
+		{
+			Member = Data.Member
+		};
+		
+		ModalRoot.OpenModal<BanUserComponent>(data);
+
+		return Task.CompletedTask;
+	}
+}

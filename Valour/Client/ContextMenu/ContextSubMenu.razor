@@ -5,20 +5,32 @@
     @onclick="@OnClicked"
     @onmouseenter="@OnMouseEnter"
     @onmouseleave="@OnMouseLeave">
-    @Label
+    
+    <div class="context-bg @(_show ? "open" : "")" style="background-color: @Color"></div>
+
+    <span class="label-wrapper" style="color: @Color">
+        <span class="text">@Label</span>
+
+        @if (Icon is not null)
+        {
+            <span class="icon">
+                @Icon
+            </span>
+        }
+    </span>
 
     @if (_show)
     {
-        <div 
+        <div
             @ontouchend:stopPropagation="true"
             @onclick:stopPropagation="true"
-            @ref="@_contentElement" 
+            @ref="@_contentElement"
             class="content-wrapper">
             <div class="focus-bar"></div>
             <div class="sub-content">
                 @Content
-                <div 
-                    class="mobile-back" 
+                <div
+                    class="mobile-back"
                     @onclick="@OnClickBack">
                     <ContextMenuItem>◄ Go Back</ContextMenuItem>
                 </div>
@@ -33,10 +45,16 @@
     public ContextMenuRoot ContextMenuRoot { get; set; }
     
     [Parameter]
+    public RenderFragment Icon { get; set; }
+    
+    [Parameter]
     public RenderFragment Label { get; set; }
     
     [Parameter]
     public RenderFragment Content { get; set; }
+    
+    [Parameter]
+    public string Color { get; set; } = "#fff";
 
     private DateTime _openTime;
 
@@ -50,6 +68,13 @@
 
     private void OnClicked()
     {
+        if (_wasClicked)
+        {
+            _wasClicked = false;
+            OnMouseLeave();
+            return;
+        }
+        
         _wasClicked = true;
         
         OnMouseEnter();

@@ -1,4 +1,5 @@
 .context-btn {
+    position: relative;
     display: block;
     border: none;
     background-color: transparent;
@@ -12,8 +13,41 @@
     font-weight: 500;
 }
 
-.context-btn:hover {
-    background-color: #ffffff88;
+.context-bg {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    z-index: -1;
+    border-radius: 1em;
+}
+
+.context-btn:hover > .context-bg {
+    opacity: .2 !important;
+}
+
+.context-btn:active > .context-bg {
+    opacity: .3 !important;
+}
+
+.label-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+}
+
+.label-wrapper .text {
+    flex-grow: 1;
+}
+
+.label-wrapper .icon {
+    float: right; 
+    margin-left: 1em; 
+    font-size: 0.9em
 }
 
 @media only screen and (max-width: 800px) {

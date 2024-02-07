@@ -1,0 +1,142 @@
+@inherits ContextMenu<MessageContextMenu.MessageContextParams>
+@inject IJSRuntime JsRuntime
+
+<ContextSubMenu>
+    <Label>Copy</Label>
+    <Content>
+        <ContextMenuItem OnClick="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClick="@OnClickCopyId">Message Id</ContextMenuItem>
+    </Content>
+</ContextSubMenu>
+<ContextMenuItem OnClick="@OnClickReply">
+    Reply
+</ContextMenuItem>
+<ContextMenuItem OnClick="@OnClickReport">
+    Report
+</ContextMenuItem>
+
+@if (Data.Message.AuthorUserId == ValourClient.Self.Id)
+{
+    <ContextMenuItem OnClick="@OnClickEdit">
+        Edit
+    </ContextMenuItem>
+}
+
+@if (_deletePermission == PermissionState.True)
+{
+    <ContextMenuItem OnClick="@OnClickDelete">
+        Delete
+    </ContextMenuItem>
+}
+
+@if (_authorMember is not null)
+{
+    <ContextSubMenu>
+        <Label>Member</Label>
+        <Content>
+            <MemberContextMenu Data="@_memberContextData" />
+        </Content>
+    </ContextSubMenu>
+}
+
+
+@code {
+    
+    public class MessageContextParams
+    {
+        public Message Message;
+        public ChatChannelWindowComponent WindowComponent;
+        public MessageComponent MessageComponent;
+    }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private PlanetMember _authorMember;
+    private PermissionState _deletePermission = PermissionState.False;
+    private MemberContextMenu.MemberContextParams _memberContextData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data.Message.PlanetId is not null)
+        {
+            _authorMember = await Data.Message.GetAuthorMemberAsync();
+            _memberContextData = new()
+            {
+                Member = _authorMember,
+                Window = Data.WindowComponent.Window
+            };
+        }
+        else
+        {
+            _authorMember = null;
+        }
+
+        if (Data.Message.AuthorUserId == ValourClient.Self.Id)
+        {
+            _deletePermission = PermissionState.True;
+        }
+        else {
+            if (_authorMember is not null)
+            {
+                _deletePermission = Data.WindowComponent.ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+            }
+            else
+            {
+                _deletePermission = PermissionState.False;
+            }
+        }
+    }
+
+    private async Task OnClickReply()
+    {
+        var input = Data.MessageComponent.Holder.Window.Component.MessageHolder.InputComponent;
+        await input.SetReplyMessage(Data.Message);
+    }
+
+    private Task OnClickDelete()
+    {
+        var data = new ConfirmModalComponent.ModalParams("Delete message?", Data.Message.Content, "Delete", "Cancel",
+            async () =>
+            {
+                await Data.Message.DeleteAsync();
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(data);
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnClickReport()
+    {
+        var data = new ReportModalComponent.ModalParams()
+        {
+            Report = new Report()
+            {
+                ReportingUserId = ValourClient.Self.Id,
+                MessageId = Data.MessageComponent.Message.Id,
+                ChannelId = Data.MessageComponent.Message.ChannelId,
+                PlanetId = Data.MessageComponent.Message.PlanetId
+            }
+        };
+        
+        ModalRoot.OpenModal<ReportModalComponent>(data);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnClickEdit()
+    {
+        await Data.MessageComponent.OpenEditMode();
+    }
+
+	private async Task OnClickCopyText(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Content);
+	}
+
+	private async Task OnClickCopyId(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id);
+	}
+}

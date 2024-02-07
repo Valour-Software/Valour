@@ -26,10 +26,4 @@
     <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="ContextMenu\Menus\Member\InnerMemberContextMenuComponent.razor" />
-    <AdditionalFiles Include="ContextMenu\Menus\Member\MemberContextMenuComponent.razor" />
-    <AdditionalFiles Include="ContextMenu\Menus\Member\RolesMenuComponent.razor" />
-  </ItemGroup>
 </Project>

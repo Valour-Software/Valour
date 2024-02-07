@@ -3,6 +3,7 @@
 @inject WindowManager WindowManager
 @inject ChannelListManager ListManager
 @inject ClientCategoryManager CategoryManager
+@inject ContextMenuService ContextMenuService
 
 <div
     class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
@@ -18,8 +19,8 @@
     @ondrop:stopPropagation="true"
     @ondrop="@OnDropOn"
 
-    @onpointerdown:stopPropagation="true"
-    @onpointerdown='@PrepareContext'
+    @oncontextpress:stopPropagation="true"
+    @oncontextpress="@OnContextMenu"
 
     @ondragleave:stopPropagation="true"
     @ondragleave="@OnDragLeave">
@@ -181,6 +182,14 @@
         DetermineUnread();
     }
 
+    private void OnContextMenu(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<ChannelContextMenu>(e, new ChannelContextMenu.ChannelContextParams()
+        {
+            Channel = Channel
+        });
+    }
+
     private void BuildChildren()
     {
         if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
@@ -232,11 +241,6 @@
         }
         
         Refresh();
-    }
-    
-    private async Task PrepareContext()
-    {
-        await ChannelListContextMenuComponent.SetSelectedItem(Channel);
     }
     
     private void DetermineUnread()
