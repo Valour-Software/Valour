@@ -45,6 +45,11 @@
         StateHasChanged();
     }
 
+    public bool HasMenu()
+    {
+        return _currentMenuType is not null;
+    }
+
     public async Task NotifySubmenuOpen(ElementReference element)
     {
         await _jsModule.InvokeVoidAsync("addSubmenu", element);

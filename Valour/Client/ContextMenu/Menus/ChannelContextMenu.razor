@@ -76,7 +76,10 @@
         ModalRoot.OpenModal<CreateChannelComponent>(data);
     }
 
-    private async Task DeleteChannelListItem(){
+    private async Task DeleteChannelListItem()
+    {
+        await CloseAsync();
+        
         if (Data.Channel.ChannelType == ChannelTypeEnum.PlanetCategory){
             var planet = await Data.Channel.GetPlanetAsync();
             var channels = await planet.GetAllChannelsAsync();
@@ -120,15 +123,15 @@
         ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
     }
 
-    private Task EditChannelListItem()
+    private async Task EditChannelListItem()
     {
+        await CloseAsync();
+        
         var data = new EditChannelListItemComponent.ModalParams()
         {   
             ChannelListItem = Data.Channel
         };
         
         ModalRoot.OpenModal<EditChannelListItemComponent>(data);
-
-        return Task.CompletedTask;
     }
 }

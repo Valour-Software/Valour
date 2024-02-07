@@ -12,27 +12,25 @@
     position: absolute;
     padding: 6px;
     border-radius: 0.7em;
-    background-color: #000000cc;
+    background-color: #000000bb;
     backdrop-filter: blur(5px);
     white-space: nowrap;
 }
 
-@media screen and (max-width: 800px) {
-    .context {
-        bottom: 0;
-        left: 0 !important;
-        right: 0 !important;
-        top: unset !important;
-        border-radius: 0 !important;
-        animation: slide-in 0.2s ease-in-out;
-    }
-    
-    .context:has(.sub-open){
-        /* it's crazy but it works */
-        height: 150vh;
-        background-color: transparent;
-        backdrop-filter: none;
-    }
+.mobile .context {
+    bottom: 0;
+    left: 0 !important;
+    right: 0 !important;
+    top: unset !important;
+    border-radius: 0 !important;
+    animation: slide-in 0.2s ease-in-out;
+}
+
+.mobile .context:has(.sub-open){
+    /* it's crazy but it works */
+    height: 150vh;
+    background-color: transparent;
+    backdrop-filter: none;
 }
 
 @keyframes slide-in {

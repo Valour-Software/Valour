@@ -44,7 +44,7 @@
     border-radius: 1em;
 }
 
-.context-btn .context-bg.open\ {
+.context-btn:hover > .context-bg {
     opacity: .2 !important;
 }
 
@@ -79,23 +79,23 @@
     font-size: 0.9em
 }
 
-@media screen and (max-width: 800px) {
-    .sub-content {
-        position: fixed;
-        bottom: 0;
-        left: 0 !important;
-        right: 0 !important;
-        top: unset !important;
-        border-radius: 0 !important;
-    }
-    
-    .mobile-back {
-        display: block;
-    }
+.mobile .sub-content {
+    position: fixed;
+    bottom: 0;
+    left: 0 !important;
+    right: 0 !important;
+    top: unset !important;
+    border-radius: 0 !important;
+    max-height: 30vh;
+    overflow-y: auto;
+}
 
-    .context-btn {
-        font-size: 18px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-    }
+.mobile .mobile-back {
+    display: block;
+}
+
+.mobile .context-btn {
+    font-size: 18px;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }

@@ -1,15 +1,25 @@
 ﻿@inherits ContextMenu<PlanetContextMenu.PlanetContextParams>
 @inject IJSRuntime JsRuntime
 
-@if (ValourClient.Self.Id != Data.Planet.OwnerId)
-{
-    <ContextMenuItem OnClick='@OnClickLeavePlanet'>Leave Planet</ContextMenuItem>
-}
 @if (_canEdit)
 {
-    <ContextMenuItem OnClick='@OnClickEdit'>Edit</ContextMenuItem>
+    <ContextMenuItem OnClick='@OnClickEdit'>
+        <Label>Edit</Label>
+        <Icon><i class="bi bi-pen-fill"></i></Icon>
+    </ContextMenuItem>
 }
-<ContextMenuItem OnClick='@OnClickCopyId'>Copy Id</ContextMenuItem>
+<ContextMenuItem OnClick='@OnClickCopyId'>
+    <Label>Copy ID</Label>
+    <Icon><i class="bi bi-database-fill"></i></Icon>
+</ContextMenuItem>
+
+@if (ValourClient.Self.Id != Data.Planet.OwnerId)
+{
+    <ContextMenuItem OnClick='@OnClickLeavePlanet' Color="red">
+        <Label>Leave Planet</Label>
+        <Icon><i class="bi bi-box-arrow-left"></i></Icon>
+    </ContextMenuItem>
+}
 
 @code {
 
@@ -38,16 +48,16 @@
         StateHasChanged();
     }
 
-    private Task OnClickEdit()
+    private async Task OnClickEdit()
     {
+        await CloseAsync();
+        
         var data = new EditPlanetComponent.ModalParams()
         {
             Planet = Data.Planet
         };
         
         ModalRoot.OpenModal<EditPlanetComponent>(data);
-
-        return Task.CompletedTask;
     }
 
     private async Task OnClickCopyId()
@@ -55,8 +65,10 @@
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Planet.Id);
     }
 
-    private Task OnClickLeavePlanet()
+    private async Task OnClickLeavePlanet()
     {
+        await CloseAsync();
+        
         var modalData =
         new ConfirmModalComponent.ModalParams(
              $"Leave {Data.Planet.Name}?",
@@ -73,7 +85,5 @@
         );
         
         ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
-
-        return Task.CompletedTask;
     }
 }

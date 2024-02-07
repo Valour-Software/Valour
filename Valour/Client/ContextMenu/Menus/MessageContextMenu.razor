@@ -1,31 +1,16 @@
 @inherits ContextMenu<MessageContextMenu.MessageContextParams>
 @inject IJSRuntime JsRuntime
 
-<ContextSubMenu>
-    <Label>Copy</Label>
-    <Content>
-        <ContextMenuItem OnClick="@OnClickCopyText">Text</ContextMenuItem>
-        <ContextMenuItem OnClick="@OnClickCopyId">Message Id</ContextMenuItem>
-    </Content>
-</ContextSubMenu>
 <ContextMenuItem OnClick="@OnClickReply">
-    Reply
-</ContextMenuItem>
-<ContextMenuItem OnClick="@OnClickReport">
-    Report
+    <Label>Reply</Label>
+    <Icon><i class="bi bi-reply-fill"></i></Icon>
 </ContextMenuItem>
 
 @if (Data.Message.AuthorUserId == ValourClient.Self.Id)
 {
     <ContextMenuItem OnClick="@OnClickEdit">
-        Edit
-    </ContextMenuItem>
-}
-
-@if (_deletePermission == PermissionState.True)
-{
-    <ContextMenuItem OnClick="@OnClickDelete">
-        Delete
+        <Label>Edit</Label>
+        <Icon><i class="bi bi-pen-fill"></i></Icon>
     </ContextMenuItem>
 }
 
@@ -33,11 +18,34 @@
 {
     <ContextSubMenu>
         <Label>Member</Label>
+        <Icon><i class="bi bi-caret-right-fill"></i></Icon>
         <Content>
             <MemberContextMenu Data="@_memberContextData" />
         </Content>
     </ContextSubMenu>
 }
+
+<ContextSubMenu>
+    <Label>Copy</Label>
+    <Icon><i class="bi bi-caret-right-fill"></i></Icon>
+    <Content>
+        <ContextMenuItem OnClick="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClick="@OnClickCopyId">Message Id</ContextMenuItem>
+    </Content>
+</ContextSubMenu>
+
+@if (_deletePermission == PermissionState.True)
+{
+    <ContextMenuItem OnClick="@OnClickDelete" Color="red">
+        <Label>Delete</Label>
+        <Icon><i class="bi bi-trash-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
+<ContextMenuItem OnClick="@OnClickReport" Color="red">
+    <Label>Report</Label>
+    <Icon><i class="bi bi-flag-fill"></i></Icon>
+</ContextMenuItem>
 
 
 @code {
@@ -90,12 +98,17 @@
 
     private async Task OnClickReply()
     {
+        // Close the context menu
+        await CloseAsync();
+        
         var input = Data.MessageComponent.Holder.Window.Component.MessageHolder.InputComponent;
         await input.SetReplyMessage(Data.Message);
     }
 
-    private Task OnClickDelete()
+    private async Task OnClickDelete()
     {
+        await CloseAsync();
+        
         var data = new ConfirmModalComponent.ModalParams("Delete message?", Data.Message.Content, "Delete", "Cancel",
             async () =>
             {
@@ -105,12 +118,12 @@
         );
 
         ModalRoot.OpenModal<ConfirmModalComponent>(data);
-
-        return Task.CompletedTask;
     }
 
-    private Task OnClickReport()
+    private async Task OnClickReport()
     {
+        await CloseAsync();
+        
         var data = new ReportModalComponent.ModalParams()
         {
             Report = new Report()
@@ -123,12 +136,11 @@
         };
         
         ModalRoot.OpenModal<ReportModalComponent>(data);
-
-        return Task.CompletedTask;
     }
 
     private async Task OnClickEdit()
     {
+        await CloseAsync();
         await Data.MessageComponent.OpenEditMode();
     }
 

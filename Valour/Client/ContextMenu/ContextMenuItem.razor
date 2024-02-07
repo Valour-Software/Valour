@@ -1,4 +1,6 @@
-<button class="context-btn" @onclick="@OnClicked">
+<button class="context-btn" 
+        @onclick:stopPropagation="true"
+        @onclick="@OnClicked">
     <div class="context-bg" style="background-color: @Color"></div>
     @ChildContent
 

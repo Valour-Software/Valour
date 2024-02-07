@@ -22,6 +22,7 @@
 
 .v-checkmark-wrapper .role-checkbox:checked ~ .v-checkmark-fill {
     display: block;
+    color: black;
 }
 
 .v-checkmark {
@@ -38,7 +39,6 @@
     height: 1em;
     width: 1em;
     border-radius: 1em;
-    text-shadow: #000 0 0 4px;
 }
 
 .role-row {

@@ -50,10 +50,8 @@
     font-size: 0.9em
 }
 
-@media only screen and (max-width: 800px) {
-    .context-btn {
-        font-size: 18px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-    }
+.mobile .context-btn {
+    font-size: 18px;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }

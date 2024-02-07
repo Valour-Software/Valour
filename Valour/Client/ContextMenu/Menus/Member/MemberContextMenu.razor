@@ -127,6 +127,8 @@ else
 
 	private async Task OnClickMessage()
 	{
+		await CloseAsync();
+		
 		var channel = await Channel.GetDirectChannelAsync(_user.Id, true);
 		var newWindow = new ChatChannelWindow(channel);
 
@@ -158,8 +160,10 @@ else
 		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
 	}
 
-	private Task OnClickKick()
+	private async Task OnClickKick()
 	{
+		await CloseAsync();
+		
 		var modalData =
         new ConfirmModalComponent.ModalParams($"Kick {Data.Member.Nickname}?",
              $"This will remove them from the planet.",
@@ -175,19 +179,17 @@ else
         );
 		
 		ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
-
-		return Task.CompletedTask;
 	}
 
-	private Task OnClickBan()
+	private async Task OnClickBan()
 	{
+		await CloseAsync();
+		
 		var data = new BanUserComponent.ModalParams()
 		{
 			Member = Data.Member
 		};
 		
 		ModalRoot.OpenModal<BanUserComponent>(data);
-
-		return Task.CompletedTask;
 	}
 }
