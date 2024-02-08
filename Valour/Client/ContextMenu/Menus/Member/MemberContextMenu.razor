@@ -163,22 +163,14 @@ else
 	private async Task OnClickKick()
 	{
 		await CloseAsync();
-		
+
 		var modalData =
-        new ConfirmModalComponent.ModalParams($"Kick {Data.Member.Nickname}?",
-             $"This will remove them from the planet.",
-             "Confirm",
-             "Cancel", 
-             () =>
-             {
-				 var result = Data.Member.Node.DeleteAsync($"api/members/{Data.Member.Id}");
-                 Console.WriteLine(result);
-	             return Task.CompletedTask;
-             },
-             () => Task.CompletedTask
-        );
+		new KickModal.KickModalParams()
+		{
+			Member = Data.Member
+		};
 		
-		ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
+		ModalRoot.OpenModal<KickModal>(modalData);
 	}
 
 	private async Task OnClickBan()

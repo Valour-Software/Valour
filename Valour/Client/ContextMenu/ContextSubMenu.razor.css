@@ -124,7 +124,7 @@
     padding-bottom: 8px;
 }
 
-.mobile .sub-content:has(.sub-open){
+.mobile  .sub-content:has(.sub-open){
     /* it's crazy but it works */
     display: contents;
 }
