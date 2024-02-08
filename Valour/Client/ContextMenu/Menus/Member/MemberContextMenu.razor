@@ -1,3 +1,4 @@
+@using Valour.Client.Components.Menus
 @inherits ContextMenu<MemberContextMenu.MemberContextParams>
 @inject IJSRuntime JsRuntime
 @inject WindowManager WindowManager
@@ -177,11 +178,11 @@ else
 	{
 		await CloseAsync();
 		
-		var data = new BanUserComponent.ModalParams()
+		var data = new BanModal.BanModalProps()
 		{
 			Member = Data.Member
 		};
 		
-		ModalRoot.OpenModal<BanUserComponent>(data);
+		ModalRoot.OpenModal<BanModal>(data);
 	}
 }
