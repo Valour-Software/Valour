@@ -85,7 +85,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public HomeWindow Window { get; set; }
+    public WindowData Window { get; set; }
     
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
@@ -206,8 +206,8 @@
 
         var newWindow = new ChatChannelWindow(channel);
 
-        await WindowManager.ReplaceWindow(Window, newWindow);
-        await WindowManager.SetSelectedWindow(newWindow);
+        //await WindowManager.ReplaceWindow(Window, newWindow);
+        //await WindowManager.SetSelectedWindow(newWindow);
 
         StateHasChanged();
     }

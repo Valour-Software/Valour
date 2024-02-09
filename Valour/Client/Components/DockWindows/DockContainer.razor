@@ -1,0 +1,100 @@
+﻿<div class="dock-container">
+    @foreach(var window in AllWindows)
+    {
+        <DockWindow @ref="@window.DockWindow" @key="@window.Id" Container="@this" WindowData="window" />
+    }
+</div>
+
+@code {
+    
+    public List<WindowData> AllWindows { get; set; }
+    public List<WindowData> TabWindows { get; set; }
+    public List<WindowData> Floaters { get; set; }
+    
+    public WindowData ActiveWindow { get; set; }
+    public static WindowData CurrentlyDragging { get; set; }
+
+    protected override void OnInitialized()
+    {
+        AllWindows = new List<WindowData>();
+        TabWindows = new List<WindowData>();
+        Floaters = new List<WindowData>();
+    }
+    
+    public void AddWindow(WindowData window)
+    {
+        AllWindows.Add(window);
+        TabWindows.Add(window);
+        ActiveWindow = window;
+        
+        StateHasChanged();
+        
+        NotifyWindowsChange();
+    }
+    
+    public void AddDefaultWindow()
+    {
+        var window = new WindowData
+        {
+            Title = "Home",
+            Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+            Type = typeof(HomeWindowComponent),
+        };
+        
+        AddWindow(window);
+        
+        NotifyWindowsChange();
+    }
+    
+    public void RemoveWindow(WindowData window)
+    {
+        if (TabWindows.Contains(window))
+            TabWindows.Remove(window);
+        
+        if (Floaters.Contains(window))
+            Floaters.Remove(window);
+
+        AllWindows.Remove(window);
+        
+        StateHasChanged();
+        
+        NotifyWindowsChange();
+    }
+    
+    public void SetActiveTabWindow(WindowData window)
+    {
+        if (!TabWindows.Contains(window))
+            return;
+        
+        ActiveWindow = window;
+        StateHasChanged();
+        
+        NotifyWindowsChange();
+    }
+
+    public async Task NotifyNewFloater(WindowData window)
+    {
+        Console.WriteLine("New floater: " + window.Id);
+        
+        Floaters.Add(window);
+        TabWindows.Remove(window);
+        
+        NotifyWindowsChange();
+    }
+
+    public async Task NotifyDragging(WindowData window)
+    {
+        CurrentlyDragging = window;
+        
+        NotifyWindowsChange();
+    }
+
+    private void NotifyWindowsChange()
+    {
+        foreach (var window in TabWindows)
+        {
+            if (window.DockWindow is not null)
+                window.DockWindow.OnTabCountChanged();
+        }
+    }
+}

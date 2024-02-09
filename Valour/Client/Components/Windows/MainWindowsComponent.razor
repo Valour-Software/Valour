@@ -7,21 +7,7 @@
 <!-- Pass WindowManager this down to all children -->
 <CascadingValue Value="this">
 	@{
-		<div id="window-man" class="window-container">
-			@foreach (var window in Windows)
-			{
-				var id = window.Id;
-
-				Dictionary<string, object> parameters = new()
-				{
-					{ "Window", window }
-				};
-
-				<div @key="window.Id" id='window-@id' class='window-frame' @onpointerdown='async () => await SetSelectedWindow(window)'>
-					<DynamicComponent Type='window.GetComponentType()' Parameters='parameters'></DynamicComponent>
-				</div>
-			}
-		</div>
+		<DockContainer @ref="@_dock" />
 	}
 </CascadingValue>
 
@@ -35,10 +21,13 @@
 	/// </summary>
 	public List<ClientWindow> Windows { get; set; }
 	
+	private DockContainer _dock;
+	
 	public bool CanRender { get; set; }
 
 	protected override async Task OnInitializedAsync(){
 
+		/*
 		// Build empty window list
 		Windows = new();
 
@@ -89,6 +78,7 @@
 			// Add a new window with self as the target
 			await WindowManager.AddWindowAsync(newWindow, this);
 		}
+		*/
 	}
 
 	protected override bool ShouldRender()
@@ -102,11 +92,24 @@
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
+		if (firstRender)
+		{
+			_dock.AddWindow(new WindowData()
+			{
+				Data = null,
+				Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+				Type = typeof(HomeWindowComponent),
+				Title = "Home"
+			});
+		}
+		
+		/*
 		if (!DeviceInfo.IsMobile && Windows.Count > 0)
 		{
 			await JS.InvokeVoidAsync("SplitWindows", "window-man");
-			CanRender = false;
+			CanRender = false;	
 		}
+		*/
 	}
 
 	/// <summary>

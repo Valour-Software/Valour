@@ -1,0 +1,93 @@
+﻿.window-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.window-wrapper .floating {
+    position: fixed;
+}
+
+.window {
+    pointer-events: all;
+}
+
+.tab-wrapper {
+    padding-right: 5px;
+    transition: transform, width, margin-left 0.2s ease-in-out;
+    pointer-events: all;
+}
+
+.tab-wrapper.last {
+    padding-right: 0;
+}
+
+.tab {
+    height: 30px;
+    padding: 5px;
+    background-color: var(--main-5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 1em 1em 0 0;
+    cursor: pointer;
+    min-width: 150px;
+    box-shadow: #000 0 0 5px;
+}
+
+.active .tab {
+    background-color: #28504a;
+}
+
+.active .tab:hover {
+    background-color: #376e66;
+}
+
+
+.tab:hover {
+    background-color: #3a3a5a;
+}
+
+.tab:active {
+    background-color: #4a3a6a;
+}
+
+.tab-info {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.tab-buttons {
+    display: flex;
+    flex-direction: row;
+    margin-right: 0.5em;
+}
+
+.tab-buttons span {
+    margin-left: 0.25em;
+}
+
+.tab-buttons .plus:hover {
+    color: lime;
+}
+
+.tab-buttons .minus:hover {
+    color: red;
+}
+
+.tab .tab-title {
+    font-size: 1em;
+    margin: 0;
+    padding: 0;
+    color: white;
+    user-select: none;
+}
+
+.tab .tab-icon {
+    height: 90%;
+    margin-right: 0.4em;
+    margin-left: 0.25em;
+    user-select: none;
+}

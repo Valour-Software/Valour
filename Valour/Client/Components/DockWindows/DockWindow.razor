@@ -1,0 +1,145 @@
+﻿@inject IJSRuntime JsRuntime
+
+<div class="window-wrapper 
+            @(IsActive ? "active" : "")
+            @(_floating ? "floating" : "")"
+     style="z-index: @GetZIndex()"
+     @ref="@_element">
+    <div class="tab-wrapper @(GetIndex() == Container.TabWindows.Count - 1 ? "last" : "")"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickTab"
+         style="width: @GetTabWidth()%;
+         margin-left: @(GetTabWidth() * GetIndex())%;">
+        <div class="tab">
+            <div class="tab-info">
+                <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
+                <span class="tab-title">@WindowData.Title</span>
+            </div>
+            <div class="tab-buttons"
+                 @onclick:stopPropagation="true">
+                <span class="plus" @onclick="OnClickPlus">
+                    <i class="bi bi-plus-circle-fill"></i>
+                </span>
+                <span class="minus" @onclick="@OnClickMinus">
+                    <i class="bi bi-dash-circle-fill"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="window">
+        <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public DockContainer Container { get; set; }
+    
+    [Parameter]
+    public WindowData WindowData { get; set; }
+    
+    private IJSInProcessObjectReference _jsModule;
+    private ElementReference _element;
+    private DotNetObjectReference<DockWindow> _dotnetRef;
+
+    public bool IsActive => Container.ActiveWindow == WindowData;
+
+    private bool _floating;
+    private double _left;
+    private double _right;
+
+    private Dictionary<string, object> _windowParams;
+
+    private bool _render = false;
+
+    protected override void OnInitialized()
+    {
+        _windowParams = new Dictionary<string, object>()
+        {
+            {"Window", WindowData},
+            {"Data", WindowData.Data}
+        };
+    }
+
+    protected override bool ShouldRender() => _render;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/DockWindow.razor.js");
+            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef);
+        }
+        
+        _render = false;
+    }
+
+    public void OnTabCountChanged()
+    {
+        if (_floating)
+            return;
+        
+        ReRender();
+    }
+    
+    private float GetTabWidth()
+    {
+        if (_floating || Container.TabWindows.Count == 1)
+            return 100f;
+        
+        return (100f / Container.TabWindows.Count);
+    }
+
+    private int GetIndex()
+    {
+        if (_floating)
+            return 0;
+        
+        return Container.TabWindows.IndexOf(WindowData);
+    }
+
+    private void OnClickPlus()
+    {
+        Container.AddDefaultWindow();
+    }
+    
+    private void OnClickMinus()
+    {
+        Container.RemoveWindow(WindowData);
+    }
+
+    private int GetZIndex()
+    {
+        if (Container.ActiveWindow == this.WindowData)
+            return 2;
+
+        return 1;
+    }
+
+    private void OnClickTab()
+    {
+        if (!_floating)
+            Container.SetActiveTabWindow(this.WindowData);
+    }
+    
+    /* Dragging */
+    [JSInvokable]
+    public async Task OnFloaterStart()
+    {
+        _floating = true;
+        await Container.NotifyNewFloater(this.WindowData);
+    }
+
+    [JSInvokable]
+    public async Task OnDragStart()
+    {
+        await Container.NotifyDragging(this.WindowData);
+    }
+
+    public void ReRender()
+    {
+        _render = true;
+        StateHasChanged();
+    }
+}

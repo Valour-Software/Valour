@@ -28,7 +28,7 @@
     public User Friend { get; set; }
 
     [Parameter]
-    public HomeWindow Window { get; set; }
+    public WindowData Window { get; set; }
 
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
@@ -94,9 +94,9 @@
 
         Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
 
-        await WindowManager.ReplaceWindow(Window, newWindow);
-        await WindowManager.SetSelectedWindow(newWindow);
-        await WindowManager.SetFocusedPlanet(null);
+        // await WindowManager.ReplaceWindow(Window, newWindow);
+        // await WindowManager.SetSelectedWindow(newWindow);
+        // await WindowManager.SetFocusedPlanet(null);
 
         StateHasChanged();
     }
