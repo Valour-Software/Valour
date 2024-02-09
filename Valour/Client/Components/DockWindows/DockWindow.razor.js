@@ -1,7 +1,8 @@
 ﻿export function enableDrag(el, dotnet) {
     let offsetX, offsetY;
     let initialX, initialY;
-    let dragging = false;
+    let dragTarget = null;
+    let scanTimer = 0;
     
     el.dotnet = dotnet;
 
@@ -9,9 +10,17 @@
         // Store the initial position
         initialX = e.clientX;
         initialY = e.clientY;
-        
-        dotnet.invokeMethodAsync('OnDragStart');
 
+        if (el.floater) {
+            console.log('Invoking OnDragStart')
+            dotnet.invokeMethodAsync('OnDragStart');
+            el.classList.add('dragging');
+            // el.style.opacity = '0.6';
+        }
+
+        el.mouseMoveHandler = mouseMoveHandler;
+        el.mouseUpHandler = mouseUpHandler;
+        
         document.addEventListener('mousemove', mouseMoveHandler);
         document.addEventListener('mouseup', mouseUpHandler);
     };
@@ -25,9 +34,9 @@
         const dy = e.clientY - initialY;
 
         // Check if the mouse has moved more than 10 pixels in any direction
-        if (!dragging && (el.floater || Math.sqrt(dx * dx + dy * dy) > 10)) {
+        if (!el.dragging && (el.floater || Math.sqrt(dx * dx + dy * dy) > 10)) {
             
-            dragging = true;
+            el.dragging = true;
             
             
             offsetX = e.clientX - el.getBoundingClientRect().left;
@@ -77,6 +86,9 @@
                 el.onScreenHandler = onScreenHandler;
                 window.addEventListener('resize', onScreenHandler)
                 
+                el.classList.add('w-floating');
+                
+                /*
                 el.style.position = 'fixed';
                 el.style.width = '300px';
                 el.style.height = '300px';
@@ -84,31 +96,90 @@
                 el.style.resize = 'both';
                 el.style.overflow = 'hidden';
                 el.style.pointerEvents = 'all';
-                el.borderRadius = '0 0 1em 1em'
+                el.style.borderRadius = '1em';
+                el.style.boxShadow = '#000 0 0 10px, #000 0 0 10px;';
 
                 const tab = el.querySelector('.tab-wrapper');
                 tab.style.width = '100%';
                 tab.style.marginLeft = '0';
+                */
 
                 el.floater = true;
                 console.log('Invoking OnFloaterStart')
                 dotnet.invokeMethodAsync('OnFloaterStart');
+
+                console.log('Invoking OnDragStart')
+                dotnet.invokeMethodAsync('OnDragStart');
+
+                el.classList.add('dragging');
+                
+                // el.style.opacity = '0.6';
+                
+                // tab.style.pointerEvents = 'none';
             }
-        } 
-        
-        if (dragging) {
+        } else if (el.dragging) {
             // Move the element
             el.style.left = e.clientX - offsetX + 'px';
             el.style.top = e.clientY - offsetY + 'px';
             el.onScreenHandler();
+            
+            // console.log(document.elementsFromPoint(e.clientX, e.clientY))
+
+            scanTimer++;
+            
+            // Optimization for expensive scanning
+            if (scanTimer % 15 === 0) {
+                let newDragTarget = null;
+                
+                document.elementsFromPoint(e.clientX, e.clientY).forEach((element) => {
+                    if (element.classList.contains('w-drop-target')) {
+                        newDragTarget = element;
+                    }
+                });
+
+                if (newDragTarget) {
+                    if (newDragTarget !== dragTarget) {
+                        if (dragTarget) {
+                            dragTarget.style.backgroundColor = '#fff';
+                        }
+                        dragTarget = newDragTarget;
+                        dragTarget.style.backgroundColor = '#0ff';
+                    }
+                } else {
+                    if (dragTarget) {
+                        dragTarget.style.backgroundColor = '#fff';
+                        dragTarget = null;
+                    }
+                }
+            }
         }
     };
 
-    const mouseUpHandler = function() {
-        // Stop dragging
-        dragging = false;
+    const mouseUpHandler = function(e) {
         
+        // Stop dragging
+        el.dragging = false;
+        el.classList.remove('dragging');
+        
+        /*
         el.style.zIndex = '100';
+        el.style.opacity = '1';
+        */     
+        
+        if (dragTarget){
+
+            const ev = new MouseEvent('click', {
+                'view': window,
+                'bubbles': true,
+                'cancelable': true,
+                'screenX': e.screenX,
+                'screenY': e.screenY
+            });
+            
+            dragTarget.dispatchEvent(ev);
+        }
+
+        dotnet.invokeMethodAsync('OnDragEnd');
 
         // Remove the handlers of `mousemove` and `mouseup`
         document.removeEventListener('mousemove', mouseMoveHandler);
@@ -123,11 +194,32 @@
     el.dragEventHook = mouseDownHandler;
 }
 
-export function disableDrag(el) {
+export function cleanupFloater(el) {
+    // Remove all styles
+    el.classList.remove('w-floating');
+    el.style.left = '';
+    el.style.top = '';
+    
+    /*
     if (el.dragEventHook) {
         const tab = el.querySelector('.tab-wrapper');
         tab.removeEventListener('mousedown', el.dragEventHook);
     }
+    */
+    
+    if (el.onScreenHandler) {
+        window.removeEventListener('resize', el.onScreenHandler);
+    }
+    
+    if (el.mouseMoveHandler) {
+        document.removeEventListener('mousemove', el.mouseMoveHandler);
+    }
+    
+    if (el.mouseUpHandler) {
+        document.removeEventListener('mouseup', el.mouseUpHandler);
+    }
+    
+    el.floater = false;
 }
 
 export function pauseEvent(e){

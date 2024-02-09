@@ -3,9 +3,32 @@
     {
         <DockWindow @ref="@window.DockWindow" @key="@window.Id" Container="@this" WindowData="window" />
     }
+    
+    @if (CurrentlyDragging is not null)
+    {
+        <div class="drop-targets"
+             @onclick:stopPropagation="true">
+            <div class="targets">
+                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Center))" class="center w-drop-target"><i class="bi bi-bullseye"></i></div>
+                <div class="up w-drop-target"><i class="bi bi-caret-up-fill"></i></div>
+                <div class="down w-drop-target"><i class="bi bi-caret-down-fill"></i></div>
+                <div class="left w-drop-target"><i class="bi bi-caret-left-fill"></i></div>
+                <div class="right w-drop-target"><i class="bi bi-caret-right-fill"></i></div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
+    
+    public enum DropLocation
+    {
+        Center,
+        Up,
+        Down,
+        Left,
+        Right
+    }
     
     public List<WindowData> AllWindows { get; set; }
     public List<WindowData> TabWindows { get; set; }
@@ -29,7 +52,7 @@
         
         StateHasChanged();
         
-        NotifyWindowsChange();
+        NotifyTabWindowsChange();
     }
     
     public void AddDefaultWindow()
@@ -43,7 +66,7 @@
         
         AddWindow(window);
         
-        NotifyWindowsChange();
+        NotifyTabWindowsChange();
     }
     
     public void RemoveWindow(WindowData window)
@@ -58,7 +81,7 @@
         
         StateHasChanged();
         
-        NotifyWindowsChange();
+        NotifyTabWindowsChange();
     }
     
     public void SetActiveTabWindow(WindowData window)
@@ -69,7 +92,7 @@
         ActiveWindow = window;
         StateHasChanged();
         
-        NotifyWindowsChange();
+        NotifyTabWindowsChange();
     }
 
     public async Task NotifyNewFloater(WindowData window)
@@ -79,22 +102,63 @@
         Floaters.Add(window);
         TabWindows.Remove(window);
         
-        NotifyWindowsChange();
+        NotifyTabWindowsChange();
     }
 
     public async Task NotifyDragging(WindowData window)
     {
         CurrentlyDragging = window;
-        
-        NotifyWindowsChange();
+        StateHasChanged();
+    }
+    
+    public async Task NotifyStopDragging()
+    {
+        CurrentlyDragging = null;
+        StateHasChanged();
     }
 
-    private void NotifyWindowsChange()
+    public async Task OnDrop(DropLocation location)
+    {
+        Console.WriteLine("Dropped: " + location);
+        
+        if (CurrentlyDragging is null)
+            return;
+        
+        switch (location)
+        {
+            case DropLocation.Center:
+            {
+                if (TabWindows.Contains(CurrentlyDragging))
+                    return;
+                
+                TabWindows.Add(CurrentlyDragging);
+
+                if (!AllWindows.Contains(CurrentlyDragging))
+                {
+                    // Remove from current dock container
+                    CurrentlyDragging.DockWindow.Container.RemoveWindow(CurrentlyDragging);
+                    
+                    // Add to this dock container
+                    AllWindows.Add(CurrentlyDragging);
+                }
+                
+                // CurrentlyDragging.Id = Guid.NewGuid().ToString();
+                
+                await CurrentlyDragging.DockWindow.OnFloaterEnd();
+
+                break;
+            }
+        }
+
+        CurrentlyDragging = null;
+    }
+
+    private void NotifyTabWindowsChange()
     {
         foreach (var window in TabWindows)
         {
             if (window.DockWindow is not null)
-                window.DockWindow.OnTabCountChanged();
+                window.DockWindow.OnTabsChanged();
         }
     }
 }
