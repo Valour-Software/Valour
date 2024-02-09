@@ -106,9 +106,9 @@
         Container.AddDefaultWindow();
     }
     
-    private void OnClickMinus()
+    private async Task OnClickMinus()
     {
-        Container.RemoveWindow(WindowData);
+        await Container.RemoveWindow(WindowData);
     }
 
     private int GetZIndex()

@@ -976,9 +976,12 @@ blockquote {
 
 /* Window resize gutters */
 .gutter {
-    background-color: var(--main-3);
+    background-color: var(--main-1);
     width: 10px;
     cursor: e-resize;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 img.emoji {

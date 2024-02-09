@@ -4,6 +4,10 @@
     height: 100%;
 }
 
+.dock-container.split {
+    display: flex;
+}
+
 .drop-targets {
     position: absolute;
     width: 100%;
