@@ -128,7 +128,7 @@
             scanTimer++;
             
             // Optimization for expensive scanning
-            if (scanTimer % 15 === 0) {
+            if (scanTimer % 5 === 0) {
                 let newDragTarget = null;
                 
                 document.elementsFromPoint(e.clientX, e.clientY).forEach((element) => {

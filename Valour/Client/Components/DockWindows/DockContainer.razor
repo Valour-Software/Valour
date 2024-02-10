@@ -1,6 +1,6 @@
 ﻿@inject IJSRuntime JsRuntime
 
-<div @ref="@_element" class="dock-container @(Split != SplitState.None ? "split" : "")">
+<div @ref="@_element" class="dock-container @(Split != SplitState.None && !_hideSplit ? "split" : "")">
     @switch (Split)
     {
         // No split
@@ -83,6 +83,7 @@
     public static event Func<Task> OnStopDragging;
 
     public SplitState Split { get; set; } = SplitState.None;
+    private bool _hideSplit = false;
 
     protected override void OnInitialized()
     {
@@ -156,7 +157,7 @@
             }
             else
             {
-                ParentContainer.UnSplit();
+                await ParentContainer.UnSplit();
             }
         }
         
@@ -182,27 +183,26 @@
         
         Floaters.Add(window);
         TabWindows.Remove(window);
-        
-        // If there are NO tabs left
+
         if (TabWindows.Count == 0)
         {
-            // If there is a parent
-            if (ParentContainer is not null)
+            if (ParentContainer is null)
             {
-                // Give floaters to parent container
-                ParentContainer.Floaters.AddRange(Floaters);
-                
-                // Unsplit
-                await ParentContainer.UnSplit();
+                AddDefaultWindow();
             }
             else
             {
-                // otherwise we need to add a default window
-                AddDefaultWindow();
+                await ParentContainer.DoEmptyHide();
             }
         }
         
         NotifyTabWindowsChange();
+    }
+    
+    public async Task DoEmptyHide()
+    {
+        await _jsModule.InvokeVoidAsync("doEmptyHide", _element);
+        _hideSplit = true;
     }
 
     public async Task NotifyDragging(WindowData window)
