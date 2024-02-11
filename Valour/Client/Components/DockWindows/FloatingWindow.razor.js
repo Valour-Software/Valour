@@ -206,3 +206,11 @@ export function getPosition(el){
     const bounds = el.getBoundingClientRect();
     return [bounds.left, bounds.top]
 }
+
+export function reRender(el, isActive){
+    if (isActive){
+        el.style.zIndex = '101';
+    } else {
+        el.style.zIndex = '100';
+    }
+}

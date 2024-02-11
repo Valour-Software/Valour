@@ -32,7 +32,16 @@
     
     public void SetActiveFloater(WindowData windowData)
     {
+        if (ActiveFloater?.Id == windowData.Id)
+            return;
+        
         ActiveFloater = windowData;
+
+        foreach (var floater in Floaters)
+        {
+            floater.WindowBase.NotifyNeedsReRender();
+        }
+        
         StateHasChanged();
     }
     

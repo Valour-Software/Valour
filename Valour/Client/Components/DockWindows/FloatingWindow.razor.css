@@ -12,6 +12,10 @@
     position: fixed;
 }
 
+.active .window-wrapper {
+    z-index: 101;
+}
+
 .window {
     display: flex;
     flex-direction: column;

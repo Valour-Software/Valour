@@ -25,15 +25,14 @@ public static class NotificationNavigator
                 var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
                 if (channel is null)
                     break;
-                
-                await DockContainer.MainDock.AddWindowAsync(new WindowData()
-                    {
-                        Title = await channel.GetTitleAsync(),
-                        Data = channel,
-                        Type = typeof(ChatChannelWindowComponent),
-                        Icon = planet.IconUrl
-                    }
-                );
+
+                await GlobalWindowData.OpenWindowAtActive(new WindowData()
+                {
+                    Title = await channel.GetTitleAsync(),
+                    Data = channel,
+                    Type = typeof(ChatChannelWindowComponent),
+                    Icon = planet.IconUrl
+                });
 
                 break;
             }
@@ -44,7 +43,7 @@ public static class NotificationNavigator
                 if (channel is null)
                     break;
                 
-                await DockContainer.MainDock.AddWindowAsync(new WindowData()
+                await GlobalWindowData.OpenWindowAtActive(new WindowData()
                     {
                         Title = await channel.GetTitleAsync(),
                         Data = channel,

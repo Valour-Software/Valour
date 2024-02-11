@@ -4,7 +4,9 @@
 <div class="window-wrapper"
      style="z-index: @GetZIndex(); left:  @(_left)px; top:  @(_top)px;"
      @ref="@_element">
-    <div class="tab-wrapper">
+    <div class="tab-wrapper"
+         @onmousedown:stopPropagation="true"
+         @onmousedown="OnClickTab">
         <div class="tab">
             <div class="tab-info">
                 <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
@@ -19,7 +21,9 @@
             </div>
         </div>
     </div>
-    <div class="window">
+    <div class="window"
+         @onmousedown:stopPropagation="true"
+         @onmousedown="OnClickWindow">
         <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
     </div>
 </div>
@@ -95,7 +99,11 @@
     
     public override void NotifyNeedsReRender()
     {
-        ReRender();
+        // Floating windows do NOT re-render via blazor
+        // ReRender();
+        
+        // Instead, we use JS to re-render the window
+        _jsModule.InvokeVoid("reRender", _element, Container.ActiveFloater.Id == WindowData.Id);
     }
 
     public class FloaterPositionData

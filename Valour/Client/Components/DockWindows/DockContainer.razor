@@ -227,6 +227,10 @@
     {
         if (!Windows.Contains(window))
             return;
+
+        // Don't re-render if the window is already active
+        if (ActiveWindow?.Id == window.Id)
+            return;
         
         ActiveWindow = window;
         StateHasChanged();
