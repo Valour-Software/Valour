@@ -46,6 +46,17 @@
 
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
+
+        Window.OnFocused += OnWindowFocused;
+    }
+
+    private async Task OnWindowFocused()
+    {
+        // When this window is focused, focus the planet
+        if (_planet is not null)
+        {
+            await GlobalWindowData.SetGlobalActivePlanetAsync(_planet);
+        }
     }
 
     public void Refresh()
