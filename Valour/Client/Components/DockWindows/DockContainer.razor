@@ -189,9 +189,18 @@
         
         if (window == ActiveWindow)
         {
+            ActiveWindow = Windows.LastOrDefault();
+        }
+
+        if (window == GlobalWindowData.GlobalActiveWindow)
+        {
             if (Windows.Any())
             {
-                ActiveWindow = Windows.Last();
+                await GlobalWindowData.SetGlobalActiveWindowAsync(Windows.Last());
+            }
+            else
+            {
+                await GlobalWindowData.SetGlobalActiveWindowAsync(GlobalWindowData.GlobalWindows.LastOrDefault());
             }
         }
         

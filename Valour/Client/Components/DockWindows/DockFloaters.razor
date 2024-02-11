@@ -58,14 +58,29 @@
         StateHasChanged();
     }
     
-    public Task RemoveFloater(WindowData windowData)
+    public async Task RemoveFloater(WindowData windowData)
     {
         Floaters.Remove(windowData);
         StateHasChanged();
 
         GlobalWindowData.RemoveGlobalWindow(windowData);
 
-        return Task.CompletedTask;
+        if (windowData.Id == ActiveFloater?.Id)
+        {
+            ActiveFloater = Floaters.LastOrDefault();
+        }
+
+        if (windowData.Id == GlobalWindowData.GlobalActiveWindow.Id)
+        {
+            if (Floaters.Any())
+            {
+                await GlobalWindowData.SetGlobalActiveWindowAsync(Floaters.Last());
+            }
+            else
+            {
+                await GlobalWindowData.SetGlobalActiveWindowAsync(GlobalWindowData.GlobalWindows.LastOrDefault());
+            }
+        }
     }
 
     public async Task CloseAllAsync()
