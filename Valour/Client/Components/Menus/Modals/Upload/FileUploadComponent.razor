@@ -1,5 +1,6 @@
 @inherits Modal<FileUploadComponent.ModalParams>
 @inject IJSRuntime JsRuntime
+@using System.Net.Mail
 @implements IDisposable
 
 @if (Data.Attachment is null)
@@ -8,7 +9,7 @@
     return;
 }
 
-<div class="preview-container" @onkeydown="@OnKeyDown">
+<div class="preview-container glassy-modal" @onkeydown="@OnKeyDown">
 	<h6>Upload?</h6>
 
     <div class="attachment-holder">
@@ -43,6 +44,7 @@
 {
     public class ModalParams
     {
+        public byte[] Bytes { get; set; }
         public Func<Task> OnConfirm;
         public MessageAttachment Attachment;
     }
@@ -53,10 +55,12 @@
 
     protected override async Task OnInitializedAsync(){
 
+        Console.WriteLine(JsonSerializer.Serialize(Data.Attachment));
+        
         _thisRef = DotNetObjectReference.Create(this);
         
         // Load into blob form and get url
-        var blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", Data, Data.Attachment.MimeType);
+        var blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", Data.Bytes, Data.Attachment.MimeType);
 
         // Build attachment object
         Data.Attachment.Location = blobUrl;
