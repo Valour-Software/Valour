@@ -1,5 +1,3 @@
-@inherits Modal<GlobalPayComponent.ModalParams>
-
 @if (!string.IsNullOrWhiteSpace(_transactionId))
 {
     <h5>Success!</h5>
@@ -10,7 +8,7 @@
         <p>@_transactionId</p>
     </div>
     
-    @if (Data.Input is not null)
+    @if (Input is not null)
     {
         <button @onclick="@OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
     }
@@ -75,10 +73,11 @@ else
     private RenderFragment<string> _errorFragment = (string error) =>
         @<p style="color: red; text-align: center; margin-top: 1em">@error</p>;
 
-    public class ModalParams
-    {
-        public InputComponent Input;
-    }
+    [Parameter]
+    public InputComponent Input { get; set; }
+    
+    [Parameter]
+    public Modal<EcoPayModal.ModalParams> Modal { get; set; }
     
     private Currency _globalCurrency;
     private EcoAccount _globalAccount;
@@ -223,7 +222,7 @@ else
     
     private async Task OnClickReceipt()
     {
-        await Data.Input.AddReceipt(_transactionId);
-        await CloseAsync();
+        await Input.AddReceipt(_transactionId);
+        await Modal.CloseAsync();
     }
 }
