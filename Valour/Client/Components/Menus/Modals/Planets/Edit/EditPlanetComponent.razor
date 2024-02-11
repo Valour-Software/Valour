@@ -1,5 +1,4 @@
 ﻿@inherits Modal<EditPlanetComponent.ModalParams>
-@inject WindowManager WindowManager
 @implements IDisposable
 
 @if (Data.Planet is null)
@@ -75,7 +74,7 @@
         {
             Data = new ModalParams()
             {
-                Planet = WindowManager.FocusedPlanet
+                Planet = GlobalWindowData.GlobalActivePlanet
             };
         } 
     }

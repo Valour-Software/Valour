@@ -23,8 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\BlazorContextMenu\BlazorContextMenu.csproj" />
     <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Components\WindowsX\WindowX.razor" />
+    <UpToDateCheckInput Remove="Components\WindowsX\WindowXContent.razor" />
   </ItemGroup>
 </Project>

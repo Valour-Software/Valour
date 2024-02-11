@@ -29,12 +29,12 @@
             // unless it's a mention
             if (notification.Source == NotificationSource.DirectReply)
             {
-                var windows = WindowManager.Instance.GetWindows();
-                foreach (var window in windows)
+                foreach (var window in GlobalWindowData.GlobalWindows)
                 {
-                    if (window is ChatChannelWindow directChat)
+                    if (window.Type == typeof(ChatChannelWindowComponent))
                     {
-                        if (directChat.Channel.Id == notification.ChannelId)
+                        var channel = (Channel)window.Data;
+                        if (channel.Id == notification.ChannelId)
                         {
                             return;
                         }

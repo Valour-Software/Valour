@@ -6,11 +6,11 @@
 
 @if (Result.Success)
 {
-    <p class="text-info">@(Result.Message ?? "Success!")</p>
+    <p class="text-info" style="@Style">@(Result.Message ?? "Success!")</p>
 }
 else
 {
-    <p class="text-danger">@(Result.Message ?? "An error occured.") 
+    <p class="text-danger" style="@Style">@(Result.Message ?? "An error occured.") 
         @if (Result.Details is not null)
         {
             <span>&nbsp;</span>
@@ -26,6 +26,9 @@ else
     
     [Parameter]
     public ITaskResult Result { get; set; }
+    
+    [Parameter]
+    public string Style { get; set; }
     
     private void OnDetails()
     {
