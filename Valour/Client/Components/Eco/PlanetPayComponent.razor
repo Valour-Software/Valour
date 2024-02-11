@@ -1,5 +1,3 @@
-@inherits Modal<PlanetPayComponent.ModalParams>
-
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
     <p style="color: red; text-align: center; margin-top: 1em">@_majorError</p>
@@ -22,7 +20,7 @@
         <p>@_transactionId</p>
     </div>
     
-    @if (Data.Input is not null)
+    @if (Input is not null)
     {
         <button @onclick="@OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
     }
@@ -141,11 +139,12 @@ else
 }
 
 @code {
+    
+    [Parameter]
+    public Modal<EcoPayModal.ModalParams> Modal { get; set; }
 
-    public class ModalParams
-    {
-        public InputComponent Input;
-    }
+    [Parameter]
+    public InputComponent Input { get; set; }
     
     private readonly RenderFragment<(EcoAccount account, Currency currency)> _accountFrag = data =>
         @<div>
@@ -180,8 +179,8 @@ else
 
     private async Task OnClickReceipt()
     {
-        await Data.Input.AddReceipt(_transactionId);
-        await CloseAsync();
+        await Input.AddReceipt(_transactionId);
+        await Modal.CloseAsync();
     }
 
     private async Task OnClickSend()
