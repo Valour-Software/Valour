@@ -1,5 +1,4 @@
-﻿@inject WindowManager WindowManager
-@inject IJSRuntime JsRuntime
+﻿@inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
@@ -90,7 +89,13 @@
         // this can probably be optimized to only create the channel if the first message
         // is being sent, but this is fine for now
         var channel = await Channel.GetDirectChannelAsync(Friend.Id, create: true);
-        var newWindow = new ChatChannelWindow(channel);
+        
+        Window.WindowBase.ChangeType(
+            typeof(ChatChannelWindowComponent), 
+            channel,
+            await channel.GetTitleAsync(),
+            await channel.GetIconAsync()
+        );
 
         Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
 

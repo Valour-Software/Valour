@@ -1,7 +1,6 @@
 @using Valour.Client.Components.Menus
 @inherits ContextMenu<MemberContextMenu.MemberContextParams>
 @inject IJSRuntime JsRuntime
-@inject WindowManager WindowManager
 
 
 <ContextMenuItem OnClick="@OnClickMessage">
@@ -66,7 +65,6 @@ else
 	public class MemberContextParams
 	{
 		public PlanetMember Member;
-		public ClientWindow Window;
 	}
 
 	[CascadingParameter]
@@ -131,16 +129,16 @@ else
 		await CloseAsync();
 		
 		var channel = await Channel.GetDirectChannelAsync(_user.Id, true);
-		var newWindow = new ChatChannelWindow(channel);
+		
+		var newWindow = new WindowData()
+		{
+			Title = await channel.GetTitleAsync(),
+			Icon = await channel.GetIconAsync(),
+			Type = typeof(ChatChannelWindowComponent),
+			Data = channel,
+		};
 
-		if (Data.Window is null)
-			Data.Window = WindowManager.GetSelectedWindow();
-		
-		Console.WriteLine($"Switching window {Data.Window.Id} to direct chat channel {channel.Id}");
-		
-		await WindowManager.ReplaceWindow(Data.Window, newWindow);
-		await WindowManager.SetSelectedWindow(newWindow);
-		await WindowManager.SetFocusedPlanet(null);
+		await GlobalWindowData.OpenWindowAtActive(newWindow);
 	}
 
 	private async Task OnClickCopyNickname(){

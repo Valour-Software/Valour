@@ -1,6 +1,5 @@
 @using System.Text
 @implements IDisposable
-@inject WindowManager WindowManager
 @inject ChannelListManager ListManager
 @inject ClientCategoryManager CategoryManager
 @inject ContextMenuService ContextMenuService
@@ -145,7 +144,7 @@
         {
             var css = "channel";
 
-            if (WindowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
+            if (GlobalWindowData.GlobalChatWindows.Any(x => x.Channel.Id == Channel.Id))
                 css += " open";
 
             if (ListManager.DragOverId == Channel.Id)
@@ -216,18 +215,21 @@
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
-            var window = WindowManager.GetSelectedWindow();
-            if (window is ChatChannelWindow channelWindow)
+            var newWindow = new WindowData()
             {
-                // It's the same channel, cancel
-                if (channelWindow.Channel.Id == Channel.Id)
-                    return;
-
-                await channelWindow.Component.SwapChannel(Channel);
+                Title = await Channel.GetTitleAsync(),
+                Icon = await Channel.GetIconAsync(),
+                Type = typeof(ChatChannelWindowComponent),
+                Data = Channel
+            };
+            
+            if (GlobalWindowData.GlobalActiveWindow is not null)
+            {
+                await GlobalWindowData.GlobalActiveWindow.WindowBase.AddSiblingWindow(newWindow);
             }
             else
             {
-                await WindowManager.ReplaceWindow(window, new ChatChannelWindow(Channel));
+                await DockContainer.MainDock.AddWindowAsync(newWindow);
             }
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))

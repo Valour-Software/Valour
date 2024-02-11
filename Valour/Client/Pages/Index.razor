@@ -3,7 +3,6 @@
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
 
 @inject IJSRuntime JsRuntime
-@inject WindowManager WindowManager
 @inject NavigationManager NavigationManager
 
 <!-- Check login status -->
@@ -38,8 +37,6 @@
 						<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
 					}
 				</div>
-				<div class="topline">
-				</div>
 
 				<CallComponent/>
 
@@ -53,6 +50,7 @@
 
 			</body>
 			
+			<DockFloaters />
 		</ContextMenuRoot>
 	</ModalRoot>
 </div>
@@ -97,7 +95,7 @@
 
 		await base.OnInitializedAsync();
 
-		WindowManager.OnPlanetFocused += OnPlanetChange;
+		GlobalWindowData.OnActivePlanetChange += OnPlanetChange;
 		ValourClient.OnLogin += OnLoginAsync;
 	}
 
@@ -109,7 +107,7 @@
 
 	public void Dispose()
 	{
-		WindowManager.OnPlanetFocused -= OnPlanetChange;
+		GlobalWindowData.OnActivePlanetChange -= OnPlanetChange;
 	}
 
 	protected override async void OnAfterRender(bool firstRender)
@@ -138,7 +136,14 @@
 
 	private async Task OnClickHome()
 	{
-		await WindowManager.GetSelectedWindow().ReturnHomeAsync();
+		var window = new WindowData
+		{
+			Title = "Home",
+			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+			Type = typeof(HomeWindowComponent),
+		};
+
+		await GlobalWindowData.OpenWindowAtActive(window);
 	}
 
 	[JSInvokable("OnRefocus")]

@@ -1,13 +1,12 @@
-<WindowFrameComponent Window="@Window" Title="Planet Info" Description="@Window.Planet.Name">
-    <h3>@Window.Planet.Name</h3>
-    <hr/>
-    <br/>
-    <p>
-        @Window.Planet.Description
-    </p>
-</WindowFrameComponent>
+<h3>@Data.Name</h3>
+<hr/>
+<br/>
+<p>
+    @Data.Description
+</p>
+
 
 @code {
     [Parameter]
-    public PlanetInfoWindow Window { get; set; }
+    public Planet Data { get; set; }
 }

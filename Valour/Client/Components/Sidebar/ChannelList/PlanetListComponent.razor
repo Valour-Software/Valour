@@ -1,5 +1,4 @@
-﻿@inject WindowManager WindowManager
-@inject ChannelListManager ListManager
+﻿@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
 
 <div 
@@ -170,7 +169,12 @@
     
     private async Task OnClickPlanetInfo()
     {
-        var currentWindow = WindowManager.Instance.GetSelectedWindow();
-        await WindowManager.Instance.ReplaceWindow(currentWindow, new PlanetInfoWindow(Planet));
+        await GlobalWindowData.OpenWindowAtActive(new WindowData()
+        {
+            Title = "Info - " + Planet.Name,
+            Icon = Planet.IconUrl,
+            Type = typeof(PlanetInfoWindowComponent),
+            Data = Planet
+        });
     }
 }

@@ -1,5 +1,3 @@
-@inject WindowManager WindowManager
-
 <div class="col-md-12 modal-bg">
 	<section>
 		<h2>Create a new Planet</h2>
@@ -37,7 +35,7 @@
 
 	public class ModalParams
 	{
-		public ClientWindow Window { get; set; }
+		public WindowData Window { get; set; }
 	}
 	
 	// Input fields
@@ -83,25 +81,22 @@
 			return;
 		}
 		
-		ModalRoot.CloseModal(ModalId);
+		await ModalRoot.CloseModal(ModalId);
 
 		_descSpan = "Planet created.";
 
 		var planet = response.Data;
 
 		await ValourCache.Put(planet.Id, planet);
-
 		var mainChannel = await planet.GetPrimaryChannelAsync();
 
-		await WindowManager.ClearWindows();
-
-		var newChannel = new ChatChannelWindow(mainChannel);
-
-		// Get the new main window
-		var mainWindow = WindowManager.GetWindows()[0];
-
-		await WindowManager.ReplaceWindow(mainWindow, newChannel);
-		await WindowManager.SetSelectedWindow(newChannel);
+		await Data.Window.WindowBase.AddSiblingWindow(new WindowData()
+		{
+			Title = $"{mainChannel.Name} - {planet.Name}",
+			Data = mainChannel,
+			Type = typeof(ChatChannelWindowComponent),
+			Icon = planet.IconUrl
+		});
 	}
 
 }

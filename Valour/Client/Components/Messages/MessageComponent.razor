@@ -158,7 +158,10 @@
     public MessageHolderComponent Holder { get; set; }
 
     [CascadingParameter]
-    public ChatChannelWindow Window { get; set; }
+    public WindowData Window { get; set; }
+    
+    [CascadingParameter]
+    public ChatChannelWindowComponent ChatComponent { get; set; }
 
     /* Set Params */
     [Parameter]
@@ -279,7 +282,7 @@
             {
                 Message = Message,
                 MessageComponent = this,
-                WindowComponent = Window.Component
+                WindowComponent = ChatComponent
             }
         );
     }
@@ -292,7 +295,6 @@
                 new MemberContextMenu.MemberContextParams()
                 {
                     Member = _member,
-                    Window = Window 
                 }
             );
         }
@@ -312,13 +314,13 @@
             if (IsInnerReply)
             {
                 Console.WriteLine("Removing replyto");
-                var input = Window.Component.MessageHolder.InputComponent;
+                var input = ChatComponent.MessageHolder.InputComponent;
                 await input.RemoveReply();
             }
         }
         else
         {
-            await WindowManager.Instance.SetSelectedWindow(Window);
+            await GlobalWindowData.SetGlobalActiveWindowAsync(Window);
         }
     }
 
@@ -326,7 +328,7 @@
     {
         if (Ghost)
         {
-            var input = Window.Component.MessageHolder.InputComponent;
+            var input = ChatComponent.MessageHolder.InputComponent;
             await input.RemoveAttachment(id);
         }
     }
@@ -356,7 +358,7 @@
 
         ReRender();
 
-        await Window.Component.OpenEditMode(this);
+        await ChatComponent.OpenEditMode(this);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -368,7 +370,7 @@
 
         CalculateClass();
 
-        await Window.Component.CloseEditMode(cancel);
+        await ChatComponent.CloseEditMode(cancel);
 
         ReRender();
     }
@@ -480,13 +482,13 @@
  
         if (IsInnerReply)
         {
-            var input = Window.Component.MessageHolder.InputComponent;
+            var input = ChatComponent.MessageHolder.InputComponent;
             await input.RemoveReply(); 
         }
         
         if (Ghost)
         {
-            var input = Window.Component.MessageHolder.InputComponent;
+            var input = ChatComponent.MessageHolder.InputComponent;
             await input.RemoveAttachment(-1);
         }
 

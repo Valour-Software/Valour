@@ -5,7 +5,6 @@ using Valour.Sdk.Client;
 using Valour.Client.Categories;
 using Valour.Client.Components.Sidebar.ChannelList;
 using Valour.Client.ContextMenu;
-using Valour.Client.Windows;
 using Valour.Client.Sounds;
 using Valour.Client.Tenor;
 
@@ -41,8 +40,7 @@ public class Program
         {
             client.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
         });
-
-        builder.Services.AddSingleton<WindowManager>();
+        
         builder.Services.AddSingleton<ClientCategoryManager>();
         builder.Services.AddSingleton<ChannelListManager>();
         builder.Services.AddSingleton<SoundManager>();

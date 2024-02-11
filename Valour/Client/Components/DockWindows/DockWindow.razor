@@ -1,32 +1,37 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@inherits WindowBase
+@inject IJSRuntime JsRuntime
 
-<div class="window-wrapper 
-            @(IsActive ? "active" : "")
-            @(_floating ? "floating" : "")"
+<div class="window-wrapper @(IsActive ? "active" : "")"
      style="z-index: @GetZIndex()"
      @ref="@_element">
-    <div class="tab-wrapper @(GetIndex() == Container.TabWindows.Count - 1 ? "last" : "")"
+    <div class="tab-wrapper @(GetIndex() == Container.Windows.Count - 1 ? "last" : "")"
          @onclick:stopPropagation="true"
          @onclick="@OnClickTab"
          style="width: @GetTabWidth()%;
          margin-left: @(GetTabWidth() * GetIndex())%;">
-        <div class="tab">
-            <div class="tab-info">
-                <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
-                <span class="tab-title">@WindowData.Title</span>
+        @* Mobile does not have tabs *@
+        @if (!DeviceInfo.IsMobile)
+        {
+            <div class="tab">
+                <div class="tab-info">
+                    <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
+                    <span class="tab-title">@WindowData.Title</span>
+                </div>
+                <div class="tab-buttons"
+                     @onclick:stopPropagation="true">
+                    <span class="plus" @onclick="OnClickPlus">
+                        <i class="bi bi-plus-circle-fill"></i>
+                    </span>
+                    <span class="minus" @onclick="@OnClickMinus">
+                        <i class="bi bi-dash-circle-fill"></i>
+                    </span>
+                </div>
             </div>
-            <div class="tab-buttons"
-                 @onclick:stopPropagation="true">
-                <span class="plus" @onclick="OnClickPlus">
-                    <i class="bi bi-plus-circle-fill"></i>
-                </span>
-                <span class="minus" @onclick="@OnClickMinus">
-                    <i class="bi bi-dash-circle-fill"></i>
-                </span>
-            </div>
-        </div>
+        }
     </div>
-    <div class="window">
+    <div class="window"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickWindow">
         <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
     </div>
 </div>
@@ -38,15 +43,37 @@
     [Parameter]
     public WindowData WindowData { get; set; }
     
+    public override void ChangeType(Type newType, object newData, string newTitle, string newIcon)
+    {
+        WindowData.Type = newType;
+        WindowData.Data = newData;
+        WindowData.Title = newTitle;
+        WindowData.Icon = newIcon;
+        
+        _windowParams = new Dictionary<string, object>()
+        {
+            {"Window", WindowData},
+            {"Data", WindowData.Data}
+        };
+
+        ReRender();
+    }
+
+    public override async Task CloseAsync()
+    {
+        await Container.RemoveWindow(WindowData);
+    }
+
+    public override async Task AddSiblingWindow(WindowData newTabData)
+    {
+        await Container.AddWindowAsync(newTabData);
+    }
+
     private IJSInProcessObjectReference _jsModule;
     private ElementReference _element;
     private DotNetObjectReference<DockWindow> _dotnetRef;
 
     public bool IsActive => Container.ActiveWindow == WindowData;
-
-    private bool _floating;
-    private double _left;
-    private double _right;
 
     private Dictionary<string, object> _windowParams;
 
@@ -77,38 +104,32 @@
         Console.WriteLine("Rendered " + WindowData.Id);
     }
 
-    public void OnTabsChanged()
+    public override void NotifyNeedsReRender()
     {
-        if (_floating)
-            return;
-        
         ReRender();
     }
     
     private float GetTabWidth()
     {
-        if (_floating || Container.TabWindows.Count == 1)
+        if (Container.Windows.Count == 1)
             return 100f;
         
-        return (100f / Container.TabWindows.Count);
+        return (100f / Container.Windows.Count);
     }
 
     private int GetIndex()
     {
-        if (_floating)
-            return 0;
-        
-        return Container.TabWindows.IndexOf(WindowData);
+        return Container.Windows.IndexOf(WindowData);
     }
 
-    private void OnClickPlus()
+    private async Task OnClickPlus()
     {
-        Container.AddDefaultWindow();
+        await Container.AddDefaultWindowAsync();
     }
     
     private async Task OnClickMinus()
     {
-        await Container.RemoveWindow(WindowData);
+        await CloseAsync();
     }
 
     private int GetZIndex()
@@ -119,39 +140,26 @@
         return 1;
     }
 
-    private void OnClickTab()
+    private async Task OnClickTab()
     {
-        if (!_floating)
-            Container.SetActiveTabWindow(this.WindowData);
+        Container.SetActiveTabWindow(this.WindowData);
+        await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
     }
 
-    public async Task OnFloaterEnd()
+    private async Task OnClickWindow()
     {
-        _floating = false;
-        await _jsModule.InvokeVoidAsync("cleanupFloater", _element);
-        ReRender();
+        Container.SetActiveTabWindow(this.WindowData);
+        await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
     }
     
     /* Dragging */
-    [JSInvokable]
-    public async Task OnFloaterStart()
-    {
-        _floating = true;
-        await Container.NotifyNewFloater(this.WindowData);
-    }
 
     [JSInvokable]
-    public async Task OnDragStart()
+    public async Task OnFloaterStart(double clientX, double clientY)
     {
-        await Container.NotifyDragging(this.WindowData);
+        await Container.NotifyNewFloater(WindowData, clientX, clientY);
     }
     
-    [JSInvokable]
-    public async Task OnDragEnd()
-    {
-        await Container.NotifyStopDragging();
-    }
-
     public void ReRender()
     {
         _render = true;

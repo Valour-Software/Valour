@@ -1,7 +1,7 @@
 ﻿@inherits Modal<EcoPayModal.ModalParams>
 
 <div class="eco-pay-container">
-    @if (Data.Input.WindowComponent.Channel.PlanetId is not null)
+    @if (Data.Input.ChatComponent.Channel.PlanetId is not null)
     {
         <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
             <TabOne>

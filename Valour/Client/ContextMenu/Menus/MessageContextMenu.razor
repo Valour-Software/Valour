@@ -72,7 +72,6 @@
             _memberContextData = new()
             {
                 Member = _authorMember,
-                Window = Data.WindowComponent.Window
             };
         }
         else
@@ -101,7 +100,7 @@
         // Close the context menu
         await CloseAsync();
         
-        var input = Data.MessageComponent.Holder.Window.Component.MessageHolder.InputComponent;
+        var input = Data.MessageComponent.Holder.ChatComponent.MessageHolder.InputComponent;
         await input.SetReplyMessage(Data.Message);
     }
 

@@ -1,5 +1,4 @@
 @using System.Text
-@inject WindowManager WindowManager
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
 
@@ -196,18 +195,14 @@
     
     private async Task OnClick()
     {
-        // Load planet first for personal reasons (let me keep the kids thanks)
-        await ValourClient.OpenPlanet(Planet);
-        await WindowManager.SetFocusedPlanet(Planet);
-
-        Channel channel = await Planet.GetPrimaryChannelAsync();
-
-        Console.WriteLine($"Switching window {Window.Id} to {channel.Name}");
-
-        var newWindow = new ChatChannelWindow(channel);
-
-        //await WindowManager.ReplaceWindow(Window, newWindow);
-        //await WindowManager.SetSelectedWindow(newWindow);
+        var channel = await Planet.GetPrimaryChannelAsync();
+        
+        Window.WindowBase.ChangeType(
+            typeof(ChatChannelWindowComponent),
+            channel,
+            await channel.GetTitleAsync(),
+            await channel.GetIconAsync()
+        );
 
         StateHasChanged();
     }

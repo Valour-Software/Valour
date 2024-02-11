@@ -1,41 +1,41 @@
 ﻿@inject IJSRuntime JsRuntime
 
-<div @ref="@_element" class="dock-container @(Split != SplitState.None && !_hideSplit ? "split" : "")">
+<div @ref="@_element" class="dock-container @GetSplitClass()">
     @switch (Split)
     {
         // No split
         case SplitState.None:
         {
-            foreach (var window in AllWindows)
+            foreach (var window in Windows)
             {
-                <DockWindow @ref="@window.DockWindow" @key="@window.Id" Container="@this" WindowData="window"/>
+                <DockWindow @ref="@window.WindowBase" @key="@window.Id" Container="@this" WindowData="@window"/>
             }
             break;
         }
         case SplitState.Horizontal:
         {
-            <DockContainer ParentContainer="@this" AllWindows="@SplitWindowsA" />
-            <DockContainer ParentContainer="@this" AllWindows="@SplitWindowsB" />
+            <DockContainer @ref="@ChildContainerA" ParentContainer="@this" Windows="@SplitWindowsA" />
+            <DockContainer @ref="@ChildContainerB" ParentContainer="@this" Windows="@SplitWindowsB" />
             break;
         }
         case SplitState.Vertical:
         {
-            <DockContainer ParentContainer="@this" AllWindows="@SplitWindowsA" />
-            <DockContainer ParentContainer="@this" AllWindows="@SplitWindowsB" />
+            <DockContainer @ref="@ChildContainerA" ParentContainer="@this" Windows="@SplitWindowsA" />
+            <DockContainer @ref="@ChildContainerB" ParentContainer="@this" Windows="@SplitWindowsB" />
             break;
         }
     }
     
 
-    @if (CurrentlyDragging is not null && Split == SplitState.None)
+    @if (DockFloaters.CurrentlyDragging is not null && Split == SplitState.None)
     {
         <div class="drop-targets"
              @onclick:stopPropagation="true">
             <div class="targets">
                 <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Center))" class="center w-drop-target"><i class="bi bi-bullseye"></i></div>
-                <div class="up w-drop-target"><i class="bi bi-caret-up-fill"></i></div>
-                <div class="down w-drop-target"><i class="bi bi-caret-down-fill"></i></div>
-                <div class="left w-drop-target"><i class="bi bi-caret-left-fill"></i></div>
+                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Up))" class="up w-drop-target"><i class="bi bi-caret-up-fill"></i></div>
+                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Down))" class="down w-drop-target"><i class="bi bi-caret-down-fill"></i></div>
+                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Left))" class="left w-drop-target"><i class="bi bi-caret-left-fill"></i></div>
                 <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Right))" class="right w-drop-target"><i class="bi bi-caret-right-fill"></i></div>
             </div>
         </div>
@@ -60,6 +60,21 @@
         Vertical
     }
 
+    private string GetSplitClass()
+    {
+        switch (Split)
+        {
+            case SplitState.None:
+                return "";
+            case SplitState.Horizontal:
+                return "split horizontal";
+            case SplitState.Vertical:
+                return "split vertical";
+        }
+
+        return "";
+    }
+
     private IJSInProcessObjectReference _jsModule;
     private ElementReference _element;
     
@@ -67,40 +82,37 @@
     public DockContainer ParentContainer { get; set; }
     
     [Parameter] // Can be initialized via parent container
-    public List<WindowData> AllWindows { get; set; }
-    
-    public List<WindowData> TabWindows { get; set; }
-    public List<WindowData> Floaters { get; set; }
+    public List<WindowData> Windows { get; set; }
     
     // Only used if this dock is in split mode
+    public DockContainer ChildContainerA { get; set; }
+    public DockContainer ChildContainerB { get; set; }
     public List<WindowData> SplitWindowsA { get; set; }
     public List<WindowData> SplitWindowsB { get; set; }
     
     public WindowData ActiveWindow { get; set; }
-    public static WindowData CurrentlyDragging { get; set; }
     
-    public static event Func<Task> OnStartDragging;
-    public static event Func<Task> OnStopDragging;
+    public static DockContainer MainDock { get; set; }
 
     public SplitState Split { get; set; } = SplitState.None;
-    private bool _hideSplit = false;
+    private bool _armSplit;
+    private bool _armUnSplit;
 
     protected override void OnInitialized()
     {
-        TabWindows = new List<WindowData>();
-        Floaters = new List<WindowData>();
         
-        if (AllWindows is null)
+        if (Windows is null)
         {
-            AllWindows = new List<WindowData>();
+            Windows = new List<WindowData>();
         }
         else
         {
-            TabWindows.AddRange(AllWindows);
+            SetActiveTabWindow(Windows.Last());
         }
+        
 
-        OnStartDragging += OnDragging;
-        OnStopDragging += OnDraggingStop;
+        DockFloaters.OnStartDragging += OnDragging;
+        DockFloaters.OnStopDragging += OnDraggingStop;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -109,20 +121,40 @@
         {
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/DockContainer.razor.js");
         }
+
+        if (_armSplit)
+        {
+            _armSplit = false;
+            await _jsModule.InvokeVoidAsync("doSplit", _element, Split == SplitState.Horizontal ? "horizontal" : "vertical");
+        }
+        
+        if (_armUnSplit)
+        {
+            _armUnSplit = false;
+            await _jsModule.InvokeVoidAsync("doUnSplit", _element);
+        }
     }
 
-    public void AddWindow(WindowData window)
+    public async Task AddWindowAsync(WindowData window)
     {
-        AllWindows.Add(window);
-        TabWindows.Add(window);
+        // Mobile devices can only have one window
+        if (DeviceInfo.IsMobile)
+        {
+            Windows.Clear();
+        }
+        
+        Windows.Add(window);
         ActiveWindow = window;
+
+        GlobalWindowData.AddGlobalWindow(window);
+        await GlobalWindowData.SetGlobalActiveWindowAsync(window);
         
         StateHasChanged();
         
         NotifyTabWindowsChange();
     }
     
-    public void AddDefaultWindow()
+    public async Task AddDefaultWindowAsync()
     {
         var window = new WindowData
         {
@@ -131,29 +163,23 @@
             Type = typeof(HomeWindowComponent),
         };
         
-        AddWindow(window);
+        await AddWindowAsync(window);
         
         NotifyTabWindowsChange();
     }
     
     public async Task RemoveWindow(WindowData window)
     {
-        if (TabWindows.Contains(window))
-            TabWindows.Remove(window);
-        
-        if (Floaters.Contains(window))
-            Floaters.Remove(window);
-
-        AllWindows.Remove(window);
-        SplitWindowsA?.Remove(window);
-        SplitWindowsB?.Remove(window);
+        Windows.Remove(window);
+        // SplitWindowsA?.Remove(window);
+        // SplitWindowsB?.Remove(window);
 
         // Out of windows and not split - need to add default window or kill self
-        if (AllWindows.Count == 0 && Split == SplitState.None)
+        if (Windows.Count == 0 && Split == SplitState.None)
         {
             if (ParentContainer is null)
             {
-                AddDefaultWindow();
+                await AddDefaultWindowAsync();
             }
             else
             {
@@ -161,14 +187,45 @@
             }
         }
         
+        if (window == ActiveWindow)
+        {
+            if (Windows.Any())
+            {
+                ActiveWindow = Windows.Last();
+            }
+        }
+        
+        GlobalWindowData.RemoveGlobalWindow(window);
+        
         StateHasChanged();
         
         NotifyTabWindowsChange();
     }
+
+    public async Task CloseAllAsync()
+    {
+        if (ChildContainerA is not null)
+        {
+            await ChildContainerA.CloseAllAsync();
+        }
+        
+        if (ChildContainerB is not null)
+        {
+            await ChildContainerB.CloseAllAsync();
+        }
+        
+        if (Windows is not null)
+        {
+            foreach (var window in Windows)
+            {
+                await RemoveWindow(window);
+            }
+        }
+    }
     
     public void SetActiveTabWindow(WindowData window)
     {
-        if (!TabWindows.Contains(window))
+        if (!Windows.Contains(window))
             return;
         
         ActiveWindow = window;
@@ -177,53 +234,29 @@
         NotifyTabWindowsChange();
     }
 
-    public async Task NotifyNewFloater(WindowData window)
+    public async Task NotifyNewFloater(WindowData window, double clientX = 0, double clientY = 0)
     {
         Console.WriteLine("New floater: " + window.Id);
+        await DockFloaters.Instance.AddFloater(window, clientX, clientY);
         
-        Floaters.Add(window);
-        TabWindows.Remove(window);
-
-        if (TabWindows.Count == 0)
+        await RemoveWindow(window);
+        
+        if (Windows.Count == 0)
         {
             if (ParentContainer is null)
             {
-                AddDefaultWindow();
+                await AddDefaultWindowAsync();
             }
             else
             {
-                await ParentContainer.DoEmptyHide();
+                await ParentContainer.UnSplit();
             }
         }
-        
-        NotifyTabWindowsChange();
     }
     
-    public async Task DoEmptyHide()
-    {
-        await _jsModule.InvokeVoidAsync("doEmptyHide", _element);
-        _hideSplit = true;
-    }
-
-    public async Task NotifyDragging(WindowData window)
-    {
-        CurrentlyDragging = window;
-
-        if (OnStartDragging is not null)
-            await OnStartDragging.Invoke();
-    }
-
     private async Task OnDragging()
     {
         StateHasChanged();
-    }
-    
-    public async Task NotifyStopDragging()
-    {
-        CurrentlyDragging = null;
-        
-        if (OnStopDragging is not null)
-            await OnStopDragging.Invoke();
     }
     
     private async Task OnDraggingStop()
@@ -235,87 +268,158 @@
     {
         Console.WriteLine("Dropped: " + location);
         
-        if (CurrentlyDragging is null)
+        if (DockFloaters.CurrentlyDragging is null)
             return;
         
         switch (location)
         {
             case DropLocation.Center:
             {
-                if (TabWindows.Contains(CurrentlyDragging))
+                if (Windows.Contains(DockFloaters.CurrentlyDragging))
                     return;
                 
-                TabWindows.Add(CurrentlyDragging);
+                // Remove from current dock container
+                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
 
-                if (!AllWindows.Contains(CurrentlyDragging))
-                {
-                    // Remove from current dock container
-                    await CurrentlyDragging.DockWindow.Container.RemoveWindow(CurrentlyDragging);
-                    
-                    // Add to this dock container
-                    AllWindows.Add(CurrentlyDragging);
-                }
+                // Add to this dock container
+                await AddWindowAsync(DockFloaters.CurrentlyDragging);
                 
-                // CurrentlyDragging.Id = Guid.NewGuid().ToString();
-                
-                await CurrentlyDragging.DockWindow.OnFloaterEnd();
-
                 break;
             }
             case DropLocation.Right:
             {
                 // Remove currently dragging from its own container
-                await CurrentlyDragging.DockWindow.Container.RemoveWindow(CurrentlyDragging);
+                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
                 
                 // Set left to all other windows
-                SplitWindowsA = AllWindows;
+                SplitWindowsA = Windows;
                 
                 // Clear normal windows
-                AllWindows = null;
+                Windows = null;
                 
                 // Set right to the currently dragging window
-                SplitWindowsB = new List<WindowData> { CurrentlyDragging };
+                SplitWindowsB = new List<WindowData> { DockFloaters.CurrentlyDragging };
                 
                 // Init split state
                 Split = SplitState.Horizontal;
                 
-                // Kill floater
-                await CurrentlyDragging.DockWindow.OnFloaterEnd();
+                _armSplit = true;
                 
                 // Re-render
                 StateHasChanged();
-
-                await _jsModule.InvokeVoidAsync("doSplit", _element, "horizontal");
+                
+                break;
+            }
+            case DropLocation.Left:
+            {
+                // Remove currently dragging from its own container
+                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
+                
+                // Set right to all other windows
+                SplitWindowsB = Windows;
+                
+                // Clear normal windows
+                Windows = null;
+                
+                // Set left to the currently dragging window
+                SplitWindowsA = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                
+                // Init split state
+                Split = SplitState.Horizontal;
+                
+                _armSplit = true;
+                
+                // Re-render
+                StateHasChanged();
+                
+                break;
+            }
+            case DropLocation.Up:
+            {
+                // Remove currently dragging from its own container
+                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
+                
+                // Set bottom to all other windows
+                SplitWindowsB = Windows;
+                
+                // Clear normal windows
+                Windows = null;
+                
+                // Set top to the currently dragging window
+                SplitWindowsA = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                
+                // Init split state
+                Split = SplitState.Vertical;
+                
+                _armSplit = true;
+                
+                // Re-render
+                StateHasChanged();
+                
+                break;
+            }
+            case DropLocation.Down:
+            {
+                // Remove currently dragging from its own container
+                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
+                
+                // Set top to all other windows
+                SplitWindowsA = Windows;
+                
+                // Clear normal windows
+                Windows = null;
+                
+                // Set bottom to the currently dragging window
+                SplitWindowsB = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                
+                // Init split state
+                Split = SplitState.Vertical;
+                
+                _armSplit = true;
+                
+                // Re-render
+                StateHasChanged();
                 
                 break;
             }
         }
 
-        CurrentlyDragging = null;
+        DockFloaters.CurrentlyDragging = null;
     }
 
     public async Task UnSplit()
     {
-        AllWindows = new List<WindowData>();
-        AllWindows.AddRange(SplitWindowsA);
-        AllWindows.AddRange(SplitWindowsB);
+        if (Split == SplitState.None)
+            return;
+        
+        Split = SplitState.None;
+        
+        Windows = new List<WindowData>();
+        
+        if (SplitWindowsA is not null)
+            Windows.AddRange(SplitWindowsA);
+        
+        if (SplitWindowsB is not null)
+            Windows.AddRange(SplitWindowsB);
         
         SplitWindowsA = null;
         SplitWindowsB = null;
         
-        Split = SplitState.None;
+        _armUnSplit = true;
+
+        Console.WriteLine($"Unsplitting. Root: {ParentContainer is null}. New window count: {Windows.Count}");
         
-        await _jsModule.InvokeVoidAsync("doUnSplit", _element);
+        SetActiveTabWindow(Windows.LastOrDefault());
         
         StateHasChanged();
     }
 
     private void NotifyTabWindowsChange()
     {
-        foreach (var window in TabWindows)
+        foreach (var window in Windows)
         {
-            if (window.DockWindow is not null)
-                window.DockWindow.OnTabsChanged();
+            if (window.WindowBase is not null)
+                window.WindowBase.NotifyNeedsReRender();
         }
     }
 }
