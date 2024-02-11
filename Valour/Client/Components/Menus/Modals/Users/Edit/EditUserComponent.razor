@@ -1,7 +1,8 @@
-﻿@inject NavigationManager NavManager
+﻿@inherits Modal<EditUserComponent.ModalParams>
+@inject NavigationManager NavManager
 
 
-@if (User is null)
+@if (@Data.User is null)
 {
     <div class="background">
         <h5>Loading user...</h5>
@@ -9,7 +10,7 @@
     return;
 }
 
-<BigMenuComponent StartTopMenu="@StartTopMenu" StartSubMenu="@StartSubMenu" @ref="BigMenu">
+<BigMenuComponent StartTopMenu="@Data.StartTopMenu" StartSubMenu="@Data.StartSubMenu" @ref="BigMenu">
     <LeftSide>
         <section>
             <p class="user-settings">USER SETTINGS</p>
@@ -39,7 +40,7 @@
                 switch (BigMenu.SelectedSubMenu.Name)
                 {
                     case "Info":
-                        <EditUserInfoComponent User="User"></EditUserInfoComponent>
+                        <EditUserInfoComponent User="@Data.User"></EditUserInfoComponent>
                         break;
                     case "Profile":
                         <EditProfileComponent></EditProfileComponent>
@@ -70,15 +71,12 @@
 </BigMenuComponent>
 
 @code {
-    
-    [Parameter]
-    public string StartTopMenu { get; set; }
-    
-    [Parameter]
-    public string StartSubMenu { get; set; }
-    
-    [Parameter]
-    public User User { get; set; }
+    public class ModalParams
+    {
+        public User User;
+        public string StartTopMenu;
+        public string StartSubMenu;
+    }
 
     private BigMenuComponent BigMenu { get; set; }
 
@@ -106,11 +104,6 @@
         {
             StateHasChanged();
         }
-    }
-    
-    protected override void OnInitialized()
-    {
-        User = ValourClient.Self;
     }
 
     private async Task LogOut()

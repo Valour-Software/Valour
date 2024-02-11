@@ -1,7 +1,28 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 
 <div class="open-tab @FlipClass" @onclick="OnClickAsync">
-    @GetText()
+    @if (Open)
+    {
+        if (Flip)
+        {
+            <i class="bi bi-caret-right-fill"></i>
+        }
+        else
+        {
+            <i class="bi bi-caret-left-fill"></i>
+        }
+    }
+    else
+    {
+        if (Flip)
+        {
+            <i class="bi bi-caret-left-fill"></i>
+        }
+        else
+        {
+            <i class="bi bi-caret-right-fill"></i>
+        }
+    }
 </div>
 
 
@@ -16,20 +37,6 @@
     
     [Parameter]
     public Func<Task> OnClicked { get; set; }
-    
-    const string OpenText = "\u2190";
-    const string ClosedText = "\u2192";
-
-    string GetText()
-    {
-        switch (Flip)
-        {
-            case false:
-                return Open ? OpenText : ClosedText;
-            case true:
-                return Open ? ClosedText : OpenText;
-        }
-    } 
 
     public async Task OnClickAsync()
     {

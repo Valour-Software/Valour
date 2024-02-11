@@ -1,0 +1,18 @@
+﻿.avatar {
+    width:128px;
+    border:solid 4px black;
+    margin: 5px;
+    border-radius: 128px;
+    cursor: pointer;
+    display: block;
+}
+
+.preview {
+    background-color: var(--main-5); 
+    display: inline-block; 
+    padding-right: 0.5em; 
+    padding-left: 0.1em; 
+    border-radius: 0.4em;
+    scale: 1.5;
+    margin-left: 3em;
+}

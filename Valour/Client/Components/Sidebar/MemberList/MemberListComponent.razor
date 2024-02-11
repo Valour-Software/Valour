@@ -1,6 +1,4 @@
-﻿@inject WindowManager windowManager
-
-<CascadingValue Value="this">
+﻿<CascadingValue Value="this">
     <div class="role-list hide-scrollbar">
 
         @{
@@ -149,7 +147,7 @@
         DisplayedRoleMembers.Add(1, new());
 
         // Events
-        windowManager.OnPlanetFocused += OnPlanetChange;
+        GlobalWindowData.OnActivePlanetChange += OnPlanetChange;
         ValourClient.OnPlanetClose += OnPlanetClose;
         ModelObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
         ModelObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
@@ -176,12 +174,12 @@
             }
         });
 
-        await OnPlanetChange(windowManager.FocusedPlanet);
+        await OnPlanetChange(GlobalWindowData.GlobalActivePlanet);
     }
 
     public async Task OnMemberDelete(PlanetMember member)
     {
-        if (member.PlanetId != windowManager.FocusedPlanet.Id)
+        if (member.PlanetId != GlobalWindowData.GlobalActivePlanet.Id)
             return;
 
         var lastRole = LastMemberRoles[member.Id];
@@ -227,7 +225,7 @@
         var member = eventData.Model;
         var newItem = eventData.NewToClient;
         
-        if (member.PlanetId != windowManager.FocusedPlanet.Id)
+        if (member.PlanetId != GlobalWindowData.GlobalActivePlanet.Id)
             return;
 
         if (!UserCache.ContainsKey(member.Id))
@@ -252,7 +250,7 @@
 
     public async Task OnRoleDeletion(PlanetRole role)
     {
-        if (role.PlanetId != windowManager.FocusedPlanet.Id)
+        if (role.PlanetId != GlobalWindowData.GlobalActivePlanet.Id)
             return;
 
         if (!DisplayedRoleMembers.ContainsKey(role.Id))
@@ -282,7 +280,7 @@
         var role = eventData.Model;
         var newItem = eventData.NewToClient;
         
-        if (role.PlanetId != windowManager.FocusedPlanet.Id)
+        if (role.PlanetId != GlobalWindowData.GlobalActivePlanet.Id)
             return;
 
         // Role is brand new

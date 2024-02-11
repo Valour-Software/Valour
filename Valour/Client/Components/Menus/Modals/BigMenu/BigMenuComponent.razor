@@ -1,6 +1,5 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager NavManager
-@inject WindowManager WindowManager
 
 <section class="bigmenu-section">
     <CascadingValue Value="this" IsFixed="true">
@@ -40,6 +39,9 @@
 </section>
 
 @code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
     [Parameter]
     public string StartTopMenu { get; set; }
     
@@ -51,12 +53,6 @@
 
     [Parameter]
     public RenderFragment RightSide { get; set; }
-
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
-
-    [CascadingParameter]
-    public BlazoredModalInstance ModalInstance { get; set; }
 
     public BigMenuSubMenuComponent SelectedSubMenu = null;
 
@@ -103,12 +99,13 @@
         
         StateHasChanged();
     }
-
+    
     public async Task ClickEscape(MouseEventArgs e)
     {
         if (!DeviceInfo.IsMobile || ShowLeftSide)
         {
-            await ModalInstance.CloseAsync();
+            await ModalRoot.CloseTopModal();
+            // await ModalInstance.CloseAsync();
         }
         else
         {

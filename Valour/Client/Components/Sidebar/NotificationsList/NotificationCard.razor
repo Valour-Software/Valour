@@ -1,24 +1,20 @@
 <div class="notification" @key="@Notification.Id">
     <div class="title-bar">
-        <img alt="Notification icon" class="image" src="@_imageUrl" @onerror="OnImageError" />
+        <img alt="Notification icon" class="image" src="@_imageUrl" @onerror="@OnImageError" />
         <p class="title">@Notification.Title</p>
     </div>
     <p class="body">@Notification.Body</p>
     <div class="button-holder">
-        <button @onclick="OnClickClear">
+        <button @onclick="@OnClickClear">
             <img alt="Trash can" src="_content/Valour.Client/media/Trash-Can-Icon.svg"/>
         </button>
-        <button @onclick="OnClickView">
+        <button @onclick="@OnClickView">
             <img alt="Channel" src="_content/Valour.Client/media/Eye-Icon.svg"/>
         </button>
     </div>
 </div>
 
 @code {
-    
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
-    
     [Parameter]
     public Notification Notification { get; set; }
 
@@ -38,7 +34,7 @@
     
     private async Task OnClickView()
     {
-        await NotificationNavigator.NavigateTo(Notification, Modal);
+        await NotificationNavigator.NavigateTo(Notification);
     }
     
     private async Task OnClickClear()

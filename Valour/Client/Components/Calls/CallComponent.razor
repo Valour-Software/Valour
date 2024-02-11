@@ -1,6 +1,5 @@
-﻿@inject IJSRuntime JsRuntime
-@inject IModalService Modal
-@using Valour.Api.Extensions
+﻿@using Valour.Sdk.Extensions
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
 @if (ActiveChannel is not null)
@@ -22,6 +21,9 @@
 
 
 @code {
+    
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
 
     public RenderFragment InnerContent =>
         @<div class="call-container">
@@ -161,12 +163,16 @@
         StateHasChanged();
     }
 
-    private async Task OnClickSettings()
+    private void OnClickSettings()
     {
-        var param = new ModalParameters();
-        param.Add("StartTopMenu", "General Settings");
-        param.Add("StartSubMenu", "Device Preferences");
-        Modal.Show<EditUserComponent>("Edit User", param);
+        var data = new EditUserComponent.ModalParams()
+        {
+            User = ValourClient.Self,
+            StartTopMenu = "General Settings",
+            StartSubMenu = "Device Preferences"
+        };
+        
+        ModalRoot.OpenModal<EditUserComponent>(data);
     }
     
     private async Task OnClickLeave()

@@ -1,0 +1,168 @@
+﻿@inherits WindowBase
+@inject IJSRuntime JsRuntime
+
+<div class="window-wrapper @(IsActive ? "active" : "")"
+     style="z-index: @GetZIndex()"
+     @ref="@_element">
+    <div class="tab-wrapper @(GetIndex() == Container.Windows.Count - 1 ? "last" : "")"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickTab"
+         style="width: @GetTabWidth()%;
+         margin-left: @(GetTabWidth() * GetIndex())%;">
+        @* Mobile does not have tabs *@
+        @if (!DeviceInfo.IsMobile)
+        {
+            <div class="tab">
+                <div class="tab-info">
+                    <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
+                    <span class="tab-title">@WindowData.Title</span>
+                </div>
+                <div class="tab-buttons"
+                     @onclick:stopPropagation="true">
+                    <span class="plus" @onclick="OnClickPlus">
+                        <i class="bi bi-plus-circle-fill"></i>
+                    </span>
+                    <span class="minus" @onclick="@OnClickMinus">
+                        <i class="bi bi-dash-circle-fill"></i>
+                    </span>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="window"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickWindow">
+        <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public DockContainer Container { get; set; }
+    
+    [Parameter]
+    public WindowData WindowData { get; set; }
+    
+    public override void ChangeType(Type newType, object newData, string newTitle, string newIcon)
+    {
+        WindowData.Type = newType;
+        WindowData.Data = newData;
+        WindowData.Title = newTitle;
+        WindowData.Icon = newIcon;
+        
+        _windowParams = new Dictionary<string, object>()
+        {
+            {"Window", WindowData},
+            {"Data", WindowData.Data}
+        };
+
+        ReRender();
+    }
+
+    public override async Task CloseAsync()
+    {
+        await Container.RemoveWindow(WindowData);
+    }
+
+    public override async Task AddSiblingWindow(WindowData newTabData)
+    {
+        await Container.AddWindowAsync(newTabData);
+    }
+
+    private IJSInProcessObjectReference _jsModule;
+    private ElementReference _element;
+    private DotNetObjectReference<DockWindow> _dotnetRef;
+
+    public bool IsActive => Container.ActiveWindow == WindowData;
+
+    private Dictionary<string, object> _windowParams;
+
+    private bool _render = false;
+
+    protected override void OnInitialized()
+    {
+        _windowParams = new Dictionary<string, object>()
+        {
+            {"Window", WindowData},
+            {"Data", WindowData.Data}
+        };
+    }
+
+    protected override bool ShouldRender() => _render;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/DockWindow.razor.js");
+            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef);
+        }
+        
+        _render = false;
+        
+        Console.WriteLine("Rendered " + WindowData.Id);
+    }
+
+    public override void NotifyNeedsReRender()
+    {
+        ReRender();
+    }
+    
+    private float GetTabWidth()
+    {
+        if (Container.Windows.Count == 1)
+            return 100f;
+        
+        return (100f / Container.Windows.Count);
+    }
+
+    private int GetIndex()
+    {
+        return Container.Windows.IndexOf(WindowData);
+    }
+
+    private async Task OnClickPlus()
+    {
+        await Container.AddDefaultWindowAsync();
+    }
+    
+    private async Task OnClickMinus()
+    {
+        await CloseAsync();
+    }
+
+    private int GetZIndex()
+    {
+        if (Container.ActiveWindow == this.WindowData)
+            return 2;
+
+        return 1;
+    }
+
+    private async Task OnClickTab()
+    {
+        Container.SetActiveTabWindow(this.WindowData);
+        await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
+    }
+
+    private async Task OnClickWindow()
+    {
+        Container.SetActiveTabWindow(this.WindowData);
+        await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
+    }
+    
+    /* Dragging */
+
+    [JSInvokable]
+    public async Task OnFloaterStart(double clientX, double clientY)
+    {
+        await Container.NotifyNewFloater(WindowData, clientX, clientY);
+    }
+    
+    public void ReRender()
+    {
+        _render = true;
+        StateHasChanged();
+    }
+}

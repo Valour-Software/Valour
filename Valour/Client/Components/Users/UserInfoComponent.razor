@@ -1,4 +1,5 @@
-﻿@implements IDisposable
+﻿@inject ContextMenuService ContextMenuService
+@implements IDisposable
 
 @* Placeholder *@
 @if (User is null)
@@ -20,14 +21,14 @@
     return;
 }
 
-<ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline' tabindex="0"
-                    @onkeydown="@(e => { if (e.Key == "Enter") ShowProfileAsync(); })">
-    <div class="user-info" style="@Style" @onclick="ShowProfileAsync">
+<div @oncontextpress="@OnContextMenu" style="display:inline" tabindex="0"
+     @onkeydown="@(async e => { if (e.Key == "Enter") await ShowProfileAsync(); })">
+    <div class="user-info" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
-            <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
+            <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="@OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username" style="color: @_roleColor" @onclick="ShowProfileAsync">@_name</p>
+                    <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
                     <div class="dot-badge-holder">
                         @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                         {
@@ -56,7 +57,7 @@
             <div class="state-circle @_statusClass" />
         </div>
     </div>
-</ContextMenuTrigger>
+</div>
 
 @code {
     [Parameter]
@@ -75,7 +76,6 @@
 
     // The type, either "user" or "member"
     private string _type = "user";
-    private string _contextMenu = "user-context";
     
     // Internal cached values
     private string _name = DefaultName;
@@ -120,17 +120,21 @@
             Member.OnUpdated += OnMemberUpdate;
             Member.OnRoleModified += OnMemberRoleModified;
             _type = "member";
-            _contextMenu = "member-context";
         }
 
+        await CalculateAll();
+
+        StateHasChanged();
+    }
+
+    private async Task CalculateAll()
+    {
         CalculateName();
         CalculateTag();
         CalculatePfp();
         CalculateStatus();
         CalculateStatusCode();
         await DetermineColorChange();
-
-        StateHasChanged();
     }
 
     void IDisposable.Dispose()
@@ -147,15 +151,25 @@
         }
     }
 
-    private async Task OnContextMenu()
+    private void OnContextMenu(MouseEventArgs e)
     {
         if (Member is not null)
         {
-            await InnerMemberContextMenuComponent.Initialize(Member, null);
+            ContextMenuService.Root.OpenMenu<MemberContextMenu>(e,
+                new MemberContextMenu.MemberContextParams()
+                {
+                    Member = Member
+                }
+            );
         }
         else
         {
-            await UserContextMenuComponent.Initialize(User);
+            ContextMenuService.Root.OpenMenu<UserContextMenu>(e,
+                new UserContextMenu.UserContextParams()
+                {
+                    User = User
+                }
+            );
         }
     }
 
@@ -289,5 +303,16 @@
         {
             await ProfilePopup.Instance.OpenAsync(User, (int)x, (int)y, "bottomRight");
         }
+    }
+
+    public async Task UpdateAll()
+    {
+        await CalculateAll();
+        StateHasChanged();
+    }
+    
+    public void Refresh()
+    {
+        StateHasChanged();
     }
 }

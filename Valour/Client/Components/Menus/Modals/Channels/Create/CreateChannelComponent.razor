@@ -1,3 +1,5 @@
+@inherits Modal<CreateChannelComponent.ModalParams>
+
 <section>
     <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
     <div class="top-section">
@@ -76,6 +78,13 @@
 
 @code {
 
+    public class ModalParams
+    {
+        public ChannelTypeEnum ChannelType { get; set; }
+        public Planet Planet { get; set; }
+        public Channel Parent { get; set; }
+    }
+
     // Input fields
     string _name;
 
@@ -86,34 +95,19 @@
     bool _isPrivate = false;
 
     int SelfAuthority { get; set; }
-
-    /// <summary>
-    /// The type of channel to be created
-    /// </summary>
-    [Parameter, EditorRequired]
-    public ChannelTypeEnum ChannelType { get; set; }
     
-    [Parameter, EditorRequired]
-    public Planet Planet { get; set; }
-
-    [Parameter]
-    public Channel Parent { get; set; }
-
-    [CascadingParameter]
-    public BlazoredModalInstance ModalInstance { get; set; }
-
-    public async Task ClickEscape(MouseEventArgs e)
+    private async Task ClickEscape(MouseEventArgs e)
     {
-        await ModalInstance.CloseAsync();
+        await ModalRoot.CloseModal(ModalId);
     }
 
     protected override async Task OnInitializedAsync() {
         _roles.Clear();
         _selectedRoles.Clear();
 
-        PlanetMember selfMember = await ValourClient.GetSelfMember(Planet);
+        var selfMember = await ValourClient.GetSelfMember(Data.Planet);
 
-        var roles = await Planet.GetRolesAsync();
+        var roles = await Data.Planet.GetRolesAsync();
 
         SelfAuthority = await selfMember.GetAuthorityAsync();
         foreach (PlanetRole item in roles)
@@ -149,11 +143,11 @@
             return;
         }
 
-        long planetId = Planet.Id;
+        long planetId = Data.Planet.Id;
         long? parentId = null;
 
-        if (Parent != null)
-            parentId = Parent.Id;
+        if (Data.Parent != null)
+            parentId = Data.Parent.Id;
 
         long userId = ValourClient.Self.Id;
         //string token = ValourClient.Token;
@@ -168,24 +162,24 @@
                 PlanetId = planetId,
                 Position = -1,
                 
-                ChannelType = ChannelType
+                ChannelType = Data.ChannelType
             },
             Nodes = new()
         };
 
         if (_isPrivate)
         {
-            var defaultRoleId = (await Planet.GetDefaultRoleAsync()).Id;
+            var defaultRoleId = (await Data.Planet.GetDefaultRoleAsync()).Id;
             
             // set the default role channel view perms to false
 
             // only need category node for categories, but if it IS a category, we need every type of node
             
-            bool doCategory = ChannelType == ChannelTypeEnum.PlanetCategory;
-            bool doChat = ChannelType == ChannelTypeEnum.PlanetCategory ||
-                          ChannelType == ChannelTypeEnum.PlanetChat;
-            bool doVoice = ChannelType == ChannelTypeEnum.PlanetCategory ||
-                           ChannelType == ChannelTypeEnum.PlanetVoice;
+            bool doCategory = Data.ChannelType == ChannelTypeEnum.PlanetCategory;
+            bool doChat = Data.ChannelType == ChannelTypeEnum.PlanetCategory ||
+                          Data.ChannelType == ChannelTypeEnum.PlanetChat;
+            bool doVoice = Data.ChannelType == ChannelTypeEnum.PlanetCategory ||
+                           Data.ChannelType == ChannelTypeEnum.PlanetVoice;
 
             if (doCategory)
             {
@@ -228,7 +222,7 @@
                 PermissionsNode defVoiceNode = new()
                 {
                     TargetId = 0,
-                    PlanetId = Planet.Id,
+                    PlanetId = Data.Planet.Id,
                     RoleId = defaultRoleId,
                     Mask = 0x00,
                     Code = 0x00,
@@ -287,7 +281,7 @@
                     var voiceNode = new PermissionsNode()
                     {
                         TargetId = 0,
-                        PlanetId = Planet.Id,
+                        PlanetId = Data.Planet.Id,
                         RoleId = role.Id,
                         Mask = 0x00,
                         Code = 0x00,
@@ -314,6 +308,6 @@
         }
 
         // close modal
-        await ModalInstance.CloseAsync();
+        await ModalRoot.CloseModal(ModalId);
     }
 }

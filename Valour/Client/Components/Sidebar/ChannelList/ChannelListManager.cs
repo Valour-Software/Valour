@@ -1,8 +1,4 @@
-﻿using Valour.Shared;
-using Valour.Shared.Categories;
-using Valour.Api.Client;
-using Valour.Api.Items;
-using Valour.Api.Models;
+﻿using Valour.Sdk.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Components.Sidebar.ChannelList

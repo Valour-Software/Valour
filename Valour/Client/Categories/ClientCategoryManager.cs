@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Api.Models;
+using Valour.Sdk.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Categories

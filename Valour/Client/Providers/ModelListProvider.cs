@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components.Web.Virtualization;
-using Valour.Api.Client;
-using Valour.Api.Nodes;
+using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Providers;

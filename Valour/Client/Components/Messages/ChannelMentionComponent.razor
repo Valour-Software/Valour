@@ -1,6 +1,4 @@
-﻿@inject WindowManager WindowManager
-
-<div class="channel-mention" @onclick="@OnClicked">
+﻿<div class="channel-mention" @onclick="@OnClicked">
     @if (_targetChannel == null)
     {
         <div>#NotFound!</div>
@@ -15,6 +13,9 @@
     
     [CascadingParameter]
     public Channel Channel { get; set; }
+    
+    [CascadingParameter]
+    public WindowData Window { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -50,12 +51,24 @@
         StateHasChanged();
     }
 
-    public async Task OnClicked(){
+    public async Task OnClicked()
+    {
 
-        var window = WindowManager.GetSelectedWindow();
-        if (window is ChatChannelWindow chatWindow)
+        var newWindow = new WindowData()
         {
-            await chatWindow.Component.SwapChannel(_targetChannel);
+            Title = await _targetChannel.GetTitleAsync(),
+            Icon = await _targetChannel.GetIconAsync(),
+            Type = typeof(ChatChannelWindowComponent),
+            Data = _targetChannel
+        };
+        
+        if (Window is not null)
+        {
+            await Window.WindowBase.AddSiblingWindow(newWindow);
+        }
+        else
+        {
+            await DockContainer.MainDock.AddWindowAsync(newWindow);
         }
     }
 }

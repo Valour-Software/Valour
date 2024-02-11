@@ -23,9 +23,6 @@
 @code {
 	public EmbedProgress item { get; set; }
 
-	[CascadingParameter]
-    public IModalService Modal { get; set; }
-
 	protected override void OnInitialized()
 	{
 		item = (EmbedProgress)_item;

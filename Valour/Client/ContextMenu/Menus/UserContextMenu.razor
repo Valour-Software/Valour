@@ -1,0 +1,107 @@
+﻿@inherits ContextMenu<UserContextMenu.UserContextParams>
+@inject IJSRuntime JsRuntime
+
+<ContextMenuItem OnClick="@OnClickMessage">
+	<Label>Message</Label>
+	<Icon><i class="bi bi-chat-dots-fill"></i></Icon>
+</ContextMenuItem>
+@if (_isFriend)
+{
+	<ContextMenuItem OnClick="@OnClickRemoveFriend">
+		<Label>Remove Friend</Label>
+		<Icon>-<i class="bi bi-person-fill"></i></Icon>
+	</ContextMenuItem>
+}
+else if (_isFriendRequested)
+{
+	<ContextMenuItem OnClick="@OnClickRemoveFriend">
+		Cancel Request
+	</ContextMenuItem>
+}
+else
+{
+	<ContextMenuItem OnClick="@OnClickAddFriend">
+		<Label>
+			Add Friend
+		</Label>
+		<Icon>+<i class="bi bi-person-fill"></i></Icon>
+	</ContextMenuItem>
+}
+
+<ContextSubMenu>
+	<Label>Copy</Label>
+	<Icon><i class="bi bi-caret-right-fill"></i></Icon>
+	<Content>
+		<ContextMenuItem OnClick="@OnClickCopyUsername">Username</ContextMenuItem>
+		<ContextMenuItem OnClick="@OnClickCopyUserId">User Id</ContextMenuItem>
+	</Content>
+</ContextSubMenu>
+
+@code {
+
+	public class UserContextParams
+	{
+		public User User;
+	}
+
+	protected override void OnInitialized()
+	{
+		_isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == Data.User.Id);
+		_isFriend = ValourClient.Friends.Any(x => x.Id == Data.User.Id);
+	}
+
+	private bool _isFriend;
+	private bool _isFriendRequested;
+
+	private async Task OnClickAddFriend()
+	{
+		var result = await ValourClient.AddFriendAsync(Data.User.NameAndTag);
+
+		if (!result.Success)
+		{
+			await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+			return;
+		}
+
+		_isFriend = true;
+		StateHasChanged();
+	}
+
+	private async Task OnClickRemoveFriend()
+	{
+		var result = await ValourClient.RemoveFriendAsync(Data.User.NameAndTag);
+
+		if (!result.Success)
+		{
+			await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+			return;
+		}
+
+		_isFriendRequested = false;
+		_isFriend = false;
+		StateHasChanged();
+	}
+
+	private async Task OnClickCopyUsername(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.NameAndTag); 
+	}
+
+	private async Task OnClickCopyUserId(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.Id);
+	}
+	
+	private async Task OnClickMessage()
+	{
+		var channel = await Channel.GetDirectChannelAsync(Data.User.Id, true);
+		
+		var newWindow = new WindowData()
+		{
+			Title = await channel.GetTitleAsync(),
+			Icon = await channel.GetIconAsync(),
+			Type = typeof(ChatChannelWindowComponent),
+			Data = channel,
+		};
+
+		await GlobalWindowData.OpenWindowAtActive(newWindow);
+	}
+}

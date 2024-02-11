@@ -10,16 +10,15 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
-    <PackageReference Include="Blazored.Modal" Version="7.1.0" />
-    <PackageReference Include="Markdig" Version="0.33.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-rc.1.23421.29" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-rc.1.23421.29" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0-rc.1.23421.29" />
-    <PackageReference Include="System.Net.Http.Json" Version="8.0.0-rc.1.23419.4" />
+    <PackageReference Include="Markdig" Version="0.34.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.1" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\API\Valour.Api.csproj" />
+    <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />
     <ProjectReference Include="..\Client\Valour.Client.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>

@@ -21,9 +21,6 @@
 
 @code {
     
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
-
     private class QuickNotif
     {
         public Notification Notification { get; set; }
@@ -95,7 +92,7 @@
         }
         else if (e.Button == 0)
         {
-            await NotificationNavigator.NavigateTo(notif.Notification, Modal);
+            await NotificationNavigator.NavigateTo(notif.Notification);
         }
     }
 }

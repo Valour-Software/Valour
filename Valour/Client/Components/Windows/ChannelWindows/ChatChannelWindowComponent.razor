@@ -1,40 +1,27 @@
-﻿@using System.Text
-@using Valour.Api.Nodes
-@implements IDisposable
-@inject WindowManager WindowManager
+﻿@inherits WindowContent<Channel>
+
+@using System.Text
+@implements IAsyncDisposable
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
-<CascadingValue Value='Channel' IsFixed="true">
-    <CascadingValue Value='Window' IsFixed="true">
-        <CascadingValue Value='this' IsFixed="true">
-            <WindowFrameComponent @ref="@WindowFrame" Window="@Window" Title="@Title" Description="@Description">
-                <ChannelWatchingComponent ParentComponent="this" Channel="Channel" />
-                <CascadingValue Value='ChannelPermissions'>
-                    <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
-                </CascadingValue>
-            </WindowFrameComponent>
+<CascadingValue Value="@Channel" IsFixed="true">
+    <CascadingValue Value="@Window" IsFixed="true">
+        <CascadingValue Value="this" IsFixed="true">
+            <ChannelWatchingComponent ParentComponent="this" Channel="Channel" />
+            <CascadingValue Value="@ChannelPermissions">
+                <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{Window.Id}")" />
+            </CascadingValue>
         </CascadingValue>
     </CascadingValue>
 </CascadingValue>
 
 @code {
-    [Parameter]
-    public ChatChannelWindow Window { get; set; }
-
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
-
-    public WindowFrameComponent WindowFrame { get; set; }
 
     public event Func<Channel, Task> OnChannelChange;
 
     public MessageHolderComponent MessageHolder { get; set; }
 
     public PermissionsNode ChannelPermissions { get; set; }
-
-    public string Title { get; set; }
-
-    public string Description { get; set; }
     
     /* Planet Only */
     private Planet _planet;
@@ -49,18 +36,16 @@
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        GlobalWindowData.AddGlobalChatWindow(this);
+        
         _thisRef = DotNetObjectReference.Create(this);
-
-        Window.SetComponent(this);
-
+        
         Console.WriteLine("Initializing channel window component.");
 
-        Channel = Window.Channel;
+        Channel = Data;
 
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
-        
-        await Channel.Open();
     }
 
     public void Refresh()
@@ -72,45 +57,10 @@
     public virtual Type GetInputComponentType() => 
         typeof(InputComponent);
 
-    public async Task<string> GetChannelDisplayTitleAsync()
-    {
-        if (Window.Channel.PlanetId is not null)
-        {
-            return Channel.Name;
-        }
-        else
-        {
-            
-            var others = Channel.Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
-
-            if (!others.Any())
-                return "Chat with yourself";
-            
-            var sb = new StringBuilder("Chat with ");
-            
-            var i = 0;
-            foreach (var other in others)
-            {
-                var user = await User.FindAsync(other.UserId);
-                
-                sb.Append(user.Name);
-                if (i < others.Count - 1)
-                    sb.Append(", ");
-                else
-                    sb.Append(" ");
-                
-                i++;
-            }
-
-            return sb.ToString();
-        }
-    }
-
-    public virtual Task<string> GetChannelDisplayDescriptionAsync() =>
-        Task.FromResult(Channel.Description);
-
     public virtual async Task SetupNewChannelAsync()
     {
+        await Channel.Open(Window.Id);
+        
         // Planet stuff
         if (Channel.PlanetId is not null)
         {
@@ -121,12 +71,11 @@
             _selfMember.OnDeleted += OnSelfMemberDeleted;
             
             ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(_selfMember.Id);
+            
+            await GlobalWindowData.SetGlobalActivePlanetAsync(_planet);
         }
         
         Channel.OnUpdated += OnChatChannelUpdate;
-        
-        Title = await GetChannelDisplayTitleAsync();
-        Description = await GetChannelDisplayDescriptionAsync();
         
         Refresh();
         
@@ -136,9 +85,26 @@
 
     public async Task SwapChannel(Channel newChannel)
     {
+        // Only allow chat channels
+        if (!newChannel.IsChatChannel)
+            return;
+        
+        // Don't swap to the same channel
+        if (newChannel.Id == Channel.Id)
+            return;
+        
+        // Close old channel
+        await Channel.Close(Window.Id);
+        
+        // Remove channel event listeners
+        Channel.OnUpdated -= OnChatChannelUpdate;
+        
+        // Set all the data variables to the new channel
         Channel = newChannel;
+        Data = newChannel;
+        Window.Data = newChannel;
 
-        await WindowManager.SwapWindowChannel(Window, newChannel);
+        await Logger.Log($"Swapping window {Window.Id} to channel {newChannel.Id}.");
 
         await SetupNewChannelAsync();
         await MessageHolder.InputComponent.SetupNewChannelAsync();
@@ -146,7 +112,7 @@
         if (OnChannelChange is not null)
             await OnChannelChange.Invoke(Channel);
 
-        Refresh();
+        Refresh(); 
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -162,7 +128,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await Channel.Close();
+        await Channel.Close(Window.Id);
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -223,20 +189,17 @@
         }
     }
 
-    public  Task OnClickWindow()
+    public async Task OnClickWindow()
     {
-        return WindowManager.SetFocusedPlanet(_planet);
+        await GlobalWindowData.SetGlobalActivePlanetAsync(_planet);
     }
     
     public async Task OnPlanetDeleted()
-        => await Window.CloseAsync();
+        => await Window.WindowBase.CloseAsync();
 
     public async Task OnSelfMemberDeleted()
     {
-        var newWindow = new HomeWindow();
-        await WindowManager.ReplaceWindow(Window, newWindow);
-        _canRenderFlag = true;
-        StateHasChanged();
+        await Window.WindowBase.CloseAsync();
     }
     
     public async Task<List<PlanetMember>> GetLastChatMembers(int count)
@@ -257,16 +220,23 @@
 
         return chatters;
     }
-    
-    void IDisposable.Dispose()
+
+    public async ValueTask DisposeAsync()
     {
-        if (_planet is not null)
-            _planet.OnDeleted -= OnPlanetDeleted;
+        GlobalWindowData.RemoveGlobalChatWindow(this);
         
+        await Channel.Close(Window.Id);
+        
+        if (_planet is not null)
+        {
+            _planet.OnDeleted -= OnPlanetDeleted;
+        }
+
         if (_selfMember is not null)
             _selfMember.OnDeleted -= OnSelfMemberDeleted;
         
         ValourClient.OnMessageReceived -= OnReceiveMessage;
         _thisRef.Dispose();
     }
+    
 }

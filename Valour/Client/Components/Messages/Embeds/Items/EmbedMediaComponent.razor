@@ -1,4 +1,4 @@
-﻿@using Valour.Api.Models.Messages.Embeds.Styles;
+﻿@using Valour.Sdk.Models.Messages.Embeds.Styles;
 @implements IDisposable
 @inject IJSRuntime JS
 @inherits BaseEmbedItemComponent
@@ -30,9 +30,6 @@
 
 	[CascadingParameter]
 	public MessageComponent messageComponent { get; set; }
-
-	[CascadingParameter]
-	public IModalService Modal { get; set; }
 
 	public string AdditionalDivStyle
 	{

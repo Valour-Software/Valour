@@ -1,27 +1,25 @@
-﻿@inject WindowManager WindowManager
-@inject IJSRuntime JsRuntime
+﻿@inject IJSRuntime JsRuntime
+@inject ContextMenuService ContextMenuService
 @implements IDisposable
 
 <div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" @onclick="OnClick"> 
-    <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='user-context' @onpointerdown='async () => await UserContextMenuComponent.Initialize(Friend)'>
-        <div class="outer-circle">
-            <div class="text-hide-circle"></div>
-            <img alt="friend icon" src='@_iconUrl' class="icon" @onerror='OnIconError' style='@_imageStyle'/>
-            @if (_isUnread || _notificationCount > 0)
-            {
-                <div class="noti @(_notificationCount > 0 ? "purple" : "")">
-                    @(_notificationCount > 9 ? "+" : _notificationCount)
-                </div>
-            }
-            <div class="rect-slide">
-                <div class="text-wrapper">
-                    <div class="text-flex">
-                        <b class="friend-name">@Friend.Name</b>
-                    </div>
+    <div class="outer-circle" @oncontextpress="@OnContextMenu">
+        <div class="text-hide-circle"></div>
+        <img alt="friend icon" src='@_iconUrl' class="icon" @onerror='OnIconError' style='@_imageStyle'/>
+        @if (_isUnread || _notificationCount > 0)
+        {
+            <div class="noti @(_notificationCount > 0 ? "purple" : "")">
+                @(_notificationCount > 9 ? "+" : _notificationCount)
+            </div>
+        }
+        <div class="rect-slide">
+            <div class="text-wrapper">
+                <div class="text-flex">
+                    <b class="friend-name">@Friend.Name</b>
                 </div>
             </div>
         </div>
-    </ContextMenuTrigger>
+    </div>
 </div>
 
 @code {
@@ -29,7 +27,7 @@
     public User Friend { get; set; }
 
     [Parameter]
-    public HomeWindow Window { get; set; }
+    public WindowData Window { get; set; }
 
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
@@ -48,11 +46,21 @@
         HomeWindowComponent.RerenderFriendCards += Refresh;
     }
 
-    private async Task Refresh()
+    private void OnContextMenu(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<UserContextMenu>(e, 
+            new UserContextMenu.UserContextParams()
+            {
+                User = Friend
+            }
+        );
+    }
+
+    private Task Refresh()
     {
         // We use the client list because we do *not* want to send off an API request for every single
         // person you do not have a conversation with - the list is loaded at startup
-        var channel = ValourClient.DirectChatChannels.FirstOrDefault(x => x.Members.Any(x => x.UserId == Friend.Id));
+        var channel = ValourClient.DirectChatChannels.FirstOrDefault(x => x.Members.Any(m => m.UserId == Friend.Id));
         
         if (channel is null)
         {
@@ -65,6 +73,8 @@
         }
         
         StateHasChanged();
+
+        return Task.CompletedTask;
     }
 
     public void Dispose()
@@ -73,28 +83,34 @@
     }
     
 
-    public async Task OnClick()
+    private async Task OnClick()
     {
         // Get dm channel (and create it if it does not exist)
         // this can probably be optimized to only create the channel if the first message
         // is being sent, but this is fine for now
         var channel = await Channel.GetDirectChannelAsync(Friend.Id, create: true);
-        var newWindow = new ChatChannelWindow(channel);
+        
+        Window.WindowBase.ChangeType(
+            typeof(ChatChannelWindowComponent), 
+            channel,
+            await channel.GetTitleAsync(),
+            await channel.GetIconAsync()
+        );
 
         Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
 
-        await WindowManager.ReplaceWindow(Window, newWindow);
-        await WindowManager.SetSelectedWindow(newWindow);
-        await WindowManager.SetFocusedPlanet(null);
+        // await WindowManager.ReplaceWindow(Window, newWindow);
+        // await WindowManager.SetSelectedWindow(newWindow);
+        // await WindowManager.SetFocusedPlanet(null);
 
         StateHasChanged();
     }
 
-    protected void OnIconError()
+    private void OnIconError()
     {
         _iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
 
-        int r = Random.Shared.Next(24) * 15;
+        var r = Random.Shared.Next(24) * 15;
 
         _imageStyle = $"filter: hue-rotate({r}deg)";
 

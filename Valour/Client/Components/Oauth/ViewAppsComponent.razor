@@ -1,4 +1,6 @@
-﻿<div class="modal-bg">
+﻿@inherits Modal<ViewAppsComponent.ModalParams>
+
+<div class="modal-bg">
     <h4>Your Applications</h4>
 
     @if (Apps is null)
@@ -10,10 +12,10 @@
     {
         foreach (var app in Apps)
         {
-            var app_n = app;
+            var appN = app;
 
-            <div class="app" @onclick='() => OpenEditApp(app_n)'>
-                <img src='@app.ImageUrl' class='app-icon' />
+            <div class="app" @onclick='@(() => OpenEditApp(appN))'>
+                <img alt="@app.Name Icon" src='@app.ImageUrl' class='app-icon' />
                 <p class='app-name'>@app.Name</p>
             </div>  
         }
@@ -23,8 +25,7 @@
 
 @code 
 {
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public class ModalParams {}
 
     public List<OauthApp> Apps { get; set; }
 
@@ -37,17 +38,15 @@
         StateHasChanged();
     }
 
-    public async Task OpenEditApp(OauthApp app)
+    private void OpenEditApp(OauthApp app)
     {
-        ModalParameters modParams = new();
-
-        modParams.Add("App", app);
-        modParams.Add("ViewComponent", this);
-
-        Modal.Show<EditAppComponent>(
-             "Edit App", 
-             modParams
-        );
+        var data = new EditAppComponent.ModalParams()
+        {
+            App = app,
+            ViewComponent = this
+        };
+        
+        ModalRoot.OpenModal<EditAppComponent>(data);
     }
 }
 

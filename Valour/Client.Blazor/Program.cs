@@ -1,11 +1,10 @@
 using Blazored.LocalStorage;
-using Blazored.Modal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Valour.Api.Client;
+using Valour.Sdk.Client;
 using Valour.Client.Categories;
 using Valour.Client.Components.Sidebar.ChannelList;
-using Valour.Client.Windows;
+using Valour.Client.ContextMenu;
 using Valour.Client.Sounds;
 using Valour.Client.Tenor;
 
@@ -41,23 +40,13 @@ public class Program
         {
             client.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
         });
-
-        builder.Services.AddSingleton<WindowManager>();
+        
         builder.Services.AddSingleton<ClientCategoryManager>();
         builder.Services.AddSingleton<ChannelListManager>();
         builder.Services.AddSingleton<SoundManager>();
 
-        builder.Services.AddBlazoredModal();
-        builder.Services.AddBlazorContextMenu(options =>
-        {
-            options.ConfigureTemplate("main", template =>
-            {
-                template.Animation = BlazorContextMenu.Animation.FadeIn;
-                template.MenuCssClass = "context-menu";
-                template.MenuItemCssClass = "context-menu-item";
-            });
-        });
-
+        builder.Services.AddSingleton<ContextMenuService>();
+        
         var host = builder.Build();
 
         var navService = host.Services.GetRequiredService<NavigationManager>();

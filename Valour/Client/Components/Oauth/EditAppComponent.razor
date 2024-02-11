@@ -1,136 +1,131 @@
+@inherits Modal<EditAppComponent.ModalParams>
 @using System.Net.Http.Headers
-@inject HttpClient http
-@inject IJSRuntime JS
+@inject IJSRuntime JsRuntime
 
 <div class="modal-bg" style="text-align: center;">
     <h5>Editing</h5>
-    <h4 class='name'>@App.Name</h4>
+    <h4 class="name">@Data.App.Name</h4>
     <br/>
-    <img src="@App.ImageUrl" onclick="document.getElementById('upload-core').click()" class='icon' />
+    <img alt="App Icon" src="@Data.App.ImageUrl" onclick="document.getElementById('upload-core').click()" class="icon" />
 
-    <div style='display: none'>
-        <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
+    <div style="display: none">
+        <InputFile OnChange="@LoadFiles" AdditionalAttributes="@_inputAttributes"></InputFile>
     </div>
 
     <br/>
 
-    <span id="result-span" style="display:block" class="text-info">@Icon_Output</span>
-    <span id="error-span" style="display:block" class="text-danger">@Icon_Error</span>
+    <span id="result-span" style="display:block" class="text-info">@_iconOutput</span>
+    <span id="error-span" style="display:block" class="text-danger">@_iconError</span>
 
     <br/>
 
-    <code class="m-2 mb-4">App ID: @App.Id</code>
+    <code class="m-2 mb-4">App ID: @Data.App.Id</code>
 
-    <p class="m-2 mb-4">Your app has been used @App.Uses times.</p>
+    <p class="m-2 mb-4">Your app has been used @Data.App.Uses times.</p>
 
     <br />
 
 
     <div class="input-group" style="max-width: 400px;">
-        <input class="form-control" @bind='Redirect' placeholder="Your redirect url..." />
+        <input class="form-control" @bind="_redirect" placeholder="Your redirect url..." />
         <button class="btn v-button" @onclick="OnClickRedirectUpdate">Apply</button>
     </div>
 
-    @if (redirectResult is not null)
+    @if (_redirectResult is not null)
     {
-        if (redirectResultError)
+        if (_redirectResultError)
         {
-            <span class="text-danger mb-4">@redirectResult</span>
+            <span class="text-danger mb-4">@_redirectResult</span>
             <br />
         }
         else
         {
-            <span class="text-info mb-4">@redirectResult</span>
+            <span class="text-info mb-4">@_redirectResult</span>
             <br />
         }
     }
 
     <br />
 
-    <button class='btn v-button btn-copy' @onclick='OnCopySecret'></button>
-    <button class='btn v-button' @onclick='OnClickDelete'>Delete</button>
+    <button class="btn v-button btn-copy" @onclick="@OnCopySecret"></button>
+    <button class="btn v-button" @onclick="@OnClickDelete">Delete</button>
 </div>
 
 @code 
 {
-    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
+    public class ModalParams
+    {
+        public OauthApp App;
+        public ViewAppsComponent ViewComponent;
+    }
+    
+    private readonly Dictionary<string, object> _inputAttributes = new()
     {
         { "accept", ".png,.jpg,.jpeg,.gif" },
         { "id", "upload-core"}
     };
 
-    [Parameter]
-    public OauthApp App { get; set; }
-
-    [Parameter]
-    public ViewAppsComponent ViewComponent { get; set;}
-
     [CascadingParameter]
-    public IModalService Modal { get; set; }
+    public ModalRoot ModalRoot { get; set; }
 
-    public string Icon_Output = "";
-    public string Icon_Error = "";
+    private string _iconOutput = "";
+    private string _iconError = "";
 
-    public string Redirect { get; set; }
-    public string redirectResult = null;
-    public bool redirectResultError = false;
+    private string _redirect;
+    private string _redirectResult;
+    private bool _redirectResultError;
 
     protected override void OnInitialized()
     {
-        Redirect = App.RedirectUrl;
+        _redirect = Data.App.RedirectUrl;
     }
 
-    public async Task OnClickRedirectUpdate()
+    private async Task OnClickRedirectUpdate()
     {
-        App.RedirectUrl = Redirect;
+        Data.App.RedirectUrl = _redirect;
 
-        var updateResult = await Valour.Api.Items.LiveModel.UpdateAsync(App);
+        var updateResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(Data.App);
 
         Console.WriteLine(updateResult.Message);
 
-        redirectResultError = !updateResult.Success;
+        _redirectResultError = !updateResult.Success;
 
         if (updateResult.Success)
-            redirectResult = "Successfully updated!";
+            _redirectResult = "Successfully updated!";
         else
-            redirectResult = updateResult.Message;
+            _redirectResult = updateResult.Message;
 
         StateHasChanged();
     }
 
-    public async Task OnClickDelete(){
-        ConfirmModalData data = new(
-            $"Delete {App.Name}?",
+    private void OnClickDelete(){
+        var data = new ConfirmModalComponent.ModalParams(
+            $"Delete {Data.App.Name}?",
             "This cannot be undone!",
             "Confirm",
             "Cancel",
             async () => {
-                var res = await Api.Items.LiveModel.DeleteAsync(App);
+                var res = await LiveModel.DeleteAsync(Data.App);
 
                 if (res.Success)
-                    Icon_Output = "Deleted.";
+                    _iconOutput = "Deleted.";
                 else
-                    Icon_Error = res.Message;
+                    _iconError = res.Message;
 
                 StateHasChanged();
-                ViewComponent.Apps.Remove(App);
-                ViewComponent.Refresh();
+                Data.ViewComponent.Apps.Remove(Data.App);
+                Data.ViewComponent.Refresh();
             },
-            async () => {
-
-            }
+            () => Task.CompletedTask
         );
-
-        ModalParameters modParams = new();
-        modParams.Add("Data", data);
-
-        Modal.Show<ConfirmModalComponent>("Confirm Modal", modParams);
+        
+        ModalRoot.OpenModal<ConfirmModalComponent>(data);
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        Icon_Output = "";
-        Icon_Error = "";
+        _iconOutput = "";
+        _iconError = "";
 
         //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
 
@@ -138,12 +133,12 @@
 
         if (file == null)
         {
-            Icon_Error = "Could not load file as an image.";
+            _iconError = "Could not load file as an image.";
         }
 
         if (file.Size > 10240000)
         {
-            Icon_Error = "Max app icon size is 10mb.";
+            _iconError = "Max app icon size is 10mb.";
         }
 
         byte[] data = new byte[file.Size];
@@ -156,23 +151,23 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await App.Node.PostAsyncWithResponse<string>($"upload/app/{App.Id}", content);
+        var result = await Data.App.Node.PostAsyncWithResponse<string>($"upload/app/{Data.App.Id}", content);
 
         if (result.Success)
         {
-            App.ImageUrl = result.Data;
-            Icon_Output = "Successfully changed app icon.";
+            Data.App.ImageUrl = result.Data;
+            _iconOutput = "Successfully changed app icon.";
         }
         else
         {
-            Icon_Error = result.Message;
+            _iconError = result.Message;
         }
 
         StateHasChanged();
     }
 
     public async Task OnCopySecret(){
-        await JS.InvokeVoidAsync("clipboardCopy.copyText", App.Secret);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.App.Secret);
     }
 
 }
