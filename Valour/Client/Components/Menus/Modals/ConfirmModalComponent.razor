@@ -3,13 +3,15 @@
 <!-- This modal exists to allow parts of the app to ask for confirmation -->
 
 <div class="col-md-12">
-	<section style="text-align: center; padding: 30px">
+	<section class="glassy-modal" style="text-align: center; padding: 30px">
 		<h3>@Data.Title</h3>
-		<h5>@Data.Description</h5>
+		<label style="font-size: 1.2em">@Data.Description</label>
 		<br />
 		<br />
-		<div role="button" @onclick="@OnCancel" class="btn v-btn d-inline-block">@Data.CancelText</div>
-		<div role="button" @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">@Data.ConfirmText</div>
+		<div class="btn-wrapper">
+			<button @onclick="@OnCancel" class="btn v-btn d-inline-block">@Data.CancelText</button>
+			<button @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">@Data.ConfirmText</button>
+		</div>
 	</section>
 </div>
 

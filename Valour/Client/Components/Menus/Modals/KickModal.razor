@@ -1,0 +1,43 @@
+﻿@inherits Modal<KickModal.KickModalParams>
+
+<div class="col-md-12">
+	<section class="glassy-modal" style="text-align: center; padding: 30px">
+		<h3><i class="bi bi-shield-fill-exclamation"></i> Kick @Data.Member.Nickname?</h3>
+		<label style="font-size: 1.2em">This will remove them from the planet.</label>
+		<br />
+		<UserInfoComponent Member="@Data.Member" 
+		                   Style="
+		                   background-color: var(--main-3); 
+		                   display: inline-block; 
+		                   border-radius: 0.5em; 
+		                   padding-right: 0.5em;
+						   scale: 1.5;
+						   margin-top: 1.5em;
+						   margin-bottom: 2em" />
+		<br />
+		<div class="btn-wrapper">
+			<button @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel </button>
+			<button @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</button>
+		</div>
+	</section>
+</div>
+
+@code {
+
+    public class KickModalParams
+    {
+        public PlanetMember Member { get; set; }
+    }
+	
+	private async Task OnConfirm()
+	{
+		var result = await LiveModel.DeleteAsync(Data.Member);
+		Console.WriteLine(result);
+		await CloseAsync();
+	}
+	
+	private Task OnCancel()
+	{
+		return CloseAsync();
+	}
+}

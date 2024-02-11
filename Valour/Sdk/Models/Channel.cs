@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
@@ -14,40 +15,40 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     // Will only be used for planet channels
     private List<PermissionsNode> PermissionsNodes { get; set; }
     private List<User> MemberUsers { get; set; }
-    
+
     public override string BaseRoute =>
         $"api/channels";
-    
+
     /////////////////////////////////
     // Shared between all channels //
     /////////////////////////////////
-    
+
     public List<ChannelMember> Members { get; set; }
-    
+
     /// <summary>
     /// The name of the channel
     /// </summary>
     public string Name { get; set; }
-    
+
     /// <summary>
     /// The description of the channel
     /// </summary>
     public string Description { get; set; }
-    
+
     /// <summary>
     /// The type of this channel
     /// </summary>
     public ChannelTypeEnum ChannelType { get; set; }
-    
+
     /// <summary>
     /// The last time a message was sent (or event occured) in this channel
     /// </summary>
     public DateTime LastUpdateTime { get; set; }
-    
+
     /////////////////////////////
     // Only on planet channels //
     /////////////////////////////
-    
+
     /// <summary>
     /// The id of the planet this channel belongs to, if any
     /// </summary>
@@ -76,17 +77,17 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// The id of the parent of the channel, if any
     /// </summary>
     public long? ParentId { get; set; }
-    
+
     /// <summary>
     /// The position of the channel in the channel list
     /// </summary>
     public int? Position { get; set; }
-    
+
     /// <summary>
     /// If this channel inherits permissions from its parent
     /// </summary>
     public bool? InheritsPerms { get; set; }
-    
+
     /// <summary>
     /// If this channel is the default channel
     /// </summary>
@@ -105,7 +106,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             if (cached is not null)
                 return cached;
         }
-        
+
         Node node;
         if (planetId is null)
         {
@@ -115,7 +116,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             node = await NodeManager.GetNodeForPlanetAsync(id);
         }
-        
+
         var item = (await node.GetJsonAsync<Channel>($"api/channels/{id}", refresh)).Data;
 
         if (item is not null)
@@ -138,10 +139,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             node = ValourClient.PrimaryNode;
         }
-        
+
         return await node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
     }
-    
+
     /// <summary>
     /// Used to speed up direct channel lookups
     /// </summary>
@@ -151,7 +152,8 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// Given a user id, returns the direct channel between them and the requester.
     /// If create is true, this will create the channel if it is not found.
     /// </summary>
-    public static async ValueTask<Channel> GetDirectChannelAsync(long otherUserId, bool create = false, bool refresh = false)
+    public static async ValueTask<Channel> GetDirectChannelAsync(long otherUserId, bool create = false,
+        bool refresh = false)
     {
         // We insert into the cache with lower-value id first to ensure a match
         // so we do the same to get it back
@@ -172,8 +174,9 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             if (cached is not null)
                 return cached;
         }
-        
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>($"api/channels/direct/{otherUserId}?create={create}")).Data;
+
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>(
+            $"api/channels/direct/{otherUserId}?create={create}")).Data;
 
         if (item is not null)
         {
@@ -183,7 +186,12 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 
         return item;
     }
-    
+
+    /// <summary>
+    /// Returns if this channel is a chat channel
+    /// </summary>
+    public bool IsChatChannel => ISharedChannel.ChatChannelTypes.Contains(ChannelType);
+
     /// <summary>
     /// Returns the planet for this channel, if any
     /// </summary>
@@ -191,7 +199,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (PlanetId is null)
             return ValueTask.FromResult<Planet>(null);
-        
+
         return Planet.FindAsync(PlanetId.Value, refresh);
     }
 
@@ -211,7 +219,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public bool DetermineUnread()
     {
-        if (!ISharedChannel. ChatChannelTypes.Contains(ChannelType))
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return false;
 
         return ValourClient.GetChannelUnreadState(Id);
@@ -224,10 +232,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return;
-        
+
         await Node.PostAsync($"{IdRoute}/typing", null);
     }
-    
+
     /// <summary>
     /// Returns the permission node for the given role
     /// Channel type allows getting the node for a specific type of channel in a category,
@@ -240,10 +248,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 
         if (PermissionsNodes is null || refresh)
             await LoadPermissionNodesAsync(refresh);
-        
+
         return PermissionsNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
     }
-    
+
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>
@@ -251,12 +259,12 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         var planet = await GetPlanetAsync();
         var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
-        
+
         if (PermissionsNodes is not null)
             PermissionsNodes.Clear();
         else
             PermissionsNodes = new List<PermissionsNode>();
-        
+
         foreach (var node in allPermissions)
         {
             if (node.TargetId == Id)
@@ -277,13 +285,13 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         "Group Chat",
         "Group Voice"
     };
-    
+
     /// <summary>
     /// Returns a good name string for the channel type
     /// </summary>
     public string GetHumanReadableName()
     {
-        var index = (int)ChannelType;
+        var index = (int) ChannelType;
         if (index < 0 || index > ChannelTypeNames.Length - 1)
             return "Unknown";
 
@@ -294,11 +302,11 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (PlanetId is null)
             return true;
-        
+
         var member = await PlanetMember.FindAsyncByUser(userId, PlanetId.Value);
         return await HasPermissionAsync(member, permission);
     }
-    
+
     public async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
     {
         // No permission rules for non-planet channels (at least for now)
@@ -308,13 +316,13 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         // Member is from another planet
         if (member.PlanetId != PlanetId)
             return false;
-        
+
         var planet = await member.GetPlanetAsync();
 
         // Owners have all permissions
         if (planet.OwnerId == member.UserId)
             return true;
-        
+
         var memberRoles = await member.GetRolesAsync();
 
         var target = this;
@@ -339,12 +347,14 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             if (viewPerm != PermissionState.Undefined)
                 break;
         }
-        
+
         var topRole = memberRoles.FirstOrDefault() ?? PlanetRole.DefaultRole;
 
         if (viewPerm == PermissionState.Undefined)
         {
-            viewPerm = Permission.HasPermission(topRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
+            viewPerm = Permission.HasPermission(topRole.ChatPermissions, ChatChannelPermissions.View)
+                ? PermissionState.True
+                : PermissionState.False;
         }
 
         if (viewPerm != PermissionState.True)
@@ -390,7 +400,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
                 throw new Exception("Unexpected permission type: " + permission.GetType().Name);
         }
     }
-    
+
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
@@ -399,7 +409,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (PlanetId is null)
             return null;
-        
+
         var member = await PlanetMember.FindAsync(memberId, PlanetId.Value);
         var roles = await member.GetRolesAsync();
 
@@ -467,7 +477,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public Task<List<Message>> GetLastMessagesAsync(int count = 10) =>
         GetMessagesAsync(long.MaxValue, count);
-    
+
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
@@ -476,17 +486,19 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return new List<Message>();
-        
-        var result = await ValourClient.PrimaryNode.GetJsonAsync<List<Message>>($"{IdRoute}/messages?index={index}&count={count}");
+
+        var result =
+            await ValourClient.PrimaryNode.GetJsonAsync<List<Message>>(
+                $"{IdRoute}/messages?index={index}&count={count}");
         if (!result.Success)
         {
             Console.WriteLine($"Failed to get messages from {Id}: {result.Message}");
             return new List<Message>();
         }
-        
+
         return result.Data;
     }
-    
+
     /// <summary>
     /// Returns the list of users in the channel but DO NOT use this for
     /// planet channels please we will figure that out soon
@@ -498,7 +510,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 
         if (Members is null)
         {
-            var result =  await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
+            var result = await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
             if (result.Success)
                 MemberUsers = result.Data;
             else
@@ -508,24 +520,88 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         return MemberUsers;
     }
 
-    public async Task Open()
+    public string GetDescription()
+    {
+        if (Description is not null)
+            return Description;
+        return "A " + GetHumanReadableName() + " channel";
+    }
+
+    public async Task<string> GetIconAsync()
+    {
+        var result = "./_content/Valour.Client/media/logo/logo-128.png";
+        
+        if (ISharedChannel.PlanetChannelTypes.Contains(ChannelType))
+        {
+            var planet = await GetPlanetAsync();
+            if (planet is not null)
+                result = planet.IconUrl;
+        }
+        else
+        {
+            var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
+            if (!others.Any())
+                result =  ValourClient.Self.PfpUrl;
+
+            var other = await User.FindAsync(others.First().UserId);
+            if (other is not null)
+                result = other.PfpUrl;
+        }
+
+        return result;
+    }
+
+    public async Task<string> GetTitleAsync()
+    {
+        if (PlanetId is not null)
+        {
+            return Name;
+        }
+        else
+        {
+            var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
+
+            if (!others.Any())
+                return "Chat with yourself";
+            
+            var sb = new StringBuilder("Chat with ");
+            
+            var i = 0;
+            foreach (var other in others)
+            {
+                var user = await User.FindAsync(other.UserId);
+                
+                sb.Append(user.Name);
+                if (i < others.Count - 1)
+                    sb.Append(", ");
+                else
+                    sb.Append(" ");
+                
+                i++;
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    public async Task Open(string key)
     {
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await ValourClient.OpenPlanetChannel(this);
+                await ValourClient.OpenPlanetChannelConnection(this, key);
                 break;
             default:
                 break;
         }
     }
 
-    public async Task Close()
+    public async Task Close(string key)
     {
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await ValourClient.ClosePlanetChannel(this);
+                await ValourClient.ClosePlanetChannelConnection(this, key);
                 break;
             default:
                 break;

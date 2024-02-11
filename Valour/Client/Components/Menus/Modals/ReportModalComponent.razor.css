@@ -9,17 +9,6 @@
     text-align: center;
 }
 
-.report-modal button {
-    display: block;
-    width: 90%;
-    font-size: 14px;
-    margin: 8px;
-    padding-top: 12px;
-    text-align: left;
-    border: none;
-    background-color: var(--main-4);
-}
-
 .report-modal button h4 {
     font-size: 1.2em;
 }

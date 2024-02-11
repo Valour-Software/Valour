@@ -91,13 +91,18 @@ public static class ValourClient
     /// <summary>
     /// A set of locks used to prevent planet connections from closing automatically
     /// </summary>
-    public static Dictionary<string, long> PlanetLocks { get; private set; }
+    public static Dictionary<string, long> PlanetLocks { get; private set; } = new();
 
     /// <summary>
     /// Currently opened channels
     /// </summary>
     public static List<Channel> OpenPlanetChannels { get; private set; }
 
+    /// <summary>
+    /// A set of locks used to prevent channel connections from closing automatically
+    /// </summary>
+    public static Dictionary<string, long> ChannelLocks { get; private set; } = new();
+    
     /// <summary>
     /// The state of channels this user has access to
     /// </summary>
@@ -607,11 +612,21 @@ public static class ValourClient
     /// <summary>
     /// Opens a planet and prepares it for use
     /// </summary>
-    public static async Task OpenPlanet(Planet planet)
+    public static async Task OpenPlanetConnection(Planet planet, string key)
     {
         // Cannot open null
         if (planet == null)
             return;
+
+        if (PlanetLocks.ContainsKey(key))
+        {
+            PlanetLocks[key] = planet.Id;
+        }
+        else
+        {
+            // Add lock
+            AddPlanetLock(key, planet.Id);
+        }
 
         // Already open
         if (OpenPlanets.Contains(planet))
@@ -672,29 +687,64 @@ public static class ValourClient
     /// Prevents a planet from closing connections automatically.
     /// Key is used to allow multiple locks per planet.
     /// </summary>
-    public static void AddPlanetLock(string key, long planetId)
+    private static void AddPlanetLock(string key, long planetId)
     {
         PlanetLocks[key] = planetId;
     }
 
-    public static async Task RemovePlanetLock(string key)
+    /// <summary>
+    /// Removes the lock for a planet.
+    /// Returns if there are any locks left for the planet.
+    /// </summary>
+    private static bool RemovePlanetLock(string key)
     {
         var found = PlanetLocks.TryGetValue(key, out var planetId);
-        
-        if (!found)
-            return;
-        
-        PlanetLocks.Remove(key);
 
-        var planet = ValourCache.Get<Planet>(planetId);
-        await ClosePlanetConnectionIfNotBlocked(planet);
+        if (found)
+        {
+            PlanetLocks.Remove(key);
+        }
+
+        return !PlanetLocks.Any(x => x.Value == planetId);
+    }
+    
+    /// <summary>
+    /// Prevents a channel from closing connections automatically.
+    /// Key is used to allow multiple locks per channel.
+    /// </summary>
+    private static void AddChannelLock(string key, long planetId)
+    {
+        ChannelLocks[key] = planetId;
+    }
+
+    /// <summary>
+    /// Removes the lock for a channel.
+    /// Returns if there are any locks left for the channel.
+    /// </summary>
+    private static bool RemoveChannelLock(string key)
+    {
+        var found = ChannelLocks.TryGetValue(key, out var channelId);
+
+        if (!found)
+        {
+            ChannelLocks.Remove(key);
+        }
+
+        return !ChannelLocks.Any(x => x.Value == channelId);
     }
 
     /// <summary>
     /// Closes a SignalR connection to a planet
     /// </summary>
-    public static async Task ClosePlanetConnection(Planet planet)
+    public static async Task ClosePlanetConnection(Planet planet, string key, bool force = false)
     {
+        if (!force)
+        {
+            var locked = RemovePlanetLock(key);
+            if (locked)
+                return;
+        }
+
         // Already closed
         if (!OpenPlanets.Contains(planet))
             return;
@@ -716,12 +766,23 @@ public static class ValourClient
     }
 
     /// <summary>
-    /// Opens a SignalR connection to a channel
+    /// Opens a SignalR connection to a channel if it does not already have one,
+    /// and stores a key to prevent it from being closed
     /// </summary>
-    public static async Task OpenPlanetChannel(Channel channel)
+    public static async Task OpenPlanetChannelConnection(Channel channel, string key)
     {
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
             return;
+
+        if (ChannelLocks.ContainsKey(key))
+        {
+            ChannelLocks[key] = channel.Id;
+        }
+        else
+        {
+            // Add lock
+            AddChannelLock(key, channel.Id);   
+        }
         
         // Already opened
         if (OpenPlanetChannels.Contains(channel))
@@ -730,7 +791,7 @@ public static class ValourClient
         var planet = await channel.GetPlanetAsync();
 
         // Ensure planet is opened
-        await OpenPlanet(planet);
+        await OpenPlanetConnection(planet, key);
 
         // Join channel SignalR group
         var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
@@ -751,11 +812,21 @@ public static class ValourClient
     /// <summary>
     /// Closes a SignalR connection to a channel
     /// </summary>
-    public static async Task ClosePlanetChannel(Channel channel)
+    public static async Task ClosePlanetChannelConnection(Channel channel, string key, bool force = false)
     {
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
             return;
-        
+
+        if (!force)
+        {
+            // Remove key from locks
+            var locked = RemoveChannelLock(key);
+
+            // If there are still any locks, don't close
+            if (locked)
+                return;
+        }
+
         // Not opened
         if (!OpenPlanetChannels.Contains(channel))
             return;
@@ -771,24 +842,9 @@ public static class ValourClient
         if (OnChannelClose is not null)
             await OnChannelClose.Invoke(channel);
 
-        await ClosePlanetConnectionIfNotBlocked(await channel.GetPlanetAsync());
+        await ClosePlanetConnection(await channel.GetPlanetAsync(), key);
     }
-
-    /// <summary>
-    /// Closes planet connection if no chat channels are opened for it
-    /// </summary>
-    public static async Task ClosePlanetConnectionIfNotBlocked(Planet planet)
-    {
-        if (planet == null)
-            return;
-
-        if (PlanetLocks.Values.Any(x => x == planet.Id))
-            return;
-        
-        // Close the planet connection
-        await ClosePlanetConnection(planet);
-    }
-
+    
     /// <summary>
     /// Subscribe to Valour Plus! (...or Premium? What are we even calling it???)
     /// </summary>
@@ -1151,7 +1207,7 @@ public static class ValourClient
         {
             _joinedPlanetIds.Remove(planet.Id);
             JoinedPlanets = JoinedPlanets.Where(x => x.Id != planet.Id).ToList();
-            await ClosePlanetConnection(planet);
+            await ClosePlanetConnection(planet, "", true);
         }
         
         private static async Task OnPlanetRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
@@ -1405,13 +1461,13 @@ public static class ValourClient
             {
                 await ValourCache.Put(planet.Id, planet);
 
-                await OpenPlanet(planet);
+                await OpenPlanetConnection(planet, "bot-init");
 
                 var channels = await planet.GetChatChannelsAsync();
 
                 foreach (var channel in channels)
                 {
-                    await OpenPlanetChannel(channel);
+                    await OpenPlanetChannelConnection(channel, "bot-init");
                 }
             }));
         }

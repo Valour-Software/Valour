@@ -1,5 +1,4 @@
 ﻿@inject IJSRuntime JsRuntime
-@inject WindowManager WindowManager
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
 @using System.Text.RegularExpressions
@@ -21,22 +20,22 @@
                     LastMessage = MessageHolder.GetLastMessage(),
                 };
 
-                <MessageComponent @key="@($"{Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+                <MessageComponent @key="@($"{ChatComponent.Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
             }
         }
     </div>
 
-    <ChannelCurrentlyTypingComponent ParentComponent="WindowComponent" Channel="WindowComponent.Channel"></ChannelCurrentlyTypingComponent>
+    <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
 
     <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
         <div style="position: relative">
-            <TenorMenuComponent @key="@("tenor-menu-" + Window.Id)" @ref="TenorMenu" ChannelWindow="Window"></TenorMenuComponent>
+            <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.Window.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
         </div>
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
         <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
         
         <div class="textbox" @ref="_dropZoneElement">
-            <InputFile id="@("upload-core-" + Window.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <InputFile id="@("upload-core-" + ChatComponent.Window.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
                 <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
             </button>
@@ -78,7 +77,7 @@
             }
 
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@Window.Id').focus()" autofocus>
+                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.Window.Id" data-window="@ChatComponent.Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.Window.Id').focus()" autofocus>
                 </div>
             </div>
         </div>
@@ -90,10 +89,7 @@
 @code {
 
     [CascadingParameter]
-    public ChatChannelWindowComponent WindowComponent { get; set; }
-
-    [CascadingParameter]
-    public ChatChannelWindow Window { get; set; }
+    public ChatChannelWindowComponent ChatComponent { get; set; }
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
@@ -109,7 +105,7 @@
     /// <summary>
     /// Placeholder text shown in the input box when empty
     /// </summary>
-    private string PlaceholderText => $"Discuss in {Window.Channel.Name}";
+    private string PlaceholderText => $"Discuss in {ChatComponent.Channel.Name}";
 
     /// <summary>
     /// The tenor menu component
@@ -242,28 +238,30 @@
 
     private async Task OnClickUploadAsync()
     {
-        await _jsModule.InvokeVoidAsync("OpenUploadFile", Window.Id);
+        await _jsModule.InvokeVoidAsync("OpenUploadFile", ChatComponent.Window.Id);
     }
+
+    private static Dictionary<long, string> _retainedInputCache = new();
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+        _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
         _thisRef.Dispose();
         await _jsModule.DisposeAsync();
     }
 
     public virtual async Task SetupNewChannelAsync()
     {
-        var planet = await WindowComponent.Channel.GetPlanetAsync();
+        var planet = await ChatComponent.Channel.GetPlanetAsync();
         if (planet is not null)
         {
             _selfMember = await planet.GetSelfMemberAsync();
-            CanUserPost = await WindowComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
         }
         else
         {
             _selfMember = null;
-            CanUserPost = await WindowComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
         }
 
         PreviewMessage = BuildNewMessage();
@@ -273,17 +271,17 @@
 
     public virtual Message BuildNewMessage()
     {
-        WindowManager.NotYetSentMessages.TryGetValue(WindowComponent.Channel.Id, out var prevContent);
+        _retainedInputCache.TryGetValue(ChatComponent.Channel.Id, out var prevContent);
         
         return new Message()
         {
             AuthorUserId = ValourClient.Self.Id,
             Content = prevContent,
-            ChannelId = Window.Channel.Id,
+            ChannelId = ChatComponent.Channel.Id,
             AuthorMemberId = _selfMember?.Id,
             TimeSent = DateTime.UtcNow,
             ReplyToId = null,
-            PlanetId = WindowComponent.Channel.PlanetId,
+            PlanetId = ChatComponent.Channel.PlanetId,
             Fingerprint = Guid.NewGuid().ToString(),
         };
     }
@@ -295,7 +293,7 @@
 
     public async Task SetInputContent(string content)
     {
-        await _jsModule.InvokeVoidAsync("setInputContent", Window.Id, content);
+        await _jsModule.InvokeVoidAsync("setInputContent", ChatComponent.Window.Id, content);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -317,7 +315,7 @@
 
     public virtual async Task OnAfterJsSetupAsync()
     {
-        if (PreviewMessage.Content is not null)
+        if (PreviewMessage?.Content is not null)
         {
             await SetInputContent(PreviewMessage.Content);
             await RefreshPreviewMessage();
@@ -621,7 +619,7 @@
                 {
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
-                    ChannelId = Window.Channel.Id,
+                    ChannelId = ChatComponent.Channel.Id,
                     Id = long.MaxValue
                 };
 
@@ -636,7 +634,7 @@
             PreviewMessageComponent.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
-            WindowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+            _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
         }
         // Editing message
         else
@@ -648,7 +646,7 @@
                 {
                     Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
-                    ChannelId = Window.Channel.Id,
+                    ChannelId = ChatComponent.Channel.Id,
                     Id = 0 
                 };
 
@@ -670,32 +668,32 @@
     // C# -> JS
     private ValueTask SetupJsAsync()
     {
-        return _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
+        return _jsModule.InvokeVoidAsync("setup", ChatComponent.Window.Id, _thisRef);
     }
 
     public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
-        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, ChatComponent.Window.Id);
     }
     
     public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes)
     {
-        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, Window.Id);
+        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, ChatComponent.Window.Id);
     }
 
     public async Task OnSubmitClick()
     {
-        await _jsModule.InvokeVoidAsync("submitMessage", Window.Id, true);
+        await _jsModule.InvokeVoidAsync("submitMessage", ChatComponent.Window.Id, true);
     }
 
     private ValueTask SelectEnd()
     {
-        return _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
+        return _jsModule.InvokeVoidAsync("selectEnd", ChatComponent.Window.Id);
     }
     
     private ValueTask FocusInputAsync()
     {
-        return _jsModule.InvokeVoidAsync("focusInput", Window.Id);
+        return _jsModule.InvokeVoidAsync("focusInput", ChatComponent.Window.Id);
     }
 
     // JS -> C#
@@ -721,7 +719,7 @@
             input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
         }
 
-        WindowManager.NotYetSentMessages[WindowComponent.Channel.Id] = input;
+        _retainedInputCache[ChatComponent.Channel.Id] = input;
         PreviewMessage.Content = input;
         await RefreshPreviewMessage();
 
@@ -734,7 +732,7 @@
 
         if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
         {
-            WindowComponent.Channel.SendIsTyping();
+            ChatComponent.Channel.SendIsTyping();
             _lastTypingUpdateSent = DateTime.UtcNow;
         }
 

@@ -1,0 +1,42 @@
+<button class="context-btn" 
+        @onclick:stopPropagation="true"
+        @onclick="@OnClicked">
+    <div class="context-bg" style="background-color: @Color"></div>
+    @ChildContent
+
+    @if (Icon is not null)
+    {
+        <span class="label-wrapper" style="color: @Color">
+            <span class="text">@Label</span>
+            <span class="icon">
+                @Icon
+            </span>
+        </span>
+    }
+</button>
+
+@code {
+    
+    [Parameter]
+    public RenderFragment Label { get; set; }
+    
+    [Parameter]
+    public RenderFragment Icon { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public Func<Task> OnClick { get; set; }
+    
+    [Parameter]
+    public string Color { get; set; } = "#fff";
+    
+    private Task OnClicked()
+    {
+        if (OnClick is not null)
+            return OnClick.Invoke();
+
+        return Task.CompletedTask;
+    }
+} 

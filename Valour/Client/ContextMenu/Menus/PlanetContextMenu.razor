@@ -1,0 +1,89 @@
+﻿@inherits ContextMenu<PlanetContextMenu.PlanetContextParams>
+@inject IJSRuntime JsRuntime
+
+@if (_canEdit)
+{
+    <ContextMenuItem OnClick='@OnClickEdit'>
+        <Label>Edit</Label>
+        <Icon><i class="bi bi-pen-fill"></i></Icon>
+    </ContextMenuItem>
+}
+<ContextMenuItem OnClick='@OnClickCopyId'>
+    <Label>Copy ID</Label>
+    <Icon><i class="bi bi-database-fill"></i></Icon>
+</ContextMenuItem>
+
+@if (ValourClient.Self.Id != Data.Planet.OwnerId)
+{
+    <ContextMenuItem OnClick='@OnClickLeavePlanet' Color="red">
+        <Label>Leave Planet</Label>
+        <Icon><i class="bi bi-box-arrow-left"></i></Icon>
+    </ContextMenuItem>
+}
+
+@code {
+
+    public class PlanetContextParams
+    {
+        public Planet Planet;
+    }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private static bool _canEdit;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var selfMember = await ValourClient.GetSelfMember(Data.Planet.Id);
+        if (selfMember is null)
+        {
+            _canEdit = false;
+        }
+        else
+        {
+            _canEdit = await selfMember.HasPermissionAsync(PlanetPermissions.Manage);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnClickEdit()
+    {
+        await CloseAsync();
+        
+        var data = new EditPlanetComponent.ModalParams()
+        {
+            Planet = Data.Planet
+        };
+        
+        ModalRoot.OpenModal<EditPlanetComponent>(data);
+    }
+
+    private async Task OnClickCopyId()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Planet.Id);
+    }
+
+    private async Task OnClickLeavePlanet()
+    {
+        await CloseAsync();
+        
+        var modalData =
+        new ConfirmModalComponent.ModalParams(
+             $"Leave {Data.Planet.Name}?",
+             "Are you sure?",
+             "Continue",
+             "Cancel",
+             async () =>
+             {
+                 Console.WriteLine("Confirmed leaving planet.");
+                 var result = await ValourClient.LeavePlanetAsync(Data.Planet);
+                 Console.WriteLine("Leave: " + result.Message);
+             },
+             () => Task.CompletedTask
+        );
+        
+        ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
+    }
+}

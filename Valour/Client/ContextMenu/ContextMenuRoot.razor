@@ -1,0 +1,83 @@
+@inject IJSRuntime JsRuntime
+
+<CascadingValue Value="@this" IsFixed="@true">
+    @ChildContent
+    @if (_currentMenuType is not null)
+    {
+        var data = new Dictionary<string, object>
+        {
+            { "Data", _currentData }
+        };
+        
+        <ContextMenuBase MouseArgs="@_currentArgs">
+            <DynamicComponent Type="@_currentMenuType" Parameters="@data" ></DynamicComponent>
+        </ContextMenuBase>
+    }
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    private IJSInProcessObjectReference _jsModule;
+    private ElementReference _element;
+    
+    private Type _currentMenuType;
+    private MouseEventArgs _currentArgs;
+    private object _currentData;
+    
+    public void OpenMenu<TMenu>(MouseEventArgs mouseEvent, object data = null) 
+    {
+        _currentMenuType = typeof(TMenu);
+        _currentArgs = mouseEvent;
+        _currentData = data;
+        
+        StateHasChanged();
+    }
+    
+    public async Task CloseMenu()
+    {
+        _currentMenuType = null;
+        _currentArgs = null;
+        
+        await _jsModule.InvokeVoidAsync("clearMenu");
+        
+        StateHasChanged();
+    }
+
+    public bool HasMenu()
+    {
+        return _currentMenuType is not null;
+    }
+
+    public async Task NotifySubmenuOpen(ElementReference element)
+    {
+        await _jsModule.InvokeVoidAsync("addSubmenu", element);
+    }
+    
+    public async Task NotifySubmenuClose(ElementReference element)
+    {
+        await _jsModule.InvokeVoidAsync("removeSubmenu", element);
+    }
+
+    public async Task OnMenuRender(ElementReference element)
+    {
+        _element = element;
+        await _jsModule.InvokeVoidAsync("setMenu", element, _currentArgs.PageX, _currentArgs.PageY);
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/ContextMenu/ContextMenuRoot.razor.js");
+            await _jsModule.InvokeVoidAsync("init");
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        ContextMenuService.Root = this;
+    }
+
+}

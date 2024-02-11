@@ -227,16 +227,10 @@ body {
     overflow-anchor: none;
 }
 
-.topline {
-    border-top: 3px solid var(--main-5);
-    width: 100%;
-    background-color: var(--main-3);
-}
-
 .topbar {
     display: flex;
-    height: 60px;
-    min-height: 60px;
+    height: 45px;
+    min-height: 45px;
     background-color: var(--main-4);
 }
 
@@ -259,62 +253,6 @@ body {
     padding: 10px;
     margin-top: 0px;
     cursor: pointer;
-}
-
-.window {
-    width: 100%;
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    max-height: 100%;
-}
-
-.window .welcome-channel-description {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 30px;
-    line-height: 34px;
-    color: #9E9E9E;
-    margin: 0px;
-    margin-left: 34px;
-}
-
-.window .welcome-divider {
-    border: 2px solid #FFFFFF;
-    margin: 0px;
-    margin-top: 24px;
-    margin-left: 34px;
-}
-
-.window .welcome-channel-name {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 50px;
-    line-height: 57px;
-    color: #FFFFFF;
-    margin: 0px;
-    margin-left: 34px;
-}
-
-.window .welcome-text {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 20px;
-    line-height: 23px;
-    color: #9E9E9E;
-    margin: 0px;
-    margin-top: 11px;
-    margin-left: 34px;
-}
-
-.window .start-chat-icon {
-    margin: 0px;
-    margin-left: 34px;
-    margin-top: 32px;
 }
 
 .sidebar-2 {
@@ -975,10 +913,22 @@ blockquote {
 }
 
 /* Window resize gutters */
-.gutter {
-    background-color: var(--main-3);
+.gutter-horizontal {
+    background-color: var(--main-1);
     width: 10px;
     cursor: e-resize;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.gutter-vertical {
+    background-color: var(--main-1);
+    height: 10px;
+    cursor: s-resize;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 img.emoji {

@@ -1,0 +1,36 @@
+@inject IJSRuntime JsRuntime
+
+<div 
+    class="context-wrapper" 
+    @onpointerdown="@ContextMenuRoot.CloseMenu">
+    <div @onpointerdown:stopPropagation="true">
+        <div 
+            @ref="@_element" 
+            class="context"
+            style="left: @(MouseArgs.PageX)px; top:  @(MouseArgs.PageY)px">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    private ElementReference _element;
+    
+    [CascadingParameter]
+    public ContextMenuRoot ContextMenuRoot { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public MouseEventArgs MouseArgs { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ContextMenuRoot.OnMenuRender(_element);
+        }
+    }
+
+}

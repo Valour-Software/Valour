@@ -1,0 +1,82 @@
+﻿@implements IDisposable
+
+@foreach (var role in _roles)
+{
+	var cRole = role;
+	var hasRole = _memberRoles.Any(x => x.Id == role.Id);
+
+	<ContextMenuItem>
+		<div class="role-row" @onpointerdown="@(() => OnRoleClick(cRole, !hasRole))">
+			<div class="v-checkmark-wrapper">
+				<input class="role-checkbox" type="checkbox"
+                			       checked="@hasRole" disabled />
+				<span class="v-checkmark" style="@(hasRole ? $"background-color: {role.Color};" : "")"></span>
+				<i class="bi bi-check v-checkmark-fill"></i>
+			</div>
+			<p style="color:@role.Color; display: inline-block; margin: 0;">@role.Name</p>
+		</div>
+	</ContextMenuItem>
+}
+
+@code {
+	[Parameter]
+	public PlanetMember Member { get; set; }
+
+	private List<PlanetRole> _roles { get; set; }
+	private List<PlanetRole> _memberRoles { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		_roles = await (await Member.GetPlanetAsync()).GetRolesAsync();
+		_memberRoles = await Member.GetRolesAsync();
+
+		ModelObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+		Member.OnRoleModified += OnMemberRoleUpdate;
+	}
+
+	void IDisposable.Dispose()
+	{
+		ModelObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
+		Member.OnRoleModified -= OnMemberRoleUpdate;
+	}
+
+	private Task OnRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
+	{
+		var role = eventData.Model;
+		if (_roles.Any(x => x.Id == role.Id))
+			StateHasChanged();
+
+		return Task.CompletedTask;
+	}
+
+	private Task OnRoleDeleted(PlanetRole role)
+	{
+		if (_roles.Any(x => x.Id == role.Id))
+		{
+			_roles.RemoveAll(x => x.Id == role.Id);
+			_memberRoles.RemoveAll(x => x.Id == role.Id);
+			StateHasChanged();
+		}
+
+		return Task.CompletedTask;
+	}
+
+	private async Task OnRoleClick(PlanetRole role, bool value)
+	{
+		if (value)
+			// Add role
+			await Member.Node.PostAsync($"api/members/{Member.Id}/roles/{role.Id}", null);
+		else
+			// Remove role
+			await Member.Node.DeleteAsync($"api/members/{Member.Id}/roles/{role.Id}");
+
+
+		StateHasChanged();
+	}
+
+	private async Task OnMemberRoleUpdate(MemberRoleEvent eventData)
+	{
+		_memberRoles = await Member.GetRolesAsync();
+		StateHasChanged();
+	}
+}

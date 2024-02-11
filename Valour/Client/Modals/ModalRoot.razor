@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
+@inject ContextMenuService ContextMenuService
 
 <CascadingValue IsFixed="true" Value="@this">
     @ChildContent
@@ -61,7 +62,18 @@
     private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
     {
         if (e.Key == "Escape")
-            await CloseTopModal();
+        {
+            // Check if there is a context menu open
+            if (ContextMenuService.Root.HasMenu())
+            {
+                // If there is, that closes before modals
+                await ContextMenuService.Root.CloseMenu();
+            }
+            else
+            {
+                await CloseTopModal();
+            }
+        }
     }
 
     public void OpenModal<T>(object data = null) where T : ComponentBase

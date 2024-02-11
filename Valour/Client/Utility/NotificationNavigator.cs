@@ -1,9 +1,9 @@
-﻿using Valour.Client.Components.Menus.Modals;
+﻿using Valour.Client.Components.DockWindows;
+using Valour.Client.Components.Menus.Modals;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models;
 using Valour.Client.Components.Menus.Modals.Users.Edit;
-using Valour.Client.Windows;
-using Valour.Client.Windows.ChatWindows;
+using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Utility;
@@ -12,8 +12,6 @@ public static class NotificationNavigator
 {
     public static async Task NavigateTo(Notification notification)
     {
-        var windowManager = WindowManager.Instance;
-        
         switch (notification.Source)
         {
             case NotificationSource.PlanetMemberMention:
@@ -27,12 +25,14 @@ public static class NotificationNavigator
                 var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
                 if (channel is null)
                     break;
-						
-                await ValourClient.OpenPlanet(planet);
-                await windowManager.SetFocusedPlanet(planet);
 
-                var selectedWindow = windowManager.GetSelectedWindow();
-                await windowManager.ReplaceWindow(selectedWindow, new ChatChannelWindow(channel));
+                await GlobalWindowData.OpenWindowAtActive(new WindowData()
+                {
+                    Title = await channel.GetTitleAsync(),
+                    Data = channel,
+                    Type = typeof(ChatChannelWindowComponent),
+                    Icon = planet.IconUrl
+                });
 
                 break;
             }
@@ -42,9 +42,15 @@ public static class NotificationNavigator
                 var channel = ValourCache.Get<Channel>(notification.ChannelId);
                 if (channel is null)
                     break;
-						
-                var selectedWindow = windowManager.GetSelectedWindow();
-                await windowManager.ReplaceWindow(selectedWindow, new ChatChannelWindow(channel));
+                
+                await GlobalWindowData.OpenWindowAtActive(new WindowData()
+                    {
+                        Title = await channel.GetTitleAsync(),
+                        Data = channel,
+                        Type = typeof(ChatChannelWindowComponent),
+                        Icon = await channel.GetIconAsync()
+                    }
+                );
                 
                 break;
             }

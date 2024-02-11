@@ -1,5 +1,4 @@
 @using System.Globalization
-@inject WindowManager WindowManager
 
 <div id="@Id" class="card-wrapper" style="@CssStyle">
         <TiltCard ShineCssStyle="border-radius: 20px">
@@ -224,14 +223,15 @@
     public async Task OnClickMessage()
     {
         var channel = await Channel.GetDirectChannelAsync(User.Id, true);
-        var newWindow = new ChatChannelWindow(channel);
 
-        var oldWindow = WindowManager.GetSelectedWindow();
-		
-        Console.WriteLine($"Switching window {oldWindow.Id} to direct chat channel {channel.Id}");
+        var newWindow = new WindowData()
+        {
+            Title = await channel.GetTitleAsync(),
+            Icon = await channel.GetIconAsync(),
+            Type = typeof(ChatChannelWindowComponent),
+            Data = channel,
+        };
 
-        await WindowManager.ReplaceWindow(oldWindow, newWindow);
-        await WindowManager.SetSelectedWindow(newWindow);
-        await WindowManager.SetFocusedPlanet(null);
+        await GlobalWindowData.OpenWindowAtActive(newWindow);
     }
 }
