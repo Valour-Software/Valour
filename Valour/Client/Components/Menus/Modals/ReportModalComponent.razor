@@ -1,40 +1,46 @@
 @inherits Modal<ReportModalComponent.ModalParams>
 
-<div class="report-modal">
-    @switch (_page)
-    {
-        case 0:
+<div class="report-modal glassy-modal">
+    <div style="max-height: 40vh; overflow: auto">
+        @switch (_page)
         {
-            <h2>Why are you reporting this content?</h2>
-            <br />
-            @foreach (var reason in ReportReasons.Reasons)
+            case 0:
             {
-                var r = reason;
-                
-                <button class="btn v-button" @onclick="() => OnSelectReason(reason.Code)">
-                    <h4>@reason.Title</h4>
-                    <p>@reason.Description</p>
-                </button>
+                <h2>Why are you reporting this content?</h2>
+                <br/>
+                @foreach (var reason in ReportReasons.Reasons)
+                {
+                    var r = reason;
+
+                    <button class="btn v-btn large" style="width: 95%" @onclick="() => OnSelectReason(reason.Code)">
+                        <h4>@reason.Title</h4>
+                        <p>@reason.Description</p>
+                    </button>
+                    <br />
+                }
+
+                break;
             }
-            
-            break;
+            case 1:
+            {
+                <h2>Describe the incident</h2>
+                <br/>
+                <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5"></textarea>
+                <br />
+                <button style="text-align: center" class="btn v-btn large" @onclick="OnClickSubmitAsync">Submit Report</button>
+                break;
+            }
+            case 2:
+            {
+                <h4>@_response</h4>
+                break;
+            }
         }
-        case 1:
-        {
-            <h2>Describe the incident</h2>
-            <br />
-            <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5"></textarea>
-            <button style="text-align: center" class="btn v-button" @onclick="OnClickSubmitAsync">Submit Report</button>
-            break;
-        }
-        case 2:
-        {
-            <h4>@_response</h4>
-            break;
-        }
-    }
+    </div>
     
-    <button style="text-align: center" class="btn v-button" @onclick="@OnClickCancelAsync">Cancel</button>
+    <br/>
+
+    <button style="text-align: center" class="btn v-btn large" @onclick="@OnClickCancelAsync">Cancel</button>
 </div>
 
 @code {
