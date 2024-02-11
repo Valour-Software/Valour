@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 using Markdig.Extensions.MediaLinks;
-using Valour.Sdk.Models;
+using Valour.Api.Models;
 using Valour.Server.Cdn.Objects;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;

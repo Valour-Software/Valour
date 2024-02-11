@@ -1,11 +1,9 @@
-﻿@inherits Modal<NumberInputModalComponent.ModalParams>
-
-<!-- This modal exists to allow parts of the app to ask for a number -->
+﻿<!-- This modal exists to allow parts of the app to ask for a number -->
 
 <div class="col-md-12">
 	<section class="v-section" style="text-align: center; padding: 30px">
-		<h4>@Data.Title</h4>
-		<h5 class="subtitle">@Data.Description</h5>
+		<h4>@Data.TitleText</h4>
+		<h5 class="subtitle">@Data.DescText</h5>
 		<br />
 		<input type="number" step="1" min="0" max="1000000000000" class="v-input" @bind="_value" />
 		
@@ -15,41 +13,11 @@
 </div>
 
 @code {
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
 
-	public class ModalParams
-	{
-		/// <summary>
-		/// Run if the user hits "confirm"
-		/// </summary>
-		public Func<int, Task> ConfirmEvent;
-
-		/// <summary>
-		/// Run if the user hits "cancel"
-		/// </summary>
-		public Func<Task> CancelEvent;
-
-
-		// Cosmetics
-		public string Title { get; set; }
-		public string Description { get; set; }
-		public string ConfirmText { get; set; }
-		public string CancelText { get; set; }
-
-		public ModalParams()
-		{
-		}
-    
-		public ModalParams(string title, string desc, string confirm, string cancel, Func<int, Task> OnConfirm, Func<Task> OnCancel)
-		{
-			Title = title;
-			Description = desc;
-			ConfirmText = confirm;
-			CancelText = cancel;
-
-			ConfirmEvent = OnConfirm;
-			CancelEvent = OnCancel;
-		}
-	}
+	[Parameter]
+	public NumberModalData Data { get; set; }
 
 	private int _value;
 
@@ -57,15 +25,15 @@
 	{
 		if (Data.ConfirmEvent is not null)
 			await Data.ConfirmEvent.Invoke(_value);
-
-		await CloseAsync();
+		
+		await ModalInstance.CloseAsync();
 	}
 
 	private async Task OnCancel()
 	{
 		if (Data.CancelEvent is not null)
 			await Data.CancelEvent.Invoke();
-
-		await CloseAsync();
+		
+		await ModalInstance.CancelAsync();
 	}
 }

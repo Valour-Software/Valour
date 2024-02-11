@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Valour.Sdk.Models.Messages;
-using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Api.Models.Messages;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 using Valour.Shared;
 using Valour.Shared.Models;
-using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds.Items;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Cdn;
 using System.Runtime.ConstrainedExecution;
@@ -38,7 +38,7 @@ public class EmbedAPI : BaseAPI
         {
             foreach (var item in page.GetAllItems())
             {
-                if (item.ItemType == Valour.Sdk.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
                 {
                     var at = ((EmbedMediaItem)item).Attachment;
                     var result = MediaUriHelper.ScanMediaUri(at);
@@ -111,7 +111,7 @@ public class EmbedAPI : BaseAPI
             {
                 foreach (var item in page.GetAllItems())
                 {
-                    if (item.ItemType == Valour.Sdk.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                    if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
                     {
                         var at = ((EmbedMediaItem)item).Attachment;
                         var result = MediaUriHelper.ScanMediaUri(at);
@@ -128,7 +128,7 @@ public class EmbedAPI : BaseAPI
             {
                 foreach (var item in embeditem.GetAllItems())
                 {
-                    if (item.ItemType == Valour.Sdk.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                    if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
                     {
                         var at = ((EmbedMediaItem)item).Attachment;
                         var result = MediaUriHelper.ScanMediaUri(at);

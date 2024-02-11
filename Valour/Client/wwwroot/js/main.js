@@ -133,10 +133,10 @@ window.blazorFuncs = {
         window['updateAvailable']
             .then(isAvailable => {
                 if (isAvailable) {
-                    DotNet.invokeMethodAsync("Valour.Client", "OnServiceUpdateAvailable").then(r => console.log(r));
+                    caller.invokeMethodAsync("OnServiceUpdateAvailable").then(r => console.log(r));
                 }
                 else {
-                    DotNet.invokeMethodAsync("Valour.Client", "OnServiceUpdateUnavailable").then(r => console.log(r));
+                    caller.invokeMethodAsync("OnServiceUpdateUnvailable");
                 }
             });
     }

@@ -15,17 +15,19 @@
 @code
 {
     [CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
+    public IModalService Modal { get; set; }
 
-    private void OnCreateClick(MouseEventArgs e)
+    public async Task OnCreateClick(MouseEventArgs e)
     {
-        var data = new CreateAppComponent.ModalParams();
-        ModalRoot.OpenModal<CreateAppComponent>(data);
+        Modal.Show<CreateAppComponent>(
+            "Create App"
+        );
     }
 
-    private void OnManageClick(MouseEventArgs e)
+    public async Task OnManageClick(MouseEventArgs e)
     {
-        var data = new ViewAppsComponent.ModalParams();
-        ModalRoot.OpenModal<ViewAppsComponent>(data);
+        Modal.Show<ViewAppsComponent>(
+            "View Apps"
+        );
     }
 }

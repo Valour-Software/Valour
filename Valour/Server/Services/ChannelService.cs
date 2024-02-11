@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds;
+using Valour.Api.Models.Messages.Embeds.Items;
 using Valour.Server.Cdn;
 using Valour.Server.Database;
 using Valour.Server.Utilities;
@@ -640,11 +640,11 @@ public class ChannelService
 
         message.Id = IdManager.Generate();
         
-        List<Valour.Sdk.Models.MessageAttachment> attachments = null;
+        List<Valour.Api.Models.MessageAttachment> attachments = null;
         // Handle attachments
         if (!string.IsNullOrWhiteSpace(message.AttachmentsData))
         {
-            attachments = JsonSerializer.Deserialize<List<Valour.Sdk.Models.MessageAttachment>>(message.AttachmentsData);
+            attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)
@@ -771,13 +771,13 @@ public class ChannelService
         if (updated.Content != null && updated.Content.Length > 2048)
             return TaskResult<Message>.FromError("Content must be under 2048 chars");
         
-        List<Valour.Sdk.Models.MessageAttachment> attachments = null;
+        List<Valour.Api.Models.MessageAttachment> attachments = null;
         bool inlineChange = false;
 
         // Handle attachments
         if (!string.IsNullOrWhiteSpace(updated.AttachmentsData))
         {
-            attachments = JsonSerializer.Deserialize<List<Valour.Sdk.Models.MessageAttachment>>(updated.AttachmentsData);
+            attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(updated.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)

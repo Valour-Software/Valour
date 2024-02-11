@@ -1,5 +1,4 @@
-@inherits Modal<EditPlanetEconomyComponent.ModalParams>
-@using Valour.Sdk.Models.Economy
+@using Valour.Api.Models.Economy
 @using Valour.Shared.Models.Economy
 
 <div class="title-container">
@@ -52,7 +51,7 @@
         </section>
         
        
-        <TabContainerComponent Titles="@TabTitles">
+        <TabContainerComponent Titles="@_tabTitles">
             <TabOne>
                 <table class="v-table">
                     <thead>
@@ -71,7 +70,7 @@
                                 <td>
                                     <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
                                         <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(@context))">Save</a>
-                                        <a class="v-drop-model" @onclick="@(() => OnClickIssue(@context))">Issue Currency</a>
+                                        <a class="v-drop-model" @onclick="@(async () => await OnClickIssue(@context))">Issue Currency</a>
                                         <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(@context))">Delete</a>
                                     </DropdownComponent>
                                 </td>
@@ -125,14 +124,15 @@
 
 @code {
 
-    public class ModalParams
-    {
-        public Planet Planet;
-    }
-
     private Virtualize<EcoAccount> _planetVirtualize;
 
-    private static readonly string[] TabTitles = new [] { "Planet Accounts", "User Accounts" };
+    private static string[] _tabTitles = new [] { "Planet Accounts", "User Accounts" };
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    
+    [Parameter]
+    public Planet Planet { get; set; }
     
     public Currency Currency { get; set; }
 
@@ -154,13 +154,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Data.Planet.Id}/planet", Data.Planet.Id);
-        _userAccountProvider = new EconomyMemberProvider($"api/eco/accounts/planet/{Data.Planet.Id}/member", Data.Planet.Id);
+        _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Planet.Id}/planet", Planet.Id);
+        _userAccountProvider = new EconomyMemberProvider($"api/eco/accounts/planet/{Planet.Id}/member", Planet.Id);
         
-        var self = await ValourClient.GetSelfMember(Data.Planet);
+        var self = await ValourClient.GetSelfMember(Planet);
         _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
 
-        Currency = await Currency.FindByPlanetAsync(Data.Planet.Id);
+        Currency = await Currency.FindByPlanetAsync(Planet.Id);
 
         _loading = false;
     }
@@ -168,7 +168,7 @@
     private void OnClickSetup()
     {
         Currency = new Currency();
-        Currency.PlanetId = Data.Planet.Id;
+        Currency.PlanetId = Planet.Id;
         _editCurrency = true;
     }
 
@@ -253,51 +253,51 @@
         StateHasChanged();
     }
 
-    private void OnClickIssue(EcoAccount account)
+    private async Task OnClickIssue(EcoAccount account)
     {
-        var data = new NumberInputModalComponent.ModalParams()
+        NumberModalData data = new()
         {
-            Title = "Issue Currency",
-            Description = "How much currency would you like to issue?",
+            TitleText = "Issue Currency",
+            DescText = "How much currency would you like to issue?",
             ConfirmText = "Issue",
             CancelText = "Cancel",
-            CancelEvent = CloseAsync,
-            ConfirmEvent = (value) => OnConfirmIssue(account, value)
+            CancelEvent = null,
+            ConfirmEvent = async (value) =>
+            {
+                var issueTrans = new Transaction()
+                {
+                    AccountFromId = account.Id,
+                    AccountToId = account.Id,
+                    Amount = (decimal) value,
+                    Data = null,
+                    PlanetId = account.PlanetId,
+                    Description = $"Issued {value} when supply was {account.BalanceValue} via Planet Settings",
+                    ForcedBy = null,
+                    Fingerprint = Guid.NewGuid().ToString(),
+                    UserFromId = account.UserId,
+                    UserToId = account.UserId,
+                };
+
+                var result = await Transaction.SendTransactionAsync(issueTrans);
+                
+                if (!result.Success)
+                {
+                    _accountError = result.Message;
+                }
+                else
+                {
+                    _accountInfo = result.Message;
+                    account.BalanceValue += (decimal) value;
+                    Currency.Issued += value;
+                }
+                
+                StateHasChanged();
+            },
         };
         
-        ModalRoot.OpenModal<NumberInputModalComponent>(data);
-    }
-
-    private async Task OnConfirmIssue(EcoAccount account, int value)
-    {
-        var issueTrans = new Transaction()
-        {
-            AccountFromId = account.Id,
-            AccountToId = account.Id,
-            Amount = (decimal) value,
-            Data = null,
-            PlanetId = account.PlanetId,
-            Description = $"Issued {value} when supply was {account.BalanceValue} via Planet Settings",
-            ForcedBy = null,
-            Fingerprint = Guid.NewGuid().ToString(),
-            UserFromId = account.UserId,
-            UserToId = account.UserId,
-        };
-
-        var result = await Transaction.SendTransactionAsync(issueTrans);
-                
-        if (!result.Success)
-        {
-            _accountError = result.Message;
-        }
-        else
-        {
-            _accountInfo = result.Message;
-            account.BalanceValue += value;
-            Currency.Issued += value;
-        }
-                
-        StateHasChanged();
+        ModalParameters modParams = new();
+        modParams.Add("Data", data);
+        Modal.Show<NumberInputModalComponent>("Number Input", modParams);
     }
     
 }

@@ -1,78 +1,84 @@
-@inherits Modal<FileUploadComponent.ModalParams>
-@inject IJSRuntime JsRuntime
+@inject IJSRuntime JS
 @implements IDisposable
+@using System.Drawing
 
-@if (Data.Attachment is null)
+@if (Attachment is null)
 {
     <h5>Loading content...</h5>
     return;
 }
 
-<div class="preview-container" @onkeydown="@OnKeyDown">
+<div class="preview-container" @onkeydown='OnKeyDown'>
 	<h6>Upload?</h6>
 
     <div class="attachment-holder">
-        @switch (Data.Attachment.Type){
+        @switch (Attachment.Type){
             case MessageAttachmentType.Image:
             {
                 if (_imageReady)
                 {
-                    <ImageAttachmentComponent Attachment="@Data.Attachment"/>
+                    <ImageAttachmentComponent Attachment="Attachment"/>
                 }
                 break;
             }
             case MessageAttachmentType.Video:
-                <VideoAttachmentComponent Attachment="@Data.Attachment" />
+                <VideoAttachmentComponent Attachment="Attachment" />
                 break;
             case MessageAttachmentType.Audio:
-                <AudioAttachmentComponent Attachment="@Data.Attachment" />
+                <AudioAttachmentComponent Attachment="Attachment" />
                 break;
             default:
-                <FileAttachmentComponent Attachment="@Data.Attachment" />
+                <FileAttachmentComponent Attachment="Attachment" />
                 break;
         }
     </div>
 
     <div class="d-flex flex-row justify-content-between">
-        <button class="v-btn" style="float: right" @onclick="@OnClickConfirm">Go for it</button>
-        <button class="v-btn danger" @onclick="@OnClickCancel">Cancel</button>
+        <button class='v-btn' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
+        <button class='v-btn danger' @onclick='OnClickCancel'>Cancel</button>
     </div>
 </div>
 
 @code
 {
-    public class ModalParams
-    {
-        public Func<Task> OnConfirm;
-        public MessageAttachment Attachment;
-    }
+    [Parameter]
+    public byte[] Data { get; set; }
 
-    private DotNetObjectReference<FileUploadComponent> _thisRef;
+    [Parameter]
+    public Func<Task> OnConfirm { get; set; }
 
-    private bool _imageReady;
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance Instance { get; set; }
+
+    public DotNetObjectReference<FileUploadComponent>? objRef;
+
+    private bool _imageReady = false;
 
     protected override async Task OnInitializedAsync(){
 
-        _thisRef = DotNetObjectReference.Create(this);
+        objRef = DotNetObjectReference.Create(this);
         
         // Load into blob form and get url
-        var blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", Data, Data.Attachment.MimeType);
+        string blobUrl = await JS.InvokeAsync<string>("createBlob", Data, Attachment.MimeType);
 
         // Build attachment object
-        Data.Attachment.Location = blobUrl;
+        Attachment.Location = blobUrl;
 
-        if (Data.Attachment.Type == MessageAttachmentType.Image)
+        if (Attachment.Type == MessageAttachmentType.Image)
         {
             _imageReady = false;
-            await JsRuntime.InvokeVoidAsync("getImageSize", blobUrl, _thisRef);
+            await JS.InvokeVoidAsync("getImageSize", blobUrl, objRef);
         }
     }
 
     [JSInvokable]
     public void SetImageSize(int width, int height)
     {
-        Data.Attachment.Width = width;
-        Data.Attachment.Height = height;
+        Attachment.Width = width;
+        Attachment.Height = height;
 
         Console.WriteLine($"Set image size to {width},{height}");
 
@@ -86,15 +92,17 @@
             await OnClickConfirm();
     }
 
-    public Task OnClickCancel() => CloseAsync();
+    public async Task OnClickCancel(){
+        await Instance.CloseAsync();
+    }
 
     public async Task OnClickConfirm(){
-        await Data.OnConfirm.Invoke();
-        await CloseAsync();
+        await Instance.CloseAsync();
+        await OnConfirm.Invoke();
     }
 
     public void Dispose()
     {
-        _thisRef?.Dispose();
+        objRef?.Dispose();
     }
 }

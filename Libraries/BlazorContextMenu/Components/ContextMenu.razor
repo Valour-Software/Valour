@@ -1,0 +1,26 @@
+﻿@inherits ContextMenuBase
+@namespace BlazorContextMenu
+
+<div @onclick:stopPropagation="true" @attributes="@Attributes" class="@($"{BaseClass} {ClassCalc} {DisplayClassCalc}")" id="@Id" style="@($"left:{X}px;top:{Y}px;z-index:{ZIndex};")" data-autohide="@AutoHide.ToString().ToLower()" data-autohideevent="@AutoHideEvent.ToString().ToLower()">
+    @if (IsShowing)
+    {
+        <ul class="@ListClassCalc">
+            <CascadingValue Value="(MenuTreeComponent)this" Name="ParentComponent">
+                <CascadingValue Value="@(Template != null ? Template : CascadingTemplate)" Name="CascadingTemplate">
+                    <CascadingValue Value="@(Animation.HasValue ? Animation.Value : CascadingAnimation)" Name="CascadingAnimation">
+                        @{
+                            var context = new MenuRenderingContext(Id, TargetId, X, Y, Trigger, Data);
+                            @ChildContent(context)
+                        }
+                    </CascadingValue>
+                </CascadingValue>
+            </CascadingValue>
+        </ul>
+    }
+</div>
+
+
+@code{
+    [Parameter]
+    public RenderFragment<MenuRenderingContext> ChildContent { get; set; }
+}

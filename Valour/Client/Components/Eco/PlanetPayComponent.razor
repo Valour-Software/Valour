@@ -1,4 +1,4 @@
-@inherits Modal<PlanetPayComponent.ModalParams>
+
 
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
@@ -22,9 +22,9 @@
         <p>@_transactionId</p>
     </div>
     
-    @if (Data.Input is not null)
+    @if (Input is not null)
     {
-        <button @onclick="@OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
+        <button @onclick="OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
     }
 
     return;
@@ -141,11 +141,12 @@ else
 }
 
 @code {
-
-    public class ModalParams
-    {
-        public InputComponent Input;
-    }
+    
+    [CascadingParameter]
+    public BlazoredModalInstance Modal { get; set; }
+    
+    [Parameter]
+    public InputComponent Input { get; set; }
     
     private readonly RenderFragment<(EcoAccount account, Currency currency)> _accountFrag = data =>
         @<div>
@@ -180,8 +181,10 @@ else
 
     private async Task OnClickReceipt()
     {
-        await Data.Input.AddReceipt(_transactionId);
-        await CloseAsync();
+        await Input.AddReceipt(_transactionId);
+        
+        if (Modal is not null)
+            await Modal.CloseAsync();
     }
 
     private async Task OnClickSend()
@@ -245,7 +248,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Get planet that was focused when the modal was loaded
-        _focusedPlanet = GlobalWindowData.GlobalActivePlanet;
+        _focusedPlanet = WindowManager.Instance.FocusedPlanet;
 
         _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
         if (_planetCurrency is null)

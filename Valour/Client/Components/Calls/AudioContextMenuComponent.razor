@@ -1,4 +1,4 @@
-﻿<ContextMenuBase Id="audio-context" CssClass="context">
+﻿<ContextMenu Id="audio-context" CssClass="context">
     
     <BlazorContextMenu.Item CssClass='context-model' >
         <div>
@@ -14,7 +14,7 @@
     {
         <BlazorContextMenu.Item CssClass='context-model' OnClick='OnClickMute'>Mute</BlazorContextMenu.Item>
     }
-</ContextMenuBase>
+</ContextMenu>
 
 @code {
     public static MediaPeerComponent MediaPeer { get; set; }

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Valour.Sdk.Models;
-using Valour.Client.Components.Messages;
+using Valour.Api.Models;
 
 namespace Valour.Client.Components.Messages.Attachments;
 

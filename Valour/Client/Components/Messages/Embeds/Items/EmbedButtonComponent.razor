@@ -1,5 +1,5 @@
 @inject HttpClient Http
-@using Valour.Sdk.Models.Messages
+@using Valour.Api.Models.Messages
 @implements IDisposable
 @inject IJSRuntime JsRuntime
 @inherits BaseEmbedItemComponent
@@ -21,7 +21,7 @@
     public EmbedFormItem FormItem { get; set; }
 
     [CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
+    public IModalService Modal { get; set; }
 
     private EmbedButtonItem _buttonItem;
 
@@ -55,7 +55,7 @@
         if (_processClick)
         {
             _processClick = false;
-            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(_buttonItem, embedComponent, ModalRoot, JsRuntime)));
+            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(_buttonItem, embedComponent, Modal, JsRuntime)));
         }
         return base.OnAfterRenderAsync(firstRender);
     }

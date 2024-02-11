@@ -1,11 +1,11 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
-@using Valour.Sdk.Models.Messages
+@using Valour.Api.Models.Messages
 @using System.Reflection.Metadata
 @using Microsoft.AspNetCore.Components.Rendering
-@using Valour.Sdk.Nodes
+@using Valour.Api.Nodes
 
-<div @key="@_id" Id="@_id" class="chat-holder mt-auto">
+<ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
     <!-- Pushes messages to bottom -->
     <div style="flex-grow: 1; flex-shrink: 1; height: 0"></div>
     
@@ -15,21 +15,21 @@
     </CascadingValue>
 
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
-</div>
+</ContextMenuTrigger>
 
 <InputComponent @ref="@InputComponent" MessageHolder="@this" />
 
 @code {
     public class MessageComponentParams
     {
-        public Message Message;
-        public Message LastMessage;
-        public bool IsInnerReply;
-        public bool Ghost;
+        public Message Message { get; set; }
+        public Message LastMessage { get; set; }
+        public bool IsInnerReply { get; set; }
+        public bool Ghost { get; set; }
     }
 
     [CascadingParameter]
-    public ChatChannelWindowComponent ChatComponent { get; set; }
+    public ChatChannelWindow Window { get; set; }
     
     public InputComponent InputComponent { get; set; }
     
@@ -101,7 +101,7 @@
 
     protected override void OnInitialized()
     {
-        _id = $"innerWindow-{ChatComponent.Window.Id}";
+        _id = $"innerWindow-{Window.Id}";
         
         RenderedMessages = new List<MessageComponent>();
         DisplayedMessages = new List<Message>();
@@ -115,7 +115,7 @@
 
     public async Task LoadRecentMessages(int count)
     {
-        var messages = await ChatComponent.Channel.GetLastMessagesAsync(64);
+        var messages = await Window.Channel.GetLastMessagesAsync(64);
         
         // Add to cache
         foreach (var msg in messages)
@@ -286,7 +286,7 @@
 
     public async Task OnDeleteMessage(Message message)
     {
-        if (message.ChannelId != ChatComponent.Channel.Id)
+        if (message.ChannelId != Window.Channel.Id)
             return;
 
         DisplayedMessages.RemoveAll(x => x.Id == message.Id);
@@ -326,7 +326,7 @@
     
     public async Task OnNodeReconnect(Node node)
     {
-        await Logger.Log($"Chat window {ChatComponent.Channel.Name} reloading due to node reconnect. Node: {node.Name}", "yellow");
+        await Logger.Log($"Chat window {Window.Channel.Name} reloading due to node reconnect. Node: {node.Name}", "yellow");
         
         
     }
@@ -374,9 +374,9 @@
 
         var firstId = DisplayedMessages[0].Id;
 
-        Console.WriteLine($"Fetching older messages from id {firstId} for window {ChatComponent.Window.Id}");
+        Console.WriteLine($"Fetching older messages from id {firstId} for window {Window.Id}");
 
-        var messages = await ChatComponent.Channel.GetMessagesAsync(firstId, 64);
+        var messages = await Window.Channel.GetMessagesAsync(firstId, 64);
 
         if (messages is null || !messages.Any())
             return;

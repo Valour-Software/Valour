@@ -1,8 +1,8 @@
 @using System.Text
 @implements IDisposable
+@inject WindowManager WindowManager
 @inject ChannelListManager ListManager
 @inject ClientCategoryManager CategoryManager
-@inject ContextMenuService ContextMenuService
 
 <div
     class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
@@ -18,8 +18,8 @@
     @ondrop:stopPropagation="true"
     @ondrop="@OnDropOn"
 
-    @oncontextpress:stopPropagation="true"
-    @oncontextpress="@OnContextMenu"
+    @onpointerdown:stopPropagation="true"
+    @onpointerdown='@PrepareContext'
 
     @ondragleave:stopPropagation="true"
     @ondragleave="@OnDragLeave">
@@ -144,7 +144,7 @@
         {
             var css = "channel";
 
-            if (GlobalWindowData.GlobalChatWindows.Any(x => x.Channel.Id == Channel.Id))
+            if (WindowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
                 css += " open";
 
             if (ListManager.DragOverId == Channel.Id)
@@ -181,14 +181,6 @@
         DetermineUnread();
     }
 
-    private void OnContextMenu(ContextPressEventArgs e)
-    {
-        ContextMenuService.Root.OpenMenu<ChannelContextMenu>(e, new ChannelContextMenu.ChannelContextParams()
-        {
-            Channel = Channel
-        });
-    }
-
     private void BuildChildren()
     {
         if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
@@ -215,21 +207,18 @@
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
-            var newWindow = new WindowData()
+            var window = WindowManager.GetSelectedWindow();
+            if (window is ChatChannelWindow channelWindow)
             {
-                Title = await Channel.GetTitleAsync(),
-                Icon = await Channel.GetIconAsync(),
-                Type = typeof(ChatChannelWindowComponent),
-                Data = Channel
-            };
-            
-            if (GlobalWindowData.GlobalActiveWindow is not null)
-            {
-                await GlobalWindowData.GlobalActiveWindow.WindowBase.AddSiblingWindow(newWindow);
+                // It's the same channel, cancel
+                if (channelWindow.Channel.Id == Channel.Id)
+                    return;
+
+                await channelWindow.Component.SwapChannel(Channel);
             }
             else
             {
-                await DockContainer.MainDock.AddWindowAsync(newWindow);
+                await WindowManager.ReplaceWindow(window, new ChatChannelWindow(Channel));
             }
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
@@ -243,6 +232,11 @@
         }
         
         Refresh();
+    }
+    
+    private async Task PrepareContext()
+    {
+        await ChannelListContextMenuComponent.SetSelectedItem(Channel);
     }
     
     private void DetermineUnread()

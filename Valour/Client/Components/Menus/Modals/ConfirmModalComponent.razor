@@ -1,70 +1,32 @@
-﻿@inherits Modal<ConfirmModalComponent.ModalParams>
-
-<!-- This modal exists to allow parts of the app to ask for confirmation -->
+﻿<!-- This modal exists to allow parts of the app to ask for confirmation -->
 
 <div class="col-md-12">
-	<section class="glassy-modal" style="text-align: center; padding: 30px">
-		<h3>@Data.Title</h3>
-		<label style="font-size: 1.2em">@Data.Description</label>
+	<section style="text-align: center; padding: 30px">
+		<h3>@Data.title_text</h3>
+		<h5>@Data.desc_text</h5>
 		<br />
 		<br />
-		<div class="btn-wrapper">
-			<button @onclick="@OnCancel" class="btn v-btn d-inline-block">@Data.CancelText</button>
-			<button @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">@Data.ConfirmText</button>
-		</div>
+		<div @onclick="OnCancel" class="btn v-button d-inline-block">@Data.cancel_text</div>
+		<div @onclick="OnConfirm" class="btn v-button danger d-inline-block">@Data.confirm_text</div>
 	</section>
 </div>
 
 @code {
-	
-	public class ModalParams
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
+
+	[Parameter]
+	public ConfirmModalData Data { get; set; }
+
+	public async Task OnConfirm()
 	{
-		/// <summary>
-		/// Run if the user hits "confirm"
-		/// </summary>
-		public Func<Task> ConfirmEvent;
-
-		/// <summary>
-		/// Run if the user hits "cancel"
-		/// </summary>
-		public Func<Task> CancelEvent;
-
-		// Cosmetics
-		public string Title;
-		public string Description;
-		public string ConfirmText;
-		public string CancelText;
-
-		public ModalParams()
-		{
-			
-		}
-
-		public ModalParams(string title, string desc, string confirm, string cancel, Func<Task> OnConfirm, Func<Task> OnCancel)
-		{
-			Title = title;
-			Description = desc;
-			ConfirmText = confirm;
-			CancelText = cancel;
-
-			ConfirmEvent = OnConfirm;
-			CancelEvent = OnCancel;
-		}
+		await Data.ConfirmEvent.Invoke();
+		await ModalInstance.CloseAsync();
 	}
 
-	private async Task OnConfirm()
+	public async Task OnCancel()
 	{
-		if (Data.ConfirmEvent is not null)
-			await Data.ConfirmEvent.Invoke();
-
-		await CloseAsync();
-	}
-
-	private async Task OnCancel()
-	{
-		if (Data.CancelEvent is not null)
-			await Data.CancelEvent.Invoke();
-
-		await CloseAsync();
+		await Data.CancelEvent.Invoke();
+		await ModalInstance.CancelAsync();
 	}
 }

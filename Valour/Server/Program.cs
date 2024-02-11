@@ -48,7 +48,6 @@ namespace Valour.Server
             // Initialize Email Manager
             EmailManager.SetupClient();
 
-            /*
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
                 options.Configure(builder.Configuration.GetSection("Kestrel"));
@@ -56,17 +55,13 @@ namespace Valour.Server
                 {
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
                 });
-            });
-            */
+            }); 
 
-            if (builder.Configuration.GetSection("Sentry").Exists())
+            builder.WebHost.UseSentry(x =>
             {
-                builder.WebHost.UseSentry(x =>
-                {
-                    x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
-                    x.ServerName = NodeConfig.Instance.Name;
-                });
-            }
+                x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
+                x.ServerName = NodeConfig.Instance.Name;
+            });
 
             // Set up services
             ConfigureServices(builder);
@@ -220,12 +215,7 @@ namespace Valour.Server
             });
 
             app.UseWebSockets();
-
-            if (app.Configuration.GetSection("Sentry").Exists())
-            {
-                app.UseSentryTracing();
-            }
-
+            app.UseSentryTracing();
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
             app.UseRouting();

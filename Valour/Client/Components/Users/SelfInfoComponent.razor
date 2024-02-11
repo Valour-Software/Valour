@@ -2,21 +2,16 @@
     <UserInfoComponent User="ValourClient.Self" />
     <button id="user-edit-button" class="settings-button" aria-label="User settings button"
             @onkeydown="@(e => { if (e.Key == "Enter") OnClickUserSettings(); })"
-            @onclick="@OnClickUserSettings">
+            @onclick="OnClickUserSettings">
         <img alt="User settings button" src="_content/Valour.Client/media/Settings-Icon.svg" class="settings-icon" />
     </button>
 </div>
 @code {
     [CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
+    public IModalService Modal { get; set; }
     
     private void OnClickUserSettings()
     {
-        var data = new EditUserComponent.ModalParams()
-        {
-            User = ValourClient.Self
-        };
-        
-        ModalRoot.OpenModal<EditUserComponent>(data);
+        Modal.Show<EditUserComponent>("Edit User");
     }
 }

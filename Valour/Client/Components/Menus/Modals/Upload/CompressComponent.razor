@@ -1,13 +1,13 @@
-@inherits Modal<CompressComponent.ModalParams>
+@inject IJSRuntime JsRuntime
 
 <section class="outer">
     <div class="title-container">
         <h3>Compress Image <i class="bi bi-file-earmark-zip-fill"></i></h3>
         <p class="subtitle">Image is too large!</p>
     </div>
-    @if (_result is not null)
+    @if (Result is not null)
     {
-        <ResultLabel Result="@_result" />
+        <ResultLabel Result="@Result" />
     }
     else if (_loading)
     {
@@ -40,16 +40,19 @@
 </section>
 
 @code {
+    
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public IBrowserFile File { get; set; }
+    
+    [Parameter]
+    public InputComponent Input { get; set; }
+    
+    public ITaskResult Result { get; set; }
 
-    public class ModalParams
-    {
-        public IBrowserFile File;
-        public InputComponent Input;
-    }
-
-    private ITaskResult _result;
-
-    private bool _loading;
+    private bool _loading = false;
 
     private async Task OnClickCompressAsync()
     {
@@ -67,37 +70,41 @@
 
         try
         {
-            var oldSize = Data.File.Size;
+            var oldSize = File.Size;
                             
-            Data.File = await Data.File.RequestImageFileAsync("jpeg", 1000, 1000);
+            File = await File.RequestImageFileAsync("jpeg", 1000, 1000);
 
-            if (Data.File is null)
+            if (File is null)
             {
-                _result = new TaskResult(false, "Browser is unable to compress image :(");
+                Result = new TaskResult(false, "Browser is unable to compress image :(");
                 StateHasChanged();
                 return;
             }
                             
-            if (Data.File.Size > maxSize)
+            if (File.Size > maxSize)
             {
-                _result = new TaskResult(false, "Compressed image is still too large :(");
+                Result = new TaskResult(false, "Compressed image is still too large :(");
                 StateHasChanged();
                 return;
             }
                             
-            await Logger.Log($"New size: {Data.File.Size} / {oldSize}", "cyan");
+            await Logger.Log($"New size: {File.Size} / {oldSize}", "cyan");
             
-            await Data.Input.ShowUploadMenu(Data.File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{Data.File.Name.Replace('.', '_')}.jpg", "image");
+            Input.ShowUploadMenu(File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{File.Name.Replace('.', '_')}.jpg", "image");
             
             // Everything worked, close the modal
-            await CloseAsync();
+            await ModalInstance.CloseAsync();
         }
         catch (Exception ex)
         {
-            _result = new TaskResult(false, "Failed to compress image :(" , ex.Message);
+            Result = new TaskResult(false, "Failed to compress image :(" , ex.Message);
             await Logger.Log($"Failed to compress image: {ex.Message}", "red");
+            return;
         }
     }
-
-    private Task OnClickCloseAsync() => CloseAsync();
+    
+    private async Task OnClickCloseAsync()
+    {
+        await ModalInstance.CloseAsync();
+    }
 }

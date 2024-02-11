@@ -1,5 +1,6 @@
 @inject IJSRuntime JsRuntime
 @inject ILocalStorageService LocalStorage
+@inject WindowManager WindowManager
 @implements IAsyncDisposable
 
 <div class="sidebar-container @ActiveClass @FlipClass">
@@ -118,7 +119,7 @@
 		}
 
 
-		if (GlobalWindowData.GlobalActivePlanet is null)
+		if (WindowManager.FocusedPlanet is null)
 		{
 			// Home window layout
 			if (Flip)
@@ -149,7 +150,7 @@
 	private async Task OnSelected(TabStripItem tab)
 	{
 		// Save change to local storage
-		if (GlobalWindowData.GlobalActivePlanet is null)
+		if (WindowManager.FocusedPlanet is null)
 		{
 			if (Flip)
 			{

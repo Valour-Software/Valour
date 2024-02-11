@@ -5,10 +5,10 @@
 @using Valour.TenorTwo.Models
 @using Valour.TenorTwo.Responses
 
-<div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg-@ChannelWindow.Window.Id" class="tenor-bg">
+<div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg-@ChannelWindow.Id" class="tenor-bg">
     <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Tenor..." />
     <div class="masonry-scroller">
-        <div id="masonry-root-@ChannelWindow.Window.Id" class="masonry-root">
+        <div id="masonry-root-@ChannelWindow.Id" class="masonry-root">
             @if (SearchResults?.Results is not null)
             {
                 foreach (var result in SearchResults.Results)
@@ -52,7 +52,7 @@
 
 @code {
     [Parameter]
-    public ChatChannelWindowComponent ChannelWindow { get; set; }
+    public ChatChannelWindow ChannelWindow { get; set; }
     
     /// <summary>
     /// Module for calling Javascript functions
@@ -113,7 +113,7 @@
 
     private async Task OnClickGif(TenorTwo.Models.Media media)
     {
-        await ChannelWindow.MessageHolder.InputComponent.AddTenor(media);
+        await ChannelWindow.Component.MessageHolder.InputComponent.AddTenor(media);
         Hide();
         
         // Register share to make Tenor happy
@@ -174,21 +174,21 @@
         {
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Upload/TenorMenuComponent.razor.js");
-            await _jsModule.InvokeVoidAsync("setupHide", "tenor-bg-" + ChannelWindow.Window.Id, _thisRef);
+            await _jsModule.InvokeVoidAsync("setupHide", "tenor-bg-" + ChannelWindow.Id, _thisRef);
         }
         
-        await BuildMasonry(); 
+        await BuildMasonry();
     }
 
     public async Task FocusAndScroll()
     {
-        await _jsModule.InvokeVoidAsync("focusAndScroll", "masonry-root-" + ChannelWindow.Window.Id);
+        await _jsModule.InvokeVoidAsync("focusAndScroll", "masonry-root-" + ChannelWindow.Id);
     }
 
     public async Task BuildMasonry()
     {
         if (_jsModule is not null)
-            await _jsModule.InvokeVoidAsync("buildMasonry", "masonry-root-" + ChannelWindow.Window.Id);
+            await _jsModule.InvokeVoidAsync("buildMasonry", "masonry-root-" + ChannelWindow.Id);
     }
     
     public async Task Show()

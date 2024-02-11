@@ -1,3 +1,4 @@
+@inject WindowManager WindowManager
 @inject ILocalStorageService LocalStorage
 @implements IDisposable
 
@@ -81,13 +82,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        GlobalWindowData.OnActivePlanetChange += OnPlanetFocused;
+        WindowManager.OnPlanetFocused += OnPlanetFocused;
         await LoadStoredLayout(null);
     }
     
     void IDisposable.Dispose()
     {
-        GlobalWindowData.OnActivePlanetChange -= OnPlanetFocused;
+        WindowManager.OnPlanetFocused -= OnPlanetFocused;
     }
 
     private async Task LoadStoredLayout(Planet planet)
@@ -174,7 +175,7 @@
 
     private TabStripItem[] GetCurrentItems()
     {
-        if (GlobalWindowData.GlobalActivePlanet is null)
+        if (WindowManager.FocusedPlanet is null)
             return _homeItems;
 
         return _planetItems;

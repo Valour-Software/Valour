@@ -1,7 +1,7 @@
-﻿@inherits Modal<EditPlanetComponent.ModalParams>
+﻿@inject WindowManager WindowManager
 @implements IDisposable
 
-@if (Data.Planet is null)
+@if (Planet is null)
 {
     <h5>Loading planet details...</h5>
     return;
@@ -9,7 +9,7 @@
 
 <BigMenuComponent @ref="BigMenuComponent">
     <LeftSide>
-        <EditPlanetMenuComponent Planet="@Data.Planet"></EditPlanetMenuComponent>
+        <EditPlanetMenuComponent Planet="@Planet"></EditPlanetMenuComponent>
     </LeftSide>
     <RightSide>
         @switch (BigMenuComponent.SelectedTopLevelMenu?.Name)
@@ -18,10 +18,10 @@
                 switch (BigMenuComponent.SelectedSubMenu.Name)
                 {
                     case "Info":
-                        <EditPlanetInfoComponent Planet="@Data.Planet"></EditPlanetInfoComponent>
+                        <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
                         break;
                     case "Invites":
-                        <EditPlanetInvitesComponent Planet="@Data.Planet"></EditPlanetInvitesComponent>
+                        <EditPlanetInvitesComponent Planet="Planet"></EditPlanetInvitesComponent>
                         break;
                     case "Members":
                         <EditPlanetUsersComponent></EditPlanetUsersComponent>
@@ -30,10 +30,10 @@
                         <EditPlanetBansComponent></EditPlanetBansComponent>
                         break;
                     case "Roles":
-                        <EditPlanetRolesComponent Planet="@Data.Planet"></EditPlanetRolesComponent>
+                        <EditPlanetRolesComponent Planet="Planet"></EditPlanetRolesComponent>
                         break;
                     case "Economy":
-                        <EditPlanetEconomyComponent Planet="@Data.Planet"></EditPlanetEconomyComponent>
+                        <EditPlanetEconomyComponent Planet="Planet"></EditPlanetEconomyComponent>
                         break;
                     case "Delete":
                         break;
@@ -44,11 +44,14 @@
 </BigMenuComponent>
 
 @code {
+    [Parameter]
+    public Planet Planet { get; set; }
 
-    public class ModalParams
-    {
-        public Planet Planet;
-    }
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
 
     private BigMenuComponent BigMenuComponent { get; set; }
 
@@ -69,14 +72,7 @@
 
     protected override void OnInitialized()
     {
-        // Fallback on focused planet if no planet is provided
-        if (Data is null || Data.Planet is null)
-        {
-            Data = new ModalParams()
-            {
-                Planet = GlobalWindowData.GlobalActivePlanet
-            };
-        } 
+        Planet = WindowManager.FocusedPlanet;
     }
 
     private void Refresh()
@@ -93,25 +89,30 @@
 
     private void OnClickDelete()
     {
-        var modalData =
-        new ConfirmModalComponent.ModalParams(
-            $"Delete {Data.Planet.Name}?",
-            "Are you sure?",
-            "Continue",
-            "Cancel",
-            async () =>
-            {
-                Console.WriteLine("Confirmed planet deletion.");
-                var result = await LiveModel.DeleteAsync(Data.Planet);
-
-                if (result.Success)
+        ConfirmModalData modalData =
+        new($"Delete {Planet.Name}?",
+                "Are you sure?",
+                "Continue",
+                "Cancel",
+                async () =>
                 {
-                    await CloseAsync();
+                    Console.WriteLine("Confirmed planet deletion.");
+                    var result = await Valour.Api.Items.LiveModel.DeleteAsync(Planet);
+
+                    if (result.Success)
+                    {
+                        await ModalInstance.CloseAsync();
+                    }
+                },
+                async () =>
+                {
+                    Console.WriteLine("Cancelled channel item deletion.");
                 }
-            },
-            () => Task.CompletedTask
         );
-        
-        ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
+
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
     }
 }

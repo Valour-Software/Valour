@@ -1,5 +1,5 @@
-﻿@inject SoundManager SoundManager
-@inject IJSRuntime JsRuntime
+﻿@inject SoundManager soundManager
+@inject IJSRuntime JS
 
 @code {
 
@@ -10,12 +10,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        SoundManager.Component = this;
+        soundManager.Component = this;
         ValourClient.OnNotificationReceived += OnNotification;
     }
 
     public async Task PlaySound(string name) => 
-        await JsRuntime.InvokeVoidAsync("playSound", name);
+        await JS.InvokeVoidAsync("playSound", name);
 
 
     private async Task OnNotification(Notification notification)
@@ -29,12 +29,12 @@
             // unless it's a mention
             if (notification.Source == NotificationSource.DirectReply)
             {
-                foreach (var window in GlobalWindowData.GlobalWindows)
+                var windows = WindowManager.Instance.GetWindows();
+                foreach (var window in windows)
                 {
-                    if (window.Type == typeof(ChatChannelWindowComponent))
+                    if (window is ChatChannelWindow directChat)
                     {
-                        var channel = (Channel)window.Data;
-                        if (channel.Id == notification.ChannelId)
+                        if (directChat.Channel.Id == notification.ChannelId)
                         {
                             return;
                         }

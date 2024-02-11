@@ -1,4 +1,4 @@
-using Valour.Sdk.Models;
+using Valour.Api.Models;
 using Valour.Server.Cdn;
 
 namespace Valour.Server.Services;

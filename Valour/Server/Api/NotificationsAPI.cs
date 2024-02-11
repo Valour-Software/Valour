@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Valour.Sdk.Models;
+using Valour.Api.Models;
 using Valour.Server.Database;
 
 namespace Valour.Server.API;

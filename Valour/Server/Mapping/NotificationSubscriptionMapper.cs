@@ -1,4 +1,4 @@
-using Valour.Sdk.Models;
+using Valour.Api.Models;
 
 namespace Valour.Server.Mapping;
 

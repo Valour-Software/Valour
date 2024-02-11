@@ -3,6 +3,7 @@
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
 
 @inject IJSRuntime JsRuntime
+@inject WindowManager WindowManager
 @inject NavigationManager NavigationManager
 
 <!-- Check login status -->
@@ -18,41 +19,39 @@
 
 <div class="mobile-holder @MobileClass @EmbeddedClass">
 	<!-- Modal management -->
-	<ModalRoot>
-		<ContextMenuRoot>
-			
-			<ModalInjector/>
-
-			<body class="mainrow">
-			<Sidebar></Sidebar>
-			<div class="channel-and-topbar" id="mainwindow">
-				<div class="topbar">
-					@if (DeviceInfo.IsMobile)
-					{
-						<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
-					}
-					<QuickNotifComponent></QuickNotifComponent>
-					@if (DeviceInfo.IsMobile)
-					{
-						<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
-					}
-				</div>
-
-				<CallComponent/>
-
-				<!-- It's so nice when it's hidden away, just like my fears -->
-				<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
+	<CascadingBlazoredModal Size="ModalSize.Automatic" HideHeader='true' HideCloseButton='true'>
+		<ModalInjector />
+		
+		<body class="mainrow">
+		<Sidebar></Sidebar>
+		<div class="channel-and-topbar" id="mainwindow">
+			<div class="topbar">
+				@if (DeviceInfo.IsMobile)
+				{
+					<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
+				}
+				<QuickNotifComponent></QuickNotifComponent>
+				@if (DeviceInfo.IsMobile)
+				{
+					<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
+				}
 			</div>
-			@if (!DeviceInfo.IsMobile)
-			{
-				<Sidebar Flip="@true"></Sidebar>
-			}
+			<div class="topline">
+			</div>
 
-			</body>
-			
-			<DockFloaters />
-		</ContextMenuRoot>
-	</ModalRoot>
+			<CallComponent/>
+
+			<!-- It's so nice when it's hidden away, just like my fears -->
+			<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
+		</div>
+		@if (!DeviceInfo.IsMobile)
+		{
+			<Sidebar Flip="@true"></Sidebar>
+		}
+
+		<ContextMenuHolderComponent></ContextMenuHolderComponent>
+		</body>
+	</CascadingBlazoredModal>
 </div>
 
 
@@ -95,7 +94,7 @@
 
 		await base.OnInitializedAsync();
 
-		GlobalWindowData.OnActivePlanetChange += OnPlanetChange;
+		WindowManager.OnPlanetFocused += OnPlanetChange;
 		ValourClient.OnLogin += OnLoginAsync;
 	}
 
@@ -107,7 +106,7 @@
 
 	public void Dispose()
 	{
-		GlobalWindowData.OnActivePlanetChange -= OnPlanetChange;
+		WindowManager.OnPlanetFocused -= OnPlanetChange;
 	}
 
 	protected override async void OnAfterRender(bool firstRender)
@@ -136,14 +135,7 @@
 
 	private async Task OnClickHome()
 	{
-		var window = new WindowData
-		{
-			Title = "Home",
-			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
-			Type = typeof(HomeWindowComponent),
-		};
-
-		await GlobalWindowData.OpenWindowAtActive(window);
+		await WindowManager.GetSelectedWindow().ReturnHomeAsync();
 	}
 
 	[JSInvokable("OnRefocus")]

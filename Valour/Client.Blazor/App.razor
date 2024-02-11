@@ -1,18 +1,26 @@
 ﻿@using Valour.Shared
-@using Valour.Sdk.Client
+@using Valour.Api.Models;
+@using Valour.Api.Client
 @using Valour.Client.Device
 @using Valour.Client.Layout
 @using Valour.Client.Components.Utility
+@using Valour.Client.Notifications
+@using Valour.Client.Messages;
+@using Valour.Shared.Models;
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Routing
 @using Blazored.LocalStorage
+@using Blazored.Modal
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
 @using Valour.Client.Components.Sounds
+@using Valour.Client.Components
 @using Valour.Client.Utility
+@using Version = Valour.Shared.Version
 
-@inject IJSRuntime JsRuntime
+@inject IJSRuntime JS
 @inject ILocalStorageService LocalStorage
-
-<UpdateBanner />
 
 <!-- Enable app sounds -->
 <SoundsComponent @key="@("sounds-component")"></SoundsComponent>
@@ -21,7 +29,7 @@
 <!-- Enable app cookies -->
 <CookiesComponent></CookiesComponent>
 
-@if (_triedInitialLogin)
+@if (triedInitialLogin)
 {
     <!-- Main routing component -->
     <Router AppAssembly="@typeof(Valour.Client.Pages.Index).Assembly">
@@ -40,12 +48,37 @@ else
     <Loading Subtext='Logging you in...'></Loading>
 }
 
+@if (!hideUpdate)
+{
+    <div class="update-footer">
+        <p class="update-text">There is a new version of Valour available! Refresh to blast into new features! 🚀🚀🚀</p>
+        <p style="display: inline-block" class="update-text">Current version:&nbsp;</p>
+        <p style="color:red; display:inline-block" class="update-text">@(typeof(ISharedUser).Assembly.GetName().Version.ToString()) (@(Version.ShortHash))</p>
+        <p style="display: inline-block" class="update-text">&nbsp;|&nbsp;</p>
+        <p style="display: inline-block" class="update-text">New version:&nbsp;</p>
+        <p style="color:lawngreen; display:inline-block" class="update-text">@newVersion</p>
+
+        <a class="btn-update" @onclick="OnClickUpdateOk">Ok</a>
+    </div>
+}
 
 
 @code{
 
-    private bool _triedInitialLogin;
-    
+    string newVersion = "(Pinging server)";
+
+    bool triedInitialLogin;
+
+    bool hideUpdate = true;
+
+    public async Task OnClickUpdateOk()
+    {
+        hideUpdate = true;
+        StateHasChanged();
+
+        //await JS.InvokeVoidAsync("location.reload");
+    }
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
@@ -55,7 +88,7 @@ else
         ColorLogger.App = this;
         ColorLogger.Setup();
 
-        await JsRuntime.InvokeAsync<object>(
+        await JS.InvokeAsync<object>(
           "blazorFuncs.registerClient",
           DotNetObjectReference.Create(this)
         );
@@ -68,27 +101,27 @@ else
     {
         if (firstRender)
         {
-            var isMobile = await JsRuntime.InvokeAsync<bool>("IsMobile");
-            var isEmbedded = await JsRuntime.InvokeAsync<bool>("IsEmbedded");
+            var isMobile = await JS.InvokeAsync<bool>("IsMobile");
+            var isEmbedded = await JS.InvokeAsync<bool>("IsEmbedded");
 
             DeviceInfo.IsMobile = isMobile;
             DeviceInfo.IsEmbedded = isEmbedded;
             
             if (!ValourClient.IsLoggedIn)
             {
-                var cookieToken = await JsRuntime.GetCookieAsync("token");
+                var cookieToken = await JS.GetCookieAsync("token");
 
                 if (!string.IsNullOrWhiteSpace(cookieToken))
                 {
                     var result = await ValourClient.InitializeUser(cookieToken);
 
                     if (result.Success) {
-                        await ColorLogger.Log($"Auto-logged user {result.Data.Name}", "magenta");
+                        ColorLogger.Log($"Auto-logged user {result.Data.Name}", "magenta");
                     }
                 }
             }
 
-            _triedInitialLogin = true;
+            triedInitialLogin = true;
 
             StateHasChanged();
         }
@@ -96,7 +129,7 @@ else
 
     public async Task RequestNotificationSubscriptionAsync()
     {
-        var subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        var subscription = await JS.InvokeAsync<Valour.Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
         if (subscription != null)
         {
             try
@@ -112,7 +145,7 @@ else
 
     public async Task LogToConsole(string msg, string color = "white")
     {
-        await JsRuntime.InvokeVoidAsync($"Log", msg, color);
+        await JS.InvokeVoidAsync($"Log", msg, color);
     }
 
     [JSInvokable("NotifyPushSub")]
@@ -122,7 +155,7 @@ else
         Console.WriteLine(key);
         Console.WriteLine(auth);
 
-        Sdk.Models.NotificationSubscription not = new()
+        Api.Models.NotificationSubscription not = new()
         {
             Endpoint = endpoint,
             Auth = auth,
@@ -134,5 +167,23 @@ else
         var response = await ValourClient.PostAsyncWithResponse<TaskResult>($"Notification/SubmitSubscription", not);
 
         Console.WriteLine(response.Message);
+    }
+
+    [JSInvokable("OnServiceUpdateAvailable")]
+    public async Task<string> AppUpdate()
+    {
+        // Get latest version number
+        newVersion = (await ValourClient.GetAsync("api/version")).Data;
+
+        Console.WriteLine("New version available");
+        hideUpdate = false;
+        StateHasChanged();
+        return await Task.FromResult("Alerted client");
+    }
+
+    [JSInvokable("OnServiceUpdateUnavailable")]
+    public static void AppNotUpdate()
+    {
+        Console.WriteLine("New version not available");
     }
 }

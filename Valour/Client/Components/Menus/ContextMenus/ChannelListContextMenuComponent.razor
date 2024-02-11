@@ -1,0 +1,156 @@
+@inject IJSRuntime JsRuntime
+
+@using Item = Valour.Api.Items.LiveModel
+<ContextMenu Id='list-context' CssClass='context'>
+    @if (CanModify)
+    {
+        // Only allow adding channels to categories
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
+            <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
+            <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
+            <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
+        }
+        
+        // All channels have these options
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
+    }
+    <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-model'>Copy Id</BlazorContextMenu.Item>
+</ContextMenu>
+
+@code {
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public static Channel SelectedItem { get; set; }
+
+    public static ChannelListContextMenuComponent Instance;
+
+    public static bool CanModify { get; set; }
+
+    public static async Task SetSelectedItem(Channel item){
+
+        SelectedItem = item;
+        var planet = await item.GetPlanetAsync();
+        if (planet.OwnerId == ValourClient.Self.Id)
+        {
+            CanModify = true;
+        }
+        else {
+            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, item.PlanetId!.Value);
+            CanModify = await item.HasPermissionAsync(selfMember, ChannelPermissions.Manage);
+        }
+        Instance.Refresh();
+    }
+
+    protected override void OnInitialized(){
+        Instance = this;
+    }
+
+    private void Refresh(){
+        StateHasChanged();
+    }
+
+    public async Task OnClickCopyId(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", SelectedItem.Id);
+    }
+
+    public async Task OpenCreateChannel(){
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetChat);
+
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
+            modalParams.Add("Parent", SelectedItem);
+        }
+
+        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+    }
+
+    public async Task OpenCreateVoiceChannel()
+    {
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetVoice);
+
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            modalParams.Add("Parent", SelectedItem);
+        }
+
+        Modal.Show<CreateChannelComponent>("Create Voice Channel", modalParams);
+    }
+    
+    public async Task OpenCreateCategory(){
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+        modalParams.Add("ChannelType", ChannelTypeEnum.PlanetCategory);
+
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
+            modalParams.Add("Parent", SelectedItem);
+        }
+
+        Modal.Show<CreateChannelComponent>("Create Category", modalParams);
+    }
+
+    public async Task DeleteChannelListItem(){
+        if (SelectedItem.ChannelType == ChannelTypeEnum.PlanetCategory){
+            var planet = await SelectedItem.GetPlanetAsync();
+
+            var channels = await planet.GetAllChannelsAsync();
+
+            // Ensure category has no children if we are deleting it
+            if (channels.Any(x => x.ParentId == SelectedItem.Id)){
+
+                InfoModalData iModalData = 
+                new($"You can't delete this!",
+                    "This is due to this category having channels and/or categories inside of it.",
+                    "Okay",
+                    () =>
+                    {
+                        Console.WriteLine("User Clicked Ok");
+                        return Task.CompletedTask;
+                    }
+                );
+
+                ModalParameters iModParams = new();
+                iModParams.Add("Data", iModalData);
+
+                Modal.Show<InfoModalComponent>("Info", iModParams);
+            }
+        }
+
+        ConfirmModalData modalData =
+        new($"Delete {SelectedItem.Name}?",
+             "Are you sure?",
+             "Continue",
+             "Cancel", 
+             async () =>
+             {
+                 Console.WriteLine("Confirmed channel model deletion.");
+                 var result = await Item.DeleteAsync(SelectedItem);
+             },
+             () =>
+             {
+                 Console.WriteLine("Cancelled channel model deletion.");
+                 return Task.CompletedTask;
+             }
+        );
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
+
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
+    }
+
+    private void EditChannelListItem()
+    {
+        ModalParameters modParams = new();
+        modParams.Add("ChannelListItem", SelectedItem);
+        Modal.Show<EditChannelListItemComponent>("Edit Channel Item", modParams);
+    }
+}

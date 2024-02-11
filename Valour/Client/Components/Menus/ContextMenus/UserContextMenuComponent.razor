@@ -1,0 +1,94 @@
+﻿@inject IJSRuntime JsRuntime
+@inject WindowManager WindowManager
+
+<ContextMenu Id='user-context' CssClass='context' class='member-context'>
+	<BlazorContextMenu.Item OnClick='OnClickMessage' CssClass='context-model'>Message</BlazorContextMenu.Item>
+	@if (IsFriend)
+	{
+		<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-item'>Remove Friend</BlazorContextMenu.Item>
+	}
+	else if (IsFriendRequested)
+	{
+		<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-item'>Cancel Request</BlazorContextMenu.Item>
+	}
+	else
+	{
+		<BlazorContextMenu.Item OnClick='OnClickAddFriend' CssClass='context-item'>Add Friend</BlazorContextMenu.Item>
+	}
+
+	<BlazorContextMenu.Item CssClass='context-item'>
+		Copy
+		<SubMenu CssClass='context-sub'>
+			<BlazorContextMenu.Item OnClick='OnClickCopyUsername' CssClass='context-item'>Username</BlazorContextMenu.Item>
+			<BlazorContextMenu.Item OnClick='OnClickCopyUserId' CssClass='context-item'>User Id</BlazorContextMenu.Item>
+		</SubMenu>
+	</BlazorContextMenu.Item>
+</ContextMenu>
+
+@code {
+
+	[CascadingParameter]
+	public IModalService Modal { get; set; }
+
+	public static User User { get; set; }
+	public static bool IsFriend { get; set; }
+	public static bool IsFriendRequested { get; set; }
+
+	public async Task OnClickAddFriend()
+	{
+		var result = await ValourClient.AddFriendAsync(User.NameAndTag);
+
+		if (!result.Success)
+		{
+			await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+			return;
+		}
+
+		IsFriend = true;
+		StateHasChanged();
+	}
+
+	public async Task OnClickRemoveFriend()
+	{
+		var result = await ValourClient.RemoveFriendAsync(User.NameAndTag);
+
+		if (!result.Success)
+		{
+			await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+			return;
+		}
+
+		IsFriendRequested = false;
+		IsFriend = false;
+		StateHasChanged();
+	}
+
+	public static async Task Initialize(User user)
+	{
+		User = user;
+		IsFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
+		IsFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
+	}
+
+	public async Task OnClickCopyUsername(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", User.NameAndTag); 
+	}
+
+	public async Task OnClickCopyUserId(){
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", User.Id);
+	}
+	
+	public async Task OnClickMessage()
+	{
+		var channel = await Channel.GetDirectChannelAsync(User.Id, true);
+		var newWindow = new ChatChannelWindow(channel);
+
+		var oldWindow = WindowManager.GetSelectedWindow();
+		
+		Console.WriteLine($"Switching window {oldWindow.Id} to direct chat channel {channel.Id}");
+
+		await WindowManager.ReplaceWindow(oldWindow, newWindow);
+		await WindowManager.SetSelectedWindow(newWindow);
+		await WindowManager.SetFocusedPlanet(null);
+	}
+}

@@ -9,26 +9,39 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BlazorDateRangePicker" Version="5.2.0" />
+    <PackageReference Include="BlazorDateRangePicker" Version="4.4.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
+    <PackageReference Include="Blazored.Modal" Version="7.1.0" />
     <PackageReference Include="EmojiMartBlazor" Version="1.0.3" />
     <PackageReference Include="FastDragBlazor" Version="1.0.6" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-rc.1.23421.29" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-rc.1.23421.29" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.0-rc.1.23421.29" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0-rc.1.23419.4" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.0.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />
+    <ProjectReference Include="..\..\Libraries\BlazorContextMenu\BlazorContextMenu.csproj" />
+    <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <UpToDateCheckInput Remove="Components\WindowsX\WindowX.razor" />
-    <UpToDateCheckInput Remove="Components\WindowsX\WindowXContent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\CategoryListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\ChannelListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\ChatChannelListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\PlanetListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\VoiceChannelListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\FriendsList\FriendListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\MemberList\MemberListComponent.razor" />
+    <AdditionalFiles Include="Layout\MainLayout.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Components\FriendsList\FriendListComponent.razor" />
+    <_ContentIncludedByDefault Remove="Components\MemberList\MemberListComponent.razor" />
   </ItemGroup>
 </Project>

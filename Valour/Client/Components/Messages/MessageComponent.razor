@@ -1,8 +1,7 @@
-﻿@using Valour.Sdk.Models.Messages
+﻿@using Valour.Api.Models.Messages
 @using Markdig
 @using global::Markdig.Blazor
 @inject IJSRuntime JsRuntime
-@inject ContextMenuService ContextMenuService
 @implements IDisposable
 
 @if (Message == null || Message.IsEmpty() || !_isBuilt)
@@ -10,13 +9,7 @@
     return;
 }
 
-<div id="@Id"
-     class="@_class"
-     tabindex="0"
-     @oncontextpress="@OnContextMenu"
-     @oncontextpress:stopPropagation="true"
-     @onpointerdown="@OnPointerDown">
-    
+<div id="@Id" class="@_class" tabindex="0" @onpointerdown="@OnPointerDown" @oncontextmenu="@OnPointerDown">
     <div class="left-info">
         @if (!Minimal)
         {
@@ -33,14 +26,11 @@
         @if (!Minimal)
         {
             <div class="name-role-holder">
-                
-                <p @onclick="OnClickName" 
-                   @oncontextpress:stopPropagation="true"
-                   @oncontextpress="@OnNameContextMenu"
-                   class="author-name" 
-                   style="color: @_nameColor;">
-                    @_name
-                </p>
+                <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@_contextMenuId" @onpointerdown="@InitializeContextMenu" style="display:inline">
+                    <p @onclick="OnClickName" class="author-name" style="color: @_nameColor;">
+                        @_name
+                    </p>
+                </ContextMenuTrigger>
 
                 <div class="dot-badge-holder">
                     @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
@@ -76,8 +66,8 @@
                     var attachment = Message.Attachments[id];
                     var par = new Dictionary<string, object>()
                     {
-                        {"Attachment", attachment},
-                        {"MessageComponent", this}
+                        { "Attachment", attachment },
+                        { "MessageComponent", this }
                     };
 
                     <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
@@ -158,10 +148,7 @@
     public MessageHolderComponent Holder { get; set; }
 
     [CascadingParameter]
-    public WindowData Window { get; set; }
-    
-    [CascadingParameter]
-    public ChatChannelWindowComponent ChatComponent { get; set; }
+    public ChatChannelWindow Window { get; set; }
 
     /* Set Params */
     [Parameter]
@@ -254,6 +241,20 @@
         }
     }
 
+    // This is handled here because we don't want to go from
+    // Valour.Client -> Valour.Api
+    public Task InitializeContextMenu()
+    {
+        if (_member is not null)
+        {
+            return InnerMemberContextMenuComponent.Initialize(_member, Window);
+        }
+        else
+        {
+            return UserContextMenuComponent.Initialize(User);
+        }
+    }
+
     private Task OnClickName(MouseEventArgs e)
     {
         if (_member is not null)
@@ -275,38 +276,6 @@
         await CloseEditMode();
     }
 
-    private void OnContextMenu(ContextPressEventArgs e)
-    {
-        ContextMenuService.Root.OpenMenu<MessageContextMenu>(e,
-            new MessageContextMenu.MessageContextParams()
-            {
-                Message = Message,
-                MessageComponent = this,
-                WindowComponent = ChatComponent
-            }
-        );
-    }
-    
-    private void OnNameContextMenu(ContextPressEventArgs e)
-    {
-        if (_member is not null)
-        {
-            ContextMenuService.Root.OpenMenu<MemberContextMenu>(e,
-                new MemberContextMenu.MemberContextParams()
-                {
-                    Member = _member,
-                }
-            );
-        }
-        else
-        {
-            ContextMenuService.Root.OpenMenu<UserContextMenu>(e, new UserContextMenu.UserContextParams()
-            {
-                User = User
-            });
-        }
-    }
-
     public async Task OnPointerDown()
     {
         if (Ghost)
@@ -314,13 +283,16 @@
             if (IsInnerReply)
             {
                 Console.WriteLine("Removing replyto");
-                var input = ChatComponent.MessageHolder.InputComponent;
+                var input = Window.Component.MessageHolder.InputComponent;
                 await input.RemoveReply();
             }
         }
         else
         {
-            await GlobalWindowData.SetGlobalActiveWindowAsync(Window);
+            await WindowManager.Instance.SetSelectedWindow(Window);
+
+            // Initialize message
+            await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
         }
     }
 
@@ -328,7 +300,7 @@
     {
         if (Ghost)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = Window.Component.MessageHolder.InputComponent;
             await input.RemoveAttachment(id);
         }
     }
@@ -358,7 +330,7 @@
 
         ReRender();
 
-        await ChatComponent.OpenEditMode(this);
+        await Window.Component.OpenEditMode(this);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -370,7 +342,7 @@
 
         CalculateClass();
 
-        await ChatComponent.CloseEditMode(cancel);
+        await Window.Component.CloseEditMode(cancel);
 
         ReRender();
     }
@@ -482,13 +454,13 @@
  
         if (IsInnerReply)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = Window.Component.MessageHolder.InputComponent;
             await input.RemoveReply(); 
         }
         
         if (Ghost)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = Window.Component.MessageHolder.InputComponent;
             await input.RemoveAttachment(-1);
         }
 

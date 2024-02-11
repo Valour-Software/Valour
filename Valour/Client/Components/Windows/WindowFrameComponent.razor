@@ -1,0 +1,47 @@
+@inject WindowManager WindowManager
+
+<div class="window">
+    <div class="title-bar">
+        <h6 class="title">
+            @Title
+        </h6>
+        <p class="description">
+            - @Description
+        </p>
+        @if (!DeviceInfo.IsMobile)
+        {
+            <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
+        }
+    </div>
+    @ChildContent
+</div>
+
+@code {
+    [EditorRequired]
+    [Parameter]
+    public ClientWindow Window { get; set; }
+    
+    [Parameter]
+    public string Title { get; set; }
+    
+    [Parameter]
+    public string Description { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    public async Task CloseWindow()
+    {
+        await Window.CloseAsync();
+    }
+
+    public async Task ReturnHome()
+    {
+        await Window.ReturnHomeAsync();
+    }
+
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
+}

@@ -7,7 +7,6 @@
     overflow-y: auto;
     position: relative;
     padding-bottom: 50px;
-    background-color: var(--main-2);
 }
 
 .channel-info {

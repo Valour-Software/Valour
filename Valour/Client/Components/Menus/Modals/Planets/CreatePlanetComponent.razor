@@ -1,3 +1,5 @@
+@inject WindowManager WindowManager
+
 <div class="col-md-12 modal-bg">
 	<section>
 		<h2>Create a new Planet</h2>
@@ -32,12 +34,6 @@
 </div>
 
 @code {
-
-	public class ModalParams
-	{
-		public WindowData Window { get; set; }
-	}
-	
 	// Input fields
 	string _name;
 	string _desc;
@@ -48,14 +44,11 @@
 
 	string _errorSpan;
 
+	[Parameter]
+	public ClientWindow Window { get; set; }
+
 	[CascadingParameter]
-	public ModalRoot ModalRoot { get; set; }
-	
-	[Parameter]
-	public ModalParams Data { get; set; }
-	
-	[Parameter]
-	public string ModalId { get; set; }
+	public BlazoredModalInstance ModalInstance { get; set; }
 
 	private async Task OnClickSubmit(MouseEventArgs e)
 	{
@@ -80,23 +73,26 @@
 			StateHasChanged();
 			return;
 		}
-		
-		await ModalRoot.CloseModal(ModalId);
+
+		await ModalInstance.CloseAsync();
 
 		_descSpan = "Planet created.";
 
 		var planet = response.Data;
 
 		await ValourCache.Put(planet.Id, planet);
+
 		var mainChannel = await planet.GetPrimaryChannelAsync();
 
-		await Data.Window.WindowBase.AddSiblingWindow(new WindowData()
-		{
-			Title = $"{mainChannel.Name} - {planet.Name}",
-			Data = mainChannel,
-			Type = typeof(ChatChannelWindowComponent),
-			Icon = planet.IconUrl
-		});
+		await WindowManager.ClearWindows();
+
+		var newChannel = new ChatChannelWindow(mainChannel);
+
+		// Get the new main window
+		var mainWindow = WindowManager.GetWindows()[0];
+
+		await WindowManager.ReplaceWindow(mainWindow, newChannel);
+		await WindowManager.SetSelectedWindow(newChannel);
 	}
 
 }

@@ -1,0 +1,97 @@
+@inject NavigationManager navManager
+@inject IJSRuntime JS
+
+@using Valour.Shared.Categories
+
+<section>
+    <h2>Ban user</h2>
+
+    <hr />
+    <div asp-validation-summary="All" class="text-info"></div>
+    <div class="form-group mt-2">
+        <label>Reason</label>
+        <input class="form-control" @bind-value="@reason" />
+        <span id="name-span" style="color:#888888">@ReasonSpan</span>
+    </div>
+    <div class="form-group mt-2">
+        <label>Time</label>
+        <input class="form-control" @bind-value="@time" />
+        <span id="name-span" style="color:#888888">@TimeSpan</span>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(infoSpan))
+    {
+        <span id="info-span" class="text-info mt-4">@infoSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(errorSpan))
+    {
+        <span id="error-span" class="text-danger mt-4">@errorSpan</span>
+    }
+
+    <div class="form-group mt-4">
+        <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Ban</button>
+    </div>
+</section>
+@code {
+
+    [Parameter]
+    public PlanetMember Member { get; set; }
+
+    // Input fields
+    ulong time;
+
+    string reason;
+
+    // Spans
+    string ReasonSpan = "Reason for ban";
+
+    string TimeSpan = "Time in days, put any number under 0 to ban permanently";
+    string infoSpan = "";
+    string errorSpan = "";
+
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+        infoSpan = "";
+        errorSpan = "";
+
+        // Require a name
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            reason = "Please input a reason.";
+            return;
+        }
+
+        // Encode non-friendly characters
+        string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
+
+        var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Member.PlanetId);
+
+        var ban = new PlanetBan()
+        {
+            IssuerId = selfMember.UserId,
+            TargetId = Member.UserId,
+            Reason = reason,
+            PlanetId = Member.PlanetId,
+            TimeCreated = DateTime.UtcNow,
+            TimeExpires = null,
+        };
+
+        if (time != 0)
+        {
+            ban.TimeExpires = DateTime.UtcNow.AddDays(time);
+        }
+
+        var response = await Member.Node.PostAsync($"api/bans", ban);
+
+        if (response.Success)
+        {
+            infoSpan = "User banned successfully.";
+        }
+        else
+        {
+            errorSpan = response.Message;
+        }
+
+        StateHasChanged();
+    }
+}

@@ -1,10 +1,27 @@
-﻿@using Valour.Client.Pages
-@inject IJSRuntime JsRuntime
+﻿
+@using Valour.Client.Pages
+@implements IWindowHolder
+@inject WindowManager WindowManager
+@inject IJSRuntime JS
 
 <!-- Pass WindowManager this down to all children -->
 <CascadingValue Value="this">
-	@if (_startWindows is not null) {
-		<DockContainer Windows="@_startWindows" @ref="@_dock" />
+	@{
+		<div id="window-man" class="window-container">
+			@foreach (var window in Windows)
+			{
+				var id = window.Id;
+
+				Dictionary<string, object> parameters = new()
+				{
+					{ "Window", window }
+				};
+
+				<div @key="window.Id" id='window-@id' class='window-frame' @onpointerdown='async () => await SetSelectedWindow(window)'>
+					<DynamicComponent Type='window.GetComponentType()' Parameters='parameters'></DynamicComponent>
+				</div>
+			}
+		</div>
 	}
 </CascadingValue>
 
@@ -12,76 +29,66 @@
 	
 	[Parameter]
 	public StartScreenData StartData { get; set; }
-	
-	private DockContainer _dock;
 
-	private List<WindowData> _startWindows;
+	/// <summary>
+	/// The windows being displayed by this window holder
+	/// </summary>
+	public List<ClientWindow> Windows { get; set; }
 	
 	public bool CanRender { get; set; }
 
-	private bool _setDock = false;
+	protected override async Task OnInitializedAsync(){
 
-	protected override void OnAfterRender(bool firstRender)
-	{
-		if (!_setDock)
-		{
-			DockContainer.MainDock = _dock;
-			_setDock = true;
-		}
-	}
+		// Build empty window list
+		Windows = new();
 
-	protected override async Task OnInitializedAsync()
-	{
+		WindowManager.MainWindowsComponent = this;
+		
 		Console.WriteLine(JsonSerializer.Serialize(StartData));
 
-		var startWindow = new WindowData()
+		if (Windows.Count() == 0)
 		{
-			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
-			Type = typeof(HomeWindowComponent),
-			Title = "Welcome back!"
-		};
-		
-		if (StartData is not null)
-		{
-			switch (StartData.Start)
+			ClientWindow newWindow = null;
+			
+			if (StartData is not null)
 			{
-				case StartScreen.PlanetChannel:
+				switch (StartData.Start)
 				{
-					var planet = ValourCache.Get<Planet>(StartData.StartPlanetId);
-					if (planet is null)
-						break;
+					case StartScreen.PlanetChannel:
+					{
+						var planet = ValourCache.Get<Planet>(StartData.StartPlanetId);
+						if (planet is null)
+							break;
 
-					var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == StartData.StartChannelId);
-					if (channel is null)
-						break;
+						var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == StartData.StartChannelId);
+						if (channel is null)
+							break;
+						
+						await ValourClient.OpenPlanet(planet);
+						await WindowManager.SetFocusedPlanet(planet);
 
-					startWindow.Data = channel;
-					startWindow.Type = typeof(ChatChannelWindowComponent);
-					startWindow.Title = await channel.GetTitleAsync();
-					startWindow.Icon = await channel.GetIconAsync();
-					
-					break;
-				}
-				case StartScreen.DirectChannel:
-				{
-					var channel = ValourCache.Get<Channel>(StartData.StartChannelId);
-					if (channel is null)
+						newWindow = new ChatChannelWindow(channel);
 						break;
-					
-					startWindow.Data = channel;
-					startWindow.Type = typeof(ChatChannelWindowComponent);
-					startWindow.Title = await channel.GetTitleAsync();
-					startWindow.Icon = await channel.GetIconAsync();
-					
-					break;
+					}
+					case StartScreen.DirectChannel:
+					{
+						var channel = ValourCache.Get<Channel>(StartData.StartChannelId);
+						if (channel is null)
+							break;
+						
+						newWindow = new ChatChannelWindow(channel);
+						
+						break;
+					}
 				}
 			}
+			
+			if (newWindow is null)
+				newWindow = new HomeWindow();
+			
+			// Add a new window with self as the target
+			await WindowManager.AddWindowAsync(newWindow, this);
 		}
-
-		_startWindows = new List<WindowData>()
-		{
-			startWindow
-		};
 	}
 
 	protected override bool ShouldRender()
@@ -91,5 +98,81 @@
 	{
 		CanRender = true;
 		StateHasChanged();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (!DeviceInfo.IsMobile && Windows.Count > 0)
+		{
+			await JS.InvokeVoidAsync("SplitWindows", "window-man");
+			CanRender = false;
+		}
+	}
+
+	/// <summary>
+	/// Returns if we can insert a window
+	/// </summary>
+	public bool CanInsertWindow =>
+		Windows.Count < 6;
+
+	/// <summary>
+	/// This is used to insert a window.
+	/// This does not handle disposing the window - use WindowManager for that.
+	/// </summary>
+	public async Task<bool> OpenWindow(ClientWindow window)
+	{
+		if (!CanInsertWindow)
+			return false;
+
+		if (Windows.Contains(window))
+			return true;
+
+		Windows.Add(window);
+
+		await RefreshAsync();
+
+		return true;
+	}
+
+	/// <summary>
+	/// This is used to replace a window with another.
+	/// This does not handle disposal or setup - use WindowManager for that.
+	/// </summary>
+	public async Task ReplaceWindow(ClientWindow old, ClientWindow newWindow)
+	{
+		// This already ran or the window was deleted
+		if (!Windows.Contains(old))
+			return;
+
+		var index = Windows.IndexOf(old);
+
+		Windows[index] = newWindow;
+
+		await RefreshAsync();
+	}
+
+	/// <summary>
+	/// This is called to close a window.
+	/// This does not handle disposing the window - use WindowManager for that.
+	/// </summary>
+	public async Task CloseWindow(ClientWindow window)
+	{
+		if (!Windows.Contains(window))
+			return;
+
+		Windows.Remove(window);
+
+		if (Windows.Count() == 0)
+		{
+			// Add a new window with self as the target
+			await WindowManager.AddWindowAsync(new HomeWindow(), this);
+		}
+
+		await RefreshAsync();
+	}
+
+	public async Task SetSelectedWindow(ClientWindow window)
+	{
+		await WindowManager.SetSelectedWindow(window);
 	}
 }

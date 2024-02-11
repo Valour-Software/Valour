@@ -49,9 +49,6 @@ public class PlanetBanApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (ban.TargetId == member.UserId)
-            return ValourResult.BadRequest("You cannot ban yourself.");
-        
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
             return ValourResult.LacksPermission(PlanetPermissions.Ban);
 

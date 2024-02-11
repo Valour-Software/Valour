@@ -1,8 +1,7 @@
-@inherits Modal<DeleteAccountModal.ModalParams>
 @inject NavigationManager NavManager
 
 <div class="col-md-12">
-	<section class="modal-bg">
+	<section style="text-align: center; padding: 30px; max-width: 400px">
 		<h3>Delete your account?</h3>
 		<h5>This is a permanent action. You will lose all your data and will not be able to recover it, including eco balances and items.</h5>
 		
@@ -19,14 +18,14 @@
 		}
 		
 		<br />
-		<div @onclick="@OnCancel" class="btn v-button d-inline-block">Cancel</div>
-		<div @onclick="@OnConfirm" class="btn v-button danger d-inline-block">Confirm</div>
+		<div @onclick="OnCancel" class="btn v-button d-inline-block">Cancel</div>
+		<div @onclick="OnConfirm" class="btn v-button danger d-inline-block">Confirm</div>
 	</section>
 </div>
 
 @code {
-	
-	public class ModalParams {}
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
 	
 	private string _password = "";
 	private string _errorSpan;
@@ -44,5 +43,8 @@
 		}
 	}
 
-	private Task OnCancel() => CloseAsync();
+	private async Task OnCancel()
+	{
+		await ModalInstance.CloseAsync();
+	}
 }

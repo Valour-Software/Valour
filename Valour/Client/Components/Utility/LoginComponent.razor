@@ -3,19 +3,13 @@
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
 @using Microsoft.AspNetCore.WebUtilities
-<div class="page">
-    <div class="login-background">
-    </div>
-    <div class="mobile-image">
-    </div>
-    <div class="login-left col-md-5">
-        <form>
-            <div class="victor-wrapper">
-                <img alt="victor" class="victor" src="_content/Valour.Client/media/victor.svg"/>
-            </div>
-            <div class="title">
-                <h3>Log in to Valour</h3>
-                @if (@FromVerified)
+
+<body class="login-background">
+    <div class="popup-box">
+        <div class="col-md-12">
+            <section>
+                <h2>Log in to Valour</h2>
+                @if(@FromVerified)
                 {
                     <h4 style="color:var(--v-cyan)">You have registered!</h4>
                 }
@@ -23,33 +17,34 @@
                 {
                     <h4>Welcome back!</h4>
                 }
-            </div>
-            <div asp-validation-summary="All" class="text-danger"></div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" autocomplete="email" class="form-control" @bind-value="@_email" @onkeyup="@OnEmailKey"/>
-                <span id="email-span" class="text-danger">@_emailSpan</span>
-            </div>
-            <div class="form-group mt-2">
-                <label>Password</label>
-                <input @ref="@PasswordInput" id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" @onkeyup="@OnPasswordKey"/>
-                <span id="password-span" class="text-danger">@_passwordSpan</span>
-            </div>
-            <span id="result-span" class="text-info">@_resultSpan</span>
-            <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
-            <br/>
-            <div class="v-btn-wrapper mt-4">
-                <button type="button" class="v-btn blue half" @onclick="OnClickLogin">Log in</button>
-                <div role="button" aria-describedby="register button" class="v-btn-grad-wrapper half" @onclick="OnClickRegister">
-                    <img alt="hidden victor" class="hidden-victor" src="_content/Valour.Client/media/victor.svg"/>
-                    <div class="v-btn half gradient">
-                        <p>Register</p>
+                <hr />
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" autocomplete="email" class="form-control" @bind-value="@_email" @onkeyup="@OnEmailKey" />
+                    <span id="email-span" class="text-danger">@_emailSpan</span>
+                </div>
+                <div class="form-group mt-2">
+                    <label>Password</label>
+                    <input @ref="@PasswordInput" id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" @onkeyup="@OnPasswordKey" />
+                    <span id="password-span" class="text-danger">@_passwordSpan</span>
+                </div>
+                <span id="result-span" class="text-info">@_resultSpan</span>
+                <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
+                <div class="v-btn-wrapper mt-4">
+                    <button class="v-btn blue half" @onclick="OnClickLogin">Log in</button>
+                    <div role="button" aria-describedby="register button" class="v-btn-grad-wrapper half" @onclick="OnClickRegister">
+                        <div class="v-btn half gradient">
+                            <p>Register</p>
+                        </div>
+                        
+                        <img alt="hidden victor" class="hidden-victor" src="_content/Valour.Client/media/victor.svg" />
                     </div>
                 </div>
-            </div>
-        </form>
+            </section>
+        </div>
     </div>
-</div>
+</body>
 
 @code {
     

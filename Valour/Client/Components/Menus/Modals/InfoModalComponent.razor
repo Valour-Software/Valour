@@ -1,51 +1,27 @@
-@inherits Modal<InfoModalComponent.ModalParams>
-
 <!-- This modal exists to allow parts of the app to give the user info -->
 
 <div class="col-md-12">
     <section style="text-align: center; padding: 30px">
-        <h2 class="subtitle">@Data.Title</h2>
-        <p>@Data.Description</p>
+        <h2 class="subtitle">@Data.title_text</h2>
+        <p>@Data.desc_text</p>
         <br />
-        <div role="button" @onclick="@OnClick" class="btn v-btn d-inline-block">@Data.ButtonText</div>
+        <div @onclick="OnClick" class="v-btn d-inline-block">@Data.button_text</div>
     </section>
 </div>
 
-@code {
+@code { 
 
-	public class ModalParams
-	{
+    [CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
 
-		/// <summary>
-		/// Run if the user hits the button
-		/// </summary>
-		public readonly Func<Task> ButtonEvent;
+	[Parameter]
+	public InfoModalData Data { get; set; }
 
-		// Cosmetics
-		public readonly string Title;
-		public readonly string Description;
-		public readonly string ButtonText;
-
-		public ModalParams()
-		{
-			
-		}
-
-		public ModalParams(string title, string desc, string button, Func<Task> OnClick)
-		{
-			this.Title = title;
-			this.Description = desc;
-			this.ButtonText = button;
-
-			this.ButtonEvent = OnClick;
-		}
-	}
-
-    private async Task OnClick()
+    public async Task OnClick()
 	{
 	    if (Data.ButtonEvent is not null)
 			await Data.ButtonEvent.Invoke();
-
-	    await ModalRoot.CloseModal(ModalId);
+	    
+		await ModalInstance.CloseAsync();
 	}
 }

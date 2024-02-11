@@ -1,18 +1,21 @@
-﻿using Valour.Sdk.Models.Messages.Embeds.Items;
-using Valour.Sdk.Models.Messages.Embeds;
+﻿using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Client.Components.Messages.Embeds;
-using Valour.Sdk.Client;
+using Valour.Api.Client;
 using System.Net.Http.Json;
-using Microsoft.JSInterop;
-using Valour.Client.Components.Menus.Modals;
+using Blazored.Modal.Services;
 using Valour.Client.Modals;
-using Valour.Sdk.Models;
+using Microsoft.JSInterop;
+using Blazored.Modal;
+using Valour.Client.Components.Menus.Modals;
+using Valour.Api.Models;
+using Valour.Api.Nodes;
 
 namespace Valour.Client.Utility;
 
 internal static class EmbedGoToClickHandler
 {
-    public static async Task HandleClick(EmbedItem embedItem, EmbedComponent embedComponent, ModalRoot modalRoot, IJSRuntime jsRuntime)
+    public static async Task HandleClick(EmbedItem embedItem, EmbedComponent embedComponent, IModalService modal, IJSRuntime jsRuntime)
     {
 		var item = (IClickable)embedItem;
 
@@ -49,10 +52,9 @@ internal static class EmbedGoToClickHandler
 
 		else if (item.ClickTarget.Type == TargetType.Link)
 		{
-			var target = (EmbedLinkTarget)item.ClickTarget;
-			
-			var modalData = new ConfirmModalComponent.ModalParams(
-				$"This link will take you to {target.Href}",
+			EmbedLinkTarget target = (EmbedLinkTarget)item.ClickTarget;
+			ConfirmModalData modalData =
+			new($"This link will take you to {target.Href}",
 				"Are you sure?",
 				"Continue",
 				"Cancel", 
@@ -60,10 +62,16 @@ internal static class EmbedGoToClickHandler
 				{
 					await jsRuntime.InvokeAsync<object>("open", target.Href, "_blank");
 				},
-				() => Task.CompletedTask
+				async () =>
+				{
+					Console.WriteLine($"Cancelled going to link: {target.Href}");
+				}
 			);
-			
-			modalRoot.OpenModal<ConfirmModalComponent>(modalData);
+
+			ModalParameters modParams = new();
+			modParams.Add("Data", modalData);
+
+			modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
 		}
     }
 }

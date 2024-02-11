@@ -1,68 +1,61 @@
-@inherits Modal<ReportModalComponent.ModalParams>
-
-<div class="report-modal glassy-modal">
-    <div style="max-height: 40vh; overflow: auto">
-        @switch (_page)
+<div class="report-modal">
+    @switch (_page)
+    {
+        case 0:
         {
-            case 0:
+            <h2>Why are you reporting this content?</h2>
+            <br />
+            @foreach (var reason in ReportReasons.Reasons)
             {
-                <h2>Why are you reporting this content?</h2>
-                <br/>
-                @foreach (var reason in ReportReasons.Reasons)
-                {
-                    var r = reason;
-
-                    <button class="btn v-btn large" style="width: 95%" @onclick="() => OnSelectReason(reason.Code)">
-                        <h4>@reason.Title</h4>
-                        <p>@reason.Description</p>
-                    </button>
-                    <br />
-                }
-
-                break;
+                var r = reason;
+                
+                <button class="btn v-button" @onclick="() => OnSelectReason(reason.Code)">
+                    <h4>@reason.Title</h4>
+                    <p>@reason.Description</p>
+                </button>
             }
-            case 1:
-            {
-                <h2>Describe the incident</h2>
-                <br/>
-                <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5"></textarea>
-                <br />
-                <button style="text-align: center" class="btn v-btn large" @onclick="OnClickSubmitAsync">Submit Report</button>
-                break;
-            }
-            case 2:
-            {
-                <h4>@_response</h4>
-                break;
-            }
+            
+            break;
         }
-    </div>
+        case 1:
+        {
+            <h2>Describe the incident</h2>
+            <br />
+            <textarea class="form-control" @bind="Report.LongReason" rows="5"></textarea>
+            <button style="text-align: center" class="btn v-button" @onclick="OnClickSubmitAsync">Submit Report</button>
+            break;
+        }
+        case 2:
+        {
+            <h4>@_response</h4>
+            break;
+        }
+    }
     
-    <br/>
-
-    <button style="text-align: center" class="btn v-btn large" @onclick="@OnClickCancelAsync">Cancel</button>
+    <button style="text-align: center" class="btn v-button" @onclick="@OnClickCancelAsync">Cancel</button>
 </div>
 
 @code {
-
-    public class ModalParams
-    {
-        public Report Report;
-    }
+    
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public Report Report { get; set; }
 
     private int _page = 0;
     private string _response = "";
 
     private void OnSelectReason(ReportReasonCode reasonCode)
     {
-        Data.Report.ReasonCode = reasonCode;
+        Report.ReasonCode = reasonCode;
         _page = 1;
         StateHasChanged();
     }
 
     private async Task OnClickSubmitAsync()
     {
-        var result = await Report.PostReportAsync(Data.Report);
+        var result = await Report.PostReportAsync(Report);
         if (!result.Success)
             _response = result.Message;
         else
@@ -74,6 +67,6 @@
     
     private async Task OnClickCancelAsync()
     {
-        await CloseAsync();
+        await ModalInstance.CloseAsync();
     }
 }

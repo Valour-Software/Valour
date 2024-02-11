@@ -1,7 +1,6 @@
-@inherits Modal<AttachmentModal.ModalParams>
 @inject IJSRuntime JsRuntime
 
-@if (Data.Attachment is null)
+@if (Attachment is null)
 {
     <h5>Loading content...</h5>
     return;
@@ -9,48 +8,65 @@
 
 <div class="preview-container">
     <div class="attachment-holder">
-        @switch (Data.Attachment.Type){
+        @switch (Attachment.Type){
             case MessageAttachmentType.Image:
-                <ImageAttachmentComponent Attachment="Data.Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
+                <ImageAttachmentComponent Attachment="Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
                 break;
             case MessageAttachmentType.Video:
-                <VideoAttachmentComponent Attachment="Data.Attachment" />
+                <VideoAttachmentComponent Attachment="Attachment" />
                 break;
             case MessageAttachmentType.Audio:
-                <AudioAttachmentComponent Attachment="Data.Attachment" />
+                <AudioAttachmentComponent Attachment="Attachment" />
                 break;
             default:
-                <FileAttachmentComponent Attachment="Data.Attachment" />
+                <FileAttachmentComponent Attachment="Attachment" />
                 break;
         }
     </div>
     
     <div class="d-flex flex-row justify-content-between">
-        <button class="v-btn" style="float: right" @onclick="@OnClickClose">Close</button>
-        <button class="v-btn" style="float: right" @onclick="@OnClickCopyLink">Copy Link</button>
-        <button class="v-btn danger" @onclick="@OnClickDownload">Download</button>
+        <button class='v-btn' style="float: right" @onclick='OnClickClose'>Close</button>
+        <button class='v-btn' style="float: right" @onclick='OnClickCopyLink'>Copy Link</button>
+        <button class='v-btn danger' @onclick='OnClickDownload'>Download</button>
     </div>
 </div>
 
 @code {
-
-    public class ModalParams
-    {
-        public MessageAttachment Attachment;
-    }
     
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+
+    protected override void OnInitialized()
+    {
+        KeyboardListener.OnKeyDown += OnKeyDown;
+    }
+
+    private Task OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key == "Escape")
+            ModalInstance.CloseAsync();
+
+        return Task.CompletedTask;
+    }
+
     private Task OnClickClose()
     {
-        return CloseAsync();
+        return ModalInstance.CloseAsync();
     }
     
     private async Task OnClickCopyLink()
     {
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Attachment.Location);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Attachment.Location);
     }
 
     private async Task OnClickDownload()
     {
-        await JsRuntime.InvokeVoidAsync("open", Data.Attachment.Location, "_blank");
+        await JsRuntime.InvokeVoidAsync("open", Attachment.Location, "_blank");
     }
 }
