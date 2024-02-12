@@ -62,6 +62,7 @@
                         <EditFriendsComponent></EditFriendsComponent>
                         break;
                     case "Log Out":
+                        <EditUserInfoComponent User="@Data.User"></EditUserInfoComponent>
                         break;
                         
                 }
@@ -111,7 +112,7 @@
     {
         var cData = new ConfirmModalComponent.ModalParams(
             "Log Out",
-            "Are you sure you want to log out?",
+            "Are you sure?",
             "Yes, log out",
             "Cancel",
             async () =>
