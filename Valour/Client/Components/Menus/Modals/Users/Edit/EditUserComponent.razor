@@ -110,7 +110,9 @@
 
     private async Task LogOut()
     {
-        var cData = new ConfirmModalComponent.ModalParams(
+        try
+        {
+            var cData = new ConfirmModalComponent.ModalParams(
             "Log Out",
             "Are you sure?",
             "Yes, log out",
@@ -121,12 +123,22 @@
                 Console.WriteLine(result.Message);
                 NavManager.NavigateTo("/", true);
             },
-            () => 
+            () =>
             {
-                return Task.CompletedTask; 
+                return Task.CompletedTask;
             }
         );
 
-        ModalRoot.OpenModal<ConfirmModalComponent>(cData); 
+            ModalRoot.OpenModal<ConfirmModalComponent>(cData);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+
+            // If an error occurs in building/using the ConfirmModal, it reverts back to original behavior and logs out regardless
+            var result = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+            Console.WriteLine(result.Message);
+            NavManager.NavigateTo("/", true);
+        }
     }
 }
