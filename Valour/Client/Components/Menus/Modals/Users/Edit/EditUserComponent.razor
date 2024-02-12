@@ -1,5 +1,6 @@
 ﻿@inherits Modal<EditUserComponent.ModalParams>
 @inject NavigationManager NavManager
+@inject IJSRuntime JS
 
 
 @if (@Data.User is null)
@@ -61,7 +62,6 @@
                         <EditFriendsComponent></EditFriendsComponent>
                         break;
                     case "Log Out":
-                        LogOut();
                         break;
                         
                 }
@@ -71,6 +71,7 @@
 </BigMenuComponent>
 
 @code {
+
     public class ModalParams
     {
         public User User;
@@ -108,10 +109,23 @@
 
     private async Task LogOut()
     {
-        var response = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+        var cData = new ConfirmModalComponent.ModalParams(
+            "Log Out",
+            "Are you sure you want to log out?",
+            "Yes, log out",
+            "Cancel",
+            async () =>
+            {
+                var result = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+                Console.WriteLine(result.Message);
+                NavManager.NavigateTo("/", true);
+            },
+            () => 
+            {
+                return Task.CompletedTask; 
+            }
+        );
 
-        Console.WriteLine(response.Message);
-
-        NavManager.NavigateTo("/", true);
+        ModalRoot.OpenModal<ConfirmModalComponent>(cData); 
     }
 }
