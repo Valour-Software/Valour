@@ -6,7 +6,7 @@
      @ref="@_element">
     <div class="tab-wrapper"
          @onmousedown:stopPropagation="true"
-         @onmousedown="OnClickTab">
+         @onmousedown="@OnClickTab">
         <div class="tab">
             <div class="tab-info">
                 <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
@@ -15,6 +15,12 @@
             <div class="tab-buttons"
                  @onclick:stopPropagation="true"
                  @onmousedown:stopPropagation="true">
+                @if (WindowData.Type != typeof(HomeWindowComponent))
+                {
+                    <span class="home" @onclick="@OnClickHome">
+                        <i class="bi bi-house-door-fill"></i>
+                    </span>
+                }
                 <span class="minus" @onclick="@OnClickMinus">
                     <i class="bi bi-dash-circle-fill"></i>
                 </span>
@@ -23,7 +29,7 @@
     </div>
     <div class="window"
          @onmousedown:stopPropagation="true"
-         @onmousedown="OnClickWindow">
+         @onmousedown="@OnClickWindow">
         <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
     </div>
 </div>
@@ -153,6 +159,22 @@
     {
         Container.SetActiveFloater(this.WindowData);
         await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
+    }
+    
+    private async Task OnClickHome()
+    {
+        ChangeType(
+            typeof(HomeWindowComponent), 
+            null, 
+            "Home",
+            "./_content/Valour.Client/media/logo/logo-128.png"
+            );
+
+        var pos = await GetPositionAsync();
+        _top = pos.ClientY;
+        _left = pos.ClientX;
+        
+        StateHasChanged();
     }
 
     [JSInvokable]

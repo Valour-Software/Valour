@@ -32,6 +32,8 @@
     public Channel Channel;
 
     private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
+    
+    private string _instanceId = Guid.NewGuid().ToString();
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -70,7 +72,7 @@
 
     public virtual async Task SetupNewChannelAsync()
     {
-        await Channel.Open(Window.Id);
+        await Channel.Open(Window.Id + _instanceId);
         
         // Planet stuff
         if (Channel.PlanetId is not null)
@@ -139,7 +141,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await Channel.Close(Window.Id);
+        await Channel.Close(Window.Id + _instanceId);
     }
 
     public async Task OpenEditMode(MessageComponent message)
