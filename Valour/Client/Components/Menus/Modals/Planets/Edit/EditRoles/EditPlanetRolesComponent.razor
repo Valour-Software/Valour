@@ -411,10 +411,14 @@
             "Cancel",
             async () => {
                 _result = await _selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
+                _editMode = false;
                 StateHasChanged();
             },
             () =>
             {
+                // without setting _editMode to false, it remains in the delete screen after canceling 
+                // the user then has to navigate to another setting, then back to roles to access the roles list again
+                _editMode = false;
                 StateHasChanged();
                 return Task.CompletedTask;
             }
@@ -501,6 +505,7 @@
             if (creating)
             {
                 _editMode = false;
+                _roles.Add(_role);
                 _roleMemberCounts[_role.Id] = 0;
             }
         }
