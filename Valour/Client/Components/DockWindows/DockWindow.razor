@@ -18,8 +18,15 @@
                     <span class="tab-title">@WindowData.Title</span>
                 </div>
                 <div class="tab-buttons"
-                     @onclick:stopPropagation="true">
-                    <span class="plus" @onclick="OnClickPlus">
+                     @onclick:stopPropagation="true"
+                     @onmousedown:stopPropagation="true">
+                    @if (WindowData.Type != typeof(HomeWindowComponent))
+                    {
+                        <span class="home" @onclick="@OnClickHome">
+                            <i class="bi bi-house-door-fill"></i>
+                        </span>
+                    }
+                    <span class="plus" @onclick="@OnClickPlus">
                         <i class="bi bi-plus-circle-fill"></i>
                     </span>
                     <span class="minus" @onclick="@OnClickMinus">
@@ -150,6 +157,18 @@
     {
         Container.SetActiveTabWindow(this.WindowData);
         await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
+    }
+
+    private void OnClickHome()
+    {
+        ChangeType(
+            typeof(HomeWindowComponent), 
+            null, 
+            "Home",
+            "./_content/Valour.Client/media/logo/logo-128.png"
+        );
+        
+        StateHasChanged();
     }
     
     /* Dragging */
