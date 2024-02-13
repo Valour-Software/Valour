@@ -1,5 +1,6 @@
 ﻿@inherits Modal<EditUserComponent.ModalParams>
 @inject NavigationManager NavManager
+@inject IJSRuntime JS
 
 
 @if (@Data.User is null)
@@ -61,7 +62,7 @@
                         <EditFriendsComponent></EditFriendsComponent>
                         break;
                     case "Log Out":
-                        LogOut();
+                        <EditUserInfoComponent User="@Data.User"></EditUserInfoComponent>
                         break;
                         
                 }
@@ -71,6 +72,7 @@
 </BigMenuComponent>
 
 @code {
+
     public class ModalParams
     {
         public User User;
@@ -108,10 +110,35 @@
 
     private async Task LogOut()
     {
-        var response = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+        try
+        {
+            var cData = new ConfirmModalComponent.ModalParams(
+            "Log Out",
+            "Are you sure?",
+            "Yes, log out",
+            "Cancel",
+            async () =>
+            {
+                var result = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+                Console.WriteLine(result.Message);
+                NavManager.NavigateTo("/", true);
+            },
+            () =>
+            {
+                return Task.CompletedTask;
+            }
+        );
 
-        Console.WriteLine(response.Message);
+            ModalRoot.OpenModal<ConfirmModalComponent>(cData);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
 
-        NavManager.NavigateTo("/", true);
+            // If an error occurs in building/using the ConfirmModal, it reverts back to original behavior and logs out regardless
+            var result = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+            Console.WriteLine(result.Message);
+            NavManager.NavigateTo("/", true);
+        }
     }
 }
