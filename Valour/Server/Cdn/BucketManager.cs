@@ -2,7 +2,7 @@
 using Amazon.S3.Model;
 using System.Net;
 using System.Security.Cryptography;
-using Valour.Server.Cdn.Objects;
+using Valour.Database;
 using Valour.Shared;
 
 namespace Valour.Server.Cdn;
@@ -35,7 +35,7 @@ public static class BucketManager
     }
 
     public static async Task<TaskResult> Upload(MemoryStream data, string fileName, string extension, long userId, string mime, 
-        ContentCategory category, CdnDb db)
+        ContentCategory category, ValourDB db)
     {
         // Get hash from image
         byte[] hashBytes = Sha256.ComputeHash(data.GetBuffer());
@@ -48,11 +48,11 @@ public static class BucketManager
         var id = $"{category}/{userId}/{hash}";
 
         // If so, return the location (wooo easy route)
-        if (await db.BucketItems.AnyAsync(x => x.Id == id))
+        if (await db.CdnBucketItems.AnyAsync(x => x.Id == id))
             return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
 
         // We need a bucket record no matter what at this point
-        var bucketRecord = new BucketItem()
+        var bucketRecord = new CdnBucketItem()
         {
             Id = id,
             Category = category,
@@ -64,13 +64,13 @@ public static class BucketManager
 
         // Now we check if anyone else has already posted this file.
         // If so, we can just create a new path to the file
-        if (await db.BucketItems.AnyAsync(x => x.Hash == hash))
+        if (await db.CdnBucketItems.AnyAsync(x => x.Hash == hash))
         {
             // Alright, someone else posted this. Let's make a new route to this
             // object without actually re-uploading it.
             try
             {
-                await db.BucketItems.AddAsync(bucketRecord);
+                await db.CdnBucketItems.AddAsync(bucketRecord);
                 await db.SaveChangesAsync();
             }
             catch(System.Exception e)
@@ -104,7 +104,7 @@ public static class BucketManager
         {
             try
             {
-                await db.BucketItems.AddAsync(bucketRecord);
+                await db.CdnBucketItems.AddAsync(bucketRecord);
                 await db.SaveChangesAsync();
             }
             catch (System.Exception e)

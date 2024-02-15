@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-namespace Valour.Server.Cdn.Objects;
+namespace Valour.Database;
 
 public enum ContentCategory
 {
@@ -11,8 +13,8 @@ public enum ContentCategory
     App
 }
 
-[Table("bucket_items")]
-public class BucketItem
+[Table("cdn_bucket_items")]
+public class CdnBucketItem
 {
     [Key]
     [Column("id")]

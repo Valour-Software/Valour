@@ -14,7 +14,6 @@ namespace Valour.Server.Services;
 public class ChannelService
 {
     private readonly ValourDB _db;
-    private readonly CdnDb _cdnDb;
     private readonly HttpClient _http;
     private readonly PlanetMemberService _memberService;
     private readonly ILogger<ChannelService> _logger;
@@ -25,7 +24,6 @@ public class ChannelService
 
     public ChannelService(
         ValourDB db,
-        CdnDb cdnDb,
         HttpClient http,
         PlanetMemberService memberService,
         CoreHubService coreHubService,
@@ -35,7 +33,6 @@ public class ChannelService
         NodeService nodeService)
     {
         _db = db;
-        _cdnDb = cdnDb;
         _http = http;
         _memberService = memberService;
         _logger = logger;
@@ -664,7 +661,7 @@ public class ChannelService
             // This is because a direct image link is not proxied and can steal ip addresses
             message.Content = message.Content.Replace("[](", "(");
 	        
-            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(message.Content, _cdnDb, _http);
+            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(message.Content, _db, _http);
             if (inlineAttachments is not null)
             {
                 if (attachments is null)
@@ -797,7 +794,7 @@ public class ChannelService
         // Handle new inline attachments
         if (!string.IsNullOrWhiteSpace(updated.Content))
         {
-            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(updated.Content, _cdnDb, _http);
+            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(updated.Content, _db, _http);
             if (inlineAttachments is not null)
             {
                 if (attachments is null)
