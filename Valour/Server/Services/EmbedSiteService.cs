@@ -8,12 +8,10 @@ namespace Valour.Server.Services;
 /// </summary>
 public class EmbedSiteService
 {
-    private CdnDb _cdnDb;
     private HttpClient _http;
     
-    public EmbedSiteService(HttpClient http, CdnDb cdnDb)
+    public EmbedSiteService(HttpClient http)
     {
-        _cdnDb = cdnDb;
         _http = http;
     }
 
