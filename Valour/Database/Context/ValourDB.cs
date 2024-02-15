@@ -196,6 +196,13 @@ public class ValourDB : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Currency> Currencies { get; set; }
     public DbSet<EcoAccount> EcoAccounts { get; set; }
+    
+    ////////////////
+    // CDN System //
+    ////////////////
+    
+    public DbSet<CdnBucketItem> CdnBucketItems { get; set; }
+    public DbSet<CdnProxyItem> CdnProxyItems { get; set; }
 
     public ValourDB(DbContextOptions options)
     {

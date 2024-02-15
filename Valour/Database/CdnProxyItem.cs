@@ -6,10 +6,10 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Valour.Server.Cdn.Objects;
+namespace Valour.Database;
 
-[Table("proxies")]
-public class ProxyItem
+[Table("cdn_proxies")]
+public class CdnProxyItem
 {
     /// <summary>
     /// The id of proxied items are sha256 hashes of the original url
@@ -48,3 +48,4 @@ public class ProxyItem
     [JsonIgnore]
     public string Url => $"https://cdn.valour.gg/proxy/{Id}";
 }
+

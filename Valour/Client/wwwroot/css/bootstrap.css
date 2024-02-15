@@ -3151,6 +3151,16 @@ textarea.form-control-lg {
 }
 
 .btn-outline-primary {
+  font-weight: 400;
+  background-color: #ffffff22;
+  border: none;
+  border-radius: 1em;
+  font-size: 1em;
+  padding: 0.25em 1em;
+  display: block;
+  outline: none !important;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
   color: #0d6efd;
   border-color: #0d6efd;
 }

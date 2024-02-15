@@ -1,4 +1,4 @@
-﻿using Valour.Server.Cdn.Objects;
+﻿using Valour.Database;
 
 namespace Valour.Server.Cdn.Api
 {
@@ -12,12 +12,12 @@ namespace Valour.Server.Cdn.Api
         /// <summary>
         /// The Proxy route proxies the page that corresponds with the given hash.
         /// </summary>
-        private static async Task<IResult> ProxyRoute(HttpContext context, HttpClient client, CdnDb db, string url)
+        private static async Task<IResult> ProxyRoute(HttpContext context, HttpClient client, ValourDB db, string url)
         {
             if (string.IsNullOrEmpty(url))
                 return Results.BadRequest("Missing url parameter");
 
-            ProxyItem item = await db.ProxyItems.FindAsync(url);
+            CdnProxyItem item = await db.CdnProxyItems.FindAsync(url);
 
             if (item is null)
                 return Results.NotFound("No existing proxy item found");

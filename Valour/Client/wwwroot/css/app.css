@@ -74,15 +74,22 @@ html * {
 }
 
 .v-button {
-    color: #fff;
-    border-color: #fff;
-    background-color: rgba(0, 0, 0, 0);
-    opacity: 90%;
+    color: var(--font-color);
+    font-weight: 400;
+    background-color: #ffffff22;
+    border: none;
+    border-radius: 1em;
+    font-size: 1em;
+    padding: 0.25em 1em;
+    display: block;
+    outline: none !important;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
 }
 
 .v-button:hover {
-    color: var(--v-cyan);
-    border-color: var(--v-cyan);
+    background-color: var(--p-cyan);
+    color: white;
 }
 
 .v-button.danger {

@@ -8,6 +8,7 @@ using Valour.Server.Cdn.Objects;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 using SixLabors.ImageSharp;
+using Valour.Database;
 
 namespace Valour.Server.Cdn;
 
@@ -21,7 +22,7 @@ public static class ProxyHandler
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
     }
 
-    public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, CdnDb db, HttpClient client)
+    public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDB db, HttpClient client)
     {
         var urls = CdnUtils.UrlRegex.Matches(url);
 
@@ -47,7 +48,7 @@ public static class ProxyHandler
     /// This can be an image, video, or even an embed website view
     /// Also handles converting to ValourCDN when necessary
     /// </summary>
-    public static async Task<MessageAttachment> GetAttachmentFromUrl(string url, CdnDb db, HttpClient client)
+    public static async Task<MessageAttachment> GetAttachmentFromUrl(string url, ValourDB db, HttpClient client)
     {
         var uri = new Uri(url.Replace("www.", ""));
 
@@ -215,7 +216,7 @@ public static class ProxyHandler
                 };
                 
                 // Check if we have already proxied this item
-                var item = await db.ProxyItems.FindAsync(hash);
+                var item = await db.CdnProxyItems.FindAsync(hash);
                 if (item is null)
                 {
                     if (type == MessageAttachmentType.Image)
@@ -241,7 +242,7 @@ public static class ProxyHandler
                         }
                     }
                     
-                    item = new ProxyItem()
+                    item = new CdnProxyItem()
                     {
                         Id = hash + ext,
                         Origin = uri.AbsoluteUri,
