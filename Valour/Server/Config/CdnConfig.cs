@@ -15,12 +15,6 @@ public class CdnConfig
     // Cross-server authorization
     public string Key { get; set; }
 
-    // Database properties
-    public string DbAddress { get; set; }
-    public string DbUser { get; set; }
-    public string DbPassword { get; set; }
-    public string DbName { get; set; }
-
     // S3 properties
     public string S3Access { get; set; }
     public string S3Secret { get; set; }

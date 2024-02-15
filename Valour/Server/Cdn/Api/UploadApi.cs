@@ -191,12 +191,12 @@ public class UploadApi
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
         
-        var isPlus = await valourDb.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
+        var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload profile backgrounds!");
 
@@ -292,12 +292,12 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, long appId, [FromHeader] string authorization)
+    private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB db, TokenService tokenService, long appId, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
 
-        var app = await valourDb.OauthApps.FindAsync(appId);
+        var app = await db.OauthApps.FindAsync(appId);
         if (app is null)
             return ValourResult.NotFound("Could not find app");
 

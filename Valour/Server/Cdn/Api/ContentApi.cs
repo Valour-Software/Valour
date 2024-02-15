@@ -15,7 +15,7 @@ public class ContentApi : Controller
         app.MapGet("/content/{category}/{userId}/{hash}", GetRoute);
     }
 
-    private static async Task<IResult> GetRoute(CdnMemoryCache cache, CdnDb db,
+    private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDB db,
          ContentCategory category, string hash, ulong userId)
     {
         if (string.IsNullOrWhiteSpace(hash))
@@ -26,7 +26,7 @@ public class ContentApi : Controller
 
         var id = $"{category}/{userId}/{hash}";
 
-        var bucketItemRecord = await db.BucketItems.FindAsync(id);
+        var bucketItemRecord = await db.CdnBucketItems.FindAsync(id);
         if (bucketItemRecord is null)
             return Results.NotFound();
 

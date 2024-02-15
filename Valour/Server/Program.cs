@@ -281,11 +281,6 @@ namespace Valour.Server
                 options.MemoryBufferThreshold = 20480000;
                 options.MultipartBodyLengthLimit = 20480000;
             });
-            
-            services.AddDbContext<CdnDb>(options =>
-            {
-                options.UseNpgsql(CdnDb.ConnectionString);
-            });
 
             services.AddDbContext<ValourDB>(options =>
             {
