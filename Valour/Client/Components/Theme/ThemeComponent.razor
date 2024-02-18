@@ -1,0 +1,51 @@
+﻿<div id="theme">
+    <style>
+        :root {
+            --font-color: @("#" + CurrentTheme.FontColor);
+            --font-alt-color: @("#" + CurrentTheme.FontAltColor);
+            --link-color: @("#" + CurrentTheme.LinkColor);
+            
+            --main-1: @("#" + CurrentTheme.MainColor1);
+            --main-2: @("#" + CurrentTheme.MainColor2);
+            --main-3: @("#" + CurrentTheme.MainColor3);
+            --main-4: @("#" + CurrentTheme.MainColor4);
+            --main-5: @("#" + CurrentTheme.MainColor5);
+            
+            --modal-main: @("#" + CurrentTheme.MainColor1 + "55");
+            --modal-medium: @("#" + CurrentTheme.MainColor1 + "aa");
+            --modal-dark: @("#" + CurrentTheme.MainColor1 + "cc");
+            
+            --slight-tint: @("#" + CurrentTheme.TintColor + "15");
+            --medium-tint: @("#" + CurrentTheme.TintColor + "30");
+            --strong-tint: @("#" + CurrentTheme.TintColor + "55");
+            
+            /* Vibrant colors */
+            --v-purple: @("#" + CurrentTheme.VibrantPurple);
+            --v-blue:   @("#" + CurrentTheme.VibrantBlue);
+            --v-cyan:   @("#" + CurrentTheme.VibrantCyan);
+        
+            /* Pastel colors */
+            --p-cyan:        @("#" + CurrentTheme.PastelCyan);
+            --p-cyan-purple: @("#" + CurrentTheme.PastelCyanPurple);
+            --p-purple:      @("#" + CurrentTheme.PastelPurple);
+            --p-red:         @("#" + CurrentTheme.PastelRed);
+        }
+    </style>
+</div>
+
+@code {
+    public static ThemeComponent Instance;
+    
+    [Parameter]
+    public Theme CurrentTheme { get; set; } = Theme.Default;
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
+}

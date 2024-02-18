@@ -1,0 +1,22 @@
+﻿.color-section {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 2em;
+}
+
+.color-pill {
+    display: inline-flex;
+    flex-direction: row;
+    background-color: var(--slight-tint);
+    border-radius: 2em;
+    padding: 0.5em;
+    padding-left: 1em;
+    padding-right: 1em;
+    gap: 1em;
+    align-items: center;
+    margin-top: 0.5em;
+    justify-content: space-around;
+    width: 220px;
+}

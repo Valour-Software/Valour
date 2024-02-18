@@ -4,15 +4,12 @@
 
 .textbox {
     background: rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
+    border-radius: 2em;
     color: white;
-    min-height: 32px;
     position: relative;
     margin: 10px;
-}
-
-.mobile .textbox {
-    margin-bottom: 30px; /* Account for rounded phone edges */
+    padding: 0.5em;
+    flex: 1 1 auto;
 }
 
 .textbox-wrapper {
@@ -30,16 +27,12 @@
     outline: none;
     margin-left: auto;
     margin-right: auto;
-    height: 100%;
-    padding-top: 11px;
-    padding-bottom: 11px;
-    width: calc(100% - 90px);
-}
-
-.mobile .textbox-inner {
-    margin-left: 41px;
-    margin-right: 0;
-    width: calc(100% - 116px);
+    width: 100%;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    line-break: anywhere;
 }
 
 .textbox-inner span {
@@ -55,17 +48,9 @@
 }
 
 .upload-btn {
-    position: absolute;
-    bottom: 7px;
-    left: 5px;
     background-color: transparent;
     border: none;
     outline: none;
-}
-
-.mobile .upload-btn {
-    bottom: 9px;
-    left: 9px;
     padding: 0;
 }
 
@@ -93,9 +78,8 @@
 }
 
 .send-wrapper {
-    position: absolute;
-    right: 8px;
-    bottom: 9px;
+    display: flex;
+    align-items: center;
 }
 
 .send-button {
@@ -106,6 +90,7 @@
     text-align: center;
     line-height: 24px;
     cursor: pointer;
+    margin-left: 3px;
 }
 
 .send-wrapper:active .send-button {
@@ -113,8 +98,17 @@
 }
 
 .textbox-holder {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
     margin-top: -3px;
     position: relative;
+    padding-right: 0.65em;
+}
+
+.mobile .textbox-holder {
+    margin-bottom: 24px; /* Account for rounded phone edges */
 }
 
 ::deep .preview-message .message {
@@ -148,9 +142,9 @@
 
 .input-placeholder {
     position: absolute;
-    left: 46px;
-    top: 10px;
-    font-size: 18px;
+    left: 1em;
+    top: 0.6em;
+    font-size: 16px;
     color: rgba(255, 255, 255, 0.47);
     font-weight: 300;
     pointer-events: none;
@@ -160,10 +154,16 @@
     left: 16px;
 }
 
+*:active + .input-placeholder,
+*:focus + .input-placeholder {
+    display: none;
+}
+
 /* Pop-up upload menu */
 .upload-menu {
     position: absolute;
     bottom: 35px;
+    right: 0;
 }
 
 .upload-menu .content {
@@ -200,24 +200,15 @@
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
     border-top: 10px solid var(--main-1);
-    margin-left: 14px;
+    margin-left: 55px;
 }
 
 .emoji-button {
     background: transparent;
     border: none;
-    position: absolute;
-    bottom: 7px;
-    right: 4px;
     outline: none;
     filter: grayscale(1);
     padding-left: 8px;
-    padding-right: 8px;
-}
-
-.mobile .emoji-button {
-    right: 34px;
-    bottom: 9px;
 }
 
 .emoji-button:hover {

@@ -1,5 +1,5 @@
 .version {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--main-1);
     z-index: 5;
     display: flex;
     flex-direction: row;

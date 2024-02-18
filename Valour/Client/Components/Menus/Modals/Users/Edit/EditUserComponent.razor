@@ -21,13 +21,14 @@
                     <BigMenuSubMenuComponent Icon="info-circle-fill" Name="Info"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="person-fill" Name="Profile"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="person-heart" Name="Friends"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="palette-fill" Name="Themes"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="rocket-takeoff-fill" Name="Subscriptions"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="envelope-paper-heart-fill" Name="Referrals"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="sign-stop-lights-fill" Name="Permissions"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="phone-fill" Name="Device Preferences"></BigMenuSubMenuComponent>
                     @if (ValourClient.Self.ValourStaff)
                     {
-                        <BigMenuSubMenuComponent Icon="bi-hammer" Name="Staff Tools"></BigMenuSubMenuComponent>
+                        <BigMenuSubMenuComponent Icon="hammer" Name="Staff Tools"></BigMenuSubMenuComponent>
                     }
                     <BigMenuSubMenuComponent Icon="x-octagon-fill" Name="Log Out"></BigMenuSubMenuComponent>
                 </BigMenuTopLevelMenuComponent>
@@ -45,6 +46,9 @@
                         break;
                     case "Profile":
                         <EditProfileComponent></EditProfileComponent>
+                        break;
+                    case "Themes":
+                        <EditThemeComponent></EditThemeComponent>
                         break;
                     case "Permissions":
                         <EditUserNotificationsComponent></EditUserNotificationsComponent>

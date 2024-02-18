@@ -121,13 +121,13 @@
 .user-badge.staff {
     width: 25px;
     height: 9px;
-    background: #00FAFF;
+    background: var(--v-cyan);
 }
 
 .user-badge.bot {
     width: 17px;
     height: 9px;
-    background: #FF00E9;
+    background: var(--v-purple);
 }
 
 .user-badge p {
@@ -137,7 +137,7 @@
 
 .status {
     font-size: 12px;
-    color: #7A7A7A;
+    color: var(--font-alt-color);
     margin: 0;
     overflow: hidden;
     text-align: left;

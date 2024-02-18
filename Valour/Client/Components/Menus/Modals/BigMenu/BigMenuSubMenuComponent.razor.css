@@ -27,9 +27,9 @@
 }
 
 .sub-menu:hover {
-    background-color: #151E26;
+    background-color: var(--medium-tint);
 }
 
 .sub-menu.selected {
-    background-color: #293138;
+    background-color: var(--strong-tint);
 }

@@ -50,20 +50,20 @@
 }
 
 .active .tab {
-    background-color: #28504a;
+    background-color: var(--p-cyan-purple);
 }
 
 .active .tab:hover {
-    background-color: #376e66;
+    background-color: var(--p-purple);
 }
 
 
 .tab:hover {
-    background-color: #3a3a5a;
+    background-color: var(--p-cyan-purple);
 }
 
 .tab:active {
-    background-color: #4a3a6a;
+    background-color: var(--p-purple);
 }
 
 .tab-info {

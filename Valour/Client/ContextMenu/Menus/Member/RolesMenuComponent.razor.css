@@ -29,7 +29,7 @@
     position: absolute;
     height: 1em;
     width: 1em;
-    background-color: #ffffff66;
+    background-color: var(--strong-tint);
     border-radius: 1em;
 }
 

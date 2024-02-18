@@ -13,11 +13,6 @@
             break;
         }
         case SplitState.Horizontal:
-        {
-            <DockContainer @ref="@ChildContainerA" ParentContainer="@this" Windows="@SplitWindowsA" />
-            <DockContainer @ref="@ChildContainerB" ParentContainer="@this" Windows="@SplitWindowsB" />
-            break;
-        }
         case SplitState.Vertical:
         {
             <DockContainer @ref="@ChildContainerA" ParentContainer="@this" Windows="@SplitWindowsA" />

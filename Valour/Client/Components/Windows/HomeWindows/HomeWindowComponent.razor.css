@@ -99,7 +99,7 @@
     position: absolute;
     width: 30%;
     height: 30%;
-    background-color: rgba(255, 255, 255, 1);
+    background-color: var(--font-color);
     left: 68.75%;
     top: 0;
     border: solid 3px #040d14;
@@ -234,6 +234,7 @@
     text-align: center;
     margin: 0;
     text-shadow: 0 0 5px black,  0 0 10px black;
+    color: var(--font-color);
 }
 
 ::deep .icon-text-holder {

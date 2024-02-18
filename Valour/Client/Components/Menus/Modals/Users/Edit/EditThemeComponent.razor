@@ -1,0 +1,210 @@
+﻿<h4 class="title">Themes</h4>
+<h5 class="subtitle">Make Valour your own!</h5>
+
+<section class="color-section mt-4">
+    <div class="color-pill">
+        <span>Font Color</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.FontColor)" OnColorChange="@OnChangeFontColor"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+            <span>Alt Font Color</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.FontAltColor)" OnColorChange="@OnChangeFontAltColor"/>
+        </div>
+        <br/>
+    <div class="color-pill">
+        <span>Link Color</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.LinkColor)" OnColorChange="@OnChangeLinkColor"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>BG Color 1</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor1)" OnColorChange="@OnChangeMainColor1"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>BG Color 2</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor2)" OnColorChange="@OnChangeMainColor2"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>BG Color 3</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor3)" OnColorChange="@OnChangeMainColor3"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>BG Color 4</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor4)" OnColorChange="@OnChangeMainColor4"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>BG Color 5</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor5)" OnColorChange="@OnChangeMainColor5"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>Tint Color</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.TintColor)" OnColorChange="@OnChangeTintColor"/>
+    </div>
+    <br/>
+    
+    <div class="color-pill">
+        <span>Vibrant 1</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantPurple)" OnColorChange="@OnChangeVibrantColor1"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>Vibrant 2</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantBlue)" OnColorChange="@OnChangeVibrantColor2"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>Vibrant 3</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantCyan)" OnColorChange="@OnChangeVibrantColor3"/>
+    </div>
+    <br/>
+    
+    <div class="color-pill">
+        <span>Pastel 1</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelCyan)" OnColorChange="@OnChangePastelColor1"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>Pastel 2</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelCyanPurple)" OnColorChange="@OnChangePastelColor2"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>Pastel 3</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelPurple)" OnColorChange="@OnChangePastelColor3"/>
+    </div>
+    <br/>
+    <div class="color-pill">
+        <span>Pastel Danger</span>
+        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelRed)" OnColorChange="@OnChangePastelColorDanger"/>
+    </div>
+    <br/>
+    <br/>
+    
+</section>
+
+@code {
+    private Theme _currentTheme;
+
+    protected override void OnInitialized()
+    {
+        _currentTheme = ThemeComponent.Instance.CurrentTheme;
+    }
+
+    private Task OnChangeFontColor(string newColor)
+    {
+        _currentTheme.FontColor = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeFontAltColor(string newColor)
+    {
+        _currentTheme.FontAltColor = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeLinkColor(string newColor)
+    {
+        _currentTheme.LinkColor = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor1(string newColor)
+    {
+        _currentTheme.MainColor1 = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor2(string newColor)
+    {
+        _currentTheme.MainColor2 = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor3(string newColor)
+    {
+        _currentTheme.MainColor3 = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor4(string newColor)
+    {
+        _currentTheme.MainColor4 = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor5(string newColor)
+    {
+        _currentTheme.MainColor5 = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeTintColor(string newColor)
+    {
+        _currentTheme.TintColor = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeVibrantColor1(string newColor)
+    {
+        _currentTheme.VibrantPurple = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeVibrantColor2(string newColor)
+    {
+        _currentTheme.VibrantBlue = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeVibrantColor3(string newColor)
+    {
+        _currentTheme.VibrantCyan = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColor1(string newColor)
+    {
+        _currentTheme.PastelCyan = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColor2(string newColor)
+    {
+        _currentTheme.PastelCyanPurple = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColor3(string newColor)
+    {
+        _currentTheme.PastelPurple = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColorDanger(string newColor)
+    {
+        _currentTheme.PastelRed = newColor.TrimStart('#');
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+}

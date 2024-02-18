@@ -5,7 +5,7 @@
     max-width: 100%;
     display: inline-block;
     background: rgb(6,6,74);
-    background: linear-gradient(51deg, rgba(6,6,74,1) 10%, rgba(0,0,0,1) 50%, rgba(49,5,66,1) 90%);
+    background: linear-gradient(51deg, var(--v-blue) -80%, var(--main-1) 50%, var(--v-purple) 220%);
 }
 
 .sent {

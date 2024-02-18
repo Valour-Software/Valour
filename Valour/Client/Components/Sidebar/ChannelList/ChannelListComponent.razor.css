@@ -148,7 +148,7 @@
     font-style: normal;
     font-weight: normal;
     font-size: 14px;
-    color: #fff;
+    color: var(--font-color);
     display: inline-block;
 }
 

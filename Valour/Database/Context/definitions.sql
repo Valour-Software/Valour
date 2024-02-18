@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_type TEXT NOT NULL,
 
     CONSTRAINT user_tag_unique UNIQUE (name, tag)
-);
+);  
 
 CREATE TABLE IF NOT EXISTS user_profiles (
     id BIGINT NOT NULL PRIMARY KEY,
@@ -435,6 +435,45 @@ CREATE TABLE IF NOT EXISTS user_subscriptions (
   renewals INT NOT NULL DEFAULT 0,
   
   CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS themes (
+    id BIGINT NOT NULL PRIMARY KEY,
+    author_id BIGINT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    description TEXT,
+    
+    font_color VARCHAR(7) NOT NULL,
+    font_alt_color VARCHAR(7) NOT NULL,
+    link_color VARCHAR(7) NOT NULL,
+    
+    main_color_1 VARCHAR(7) NOT NULL,
+    main_color_2 VARCHAR(7) NOT NULL,
+    main_color_3 VARCHAR(7) NOT NULL,
+    main_color_4 VARCHAR(7) NOT NULL,
+    main_color_5 VARCHAR(7) NOT NULL,
+    
+    tint_color VARCHAR(7) NOT NULL,
+    
+    vibrant_purple VARCHAR(7) NOT NULL,
+    vibrant_blue VARCHAR(7) NOT NULL,
+    vibrant_cyan VARCHAR(7) NOT NULL,
+    
+    pastel_cyan VARCHAR(7) NOT NULL,
+    pastel_cyan_purple VARCHAR(7) NOT NULL,
+    pastel_purple VARCHAR(7) NOT NULL,
+    pastel_red VARCHAR(7) NOT NULL,
+
+    CONSTRAINT fk_author FOREIGN KEY(author_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS theme_votes (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    theme_id BIGINT NOT NULL,
+    
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_theme FOREIGN KEY(theme_id) REFERENCES themes(id)
 );
 
 COMMIT;
