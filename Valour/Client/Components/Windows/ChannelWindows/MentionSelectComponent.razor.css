@@ -1,6 +1,6 @@
 ﻿.mention-select {
     position: absolute;
-    bottom: 80px;
+    bottom: 50px;
     border-radius: 10px;
     padding: 6px;
     background-color: var(--main-1);

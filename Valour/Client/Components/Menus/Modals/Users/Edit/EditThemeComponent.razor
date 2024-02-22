@@ -1,95 +1,107 @@
-﻿<h4 class="title">Themes</h4>
-<h5 class="subtitle">Make Valour your own!</h5>
-
-<section class="color-section mt-4">
-    <div class="color-pill">
-        <span>Font Color</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.FontColor)" OnColorChange="@OnChangeFontColor"/>
-    </div>
-    <br/>
-    <div class="color-pill">
+﻿@* Editing page *@
+@if (_editingTheme is not null)
+{
+    <h4 class="title">Theme Editor</h4>
+    <h5 class="subtitle">Build your own theme!</h5>
+    
+    <section class="color-section mt-4">
+        <div class="color-pill">
+            <span>Font Color</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.FontColor)" OnColorChange="@OnChangeFontColor"/>
+        </div>
+        <br/>
+        <div class="color-pill">
             <span>Alt Font Color</span>
             <ColorPickerComponent StartColor="@("#" + _currentTheme.FontAltColor)" OnColorChange="@OnChangeFontAltColor"/>
         </div>
         <br/>
-    <div class="color-pill">
-        <span>Link Color</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.LinkColor)" OnColorChange="@OnChangeLinkColor"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>BG Color 1</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor1)" OnColorChange="@OnChangeMainColor1"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>BG Color 2</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor2)" OnColorChange="@OnChangeMainColor2"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>BG Color 3</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor3)" OnColorChange="@OnChangeMainColor3"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>BG Color 4</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor4)" OnColorChange="@OnChangeMainColor4"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>BG Color 5</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor5)" OnColorChange="@OnChangeMainColor5"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>Tint Color</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.TintColor)" OnColorChange="@OnChangeTintColor"/>
-    </div>
-    <br/>
+        <div class="color-pill">
+            <span>Link Color</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.LinkColor)" OnColorChange="@OnChangeLinkColor"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 1</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor1)" OnColorChange="@OnChangeMainColor1"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 2</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor2)" OnColorChange="@OnChangeMainColor2"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 3</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor3)" OnColorChange="@OnChangeMainColor3"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 4</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor4)" OnColorChange="@OnChangeMainColor4"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 5</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.MainColor5)" OnColorChange="@OnChangeMainColor5"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Tint Color</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.TintColor)" OnColorChange="@OnChangeTintColor"/>
+        </div>
+        <br/>
+
+        <div class="color-pill">
+            <span>Vibrant 1</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantPurple)" OnColorChange="@OnChangeVibrantColor1"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Vibrant 2</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantBlue)" OnColorChange="@OnChangeVibrantColor2"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Vibrant 3</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantCyan)" OnColorChange="@OnChangeVibrantColor3"/>
+        </div>
+        <br/>
+
+        <div class="color-pill">
+            <span>Pastel 1</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelCyan)" OnColorChange="@OnChangePastelColor1"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Pastel 2</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelCyanPurple)" OnColorChange="@OnChangePastelColor2"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Pastel 3</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelPurple)" OnColorChange="@OnChangePastelColor3"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Pastel Danger</span>
+            <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelRed)" OnColorChange="@OnChangePastelColorDanger"/>
+        </div>
+        <br/>
+        <br/>
+
+    </section>
+}
+@* Home page *@
+else
+{
+    <h4 class="title">Themes</h4>
+    <h5 class="subtitle">Make Valour your own!</h5>
     
-    <div class="color-pill">
-        <span>Vibrant 1</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantPurple)" OnColorChange="@OnChangeVibrantColor1"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>Vibrant 2</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantBlue)" OnColorChange="@OnChangeVibrantColor2"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>Vibrant 3</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.VibrantCyan)" OnColorChange="@OnChangeVibrantColor3"/>
-    </div>
-    <br/>
-    
-    <div class="color-pill">
-        <span>Pastel 1</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelCyan)" OnColorChange="@OnChangePastelColor1"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>Pastel 2</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelCyanPurple)" OnColorChange="@OnChangePastelColor2"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>Pastel 3</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelPurple)" OnColorChange="@OnChangePastelColor3"/>
-    </div>
-    <br/>
-    <div class="color-pill">
-        <span>Pastel Danger</span>
-        <ColorPickerComponent StartColor="@("#" + _currentTheme.PastelRed)" OnColorChange="@OnChangePastelColorDanger"/>
-    </div>
-    <br/>
-    <br/>
-    
-</section>
+}
 
 @code {
     private Theme _currentTheme;
+    public Theme _editingTheme;
 
     protected override void OnInitialized()
     {
