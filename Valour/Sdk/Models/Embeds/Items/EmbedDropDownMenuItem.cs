@@ -10,7 +10,7 @@ public class EmbedDropDownMenuItem : EmbedItem, IEmbedFormItem, INameable
     /// <summary>
     /// the id of this dropdown, ex "Color-picker"
     /// </summary>
-    public string Id { get; set; }
+    public new string Id { get; set; }
 
 	public string Value { get; set; }
 

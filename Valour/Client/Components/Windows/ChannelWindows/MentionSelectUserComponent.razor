@@ -39,7 +39,7 @@
         await Parent.Submit();
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         string pfp = User.PfpUrl;
 
@@ -51,9 +51,10 @@
         Role_Color = "#ffffff";
 
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    protected async Task OnPfpError()
+    protected Task OnPfpError()
     {
         Pfp_Url = "_content/Valour.Client/icon-512.png";
 
@@ -62,5 +63,6 @@
         Pfp_Style = $"filter: hue-rotate({r}deg) saturate(2);";
 
         StateHasChanged();
+        return Task.CompletedTask;
     }
 }

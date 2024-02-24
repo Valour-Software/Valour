@@ -147,7 +147,7 @@
     private bool _isFriend;
     private bool _isFriendRequested;
 
-    public async Task LoadDetailsAsync()
+    public Task LoadDetailsAsync()
     {
         _isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
         _isFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
@@ -158,24 +158,24 @@
         _statusClass = User.UserState.CssClassName;
         if ((DateTime.Now - User.TimeLastActive).TotalHours >= 24)
         {
-            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalDays).ToString();
+            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalDays).ToString();
             if (_lastOnline == "1") _lastOnline += " day";
             else _lastOnline += " days";
         }
         else if ((DateTime.Now - User.TimeLastActive).TotalMinutes>=60)
         {
-            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalHours).ToString();
+            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalHours).ToString();
             if (_lastOnline == "1") _lastOnline += " hour";
             else _lastOnline += " hours";
         } else if ((DateTime.Now - User.TimeLastActive).TotalSeconds>=60)
         {
-            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalMinutes).ToString();
+            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalMinutes).ToString();
             if (_lastOnline == "1") _lastOnline += " minute";
             else _lastOnline += " minutes";
         }
         else
         {
-            _lastOnline = System.Math.Floor((DateTime.Now - User.TimeLastActive).TotalSeconds).ToString();
+            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalSeconds). ToString();
             if (_lastOnline == "1") _lastOnline += " second";
             else _lastOnline += " seconds";
         }
@@ -183,6 +183,7 @@
         _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
         
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void OnPfpError()

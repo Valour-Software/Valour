@@ -38,11 +38,12 @@
 			embedComponent.ItemComponents[item.Id] = this;
 	}
 
-	public async Task HandleSelect(EmbedDropDownItem dropdownitem)
+	public Task HandleSelect(EmbedDropDownItem dropdownitem)
 	{
 		Tip = (EmbedTextItem)dropdownitem.Children[0];
 		item.Value = ((EmbedTextItem)dropdownitem.Children[0]).Text;
 		embedComponent.UpdateItemComponents();
+		return Task.CompletedTask;
 	}
 
 	public void Dispose()

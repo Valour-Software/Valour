@@ -217,13 +217,15 @@
         await TenorMenu.Show();
     }
 
-    private async Task ShowUploadMenu()
+    private Task ShowUploadMenu()
     {
         if (_uploadMenuStyle != "")
         {
             _uploadMenuStyle = "";
             Refresh();
         }
+
+        return Task.CompletedTask;
     }
 
     private void HideUploadMenu()
@@ -330,7 +332,6 @@
     // Drop zone stuff
     private InputFile _inputFileRef;
     private ElementReference _dropZoneElement;
-    IJSObjectReference _dropZoneInstance;
 
     public async Task OnBeginEdit(MessageComponent component, Message message)
     {
@@ -595,11 +596,12 @@
         await FocusInputAsync();
     }
 
-    public async Task RemoveReply()
+    public Task RemoveReply()
     {
         PreviewMessage.ReplyToId = null;
         PreviewMessageComponent.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
+        return Task.CompletedTask;
     }
 
     public async Task PostMessage(Message message)
@@ -732,7 +734,7 @@
 
         if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
         {
-            ChatComponent.Channel.SendIsTyping();
+            await ChatComponent.Channel.SendIsTyping();
             _lastTypingUpdateSent = DateTime.UtcNow;
         }
 

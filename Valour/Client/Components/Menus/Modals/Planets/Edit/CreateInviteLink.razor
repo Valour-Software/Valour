@@ -32,11 +32,12 @@
 
     public bool Failed = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         hoursValue = 0;
 
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     public async Task OnSaveChanges()

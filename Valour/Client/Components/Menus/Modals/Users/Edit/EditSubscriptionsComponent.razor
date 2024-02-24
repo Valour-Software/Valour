@@ -333,22 +333,24 @@
     }
 
     [JSInvokable("OnPaypalSuccess")]
-    public async Task OnPaypalSuccess(string details)
+    public Task OnPaypalSuccess(string details)
     {
         _page = "PAYPALRESULT";
         _paypalResultTitle = "Thank you for your purchase!";
         _paypalResultMessage = $"Your Valour Credits will be sent to your account promptly! {details}.";
         
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     [JSInvokable("OnPaypalFailure")]
-    public async Task OnPaypalFailure(string error)
+    public Task OnPaypalFailure(string error)
     {
         _page = "PAYPALRESULT";
         _paypalResultTitle = "Whoops! An error occurred!";
         _paypalResultMessage = error;
         
         StateHasChanged();
+        return Task.CompletedTask;
     }
 }

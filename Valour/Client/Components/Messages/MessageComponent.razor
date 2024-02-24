@@ -202,7 +202,6 @@
 
     private string _class = "message";
     
-    private string _contextMenuId = "user-context";
 
     private void CalculateClass()
     {
@@ -462,7 +461,6 @@
         // Planet message logic
         if (Message.PlanetId is not null)
         {
-            _contextMenuId = "member-context";
             
             _member = await Message.GetAuthorMemberAsync();
             
