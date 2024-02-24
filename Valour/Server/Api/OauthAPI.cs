@@ -2,10 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using Valour.Shared.Models;
 using Valour.Server.Database;
-using Valour.Shared;
 using System.Collections.Concurrent;
 using Valour.Shared.Authorization;
-using Valour.Shared.Models;
 using Valour.Server.Config;
 
 namespace Valour.Server.API;
@@ -15,7 +13,7 @@ public class OauthAPI : BaseAPI
     /// <summary>
     /// Adds the routes for this API section
     /// </summary>
-    public static void AddRoutes(WebApplication app)
+    public new static void AddRoutes(WebApplication app)
     {
         app.MapPost("api/oauth/app", CreateApp);
         app.MapGet("api/oauth/app/{app_id}", GetApp);

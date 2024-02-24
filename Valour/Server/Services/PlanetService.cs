@@ -142,7 +142,7 @@ public class PlanetService
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
         }
-        catch (System.Exception e)
+        catch (Exception)
         {
             await tran.RollbackAsync();
             return new TaskResult(false, "An unexpected error occured while saving the database changes.");
@@ -516,7 +516,7 @@ public class PlanetService
         {
             await _db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new TaskResult(false, "Error saving changes. Please try again later.");
         }

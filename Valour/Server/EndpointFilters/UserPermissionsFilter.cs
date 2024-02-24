@@ -12,7 +12,7 @@ public class UserPermissionsRequiredFilter : IEndpointFilter
         _tokenService = tokenService;
     }
     
-    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
+    public async ValueTask<object> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
         var token = await _tokenService.GetCurrentTokenAsync();
 
@@ -52,7 +52,7 @@ public class StaffRequiredFilter : IEndpointFilter
         _userService = userService;
     }
     
-    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
+    public async ValueTask<object> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
         var user = await _userService.GetCurrentUserAsync();
         if (user is null)

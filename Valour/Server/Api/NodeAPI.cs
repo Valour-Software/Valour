@@ -27,7 +27,7 @@ namespace Valour.Server.API
         /// <summary>
         /// Adds the routes for this API section
         /// </summary>
-        public static void AddRoutes(WebApplication app)
+        public new static void AddRoutes(WebApplication app)
         {
             app.MapGet("api/node/name", () => NodeConfig.Instance.Name);
             

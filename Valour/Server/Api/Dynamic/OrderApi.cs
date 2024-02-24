@@ -512,7 +512,7 @@ public class OrderApi
                         "An error occurred in funding your account. Your purchase has been refunded. Please try again.");
                 }
             }
-            catch (Exception ex2)
+            catch (Exception)
             {
                 return ValourResult.Problem(
                     "There was a critical error, and paypal failed to refund your purchase. Please contact support at support@valour.gg. We apologize for this inconvenience.");

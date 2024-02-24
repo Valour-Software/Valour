@@ -313,7 +313,7 @@ public class UserService
 
             await trans.CommitAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             await trans.RollbackAsync();
             return new TaskResult(false, "An unexpected error occured. Try again?");
