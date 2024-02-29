@@ -40,8 +40,15 @@
 <div class="mb-4">
     <label>Tag</label>
     <div class="input-group" style="max-width: 400px;">
-        <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" />
-        <button class="btn v-btn round-right" @onclick="@OnTagApply">Apply</button>
+        <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(ValourClient.Self.Subscription is null)" />
+        @if (ValourClient.Self.Subscription is not null)
+        {
+          <button class="btn v-btn round-right" @onclick="@OnTagApply">Apply</button>
+        }
+        else
+        {
+            <label>You need stargazer or above to change your tag!</label>
+        }
     </div>
     <ResultLabel Result="@_tagChangeResult" />
 </div>

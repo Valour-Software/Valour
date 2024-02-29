@@ -6,6 +6,8 @@ public interface ISharedTheme
     public long AuthorId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
+    public string ImageUrl { get; set; }
+    public bool Published { get; set; }
     
     public string FontColor { get; set; }
     public string FontAltColor { get; set; }
@@ -27,4 +29,6 @@ public interface ISharedTheme
     public string PastelCyanPurple { get; set; }
     public string PastelPurple { get; set; }
     public string PastelRed { get; set; }
+    
+    public string CustomCss { get; set; }
 }

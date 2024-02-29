@@ -1,0 +1,16 @@
+﻿<div class="theme-container">
+    <img class="theme-img" alt="@Theme.Name image" src="@(Theme.ImageUrl ?? "_content/Valour.Client/media/image-not-found.webp")" />
+    <div class="theme-info">
+        <h6 class="title"> 
+            @Theme.Name
+        </h6>
+        <p class="desc">
+            @Theme.Description
+        </p>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Theme Theme { get; set; }
+}

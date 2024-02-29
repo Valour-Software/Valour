@@ -97,15 +97,55 @@ else
     <h4 class="title">Themes</h4>
     <h5 class="subtitle">Make Valour your own!</h5>
     
+    <br/>
+    
+    <h5>Current Theme:</h5>
+    <br/>
+    
+    <ThemeCard Theme="@_currentTheme"/>
+    <div class="theme-container create">
+        <div class="inner">
+            <h5>Create a Theme!</h5>
+            <button class="btn v-btn primary inline">Enter Editor</button>
+        </div>
+    </div>
+    
+    <br/>
+    <div>
+        <h5>Available Themes:</h5>
+    </div>
+    
+    <VerticalExpander 
+        TComponent="ThemeCard"
+        GetItem="@GetPopularThemeParams"
+        TotalItems="@_popularThemes.Count"
+    />
 }
 
 @code {
     private Theme _currentTheme;
     public Theme _editingTheme;
 
+    private List<Theme> _popularThemes = new List<Theme>();
+
+    public Task<Dictionary<string, object>> GetPopularThemeParams(int index)
+    {
+        return Task.FromResult(
+            new Dictionary<string, object>()
+            {
+                { "Theme", _popularThemes[index] }
+            }
+        );
+    }
+
     protected override void OnInitialized()
     {
         _currentTheme = ThemeComponent.Instance.CurrentTheme;
+
+        for (int i = 0; i < 20; i++)
+        {
+            _popularThemes.Add(_currentTheme);
+        }
     }
 
     private Task OnChangeFontColor(string newColor)

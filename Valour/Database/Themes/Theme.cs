@@ -20,6 +20,12 @@ public class Theme
     [Column("description")]
     public string Description { get; set; }
     
+    [Column("image_url")]
+    public string ImageUrl { get; set; }
+    
+    [Column("published")]
+    public bool Published { get; set; }
+    
     
     [Column("font_color")]
     public string FontColor { get; set; }
@@ -72,4 +78,7 @@ public class Theme
     
     [Column("pastel_red")]
     public string PastelRed { get; set; }
+    
+    [Column("custom_css")]
+    public string CustomCss { get; set; }
 }

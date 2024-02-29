@@ -442,6 +442,8 @@ CREATE TABLE IF NOT EXISTS themes (
     author_id BIGINT NOT NULL,
     name VARCHAR(50) NOT NULL,
     description TEXT,
+    image_url TEXT,
+    published BOOLEAN NOT NULL DEFAULT false,
     
     font_color VARCHAR(7) NOT NULL,
     font_alt_color VARCHAR(7) NOT NULL,
@@ -463,6 +465,7 @@ CREATE TABLE IF NOT EXISTS themes (
     pastel_cyan_purple VARCHAR(7) NOT NULL,
     pastel_purple VARCHAR(7) NOT NULL,
     pastel_red VARCHAR(7) NOT NULL,
+    custom_css TEXT,
 
     CONSTRAINT fk_author FOREIGN KEY(author_id) REFERENCES users(id)
 );

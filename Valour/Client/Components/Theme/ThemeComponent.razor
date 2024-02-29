@@ -1,4 +1,7 @@
-﻿<div id="theme">
+﻿@using System.Web
+@using System.Text.RegularExpressions
+@using ExCSS
+<div id="theme">
     <style>
         :root {
             --font-color: @("#" + CurrentTheme.FontColor);
@@ -29,6 +32,9 @@
             --p-cyan-purple: @("#" + CurrentTheme.PastelCyanPurple);
             --p-purple:      @("#" + CurrentTheme.PastelPurple);
             --p-red:         @("#" + CurrentTheme.PastelRed);
+
+            /* Custom CSS */
+            @GetSanitizedCustomCss()
         }
     </style>
 </div>
@@ -38,7 +44,53 @@
     
     [Parameter]
     public Theme CurrentTheme { get; set; } = Theme.Default;
+    
+    private StylesheetParser _parser = new StylesheetParser();
 
+    private string GetSanitizedCustomCss()
+    {
+        try
+        {
+            var styles = _parser.Parse(CurrentTheme.CustomCss);
+
+            if (styles is null)
+            {
+                Console.WriteLine("Custom CSS is invalid.");
+                return string.Empty;
+            }
+            
+            return styles.ToCss();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return string.Empty;
+        }
+    }
+    
+    private bool AreBracketsValid(string input)
+    {
+        int count = 0;
+
+        foreach (char c in input)
+        {
+            if (c == '{')
+            {
+                count++;
+            }
+            else if (c == '}')
+            {
+                count--;
+                if (count < 0)
+                {
+                    return false; // More closing brackets than opening brackets
+                }
+            }
+        }
+
+        return count == 0; // True if opening and closing brackets match
+    }
+    
     protected override void OnInitialized()
     {
         Instance = this;

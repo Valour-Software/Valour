@@ -15,6 +15,8 @@ public static class ThemeMapper
             AuthorId = theme.AuthorId,
             Name = theme.Name,
             Description = theme.Description,
+            ImageUrl = theme.ImageUrl,
+            Published = theme.Published,
             FontColor = theme.FontColor,
             FontAltColor = theme.FontAltColor,
             LinkColor = theme.LinkColor,
@@ -30,7 +32,8 @@ public static class ThemeMapper
             PastelCyan = theme.PastelCyan,
             PastelCyanPurple = theme.PastelCyanPurple,
             PastelPurple = theme.PastelPurple,
-            PastelRed = theme.PastelRed
+            PastelRed = theme.PastelRed,
+            CustomCss = theme.CustomCss
         };
     }
     
@@ -60,7 +63,7 @@ public static class ThemeMapper
             PastelCyan = theme.PastelCyan,
             PastelCyanPurple = theme.PastelCyanPurple,
             PastelPurple = theme.PastelPurple,
-            PastelRed = theme.PastelRed
+            PastelRed = theme.PastelRed,
         };
     }
 }
