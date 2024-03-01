@@ -111,8 +111,9 @@ else
     </div>
     
     <br/>
-    <div>
+    <div class="search-title">
         <h5>Available Themes:</h5>
+        <input class="form-control" placeholder="Search..." @onchange="@OnSearchChange" />
     </div>
     
     <VerticalExpander 
@@ -127,6 +128,13 @@ else
     public Theme _editingTheme;
 
     private List<Theme> _popularThemes = new List<Theme>();
+
+    private string _themeSearch;
+    
+    private async Task OnSearchChange(ChangeEventArgs e)
+    {
+        _themeSearch = e.Value.ToString();
+    }
 
     public Task<Dictionary<string, object>> GetPopularThemeParams(int index)
     {

@@ -21,6 +21,18 @@
     width: 220px;
 }
 
+.search-title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-right: 1em;
+}
+
+.search-title input {
+    width: unset;
+    margin-left: 1em;
+}
+
 /* For create theme */
 .theme-container {
     border-radius: 1em;

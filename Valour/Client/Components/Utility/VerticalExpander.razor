@@ -8,7 +8,6 @@
             {
                 var ii = i;
                 
-                
                 <div class="expander-row">
                     
                     @for (int j = 0; j < RowCount; j++)
@@ -54,14 +53,14 @@
     private List<Dictionary<string, object>> _items = new ();
     private int _renderedItemCount;
 
-    private List<Fade> _rowFades = new();
+    private List<Fade> _itemFades = new();
 
     Fade FadeRef
     {
         set
         {
-            if (!_rowFades.Contains(value))
-                _rowFades.Add(value);
+            if (!_itemFades.Contains(value))
+                _itemFades.Add(value);
         }
     }
 
@@ -99,8 +98,8 @@
         
         for (int i = 0; i < rowSize; i++)
         {
-            var fade = _rowFades.Last();
-            _rowFades.Remove(fade);
+            var fade = _itemFades.Last();
+            _itemFades.Remove(fade);
             
             // Not awaited on purpose
             _ = fade.FadeOut();
