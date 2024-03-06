@@ -685,6 +685,7 @@ public class UserService
         }
         catch(System.Exception e)
         {
+            await tran.RollbackAsync();
             Console.WriteLine("Error Hard Deleting User!");
             Console.WriteLine(e.Message);
         }
