@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.7.305.22" />
+    <PackageReference Include="ExCSS" Version="4.2.5" />
     <PackageReference Include="IdGen" Version="3.0.3" />
     <PackageReference Include="Markdig" Version="0.34.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.1" />

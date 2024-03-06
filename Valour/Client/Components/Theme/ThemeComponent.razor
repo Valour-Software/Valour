@@ -51,6 +51,11 @@
     {
         try
         {
+            // Prevent attacks via attribute selectors
+            CurrentTheme.CustomCss = CurrentTheme.CustomCss
+                .Replace('[', ' ')
+                .Replace(']', ' ');
+            
             var styles = _parser.Parse(CurrentTheme.CustomCss);
 
             if (styles is null)

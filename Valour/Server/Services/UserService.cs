@@ -1,5 +1,6 @@
 using Valour.Server.Email;
 using Valour.Server.Users;
+using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -66,12 +67,12 @@ public class UserService
         
         // Color validation
         var colorsValid = 
-            ValidateColorCode(updated.BorderColor) && 
-            ValidateColorCode(updated.GlowColor) &&
-            ValidateColorCode(updated.PrimaryColor) &&
-            ValidateColorCode(updated.SecondaryColor) &&
-            ValidateColorCode(updated.TertiaryColor) &&
-            ValidateColorCode(updated.TextColor);
+            ColorHelpers.ValidateColorCode(updated.BorderColor) && 
+            ColorHelpers.ValidateColorCode(updated.GlowColor) &&
+            ColorHelpers.ValidateColorCode(updated.PrimaryColor) &&
+            ColorHelpers.ValidateColorCode(updated.SecondaryColor) &&
+            ColorHelpers.ValidateColorCode(updated.TertiaryColor) &&
+            ColorHelpers.ValidateColorCode(updated.TextColor);
         
         if (!colorsValid)
             return new TaskResult<UserProfile>(false, "Invalid color code. Must be Hex and start with #.");
@@ -109,21 +110,6 @@ public class UserService
         }
         
         return new TaskResult<UserProfile>(true, "Profile updated", updated);
-    }
-
-    private bool ValidateColorCode(string code)
-    {
-        // Null is valid
-        if (code is null)
-            return true;
-        
-        if (!code.StartsWith('#'))
-            return false;
-
-        if (code.Length > 7 || code.Length < 3)
-            return false;
-        
-        return true;
     }
     
     public async Task<List<Planet>> GetPlanetsUserIn(long userId)
