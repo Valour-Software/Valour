@@ -11,7 +11,7 @@
                 <div class="inner-card">
                     @if (!string.IsNullOrWhiteSpace(Profile.BackgroundImage))
                     {
-                        <div class="inner-bg" style="@BackgroundImage"></div>
+                        <div class="inner-bg" style="@BackgroundImage;background-repeat: no-repeat;background-size: cover;filter: brightness(0.4);"></div>
                     }
                     <div class="top-section">
                         <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
