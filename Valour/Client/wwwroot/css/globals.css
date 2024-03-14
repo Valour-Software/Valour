@@ -102,6 +102,11 @@
     transition: background-color 0.2s ease-in-out;
 }
 
+.v-btn.inline {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .round-right {
     border-radius: 0 1em 1em 0;
 }

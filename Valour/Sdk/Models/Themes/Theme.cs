@@ -11,6 +11,7 @@ public class Theme : ISharedTheme
         AuthorId = ISharedUser.VictorUserId,
         Name = "To The Stars (Default)",
         Description = "The default theme for Valour. Designed to be modern, sleek, and easy on the eyes.",
+        ImageUrl = "_content/Valour.Client/media/default-theme-banner.webp",
         
         FontColor = "ffffff",
         FontAltColor = "7a7a7a",
@@ -38,6 +39,8 @@ public class Theme : ISharedTheme
     public long AuthorId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
+    public string ImageUrl { get; set; }
+    public bool Published { get; set; }
     
     public string FontColor { get; set; }
     public string FontAltColor { get; set; }
@@ -59,4 +62,6 @@ public class Theme : ISharedTheme
     public string PastelCyanPurple { get; set; }
     public string PastelPurple { get; set; }
     public string PastelRed { get; set; }
+    
+    public string CustomCss { get; set; }
 }

@@ -20,4 +20,10 @@ public class ThemeVote : ISharedThemeVote
     
     [Column("user_id")]
     public long UserId { get; set; }
+    
+    [Column("sentiment")]
+    public bool Sentiment { get; set; }
+    
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
 }

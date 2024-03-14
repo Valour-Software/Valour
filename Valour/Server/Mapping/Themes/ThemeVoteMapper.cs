@@ -13,7 +13,9 @@ public static class ThemeVoteMapper
         {
             Id = vote.Id,
             ThemeId = vote.ThemeId,
-            UserId = vote.UserId
+            UserId = vote.UserId,
+            Sentiment = vote.Sentiment,
+            CreatedAt = vote.CreatedAt
         };
     }
     
@@ -26,7 +28,9 @@ public static class ThemeVoteMapper
         {
             Id = vote.Id,
             ThemeId = vote.ThemeId,
-            UserId = vote.UserId
+            UserId = vote.UserId,
+            Sentiment = vote.Sentiment,
+            CreatedAt = vote.CreatedAt
         };
     }
 }
