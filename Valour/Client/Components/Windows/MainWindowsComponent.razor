@@ -87,9 +87,10 @@
 	protected override bool ShouldRender()
 		=> CanRender;
 
-	public async Task RefreshAsync()
+	public Task RefreshAsync()
 	{
 		CanRender = true;
 		StateHasChanged();
+		return Task.CompletedTask;
 	}
 }

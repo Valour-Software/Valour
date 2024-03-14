@@ -47,7 +47,7 @@
         </div>;
         
     
-    public Channel ActiveChannel { get; set; } = null;
+    public Channel ActiveChannel { get; set; }
     
     public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
     
@@ -290,25 +290,25 @@
     }
     
     [JSInvokable]
-    public async Task NotifyStartingPeers(VisiblePeer[] peers)
+    public Task NotifyStartingPeers(VisiblePeer[] peers)
     {
         Console.WriteLine("dotnet: notify starting peers");
         
-        if (ActiveChannel is null)
-            return;
+        if (ActiveChannel is null) return Task.CompletedTask;
         
         VisiblePeers.Clear();
         VisiblePeers.AddRange(peers);
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     [JSInvokable]
-    public async Task NotifyNewPeer(string peerId)
+    public Task NotifyNewPeer(string peerId)
     {
         Console.WriteLine("dotnet: new peer " + peerId);
         
         if (VisiblePeers.Any(x => x.PeerId == peerId))
-            return;
+            return Task.CompletedTask;
 
         VisiblePeers.Add(new VisiblePeer()
         {
@@ -316,13 +316,14 @@
         });
         
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     [JSInvokable]
-    public async Task NotifyActiveSpeaker(string peerId)
+    public Task NotifyActiveSpeaker(string peerId)
     {
         if (peerId == _lastActiveSpeakerId)
-            return;
+            return Task.CompletedTask;
 
         var oldActive = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == _lastActiveSpeakerId);
         if (oldActive is not null)
@@ -340,15 +341,17 @@
         }
 
         _lastActiveSpeakerId = peerId;
+        return Task.CompletedTask;
     }
     
     [JSInvokable]
-    public async Task NotifyPeerClosed(string peerId)
+    public Task NotifyPeerClosed(string peerId)
     {
         VisiblePeers.RemoveAll(x => x.PeerId == peerId);
         PeerComponents.RemoveAll(x => x.Peer.PeerId == peerId);
         
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     [JSInvokable]
@@ -371,29 +374,30 @@
     }
     
     [JSInvokable]
-    public async Task NotifyPeerConsumerPaused(string consumerId)
+    public Task NotifyPeerConsumerPaused(string consumerId)
     {
         var component = PeerComponents.FirstOrDefault(x => x.Peer.ConsumerId == consumerId);
-        if (component is null)
-            return;
+        if (component is null) return Task.CompletedTask;
 
         component.SetRemoteMuted(true);
+        return Task.CompletedTask;
     }
     
     [JSInvokable]
-    public async Task NotifyPeerConsumerResumed(string consumerId)
+    public Task NotifyPeerConsumerResumed(string consumerId)
     {
         var component = PeerComponents.FirstOrDefault(x => x.Peer.ConsumerId == consumerId);
-        if (component is null)
-            return;
+        if (component is null) return Task.CompletedTask;
 
         component.SetRemoteMuted(false);
+        return Task.CompletedTask;
     }
 
     [JSInvokable]
-    public async Task NotifyError(string error)
+    public Task NotifyError(string error)
     {
         _error = error;
         StateHasChanged();
+        return Task.CompletedTask;
     }
 }

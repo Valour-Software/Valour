@@ -8,10 +8,11 @@
         return false;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         SoundManager.Component = this;
         ValourClient.OnNotificationReceived += OnNotification;
+        return Task.CompletedTask;
     }
 
     public async Task PlaySound(string name) => 

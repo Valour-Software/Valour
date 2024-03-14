@@ -526,7 +526,7 @@ public class PlanetMemberService
             _db.PlanetMembers.Update(old);
             await _db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new TaskResult<PlanetMember>(false, "An unexpected error occurred.");
         }
@@ -566,7 +566,7 @@ public class PlanetMemberService
             await _db.PlanetRoleMembers.AddAsync(newRoleMember);
             await _db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new TaskResult<PlanetRoleMember>(false, "An unexpected error occurred.");
         }
@@ -594,7 +594,7 @@ public class PlanetMemberService
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new TaskResult(false, "An unexpected error occurred.");
         }
@@ -639,7 +639,7 @@ public class PlanetMemberService
         }
         catch (System.Exception e)
         {
-            _logger.LogError("Critical error deleting member.", e);
+            _logger.LogError("Critical error deleting member: {e}", e);
             
             if (trans is not null)
             {

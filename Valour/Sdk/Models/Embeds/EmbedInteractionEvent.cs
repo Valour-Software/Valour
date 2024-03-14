@@ -17,7 +17,7 @@ public enum EmbedIteractionEventType
 public class EmbedInteractionEvent
 {
     [JsonPropertyName("FormId")]
-    public string? FormId { get; set; }
+    public string FormId { get; set; }
 
     [JsonPropertyName("ElementId")]
     public string ElementId { get; set; }

@@ -75,7 +75,7 @@ public static class ProxyHandler
 
                         return attachment;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         return null;
                     }
@@ -91,7 +91,7 @@ public static class ProxyHandler
                         attachment.Location = url;
                         attachment.Html = oembedData.Html;
                     }
-                    catch (System.Exception ex)
+                    catch (Exception)
                     {
                         return null;
                     }

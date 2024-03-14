@@ -54,13 +54,15 @@
 		return base.OnAfterRenderAsync(firstRender);
 	}
 
-	public async Task OnEmbedButtonClick()
+	public Task OnEmbedButtonClick()
 	{
 		if (item.ClickTarget is not null)
 		{
 			ProcessClick = true;
-			return;
+			return Task.CompletedTask;
 		}
+
+		return Task.CompletedTask;
 	}
 
 	protected override void OnInitialized()

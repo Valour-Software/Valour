@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Models;
-using Valour.Shared.Models;
 
 namespace Valour.Shared.Models;
 

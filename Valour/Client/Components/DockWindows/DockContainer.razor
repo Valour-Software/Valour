@@ -262,14 +262,16 @@
         }
     }
     
-    private async Task OnDragging()
+    private Task OnDragging()
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
     
-    private async Task OnDraggingStop()
+    private Task OnDraggingStop()
     {
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     public async Task OnDrop(DropLocation location)
@@ -395,10 +397,10 @@
         DockFloaters.CurrentlyDragging = null;
     }
 
-    public async Task UnSplit()
+    public Task UnSplit()
     {
         if (Split == SplitState.None)
-            return;
+            return Task.CompletedTask;
         
         Split = SplitState.None;
         
@@ -420,6 +422,7 @@
         SetActiveTabWindow(Windows.LastOrDefault());
         
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void NotifyTabWindowsChange()

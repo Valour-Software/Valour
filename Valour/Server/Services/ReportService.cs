@@ -23,7 +23,7 @@ public class ReportService
             await _db.Reports.AddAsync(dbReport);
             await _db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new TaskResult(false, "Failed to create report. Try again?");
         }

@@ -164,7 +164,7 @@
         _canRender = false;
     }
 
-    public async Task NotifyPeerUpdated()
+    public Task NotifyPeerUpdated()
     {
         Console.WriteLine($"Setting updated peer {Peer.PeerId}...");
 
@@ -173,6 +173,7 @@
         _hookAfterRender = true;
 
         Refresh();
+        return Task.CompletedTask;
     }
 
     private void OnPfpError()

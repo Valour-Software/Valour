@@ -590,7 +590,7 @@ public class EcoService
             await _db.SaveChangesAsync();
             await trans.CommitAsync();
         }
-        catch (DbUpdateConcurrencyException e)
+        catch (DbUpdateConcurrencyException)
         {
             await trans.RollbackAsync();
             return new TaskResult(false, "Another transaction modified your account before processing finished. Please try again.");

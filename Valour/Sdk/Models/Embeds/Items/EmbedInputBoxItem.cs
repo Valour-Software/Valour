@@ -15,7 +15,7 @@ public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem, INameable
     /// </summary>
     public string Placeholder { get; set; }
 
-    public string Id { get; set; }
+    public new string Id { get; set; }
 
     public EmbedTextItem NameItem { get; set; }
 

@@ -29,7 +29,7 @@ public class EmbedRow : EmbedItem
 
 public class EmbedPage : EmbedItem, IParentItem
 {
-    public List<EmbedItem> Children { get; set; }
+    public new List<EmbedItem> Children { get; set; }
 
     public string Title { get; set; }
 
@@ -39,10 +39,10 @@ public class EmbedPage : EmbedItem, IParentItem
     public List<StyleBase> FooterStyles { get; set; }
 
     [JsonIgnore]
-    public EmbedItemType ItemType => EmbedItemType.EmbedPage;
+    public new EmbedItemType ItemType => EmbedItemType.EmbedPage;
 
     [JsonIgnore]
-	public IParentItem Parent { get; set; }
+	public new IParentItem Parent { get; set; }
 
     public override List<EmbedItem> GetAllItems()
 	{

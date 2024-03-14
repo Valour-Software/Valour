@@ -8,7 +8,7 @@ public class EmbedFormItem : EmbedItem
     /// <summary>
     /// the id of this form, ex "UserForms.User-Signup"
     /// </summary>
-    public string Id { get; set; }
+    public new string Id { get; set; }
 
 	[JsonIgnore]
 	public override EmbedItemType ItemType => EmbedItemType.Form;
