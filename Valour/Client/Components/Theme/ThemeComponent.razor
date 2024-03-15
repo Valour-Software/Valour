@@ -1,37 +1,39 @@
 ﻿@using System.Web
 @using System.Text.RegularExpressions
 @using ExCSS
+@inject ILocalStorageService LocalStorage
+
 <div id="theme">
     <style>
         :root {
-            --font-color: @("#" + CurrentTheme.FontColor);
-            --font-alt-color: @("#" + CurrentTheme.FontAltColor);
-            --link-color: @("#" + CurrentTheme.LinkColor);
+            --font-color: @CurrentTheme.FontColor;
+            --font-alt-color: @CurrentTheme.FontAltColor;
+            --link-color: @CurrentTheme.LinkColor;
             
-            --main-1: @("#" + CurrentTheme.MainColor1);
-            --main-2: @("#" + CurrentTheme.MainColor2);
-            --main-3: @("#" + CurrentTheme.MainColor3);
-            --main-4: @("#" + CurrentTheme.MainColor4);
-            --main-5: @("#" + CurrentTheme.MainColor5);
+            --main-1: @CurrentTheme.MainColor1;
+            --main-2: @CurrentTheme.MainColor2;
+            --main-3: @CurrentTheme.MainColor3;
+            --main-4: @CurrentTheme.MainColor4;
+            --main-5: @CurrentTheme.MainColor5;
             
-            --modal-main: @("#" + CurrentTheme.MainColor1 + "55");
-            --modal-medium: @("#" + CurrentTheme.MainColor1 + "aa");
-            --modal-dark: @("#" + CurrentTheme.MainColor1 + "cc");
+            --modal-main: @(CurrentTheme.MainColor1 + "55");
+            --modal-medium: @(CurrentTheme.MainColor1 + "aa");
+            --modal-dark: @(CurrentTheme.MainColor1 + "cc");
             
-            --slight-tint: @("#" + CurrentTheme.TintColor + "15");
-            --medium-tint: @("#" + CurrentTheme.TintColor + "30");
-            --strong-tint: @("#" + CurrentTheme.TintColor + "55");
+            --slight-tint: @(CurrentTheme.TintColor + "15");
+            --medium-tint: @(CurrentTheme.TintColor + "30");
+            --strong-tint: @(CurrentTheme.TintColor + "55");
             
             /* Vibrant colors */
-            --v-purple: @("#" + CurrentTheme.VibrantPurple);
-            --v-blue:   @("#" + CurrentTheme.VibrantBlue);
-            --v-cyan:   @("#" + CurrentTheme.VibrantCyan);
+            --v-purple: @CurrentTheme.VibrantPurple;
+            --v-blue:   @CurrentTheme.VibrantBlue;
+            --v-cyan:   @CurrentTheme.VibrantCyan;
         
             /* Pastel colors */
-            --p-cyan:        @("#" + CurrentTheme.PastelCyan);
-            --p-cyan-purple: @("#" + CurrentTheme.PastelCyanPurple);
-            --p-purple:      @("#" + CurrentTheme.PastelPurple);
-            --p-red:         @("#" + CurrentTheme.PastelRed);
+            --p-cyan:        @CurrentTheme.PastelCyan;
+            --p-cyan-purple: @CurrentTheme.PastelCyanPurple;
+            --p-purple:      @CurrentTheme.PastelPurple;
+            --p-red:         @CurrentTheme.PastelRed;
 
             /* Custom CSS */
             @GetSanitizedCustomCss()
@@ -46,9 +48,35 @@
     public Theme CurrentTheme { get; set; } = Theme.Default;
     
     private StylesheetParser _parser = new StylesheetParser();
+    
+    public async Task InstallTheme(Theme theme)
+    {
+        CurrentTheme = theme;
+        
+        // Save to local storage
+        await LocalStorage.SetItemAsStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
+        
+        StateHasChanged();
+    }
+
+    public async Task UninstallThemeAsync()
+    {
+        CurrentTheme = Theme.Default;
+        
+        // Remove from local storage
+        if (await LocalStorage.ContainKeyAsync("ACTIVE_THEME"))
+            await LocalStorage.RemoveItemAsync("ACTIVE_THEME");
+        
+        StateHasChanged();
+    }
 
     private string GetSanitizedCustomCss()
     {
+        if (string.IsNullOrWhiteSpace(CurrentTheme.CustomCss))
+        {
+            return string.Empty;
+        }
+
         try
         {
             // Prevent attacks via attribute selectors
@@ -96,9 +124,16 @@
         return count == 0; // True if opening and closing brackets match
     }
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Instance = this;
+        
+        // Load from local storage
+        if (await LocalStorage.ContainKeyAsync("ACTIVE_THEME"))
+        {
+            CurrentTheme = JsonSerializer.Deserialize<Theme>(await LocalStorage.GetItemAsStringAsync("ACTIVE_THEME"));
+            StateHasChanged();
+        }
     }
 
     public void Refresh()

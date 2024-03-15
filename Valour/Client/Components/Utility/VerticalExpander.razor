@@ -3,16 +3,16 @@
 <div class="expander-wrapper">
     <div class="expander">
         @{
-            var rows = (int)Math.Ceiling((double)_renderedItemCount / RowCount);
+            var rows = (int)Math.Ceiling((double)_renderedItemCount / RowSize);
             @for (int i = 0; i < rows; i++)
             {
                 var ii = i;
                 
                 <div class="expander-row">
                     
-                    @for (int j = 0; j < RowCount; j++)
+                    @for (int j = 0; j < RowSize; j++)
                     {
-                        var index = ii * RowCount + j;
+                        var index = ii * RowSize + j;
                         if (index < _renderedItemCount)
                         {
                             var key = index;
@@ -33,7 +33,7 @@
         @if (_renderedItemCount < TotalItems) {
             <button class="btn v-btn primary" @onclick="@LoadNext">Show More</button>
         }
-        @if (_renderedItemCount > RowCount) {
+        @if (_renderedItemCount > RowSize) {
             <button class="btn v-btn secondary" @onclick="@OnClickRemove">Show Less</button>
         }
     </div>
@@ -45,7 +45,7 @@
     public int TotalItems { get; set; }
     
     [Parameter]
-    public int RowCount { get; set; } = 3;
+    public int RowSize { get; set; } = 3;
     
     [Parameter]
     public Func<int, Task<Dictionary<string, object>>> GetItem { get; set; }
@@ -66,9 +66,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Initialize();
+    }
+
+    public async Task Initialize()
+    {
         // Initialize the list of items
-        for (int i = 0; i < RowCount; i++)
+        for (int i = 0; i < RowSize; i++)
         {
+            if (i >= TotalItems)
+                return;
+            
             // Add first x items to the list
             _items.Add(await GetItem.Invoke(i));
             _renderedItemCount++;
@@ -78,7 +86,7 @@
     private async Task LoadNext()
     {
         // Add next x items to the list
-        for (int i = 0; i < RowCount; i++)
+        for (int i = 0; i < RowSize; i++)
         {
             if (_renderedItemCount >= TotalItems)
                 return;
@@ -92,9 +100,9 @@
 
     private Task OnClickRemove()
     {
-        var rowSize = _renderedItemCount % RowCount;
+        var rowSize = _renderedItemCount % RowSize;
         if (rowSize == 0)
-            rowSize = RowCount;
+            rowSize = RowSize;
         
         for (int i = 0; i < rowSize; i++)
         {
@@ -111,10 +119,31 @@
     private Task RemoveItem()
     {
         // Determine if there is a remainder
-        var remainder = _renderedItemCount % RowCount;
+        var remainder = _renderedItemCount % RowSize;
 
         _items.RemoveAt(_items.Count - 1);
         _renderedItemCount--;
+        
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    // Unload all items except the first row
+    public Task Reset()
+    {
+        var rowSize = _renderedItemCount % RowSize;
+        if (rowSize == 0)
+            rowSize = RowSize;
+        
+        for (int i = 0; i < _renderedItemCount - rowSize; i++)
+        {
+            var fade = _itemFades.Last();
+            _itemFades.Remove(fade);
+            
+            // Not awaited on purpose
+            _ = fade.FadeOut();
+        }
         
         StateHasChanged();
 

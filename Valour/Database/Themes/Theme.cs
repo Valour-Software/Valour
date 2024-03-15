@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Valour.Database.Themes;
 
@@ -7,6 +8,10 @@ public class Theme
 {
     [ForeignKey("AuthorId")]
     public virtual User Author { get; set; }
+    
+    [InverseProperty("Theme")]
+    [JsonIgnore]
+    public virtual ICollection<ThemeVote> ThemeVotes { get; set; }
     
     [Column("id")]
     public long Id { get; set; }

@@ -42,3 +42,11 @@
     margin-top: 10px;
     margin-bottom: 10px;
 }
+
+.button-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 10px;
+    gap: 1em;
+}

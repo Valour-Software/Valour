@@ -5,6 +5,8 @@ using Valour.Server.Mapping.Themes;
 using Valour.Server.Models.Themes;
 using Valour.Server.Utilities;
 using Valour.Shared;
+using Valour.Shared.Models;
+using Valour.Shared.Models.Themes;
 
 namespace Valour.Server.Services;
 
@@ -35,18 +37,24 @@ public class ThemeService
     /// <param name="page">The page to return</param>
     /// <param name="search">Search query</param>
     /// <returns>A list of theme meta info</returns>
-    public async Task<List<ThemeMeta>> GetThemes(int amount = 20, int page = 0, string search = null)
+    public async Task<PagedResponse<ThemeMeta>> GetThemes(int amount = 20, int page = 0, string search = null)
     {
         var baseQuery = _db.Themes
+            .AsNoTracking()
+            .Where(x => x.Published)
+            .Include(x => x.ThemeVotes)
+            .OrderByDescending(x => x.ThemeVotes.Count)
             .Skip(amount * page)
             .Take(amount);
 
-        if (search != null)
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            baseQuery = baseQuery.Where(x => x.Name.Contains(search, StringComparison.InvariantCultureIgnoreCase));
+            baseQuery = baseQuery.Where(x => x.Name.ToLower().Contains(search.ToLower()));
         }
 
-        return await baseQuery.Select(x => new ThemeMeta()
+        var count = await baseQuery.CountAsync();
+        
+        var data = await baseQuery.Select(x => new ThemeMeta()
         {
             Id = x.Id,
             AuthorId = x.AuthorId,
@@ -54,6 +62,12 @@ public class ThemeService
             Description = x.Description,
             ImageUrl = x.ImageUrl
         }).ToListAsync();
+        
+        return new PagedResponse<ThemeMeta>()
+        {
+            Items = data,
+            TotalCount = count
+        };
     }
 
     public async Task<List<ThemeMeta>> GetThemesByUser(long userId)
@@ -333,5 +347,39 @@ public class ThemeService
             _logger.LogError("Failed to delete theme vote", e);
             return TaskResult.FromError("An error occured removing vote from the database.");
         }
+    }
+
+    public async Task<ThemeVoteTotals> GetThemeVotesAsync(long id)
+    {
+        // If a theme vote has Sentiment = true, then it is a upvote
+        // If a theme vote has Sentiment = false, then it is a downvote
+        var result = await _db.ThemeVotes
+            .Where(x => x.ThemeId == id)
+            .GroupBy(x => x.Sentiment)
+            .Select(x => new
+            {
+                Sentiment = x.Key,
+                Count = x.Count()
+            })
+            .ToListAsync();
+        
+        var upvotes = result.FirstOrDefault(x => x.Sentiment);
+        var downvotes = result.FirstOrDefault(x => !x.Sentiment);
+        
+        var upvoteCount = upvotes?.Count ?? 0;
+        var downvoteCount = downvotes?.Count ?? 0;
+
+        return new ThemeVoteTotals()
+        {
+            Upvotes = upvoteCount,
+            Downvotes = downvoteCount
+        };
+    }
+
+    public async Task<ThemeVote> GetUserVote(long userId, long themeId)
+    {
+        return (await _db.ThemeVotes
+            .Where(x => x.UserId == userId && x.ThemeId == themeId)
+            .FirstOrDefaultAsync()).ToModel();
     }
 }

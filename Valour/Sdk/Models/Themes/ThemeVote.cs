@@ -2,9 +2,10 @@
 
 namespace Valour.Sdk.Models.Themes;
 
-public class ThemeVote : ISharedThemeVote
+public class ThemeVote : LiveModel, ISharedThemeVote
 {
-    public long Id { get; set; }
+    public override string BaseRoute => $"api/themes/{ThemeId}/votes";
+    
     public long ThemeId { get; set; }
     public long UserId { get; set; } 
     public bool Sentiment { get; set; }

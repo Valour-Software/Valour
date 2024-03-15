@@ -1,4 +1,20 @@
-﻿<div class="theme-container">
+﻿@if (Theme is null)
+{
+    <div class="theme-container">
+        <img class="theme-img" alt="Unknown image" src="_content/Valour.Client/media/image-not-found.webp" />
+        <div class="theme-info">
+            <h6 class="title"> 
+                Unknown Theme
+            </h6>
+            <p class="desc">
+                Loading theme data...
+            </p>
+        </div>
+    </div>
+    return;
+}
+
+<div class="theme-container" @onclick="@OnClick">
     <img class="theme-img" alt="@Theme.Name image" src="@(Theme.ImageUrl ?? "_content/Valour.Client/media/image-not-found.webp")" />
     <div class="theme-info">
         <h6 class="title"> 
@@ -11,6 +27,23 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
     [Parameter]
-    public Theme Theme { get; set; }
+    public ThemeMeta Theme { get; set; }
+    
+    [Parameter]
+    public EditThemeComponent Editor { get; set; }
+
+    private void OnClick()
+    {
+        var data = new ThemeInfoModal.ThemeInfoModalParams()
+        {
+            ThemeMeta = Theme,
+            Editor = Editor
+        };
+        
+        ModalRoot.OpenModal<ThemeInfoModal>(data);
+    }
 }

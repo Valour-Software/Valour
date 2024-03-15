@@ -639,7 +639,7 @@ public class PlanetMemberService
         }
         catch (System.Exception e)
         {
-            _logger.LogError("Critical error deleting member.", e);
+            _logger.LogError("Critical error deleting member!\n {e}", e);
             
             if (trans is not null)
             {

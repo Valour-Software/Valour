@@ -1,7 +1,7 @@
 ﻿@implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 
-<div id="@_id" class="color-picker"></div>
+<div id="@_id" class="color-picker @ButtonClass" style="@ButtonStyle"></div>
 
 @code{
 
@@ -10,6 +10,15 @@
     
     [Parameter]
     public string StartColor { get; set; }
+    
+    [Parameter]
+    public bool UseAsButton { get; set; }
+    
+    [Parameter]
+    public string ButtonStyle { get; set; }
+    
+    [Parameter]
+    public string ButtonClass { get; set; }
     
     /// <summary>
     /// Module for calling Javascript functions
@@ -26,7 +35,7 @@
         {
             _dotnetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/ColorPickerComponent.razor.js?version=$(SHORTHASH)");
-            await _jsModule.InvokeVoidAsync("init", _id, _dotnetRef, StartColor);
+            await _jsModule.InvokeVoidAsync("init", _id, _dotnetRef, StartColor, UseAsButton);
         }
     }
 

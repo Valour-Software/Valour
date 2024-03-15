@@ -21,7 +21,7 @@ public class ModelListProvider<T>
     {
         var node = _planetId is null ? ValourClient.PrimaryNode : await NodeManager.GetNodeForPlanetAsync(_planetId.Value);
 
-        var result = await node.GetJsonAsync<PagedModelResponse<T>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
+        var result = await node.GetJsonAsync<PagedResponse<T>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
 
         if (!result.Success || result.Data.Items is null)
             return new ItemsProviderResult<T>(new List<T>(), 0);

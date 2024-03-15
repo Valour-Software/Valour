@@ -1,0 +1,69 @@
+﻿.theme-info {
+    max-width: min(300px, 90vw);
+    border-radius: 1em;
+}
+
+.theme-info .theme-img {
+    width: 100%;
+    aspect-ratio: 2/1;
+    object-fit: contain;
+    background-color: #535353;
+    border-radius: 1em 1em 0 0;
+}
+
+.theme-info .lower {
+    padding: 1em;
+}
+
+.theme-info .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.theme-info .title-row .author {
+    cursor: pointer;
+}
+
+.theme-info .title-row .author:hover {
+    text-decoration: underline;
+}
+
+.lower .buttons-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lower .buttons {
+    
+}
+
+.lower .buttons .v-btn {
+    width: 140px;
+    margin-top: 0.5em;
+}
+
+.lower .voting {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.lower .voting .thumbs-up {
+    border-radius: 1em 0 0 1em;
+}
+
+.lower .voting .thumbs-down {
+    border-radius: 0 1em 1em 0;
+}
+
+.lower .voting-totals {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 0.5em;
+}
+

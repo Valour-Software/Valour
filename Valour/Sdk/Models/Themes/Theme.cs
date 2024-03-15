@@ -1,10 +1,15 @@
-﻿using Valour.Shared.Models;
+﻿using System.Text.Json;
+using Valour.Sdk.Client;
+using Valour.Shared;
+using Valour.Shared.Models;
 using Valour.Shared.Models.Themes;
 
 namespace Valour.Sdk.Models.Themes;
 
-public class Theme : ISharedTheme
+public class Theme : LiveModel, ISharedTheme
 {
+    public override string BaseRoute => "api/themes";
+
     public static Theme Default = new Theme()
     {
         Id = 0,
@@ -13,29 +18,28 @@ public class Theme : ISharedTheme
         Description = "The default theme for Valour. Designed to be modern, sleek, and easy on the eyes.",
         ImageUrl = "_content/Valour.Client/media/default-theme-banner.webp",
         
-        FontColor = "ffffff",
-        FontAltColor = "7a7a7a",
-        LinkColor = "00aaff",
+        FontColor = "#ffffff",
+        FontAltColor = "#7a7a7a",
+        LinkColor = "#00aaff",
         
-        MainColor1 = "040d14",
-        MainColor2 = "0b151d",
-        MainColor3 = "121e27",
-        MainColor4 = "182631",
-        MainColor5 = "212f3a",
+        MainColor1 = "#040d14",
+        MainColor2 = "#0b151d",
+        MainColor3 = "#121e27",
+        MainColor4 = "#182631",
+        MainColor5 = "#212f3a",
         
-        TintColor = "ffffff",
+        TintColor = "#ffffff",
         
-        VibrantPurple = "bf06fd",
-        VibrantBlue = "0c06fd",
-        VibrantCyan = "00faff",
+        VibrantPurple = "#bf06fd",
+        VibrantBlue = "#0c06fd",
+        VibrantCyan = "#00faff",
         
-        PastelCyan = "37a4ce",
-        PastelCyanPurple = "6278cd",
-        PastelPurple = "8457cd",
-        PastelRed = "cd5e5e"
+        PastelCyan = "#37a4ce",
+        PastelCyanPurple = "#6278cd",
+        PastelPurple = "#8457cd",
+        PastelRed = "#cd5e5e"
     };
     
-    public long Id { get; set; }
     public long AuthorId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
@@ -64,4 +68,73 @@ public class Theme : ISharedTheme
     public string PastelRed { get; set; }
     
     public string CustomCss { get; set; }
+    
+    public ThemeMeta ToMeta()
+    {
+        return new ThemeMeta()
+        {
+            Id = Id,
+            AuthorId = AuthorId,
+            Name = Name,
+            Description = Description,
+            ImageUrl = ImageUrl,
+        };
+    }
+    
+    // No need to cache themes
+    public static async Task<Theme> FindAsync(long id)
+    {
+        var response = await ValourClient.GetJsonAsync<Theme>($"api/themes/{id}");
+        if (!response.Success)
+        {
+            await Logger.Log($"Failed to get theme: {response.Message}", "yellow");
+            return null;
+        }
+
+        return response.Data;
+    }
+    
+    public static PagedReader<ThemeMeta> GetAvailableThemes(int amount = 20, int page = 0, string search = null)
+    {
+        Dictionary<string, string> query = new Dictionary<string, string>() {{"search", search}}; 
+        var reader = new PagedReader<ThemeMeta>("api/themes", amount, query);
+
+        return reader;
+    }
+    
+    public static async Task<List<ThemeMeta>> GetMyThemes()
+    {
+        var response = await ValourClient.GetJsonAsync<List<ThemeMeta>>("api/themes/self");
+        if (!response.Success)
+        {
+            await Logger.Log($"Failed to get self themes: {response.Message}", "yellow");
+            return new List<ThemeMeta>();
+        }
+
+        return response.Data;
+    }
+    
+    public async Task<ThemeVoteTotals> GetVoteTotals()
+    {
+        var response = await ValourClient.GetJsonAsync<ThemeVoteTotals>($"api/themes/{Id}/votes");
+        if (!response.Success)
+        {
+            await Logger.Log($"Failed to get theme vote totals: {response.Message}", "yellow");
+            return null;
+        }
+
+        return response.Data;
+    }
+    
+    public async Task<ThemeVote> GetMyVote()
+    {
+        var response = await ValourClient.GetJsonAsync<ThemeVote>($"api/themes/{Id}/votes/self", true);
+        if (!response.Success)
+        {
+            await Logger.Log($"Failed to get my theme vote: {response.Message}", "yellow");
+            return null;
+        }
+
+        return response.Data;
+    }
 }

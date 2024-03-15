@@ -439,6 +439,6 @@ public class Planet : LiveModel, ISharedPlanet
     public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
         await Node.PostAsync($"{IdRoute}/planetChannels/insert", model);
 
-    public Task<PagedModelResponse<EcoAccount>> GetPlanetAccounts(int skip = 0, int take = 50) =>
+    public Task<PagedResponse<EcoAccount>> GetPlanetAccounts(int skip = 0, int take = 50) =>
         EcoAccount.GetPlanetPlanetAccountsAsync(Id);
 }
