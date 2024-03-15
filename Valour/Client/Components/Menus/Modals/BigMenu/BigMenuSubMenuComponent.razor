@@ -44,11 +44,12 @@
         bigMenuTopLevelMenuComponent.SubMenus.Add(this);
     }
 
-    public async Task OnClick(MouseEventArgs e)
+    public Task OnClick(MouseEventArgs e)
     {
         bigMenuTopLevelMenuComponent.bigMenuComponent.SelectedSubMenu = this;
         bigMenuTopLevelMenuComponent.bigMenuComponent.ShowRightSide = true;
         bigMenuTopLevelMenuComponent.bigMenuComponent.ShowLeftSide = false;
         bigMenuTopLevelMenuComponent.Refresh();
+        return Task.CompletedTask;
     }
 }

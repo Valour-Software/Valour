@@ -280,10 +280,6 @@ public class Node
 
         IsReconnecting = true;
 
-        // Reconnect
-        int tries = 0;
-
-        bool safe = false;
 
         try
         {
@@ -291,7 +287,6 @@ public class Node
             if (HubConnection.State == HubConnectionState.Connected)
             {
                 var ping = await HubConnection.InvokeAsync<string>("ping");
-                safe = true;
             }
         }
         catch (System.Exception)
@@ -313,8 +308,6 @@ public class Node
             {
                 await Log("Failed to reconnect... waiting three seconds to continue.", "red");
             }
-
-            tries++;
         }
 
         await OnSignalRReconnect("Success");

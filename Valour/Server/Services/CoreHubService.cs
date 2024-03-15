@@ -168,7 +168,7 @@ public class CoreHubService
         }
     }
     
-    public async void UpdateChannelsWatching()
+    public void UpdateChannelsWatching()
         {
             foreach (var pair in ConnectionTracker.GroupUserIds)
             {

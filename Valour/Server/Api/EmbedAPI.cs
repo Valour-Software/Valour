@@ -18,7 +18,7 @@ using System.Runtime.ConstrainedExecution;
 namespace Valour.Server.API;
 public class EmbedAPI : BaseAPI
 {
-    public static void AddRoutes(WebApplication app)
+    public new static void AddRoutes(WebApplication app)
     {
         app.MapPost("api/embed/interact", Interaction);
         app.MapPost("api/embed/planetpersonalupdate", PlanetPersonalUpdate);

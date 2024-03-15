@@ -61,7 +61,7 @@ public class NodeStateWorker : IHostedService, IDisposable
             TimeSpan.FromSeconds(30));
     }
     
-    private async void UpdateNodeState(object? state)
+    private async void UpdateNodeState(object state)
     {
         _logger.LogInformation("Updating Node State.");
         await _longNodeService.UpdateNodeAliveAsync();

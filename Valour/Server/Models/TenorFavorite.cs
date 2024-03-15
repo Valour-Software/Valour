@@ -4,7 +4,7 @@ namespace Valour.Server.Models;
 
 public class TenorFavorite : Item, ISharedTenorFavorite
 {
-    public long Id { get; set; }
+    public new long Id { get; set; }
     
     public long UserId { get; set; }
     

@@ -140,8 +140,6 @@
     
     // State handling
     private bool _loading = true;
-    
-    private bool _editCurrency = false;
 
     private string _currencyError = null;
     private string _currencyInfo = null;
@@ -169,7 +167,6 @@
     {
         Currency = new Currency();
         Currency.PlanetId = Data.Planet.Id;
-        _editCurrency = true;
     }
 
     private async Task OnClickSaveCurrency()

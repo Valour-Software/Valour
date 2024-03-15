@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -80,5 +79,5 @@ public class Planet : Item, ISharedPlanet
 
     // Only to fulfill contract
     [NotMapped]
-    public string NodeName { get; set; }
+    public new string NodeName { get; set; }
 }

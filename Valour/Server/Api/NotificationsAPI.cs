@@ -9,7 +9,7 @@ public class NotificationsAPI : BaseAPI
     /// <summary>
     /// Adds the routes for this API section
     /// </summary>
-    public static void AddRoutes(WebApplication app)
+    public new static void AddRoutes(WebApplication app)
     {
         app.MapPost("api/notification/subscribe", Subscribe);
         app.MapPost("api/notification/unsubscribe", Unsubscribe);

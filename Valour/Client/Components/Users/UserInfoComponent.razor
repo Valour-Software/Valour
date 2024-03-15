@@ -73,9 +73,6 @@
     
     [Parameter]
     public string Style { get; set; }
-
-    // The type, either "user" or "member"
-    private string _type = "user";
     
     // Internal cached values
     private string _name = DefaultName;
@@ -119,7 +116,6 @@
             UserId = Member.UserId;
             Member.OnUpdated += OnMemberUpdate;
             Member.OnRoleModified += OnMemberRoleModified;
-            _type = "member";
         }
 
         await CalculateAll();
@@ -253,7 +249,7 @@
         return Task.CompletedTask;
     }
  
-    private async Task OnMemberUpdate(ModelUpdateEvent eventData)
+    private Task OnMemberUpdate(ModelUpdateEvent eventData)
     {
         bool render = false;
 
@@ -273,6 +269,8 @@
         {
             StateHasChanged();
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task OnMemberRoleModified(MemberRoleEvent eventData)
