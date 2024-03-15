@@ -15,12 +15,18 @@ public class User : Item, ISharedUser
 
     [InverseProperty("User")]
     public virtual ICollection<PlanetMember> Membership { get; set; }
-
+    
     /// <summary>
-    /// The url for the user's profile picture
+    /// True if the user has a custom profile picture
     /// </summary>
-    [Column("pfp_url")]
-    public string PfpUrl { get; set; }
+    [Column("custom_avatar")]
+    public bool CustomAvatar { get; set; }
+    
+    /// <summary>
+    /// True if the user has an animated profile picture
+    /// </summary>
+    [Column("animated_avatar")]
+    public bool AnimatedAvatar { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour
@@ -98,5 +104,8 @@ public class User : Item, ISharedUser
     /// </summary>
     [Column("subscription_type")]
     public string SubscriptionType { get; set; }
+    
+    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
+        ISharedUser.GetAvatarUrl(this, format);
 }
 

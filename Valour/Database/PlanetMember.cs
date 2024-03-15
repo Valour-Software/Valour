@@ -40,7 +40,7 @@ public class PlanetMember : Item, ISharedPlanetMember
     public string Nickname { get; set; }
 
     [Column("member_pfp")]
-    public string MemberPfp { get; set; }
+    public string MemberAvatar { get; set; }
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }

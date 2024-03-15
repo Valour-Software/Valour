@@ -283,7 +283,7 @@ public static class ValourClient
         {
             Nickname = "Victor",
             Id = long.MaxValue,
-            MemberPfp = "/media/victor-cyan.png"
+            MemberAvatar = "/media/victor-cyan.png"
         });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 

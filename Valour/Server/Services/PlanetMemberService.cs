@@ -513,7 +513,7 @@ public class PlanetMemberService
         if (old.UserId != member.UserId)
             return new TaskResult<PlanetMember>(false, "Cannot change user of member.");
 
-        if (old.MemberPfp != member.MemberPfp)
+        if (old.MemberAvatar != member.MemberAvatar)
             return new TaskResult<PlanetMember>(false, "Profile image can only be changed via cdn.");
 
         var nameValid = ISharedPlanetMember.ValidateName(member);

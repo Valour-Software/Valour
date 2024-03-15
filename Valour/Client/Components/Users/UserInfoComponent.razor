@@ -6,7 +6,7 @@
 {
     <div class="user-info" style="@Style">
         <div class="left-block">
-            <img alt="user not found" class="pfp" src="@_pfpUrl">
+            <img alt="user not found" class="pfp" src="@_avatarUrl">
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor">Not Found</p>
@@ -25,7 +25,18 @@
      @onkeydown="@(async e => { if (e.Key == "Enter") await ShowProfileAsync(); })">
     <div class="user-info" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
-            <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="@OnPfpError">
+            @if (User.AnimatedAvatar)
+            {
+                <style>
+                    .user-info:hover .avatar-@User.Id {
+                        background-image: url(@_animAvatarUrl) !important;
+                    }
+                </style>
+            }
+            <div class="avatar avatar-@User.Id" style="background-image: url(@_avatarUrl);" alt="@_name's profile picture" @onerror="@OnPfpError">
+                <div class="state-circle @_statusClass"></div>
+            </div>
+            
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
@@ -54,7 +65,6 @@
                     @_statusText
                 </p>
             </div>
-            <div class="state-circle @_statusClass" />
         </div>
     </div>
 </div>
@@ -78,7 +88,8 @@
     private string _name = DefaultName;
     private string _userTag;
     private string _roleColor = DefaultRoleColor;
-    private string _pfpUrl;
+    private string _avatarUrl;
+    private string _animAvatarUrl;
 
     private string _statusClass = "offline";
     private string _statusText = "";
@@ -127,7 +138,7 @@
     {
         CalculateName();
         CalculateTag();
-        CalculatePfp();
+        CalculateAvatar();
         CalculateStatus();
         CalculateStatusCode();
         await DetermineColorChange();
@@ -180,9 +191,13 @@
         _userTag = User?.Tag ?? "????";
     }
 
-    private void CalculatePfp()
+    private void CalculateAvatar()
     {
-        _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
+        _avatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.Webp128);
+        if (User.AnimatedAvatar)
+        {
+            _animAvatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.WebpAnimated128);
+        }
     }
 
     private void CalculateStatus()
@@ -215,10 +230,10 @@
     {
         bool render = false;
         
-        if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
+        if (eventData.PropsChanged.Contains(nameof(User.CustomAvatar)))
         {
             render = true;
-            CalculatePfp();
+            CalculateAvatar();
         }
         if (eventData.PropsChanged.Contains(nameof(User.Name)))
         {
@@ -253,10 +268,10 @@
     {
         bool render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(Member.MemberPfp)))
+        if (eventData.PropsChanged.Contains(nameof(Member.MemberAvatar)))
         {
             render = true;
-            CalculatePfp();
+            CalculateAvatar();
         }
         
         if (eventData.PropsChanged.Contains(nameof(Member.Nickname)))
@@ -284,7 +299,7 @@
 
     private void OnPfpError()
     {
-        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
+        _avatarUrl = AvatarUtility.GetFailedPfpUrl(User);
         StateHasChanged();
     }
     

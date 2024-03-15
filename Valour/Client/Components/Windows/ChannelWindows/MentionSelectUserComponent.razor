@@ -41,7 +41,7 @@
 
     protected override Task OnInitializedAsync()
     {
-        string pfp = User.PfpUrl;
+        string pfp = User.GetAvatarUrl(AvatarFormat.Webp64);
 
         if (!string.IsNullOrWhiteSpace(pfp))
         {
@@ -56,12 +56,7 @@
 
     protected Task OnPfpError()
     {
-        Pfp_Url = "_content/Valour.Client/icon-512.png";
-
-        int r = Random.Shared.Next(24) * 15;
-
-        Pfp_Style = $"filter: hue-rotate({r}deg) saturate(2);";
-
+        Pfp_Url = User.GetFailedAvatarUrl();
         StateHasChanged();
         return Task.CompletedTask;
     }

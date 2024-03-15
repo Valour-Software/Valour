@@ -180,7 +180,7 @@
             else _lastOnline += " seconds";
         }
 
-        _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
+        _pfpUrl = AvatarUtility.GetAvatarUrl(User, Member);
         
         StateHasChanged();
         return Task.CompletedTask;
@@ -188,7 +188,7 @@
 
     private void OnPfpError()
     {
-        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
+        _pfpUrl = AvatarUtility.GetFailedPfpUrl(User);
         StateHasChanged();
     }
     

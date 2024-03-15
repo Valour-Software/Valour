@@ -541,11 +541,11 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
             if (!others.Any())
-                result =  ValourClient.Self.PfpUrl;
+                result =  ValourClient.Self.GetAvatarUrl();
 
             var other = await User.FindAsync(others.First().UserId);
             if (other is not null)
-                result = other.PfpUrl;
+                result = other.GetAvatarUrl();
         }
 
         return result;

@@ -29,7 +29,7 @@ public interface ISharedPlanetMember : ISharedPlanetItem
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
-    string MemberPfp { get; set; }
+    string MemberAvatar { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

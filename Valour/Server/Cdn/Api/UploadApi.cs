@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
 using Valour.Database;
@@ -42,6 +44,24 @@ public class UploadApi
     public static JpegEncoder JpegEncoder = new JpegEncoder()
     {
         Quality = 75,
+    };
+    
+    public static GifEncoder GifEncoder = new GifEncoder()
+    {
+        ColorTableMode = GifColorTableMode.Global,
+    };
+    
+    public static WebpEncoder WebpEncoder = new WebpEncoder()
+    {
+        Quality = 75,
+        FileFormat = WebpFileFormatType.Lossy,
+        IgnoreAnimation = true
+    };
+    
+    public static WebpEncoder WebpAnimatedEncoder = new WebpEncoder()
+    {
+        Quality = 75,
+        FileFormat = WebpFileFormatType.Lossy,
     };
     
     private static readonly HashSet<ExifTag> AllowedExif = new HashSet<ExifTag>()
@@ -167,17 +187,20 @@ public class UploadApi
         
         HandleExif(image);
         
-        var result = await UploadImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 1, true);
+        var result = await UploadImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
         var resultPath = result.Message;
 
         var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+
+        var animated = result.Data;
         
-        var user = new Valour.Database.User() { Id = authToken.UserId, PfpUrl = fullPath };
+        var user = new Valour.Database.User() { Id = authToken.UserId, CustomAvatar = true, AnimatedAvatar = animated };
         valourDb.Users.Attach(user);
-        valourDb.Entry(user).Property(x => x.PfpUrl).IsModified = true;
+        valourDb.Entry(user).Property(x => x.CustomAvatar).IsModified = true;
+        valourDb.Entry(user).Property(x => x.AnimatedAvatar).IsModified = true;
         await valourDb.SaveChangesAsync();
         await hubService.NotifyUserChange(user.ToModel());
         
@@ -329,22 +352,24 @@ public class UploadApi
         return ValourResult.Ok(fullPath);
     }
 
-    private static async Task<TaskResult> UploadImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doGifs)
+    private static async Task<TaskResult<bool>> UploadImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated)
     {
         // By default we use the high quality image as the main image
-        var resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.jpg";
+        var resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.webp";
 
         if (image.Metadata.DecodedImageFormat?.Name != "GIF")
         {
-            doGifs = false;
+            doAnimated = false;
         }
-        else
-        {
+        // else
+        // {
             // Set the result path to the animated gif
-            resultPath = $"{folder}/{id}/anim-{sizes[defaultSizeIndex]}.gif";
-        }
+        //     resultPath = $"{folder}/{id}/anim-{sizes[defaultSizeIndex]}.gif";
+        // }
         
         bool first = true;
+        
+        var saveTasks = new List<Func<Task<TaskResult>>>();
         
         foreach (var size in sizes)
         {
@@ -352,41 +377,94 @@ public class UploadApi
             {
                 image.Mutate(x => x.Resize(size.Width, size.Height));
             }
-
-            // If the image is a gif, we save an additional copy as a gif
-            if (doGifs)
-            {
-                using MemoryStream ms = new();
-                // Save animated gif
-                await image.SaveAsync(ms, image.Metadata.DecodedImageFormat);
             
-                var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.gif");
+            saveTasks.Clear();
 
-                if (!result.Success)
+            // If the image is animated, we save animated copies
+            if (doAnimated)
+            {
+                saveTasks.Add(async () =>
                 {
-                    return new TaskResult(false, "There was an issue uploading your gif. Try a different format or size.");
-                }
+                    using MemoryStream ms = new();
+
+                    await image.SaveAsync(ms, GifEncoder);
+            
+                    var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.gif");
+
+                    if (!result.Success)
+                    {
+                        return new TaskResult(false, "There was an issue uploading your animated image. Try a different format or size.");
+                    }
                 
-                ms.Close();
+                    ms.Close();
+                    
+                    return TaskResult.SuccessResult;
+                });
+                
+                saveTasks.Add(async () =>
+                {
+                    using MemoryStream ms = new();
+
+                    await image.SaveAsync(ms, WebpAnimatedEncoder);
+            
+                    var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
+
+                    if (!result.Success)
+                    {
+                        return new TaskResult(false, "There was an issue uploading your animated image. Try a different format or size.");
+                    }
+                
+                    ms.Close();
+                    
+                    return TaskResult.SuccessResult;
+                });
             }
             
             // Always save a jpeg
+            saveTasks.Add(async () =>
             {
                 using MemoryStream ms = new();
                 await image.SaveAsync(ms, JpegEncoder);
 
                 var bucketResult = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
-                
+
                 if (!bucketResult.Success)
                 {
-                    return new TaskResult(false, "There was an issue uploading your image. Try a different format or size.");
+                    return new TaskResult(false,
+                        "There was an issue uploading your image. Try a different format or size.");
                 }
+                
+                return TaskResult.SuccessResult;
+            });
+            
+            // Always save a webp
+            saveTasks.Add(async () =>
+            {
+                using MemoryStream ms = new();
+                await image.SaveAsync(ms, WebpEncoder);
+
+                var bucketResult = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
+
+                if (!bucketResult.Success)
+                {
+                    return new TaskResult(false,
+                        "There was an issue uploading your image. Try a different format or size.");
+                }
+                
+                return TaskResult.SuccessResult;
+            });
+            
+            var results = await Task.WhenAll(saveTasks.Select(x => x()));
+        
+            if (results.Any(x => !x.Success))
+            {
+                return new TaskResult<bool>(false, results.First(x => !x.Success).Message, doAnimated);
             }
 
             first = false;
         }
 
-        return new TaskResult(true, resultPath);
+        return new TaskResult<bool>(true, resultPath, doAnimated);
     }
 
     [FileUploadOperation.FileContentType]

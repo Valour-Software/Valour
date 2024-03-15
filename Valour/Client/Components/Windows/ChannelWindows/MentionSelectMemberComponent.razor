@@ -41,7 +41,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        string pfp = await Member.GetPfpUrlAsync();
+        string pfp = await Member.GetAvatarUrlAsync();
 
         if (!string.IsNullOrWhiteSpace(pfp))
         {

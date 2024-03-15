@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /*  Valour - A free and secure chat client
@@ -29,11 +30,16 @@ public interface ISharedUser : ISharedItem
     /// </summary>
     [JsonIgnore] 
     public const int MaxJoinedPlanets = 20;
-
+    
     /// <summary>
-    /// The url for the user's profile picture
+    /// True if the user has a custom profile picture
     /// </summary>
-    string PfpUrl { get; set; }
+    bool CustomAvatar { get; set; }
+    
+    /// <summary>
+    /// True if the user has an animated profile picture
+    /// </summary>
+    bool AnimatedAvatar { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour
@@ -157,5 +163,49 @@ public interface ISharedUser : ISharedItem
     public static void SetUserState(ISharedUser user, UserState state)
     {
         user.UserStateCode = state.Value;
+    }
+
+    private static readonly Dictionary<AvatarFormat, string> AvatarFormatMap = new()
+    {
+        { AvatarFormat.Webp64, "64.webp" },
+        { AvatarFormat.Webp128, "128.webp" },
+        { AvatarFormat.Webp256, "256.webp" },
+        
+        { AvatarFormat.Jpeg64, "64.jpg" },
+        { AvatarFormat.Jpeg128, "128.jpg" },
+        { AvatarFormat.Jpeg256, "256.jpg" },
+        
+        { AvatarFormat.WebpAnimated64, "anim-64.webp" },
+        { AvatarFormat.WebpAnimated128, "anim-128.webp" },
+        { AvatarFormat.WebpAnimated256, "anim-256.webp" },
+        
+        { AvatarFormat.Gif64, "anim-64.gif" },
+        { AvatarFormat.Gif128, "anim-128.gif" },
+        { AvatarFormat.Gif256, "anim-256.gif" },
+    };
+    
+    private const string DefaultPfp = "_content/Valour.Client/media/user-icons/icon-0.png";
+    
+    public static string GetFailedAvatarUrl(ISharedUser user)
+    {
+        if (user is null)
+            return DefaultPfp;
+        
+        var var = (int)(user.Id % 5);
+        return $"_content/Valour.Client/media/user-icons/icon-{var}.png";
+    }
+    
+    public static string GetAvatarUrl(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(user));
+        
+        if (user is null)
+            return DefaultPfp;
+        
+        if (!user.CustomAvatar)
+            return GetFailedAvatarUrl(user);
+        
+        var formatStr = AvatarFormatMap[format];
+        return $"https://public-cdn.valour.gg/valour-public/avatars/{user.Id}/{formatStr}";
     }
 }

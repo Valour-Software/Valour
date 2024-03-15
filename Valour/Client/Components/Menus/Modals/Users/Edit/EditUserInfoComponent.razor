@@ -53,7 +53,7 @@
     <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
     <ResultLabel Result="@_pfpChangeResult" />
     <div style="display:none">
-        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif" id="avatar-upload"></InputFile>
+        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="avatar-upload"></InputFile>
     </div>
 </div>
 
@@ -153,7 +153,7 @@
 
     protected override void OnInitialized()
     {
-        _pfpUrl = User.PfpUrl;
+        _pfpUrl = User.GetAvatarUrl(AvatarFormat.Webp256);
         _status = User.Status;
         _statusCode = User.UserStateCode;
         _tag = User.Tag;
@@ -187,8 +187,8 @@
         
         if (_pfpChangeResult.Success)
         {
-            User.PfpUrl = result.Data;
-            _pfpUrl = result.Data;
+            // We slightly modify the url to force a refresh
+            _pfpUrl = result.Data + $"?x={DateTime.Now.Ticks}";
         }
         
         StateHasChanged();

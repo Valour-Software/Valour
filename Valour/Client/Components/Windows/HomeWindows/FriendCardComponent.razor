@@ -38,11 +38,7 @@
     private int _notificationCount = 0;
 
     protected override void OnInitialized(){
-        if (!string.IsNullOrWhiteSpace(Friend.PfpUrl))
-        {
-            _iconUrl = Friend.PfpUrl;
-        }
-        
+        _iconUrl = Friend.GetAvatarUrl(AvatarFormat.Webp256);
         HomeWindowComponent.RerenderFriendCards += Refresh;
     }
 

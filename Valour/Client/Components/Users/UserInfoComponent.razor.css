@@ -13,11 +13,22 @@
     position: relative;
 }
 
-.pfp {
+.avatar-holder {
+    
+}
+
+.avatar {
+    position: relative;
+    
     width: 32px;
     height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    
     border-radius: 50%;
     margin: 6px;
+    background-position: center;
+    background-size: cover;
 }
 
 .state-circle {
@@ -26,8 +37,8 @@
     background: #05FF00;
     border-radius: 50%;
     position: absolute;
-    left: 28px;
-    top: 26px;
+    left: 22px;
+    top: 22px;
     border: 2px solid var(--main-1);
 }
 

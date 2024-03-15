@@ -254,7 +254,7 @@ public class Message : LiveModel, ISharedMessage
     {
         var member = await GetAuthorMemberAsync();
         var user = await GetAuthorUserAsync();
-        return PfpUtility.GetPfpUrl(user, member);
+        return AvatarUtility.GetAvatarUrl(user, member);
     }
     
     public async Task<bool> CheckIfMentioned()

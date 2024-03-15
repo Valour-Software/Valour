@@ -503,7 +503,7 @@
             _name = await Message.GetAuthorNameAsync();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
+        if (eventData.PropsChanged.Contains(nameof(User.CustomAvatar)))
         {
             render = true;
             _pfpUrl = await Message.GetAuthorImageUrlAsync();
@@ -531,7 +531,7 @@
             _name = await Message.GetAuthorNameAsync();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(_member.MemberPfp)))
+        if (eventData.PropsChanged.Contains(nameof(_member.MemberAvatar)))
         {
             render = true;
             _pfpUrl = await Message.GetAuthorImageUrlAsync();
@@ -604,7 +604,7 @@
     
     private void OnPfpError()
     {
-        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
+        _pfpUrl = AvatarUtility.GetFailedPfpUrl(User);
         _pfpErrorRender = true;
         ReRender();
     }
