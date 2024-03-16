@@ -357,7 +357,7 @@ public class UploadApi
         // By default we use the high quality image as the main image
         var resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.webp";
 
-        if (image.Metadata.DecodedImageFormat?.Name != "GIF")
+        if (image.Frames.Count < 2)
         {
             doAnimated = false;
         }
