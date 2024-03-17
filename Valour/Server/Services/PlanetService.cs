@@ -381,9 +381,6 @@ public class PlanetService
         if (old is null)
             return new TaskResult<Planet>(false, "Planet not found.");
         
-        if (old.IconUrl != planet.IconUrl)
-            return new TaskResult<Planet>(false, "Use the upload API to change the planet icon.");
-
         if (planet.OwnerId != old.OwnerId)
         {
             return new TaskResult<Planet>(false, "You cannot change the planet owner.");

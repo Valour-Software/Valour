@@ -46,9 +46,14 @@ public class Planet : LiveModel, ISharedPlanet
     public string NodeName { get; set; }
 
     /// <summary>
-    /// The image url for the planet 
+    /// True if the planet has a custom icon
     /// </summary>
-    public string IconUrl { get; set; }
+    public bool HasCustomIcon { get; set; }
+    
+    /// <summary>
+    /// True if the planet has an animated icon
+    /// </summary>
+    public bool HasAnimatedIcon { get; set; }
 
     /// <summary>
     /// The description of the planet
@@ -441,4 +446,7 @@ public class Planet : LiveModel, ISharedPlanet
 
     public Task<PagedResponse<EcoAccount>> GetPlanetAccounts(int skip = 0, int take = 50) =>
         EcoAccount.GetPlanetPlanetAccountsAsync(Id);
+    
+    public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
+        ISharedPlanet.GetIconUrl(this, format);
 }

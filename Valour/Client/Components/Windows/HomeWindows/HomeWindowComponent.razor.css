@@ -80,6 +80,8 @@
 }
 
 ::deep .outer-circle .icon {
+    background-position: center;
+    background-size: contain;
     border-radius: 50%;
     position: absolute;
     width: 100%;

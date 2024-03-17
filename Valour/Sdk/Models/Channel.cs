@@ -535,7 +535,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             var planet = await GetPlanetAsync();
             if (planet is not null)
-                result = planet.IconUrl;
+                result = planet.GetIconUrl(IconFormat.Webp64);
         }
         else
         {

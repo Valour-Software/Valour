@@ -34,12 +34,12 @@ public interface ISharedUser : ISharedItem
     /// <summary>
     /// True if the user has a custom profile picture
     /// </summary>
-    bool CustomAvatar { get; set; }
+    bool HasCustomAvatar { get; set; }
     
     /// <summary>
     /// True if the user has an animated profile picture
     /// </summary>
-    bool AnimatedAvatar { get; set; }
+    bool HasAnimatedAvatar { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour
@@ -184,6 +184,26 @@ public interface ISharedUser : ISharedItem
         { AvatarFormat.Gif256, "anim-256.gif" },
     };
     
+    private static readonly HashSet<AvatarFormat> AnimatedFormats = new()
+    {
+        AvatarFormat.Gif64,
+        AvatarFormat.Gif128,
+        AvatarFormat.Gif256,
+        AvatarFormat.WebpAnimated64,
+        AvatarFormat.WebpAnimated128,
+        AvatarFormat.WebpAnimated256,
+    };
+    
+    private static readonly Dictionary<AvatarFormat, AvatarFormat> AnimatedToStaticBackup = new()
+    {
+        { AvatarFormat.Gif64, AvatarFormat.Webp64 },
+        { AvatarFormat.Gif128, AvatarFormat.Webp128 },
+        { AvatarFormat.Gif256, AvatarFormat.Webp256 },
+        { AvatarFormat.WebpAnimated64, AvatarFormat.Webp64 },
+        { AvatarFormat.WebpAnimated128, AvatarFormat.Webp128 },
+        { AvatarFormat.WebpAnimated256, AvatarFormat.Webp256 },
+    };
+    
     private const string DefaultPfp = "_content/Valour.Client/media/user-icons/icon-0.png";
     
     public static string GetFailedAvatarUrl(ISharedUser user)
@@ -202,8 +222,17 @@ public interface ISharedUser : ISharedItem
         if (user is null)
             return DefaultPfp;
         
-        if (!user.CustomAvatar)
+        if (!user.HasCustomAvatar)
             return GetFailedAvatarUrl(user);
+
+        // If an animated avatar is requested, but the user doesn't have one, use the static version
+        if (!user.HasAnimatedAvatar)
+        {
+            if (AnimatedFormats.Contains(format))
+            {
+                format = AnimatedToStaticBackup[format];
+            }
+        }
         
         var formatStr = AvatarFormatMap[format];
         return $"https://public-cdn.valour.gg/valour-public/avatars/{user.Id}/{formatStr}";

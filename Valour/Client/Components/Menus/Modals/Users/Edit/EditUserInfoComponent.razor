@@ -188,7 +188,7 @@
         if (_pfpChangeResult.Success)
         {
             // We slightly modify the url to force a refresh
-            _pfpUrl = result.Data + $"?x={DateTime.Now.Ticks}";
+            _pfpUrl = User.GetAvatarUrl(AvatarFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
         }
         
         StateHasChanged();

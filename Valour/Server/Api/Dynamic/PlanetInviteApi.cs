@@ -120,7 +120,7 @@ public class PlanetInviteApi
     {
         var invite = await inviteService.GetAsync(inviteCode);
 
-        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json((await planetService.GetAsync(invite.PlanetId)).IconUrl);
+        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json((await planetService.GetAsync(invite.PlanetId)).GetIconUrl(IconFormat.Webp256));
     }
 
     [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/screen")]
@@ -139,7 +139,7 @@ public class PlanetInviteApi
         {
             PlanetId = planet.Id,
             PlanetName = planet.Name,
-            PlanetImageUrl = planet.IconUrl,
+            PlanetImageUrl = planet.GetIconUrl(IconFormat.Webp256),
             Expired = invite.TimeExpires < DateTime.UtcNow
         });
     }

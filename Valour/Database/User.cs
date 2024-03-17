@@ -20,13 +20,19 @@ public class User : Item, ISharedUser
     /// True if the user has a custom profile picture
     /// </summary>
     [Column("custom_avatar")]
-    public bool CustomAvatar { get; set; }
+    public bool HasCustomAvatar { get; set; }
     
     /// <summary>
     /// True if the user has an animated profile picture
     /// </summary>
     [Column("animated_avatar")]
-    public bool AnimatedAvatar { get; set; }
+    public bool HasAnimatedAvatar { get; set; }
+    
+    /// <summary>
+    /// Old avatar url. Do not use.
+    /// </summary>
+    [Column("pfp_url")]
+    public string OldAvatarUrl { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour

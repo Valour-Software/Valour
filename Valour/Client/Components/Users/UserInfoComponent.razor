@@ -25,15 +25,15 @@
      @onkeydown="@(async e => { if (e.Key == "Enter") await ShowProfileAsync(); })">
     <div class="user-info" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
-            @if (User.AnimatedAvatar)
+            @if (User.HasAnimatedAvatar)
             {
                 <style>
                     .user-info:hover .avatar-@User.Id {
-                        background-image: url(@_animAvatarUrl) !important;
+                        background-image: url(@_animAvatarUrl), url(@_avatarUrl), url(@_failedAvatarUrl) !important;
                     }
                 </style>
             }
-            <div class="avatar avatar-@User.Id" style="background-image: url(@_avatarUrl);" alt="@_name's profile picture" @onerror="@OnPfpError">
+            <div class="avatar avatar-@User.Id" style="background-image: url(@_avatarUrl), url(@_failedAvatarUrl);" alt="@_name's profile picture">
                 <div class="state-circle @_statusClass"></div>
             </div>
             
@@ -90,6 +90,7 @@
     private string _roleColor = DefaultRoleColor;
     private string _avatarUrl;
     private string _animAvatarUrl;
+    private string _failedAvatarUrl;
 
     private string _statusClass = "offline";
     private string _statusText = "";
@@ -194,10 +195,12 @@
     private void CalculateAvatar()
     {
         _avatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.Webp128);
-        if (User.AnimatedAvatar)
+        if (User.HasAnimatedAvatar)
         {
             _animAvatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.WebpAnimated128);
         }
+
+        _failedAvatarUrl = User.GetFailedAvatarUrl();
     }
 
     private void CalculateStatus()
@@ -230,7 +233,7 @@
     {
         bool render = false;
         
-        if (eventData.PropsChanged.Contains(nameof(User.CustomAvatar)))
+        if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
         {
             render = true;
             CalculateAvatar();
@@ -295,12 +298,6 @@
         {
             StateHasChanged();
         }
-    }
-
-    private void OnPfpError()
-    {
-        _avatarUrl = AvatarUtility.GetFailedPfpUrl(User);
-        StateHasChanged();
     }
     
     private async Task ShowProfileAsync(MouseEventArgs e = null)

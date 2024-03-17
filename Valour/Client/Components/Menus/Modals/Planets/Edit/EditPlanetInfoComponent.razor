@@ -65,7 +65,7 @@
 
     protected override Task OnInitializedAsync()
     {
-        IconUrl = Planet.IconUrl;
+        IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
         nameValue = Planet.Name;
         descValue = Planet.Description;
 
@@ -106,8 +106,10 @@
 
         if (result.Success)
         {
-            IconUrl = result.Data;
-            Console.WriteLine("Response from VMPS: " + result.Data);
+            // We slightly modify the url to force a refresh
+            IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
+            
+            Console.WriteLine("Response from CDN: " + result.Data);
             Image_Output = "Successfully changed planet icon.";
         }
         else

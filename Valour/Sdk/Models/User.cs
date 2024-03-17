@@ -28,12 +28,12 @@ public class User : LiveModel, ISharedUser
     /// <summary>
     /// True if the user has a custom profile picture
     /// </summary>
-    public bool CustomAvatar { get; set; }
+    public bool HasCustomAvatar { get; set; }
     
     /// <summary>
     /// True if the user has an animated profile picture
     /// </summary>
-    public bool AnimatedAvatar { get; set; }
+    public bool HasAnimatedAvatar { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour

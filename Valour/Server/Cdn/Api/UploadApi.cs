@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using Valour.Database;
 using Valour.Server.Cdn.Extensions;
 using Valour.Shared;
@@ -15,7 +16,7 @@ namespace Valour.Server.Cdn.Api;
 
 public class UploadApi
 {
-    private struct ImageSize {
+    public struct ImageSize {
         
         public readonly int Width;
         public readonly int Height;
@@ -55,14 +56,31 @@ public class UploadApi
     {
         Quality = 75,
         FileFormat = WebpFileFormatType.Lossy,
-        IgnoreAnimation = true
+        IgnoreAnimation = true,
+        TransparentColorMode = WebpTransparentColorMode.Clear
     };
     
     public static WebpEncoder WebpAnimatedEncoder = new WebpEncoder()
     {
         Quality = 75,
         FileFormat = WebpFileFormatType.Lossy,
+        TransparentColorMode = WebpTransparentColorMode.Clear
     };
+    
+    public static WebpEncoder WebpEncoderTrans = new WebpEncoder()
+    {
+        Quality = 75,
+        FileFormat = WebpFileFormatType.Lossy,
+        IgnoreAnimation = true,
+    };
+    
+    public static WebpEncoder WebpAnimatedEncoderTrans = new WebpEncoder()
+    {
+        Quality = 75,
+        FileFormat = WebpFileFormatType.Lossy,
+    };
+    
+    
     
     private static readonly HashSet<ExifTag> AllowedExif = new HashSet<ExifTag>()
     {
@@ -157,7 +175,7 @@ public class UploadApi
     }
     
     // Sizes to generate for avatar images
-    private static readonly ImageSize[] AvatarSizes =
+    public static readonly ImageSize[] AvatarSizes =
     {
         new (256), new(128), new(64)
     };
@@ -187,7 +205,7 @@ public class UploadApi
         
         HandleExif(image);
         
-        var result = await UploadImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true);
+        var result = await UploadImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -197,17 +215,17 @@ public class UploadApi
 
         var animated = result.Data;
         
-        var user = new Valour.Database.User() { Id = authToken.UserId, CustomAvatar = true, AnimatedAvatar = animated };
+        var user = new Valour.Database.User() { Id = authToken.UserId, HasCustomAvatar = true, HasAnimatedAvatar = animated };
         valourDb.Users.Attach(user);
-        valourDb.Entry(user).Property(x => x.CustomAvatar).IsModified = true;
-        valourDb.Entry(user).Property(x => x.AnimatedAvatar).IsModified = true;
+        valourDb.Entry(user).Property(x => x.HasCustomAvatar).IsModified = true;
+        valourDb.Entry(user).Property(x => x.HasAnimatedAvatar).IsModified = true;
         await valourDb.SaveChangesAsync();
         await hubService.NotifyUserChange(user.ToModel());
         
         return ValourResult.Ok(fullPath);
     } 
     
-    private static ImageSize[] ProfileBackgroundSizes =
+    public static ImageSize[] ProfileBackgroundSizes =
     {
         new(300, 400)
     };
@@ -237,7 +255,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadImageVariants(image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false);
+        var result = await UploadImageVariants(image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -249,7 +267,7 @@ public class UploadApi
     }
     
     // Sizes to generate for planet images
-    private static readonly ImageSize[] PlanetSizes =
+    public static readonly ImageSize[] PlanetSizes =
     {
         new(256), new(128), new(64)
     };
@@ -290,7 +308,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadImageVariants(image, "planets", planetId.ToString(), PlanetSizes, 0, true);
+        var result = await UploadImageVariants(image, "planets", planetId.ToString(), PlanetSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -299,7 +317,10 @@ public class UploadApi
         var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
         
         var planet = await valourDb.Planets.FindAsync(planetId);
-        planet!.IconUrl = fullPath;
+        planet!.HasCustomIcon = true;
+        if (result.Data)
+            planet.HasAnimatedIcon = true;
+        
         await valourDb.SaveChangesAsync();
 
         hubService.NotifyPlanetChange(planet.ToModel());
@@ -308,7 +329,7 @@ public class UploadApi
     }
     
     // Sizes to generate for app images
-    private static readonly ImageSize[] AppSizes =
+    public static readonly ImageSize[] AppSizes =
     {
         new(256), new(128), new(64)
     };
@@ -341,7 +362,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadImageVariants(image, "apps", appId.ToString(), AppSizes, 0, true);
+        var result = await UploadImageVariants(image, "apps", appId.ToString(), AppSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -352,7 +373,7 @@ public class UploadApi
         return ValourResult.Ok(fullPath);
     }
 
-    private static async Task<TaskResult<bool>> UploadImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated)
+    public static async Task<TaskResult<bool>> UploadImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated, bool doTransparency)
     {
         // By default we use the high quality image as the main image
         var resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.webp";
@@ -405,7 +426,8 @@ public class UploadApi
                 {
                     using MemoryStream ms = new();
 
-                    await image.SaveAsync(ms, WebpAnimatedEncoder);
+                    var encoder = doTransparency ? WebpAnimatedEncoderTrans : WebpAnimatedEncoder;
+                    await image.SaveAsync(ms, encoder);
             
                     var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
 
@@ -441,7 +463,8 @@ public class UploadApi
             saveTasks.Add(async () =>
             {
                 using MemoryStream ms = new();
-                await image.SaveAsync(ms, WebpEncoder);
+                var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
+                await image.SaveAsync(ms, encoder);
 
                 var bucketResult = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
 

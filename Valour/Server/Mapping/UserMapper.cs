@@ -10,8 +10,8 @@ public static class UserMapper
         return new User()
         {
             Id = user.Id,
-            CustomAvatar = user.CustomAvatar,
-            AnimatedAvatar = user.AnimatedAvatar,
+            HasCustomAvatar = user.HasCustomAvatar,
+            HasAnimatedAvatar = user.HasAnimatedAvatar,
             TimeJoined = user.TimeJoined,
             Name = user.Name,
             Tag = user.Tag,
@@ -35,8 +35,8 @@ public static class UserMapper
         return new Valour.Database.User()
         {
             Id = user.Id,
-            CustomAvatar = user.CustomAvatar,
-            AnimatedAvatar = user.AnimatedAvatar,
+            HasCustomAvatar = user.HasCustomAvatar,
+            HasAnimatedAvatar = user.HasAnimatedAvatar,
             TimeJoined = user.TimeJoined,
             Name = user.Name,
             Tag = user.Tag,

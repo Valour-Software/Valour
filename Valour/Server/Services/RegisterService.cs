@@ -121,8 +121,8 @@ public class RegisterService
                 TimeJoined = DateTime.UtcNow,
                 TimeLastActive = DateTime.UtcNow,
                 Compliance = true, // All new users should be compliant
-                AnimatedAvatar = false,
-                CustomAvatar = false,
+                HasAnimatedAvatar = false,
+                HasCustomAvatar = false,
             };
 
             _db.Users.Add(user.ToDatabase());
