@@ -440,7 +440,13 @@ public class UploadApi
         // }
         
         var saveTasks = new List<Func<Task<TaskResult>>>();
-        
+
+        if (!doTransparency)
+        {
+            // Prevent transparent images
+            image.Mutate(x => x.BackgroundColor(Color.Black));
+        }
+
         foreach (var size in sizes)
         {
             image.Mutate(x => x.Resize(size.Width, size.Height));
