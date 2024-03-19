@@ -513,7 +513,7 @@ public class PlanetMemberService
         if (old.UserId != member.UserId)
             return new TaskResult<PlanetMember>(false, "Cannot change user of member.");
 
-        if (old.MemberPfp != member.MemberPfp)
+        if (old.MemberAvatar != member.MemberAvatar)
             return new TaskResult<PlanetMember>(false, "Profile image can only be changed via cdn.");
 
         var nameValid = ISharedPlanetMember.ValidateName(member);
@@ -639,7 +639,7 @@ public class PlanetMemberService
         }
         catch (System.Exception e)
         {
-            _logger.LogError("Critical error deleting member.", e);
+            _logger.LogError("Critical error deleting member!\n {e}", e);
             
             if (trans is not null)
             {

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Valour.Database.Config;
 using Valour.Database.Economy;
+using Valour.Database.Themes;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -203,6 +204,13 @@ public class ValourDB : DbContext
     
     public DbSet<CdnBucketItem> CdnBucketItems { get; set; }
     public DbSet<CdnProxyItem> CdnProxyItems { get; set; }
+    
+    ////////////
+    // Themes //
+    ////////////
+    
+    public DbSet<Theme> Themes { get; set; }
+    public DbSet<ThemeVote> ThemeVotes { get; set; }
 
     public ValourDB(DbContextOptions options)
     {

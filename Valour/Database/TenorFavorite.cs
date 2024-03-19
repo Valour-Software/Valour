@@ -14,7 +14,7 @@ public class TenorFavorite : Item, ISharedTenorFavorite
     ///////////////////////
     
     [Column("id")]
-    public long Id { get; set; }
+    public new long Id { get; set; }
 
     [Column("user_id")]
     public long UserId { get; set; }

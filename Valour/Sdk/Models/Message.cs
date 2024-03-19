@@ -254,7 +254,24 @@ public class Message : LiveModel, ISharedMessage
     {
         var member = await GetAuthorMemberAsync();
         var user = await GetAuthorUserAsync();
-        return PfpUtility.GetPfpUrl(user, member);
+        return AvatarUtility.GetAvatarUrl(user, member, AvatarFormat.Webp128);
+    }
+    
+    public async ValueTask<string> GetAuthorImageUrlAnimatedAsync()
+    {   
+        // TODO: Tweak when member avatars are implemented
+        var user = await GetAuthorUserAsync();
+        if (!user.HasAnimatedAvatar)
+            return null;
+        
+        var member = await GetAuthorMemberAsync();
+        return AvatarUtility.GetAvatarUrl(user, member, AvatarFormat.WebpAnimated128);
+    }
+    
+    public async ValueTask<string> GetAuthorImageUrlFallbackAsync()
+    {
+        var user = await GetAuthorUserAsync();
+        return user.GetFailedAvatarUrl();
     }
     
     public async Task<bool> CheckIfMentioned()

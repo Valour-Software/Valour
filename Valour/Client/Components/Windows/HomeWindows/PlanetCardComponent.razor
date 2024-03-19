@@ -55,7 +55,15 @@
         }
         else
         {
-            <img alt="planet icon" src='@_iconUrl' class="icon" @onerror='OnIconError'/>
+            @if (Planet.HasAnimatedIcon)
+            {
+                <style>
+                    .outer-circle:hover .planet-icon-@Planet.Id {
+                        background-image: url(@_animatedIconUrl), url(@_iconUrl), url(@_fallbackIconUrl) !important;
+                    }
+                </style>
+            }
+            <div class="icon planet-icon-@Planet.Id" style="background-image: url(@_iconUrl), url(@_fallbackIconUrl)"></div>
         }
         
         
@@ -96,13 +104,20 @@
     private int _iconImageColor;
 
     private string _iconUrl = DefaultImage;
+    private string _animatedIconUrl = "";
+    private string _fallbackIconUrl = "_content/Valour.Client/media/logo-circle-icon.svg";
     private bool _isUnread = false;
     private int _notificationCount = 0;
 
     protected override void OnInitialized(){
-        if (!string.IsNullOrWhiteSpace(Planet.IconUrl))
+        if (Planet.HasCustomIcon)
         {
-            _iconUrl = Planet.IconUrl;
+            _iconUrl = Planet.GetIconUrl(IconFormat.Webp256);
+            
+            if (Planet.HasAnimatedIcon)
+            {
+                _animatedIconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
+            }
         }
         else
         {
@@ -204,12 +219,6 @@
             await channel.GetIconAsync()
         );
 
-        StateHasChanged();
-    }
-
-    protected void OnIconError()
-    {
-        GenerateAutoGraphic();
         StateHasChanged();
     }
 }

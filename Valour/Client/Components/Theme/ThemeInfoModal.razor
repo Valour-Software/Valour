@@ -1,0 +1,266 @@
+﻿@inherits Modal<ThemeInfoModal.ThemeInfoModalParams>
+
+<div class="v-bg-dark theme-info">
+    <section>
+        @if (Data.ThemeMeta.HasCustomBanner)
+        {
+            if (Data.ThemeMeta.HasAnimatedBanner)
+            {
+                <div class="theme-img" style="background-image: url(@Data.ThemeMeta.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@Data.ThemeMeta.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
+            }
+            else
+            {
+                <div class="theme-img" style="background-image: url(@Data.ThemeMeta.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
+            }
+        }
+        else
+        {
+            <div class="theme-img" style="text-align: center; background-color: @Data.ThemeMeta.MainColor1"> 
+                <Victor Style="max-width: 80px; padding: 5px; padding-top: 10px;" Color="@Data.ThemeMeta.PastelCyan" />
+            </div>
+        }
+
+        <div class="lower">
+            <div class="title-row">
+                <h5>@Data.ThemeMeta.Name</h5>
+                <h6>by <span class="author" @onclick="@OnAuthorClickAsync">@_authorName</span></h6>
+            </div>
+
+            <p class="description">@Data.ThemeMeta.Description</p>
+
+            <br/>
+
+            @if (!string.IsNullOrWhiteSpace(_theme.CustomCss))
+            {
+                <b><i class="bi bi-exclamation-triangle-fill"></i> Theme contains custom CSS. Install with caution.</b>
+                <br/>
+                <br/>
+            }
+
+            <div class="buttons-wrapper">
+                <div class="buttons">
+                    @if (Data.ThemeMeta.AuthorId == ValourClient.Self.Id && Data.Editor is not null)
+                    {
+                        <button class="btn v-btn" @onclick="@OnClickEditAsync">Edit Theme</button>
+                    }
+                    @if (Data.ThemeMeta.Id != ThemeComponent.Instance.CurrentTheme.Id)
+                    {
+                        <button class="btn v-btn primary" @onclick="@OnClickInstallAsync">Install Theme</button>
+                    }
+                    else
+                    {
+                        <button class="btn v-btn danger" @onclick="@OnClickUninstallAsync">Uninstall</button>
+                    }
+                    <button class="btn v-btn secondary" @onclick="@OnClickTip">Tip Creator</button>
+                </div>
+                <div>
+                    <div class="voting">
+                        <button class="btn v-btn thumbs-up @(_myUpvote ? "primary" : "")" @onclick="@OnUpvoteAsync"><i class="bi bi-hand-thumbs-up-fill"></i></button>
+                        <button class="btn v-btn thumbs-down @(_myDownvote ? "primary" : "")" @onclick="@OnDownvoteAsync"><i class="bi bi-hand-thumbs-down-fill"></i></button>
+                    </div>
+                    <div class="voting-totals">
+                        <span>@_upvotes</span>
+                        <span>@_downvotes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+
+    public class ThemeInfoModalParams
+    {
+        public ThemeMeta ThemeMeta { get; set; }
+        public EditThemeComponent Editor { get; set; }
+    }
+    
+    private Theme _theme = null;
+    private ThemeVote _myVote = null;
+    private User _authorUser = null;
+    private string _authorName = "Unknown";
+    
+    private int _upvotes = 0;
+    private int _downvotes = 0;
+    
+    private bool _myUpvote;
+    private bool _myDownvote;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _authorUser = await User.FindAsync(Data.ThemeMeta.AuthorId);
+        if (_authorUser is not null)
+            _authorName = _authorUser.Name;
+        
+        _theme = await Theme.FindAsync(Data.ThemeMeta.Id);
+        if (_theme is null)
+            return;
+        
+        var votes = await _theme.GetVoteTotals();
+        _upvotes = votes.Upvotes;
+        _downvotes = votes.Downvotes;
+        
+        StateHasChanged();
+        
+        _myVote = await _theme.GetMyVote();
+        if (_myVote is not null)
+        {
+            _myUpvote = _myVote.Sentiment;
+            _myDownvote = !_myVote.Sentiment;
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnAuthorClickAsync(MouseEventArgs e)
+    {
+        if (_authorUser is null)
+            return;
+
+        await ProfilePopup.Instance.OpenAsync(_authorUser, (int) e.ClientX, (int) e.ClientY);
+    }
+
+    private void OnClickTip()
+    {
+        if (_authorUser is null)
+            return;
+
+        ModalInjector.Service.OpenModal<EcoPayModal>(new EcoPayModal.ModalParams()
+        {
+            TargetUserNameAndTag = _authorUser.NameAndTag
+        });
+    }
+
+    private async Task OnClickInstallAsync()
+    {
+        if (_theme is null)
+            return;
+        
+        await ThemeComponent.Instance.InstallTheme(_theme);
+    }
+    
+    private async Task OnClickUninstallAsync()
+    {
+        await ThemeComponent.Instance.UninstallThemeAsync();
+        StateHasChanged();
+    }
+    
+    private async Task OnUpvoteAsync()
+    {
+        if (_myVote is not null)
+        {
+            if (_myVote.Sentiment)
+            {
+                // delete
+                var result = await LiveModel.DeleteAsync(_myVote);
+                if (result.Success)
+                {
+                    _upvotes--;
+                    _myUpvote = false;
+                    
+                    _myVote = null;
+                }
+            }
+            else
+            {
+                _myVote.Sentiment = true;
+
+                var result = await LiveModel.UpdateAsync(_myVote);
+                if (result.Success)
+                {
+                    _upvotes++;
+                    _downvotes--;
+                
+                    _myUpvote = true;
+                    _myDownvote = false;
+                }
+            }
+
+            
+        }
+        else
+        {
+            var vote = new ThemeVote()
+            {
+                ThemeId = _theme.Id,
+                Sentiment = true,
+                UserId = ValourClient.Self.Id,
+            };
+            
+            var result = await LiveModel.CreateAsync(vote);
+            if (result.Success)
+            {
+                _upvotes++;
+                
+                _myUpvote = true;
+                _myVote = result.Data;
+            }
+        }
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnDownvoteAsync()
+    {
+        if (_myVote is not null)
+        {
+            if (!_myVote.Sentiment)
+            {
+                // delete
+                var result = await LiveModel.DeleteAsync(_myVote);
+                if (result.Success)
+                {
+                    _downvotes--;
+                    _myDownvote = false;
+                    
+                    _myVote = null;
+                }
+            }
+            else
+            {
+                _myVote.Sentiment = false;
+
+                var result = await LiveModel.UpdateAsync(_myVote);
+                if (result.Success)
+                {
+                    _downvotes++;
+                    _upvotes--;
+                
+                    _myDownvote = true;
+                    _myUpvote = false;
+                }
+            }
+        }
+        else
+        {
+            var vote = new ThemeVote()
+            {
+                ThemeId = _theme.Id,
+                Sentiment = false,
+                UserId = ValourClient.Self.Id,
+            };
+            
+            var result = await LiveModel.CreateAsync(vote);
+            if (result.Success)
+            {
+                _downvotes++;
+                
+                _myDownvote = true;
+                _myVote = result.Data;
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnClickEditAsync()
+    {
+        if (Data.Editor is null)
+            return;
+
+        await Data.Editor.OpenEditorWithThemeAsync(_theme);
+        await CloseAsync();
+    }
+
+}

@@ -55,7 +55,15 @@
         }
         else
         {
-            <img alt="@Planet.Name's icon" src='@_iconUrl' class="icon" @onerror='OnIconError'/>
+            @if (Planet.HasAnimatedIcon)
+            {
+                <style>
+                    .outer-circle:hover .discovery-icon-@Planet.Id {
+                        background-image: url(@_animatedIconUrl), url(@_iconUrl), url(@_fallbackIconUrl) !important;
+                    }
+                </style>
+            }
+            <div class="icon discovery-icon-@Planet.Id" style="background-image: url(@_iconUrl), url(@_fallbackIconUrl)"></div>
         }
         <div class="rect-slide">
             <div class="text-wrapper">
@@ -78,6 +86,8 @@
     public ModalRoot ModalRoot { get; set; }
 
     private string _iconUrl = DefaultImage;
+    private string _animatedIconUrl = "";
+    private string _fallbackIconUrl = "_content/Valour.Client/media/logo-circle-icon.svg";
     private const string DefaultImage = "_content/Valour.Client/media/logo-circle-icon.svg";
     
     private string _iconText;
@@ -85,9 +95,14 @@
     private int _iconImageColor;
 
     protected override void OnInitialized(){
-        if (!string.IsNullOrWhiteSpace(Planet.IconUrl))
+        if (Planet.HasCustomIcon)
         {
-            _iconUrl = Planet.IconUrl;
+            _iconUrl = Planet.GetIconUrl(IconFormat.Webp256);
+
+            if (Planet.HasAnimatedIcon)
+            {
+                _animatedIconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
+            }
         }
         else
         {
@@ -181,11 +196,5 @@
         }
         
         ModalRoot.OpenModal<InfoModalComponent>(modalData);
-    }
-
-    protected void OnIconError()
-    {
-        GenerateAutoGraphic();
-        StateHasChanged();
     }
 }

@@ -1,0 +1,153 @@
+﻿@typeparam TComponent
+
+<div class="expander-wrapper">
+    <div class="expander">
+        @{
+            var rows = (int)Math.Ceiling((double)_renderedItemCount / RowSize);
+            @for (int i = 0; i < rows; i++)
+            {
+                var ii = i;
+                
+                <div class="expander-row">
+                    
+                    @for (int j = 0; j < RowSize; j++)
+                    {
+                        var index = ii * RowSize + j;
+                        if (index < _renderedItemCount)
+                        {
+                            var key = index;
+                            <Fade @ref="FadeRef" OnFadeOut="@RemoveItem">
+                                <DynamicComponent @key="@key" Type="@typeof(TComponent)" Parameters="@_items[index]"/>
+                            </Fade>
+                            
+                        }
+                    }
+                    
+                </div>
+            }
+        }
+    </div>
+    
+    
+    <div class="expander-buttons">
+        @if (_renderedItemCount < TotalItems) {
+            <button class="btn v-btn primary" @onclick="@LoadNext">Show More</button>
+        }
+        @if (_renderedItemCount > RowSize) {
+            <button class="btn v-btn secondary" @onclick="@OnClickRemove">Show Less</button>
+        }
+    </div>
+</div>
+
+@code {
+    
+    [Parameter]
+    public int TotalItems { get; set; }
+    
+    [Parameter]
+    public int RowSize { get; set; } = 3;
+    
+    [Parameter]
+    public Func<int, Task<Dictionary<string, object>>> GetItem { get; set; }
+    
+    private List<Dictionary<string, object>> _items = new ();
+    private int _renderedItemCount;
+
+    private List<Fade> _itemFades = new();
+
+    Fade FadeRef
+    {
+        set
+        {
+            if (!_itemFades.Contains(value))
+                _itemFades.Add(value);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Initialize();
+    }
+
+    public async Task Initialize()
+    {
+        // Initialize the list of items
+        for (int i = 0; i < RowSize; i++)
+        {
+            if (i >= TotalItems)
+                return;
+            
+            // Add first x items to the list
+            _items.Add(await GetItem.Invoke(i));
+            _renderedItemCount++;
+        }
+    }
+    
+    private async Task LoadNext()
+    {
+        // Add next x items to the list
+        for (int i = 0; i < RowSize; i++)
+        {
+            if (_renderedItemCount >= TotalItems)
+                return;
+            
+            _items.Add(await GetItem.Invoke(_renderedItemCount));
+            _renderedItemCount++;
+        }
+        
+        StateHasChanged();
+    }
+
+    private Task OnClickRemove()
+    {
+        var rowSize = _renderedItemCount % RowSize;
+        if (rowSize == 0)
+            rowSize = RowSize;
+        
+        for (int i = 0; i < rowSize; i++)
+        {
+            var fade = _itemFades.Last();
+            _itemFades.Remove(fade);
+            
+            // Not awaited on purpose
+            _ = fade.FadeOut();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task RemoveItem()
+    {
+        // Determine if there is a remainder
+        var remainder = _renderedItemCount % RowSize;
+
+        _items.RemoveAt(_items.Count - 1);
+        _renderedItemCount--;
+        
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    // Unload all items except the first row
+    public Task Reset()
+    {
+        var rowSize = _renderedItemCount % RowSize;
+        if (rowSize == 0)
+            rowSize = RowSize;
+        
+        for (int i = 0; i < _renderedItemCount - rowSize; i++)
+        {
+            var fade = _itemFades.Last();
+            _itemFades.Remove(fade);
+            
+            // Not awaited on purpose
+            _ = fade.FadeOut();
+        }
+        
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+}

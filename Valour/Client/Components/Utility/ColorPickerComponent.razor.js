@@ -1,10 +1,11 @@
 const pickers = {};
-export function init(id, ref, startColor) {
+export function init(id, ref, startColor, button = false) {
     const pickr = Pickr.create({
         el: '#' + id,
         theme: 'nano', // or 'monolith', or 'nano'
         comparison: false,
         default: startColor,
+        useAsButton: button,
         
         swatches: [
             "rgb(255, 105, 97)",   // Pastel Red

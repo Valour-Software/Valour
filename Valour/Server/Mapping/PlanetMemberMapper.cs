@@ -15,7 +15,7 @@ public static class PlanetMemberMapper
             UserId = member.UserId,
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
-            MemberPfp = member.MemberPfp
+            MemberAvatar = member.MemberAvatar
         };
     }
     
@@ -30,7 +30,7 @@ public static class PlanetMemberMapper
             UserId = member.UserId,
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
-            MemberPfp = member.MemberPfp
+            MemberAvatar = member.MemberAvatar
         };
     }
 }

@@ -6,7 +6,6 @@
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
-@using SixLabors.ImageSharp;
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
@@ -27,60 +26,59 @@
 
     <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
 
-    <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
-        <div style="position: relative">
-            <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.Window.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
+    <div class="upload-menu" style="@_uploadMenuStyle">
+        <div class="content tenor" @onmousedown:stopPropagation="true">
+            @* Somewhat creative way to call main upload element *@
+            <button class="button" @onmousedown="@OnClickUploadAsync">
+                Upload a File
+            </button>
+            <button class="button tenor" @onmousedown="@ShowTenorMenu">
+                Gifs via Tenor
+            </button>
+            <button class="button" @onmousedown="@OnClickSendCurrency">
+                Send Currency
+            </button>
         </div>
-        <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
-        <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
-        
+        <div class="carrot"></div>
+    </div>
+    
+    <div style="position: relative">
+        <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.Window.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
+    </div>
+    <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
+    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+
+    <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
         <div class="textbox" @ref="_dropZoneElement">
             <InputFile id="@("upload-core-" + ChatComponent.Window.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
-                <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
-            </button>
             
-            <button id="emoji-button" class="emoji-button" @onclick="@ToggleEmojis">
-                <img alt="Smiling face emoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/72x72/1f604.png" />
-            </button>
-
-            <div class="upload-menu" style="@_uploadMenuStyle">
-                <div class="content tenor" @onmousedown:stopPropagation="true">
-                    @* Somewhat creative way to call main upload element *@
-                    <button class="button" @onmousedown="@OnClickUploadAsync">
-                        Upload a File
-                    </button>
-                    <button class="button tenor" @onmousedown="@ShowTenorMenu">
-                        Gifs via Tenor
-                    </button>
-                    <button class="button" @onmousedown="@OnClickSendCurrency">
-                        Send Currency
-                    </button>
-                </div>
-                <div class="carrot"></div>
-            </div>
-
-
-            @if (DeviceInfo.IsMobile && CanUserPost){
-                <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
-                    <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
-                </div>
-            }
-            
-            @if (!CanUserPost)
-            {
-                <p class="input-placeholder">You lack permission to send messages in this channel</p>
-            }
-            else if (PreviewMessage is null || PreviewMessage.IsEmpty())
-            {
-                <p class="input-placeholder">@PlaceholderText</p>
-            }
-
             <div class="textbox-wrapper">
                 <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.Window.Id" data-window="@ChatComponent.Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.Window.Id').focus()" autofocus>
                 </div>
+                @if (!CanUserPost)
+                {
+                    <p class="input-placeholder">You lack permission to send messages in this channel</p>
+                }
+                else if (PreviewMessage is null || PreviewMessage.IsEmpty())
+                {
+                    <p class="input-placeholder">@PlaceholderText</p>
+                }
             </div>
         </div>
+        
+        <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
+            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
+        </button>
+        
+        <button id="emoji-button" class="emoji-button" @onclick="@ToggleEmojis">
+            <img alt="Smiling face emoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/72x72/1f604.png" />
+        </button>
+        
+        @if (DeviceInfo.IsMobile && CanUserPost){
+            <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
+                <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
+            </div>
+        }
     </div>
 </div>
 
@@ -218,13 +216,15 @@
         await TenorMenu.Show();
     }
 
-    private async Task ShowUploadMenu()
+    private Task ShowUploadMenu()
     {
         if (_uploadMenuStyle != "")
         {
             _uploadMenuStyle = "";
             Refresh();
         }
+
+        return Task.CompletedTask;
     }
 
     private void HideUploadMenu()
@@ -331,7 +331,6 @@
     // Drop zone stuff
     private InputFile _inputFileRef;
     private ElementReference _dropZoneElement;
-    IJSObjectReference _dropZoneInstance;
 
     public async Task OnBeginEdit(MessageComponent component, Message message)
     {
@@ -596,11 +595,12 @@
         await FocusInputAsync();
     }
 
-    public async Task RemoveReply()
+    public Task RemoveReply()
     {
         PreviewMessage.ReplyToId = null;
         PreviewMessageComponent.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
+        return Task.CompletedTask;
     }
 
     public async Task PostMessage(Message message)
@@ -733,7 +733,7 @@
 
         if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
         {
-            ChatComponent.Channel.SendIsTyping();
+            await ChatComponent.Channel.SendIsTyping();
             _lastTypingUpdateSent = DateTime.UtcNow;
         }
 

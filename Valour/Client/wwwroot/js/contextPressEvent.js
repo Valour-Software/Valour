@@ -19,8 +19,8 @@
     const isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
 
     // switch to pointer events or touch events if using a touch screen
-    const mouseDown = hasPointerEvents ? 'pointerdown' : isTouch ? 'touchstart' : 'mousedown';
-    const mouseUp = hasPointerEvents ? 'pointerup' : isTouch ? 'touchend' : 'mouseup';
+    const mouseDown = 'touchstart';
+    const mouseUp = 'touchend';
     const mouseMove = hasPointerEvents ? 'pointermove' : isTouch ? 'touchmove' : 'mousemove';
     const mouseLeave = hasPointerEvents ? 'pointerleave' : isTouch ? 'touchleave' : 'mouseleave';
 
@@ -230,7 +230,6 @@
      * @returns {void}
      */
     function mouseMoveHandler(e) {
-
         // calculate total number of pixels the pointer has moved
         const diffX = Math.abs(startX - e.clientX);
         const diffY = Math.abs(startY - e.clientY);

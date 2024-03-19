@@ -26,7 +26,7 @@
         <span class="valour-credits-text">VC</span>
     </div>
     
-    <input @oninput="@OnEnterUsername" style="width: 90%" class="v-input" placeholder="Enter Name#TAG" type="text"/>
+    <input @oninput="@OnEnterUsername" style="width: 90%" class="v-input" placeholder="Enter Name#TAG" value="@StartValue" type="text"/>
     if (_targetAccountData is null)
     {
         if (string.IsNullOrWhiteSpace(_errorSpan))
@@ -54,6 +54,10 @@
         }
     }
 }
+else if (_loading)
+{
+    <h6 class="p-4">Loading account info...</h6>
+}
 else
 {
     <h6 class="p-4">You don't have a global eco account.</h6>
@@ -77,6 +81,9 @@ else
     public InputComponent Input { get; set; }
     
     [Parameter]
+    public string StartValue { get; set; }
+    
+    [Parameter]
     public Modal<EcoPayModal.ModalParams> Modal { get; set; }
     
     private Currency _globalCurrency;
@@ -91,10 +98,19 @@ else
     
     private string _errorSpan;
 
+    private bool _loading = true;
+
     protected override async Task OnInitializedAsync()
     {
         _globalCurrency = await Currency.FindByPlanetAsync(ISharedPlanet.ValourCentralId);
         _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+
+        _loading = false;
+        
+        if (!string.IsNullOrWhiteSpace(StartValue))
+        {
+            await ApplyNewUsername(StartValue);
+        }
     }
 
     private void AmountChanged(ChangeEventArgs e)
@@ -182,14 +198,19 @@ else
         
         StateHasChanged();
     }
+
+    private async Task OnEnterUsername(ChangeEventArgs e)
+    {
+        await ApplyNewUsername(e.Value?.ToString());
+    }
     
     private bool _searchLoading = false;
     private bool _searchQueued = false;
-    private async Task OnEnterUsername(ChangeEventArgs e)
+    private async Task ApplyNewUsername(string name)
     {
         _errorSpan = null;
-        
-        _targetName = e.Value.ToString();
+
+        _targetName = name;
         if (!_targetName.Contains('#'))
         {
             _errorSpan = "Invalid username: Must be Name#TAG";

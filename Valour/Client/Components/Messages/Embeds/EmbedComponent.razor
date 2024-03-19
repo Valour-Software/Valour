@@ -115,11 +115,11 @@
 		}
 	}
 
-	public async Task OnReceiveMessageEdit(Message message)
+	public Task OnReceiveMessageEdit(Message message)
     {
         // Ignore messages not meant for this channel
         if (message.Id != Message.Id)
-            return;
+            return Task.CompletedTask;
 
         Message.EmbedData = message.EmbedData;
 		//Console.WriteLine(update.NewEmbedContent);
@@ -127,7 +127,8 @@
 		embed = Message.Embed;
 		ProcessPageChange = true;
 		StateHasChanged();
-	}
+		return Task.CompletedTask;
+    }
 
 	public async Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
 	{

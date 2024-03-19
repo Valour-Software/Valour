@@ -177,15 +177,16 @@
         await OnPlanetChange(GlobalWindowData.GlobalActivePlanet);
     }
 
-    public async Task OnMemberDelete(PlanetMember member)
+    public Task OnMemberDelete(PlanetMember member)
     {
         if (member.PlanetId != GlobalWindowData.GlobalActivePlanet.Id)
-            return;
+            return Task.CompletedTask;
 
         var lastRole = LastMemberRoles[member.Id];
         DisplayedRoleMembers[lastRole].Remove(member);
         UserCache.Remove(member.Id);
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task OnRoleMembershipUpdate(ModelUpdateEvent<PlanetRoleMember> eventData)
@@ -422,14 +423,15 @@
         }
     }
 
-    public async Task OnPlanetClose(Planet planet)
+    public Task OnPlanetClose(Planet planet)
     {
         if (Planet.Id != planet.Id)
-            return;
+            return Task.CompletedTask;
 
         ClearForNewPlanet();
         Planet = null;
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     public async Task OnPlanetChange(Planet planet)

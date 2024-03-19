@@ -29,9 +29,14 @@ public interface ISharedPlanet : ISharedItem
     string Name { get; set; }
 
     /// <summary>
-    /// The image url for the planet 
+    /// True if the planet has a custom icon
     /// </summary>
-    string IconUrl { get; set; }
+    bool HasCustomIcon { get; set; }
+    
+    /// <summary>
+    /// True if the planet has an animated icon
+    /// </summary>
+    bool HasAnimatedIcon { get; set; }
 
     /// <summary>
     /// The description of the planet
@@ -52,5 +57,62 @@ public interface ISharedPlanet : ISharedItem
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     bool Nsfw { get; set; }
+    
+    private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
+    {
+        { IconFormat.Webp64, "64.webp" },
+        { IconFormat.Webp128, "128.webp" },
+        { IconFormat.Webp256, "256.webp" },
+        
+        { IconFormat.Jpeg64, "64.jpg" },
+        { IconFormat.Jpeg128, "128.jpg" },
+        { IconFormat.Jpeg256, "256.jpg" },
+        
+        { IconFormat.WebpAnimated64, "anim-64.webp" },
+        { IconFormat.WebpAnimated128, "anim-128.webp" },
+        { IconFormat.WebpAnimated256, "anim-256.webp" },
+        
+        { IconFormat.Gif64, "anim-64.gif" },
+        { IconFormat.Gif128, "anim-128.gif" },
+        { IconFormat.Gif256, "anim-256.gif" },
+    };
+    
+    private static readonly HashSet<IconFormat> AnimatedFormats = new()
+    {
+        IconFormat.Gif64,
+        IconFormat.Gif128,
+        IconFormat.Gif256,
+        IconFormat.WebpAnimated64,
+        IconFormat.WebpAnimated128,
+        IconFormat.WebpAnimated256,
+    };
+    
+    private static readonly Dictionary<IconFormat, IconFormat> AnimatedToStaticBackup = new()
+    {
+        { IconFormat.Gif64, IconFormat.Webp64 },
+        { IconFormat.Gif128, IconFormat.Webp128 },
+        { IconFormat.Gif256, IconFormat.Webp256 },
+        { IconFormat.WebpAnimated64, IconFormat.Webp64 },
+        { IconFormat.WebpAnimated128, IconFormat.Webp128 },
+        { IconFormat.WebpAnimated256, IconFormat.Webp256 },
+    };
+    
+    public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
+    {
+        if (!planet.HasCustomIcon)
+            return null;
+
+        // If an animated icon is requested, but the planet doesn't have one, use the static version
+        if (!planet.HasAnimatedIcon)
+        {
+            if (AnimatedFormats.Contains(format))
+            {
+                format = AnimatedToStaticBackup[format];
+            }
+        }
+        
+        string formatStr = IconFormatMap[format];
+        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}";
+    }
 }
 

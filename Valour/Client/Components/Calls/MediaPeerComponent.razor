@@ -143,7 +143,7 @@
             _name = await _member.GetNameAsync();
 
             _user = await _member.GetUserAsync();
-            _pfpUrl = PfpUtility.GetPfpUrl(_user, _member);
+            _pfpUrl = AvatarUtility.GetAvatarUrl(_user, _member);
         }
     }
 
@@ -164,7 +164,7 @@
         _canRender = false;
     }
 
-    public async Task NotifyPeerUpdated()
+    public Task NotifyPeerUpdated()
     {
         Console.WriteLine($"Setting updated peer {Peer.PeerId}...");
 
@@ -173,11 +173,12 @@
         _hookAfterRender = true;
 
         Refresh();
+        return Task.CompletedTask;
     }
 
     private void OnPfpError()
     {
-        _pfpUrl = PfpUtility.GetFailedPfpUrl(_user);
+        _pfpUrl = AvatarUtility.GetFailedPfpUrl(_user);
         StateHasChanged();
     }
 

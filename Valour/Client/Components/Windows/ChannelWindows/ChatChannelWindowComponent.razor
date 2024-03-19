@@ -36,7 +36,7 @@
     private string _instanceId = Guid.NewGuid().ToString();
 
     // Runs when page is initialized
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         GlobalWindowData.AddGlobalChatWindow(this);
         
@@ -45,11 +45,12 @@
         Console.WriteLine("Initializing channel window component.");
 
         Channel = Data;
-
+        
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
 
         Window.OnFocused += OnWindowFocused;
+        return Task.CompletedTask;
     }
 
     private async Task OnWindowFocused()

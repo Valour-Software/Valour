@@ -1,11 +1,8 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Valour.Sdk.Client;
-using Valour.Sdk.Models;
 using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
@@ -283,10 +280,6 @@ public class Node
 
         IsReconnecting = true;
 
-        // Reconnect
-        int tries = 0;
-
-        bool safe = false;
 
         try
         {
@@ -294,7 +287,6 @@ public class Node
             if (HubConnection.State == HubConnectionState.Connected)
             {
                 var ping = await HubConnection.InvokeAsync<string>("ping");
-                safe = true;
             }
         }
         catch (System.Exception)
@@ -316,8 +308,6 @@ public class Node
             {
                 await Log("Failed to reconnect... waiting three seconds to continue.", "red");
             }
-
-            tries++;
         }
 
         await OnSignalRReconnect("Success");

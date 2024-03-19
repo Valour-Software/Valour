@@ -31,7 +31,7 @@ public static class NotificationNavigator
                     Title = await channel.GetTitleAsync(),
                     Data = channel,
                     Type = typeof(ChatChannelWindowComponent),
-                    Icon = planet.IconUrl
+                    Icon = planet.GetIconUrl(IconFormat.Webp64)
                 });
 
                 break;

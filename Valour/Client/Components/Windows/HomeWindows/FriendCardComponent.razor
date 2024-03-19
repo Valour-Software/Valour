@@ -5,7 +5,17 @@
 <div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle" @oncontextpress="@OnContextMenu">
         <div class="text-hide-circle"></div>
-        <img alt="friend icon" src='@_iconUrl' class="icon" @onerror='OnIconError' style='@_imageStyle'/>
+        
+        @if (Friend.HasAnimatedAvatar)
+        {
+            <style>
+                .outer-circle:hover .friend-icon-@Friend.Id {
+                    background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
+                }
+            </style>
+        }
+        
+        <div class="icon friend-icon-@Friend.Id" style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)"></div>
         @if (_isUnread || _notificationCount > 0)
         {
             <div class="noti @(_notificationCount > 0 ? "purple" : "")">
@@ -32,16 +42,16 @@
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
 
-    private string _iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
-    private string _imageStyle = "";
+    private string _avatarUrl;
+    private string _animatedAvatarUrl;
+    private string _fallbackAvatarUrl;
     private bool _isUnread = false;
     private int _notificationCount = 0;
 
     protected override void OnInitialized(){
-        if (!string.IsNullOrWhiteSpace(Friend.PfpUrl))
-        {
-            _iconUrl = Friend.PfpUrl;
-        }
+        _avatarUrl = Friend.GetAvatarUrl(AvatarFormat.Webp256);
+        _animatedAvatarUrl = Friend.GetAvatarUrl(AvatarFormat.WebpAnimated256);
+        _fallbackAvatarUrl = Friend.GetFailedAvatarUrl();
         
         HomeWindowComponent.RerenderFriendCards += Refresh;
     }
@@ -102,17 +112,6 @@
         // await WindowManager.ReplaceWindow(Window, newWindow);
         // await WindowManager.SetSelectedWindow(newWindow);
         // await WindowManager.SetFocusedPlanet(null);
-
-        StateHasChanged();
-    }
-
-    private void OnIconError()
-    {
-        _iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
-
-        var r = Random.Shared.Next(24) * 15;
-
-        _imageStyle = $"filter: hue-rotate({r}deg)";
 
         StateHasChanged();
     }

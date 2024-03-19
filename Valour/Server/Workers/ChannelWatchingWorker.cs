@@ -36,7 +36,7 @@ public class ChannelWatchingWorker : BackgroundService
             }
 
             _logger.LogInformation("Channel Watching task stopped at: {time}", DateTimeOffset.Now.ToString());
-            _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
+            _logger.LogInformation("Restarting. {time}", DateTimeOffset.Now.ToString());
         }
     }
 }

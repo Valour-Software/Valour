@@ -7,7 +7,7 @@
     overflow-y: auto;
     position: relative;
     padding-bottom: 50px;
-    background-color: var(--main-2);
+    background-color: var(--main-3);
 }
 
 .channel-info {
@@ -80,6 +80,8 @@
 }
 
 ::deep .outer-circle .icon {
+    background-position: center;
+    background-size: contain;
     border-radius: 50%;
     position: absolute;
     width: 100%;
@@ -99,7 +101,7 @@
     position: absolute;
     width: 30%;
     height: 30%;
-    background-color: rgba(255, 255, 255, 1);
+    background-color: var(--font-color);
     left: 68.75%;
     top: 0;
     border: solid 3px #040d14;
@@ -234,6 +236,7 @@
     text-align: center;
     margin: 0;
     text-shadow: 0 0 5px black,  0 0 10px black;
+    color: var(--font-color);
 }
 
 ::deep .icon-text-holder {

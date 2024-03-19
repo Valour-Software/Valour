@@ -209,7 +209,7 @@ public class EcoService
     /// <summary>
     /// Returns the planet accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedModelResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0,
+    public async ValueTask<PagedResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0,
         int take = 50)
     {
         var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId)
@@ -223,7 +223,7 @@ public class EcoService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedModelResponse<EcoAccount>()
+        return new PagedResponse<EcoAccount>()
         {
             TotalCount = total,
             Items = items
@@ -233,7 +233,7 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedModelResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public async ValueTask<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
         var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
             .OrderByDescending(x => x.BalanceValue);
@@ -246,7 +246,7 @@ public class EcoService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedModelResponse<EcoAccount>()
+        return new PagedResponse<EcoAccount>()
         {
             TotalCount = total,
             Items = items
@@ -256,7 +256,7 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedModelResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
+    public async ValueTask<PagedResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
         int skip = 0, int take = 50)
     {
         var baseQuery = 
@@ -277,7 +277,7 @@ public class EcoService
             })
             .ToListAsync();
 
-        return new PagedModelResponse<EcoAccountPlanetMember>()
+        return new PagedResponse<EcoAccountPlanetMember>()
         {
             TotalCount = total,
             Items = items
@@ -621,7 +621,7 @@ public class EcoService
             SourceId = transaction.UserFromId,
             Source = NotificationSource.TransactionReceived,
             Body = transaction.Description,
-            ImageUrl = userFrom.PfpUrl,
+            ImageUrl = userFrom.GetAvatarUrl(AvatarFormat.Webp128),
             ClickUrl = $"/receipt/{transaction.Id}"
         });
 

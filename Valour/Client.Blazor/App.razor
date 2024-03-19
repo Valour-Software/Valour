@@ -8,6 +8,7 @@
 @using Blazored.LocalStorage
 @using Valour.Client.Components.Sounds
 @using Valour.Client.Utility
+@using Valour.Client.Components.Theme
 
 @inject IJSRuntime JsRuntime
 @inject ILocalStorageService LocalStorage
@@ -20,6 +21,8 @@
 
 <!-- Enable app cookies -->
 <CookiesComponent></CookiesComponent>
+
+<ThemeComponent />
 
 @if (_triedInitialLogin)
 {

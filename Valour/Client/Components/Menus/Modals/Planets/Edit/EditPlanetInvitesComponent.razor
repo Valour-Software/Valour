@@ -101,7 +101,7 @@
     public string linksButtonStyle = "settings-button left active";
     public string usersButtonStyle = "settings-button right";
 
-    public async Task OnSwitchTab(bool links)
+    public Task OnSwitchTab(bool links)
     {
         linksChosen = links;
 
@@ -117,6 +117,7 @@
         }
 
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
 

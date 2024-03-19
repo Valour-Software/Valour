@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Models;
-using Valour.Shared.Models;
 
 namespace Valour.Shared.Models;
 
@@ -30,7 +29,7 @@ public interface ISharedPlanetMember : ISharedPlanetItem
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
-    string MemberPfp { get; set; }
+    string MemberAvatar { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

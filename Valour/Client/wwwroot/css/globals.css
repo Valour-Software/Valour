@@ -90,7 +90,7 @@
 .v-btn {;
     color: var(--font-color);
     font-weight: 400;
-    background-color: #ffffff22;
+    background-color: var(--slight-tint);
     border: none;
     border-radius: 1em;
     font-size: 1em;
@@ -100,6 +100,11 @@
     cursor: pointer;
     
     transition: background-color 0.2s ease-in-out;
+}
+
+.v-btn.inline {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .round-right {
@@ -229,12 +234,12 @@
 }
 
 .v-btn:hover {
-    background-color: #ffffff33;
+    background-color: var(--medium-tint);
     color: white;
 }
 
 .v-btn:active {
-    background-color: #ffffff44;
+    background-color: var(--strong-tint);
 }
 
 /* Sections */
@@ -250,7 +255,7 @@
     font-weight: 700;
     font-size: 15px;
     line-height: 17px;
-    color: #FFFFFF;
+    color: var(--font-color);
     opacity: 0.75;
 }
 
@@ -396,7 +401,7 @@
     left: 0;
     right: 0;
     border-radius: 0.7em;
-    background-color: #00000055;
+    background-color: var(--modal-main);
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
     box-shadow: #000 0 0 10px;

@@ -8,11 +8,11 @@
     </BlazorContextMenu.Item>
     @if (MediaPeer.GetLocalMuted())
     {
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='OnClickUnmute'>Unmute</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='@OnClickUnmute()'>Unmute</BlazorContextMenu.Item>
     }
     else
     {
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='OnClickMute'>Mute</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='@OnClickMute()'>Mute</BlazorContextMenu.Item>
     }
 </ContextMenuBase>
 

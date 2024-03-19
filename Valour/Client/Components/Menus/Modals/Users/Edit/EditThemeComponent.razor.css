@@ -1,0 +1,82 @@
+﻿.color-section {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 2em;
+}
+
+.color-pill {
+    position: relative;
+    display: inline-flex;
+    flex-direction: row;
+    background-color: var(--slight-tint);
+    border-radius: 2em;
+    padding: 0.5em;
+    padding-left: 1em;
+    padding-right: 1em;
+    gap: 1em;
+    align-items: center;
+    margin-top: 0.5em;
+    justify-content: left;
+    width: 180px;
+    margin-left: 4px;
+    outline: 4px solid var(--slight-tint);
+}
+
+.search-title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-right: 1em;
+}
+
+.search-title input {
+    width: unset;
+    margin-left: 1em;
+}
+
+/* For create theme */
+.theme-container {
+    border-radius: 1em;
+    overflow: hidden;
+    display: inline-block;
+    width: 200px;
+    min-width: 200px;
+    background-color: var(--slight-tint);
+    height: 300px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    margin-top: 1em;
+}
+
+.theme-container.create .inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.button-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 1em;
+    gap: 1em;
+}
+
+.theme-img {
+    width: 100%;
+    aspect-ratio: 2/1;
+    
+    background-position: center;
+    background-size: 100%, 100%;
+    background-repeat: no-repeat;
+    
+    background-color: #535353;
+    border-radius: 1em;
+    
+    cursor: pointer;
+}

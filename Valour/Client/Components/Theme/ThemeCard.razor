@@ -1,0 +1,72 @@
+﻿@if (Theme is null)
+{
+    <div class="theme-container">
+        <img class="theme-img" alt="Unknown image" src="_content/Valour.Client/media/image-not-found.webp" />
+        <div class="theme-info">
+            <h6 class="title"> 
+                Unknown Theme
+            </h6>
+            <p class="desc">
+                Loading theme data...
+            </p>
+        </div>
+    </div>
+    return;
+}
+
+<div class="theme-container" @onclick="@OnClick">
+    @if (Theme.HasCustomBanner)
+    {
+        if (Theme.HasAnimatedBanner)
+        {
+            <style>
+                .theme-container:hover .theme-img-@Theme.Id {
+                    background-image: url(@Theme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@Theme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp) !important;
+                }
+            </style>
+        }
+        else
+        {
+            <div class="theme-img theme-img-@Theme.Id" style="background-image: url(@Theme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
+        }
+    }
+    else
+    {
+        <div class="theme-img" style="text-align: center; background-color: @Theme.MainColor1"> 
+            <Victor Style="max-width: 80px; padding: 5px; padding-top: 10px;" Color="@Theme.PastelCyan" />
+        </div>
+    }
+    <div class="theme-info">
+        <h6 class="title">
+            @Theme.Name
+        </h6>
+        <p class="desc">
+            @Theme.Description
+        </p>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
+    [Parameter]
+    public ThemeMeta Theme { get; set; }
+    
+    [Parameter]
+    public EditThemeComponent Editor { get; set; }
+
+    private void OnClick()
+    {
+        if (Theme.Id == 0)
+            return;
+        
+        var data = new ThemeInfoModal.ThemeInfoModalParams()
+        {
+            ThemeMeta = Theme,
+            Editor = Editor
+        };
+        
+        ModalRoot.OpenModal<ThemeInfoModal>(data);
+    }
+}

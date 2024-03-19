@@ -22,7 +22,7 @@ public class EconomyMemberProvider
     {
         var node = _planetId is null ? ValourClient.PrimaryNode : await NodeManager.GetNodeForPlanetAsync(_planetId.Value);
 
-        var result = await node.GetJsonAsync<PagedModelResponse<EcoAccountPlanetMember>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
+        var result = await node.GetJsonAsync<PagedResponse<EcoAccountPlanetMember>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
 
         if (!result.Success || result.Data.Items is null)
             return new ItemsProviderResult<EcoAccountPlanetMember>(new List<EcoAccountPlanetMember>(), 0);

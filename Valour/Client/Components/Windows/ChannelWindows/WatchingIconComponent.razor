@@ -11,12 +11,12 @@
 
     protected override void OnInitialized()
     {
-        _pfpUrl = PfpUtility.GetPfpUrl(User);
+        _pfpUrl = AvatarUtility.GetAvatarUrl(User);
     }
 
     private void OnIconError()
     {
-        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
+        _pfpUrl = AvatarUtility.GetFailedPfpUrl(User);
         StateHasChanged();
     }
 }

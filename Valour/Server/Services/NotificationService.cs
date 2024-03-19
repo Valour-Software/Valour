@@ -269,7 +269,7 @@ public class NotificationService
                 {
                     Title = member.Nickname + " in " + planet.Name,
                     Body = content,
-                    ImageUrl = user.PfpUrl,
+                    ImageUrl = user.GetAvatarUrl(AvatarFormat.Webp128),
                     UserId = targetMember.UserId,
                     PlanetId = planet.Id,
                     ChannelId = channel.Id,
@@ -297,7 +297,7 @@ public class NotificationService
                 {
                     Title = user.Name + " mentioned you in DMs",
                     Body = content,
-                    ImageUrl = user.PfpUrl,
+                    ImageUrl = user.GetAvatarUrl(AvatarFormat.Webp128),
                     ClickUrl = $"/channels/{channel.Id}/{message.Id}",
                     ChannelId = channel.Id,
                     Source = NotificationSource.DirectMention,
@@ -325,7 +325,7 @@ public class NotificationService
                 {
                     Title = member.Nickname + " in " + planet.Name,
                     Body = content,
-                    ImageUrl = user.PfpUrl,
+                    ImageUrl = user.GetAvatarUrl(AvatarFormat.Webp128),
                     PlanetId = planet.Id,
                     ChannelId = channel.Id,
                     SourceId = message.Id,

@@ -13,7 +13,7 @@
                 @Planet.Name
             </p>
 
-            <img alt="planet icon" src="@Planet.IconUrl" class="icon" />
+            <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon" />
         </div>
     </div>
     <div class="channel-list">
@@ -172,7 +172,7 @@
         await GlobalWindowData.OpenWindowAtActive(new WindowData()
         {
             Title = "Info - " + Planet.Name,
-            Icon = Planet.IconUrl,
+            Icon = Planet.GetIconUrl(IconFormat.Webp64),
             Type = typeof(PlanetInfoWindowComponent),
             Data = Planet
         });

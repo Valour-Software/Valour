@@ -20,16 +20,20 @@ public class User : LiveModel, ISharedUser
     {
         Bot = true,
         UserStateCode = 4,
-        PfpUrl = "/media/victor-cyan.png",
         Name = "Victor",
         ValourStaff = true,
         Id = long.MaxValue
     };
-
+    
     /// <summary>
-    /// The url for the user's profile picture
+    /// True if the user has a custom profile picture
     /// </summary>
-    public string PfpUrl { get; set; }
+    public bool HasCustomAvatar { get; set; }
+    
+    /// <summary>
+    /// True if the user has an animated profile picture
+    /// </summary>
+    public bool HasAnimatedAvatar { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour
@@ -146,10 +150,10 @@ public class User : LiveModel, ISharedUser
     public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
         => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/users/{Id}/frienddata");
 
-    public string GetFailedPfpUrl()
-    {
-        int var = (int)(Id % 5);
-        return "_content/Valour.Client/media/user-icons/icon-" + var + ".png";
-    }
+    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
+        ISharedUser.GetAvatarUrl(this, format);
+    
+    public string GetFailedAvatarUrl() =>
+        ISharedUser.GetFailedAvatarUrl(this);
 }
 

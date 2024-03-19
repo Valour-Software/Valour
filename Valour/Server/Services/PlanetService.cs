@@ -142,7 +142,7 @@ public class PlanetService
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
         }
-        catch (System.Exception e)
+        catch (Exception)
         {
             await tran.RollbackAsync();
             return new TaskResult(false, "An unexpected error occured while saving the database changes.");
@@ -381,9 +381,6 @@ public class PlanetService
         if (old is null)
             return new TaskResult<Planet>(false, "Planet not found.");
         
-        if (old.IconUrl != planet.IconUrl)
-            return new TaskResult<Planet>(false, "Use the upload API to change the planet icon.");
-
         if (planet.OwnerId != old.OwnerId)
         {
             return new TaskResult<Planet>(false, "You cannot change the planet owner.");
@@ -516,7 +513,7 @@ public class PlanetService
         {
             await _db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new TaskResult(false, "Error saving changes. Please try again later.");
         }

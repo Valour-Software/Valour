@@ -132,7 +132,8 @@ namespace Valour.Server
                 new DynamicAPI<ReportApi>()                   .RegisterRoutes(app),
                 new DynamicAPI<UserProfileApi>()              .RegisterRoutes(app),
                 new DynamicAPI<SubscriptionApi>()             .RegisterRoutes(app),
-                new DynamicAPI<OrderApi>()                    .RegisterRoutes(app)
+                new DynamicAPI<OrderApi>()                    .RegisterRoutes(app),
+                new DynamicAPI<ThemeApi>()                    .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI();
@@ -332,6 +333,7 @@ namespace Valour.Server
             services.AddScoped<ReportService>();
             services.AddScoped<RegisterService>();
             services.AddScoped<SubscriptionService>();
+            services.AddScoped<ThemeService>();
 
             services.AddSingleton<NodeService>();
 

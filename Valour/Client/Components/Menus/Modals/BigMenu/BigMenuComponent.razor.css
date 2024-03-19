@@ -32,17 +32,47 @@ section {
 .leftside {
     min-width: 300px;
     min-height: 450px;
-    background-color: var(--main-2);
     display: inline-flex;
 }
 
+.leftside::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    right: 0;
+    border-radius: 0.7em;
+    background-color: var(--modal-medium);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    box-shadow: #000 0 0 10px;
+    z-index: -1;
+}
+
 .rightside {
+    position: relative;
     min-width: 300px;
-    background-color: var(--main-3);
+}
+
+.rightside::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    right: 0;
+    border-radius: 0.7em;
+    background-color: var(--modal-dark);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    box-shadow: #000 0 0 10px;
+    z-index: -1;
 }
 
 .inner-rightside {
-    background-color: var(--main-3);
     overflow-y: auto;
     margin-top: 20px;
 }

@@ -1,0 +1,559 @@
+﻿@inject IJSRuntime JsRuntime
+
+@using Valour.Sdk.Extensions
+@using System.Net.Http.Headers
+@* Editing page *@
+@if (_editingTheme is not null)
+{
+    <style>
+        .pickr-button {
+            position: absolute;
+            right: 0px;
+            transition: none 0s ease 0s;
+            background-color: var(--pcr-color);
+            height: 100%;
+            width: 50px;
+            border-radius: 0 2em 2em 0;
+        }
+    </style>
+    
+    <h4 class="title">Theme Editor</h4>
+    <h5 class="subtitle">Build your own theme!</h5>
+    <br />
+    @if (_blobUrl is not null)
+    {
+        <div class="theme-img theme-img-@_editingTheme.Id" style="background-image: url(@_blobUrl)" onclick="document.getElementById('banner-upload').click()"></div>
+    }
+    else if (_editingTheme.HasCustomBanner)
+    {
+        if (_editingTheme.HasAnimatedBanner)
+        {
+            <style>
+                .theme-img-@_editingTheme.Id:hover {
+                    background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp) !important;
+                }
+            </style>
+        }
+        
+        <div class="theme-img theme-img-@_editingTheme.Id" style="background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)" onclick="document.getElementById('banner-upload').click()"></div>
+    }
+    else
+    {
+        <div class="theme-img" style="text-align: center; background-color: @_editingTheme.MainColor1" onclick="document.getElementById('banner-upload').click()"> 
+            <Victor Style="max-height: 80%; padding: 5px; padding-top: 10px;" Color="@_editingTheme.PastelCyan" />
+        </div>
+    }
+    <br />
+    <p>Suggested image size: 600x300px</p>
+    
+    
+    <div style="display:none">
+        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="banner-upload"></InputFile>
+    </div>
+    
+    <br />
+    <br />
+                                                                                                                                   
+    <div class="form-group">
+        <label>Name</label>
+        <input class="form-control" @bind-value="@_editingTheme.Name" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label>Description</label>
+        <InputTextArea @bind-Value="@_editingTheme.Description" class="form-control">
+        </InputTextArea>
+    </div>
+    <br />
+    <div class="form-group">
+        <label>Publishing</label>
+        @if (_editingTheme.Published)
+        {
+            <button class="btn v-btn danger" @onclick="@(() => SetPublished(false))">
+                Switch to Unpublished
+            </button>
+        }
+        else
+        {
+            <button class="btn v-btn primary" @onclick="@(() => SetPublished(true))">
+                Switch to Published
+            </button>
+        }
+    </div>
+    <br />
+    <label>Color Swatch</label>
+    <section class="color-section">
+        <div class="color-pill">
+            <span>Font Color</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontColor" OnColorChange="@OnChangeFontColor"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Alt Font Color</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.FontAltColor" OnColorChange="@OnChangeFontAltColor"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Link Color</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.LinkColor" OnColorChange="@OnChangeLinkColor"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 1</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor1" OnColorChange="@OnChangeMainColor1"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 2</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor2" OnColorChange="@OnChangeMainColor2"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 3</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor3" OnColorChange="@OnChangeMainColor3"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 4</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor4" OnColorChange="@OnChangeMainColor4"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>BG Color 5</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.MainColor5" OnColorChange="@OnChangeMainColor5"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Tint Color</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.TintColor" OnColorChange="@OnChangeTintColor"/>
+        </div>
+        <br/>
+
+        <div class="color-pill">
+            <span>Vibrant 1</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantPurple" OnColorChange="@OnChangeVibrantColor1"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Vibrant 2</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantBlue" OnColorChange="@OnChangeVibrantColor2"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Vibrant 3</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.VibrantCyan" OnColorChange="@OnChangeVibrantColor3"/>
+        </div>
+        <br/>
+
+        <div class="color-pill">
+            <span>Pastel 1</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyan" OnColorChange="@OnChangePastelColor1"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Pastel 2</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelCyanPurple" OnColorChange="@OnChangePastelColor2"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Pastel 3</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelPurple" OnColorChange="@OnChangePastelColor3"/>
+        </div>
+        <br/>
+        <div class="color-pill">
+            <span>Pastel Danger</span>
+            <ColorPickerComponent UseAsButton="true" ButtonClass="pickr-button" StartColor="@_editingTheme.PastelRed" OnColorChange="@OnChangePastelColorDanger"/>
+        </div>
+        <br/>
+        <br/>
+    </section>
+    
+    <div class="form-group">
+        <label>Custom CSS</label>
+        <InputTextArea @bind-Value="@_editingTheme.CustomCss" class="form-control">
+        </InputTextArea>
+        <button class="btn v-btn tertiary mt-2" @onclick="@OnCssChange">Apply CSS to Theme</button>
+    </div>
+    
+    <br />
+    
+    <div class="button-row">
+        <button class="btn v-btn large danger" @onclick="@CancelEditAsync">Cancel Changes</button>
+        <button class="btn v-btn large tertiary" @onclick="@ConfirmChangesAsync">Confirm Changes</button>
+    </div>
+    
+    <br />
+    
+    <ResultLabel Result="@_editingResult"/>
+    
+    <br />
+}
+@* Home page *@
+else
+{
+    <h4 class="title">Themes</h4>
+    <h5 class="subtitle">Make Valour your own!</h5>
+    
+    <br/>
+    
+    <h5>Current Theme:</h5>
+    <br/>
+    
+    <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
+    <div class="theme-container create">
+        <div class="inner">
+            <h5>Create a Theme!</h5>
+            <button class="btn v-btn primary inline" @onclick="@EnterEditorNewThemeAsync">Enter Editor</button>
+        </div>
+    </div>
+    
+    @if (ThemeComponent.Instance.CurrentTheme != Theme.Default)
+    {
+        <div class="form-group">
+            <button class="btn v-btn tertiary mt-2" @onclick="@RevertThemeAsync">Revert to Default Theme</button>
+        </div>
+    }
+
+    <br/>
+    <br />
+    
+    <div class="search-title">
+        <h5>Popular Themes:</h5>
+        <input class="form-control" placeholder="Search..." @onchange="@OnSearchChangeAsync" />
+    </div>
+    
+    @if (_popularThemeCount == -1)
+    {
+        <h6>Loading...</h6>
+    }
+    else if (_popularThemeCount == 0)
+    {
+        <h6>No themes found.</h6>
+    }
+    else
+    {
+        <VerticalExpander 
+            @ref="@_expander"
+            TComponent="ThemeCard"
+            GetItem="@GetPopularThemeParamsAsync"
+            TotalItems="@_popularThemeCount"
+        />
+    }
+    
+    <br/>
+    <h5>My Themes:</h5>
+    @if (_myThemes is not null)
+    {
+        <VerticalExpander
+            TComponent="ThemeCard"
+            GetItem="@GetMyThemeParamsAsync"
+            TotalItems="@_myThemes.Count"/>
+    }
+
+    <br />
+    
+}
+
+@code {
+    private VerticalExpander<ThemeCard> _expander;
+    
+    private Theme _backupTheme;
+    public Theme _editingTheme;
+
+    private PagedReader<ThemeMeta> _popularThemes = Theme.GetAvailableThemes();
+    private int _popularThemeCount = -1;
+    
+    private List<ThemeMeta> _myThemes;
+
+    private TaskResult<Theme>? _editingResult = null;
+
+    private IBrowserFile _uploadedImage = null;
+    private byte[] _uploadedImageBytes = null;
+    
+    private string _blobUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _myThemes = await Theme.GetMyThemes();
+        _popularThemeCount = await _popularThemes.GetTotalCount();
+        StateHasChanged();
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        _uploadedImage = e.File;
+        
+        using MemoryStream ms = new();
+        var fileStream = e.File.OpenReadStream();
+        await fileStream.CopyToAsync(ms);
+        _uploadedImageBytes = ms.ToArray();
+        
+        _blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", _uploadedImageBytes, e.File.ContentType);
+        
+        StateHasChanged();
+    }
+
+
+    private async Task OnSearchChangeAsync(ChangeEventArgs e)
+    {
+        await Logger.Log($"New search: {e.Value}", "cyan");
+        
+        _popularThemes.SetQuery("search", e.Value?.ToString());
+        if (_expander is not null)
+        {
+            await _expander.Reset();
+            await _expander.Initialize();
+        }
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnCssChange()
+    {
+        ThemeComponent.Instance.Refresh();
+        await Logger.Log("Custom CSS updated.", "cyan");
+    }
+    
+    private void SetPublished(bool published)
+    {
+        _editingTheme.Published = published;
+        StateHasChanged();
+    }
+
+    private async Task RevertThemeAsync()
+    {
+        await ThemeComponent.Instance.UninstallThemeAsync();
+    }
+
+    private async Task<Dictionary<string, object>> GetPopularThemeParamsAsync(int index)
+    {
+        var theme = await _popularThemes.AtIndexAsync(index);
+
+        return new Dictionary<string, object>()
+        {
+            { "Theme", theme },
+            { "Editor", this }
+        };
+    }
+    
+    private Task<Dictionary<string, object>> GetMyThemeParamsAsync(int index)
+    {
+        if (_myThemes is null || index >= _myThemes.Count)
+            return Task.FromResult<Dictionary<string, object>>(null);
+        
+        var theme = _myThemes[index];
+
+        return Task.FromResult(new Dictionary<string, object>() 
+        {
+            { "Theme", theme },
+            { "Editor", this }
+        });
+    }
+
+    public async Task OpenEditorWithThemeAsync(Theme theme)
+    {
+        _backupTheme = ThemeComponent.Instance.CurrentTheme;
+        _editingTheme = theme;
+        
+        ThemeComponent.Instance.CurrentTheme = theme;
+        ThemeComponent.Instance.Refresh();
+        
+        await Logger.Log($"Entering editor for theme: {theme.Name}", "cyan");
+        
+        StateHasChanged();
+    }
+
+    private async Task EnterEditorNewThemeAsync()
+    {
+        _backupTheme = ThemeComponent.Instance.CurrentTheme;
+        
+        _editingTheme = new Theme();
+        ThemeComponent.Instance.CurrentTheme.CopyAllTo(_editingTheme);
+        _editingTheme.Name = "New Theme";
+        _editingTheme.Description = "A new theme!";
+        
+        ThemeComponent.Instance.CurrentTheme = _editingTheme;
+        
+        await Logger.Log("Entering editor for new theme.", "cyan");
+        
+        StateHasChanged();
+    }
+    
+    private async Task CancelEditAsync()
+    {
+        _editingTheme = null;
+        await Logger.Log("Cancelled theme editing.", "cyan");
+        
+        ThemeComponent.Instance.CurrentTheme = _backupTheme;
+        
+        ThemeComponent.Instance.Refresh();
+        
+        StateHasChanged();
+    }
+
+    private async Task UploadBannerIfNeededAsync()
+    {
+        if (_uploadedImage is null)
+            return;
+
+        if (_uploadedImage.Size > 10240000)
+            return;
+        
+        using var ms = new MemoryStream(_uploadedImageBytes);
+        var streamContent = new StreamContent(ms);
+        var content = new MultipartFormDataContent();
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(_uploadedImage.ContentType);
+        content.Add(streamContent, _uploadedImage.Name, _uploadedImage.Name);
+        
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
+        if (!result.Success)
+        {
+            Console.WriteLine("Failed to upload banner: " + result.Message);
+        }
+
+        _blobUrl = null;
+    }
+
+    private async Task ConfirmChangesAsync()
+    {
+        if (_editingTheme is null)
+            return;
+
+        if (_editingTheme.Id == 0)
+        {
+            // New theme
+            _editingResult = await LiveModel.CreateAsync(_editingTheme);
+        }
+        else
+        {
+            // Existing theme
+            _editingResult = await LiveModel.UpdateAsync(_editingTheme);
+        }
+
+        if (!_editingResult.Value.Success)
+        {
+            await Logger.Log($"Failed to save theme: {_editingResult.Value.Message}", "red");
+        }
+        else
+        {
+            _editingTheme = _editingResult.Value.Data;
+            
+            await UploadBannerIfNeededAsync();
+            
+            _editingTheme = null;
+            StateHasChanged();
+        }
+    }
+
+    private Task OnChangeFontColor(string newColor)
+    {
+        _editingTheme.FontColor = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeFontAltColor(string newColor)
+    {
+        _editingTheme.FontAltColor = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeLinkColor(string newColor)
+    {
+        _editingTheme.LinkColor = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor1(string newColor)
+    {
+        _editingTheme.MainColor1 = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor2(string newColor)
+    {
+        _editingTheme.MainColor2 = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor3(string newColor)
+    {
+        _editingTheme.MainColor3 = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor4(string newColor)
+    {
+        _editingTheme.MainColor4 = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeMainColor5(string newColor)
+    {
+        _editingTheme.MainColor5 = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeTintColor(string newColor)
+    {
+        _editingTheme.TintColor = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeVibrantColor1(string newColor)
+    {
+        _editingTheme.VibrantPurple = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeVibrantColor2(string newColor)
+    {
+        _editingTheme.VibrantBlue = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangeVibrantColor3(string newColor)
+    {
+        _editingTheme.VibrantCyan = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColor1(string newColor)
+    {
+        _editingTheme.PastelCyan = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColor2(string newColor)
+    {
+        _editingTheme.PastelCyanPurple = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColor3(string newColor)
+    {
+        _editingTheme.PastelPurple = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+    
+    private Task OnChangePastelColorDanger(string newColor)
+    {
+        _editingTheme.PastelRed = newColor;
+        ThemeComponent.Instance.Refresh();
+        return Task.CompletedTask;
+    }
+}

@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -43,10 +42,22 @@ public class Planet : Item, ISharedPlanet
     public string Name { get; set; }
 
     /// <summary>
-    /// The image url for the planet 
+    /// True if the planet has a custom icon
+    /// </summary>
+    [Column("custom_icon")]
+    public bool HasCustomIcon { get; set; }
+    
+    /// <summary>
+    /// True if the planet has an animated icon
+    /// </summary>
+    [Column("animated_icon")]
+    public bool HasAnimatedIcon { get; set; }
+    
+    /// <summary>
+    /// The old icon url. Do not use.
     /// </summary>
     [Column("icon_url")]
-    public string IconUrl { get; set; }
+    public string OldIconUrl { get; set; }
 
     /// <summary>
     /// The description of the planet
@@ -80,5 +91,5 @@ public class Planet : Item, ISharedPlanet
 
     // Only to fulfill contract
     [NotMapped]
-    public string NodeName { get; set; }
+    public new string NodeName { get; set; }
 }

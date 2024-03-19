@@ -25,9 +25,10 @@
         await base.OnInitializedAsync();
     }
 
-    public async Task OnFriendsListUpdate()
+    public Task OnFriendsListUpdate()
     {
         _friends = ValourClient.Friends;
         StateHasChanged();
+        return Task.CompletedTask;
     }
 }

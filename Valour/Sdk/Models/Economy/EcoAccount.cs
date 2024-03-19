@@ -90,13 +90,13 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all planet accounts for the given planet id
     /// </summary>
-    public static async Task<PagedModelResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public static async Task<PagedResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
         if (take > 50)
             take = 50;
         
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<PagedModelResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet?skip={skip}&take={take}")).Data;
+        var accounts = (await node.GetJsonAsync<PagedResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet?skip={skip}&take={take}")).Data;
 
         if (accounts.Items is not null)
         {
@@ -112,13 +112,13 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<PagedModelResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public static async Task<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
         if (take > 50)
             take = 50;
         
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<PagedModelResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
+        var accounts = (await node.GetJsonAsync<PagedResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
 
         if (accounts.Items is not null)
         {
@@ -134,10 +134,10 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<PagedModelResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
+    public static async Task<PagedResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var results = (await node.GetJsonAsync<PagedModelResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
+        var results = (await node.GetJsonAsync<PagedResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
 
         if (results.Items is not null)
         {

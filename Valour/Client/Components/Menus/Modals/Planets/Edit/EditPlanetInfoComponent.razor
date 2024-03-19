@@ -55,20 +55,22 @@
         { "accept", ".png,.jpg,.jpeg,.gif" },
     };
 
-    protected async Task OnPfpError()
+    protected Task OnPfpError()
     {
         IconUrl = "_content/Valour.Client/icon-512.png";
 
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        IconUrl = Planet.IconUrl;
+        IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
         nameValue = Planet.Name;
         descValue = Planet.Description;
 
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
@@ -104,8 +106,10 @@
 
         if (result.Success)
         {
-            IconUrl = result.Data;
-            Console.WriteLine("Response from VMPS: " + result.Data);
+            // We slightly modify the url to force a refresh
+            IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
+            
+            Console.WriteLine("Response from CDN: " + result.Data);
             Image_Output = "Successfully changed planet icon.";
         }
         else

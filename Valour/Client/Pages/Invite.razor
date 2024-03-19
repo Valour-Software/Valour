@@ -51,8 +51,7 @@
     
     private string _infoSpan = "";
     private string _errorSpan = "";
-
-    private bool _clicked;
+    
     private bool _loading = true;
 
     private bool _alreadyJoined;
@@ -66,7 +65,6 @@
         if (_inviteData is null)
         {
             _errorSpan = "Failed to find invite.";
-            _clicked = true;
             StateHasChanged();
             return;
         }
@@ -120,8 +118,6 @@
             {
                 _infoSpan = "Joined " + _inviteData.PlanetName + "!";
             }
-
-            _clicked = true;
 
             StateHasChanged();
         }

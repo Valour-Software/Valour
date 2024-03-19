@@ -12,12 +12,12 @@
     <PackageReference Include="BlazorDateRangePicker" Version="5.2.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
     <PackageReference Include="EmojiMartBlazor" Version="1.0.3" />
+    <PackageReference Include="ExCSS" Version="4.2.5" />
     <PackageReference Include="FastDragBlazor" Version="1.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.0.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.0" />
   </ItemGroup>

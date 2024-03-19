@@ -121,9 +121,9 @@ public class RegisterService
                 TimeJoined = DateTime.UtcNow,
                 TimeLastActive = DateTime.UtcNow,
                 Compliance = true, // All new users should be compliant
+                HasAnimatedAvatar = false,
+                HasCustomAvatar = false,
             };
-
-            user.PfpUrl = $"_content/Valour.Client/media/user-icons/icon-{user.Id % 5}.png";
 
             _db.Users.Add(user.ToDatabase());
             await _db.SaveChangesAsync();

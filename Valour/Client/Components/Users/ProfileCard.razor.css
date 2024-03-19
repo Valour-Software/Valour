@@ -161,7 +161,7 @@
     padding: 8px;
     display: inline-block;
     border-radius: 8px;
-    text-shadow: 0 0 10px black;
+    text-shadow: 0 0 10px black, 0 0 10px black, 0 0 10px black;
 }
 
 .status-bubble {
@@ -182,14 +182,13 @@
 .body-text {
     color: #7A7A7A;
     margin: 0;
-    text-shadow: 0 0 10px black;
+    text-shadow: 0 0 10px black, 0 0 10px black, 0 0 10px black;
 }
 
 .inner-bg {
     position: absolute;
     height: 100%;
     width: 100%;
-    filter: brightness(0.4);
 }
 
 .last-active {

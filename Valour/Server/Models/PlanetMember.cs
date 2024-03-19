@@ -25,5 +25,5 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// The in-planet profile picture of the member
     /// </summary>
-    public string MemberPfp { get; set; }
+    public string MemberAvatar { get; set; }
 }

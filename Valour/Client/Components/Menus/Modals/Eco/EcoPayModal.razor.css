@@ -1,6 +1,7 @@
 ﻿.eco-pay-container {
     min-width: 350px;
     max-width: 600px;
+    border-radius: 1em;
 }
 
 .tab-contents {

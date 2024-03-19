@@ -1,5 +1,4 @@
 ﻿using Valour.Sdk.Client;
-using Valour.Sdk.Models;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -49,14 +48,14 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
-    public string MemberPfp { get; set; }
+    public string MemberAvatar { get; set; }
 
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async ValueTask<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
+    public static async ValueTask<PlanetMember> FindAsync(long id, long planetId, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PlanetMember>(id);
             if (cached is not null)
@@ -93,9 +92,9 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async ValueTask<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
+    public static async ValueTask<PlanetMember> FindAsyncByUser(long userId, long planetId, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PlanetMember>((planetId, userId));
             if (cached is not null)
@@ -168,25 +167,27 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns the primary role of this member
     /// </summary>
-    public async ValueTask<PlanetRole> GetPrimaryRoleAsync(bool force_refresh = false)
+    public async ValueTask<PlanetRole> GetPrimaryRoleAsync(bool refresh = false)
     {
-        if (_roles is null || force_refresh)
+        if (_roles is null || refresh)
         {
             await LoadRolesAsync();
         }
 
-        if (_roles.Count > 0)
-            return _roles[0];
-
-        return null;
+        if (_roles is null || _roles.Count == 0)
+        {
+            return null;
+        }
+        
+        return _roles[0];
     }
 
     /// <summary>
     /// Returns the role that is visually displayed for this member
     /// </summary>
-    public async ValueTask<PlanetRole> GetDisplayedRoleAsync(bool force_refresh = false)
+    public async ValueTask<PlanetRole> GetDisplayedRoleAsync(bool refresh = false)
     {
-        if (_roles is null || force_refresh)
+        if (_roles is null || refresh)
         {
             await LoadRolesAsync();
         }
@@ -203,9 +204,9 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns the roles of this member
     /// </summary>
-    public async ValueTask<List<PlanetRole>> GetRolesAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetRole>> GetRolesAsync(bool refresh = false)
     {
-        if (_roles is null || force_refresh)
+        if (_roles is null || refresh)
         {
             await LoadRolesAsync();
         }
@@ -216,11 +217,16 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async ValueTask<bool> HasRoleAsync(long id, bool force_refresh = false)
+    public async ValueTask<bool> HasRoleAsync(long id, bool refresh = false)
     {
-        if (_roles is null || force_refresh)
+        if (_roles is null || refresh)
         {
             await LoadRolesAsync();
+        }
+        
+        if (_roles is null || _roles.Count == 0)
+        {
+            return false;
         }
 
         return _roles.Any(x => x.Id == id);
@@ -229,8 +235,8 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public ValueTask<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
-        HasRoleAsync(role.Id, force_refresh);
+    public ValueTask<bool> HasRoleAsync(PlanetRole role, bool refresh = false) =>
+        HasRoleAsync(role.Id, refresh);
 
     /// <summary>
     /// Returns the authority of the member
@@ -288,43 +294,43 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
     /// <summary>
     /// Returns the user of the member
     /// </summary>
-    public ValueTask<User> GetUserAsync(bool force_refresh = false) =>
-        User.FindAsync(UserId, force_refresh);
+    public ValueTask<User> GetUserAsync(bool refresh = false) =>
+        User.FindAsync(UserId, refresh);
 
     /// <summary>
     /// Returns the status of the member
     /// </summary>
-    public async Task<string> GetStatusAsync(bool force_refresh = false) =>
-        (await GetUserAsync(force_refresh))?.Status ?? "";
+    public async Task<string> GetStatusAsync(bool refresh = false) =>
+        (await GetUserAsync(refresh))?.Status ?? "";
 
 
     /// <summary>
     /// Returns the role color of the member
     /// </summary>
-    public async Task<string> GetRoleColorAsync(bool force_refresh = false) =>
-        (await GetPrimaryRoleAsync(force_refresh))?.Color ?? "#ffffff";
+    public async Task<string> GetRoleColorAsync(bool refresh = false) =>
+        (await GetPrimaryRoleAsync(refresh))?.Color ?? "#ffffff";
 
 
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async ValueTask<string> GetPfpUrlAsync(bool force_refresh = false)
+    public async ValueTask<string> GetAvatarUrlAsync(bool refresh = false)
     {
-        if (!string.IsNullOrWhiteSpace(MemberPfp))
-            return MemberPfp;
+        if (!string.IsNullOrWhiteSpace(MemberAvatar))
+            return MemberAvatar;
 
-        return (await GetUserAsync(force_refresh))?.PfpUrl ?? "/media/icon-512.png";
+        return (await GetUserAsync(refresh)).GetAvatarUrl();
     }
 
     /// <summary>
     /// Returns the name of the member
     /// </summary>
-    public async ValueTask<string> GetNameAsync(bool force_refresh = false)
+    public async ValueTask<string> GetNameAsync(bool refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(Nickname))
             return Nickname;
 
-        return (await GetUserAsync(force_refresh))?.Name ?? "User not found";
+        return (await GetUserAsync(refresh))?.Name ?? "User not found";
     }
 }
 

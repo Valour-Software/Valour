@@ -131,7 +131,9 @@ public class ValourEmojiParser : InlineParser
     {
         // Clear last slice's data
         _charCount = 0;
-        CodePoints.Clear();
+        
+        if (CodePoints.Count > 0)
+            CodePoints.Clear();
         
         // Cancel if the slice is empty
         if (input.Length == 0)

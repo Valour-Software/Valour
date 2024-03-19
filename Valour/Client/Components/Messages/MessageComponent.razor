@@ -20,7 +20,15 @@
     <div class="left-info">
         @if (!Minimal)
         {
-            <img alt="@_name's profile picture" loading="lazy" class="author-pfp" src="@_pfpUrl" @onerror="OnPfpError"/>
+            @if (User.HasAnimatedAvatar)
+            {
+                <style>
+                    .message:hover .author-pfp-@User.Id {
+                        background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
+                    }
+                </style>
+            }
+            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-pfp author-pfp-@User.Id" @onerror="OnPfpError"></div>
         }
         <div class="time-container">
             <p class="time" title="@_timeTitle">
@@ -190,7 +198,9 @@
 
     private string _nameColor = "#ffffff";
     private string _nameTag = "Default";
-    private string _pfpUrl = "";
+    private string _avatarUrl = "";
+    private string _animatedAvatarUrl = "";
+    private string _fallbackAvatarUrl = "";
     private string _name = "User not Found";
 
     private string _timeTitle = "";
@@ -202,7 +212,6 @@
 
     private string _class = "message";
     
-    private string _contextMenuId = "user-context";
 
     private void CalculateClass()
     {
@@ -421,7 +430,9 @@
         _name = await Message.GetAuthorNameAsync();
         _nameColor = await Message.GetAuthorColorAsync();
         _nameTag = await Message.GetAuthorRoleTagAsync();
-        _pfpUrl = await Message.GetAuthorImageUrlAsync();
+        _avatarUrl = await Message.GetAuthorImageUrlAsync();
+        _animatedAvatarUrl = await Message.GetAuthorImageUrlAnimatedAsync();
+        _fallbackAvatarUrl = await Message.GetAuthorImageUrlFallbackAsync();
 
         _isBuilt = true;
 
@@ -462,7 +473,6 @@
         // Planet message logic
         if (Message.PlanetId is not null)
         {
-            _contextMenuId = "member-context";
             
             _member = await Message.GetAuthorMemberAsync();
             
@@ -505,10 +515,10 @@
             _name = await Message.GetAuthorNameAsync();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
+        if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
         {
             render = true;
-            _pfpUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = await Message.GetAuthorImageUrlAsync();
         }
 
         if (render)
@@ -533,10 +543,10 @@
             _name = await Message.GetAuthorNameAsync();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(_member.MemberPfp)))
+        if (eventData.PropsChanged.Contains(nameof(_member.MemberAvatar)))
         {
             render = true;
-            _pfpUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = await Message.GetAuthorImageUrlAsync();
         }
 
         if (render)
@@ -606,7 +616,7 @@
     
     private void OnPfpError()
     {
-        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
+        _avatarUrl = AvatarUtility.GetFailedPfpUrl(User);
         _pfpErrorRender = true;
         ReRender();
     }
