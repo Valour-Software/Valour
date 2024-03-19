@@ -108,7 +108,8 @@ public class ThemeApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         var vote = await themeService.GetUserVote(token.UserId, id);
-        return Results.Json(vote);
+
+        return ValourResult.Json(vote);
     }
     
     [ValourRoute(HttpVerbs.Post, "api/themes/{themeId}/votes")]

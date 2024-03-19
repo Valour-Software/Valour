@@ -6,10 +6,10 @@ namespace Valour.Database.Themes;
 [Table("theme_votes")]
 public class ThemeVote : ISharedThemeVote
 {
-    [ForeignKey("UserId")]
+    [ForeignKey("ThemeId")]
     public virtual Theme Theme { get; set; }
     
-    [ForeignKey("ThemeId")]
+    [ForeignKey("UserId")]
     public virtual User User { get; set; }
     
     [Column("id")]
