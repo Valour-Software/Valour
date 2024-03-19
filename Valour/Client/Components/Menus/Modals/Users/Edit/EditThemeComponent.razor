@@ -369,6 +369,7 @@ else
         
         _editingTheme = new Theme();
         ThemeComponent.Instance.CurrentTheme.CopyAllTo(_editingTheme);
+        _editingTheme.Id = 0;
         _editingTheme.Name = "New Theme";
         _editingTheme.Description = "A new theme!";
         
