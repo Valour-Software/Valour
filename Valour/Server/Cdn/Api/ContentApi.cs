@@ -70,7 +70,7 @@ public class ContentApi : Controller
 
                     UploadApi.HandleExif(image);
 
-                    var result = await UploadApi.UploadImageVariants(image, "avatars", avatarItem.UserId.ToString(), UploadApi.AvatarSizes,
+                    var result = await UploadApi.UploadPublicImageVariants(image, "avatars", avatarItem.UserId.ToString(), UploadApi.AvatarSizes,
                         0, true, false);
 
                     if (result.Success)
@@ -150,7 +150,7 @@ public class ContentApi : Controller
 
                     UploadApi.HandleExif(image);
 
-                    var result = await UploadApi.UploadImageVariants(image, "planets", planet.Id.ToString(), UploadApi.PlanetSizes,
+                    var result = await UploadApi.UploadPublicImageVariants(image, "planets", planet.Id.ToString(), UploadApi.PlanetSizes,
                         0, true, false);
 
                     if (result.Success)

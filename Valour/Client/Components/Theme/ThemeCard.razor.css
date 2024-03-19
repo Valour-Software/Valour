@@ -30,7 +30,13 @@
 .theme-container .theme-img {
     width: 100%;
     max-height: 100px;
+    aspect-ratio: 1/2;
     object-fit: contain;
+    
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    
     background-color: #535353;
 }
 

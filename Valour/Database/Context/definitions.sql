@@ -444,7 +444,8 @@ CREATE TABLE IF NOT EXISTS themes (
     author_id BIGINT NOT NULL,
     name VARCHAR(50) NOT NULL,
     description TEXT,
-    image_url TEXT,
+    custom_banner BOOLEAN NOT NULL DEFAULT false,
+    animated_banner BOOLEAN NOT NULL DEFAULT false,
     published BOOLEAN NOT NULL DEFAULT false,
     
     font_color VARCHAR(7) NOT NULL,

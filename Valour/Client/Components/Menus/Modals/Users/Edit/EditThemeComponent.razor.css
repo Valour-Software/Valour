@@ -68,9 +68,13 @@
 }
 
 .theme-img {
-    max-width: 100%;
+    width: 100%;
     aspect-ratio: 2/1;
-    object-fit: contain;
+    
+    background-position: center;
+    background-size: 100%, 100%;
+    background-repeat: no-repeat;
+    
     background-color: #535353;
     border-radius: 1em;
     

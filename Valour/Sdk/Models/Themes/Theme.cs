@@ -16,7 +16,6 @@ public class Theme : LiveModel, ISharedTheme
         AuthorId = ISharedUser.VictorUserId,
         Name = "To The Stars (Default)",
         Description = "The default theme for Valour. Designed to be modern, sleek, and easy on the eyes.",
-        ImageUrl = "_content/Valour.Client/media/default-theme-banner.webp",
         
         FontColor = "#ffffff",
         FontAltColor = "#7a7a7a",
@@ -37,13 +36,16 @@ public class Theme : LiveModel, ISharedTheme
         PastelCyan = "#37a4ce",
         PastelCyanPurple = "#6278cd",
         PastelPurple = "#8457cd",
-        PastelRed = "#cd5e5e"
+        PastelRed = "#cd5e5e",
     };
     
     public long AuthorId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
-    public string ImageUrl { get; set; }
+    
+    public bool HasCustomBanner { get; set; }
+    
+    public bool HasAnimatedBanner { get; set; }
     public bool Published { get; set; }
     
     public string FontColor { get; set; }
@@ -77,7 +79,10 @@ public class Theme : LiveModel, ISharedTheme
             AuthorId = AuthorId,
             Name = Name,
             Description = Description,
-            ImageUrl = ImageUrl,
+            HasCustomBanner = HasCustomBanner,
+            HasAnimatedBanner = HasAnimatedBanner,
+            MainColor1 = MainColor1,
+            PastelCyan = PastelCyan,
         };
     }
     
@@ -137,4 +142,7 @@ public class Theme : LiveModel, ISharedTheme
 
         return response.Data;
     }
+
+    public string GetBannerUrl(ThemeBannerFormat format) =>
+        ISharedTheme.GetBannerUrl(this, format);
 }

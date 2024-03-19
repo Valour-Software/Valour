@@ -2,7 +2,24 @@
 
 <div class="v-bg-dark theme-info">
     <section>
-        <img class="theme-img" alt="@Data.ThemeMeta.Name image" src="@(Data.ThemeMeta.ImageUrl ?? "_content/Valour.Client/media/image-not-found.webp")"/>
+        @if (Data.ThemeMeta.HasCustomBanner)
+        {
+            if (Data.ThemeMeta.HasAnimatedBanner)
+            {
+                <div class="theme-img" style="background-image: url(@Data.ThemeMeta.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@Data.ThemeMeta.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
+            }
+            else
+            {
+                <div class="theme-img" style="background-image: url(@Data.ThemeMeta.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
+            }
+        }
+        else
+        {
+            <div class="theme-img" style="text-align: center; background-color: @Data.ThemeMeta.MainColor1"> 
+                <Victor Style="max-width: 80px; padding: 5px; padding-top: 10px;" Color="@Data.ThemeMeta.PastelCyan" />
+            </div>
+        }
+
         <div class="lower">
             <div class="title-row">
                 <h5>@Data.ThemeMeta.Name</h5>
@@ -10,16 +27,16 @@
             </div>
 
             <p class="description">@Data.ThemeMeta.Description</p>
-            
-            <br />
-            
+
+            <br/>
+
             @if (!string.IsNullOrWhiteSpace(_theme.CustomCss))
             {
                 <b><i class="bi bi-exclamation-triangle-fill"></i> Theme contains custom CSS. Install with caution.</b>
-                <br />
-                <br />
+                <br/>
+                <br/>
             }
-            
+
             <div class="buttons-wrapper">
                 <div class="buttons">
                     @if (Data.ThemeMeta.AuthorId == ValourClient.Self.Id && Data.Editor is not null)

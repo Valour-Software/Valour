@@ -217,8 +217,6 @@ public interface ISharedUser : ISharedItem
     
     public static string GetAvatarUrl(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
     {
-        Console.WriteLine(JsonSerializer.Serialize(user));
-        
         if (user is null)
             return DefaultPfp;
         

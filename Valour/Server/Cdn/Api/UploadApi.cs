@@ -102,6 +102,7 @@ public class UploadApi
         app.MapPost("/upload/app/{appId}", AppImageRoute);
         app.MapPost("/upload/file", FileRouteNonPlus);
         app.MapPost("/upload/file/plus", FileRoutePlus);
+        app.MapPost("upload/themeBanner/{themeId}", ThemeBannerRoute);
     }
 
     public static void HandleExif(Image image)
@@ -205,7 +206,7 @@ public class UploadApi
         
         HandleExif(image);
         
-        var result = await UploadImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -223,7 +224,58 @@ public class UploadApi
         await hubService.NotifyUserChange(user.ToModel());
         
         return ValourResult.Ok(fullPath);
-    } 
+    }
+    
+    public static ImageSize[] ThemeBannerSizes =
+    {
+        new(600, 300)
+    };
+    
+
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(10240000)]
+    private static async Task<IResult> ThemeBannerRoute(HttpContext ctx, ValourDB db, TokenService tokenService, long themeId)
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null) return ValourResult.InvalidToken();
+
+        var theme = await db.Themes.FindAsync(themeId);
+        if (theme is null)
+            return ValourResult.NotFound("Could not find theme");
+        
+        if (theme.AuthorId != authToken.UserId)
+        {
+            return ValourResult.Forbid("You do not have permission to modify this theme");
+        }
+        
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return Results.BadRequest("Please attach a file");
+        
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+            return Results.BadRequest("Unsupported file type");
+        
+        var image = await Image.LoadAsync(
+            new() { TargetSize = new(ThemeBannerSizes[0].Width, ThemeBannerSizes[0].Height) }, 
+            file.OpenReadStream()
+        );
+        
+        HandleExif(image);
+        
+        var result = await UploadPublicImageVariants(image, "themeBanners", themeId.ToString(), ThemeBannerSizes, 0, true, false);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        theme.HasCustomBanner = true;
+        theme.HasAnimatedBanner = result.Data;
+        
+        await db.SaveChangesAsync();
+        
+        var resultPath = result.Message;
+        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        
+        return ValourResult.Ok(fullPath);
+    }
     
     public static ImageSize[] ProfileBackgroundSizes =
     {
@@ -255,7 +307,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadImageVariants(image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
+        var result = await UploadPublicImageVariants(image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -308,7 +360,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadImageVariants(image, "planets", planetId.ToString(), PlanetSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(image, "planets", planetId.ToString(), PlanetSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -318,8 +370,7 @@ public class UploadApi
         
         var planet = await valourDb.Planets.FindAsync(planetId);
         planet!.HasCustomIcon = true;
-        if (result.Data)
-            planet.HasAnimatedIcon = true;
+        planet.HasAnimatedIcon = result.Data;
         
         await valourDb.SaveChangesAsync();
 
@@ -362,7 +413,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadImageVariants(image, "apps", appId.ToString(), AppSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(image, "apps", appId.ToString(), AppSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -373,7 +424,7 @@ public class UploadApi
         return ValourResult.Ok(fullPath);
     }
 
-    public static async Task<TaskResult<bool>> UploadImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated, bool doTransparency)
+    public static async Task<TaskResult<bool>> UploadPublicImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated, bool doTransparency)
     {
         // By default we use the high quality image as the main image
         var resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.webp";
@@ -388,16 +439,11 @@ public class UploadApi
         //     resultPath = $"{folder}/{id}/anim-{sizes[defaultSizeIndex]}.gif";
         // }
         
-        bool first = true;
-        
         var saveTasks = new List<Func<Task<TaskResult>>>();
         
         foreach (var size in sizes)
         {
-            if (!first)
-            {
-                image.Mutate(x => x.Resize(size.Width, size.Height));
-            }
+            image.Mutate(x => x.Resize(size.Width, size.Height));
             
             saveTasks.Clear();
 
@@ -483,8 +529,6 @@ public class UploadApi
             {
                 return new TaskResult<bool>(false, results.First(x => !x.Success).Message, doAnimated);
             }
-
-            first = false;
         }
 
         return new TaskResult<bool>(true, resultPath, doAnimated);

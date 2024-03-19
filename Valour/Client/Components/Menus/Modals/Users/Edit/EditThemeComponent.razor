@@ -1,4 +1,7 @@
-﻿@using Valour.Sdk.Extensions
+﻿@inject IJSRuntime JsRuntime
+
+@using Valour.Sdk.Extensions
+@using System.Net.Http.Headers
 @* Editing page *@
 @if (_editingTheme is not null)
 {
@@ -17,9 +20,37 @@
     <h4 class="title">Theme Editor</h4>
     <h5 class="subtitle">Build your own theme!</h5>
     <br />
+    @if (_blobUrl is not null)
+    {
+        <div class="theme-img theme-img-@_editingTheme.Id" style="background-image: url(@_blobUrl)" onclick="document.getElementById('banner-upload').click()"></div>
+    }
+    else if (_editingTheme.HasCustomBanner)
+    {
+        if (_editingTheme.HasAnimatedBanner)
+        {
+            <style>
+                .theme-img-@_editingTheme.Id:hover {
+                    background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp) !important;
+                }
+            </style>
+        }
+        
+        <div class="theme-img theme-img-@_editingTheme.Id" style="background-image: url(@_editingTheme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)" onclick="document.getElementById('banner-upload').click()"></div>
+    }
+    else
+    {
+        <div class="theme-img" style="text-align: center; background-color: @_editingTheme.MainColor1" onclick="document.getElementById('banner-upload').click()"> 
+            <Victor Style="max-height: 80%; padding: 5px; padding-top: 10px;" Color="@_editingTheme.PastelCyan" />
+        </div>
+    }
+    <br />
+    <p>Suggested image size: 600x300px</p>
     
-    <img class="theme-img" alt="Theme image" src="@(_editingTheme.ImageUrl ?? "_content/Valour.Client/media/image-not-found.webp")" />
-
+    
+    <div style="display:none">
+        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="banner-upload"></InputFile>
+    </div>
+    
     <br />
     <br />
                                                                                                                                    
@@ -236,10 +267,29 @@ else
 
     private TaskResult<Theme>? _editingResult = null;
 
+    private IBrowserFile _uploadedImage = null;
+    private byte[] _uploadedImageBytes = null;
+    
+    private string _blobUrl;
+
     protected override async Task OnInitializedAsync()
     {
         _myThemes = await Theme.GetMyThemes();
         _popularThemeCount = await _popularThemes.GetTotalCount();
+        StateHasChanged();
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        _uploadedImage = e.File;
+        
+        using MemoryStream ms = new();
+        var fileStream = e.File.OpenReadStream();
+        await fileStream.CopyToAsync(ms);
+        _uploadedImageBytes = ms.ToArray();
+        
+        _blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", _uploadedImageBytes, e.File.ContentType);
+        
         StateHasChanged();
     }
 
@@ -341,6 +391,29 @@ else
         StateHasChanged();
     }
 
+    private async Task UploadBannerIfNeededAsync()
+    {
+        if (_uploadedImage is null)
+            return;
+
+        if (_uploadedImage.Size > 10240000)
+            return;
+        
+        using var ms = new MemoryStream(_uploadedImageBytes);
+        var streamContent = new StreamContent(ms);
+        var content = new MultipartFormDataContent();
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(_uploadedImage.ContentType);
+        content.Add(streamContent, _uploadedImage.Name, _uploadedImage.Name);
+        
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
+        if (!result.Success)
+        {
+            Console.WriteLine("Failed to upload banner: " + result.Message);
+        }
+
+        _blobUrl = null;
+    }
+
     private async Task ConfirmChangesAsync()
     {
         if (_editingTheme is null)
@@ -363,6 +436,10 @@ else
         }
         else
         {
+            _editingTheme = _editingResult.Value.Data;
+            
+            await UploadBannerIfNeededAsync();
+            
             _editingTheme = null;
             StateHasChanged();
         }

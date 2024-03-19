@@ -25,8 +25,11 @@ public class Theme
     [Column("description")]
     public string Description { get; set; }
     
-    [Column("image_url")]
-    public string ImageUrl { get; set; }
+    [Column("custom_banner")]
+    public bool HasCustomBanner { get; set; }
+    
+    [Column("animated_banner")]
+    public bool HasAnimatedBanner { get; set; }
     
     [Column("published")]
     public bool Published { get; set; }

@@ -60,7 +60,10 @@ public class ThemeService
             AuthorId = x.AuthorId,
             Name = x.Name,
             Description = x.Description,
-            ImageUrl = x.ImageUrl
+            HasCustomBanner = x.HasCustomBanner,
+            HasAnimatedBanner = x.HasAnimatedBanner,
+            MainColor1 = x.MainColor1,
+            PastelCyan = x.PastelCyan
         }).ToListAsync();
         
         return new PagedResponse<ThemeMeta>()
@@ -78,7 +81,10 @@ public class ThemeService
             AuthorId = x.AuthorId,
             Name = x.Name,
             Description = x.Description,
-            ImageUrl = x.ImageUrl
+            HasCustomBanner = x.HasCustomBanner,
+            HasAnimatedBanner = x.HasAnimatedBanner,
+            MainColor1 = x.MainColor1,
+            PastelCyan = x.PastelCyan
         }).ToListAsync();
     }
 
@@ -164,9 +170,10 @@ public class ThemeService
             return TaskResult<Theme>.FromError("Cannot change author of theme.");
         }
 
-        if (updated.ImageUrl != old.ImageUrl)
+        if (updated.HasCustomBanner != old.HasCustomBanner ||
+            updated.HasAnimatedBanner != old.HasAnimatedBanner)
         {
-            return TaskResult<Theme>.FromError("Cannot change image url of theme. Use separate endpoint.");
+            return TaskResult<Theme>.FromError("Cannot change custom banner status of theme. Use separate endpoint.");
         }
 
         var trans = await _db.Database.BeginTransactionAsync();
@@ -202,9 +209,6 @@ public class ThemeService
             var validation = await ValidateTheme(theme);
             if (!validation.Success)
                 return new TaskResult<Theme>(false, validation.Message);
-
-            // This must be set through api
-            theme.ImageUrl = null;
 
             // Themes start unpublished
             theme.Published = false;
