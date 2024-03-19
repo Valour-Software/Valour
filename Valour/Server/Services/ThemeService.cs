@@ -202,6 +202,16 @@ public class ThemeService
     /// <returns>A task result with the created theme</returns>
     public async Task<TaskResult<Theme>> CreateTheme(Theme theme)
     {
+        // Limit users to 20 themes for now
+        var themeCount = await _db.Themes
+            .Where(x => x.AuthorId == theme.AuthorId)
+            .CountAsync();
+        
+        if (themeCount >= 20)
+        {
+            return TaskResult<Theme>.FromError("You have reached the maximum number of created themes.");
+        }
+        
         using var transaction = await _db.Database.BeginTransactionAsync();
 
         try
@@ -210,8 +220,8 @@ public class ThemeService
             if (!validation.Success)
                 return new TaskResult<Theme>(false, validation.Message);
 
-            // Themes start unpublished
-            theme.Published = false;
+            // Themes start unpublished (ok but why did i even do this)
+            // theme.Published = false;
 
             if (!await _db.Users.AnyAsync(x => x.Id == theme.AuthorId))
             {
