@@ -41,29 +41,38 @@ public class ThemeService
     {
         var baseQuery = _db.Themes
             .AsNoTracking()
-            .Where(x => x.Published)
-            .Include(x => x.ThemeVotes)
-            .OrderByDescending(x => x.ThemeVotes.Count)
-            .Skip(amount * page)
-            .Take(amount);
-
+            .Where(x => x.Published);
+            
         if (!string.IsNullOrWhiteSpace(search))
         {
             baseQuery = baseQuery.Where(x => x.Name.ToLower().Contains(search.ToLower()));
         }
-
-        var count = await baseQuery.CountAsync();
+            
+            
+        var mainQuery = baseQuery
+            .Include(x => x.ThemeVotes)
+            .Select(x => new
+            {
+                Theme = x,
+                VoteCount = x.ThemeVotes.Count(v => v.Sentiment) - 
+                            x.ThemeVotes.Count(v => !v.Sentiment)
+            })
+            .OrderByDescending(x => x.VoteCount)
+            .Skip(amount * page)
+            .Take(amount);
         
-        var data = await baseQuery.Select(x => new ThemeMeta()
+        var count = await mainQuery.CountAsync();
+        
+        var data = await mainQuery.Select(x => new ThemeMeta()
         {
-            Id = x.Id,
-            AuthorId = x.AuthorId,
-            Name = x.Name,
-            Description = x.Description,
-            HasCustomBanner = x.HasCustomBanner,
-            HasAnimatedBanner = x.HasAnimatedBanner,
-            MainColor1 = x.MainColor1,
-            PastelCyan = x.PastelCyan
+            Id = x.Theme.Id,
+            AuthorId = x.Theme.AuthorId,
+            Name = x.Theme.Name,
+            Description = x.Theme.Description,
+            HasCustomBanner = x.Theme.HasCustomBanner,
+            HasAnimatedBanner = x.Theme.HasAnimatedBanner,
+            MainColor1 = x.Theme.MainColor1,
+            PastelCyan = x.Theme.PastelCyan
         }).ToListAsync();
         
         return new PagedResponse<ThemeMeta>()

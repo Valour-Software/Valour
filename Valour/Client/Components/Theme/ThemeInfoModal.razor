@@ -30,7 +30,7 @@
 
             <br/>
 
-            @if (!string.IsNullOrWhiteSpace(_theme.CustomCss))
+            @if (_theme is not null && !string.IsNullOrWhiteSpace(_theme.CustomCss))
             {
                 <b><i class="bi bi-exclamation-triangle-fill"></i> Theme contains custom CSS. Install with caution.</b>
                 <br/>

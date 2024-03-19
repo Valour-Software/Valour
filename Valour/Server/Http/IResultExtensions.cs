@@ -1,4 +1,5 @@
-﻿using Valour.Shared.Authorization;
+﻿using System.Text.Json;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.Http
 {
@@ -34,6 +35,40 @@ namespace Valour.Server.Http
                 httpContext.Response.StatusCode = 200;
                 httpContext.Response.Headers.ContentType = "application/json";
                 await httpContext.Response.WriteAsync(_data);
+            }
+        }
+        
+        private struct JsonResult : IResult
+        {
+            private readonly object _data;
+
+            public JsonResult(object data)
+            {
+                _data = data;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 200;
+                httpContext.Response.Headers.ContentType = "application/json";
+
+                if (_data is null)
+                {
+                    await httpContext.Response.WriteAsync("null");
+                }
+                else
+                {
+                    await JsonSerializer.SerializeAsync(httpContext.Response.Body, _data);   
+                }
+            }
+        }
+        
+        private readonly struct NullResult : IResult
+        {
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 200;
+                await httpContext.Response.WriteAsync("null");
             }
         }
 
@@ -165,6 +200,8 @@ namespace Valour.Server.Http
         public static IResult InvalidToken() => _invalidToken;
         public static IResult NotPlanetMember() => _notPlanetMember;
         public static IResult LacksPermission(Permission permission) => new LacksPermissionResult(permission);
+        public static IResult Json(object data) => new JsonResult(data);
+        public static IResult Null() => new NullResult();
 
         private static readonly IResult _noToken = new NoTokenResult();
         private static readonly IResult _invalidToken = new InvalidTokenResult();

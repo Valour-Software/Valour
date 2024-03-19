@@ -269,7 +269,7 @@ public static class ValourClient
 
     public static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
     };
 
 #endregion
@@ -1762,7 +1762,9 @@ public static class ValourClient
 
             // This means the null is expected
             if (allowNull && response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return new TaskResult<T>(false, $"An error occured. ({response.StatusCode})");
+            {
+                return TaskResult<T>.FromData(default(T));
+            }
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +
