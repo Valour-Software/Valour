@@ -1,6 +1,6 @@
 #!/bin/sh
-wget -O dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/65b835d6-37ef-4dd2-a86e-2c1d9d4d2b44/0713d8b7e798a68e07fd807071cd7e20/dotnet-sdk-8.0.0-linux-x64.tar.gz
-mkdir -p dotnet8
-tar -xf dotnet.tar.gz -C dotnet8
-./dotnet8/dotnet --version
-./dotnet8/dotnet publish -c Release -o output
+curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
+chmod +x dotnet-install.sh
+./dotnet-install.sh -c 8.0 -InstallDir ./dotnet
+./dotnet/dotnet --version
+./dotnet/dotnet publish -c Release -o output
