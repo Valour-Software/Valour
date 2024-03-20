@@ -1,6 +1,6 @@
 #!/bin/sh
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh -c Current -Version 8.0.0 -InstallDir ./dotnet8
+./dotnet-install.sh --channel LTS --version 8.0.0 --install-dir ./dotnet8
 ./dotnet8/dotnet --version
 ./dotnet8/dotnet publish -c Release -o output
