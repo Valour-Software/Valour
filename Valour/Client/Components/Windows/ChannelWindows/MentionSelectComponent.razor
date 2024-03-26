@@ -12,16 +12,16 @@
                 switch (match.Item)
                 {
                     case PlanetRole role:
-                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" ></MentionSelectRoleComponent>
+                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)"></MentionSelectRoleComponent>
                         break;
                     case PlanetMember member:
-                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)" ></MentionSelectMemberComponent>
+                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)"></MentionSelectMemberComponent>
                         break;
                     case User user:
-                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" ></MentionSelectUserComponent>
+                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)"></MentionSelectUserComponent>
                         break;
                     case Channel channel:
-                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" ></MentionSelectChannelComponent>
+                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)"></MentionSelectChannelComponent>
                         break;
                 }
 
@@ -49,13 +49,13 @@
     public int Selected { get; set; }
 
     public char Mode { get; set; }
-    
+
     private class MentionMatch
     {
         public long Id { get; set; }
         public object Item { get; set; }
     }
-    
+
     private List<MentionMatch> _matches;
 
     private Planet _planet;
@@ -68,7 +68,28 @@
     protected override void OnInitialized()
     {
         _matches = new();
+
+        ModelObserver<PlanetMember>.OnAnyUpdated += HandlePlanetMemberUpdated;
+
     }
+
+    public async Task HandlePlanetMemberUpdated(ModelUpdateEvent<PlanetMember> updatedMember)
+    {
+        var newMember = updatedMember.Model;
+
+        var existingMember = _members.FirstOrDefault(m => m.Id == newMember.Id);
+        if (existingMember != null)
+        {
+            return;
+        }
+        else
+        {
+            _members.Add(newMember);
+        }
+
+        StateHasChanged();
+    }
+
 
     public async Task SetVisible(bool value, char mode = ' ')
     {
@@ -88,7 +109,7 @@
             {
                 _users = await Channel.GetChannelMemberUsersAsync();
             }
-            
+
             // Set mode
             this.Mode = mode;
         }
@@ -102,43 +123,43 @@
         switch (selected)
         {
             case PlanetMember member:
-            {
-                var tag = $"«@m-{member.Id}» ";
-                var text = "@" + await member.GetNameAsync();
-                var classList = "mention";
-                var styleList = $"color: {await member.GetRoleColorAsync()}";
-                await InputComponent.InjectElementAsync(tag, text, classList, styleList);
-                break;
-            }
+                {
+                    var tag = $"«@m-{member.Id}» ";
+                    var text = "@" + await member.GetNameAsync();
+                    var classList = "mention";
+                    var styleList = $"color: {await member.GetRoleColorAsync()}";
+                    await InputComponent.InjectElementAsync(tag, text, classList, styleList);
+                    break;
+                }
             case User user:
-            {
-                var tag = $"«@u-{user.Id}» ";
-                var text = "@" + user.Name;
-                var classList = "mention";
-                var styleList = $"color: white";
+                {
+                    var tag = $"«@u-{user.Id}» ";
+                    var text = "@" + user.Name;
+                    var classList = "mention";
+                    var styleList = $"color: white";
 
-                await InputComponent.InjectElementAsync(tag, text, classList, styleList);
-                break;
-            }
+                    await InputComponent.InjectElementAsync(tag, text, classList, styleList);
+                    break;
+                }
             case PlanetRole role:
-            {
-                var tag = $"«@r-{role.Id}» ";
-                var text = "@" + role.Name;
-                var classList = "mention";
-                var styleList = $"color: {role.Color}";
+                {
+                    var tag = $"«@r-{role.Id}» ";
+                    var text = "@" + role.Name;
+                    var classList = "mention";
+                    var styleList = $"color: {role.Color}";
 
-                await InputComponent.InjectElementAsync(tag, text, classList, styleList);
-                break;
-            }
+                    await InputComponent.InjectElementAsync(tag, text, classList, styleList);
+                    break;
+                }
             case Channel channel:
-            {
-                var tag = $"«@c-{channel.Id}» ";
-                var text = "#" + channel.Name;
-                var classlist = "channel-mention";
+                {
+                    var tag = $"«@c-{channel.Id}» ";
+                    var text = "#" + channel.Name;
+                    var classlist = "channel-mention";
 
-                await InputComponent.InjectElementAsync(tag, text, classlist, "");
-                break;
-            }
+                    await InputComponent.InjectElementAsync(tag, text, classlist, "");
+                    break;
+                }
         }
 
         await SetVisible(false);
@@ -149,7 +170,7 @@
     public async Task SetText(string newText)
     {
         Text = newText.TrimStart(Mode).ToLower();
-        
+
         _matches.Clear();
 
         if (Mode == '@')
@@ -168,8 +189,8 @@
                                      .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
                                      .ThenBy(x => x.Nickname.Length)
                                      .Take(10)
-                                     .Select(x => new MentionMatch(){ Id = x.Id, Item = x });
-                    
+                                     .Select(x => new MentionMatch() { Id = x.Id, Item = x });
+
                     _matches.AddRange(members);
 
                     var canMentionAll = false;
@@ -185,13 +206,13 @@
                     var roleQuery = _roles.Where(x => x.Name.ToLower().Contains(Text));
                     if (!canMentionAll)
                         roleQuery = roleQuery.Where(x => x.AnyoneCanMention);
-                    
-                    var roles = 
+
+                    var roles =
                         roleQuery.OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                         .ThenBy(x => x.Name.Length)
                         .Take(5)
                         .Select(x => new MentionMatch() { Id = x.Id, Item = x });
-                    
+
                     _matches.AddRange(roles);
                 }
             }
@@ -201,15 +222,16 @@
                                                  .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                                                  .ThenBy(x => x.Name.Length)
                                                  .Take(10)
-                                                 .Select(x => new MentionMatch(){ Id = x.Id, Item = x}));
+                                                 .Select(x => new MentionMatch() { Id = x.Id, Item = x }));
             }
         }
-        else if (Mode == '#'){
+        else if (Mode == '#')
+        {
             _matches.AddRange(_chatChannels.Where(x => x.Name.ToLower().Contains(Text))
                              .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                              .ThenBy(x => x.Name.Length)
                              .Take(10)
-                             .Select(x => new MentionMatch(){ Id = x.Id, Item = x }));
+                             .Select(x => new MentionMatch() { Id = x.Id, Item = x }));
         }
 
         StateHasChanged();
@@ -218,7 +240,7 @@
     public void MoveSelect(int n)
     {
         Selected += n;
-        
+
         if (Selected > _matches.Count - 1)
         {
             Selected = 0;
@@ -227,7 +249,7 @@
         {
             Selected = _matches.Count - 1;
         }
-        
+
         StateHasChanged();
     }
 }
