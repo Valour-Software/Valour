@@ -10,7 +10,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
     - uses: benjlevesque/short-sha@v2.2
@@ -50,8 +50,8 @@ jobs:
     - name: Publish API Nuget Package
       uses: alirezanet/publish-nuget@v3.1.0
       with:
-        PROJECT_FILE_PATH: Valour/API/Valour.Api.csproj
-        VERSION_FILE_PATH: Valour/API/Valour.Api.csproj
+        PROJECT_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
+        VERSION_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
         NUGET_KEY: ${{secrets.NUGET_API_KEY}}
     
     - name: Log in to the Container registry
