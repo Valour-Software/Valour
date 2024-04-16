@@ -1,10 +1,13 @@
 ﻿using System.Text.Json;
 using Markdig.Extensions.TaskLists;
+using Valour.Database;
 using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Models;
 using WebPush;
+using Message = Valour.Server.Models.Message;
+using Notification = Valour.Server.Models.Notification;
 
 namespace Valour.Server.Services;
 
@@ -201,41 +204,58 @@ public class NotificationService
         
         bool dbChange = false;
         
+        // List of tasks for notifications. Will return subscription if it fails to be removed.
+        var tasks = new List<Task<NotificationSubscription>>();
+        
         // Send notification to all
         foreach (var sub in subs)
         {
             var pushSubscription = new PushSubscription(sub.Endpoint, sub.Key, sub.Auth);
-            try
-            {
-                var payload = JsonSerializer.Serialize(new
-                {
-                    title,
-                    message,
-                    iconUrl,
-                    url = clickUrl,
-                });
 
-                // We are not awaiting this on purpose
-                #pragma warning disable 4014
-                _webPush.SendNotificationAsync(pushSubscription, payload, _vapidDetails);
-                #pragma warning restore 4014
-            }
-            catch (WebPushException wex)
+            var payload = JsonSerializer.Serialize(new
             {
-                if (wex.Message.Contains("no longer valid"))
-                {
-                    // Clean old subscriptions that are now invalid
-                    _db.NotificationSubscriptions.Remove(sub);
-                    dbChange = true;
-                }
-                else
-                {
-                    Console.Error.WriteLine("Error sending push notification: " + wex.Message);
-                }
-            }
-            catch (Exception ex)
+                title,
+                message,
+                iconUrl,
+                url = clickUrl,
+            });
+            
+            tasks.Add(Task.Run(async () =>
             {
-                Console.Error.WriteLine("Error sending push notification: " + ex.Message);
+                try
+                {
+                    await _webPush.SendNotificationAsync(pushSubscription, payload, _vapidDetails);
+                }
+                catch (WebPushException wex)
+                {
+                    if (wex.Message.Contains("no longer valid"))
+                    {
+                        // Clean old subscriptions that are now invalid
+                        return sub;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error sending push notification: " + wex.Message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error sending push notification: " + ex.Message);
+                }
+                
+                return null;
+            }));
+        }
+
+        var results = await Task.WhenAll(tasks);
+        
+        // Remove expired subscriptions
+        foreach (var result in results)
+        {
+            if (result is not null)
+            {
+                adb.NotificationSubscriptions.Remove(result);
+                dbChange = true;
             }
         }
 

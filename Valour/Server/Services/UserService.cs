@@ -552,6 +552,12 @@ public class UserService
         var pMsgs = _db.Messages.Where(x => x.AuthorUserId == dbUser.Id);
         _db.Messages.RemoveRange(pMsgs);
         
+        // Remove message attachments
+        var msgAttachments = _db.CdnBucketItems.Where(x => x.UserId == user.Id);
+        _db.CdnBucketItems.RemoveRange(msgAttachments);
+        
+        await _db.SaveChangesAsync();
+
         // Channel states
         var states = _db.UserChannelStates.Where(x => x.UserId == dbUser.Id);
         _db.UserChannelStates.RemoveRange(states);
@@ -586,6 +592,8 @@ public class UserService
             
             await _db.SaveChangesAsync();
         }
+        
+        
 
         _db.Channels.RemoveRange(dChannels);
         
