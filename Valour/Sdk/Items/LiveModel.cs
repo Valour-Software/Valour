@@ -55,9 +55,15 @@ namespace Valour.Sdk.Items
                     case Planet planet: 
                         // Planets have node known
                         return NodeManager.GetNodeFromName(planet.NodeName);
-                    case IPlanetModel planetItem: 
+                    case IPlanetModel planetItem:
+                    {
+                        // Doesn't actually have a planet
+                        if (planetItem.Id == -1)
+                            return ValourClient.PrimaryNode;
+                        
                         // Planet items can just check their planet
                         return NodeManager.GetKnownByPlanet(planetItem.PlanetId);
+                    }
                     default: 
                         // Everything else can just use the primary node
                         return ValourClient.PrimaryNode;

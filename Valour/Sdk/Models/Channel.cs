@@ -64,8 +64,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             if (PlanetId is null)
             {
-                Console.WriteLine("[!!!] Unexpected null PlanetId! This should not happen!");
-                return 0;
+                return -1;
             }
 
             return PlanetId.Value;
@@ -233,6 +232,9 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return;
 
+        if (Node is null) // Need to make strategy for DMs in the future
+            return;
+        
         await Node.PostAsync($"{IdRoute}/typing", null);
     }
 

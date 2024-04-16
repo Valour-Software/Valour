@@ -677,6 +677,18 @@ public class UserService
 
         _db.Users.Remove(dbUser);
         await _db.SaveChangesAsync();
+        
+        // Themes
+        // we re-assign ownership of themes to Victor
+        
+        var themes = _db.Themes.Where(x => x.AuthorId == dbUser.Id);
+        foreach (var theme in themes)
+        {
+            theme.AuthorId = ISharedUser.VictorUserId;
+            _db.Themes.Update(theme);
+        }
+        
+        await _db.SaveChangesAsync();
 
         try
         {
