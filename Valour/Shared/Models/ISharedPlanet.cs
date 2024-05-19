@@ -4,6 +4,9 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using System.Text;
+using Valour.Shared.Utilities;
+
 namespace Valour.Shared.Models;
 
 public interface ISharedPlanet : ISharedItem
@@ -100,7 +103,9 @@ public interface ISharedPlanet : ISharedItem
     public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
     {
         if (!planet.HasCustomIcon)
-            return null;
+        {
+            return PlanetIconSvgGenerator.GetPlanetIconColor(planet);                        
+        }
 
         // If an animated icon is requested, but the planet doesn't have one, use the static version
         if (!planet.HasAnimatedIcon)
