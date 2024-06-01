@@ -51,6 +51,31 @@ public class ValourDB : DbContext
             .HasConversion(x => x, x =>
                 x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
             );
+
+        modelBuilder.Entity<MemberChannelAccess>(e =>
+        {
+            e.ToTable("member_channel_access");
+            
+            e.Property(x => x.MemberId)
+                .HasColumnName("member_id");
+            e.Property(x => x.ChannelId)
+                .HasColumnName("channel_id");
+            e.Property(x => x.PlanetId)
+                .HasColumnName("planet_id");
+            
+            e.HasKey(x => new {x.MemberId, x.ChannelId});
+            e.HasOne(x => x.Member)
+                .WithMany(x => x.ChannelAccess)
+                .HasForeignKey(x => x.MemberId);
+            
+            e.HasIndex(x => x.ChannelId);
+            e.HasIndex(x => x.MemberId);
+        });
+
+        modelBuilder.Entity<PermissionCheckResult>().HasNoKey();
+        modelBuilder.Entity<UpdateAccessResult>().HasNoKey();
+        modelBuilder.Entity<UpdateAccessRowCountResult>().HasNoKey();
+
     }
 
     // These are the database sets we can access
@@ -127,6 +152,11 @@ public class ValourDB : DbContext
     /// Table for all channels
     /// </summary>
     public DbSet<Channel> Channels { get; set; }
+    
+    /// <summary>
+    /// Table for all member channel access records
+    /// </summary>
+    public DbSet<MemberChannelAccess> MemberChannelAccess { get; set; }
     
     /// <summary>
     /// Table for all channel members (not to be confused with planet members)
