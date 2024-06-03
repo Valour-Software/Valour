@@ -88,6 +88,9 @@
 		var planet = response.Data;
 
 		await ValourCache.Put(planet.Id, planet);
+
+		await ValourClient.AddJoinedPlanetAsync(planet);
+		
 		var mainChannel = await planet.GetPrimaryChannelAsync();
 
 		await Data.Window.WindowBase.AddSiblingWindow(new WindowData()

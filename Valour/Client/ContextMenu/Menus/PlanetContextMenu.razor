@@ -78,7 +78,7 @@
              async () =>
              {
                  Console.WriteLine("Confirmed leaving planet.");
-                 var result = await ValourClient.LeavePlanetAsync(Data.Planet);
+                 var result = await ValourClient.LeavePlanetAsync(Data.Planet); 
                  Console.WriteLine("Leave: " + result.Message);
              },
              () => Task.CompletedTask

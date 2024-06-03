@@ -617,8 +617,7 @@ public class PlanetMemberService
         
         if (doTransaction)
         {
-            await using var transaction = await _db.Database.BeginTransactionAsync();
-            trans = transaction;
+            trans = await _db.Database.BeginTransactionAsync();
         }
 
         var dbMember = await _db.PlanetMembers.FindAsync(memberId);

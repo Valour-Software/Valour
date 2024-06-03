@@ -350,6 +350,28 @@ public static class ValourClient
     public static async Task<TaskResult> SendMessage(Message message)
         => await message.PostMessageAsync();
 
+    public static async Task AddJoinedPlanetAsync(Planet planet)
+    {
+        JoinedPlanets.Add(planet);
+
+        if (OnPlanetJoin is not null)
+            await OnPlanetJoin.Invoke(planet);
+
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
+    }
+    
+    public static async Task RemoveJoinedPlanetAsync(Planet planet)
+    {
+        JoinedPlanets.Remove(planet);
+
+        if (OnPlanetLeave is not null)
+            await OnPlanetLeave.Invoke(planet);
+
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
+    }
+    
     /// <summary>
     /// Attempts to join the given planet
     /// </summary>
@@ -359,13 +381,7 @@ public static class ValourClient
 
         if (result.Success)
         {
-            JoinedPlanets.Add(planet);
-
-            if (OnPlanetJoin is not null)
-                await OnPlanetJoin.Invoke(planet);
-
-            if (OnJoinedPlanetsUpdate is not null)
-                await OnJoinedPlanetsUpdate.Invoke();
+            await AddJoinedPlanetAsync(planet);
         }
 
         return result;
@@ -382,13 +398,7 @@ public static class ValourClient
 
         if (result.Success)
         {
-            JoinedPlanets.Remove(planet);
-
-            if (OnPlanetLeave is not null)
-                await OnPlanetLeave.Invoke(planet);
-
-            if (OnJoinedPlanetsUpdate is not null)
-                await OnJoinedPlanetsUpdate.Invoke();
+            await RemoveJoinedPlanetAsync(planet);
         }
 
         return result;
