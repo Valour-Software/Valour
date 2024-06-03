@@ -65,7 +65,10 @@ public class ChannelAccessService
         }
     }
 
-    public async Task<UpdateAccessRowCountResult> UpdateChannelAccessForEntirePlanet(long memberId, long planetId)
+    /// <summary>
+    /// Updates all channel access in planet for the given member
+    /// </summary>
+    public async Task<UpdateAccessRowCountResult> UpdateAllChannelAccessMember(long memberId)
     {
         var result = await _db.Set<UpdateAccessRowCountResult>()
             .FromSqlInterpolated($@"
@@ -75,6 +78,22 @@ public class ChannelAccessService
             .AsNoTracking()
             .SingleOrDefaultAsync();
 
+        return result;
+    }
+
+    /// <summary>
+    /// Updates all channel access in planet for all members in the given role
+    /// </summary>
+    public async Task<UpdateAccessRowCountResult> UpdateAllChannelAccessForMembersInRole(long roleId)
+    {
+        var result = await _db.Set<UpdateAccessRowCountResult>()
+            .FromSqlInterpolated($@"
+                SELECT apply_member_access_for_all_in_role(
+                    {roleId}
+                ) as value")
+            .AsNoTracking()
+            .SingleOrDefaultAsync();
+        
         return result;
     }
     
