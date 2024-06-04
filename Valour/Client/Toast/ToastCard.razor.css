@@ -1,0 +1,65 @@
+.toast-wrapper {
+    margin-top: 1em;
+    position: absolute;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    transition: top 0.25s ease-in-out;
+}
+
+.toast-card {
+    pointer-events: all;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.70em;
+    padding: 0.4em;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    border-radius: 0.5em;
+    min-width: 200px;
+    max-width: 400px;
+    background-color: var(--main-5);
+
+    animation-name: animate-pop;
+    animation-timing-function: cubic-bezier(0.24, 0.5, 0.74, 2);
+    animation-duration: 0.25s;
+}
+
+.toast-card.shrink {
+    animation-name: animate-shrink !important;
+    animation-timing-function: cubic-bezier(0.24, 0.5, 0.74, 2);
+    animation-duration: 0.25s;
+}
+
+.toast-left {
+    position: relative;
+}
+
+.toast-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+}
+
+.toast-title {
+    color: white;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin: 0;
+}
+
+.toast-desc {
+    color: white;
+    font-size: 0.75em;
+    margin: 0;
+}
+
+.lottie-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+}

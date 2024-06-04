@@ -96,5 +96,23 @@ public class ChannelAccessService
         
         return result;
     }
+
+    /// <summary>
+    /// Updates all channel access for a given channel
+    /// </summary>
+    /// <param name="channelId"></param>
+    /// <returns></returns>
+    public async Task<UpdateAccessRowCountResult> UpdateAllChannelAccessForChannel(long channelId)
+    {
+        var result = await _db.Set<UpdateAccessRowCountResult>()
+            .FromSqlInterpolated($@"
+                SELECT apply_member_access_channel_all(
+                    {channelId}
+                ) as value")
+            .AsNoTracking()
+            .SingleOrDefaultAsync();
+        
+        return result;
+    }
     
 }

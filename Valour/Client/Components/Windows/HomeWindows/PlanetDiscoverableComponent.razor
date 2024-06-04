@@ -81,14 +81,14 @@
             );
     }
     
-    public string GetCommunityShortCode(string communityName)
+    private string GetCommunityShortCode(string communityName)
     {
         if (communityName.Length < 5)
         {
             return communityName.ToUpper();
         }
 
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
 
         for (int i = 0; i < communityName.Length; i++)
         {
@@ -121,7 +121,7 @@
         return sb.ToString();
     }
     
-    public void GenerateAutoGraphic()
+    private void GenerateAutoGraphic()
     {
         _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
         _iconText = GetCommunityShortCode(Planet.Name);
@@ -130,32 +130,14 @@
         _iconTextStyle = $"font-size: {100f / (_iconText.Length + 1)}px;";
     }
 
-    public async Task OnClick()
+    private async Task OnClick()
     {
         // Attempt to join planet
-        var result = await ValourClient.JoinPlanetAsync(Planet);
-        
-        InfoModalComponent.ModalParams modalData;
-
-        if (!result.Success)
-        {
-            modalData =
-            new($"Failed to join.",
-                "Reason: " + result.Message,
-                "Okay",
-                () => Task.CompletedTask
-            );
-        }
-        else
-        {
-            modalData =
-            new($"Joined planet!",
-                "Have a nice stay!",
-                "Okay",
-                () => Task.CompletedTask
-            );
-        }
-        
-        ModalRoot.OpenModal<InfoModalComponent>(modalData);
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
+            $"Joining {Planet.Name}",
+            "...",
+            ValourClient.JoinPlanetAsync(Planet),
+            "Joined successfully!"
+        ));
     }
 }
