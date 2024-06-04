@@ -1,52 +1,51 @@
-<div class="col-md-12 modal-bg">
-	<section>
-		<h2>Create a new Planet</h2>
+@inject IJSRuntime JsRuntime
 
-		<h4>The birth of a community!</h4>
-		
-		<hr />
+<section class="v-bg-dark" style="padding: 2em; border-radius: 1em">
+	<h2>Create a Planet</h2>
 
-		<div asp-validation-summary="All" class="text-info"></div>
+	<lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1" style="width: 240px; height: 200px;"></lottie-player>
+
+	@if (_result is null || !_result.Success)
+	{
 
 		<div class="form-group mt-4">
 			<label>Community Name</label>
-			<input class="form-control" @bind-value="@_name" type='' />
-			<span style="color:#888888">@_nameSpan</span>
+			<input class="form-control" @bind-value="@_name" type=''/>
 		</div>
 
 		<div class="form-group mt-4">
 			<label>Description</label>
-			<input class="form-control" @bind-value="@_desc" />
-			<span style="color:#888888">@_descSpan</span>
+			<input class="form-control" @bind-value="@_desc"/>
 		</div>
-
-		@if (!string.IsNullOrEmpty(_errorSpan))
-		{
-			<span class="danger-text mt-4 mb-4">@_errorSpan</span>
-		}
-
+		
 		<div class="form-group mt-4">
-			<button class="btn v-btn mt-2" @onclick="OnClickSubmit">Submit</button>
+			<button class="v-btn primary large mt-2" @onclick="OnClickSubmit">Create your Community!</button>
 		</div>
-	</section>
-</div>
+	}
+	
+	@if (_showWelcome)
+	{
+		<h4 class="welcome" style="text-align: center">
+			We have landed!
+		</h4>
+	}
+</section>
 
 @code {
 
+	private ElementReference _lottieRef;
+
+	private bool _showWelcome = false;
+	
 	public class ModalParams
 	{
 		public WindowData Window { get; set; }
 	}
 	
-	// Input fields
-	string _name;
-	string _desc;
+	private ITaskResult _result;
 
-	// Spans
-	string _nameSpan = "The name of your community";
-	string _descSpan = "A description of your community";
-
-	string _errorSpan;
+	private string _name;
+	private string _desc;
 
 	[CascadingParameter]
 	public ModalRoot ModalRoot { get; set; }
@@ -62,7 +61,7 @@
 		// Require a name
 		if (string.IsNullOrWhiteSpace(_name))
 		{
-			_name = "Please input a planet name.";
+			_result = new TaskResult(false, "Please input a planet name.");
 			return;
 		}
 
@@ -71,22 +70,30 @@
 			Name = _name,
 			Description = _desc
 		};
+		
+		var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planets", newPlanet);
+		_result = result;
 
-		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planets", newPlanet);
-
-		if (!response.Success)
+		StateHasChanged();
+		
+		if (!_result.Success)
 		{
-			_errorSpan = response.Message;
-			StateHasChanged();
 			return;
 		}
+
+		_showWelcome = true;
+		StateHasChanged();
+		
+		await Task.Delay(200);
+
+		await JsRuntime.InvokeVoidAsync("playLottie", _lottieRef);
+		
+		await Task.Delay(3000);
 		
 		await ModalRoot.CloseModal(ModalId);
 
-		_descSpan = "Planet created.";
-
-		var planet = response.Data;
-
+		var planet = result.Data;
+		
 		await ValourCache.Put(planet.Id, planet);
 
 		await ValourClient.AddJoinedPlanetAsync(planet);

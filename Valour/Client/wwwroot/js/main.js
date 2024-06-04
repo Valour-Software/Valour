@@ -489,3 +489,7 @@ async function injectReddit(id, data) {
     redditScript.charset = "utf-8";
     container.appendChild(redditScript);
 }
+
+function playLottie(element) {
+    element.play();
+}

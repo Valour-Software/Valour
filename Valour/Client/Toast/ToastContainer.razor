@@ -4,7 +4,7 @@
         @for (int i = 0; i < ActiveToasts.Count; i++)
         {
             var toast = ActiveToasts[i];
-            <ToastCard @key="@toast" @ref="@toast.Card" TopOffset="@(70 * i)" Toast="@toast" />
+            <ToastCard @key="@toast" @ref="@toast.Card" TopOffset="@(50 * i)" Toast="@toast" />
         }
     </div>
 </CascadingValue>
