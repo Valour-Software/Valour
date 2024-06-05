@@ -29,9 +29,12 @@
                     <span class="plus" @onclick="@OnClickPlus">
                         <i class="bi bi-plus-circle-fill"></i>
                     </span>
-                    <span class="minus" @onclick="@OnClickMinus">
-                        <i class="bi bi-dash-circle-fill"></i>
-                    </span>
+                    @if (Container.Windows.Count > 1)
+                    {
+                        <span class="minus" @onclick="@OnClickMinus">
+                            <i class="bi bi-dash-circle-fill"></i>
+                        </span>
+                    }
                 </div>
             </div>
         }
