@@ -715,7 +715,7 @@ public static class ValourClient
             PlanetLocks.Remove(key);
         }
 
-        return !PlanetLocks.Any(x => x.Value == planetId);
+        return PlanetLocks.Any(x => x.Value == planetId);
     }
     
     /// <summary>
@@ -740,7 +740,7 @@ public static class ValourClient
             ChannelLocks.Remove(key);
         }
 
-        return !ChannelLocks.Any(x => x.Value == channelId);
+        return ChannelLocks.Any(x => x.Value == channelId);
     }
 
     /// <summary>
@@ -748,12 +748,17 @@ public static class ValourClient
     /// </summary>
     public static async Task ClosePlanetConnection(Planet planet, string key, bool force = false)
     {
+        Console.WriteLine("Planet keys: " + string.Join(", ", PlanetLocks.Keys));
+        Console.WriteLine("Removing key: " + key);
+        
         if (!force)
         {
             var locked = RemovePlanetLock(key);
             if (locked)
                 return;
         }
+        
+        Console.WriteLine("1");
 
         // Already closed
         if (!OpenPlanets.Contains(planet))

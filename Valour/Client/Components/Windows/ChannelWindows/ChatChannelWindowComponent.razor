@@ -49,6 +49,7 @@
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
 
+        Window.OnClosed += OnWindowClosed;
         Window.OnFocused += OnWindowFocused;
         return Task.CompletedTask;
     }
