@@ -66,7 +66,7 @@ function IsEmbedded() {
 
 
 // Set the name of the hidden property and the change event for visibility
-var hidden, visibilityChange;
+let hidden, visibilityChange;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
     hidden = "hidden";
     visibilityChange = "visibilitychange";
@@ -82,9 +82,9 @@ let lastRefocus = null;
 
 // Visbility change handler
 if (document.addEventListener) {
-    document.addEventListener("visibilitychange", function () {
+    document.addEventListener(visibilityChange, function () {
         console.log('Visibility change event detected.')
-        if (document.hidden) {
+        if (document[hidden]) {
             // page is hidden
         } else {
             if (lastRefocus && (new Date() - lastRefocus) < 1000) {
