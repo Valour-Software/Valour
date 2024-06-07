@@ -72,7 +72,7 @@ public class ChannelAccessService
     {
         var result = await _db.Set<UpdateAccessRowCountResult>()
             .FromSqlInterpolated($@"
-                SELECT apply_member_access(
+                SELECT apply_member_access_planet(
                     {memberId}
                 ) as value")
             .AsNoTracking()

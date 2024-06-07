@@ -22,6 +22,7 @@ public class PlanetMemberService
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
+    private readonly ChannelAccessService _accessService;
     private readonly ILogger<PlanetMemberService> _logger;
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
@@ -30,12 +31,14 @@ public class PlanetMemberService
         ValourDB db,
         CoreHubService coreHub,
         TokenService tokenService,
+        ChannelAccessService accessService,
         ILogger<PlanetMemberService> logger)
     {
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
         _logger = logger;
+        _accessService = accessService;
     }
     
     /// <summary>
@@ -482,6 +485,10 @@ public class PlanetMemberService
             }
 
             await _db.SaveChangesAsync();
+            
+            // Add channel access
+            await _accessService.UpdateAllChannelAccessMember(member.Id);
+
         }
         catch (Exception e)
         {
