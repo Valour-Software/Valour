@@ -49,22 +49,6 @@ public class ChannelAccessService
         }
     }
 
-    public async Task RemoveAllAccessForMember(long memberId, long planetId)
-    {
-        try
-        {
-            var channelAccess = await _db.MemberChannelAccess
-                .Where(x => x.MemberId == memberId && x.PlanetId == planetId)
-                .ToListAsync();
-
-            _db.MemberChannelAccess.RemoveRange(channelAccess);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to remove all channel access for member {memberId} in planet {planetId}", memberId, planetId);
-        }
-    }
-
     /// <summary>
     /// Updates all channel access in planet for the given member
     /// </summary>
@@ -113,6 +97,29 @@ public class ChannelAccessService
             .SingleOrDefaultAsync();
         
         return result;
+    }
+
+    /// <summary>
+    /// Removes all the channel access for a given member
+    /// </summary>
+    public async Task<UpdateAccessRowCountResult> ClearMemberAccessAsync(long memberId)
+    {
+        try
+        {
+            var count = await _db.MemberChannelAccess.Where(x => x.MemberId == memberId).ExecuteDeleteAsync();
+            return new UpdateAccessRowCountResult()
+            {
+                RowsUpdated = count
+            };
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to remove all channel access for member {memberId}", memberId);
+            return new UpdateAccessRowCountResult()
+            {
+                RowsUpdated = 0
+            };
+        }
     }
     
 }

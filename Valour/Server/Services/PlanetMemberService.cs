@@ -642,6 +642,9 @@ public class PlanetMemberService
 
             await _db.SaveChangesAsync();
             
+            // Remove channel access
+            await _accessService.ClearMemberAccessAsync(dbMember.Id);
+            
             if (trans is not null) 
             {
                 await trans.CommitAsync();
