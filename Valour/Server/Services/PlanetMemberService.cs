@@ -571,14 +571,22 @@ public class PlanetMemberService
             UserId = member.UserId,
             PlanetId = member.PlanetId
         };
+
+        await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
         {
             await _db.PlanetRoleMembers.AddAsync(newRoleMember);
             await _db.SaveChangesAsync();
+
+            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _db.SaveChangesAsync();
+            
+            await trans.CommitAsync();
         }
         catch (Exception e)
         {
+            await trans.RollbackAsync();
             return new TaskResult<PlanetRoleMember>(false, "An unexpected error occurred.");
         }
 
@@ -600,13 +608,21 @@ public class PlanetMemberService
         if (isDefaultRole)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
+        await using var trans = await _db.Database.BeginTransactionAsync();
+        
         try
         {
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
+            
+            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _db.SaveChangesAsync();
+            
+            await trans.CommitAsync();
         }
         catch (Exception e)
         {
+            await trans.RollbackAsync();
             return new TaskResult(false, "An unexpected error occurred.");
         }
 

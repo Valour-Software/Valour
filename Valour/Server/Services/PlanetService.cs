@@ -12,15 +12,18 @@ public class PlanetService
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetService> _logger;
+    private readonly ChannelAccessService _accessService;
     
     public PlanetService(
         ValourDB db,
         CoreHubService coreHub,
-        ILogger<PlanetService> logger)
+        ILogger<PlanetService> logger,
+        ChannelAccessService accessService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
+        _accessService = accessService;
     }
     
     /// <summary>

@@ -549,8 +549,15 @@ public class UserService
             return;
         
         // Remove messages
-        var pMsgs = _db.Messages.Where(x => x.AuthorUserId == dbUser.Id);
-        _db.Messages.RemoveRange(pMsgs);
+        await _db.Messages.Where(x => x.AuthorUserId == dbUser.Id)
+            .ExecuteUpdateAsync(x =>
+                x.SetProperty(y => y.Content, "Content Deleted.")
+                 .SetProperty(y => y.AttachmentsData, "")
+                 .SetProperty(y =>  y.AuthorUserId, ISharedUser.VictorUserId)
+                 .SetProperty(y => y.AuthorMemberId, new Nullable<long>())
+                 .SetProperty(y => y.EmbedData, "")
+                 .SetProperty(y => y.MentionsData, "")
+            );
         
         // Remove message attachments
         var msgAttachments = _db.CdnBucketItems.Where(x => x.UserId == user.Id);
@@ -564,6 +571,16 @@ public class UserService
 
         await _db.SaveChangesAsync();
 
+        var memberIds = await _db.PlanetMembers.Where(x => x.UserId == dbUser.Id).Select(x => x.Id).ToListAsync();
+        foreach (var memberId in memberIds)
+        {
+            // Channel access
+            var access = _db.MemberChannelAccess.Where(x => x.MemberId == memberId);
+            _db.MemberChannelAccess.RemoveRange(access);
+        }
+        
+        await _db.SaveChangesAsync();
+        
         // Channel membership
         var dchannelMembers = _db.ChannelMembers.Where(x => x.UserId == dbUser.Id);
         _db.ChannelMembers.RemoveRange(dchannelMembers);
