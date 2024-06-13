@@ -71,10 +71,12 @@
 
     public virtual Type GetInputComponentType() => 
         typeof(InputComponent);
+    
+    public string WindowChannelKey => Window.Id + _instanceId;
 
     public virtual async Task SetupNewChannelAsync()
     {
-        await Channel.Open(Window.Id + _instanceId);
+        await Channel.Open(WindowChannelKey);
         
         // Planet stuff
         if (Channel.PlanetId is not null)
@@ -109,7 +111,7 @@
             return;
         
         // Close old channel
-        await Channel.Close(Window.Id);
+        await Channel.Close(WindowChannelKey);
         
         // Remove channel event listeners
         Channel.OnUpdated -= OnChatChannelUpdate;
@@ -143,7 +145,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await Channel.Close(Window.Id + _instanceId);
+        await Channel.Close(WindowChannelKey);
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -240,7 +242,7 @@
     {
         GlobalWindowData.RemoveGlobalChatWindow(this);
         
-        await Channel.Close(Window.Id);
+        await Channel.Close(WindowChannelKey);
         
         if (_planet is not null)
         {

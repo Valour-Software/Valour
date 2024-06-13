@@ -362,6 +362,7 @@ public class PlanetMemberService
         // 9: There was only a DENY node
         // 11: Invalid permission type
         // 13: Fallback on top role DENIED
+        // 15: Member does not exist
         // 
         // -1: Something is wrong
          

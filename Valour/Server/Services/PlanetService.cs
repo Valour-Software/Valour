@@ -117,6 +117,9 @@ public class PlanetService
         
         try
         {
+
+            List<long> changedRoleIds = new();
+            
             var pos = 0;
 
             foreach (var role in order)
@@ -130,6 +133,12 @@ public class PlanetService
                 
                 // If default (everyone), force lowest position
                 role.Position = old.IsDefault ? int.MaxValue : pos;
+                
+                // If position changed, add to list
+                if (old.Position != role.Position)
+                {
+                    changedRoleIds.Add(role.Id);
+                }
                     
                 _db.Entry(old).CurrentValues.SetValues(role);
                 _db.PlanetRoles.Update(old);
@@ -143,6 +152,15 @@ public class PlanetService
             }
 
             await _db.SaveChangesAsync();
+            
+            // Use saved change list to apply access changes
+            foreach (var roleId in changedRoleIds)
+            {
+                await _accessService.UpdateAllChannelAccessForMembersInRole(roleId);
+            }
+
+            await _db.SaveChangesAsync();
+            
             await tran.CommitAsync();
         }
         catch (Exception)
@@ -428,6 +446,9 @@ public class PlanetService
         if (insert is null)
             return new TaskResult(false, "Child to insert not found.");
         
+        if (insert.ParentId == categoryId)
+            return new TaskResult(false, "This child is already in the category.");
+        
         // Ensure we are not putting a category into one of its own children
         if (category is not null)
         {
@@ -460,64 +481,78 @@ public class PlanetService
         
         var oldCategoryId = insert.ParentId;
         List<ChannelOrderData> oldCategoryOrder = null;
-
-        if (oldCategoryId is not null)
-        {
-            var oldCategory = await _db.Channels.FindAsync(insert.ParentId);
-            if (oldCategory is null || oldCategory.ChannelType != ChannelTypeEnum.PlanetCategory)
-                return new TaskResult(false, "Error getting old parent category.");
-
-            var oldCategoryChildren = await _db.Channels
-                .Where(x => x.ParentId == oldCategory.Id)
-                .OrderBy(x => x.Position)
-                .ToListAsync();
-
-            // Remove from old category
-            oldCategoryChildren.RemoveAll(x => x.Id == insertId);
-
-            oldCategoryOrder = new();
-            
-            // Update all positions
-            var opos = 0;
-            foreach (var child in oldCategoryChildren)
-            {
-                child.Position = opos;
-                oldCategoryOrder.Add(new(child.Id, child.ChannelType));
-                opos++;
-            }
-        }
-
-        insert.ParentId = categoryId;
-        insert.PlanetId = insert.PlanetId;
-        insert.Position = position;
         
-        if (position >= children.Count)
-        {
-            children.Add(insert);
-        }
-        else
-        {
-            children.Insert(position, insert);
-        }
-
         // Positions for new category
         List<ChannelOrderData> newCategoryOrder = new();
         
-        // Update all positions
-        var pos = 0;
-        foreach (var child in children)
-        {
-            child.Position = pos;
-            newCategoryOrder.Add(new(child.Id, child.ChannelType));
-            pos++;
-        }
+        await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
         {
+            if (oldCategoryId is not null)
+            {
+                var oldCategory = await _db.Channels.FindAsync(insert.ParentId);
+                if (oldCategory is null || oldCategory.ChannelType != ChannelTypeEnum.PlanetCategory)
+                    return new TaskResult(false, "Error getting old parent category.");
+
+                var oldCategoryChildren = await _db.Channels
+                    .Where(x => x.ParentId == oldCategory.Id)
+                    .OrderBy(x => x.Position)
+                    .ToListAsync();
+
+                // Remove from old category
+                oldCategoryChildren.RemoveAll(x => x.Id == insertId);
+
+                oldCategoryOrder = new();
+                
+                // Update all positions
+                var opos = 0;
+                foreach (var child in oldCategoryChildren)
+                {
+                    child.Position = opos;
+                    oldCategoryOrder.Add(new(child.Id, child.ChannelType));
+                    opos++;
+                }
+            }
+
+            insert.ParentId = categoryId;
+            insert.PlanetId = insert.PlanetId;
+            insert.Position = position;
+            
+            if (position >= children.Count)
+            {
+                children.Add(insert);
+            }
+            else
+            {
+                children.Insert(position, insert);
+            }
+            
+            // Update all positions
+            var pos = 0;
+            foreach (var child in children)
+            {
+                child.Position = pos;
+                newCategoryOrder.Add(new(child.Id, child.ChannelType));
+                pos++;
+            }
+            
             await _db.SaveChangesAsync();
+            
+            // Update channel access for inserted channel if it inherits from parent
+            if (insert.InheritsPerms == true)
+            {
+                await _accessService.UpdateAllChannelAccessForChannel(insertId);
+            }
+
+            await _db.SaveChangesAsync();
+
+            await trans.CommitAsync();
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            await trans.RollbackAsync();
+            _logger.LogError(e, e.Message);
             return new TaskResult(false, "Error saving changes. Please try again later.");
         }
         

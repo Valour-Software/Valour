@@ -62,6 +62,8 @@ public class ValourDB : DbContext
                 .HasColumnName("channel_id");
             e.Property(x => x.PlanetId)
                 .HasColumnName("planet_id");
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
             
             e.HasKey(x => new {x.MemberId, x.ChannelId});
             e.HasOne(x => x.Member)

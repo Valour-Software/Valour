@@ -21,6 +21,7 @@ public class ChannelService
     private readonly PlanetRoleService _planetRoleService;
     private readonly NotificationService _notificationService;
     private readonly NodeService _nodeService;
+    private readonly ChannelAccessService _accessService;
 
     public ChannelService(
         ValourDB db,
@@ -30,7 +31,8 @@ public class ChannelService
         ILogger<ChannelService> logger,
         PlanetRoleService planetRoleService,
         NotificationService notificationService,
-        NodeService nodeService)
+        NodeService nodeService,
+        ChannelAccessService accessService)
     {
         _db = db;
         _http = http;
@@ -40,6 +42,7 @@ public class ChannelService
         _planetRoleService = planetRoleService;
         _notificationService = notificationService;
         _nodeService = nodeService;
+        _accessService = accessService;
     }
     
     /// <summary>
@@ -270,14 +273,34 @@ public class ChannelService
         if (!baseValid.Success)
             return TaskResult<Channel>.FromError(baseValid.Message);
 
+        var trans = await _db.Database.BeginTransactionAsync();
+        
         // Update
         try
         {
+            var updateAccess = false;
+            
+            // Permission inheritance is being changed
+            if (old.InheritsPerms != updated.InheritsPerms)
+            {
+                updateAccess = true;
+            }
+            
             _db.Entry(old).CurrentValues.SetValues(updated);
             await _db.SaveChangesAsync();
+
+            if (updateAccess)
+            {
+                await _accessService.UpdateAllChannelAccessForChannel(updated.Id);
+            }
+
+            await _db.SaveChangesAsync();
+
+            await trans.CommitAsync();
         }
         catch (System.Exception e)
         {
+            await trans.RollbackAsync();
             _logger.LogError("{Time}:{Error}", DateTime.UtcNow.ToShortTimeString(), e.Message);
             return new(false, e.Message);
         }

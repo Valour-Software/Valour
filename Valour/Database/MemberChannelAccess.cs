@@ -11,6 +11,7 @@ public class MemberChannelAccess
     public virtual PlanetMember Member { get; set; }
     public virtual Channel Channel { get; set; }
     public virtual Planet Planet { get; set; }
+    public virtual User User { get; set; }
 
     /// <summary>
     /// ID of the member who has access to the channel
@@ -26,4 +27,9 @@ public class MemberChannelAccess
     /// The ID of the planet the target channel belongs to
     /// </summary>
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The ID of the user who has access to the channel
+    /// </summary>
+    public long UserId { get; set; }
 }
