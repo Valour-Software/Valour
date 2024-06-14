@@ -23,6 +23,9 @@ public class Channel : Item, ISharedChannel
     [InverseProperty("Target")]
     public virtual List<PermissionsNode> Permissions { get; set; }
     
+    [InverseProperty("Channel")]
+    public virtual List<Message> Messages { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

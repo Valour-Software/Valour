@@ -15,19 +15,22 @@ public class PermissionsNodeService
     private readonly TokenService _tokenService;
     private readonly PlanetMemberService _memberService;
     private readonly ILogger<PermissionsNodeService> _logger;
+    private readonly ChannelAccessService _accessService;
 
     public PermissionsNodeService(
         ValourDB db,
         CoreHubService coreHub,
         TokenService tokenService,
         PlanetMemberService memberService,
-        ILogger<PermissionsNodeService> logger)
+        ILogger<PermissionsNodeService> logger,
+        ChannelAccessService accessService)
     {
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
         _memberService = memberService;
         _logger = logger;
+        _accessService = accessService;
     }
 
     /// <summary>
@@ -42,17 +45,29 @@ public class PermissionsNodeService
     public async Task<List<PermissionsNode>> GetAllAsync(long planetId) =>
         (await _db.PermissionsNodes.Where(x => x.PlanetId == planetId).Select(x => x.ToModel()).ToListAsync());
 
-    public async Task<TaskResult<PermissionsNode>> PutAsync(PermissionsNode oldNode, PermissionsNode newNode)
+    public async Task<TaskResult<PermissionsNode>> PutAsync(PermissionsNode newNode)
     {
+        await using var trans = await _db.Database.BeginTransactionAsync();
+        
         try
         {
             var _old = await _db.PermissionsNodes.FindAsync(newNode.Id);
+            
             if (_old is null) return new(false, $"PermissionNode not found");
             _db.Entry(_old).CurrentValues.SetValues(newNode);
             await _db.SaveChangesAsync();
+            
+            // Recalculate access
+            await _accessService.UpdateAllChannelAccessForChannel(newNode.TargetId);
+
+            await _db.SaveChangesAsync();
+
+            await trans.CommitAsync();
+
         }
         catch (System.Exception e)
         {
+            await trans.RollbackAsync();
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }

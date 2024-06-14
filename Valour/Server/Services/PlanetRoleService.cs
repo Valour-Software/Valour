@@ -90,14 +90,18 @@ public class PlanetRoleService
 
         try
         {
+            // If any permissions or admin state changed, we need to recalculate access
+            var updateAccess = (updatedRole.IsAdmin != oldRole.IsAdmin ||
+                                updatedRole.Permissions != oldRole.Permissions ||
+                                updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
+                                updatedRole.ChatPermissions != oldRole.ChatPermissions ||
+                                updatedRole.VoicePermissions != oldRole.VoicePermissions);
+            
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
             await _db.SaveChangesAsync();
             
             // Check if any permissions were changed
-            if (updatedRole.Permissions != oldRole.Permissions ||
-                updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
-                updatedRole.ChatPermissions != oldRole.ChatPermissions ||
-                updatedRole.VoicePermissions != oldRole.VoicePermissions)
+            if (updateAccess)
             {
                 // Recalculate access
                 await _accessService.UpdateAllChannelAccessForMembersInRole(oldRole.Id);

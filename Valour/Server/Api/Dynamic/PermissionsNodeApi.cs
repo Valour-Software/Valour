@@ -99,7 +99,7 @@ public class PermissionsNodeApi
         if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
             return ValourResult.Forbid("You can only modify permissions for roles below your own.");
 
-        var result = await permissionsNodeService.PutAsync(oldNode, node);
+        var result = await permissionsNodeService.PutAsync(node);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

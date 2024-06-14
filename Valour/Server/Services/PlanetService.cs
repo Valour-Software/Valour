@@ -182,7 +182,7 @@ public class PlanetService
     /// <summary>
     /// Returns the channels for the given planet
     /// </summary>
-    public async Task<List<Channel>> GetChannelsAsync(long planetId) =>
+    public async Task<List<Channel>> GetAllChannelsAsync(long planetId) =>
         await _db.Channels.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
@@ -190,7 +190,7 @@ public class PlanetService
     /// <summary>
     /// Returns the chat channels for the given planet
     /// </summary>
-    public async Task<List<Channel>> GetChatChannelsAsync(long planetId) =>
+    public async Task<List<Channel>> GetAllChatChannelsAsync(long planetId) =>
         await _db.Channels.Where(x => 
                 x.PlanetId == planetId &&
                 x.ChannelType == ChannelTypeEnum.PlanetChat)
@@ -200,7 +200,7 @@ public class PlanetService
     /// <summary>
     /// Returns the categories for the given planet
     /// </summary>
-    public async Task<List<Channel>> GetCategoriesAsync(long planetId) =>
+    public async Task<List<Channel>> GetAllCategoriesAsync(long planetId) =>
         await _db.Channels.Where(x => 
                 x.PlanetId == planetId &&
                 x.ChannelType == ChannelTypeEnum.PlanetCategory)
@@ -210,11 +210,54 @@ public class PlanetService
     /// <summary>
     /// Returns the voice channels for the given planet
     /// </summary>
-    public async Task<List<Channel>> GetVoiceChannelsAsync(long planetId) =>
+    public async Task<List<Channel>> GetAllVoiceChannelsAsync(long planetId) =>
         await _db.Channels.Where(x => 
                 x.PlanetId == planetId &&
                 x.ChannelType == ChannelTypeEnum.PlanetVoice)
             .Select(x => x.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the channels for the given planet that the given member can access
+    /// </summary>
+    public async Task<List<Channel>> GetMemberChannelsAsync(long planetId, long memberId) =>
+        await _db.MemberChannelAccess.Where(x => 
+                x.PlanetId == planetId &&
+                x.MemberId == memberId)
+            .Select(x => x.Channel.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the chat channels for the given planet that the given member can access
+    /// </summary>
+    public async Task<List<Channel>> GetMemberChatChannelsAsync(long planetId, long memberId) =>
+        await _db.MemberChannelAccess.Where(x => 
+                x.PlanetId == planetId &&
+                x.MemberId == memberId &&
+                x.Channel.ChannelType == ChannelTypeEnum.PlanetChat)
+            .Select(x => x.Channel.ToModel())
+            .ToListAsync();
+
+    /// <summary>
+    /// Returns the categories for the given planet that the given member can access
+    /// </summary>
+    public async Task<List<Channel>> GetMemberCategoriesAsync(long planetId, long memberId) =>
+        await _db.MemberChannelAccess.Where(x => 
+                x.PlanetId == planetId &&
+                x.MemberId == memberId &&
+                x.Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+            .Select(x => x.Channel.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the voice channels for the given planet that the given member can access
+    /// </summary>
+    public async Task<List<Channel>> GetMemberVoiceChannelsAsync(long planetId, long memberId) =>
+        await _db.MemberChannelAccess.Where(x => 
+                x.PlanetId == planetId &&
+                x.MemberId == memberId &&
+                x.Channel.ChannelType == ChannelTypeEnum.PlanetVoice)
+            .Select(x => x.Channel.ToModel())
             .ToListAsync();
     
     #endregion

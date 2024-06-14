@@ -22,6 +22,7 @@ public class ChannelService
     private readonly NotificationService _notificationService;
     private readonly NodeService _nodeService;
     private readonly ChannelAccessService _accessService;
+    private readonly ChannelStateService _stateService;
 
     public ChannelService(
         ValourDB db,
@@ -32,7 +33,8 @@ public class ChannelService
         PlanetRoleService planetRoleService,
         NotificationService notificationService,
         NodeService nodeService,
-        ChannelAccessService accessService)
+        ChannelAccessService accessService,
+        ChannelStateService stateService)
     {
         _db = db;
         _http = http;
@@ -43,6 +45,7 @@ public class ChannelService
         _notificationService = notificationService;
         _nodeService = nodeService;
         _accessService = accessService;
+        _stateService = stateService;
     }
     
     /// <summary>
@@ -659,6 +662,7 @@ public class ChannelService
             message.Content = "";
 
         message.Id = IdManager.Generate();
+        message.TimeSent = DateTime.UtcNow;
         
         List<Valour.Sdk.Models.MessageAttachment> attachments = null;
         // Handle attachments
@@ -746,6 +750,13 @@ public class ChannelService
         }
         
         StatWorker.IncreaseMessageCount();
+        
+        // Update channel state
+        _stateService.SetChannelStateTime(channel.Id, message.TimeSent, channel.PlanetId);
+        if (channel.PlanetId is not null)
+        {
+            _coreHub.NotifyChannelStateUpdate(channel.PlanetId.Value, channel.Id, message.TimeSent);
+        }
 
         return TaskResult<Message>.FromData(message);
     }

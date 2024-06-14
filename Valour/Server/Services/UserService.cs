@@ -728,20 +728,6 @@ public class UserService
         }
     }
 
-    /// <summary>
-    /// Returns the ids for all planet channels the user has access to
-    /// </summary>
-    public async Task<List<long>> GetAccessiblePlanetChatChannelIdsAsync(long userId)
-    {
-        var channelIds = await _db.PlanetMembers.Include(x => x.Planet)
-            .ThenInclude(x => x.Channels)
-            .Where(x => x.UserId == userId)
-            .SelectMany(x => x.Planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat).Select(x => x.Id))
-            .ToListAsync();
-        
-        return channelIds;
-    }
-
     public async Task<List<ReferralDataModel>> GetReferralDataAsync(long userId)
     {
         return await _db.Referrals.Include(x => x.User)
