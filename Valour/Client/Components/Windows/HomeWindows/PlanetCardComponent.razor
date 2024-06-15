@@ -172,6 +172,22 @@
     private async Task OnClick()
     {
         var channel = await Planet.GetPrimaryChannelAsync();
+        if (channel is null)
+        {
+            channel = (await Planet.GetChatChannelsAsync()).FirstOrDefault();
+        }
+        if (channel is null)
+        {
+            // Show failure toast
+            await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+                "Failure loading planet",
+                "",
+                Task.Run(() =>
+                {
+                    return new TaskResult(false, "You can't access any channels.");
+                })));
+            return;
+        }
         
         Window.WindowBase.ChangeType(
             typeof(ChatChannelWindowComponent),

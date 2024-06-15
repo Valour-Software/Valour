@@ -56,16 +56,16 @@
         AddToast(toast);
 
         try {
-            await toast.ProgressTask;
+            var result = await toast.ProgressTask;
 
             if (toast.Card is null)
             {
                 RemoveToast(toast);
             }
             
-            toast.Message = toast.ProgressTask.Result.Message;
+            toast.Message = result.Message;
 
-            if (toast.ProgressTask.Result.Success)
+            if (result.Success)
             {
                 if (toast.SuccessMessage is not null)
                 {
@@ -105,16 +105,16 @@
         AddToast(toast);
 
         try {
-            await toast.ProgressTask;
+            var result = await toast.ProgressTask;
 
             if (toast.Card is null)
             {
                 RemoveToast(toast);
             }
             
-            toast.Message = toast.ProgressTask.Result.Message;
+            toast.Message = result.Message;
 
-            if (toast.ProgressTask.Result.Success)
+            if (result.Success)
             {
                 if (toast.SuccessMessage is not null)
                 {
