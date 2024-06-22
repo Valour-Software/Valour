@@ -6,6 +6,7 @@ using Valour.Server.Services;
 using Valour.Server.Users;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using ChannelState = Valour.Server.Models.ChannelState;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using User = Valour.Server.Models.User;
 using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
@@ -184,22 +185,37 @@ public class UserApi
         ChannelStateService channelStateService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-
-        var userChannels = await userService.GetAccessiblePlanetChatChannelIdsAsync(userId);
+        
         var userChannelStates = (await userService.GetUserChannelStatesAsync(userId)).ToDictionary(x => x.ChannelId);
-        var channelStates = await channelStateService.GetChannelStates(userChannels);
+        var channelStates = await channelStateService.GetChannelStates(userId);
 
         List<ChannelStateData> stateData = new();
 
-        foreach (var channelId in userChannels)
+        foreach (var pair in channelStates)
         {
-            userChannelStates.TryGetValue(channelId, out var userChannelState);
-            channelStates.TryGetValue(channelId, out var channelState);
+            var hasUserState = userChannelStates.TryGetValue(pair.Key, out var userState);
+
+            DateTime userStateTime;
+            
+            if (!hasUserState)
+            {
+                userStateTime = DateTime.MaxValue;
+            }
+            else
+            {
+                userStateTime = userState.LastViewedTime;
+            }
+            
             stateData.Add(new ChannelStateData()
             {
-                ChannelId = channelId,
-                LastViewedTime = userChannelState?.LastViewedTime ?? DateTime.MaxValue,
-                ChannelState = channelState?.ToModel(),
+                ChannelId = pair.Key,
+                LastViewedTime = userStateTime,
+                ChannelState = new ChannelState()
+                {
+                    ChannelId = pair.Value.ChannelId,
+                    LastUpdateTime = pair.Value.LastUpdateTime,
+                    PlanetId = pair.Value.PlanetId
+                }
             });
         }
 

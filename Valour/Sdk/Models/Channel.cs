@@ -5,6 +5,7 @@ using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Channels;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -236,6 +237,27 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             return;
         
         await Node.PostAsync($"{IdRoute}/typing", null);
+    }
+
+    public async Task UpdateUserState(DateTime? updateTime)
+    {
+        var request = new UpdateUserChannelStateRequest()
+        {
+            UpdateTime = updateTime ?? DateTime.UtcNow
+        };
+        
+        var nodeToUse = Node ?? ValourClient.PrimaryNode;
+
+        var result = await nodeToUse.PostAsyncWithResponse<UserChannelState>($"{IdRoute}/state", request);
+
+        if (result.Success)
+        {
+            await ValourClient.HandleUpdateUserChannelState(result.Data);
+        }
+        else
+        {
+            await Logger.Log("Failed to update user state: " + result.Message, "yellow");
+        }
     }
 
     /// <summary>
@@ -592,6 +614,9 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             case ChannelTypeEnum.PlanetChat:
                 await ValourClient.OpenPlanetChannelConnection(this, key);
+                break;
+            case ChannelTypeEnum.DirectChat:
+                await UpdateUserState(DateTime.UtcNow); // Update the user state
                 break;
             default:
                 break;

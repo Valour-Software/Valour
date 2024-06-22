@@ -418,3 +418,29 @@
 .glassy-modal .btn-wrapper > button {
     flex-grow: 1;
 }
+
+/* Toast Animations */
+
+@keyframes animate-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.3, 0.3);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1, 1);
+    }
+}
+
+@keyframes animate-shrink {
+    0% {
+        opacity: 1;
+        transform: scale(1, 1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.3, 0.3);
+    }
+}

@@ -482,5 +482,13 @@ CREATE TABLE IF NOT EXISTS theme_votes (
     CONSTRAINT fk_theme FOREIGN KEY(theme_id) REFERENCES themes(id)
 );
 
+CREATE TABLE IF NOT EXISTS member_channel_access (
+    channel_id BIGINT NOT NULL,
+    member_id BIGINT NOT NULL,
+    
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id),
+    CONSTRAINT fk_member FOREIGN KEY(member_id) REFERENCES planet_members(id),
+);
+
 COMMIT;
 

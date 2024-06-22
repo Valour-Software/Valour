@@ -171,6 +171,8 @@
         ValourClient.OnCategoryOrderUpdate += OnCategoryOrderUpdate;
 
         ValourClient.OnNotificationReceived += OnNotification;
+        ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
+        ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
 
         Planet = PlanetComponent.Planet;
 

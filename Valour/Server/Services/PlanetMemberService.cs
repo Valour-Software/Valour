@@ -1,10 +1,19 @@
 using System.Collections.Concurrent;
+using System.Data;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
+using Valour.Database;
+using Valour.Sdk.Models.Messages.Embeds.Items;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Channel = Valour.Server.Models.Channel;
+using PermissionsNode = Valour.Server.Models.PermissionsNode;
+using PlanetMember = Valour.Server.Models.PlanetMember;
+using PlanetRole = Valour.Server.Models.PlanetRole;
+using PlanetRoleMember = Valour.Server.Models.PlanetRoleMember;
 
 namespace Valour.Server.Services;
 
@@ -13,6 +22,7 @@ public class PlanetMemberService
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
+    private readonly ChannelAccessService _accessService;
     private readonly ILogger<PlanetMemberService> _logger;
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
@@ -21,12 +31,14 @@ public class PlanetMemberService
         ValourDB db,
         CoreHubService coreHub,
         TokenService tokenService,
+        ChannelAccessService accessService,
         ILogger<PlanetMemberService> logger)
     {
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
         _logger = logger;
+        _accessService = accessService;
     }
     
     /// <summary>
@@ -287,96 +299,92 @@ public class PlanetMemberService
         // If not planet channel, this doesn't apply
         if (!ISharedChannel.PlanetChannelTypes.Contains(target.ChannelType))
         {
-            return false;
-        }
-        
-        var planet = await _db.Planets.FindAsync(target.PlanetId);
-        // Fail if the planet does not exist
-        if (planet is null)
-            return false;
-
-        if (planet.OwnerId == member.UserId)
-            return true;
-
-        // If the channel inherits from its parent, move up until it does not
-        while (target.InheritsPerms is not null && 
-               target.InheritsPerms == true && 
-               target.ParentId is not null)
-        {
-            target = (await _db.Channels.FindAsync(target.ParentId.Value)).ToModel();
-        }
-        
-        // Get permission nodes in order of role position
-        var rolePermData = await GetRolesAndNodesAsync(member, target.Id, permission.TargetType);
-
-        // Admins always have permission
-        if (rolePermData.Any(x => x.Role.IsAdmin))
-        {
             return true;
         }
-
-        var viewPerm = PermissionState.Undefined;
-
-        foreach (var rolePerm in rolePermData)
-        {
-            var node = rolePerm.Node;
-            if (node is null)
-                continue;
-
-            viewPerm = node.GetPermissionState(ChatChannelPermissions.View, true);
-            if (viewPerm != PermissionState.Undefined)
-                break;
-        }
-
-        // Ultimate fallback is the super default
-        if (viewPerm == PermissionState.Undefined)
-        {
-            viewPerm = Permission.HasPermission(PlanetRole.DefaultRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
-        }
-
-        if (viewPerm != PermissionState.True)
-            return false;
-
-        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
-        // If we get an undecided, we continue to the next role down
-        foreach (var rolePerm in rolePermData)
-        {
-            var node = rolePerm.Node;
-
-            if (node is null)
-                continue;
-            // If there is no view permission, there can't be any other permissions
-            // View is always 0x01 for channel permissions, so it is safe to use ChatChannelPermission.View for
-            // all cases.
-
-            var state = node.GetPermissionState(permission, true);
-
-            switch (state)
-            {
-                case PermissionState.Undefined:
-                    continue;
-                case PermissionState.True:
-                    return true;
-                case PermissionState.False:
-                default:
-                    return false;
-            }
-        }
-
-        var topRole = rolePermData.FirstOrDefault()?.Role ?? PlanetRole.DefaultRole;
-
-        // Fallback to base permissions
+        
+        var permTypeCode = 0;
         switch (permission)
         {
             case ChatChannelPermission:
-                return Permission.HasPermission(topRole.ChatPermissions, permission);
+                permTypeCode = 0;
+                break;
             case CategoryPermission:
-                return Permission.HasPermission(topRole.CategoryPermissions, permission);
+                permTypeCode = 1;
+                break;
             case VoiceChannelPermission:
-                return Permission.HasPermission(topRole.VoicePermissions, permission);
+                permTypeCode = 2;
+                break;
+            default:
+                throw new Exception("Unexpected permission type in HasPermissionAsync: " + permission.GetType().Name);
+        }
+        
+        // This stored procedure will check if the member has the given permission
+        // and return null if there's no roles to check against
+        var result = await _db.Set<PermissionCheckResult>()
+            .FromSqlInterpolated($@"
+                SELECT * FROM check_member_permission(
+                    {member.Id}, 
+                    {target.Id}, 
+                    {permission.Value}, 
+                    {permTypeCode}
+                )")
+            .AsNoTracking()
+            .SingleOrDefaultAsync();
+        
+        /*
+        var x = _db.Set<PermissionCheckResult>()
+            .FromSqlInterpolated($@"
+                SELECT check_member_permission(
+                    {member.Id}, 
+                    {target.Id}, 
+                    {(int) target.ChannelType}, 
+                    {permission.Value}, 
+                    {permTypeCode}
+                ) AS value").ToQueryString();
+        */
+
+        if (result.Value == -1)
+        {
+            // This really should never happen. Everyone has the @everyone role.
+            _logger.LogError("No permissions found for member {MEMBER} in channel {CHANNEL}", member.Id, target.Id);
+            return false;
+        }
+
+        // CODES:
+        // Success:
+        // 4: Member is admin
+        // 6: Member is owner
+        // 8: There were both ALLOW and DENY, but ALLOW won
+        // 10: There was only an ALLOW node
+        // 12: Fallback on top role ALLOWED
+        // Failure: 
+        // 7: There were both ALLOW and DENY, but DENY won
+        // 9: There was only a DENY node
+        // 11: Invalid permission type
+        // 13: Fallback on top role DENIED
+        // 15: Member does not exist
+        // 
+        // -1: Something is wrong
+         
+        return (result.Value % 2) == 0; // Even codes are granted, odd codes are denied
+        
+        // Fallback to base permissions
+        
+        /*
+        switch (permission)
+        {
+            case ChatChannelPermission:
+                return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+            case CategoryPermission:
+                return Permission.HasPermission(CategoryPermissions.Default, permission);
+            case VoiceChannelPermission:
+                return Permission.HasPermission(VoiceChannelPermissions.Default, permission);
             default:
                 throw new Exception("Unexpected permission type: " + permission.GetType().Name);
         }
+        */
+        
+        
     }
     
     /// <summary>
@@ -478,6 +486,10 @@ public class PlanetMemberService
             }
 
             await _db.SaveChangesAsync();
+            
+            // Add channel access
+            await _accessService.UpdateAllChannelAccessMember(member.Id);
+
         }
         catch (Exception e)
         {
@@ -560,14 +572,22 @@ public class PlanetMemberService
             UserId = member.UserId,
             PlanetId = member.PlanetId
         };
+
+        await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
         {
             await _db.PlanetRoleMembers.AddAsync(newRoleMember);
             await _db.SaveChangesAsync();
+
+            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _db.SaveChangesAsync();
+            
+            await trans.CommitAsync();
         }
         catch (Exception e)
         {
+            await trans.RollbackAsync();
             return new TaskResult<PlanetRoleMember>(false, "An unexpected error occurred.");
         }
 
@@ -589,13 +609,21 @@ public class PlanetMemberService
         if (isDefaultRole)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
+        await using var trans = await _db.Database.BeginTransactionAsync();
+        
         try
         {
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
+            
+            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _db.SaveChangesAsync();
+            
+            await trans.CommitAsync();
         }
         catch (Exception e)
         {
+            await trans.RollbackAsync();
             return new TaskResult(false, "An unexpected error occurred.");
         }
 
@@ -613,8 +641,7 @@ public class PlanetMemberService
         
         if (doTransaction)
         {
-            await using var transaction = await _db.Database.BeginTransactionAsync();
-            trans = transaction;
+            trans = await _db.Database.BeginTransactionAsync();
         }
 
         var dbMember = await _db.PlanetMembers.FindAsync(memberId);
@@ -631,6 +658,9 @@ public class PlanetMemberService
             dbMember.IsDeleted = true;
 
             await _db.SaveChangesAsync();
+            
+            // Remove channel access
+            await _accessService.ClearMemberAccessAsync(dbMember.Id);
             
             if (trans is not null) 
             {

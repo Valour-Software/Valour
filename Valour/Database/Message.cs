@@ -22,6 +22,9 @@ public class Message : Item, ISharedMessage
     [ForeignKey("ReplyToId")]
     public Message ReplyToMessage { get; set; }
     
+    [ForeignKey("ChannelId")]
+    public Channel Channel { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

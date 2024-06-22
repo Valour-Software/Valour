@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Valour.Shared.Models;
 using ChannelState = Valour.Database.ChannelState;
 
 namespace Valour.Server.Services;
@@ -14,6 +15,27 @@ public class ChannelStateService
     {
         _db = db;
         _logger = logger;
+    }
+
+    private async Task<ChannelState> GenerateState(long channelId)
+    {
+        // Use last posted message time as last update time
+        var stateData = await _db.Channels
+            .Where(x => x.Id == channelId)
+            .OrderByDescending(x => x.Id)
+            .Select(x => new
+            {
+                Time = x.Messages.OrderByDescending(x => x.Id).Select(x => x.TimeSent).FirstOrDefault(),
+                PlanetId = x.PlanetId
+            })
+            .FirstOrDefaultAsync();
+
+        return new ChannelState()
+        {
+            PlanetId = stateData.PlanetId,
+            ChannelId = channelId,
+            LastUpdateTime = stateData.Time
+        };
     }
     
     /// <summary>
@@ -44,50 +66,68 @@ public class ChannelStateService
         // If not in cache, get from DB
         if (state is null)
         {
-            state = await _db.ChannelStates.FindAsync(channelId);
+            state = await GenerateState(channelId);
             
             // Add to cache
             _channelStateCache[channelId] = state;
         }
 
-        // If still null, return MinValue
         return state;
     }
 
     /// <summary>
     /// Returns a dict of channel ids to their state
     /// </summary>
-    public async Task<Dictionary<long, ChannelState>> GetChannelStates(IEnumerable<long> channelIds)
+    public async Task<Dictionary<long, ChannelState>> GetChannelStates(long userId)
     {
         Dictionary<long, ChannelState> states = new();
-        List<long> missing = new();
         
-        foreach (var channelId in channelIds)
-        {
-            // Try to get state from cache
-            _channelStateCache.TryGetValue(channelId, out var state);
-            if (state is not null)
-            {
-                states[channelId] = state;
-            }
-            else
-            {
-                missing.Add(channelId);
-            }
-        }
-        
-        // Get missing states from DB
-        var missingStates = await _db.ChannelStates
-            .Where(x => missing.Contains(x.ChannelId))
+        // Planet channels
+        // We only really need chat channels
+        var planetChannels = await _db.MemberChannelAccess.Where(x => 
+                x.UserId == userId &&
+                x.Channel.ChannelType == ChannelTypeEnum.PlanetChat)
+            .Select(x => x.ChannelId)
             .ToListAsync();
         
-        // Add missing states to cache and return
-        foreach (var state in missingStates)
+        // Direct channels
+        var directChannels = await _db.ChannelMembers.Where(x => x.UserId == userId)
+            .Select(x => x.ChannelId)
+            .ToListAsync();
+        
+        foreach (var pChannelId in planetChannels)
         {
-            states[state.ChannelId] = state;
-            _channelStateCache[state.ChannelId] = state;
+            states[pChannelId] = await GetChannelState(pChannelId);
+        }
+        
+        foreach (var dChannelId in directChannels)
+        {
+            states[dChannelId] = await GetChannelState(dChannelId);
         }
         
         return states;
+    }
+
+    public async Task<UserChannelState> UpdateUserChannelState(long channelId, long userId, DateTime? updateTime)
+    {
+        updateTime ??= DateTime.UtcNow;
+
+        var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);
+
+        if (channelState is null)
+        {
+            channelState = new UserChannelState()
+            {
+                UserId = userId,
+                ChannelId = channelId
+            }.ToDatabase();
+
+            _db.UserChannelStates.Add(channelState);
+        }
+            
+        channelState.LastViewedTime = updateTime.Value;
+        await _db.SaveChangesAsync();
+
+        return channelState.ToModel();
     }
 }

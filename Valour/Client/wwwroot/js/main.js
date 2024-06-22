@@ -66,7 +66,7 @@ function IsEmbedded() {
 
 
 // Set the name of the hidden property and the change event for visibility
-var hidden, visibilityChange;
+let hidden, visibilityChange;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
     hidden = "hidden";
     visibilityChange = "visibilitychange";
@@ -78,16 +78,39 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
     visibilityChange = "webkitvisibilitychange";
 }
 
+let lastRefocus = null;
+
 // Visbility change handler
 if (document.addEventListener) {
-    document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState == 'hidden') {
+    document.addEventListener(visibilityChange, function () {
+        console.log('Visibility change event detected.')
+        if (document[hidden]) {
             // page is hidden
         } else {
+            if (lastRefocus && (new Date() - lastRefocus) < 1000) {
+                console.log('Ignoring visibility change event, too soon.');
+                return;
+            }
+            
             DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
+            
+            lastRefocus = new Date();
         }
     });
 }
+
+window.addEventListener('onfocus', () => {
+    console.log('Window focus event detected.')
+    
+    if (lastRefocus && (new Date() - lastRefocus) < 1000) {
+        console.log('Ignoring focus change event, too soon.');
+        return;
+    }
+    
+    DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
+    
+    lastRefocus = new Date();
+})
 
 // Web lock
 // The idea here is to *force* the tab to stay active
@@ -488,4 +511,8 @@ async function injectReddit(id, data) {
     redditScript.async = true;
     redditScript.charset = "utf-8";
     container.appendChild(redditScript);
+}
+
+function playLottie(element) {
+    element.play();
 }

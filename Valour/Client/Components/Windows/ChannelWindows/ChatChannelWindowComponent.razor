@@ -49,6 +49,7 @@
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
 
+        Window.OnClosed += OnWindowClosed;
         Window.OnFocused += OnWindowFocused;
         return Task.CompletedTask;
     }
@@ -70,10 +71,12 @@
 
     public virtual Type GetInputComponentType() => 
         typeof(InputComponent);
+    
+    public string WindowChannelKey => Window.Id + _instanceId;
 
     public virtual async Task SetupNewChannelAsync()
     {
-        await Channel.Open(Window.Id + _instanceId);
+        await Channel.Open(WindowChannelKey);
         
         // Planet stuff
         if (Channel.PlanetId is not null)
@@ -95,6 +98,13 @@
         
         MessageHolder.Clear();
         await MessageHolder.LoadRecentMessages(64);
+
+        await ValourClient.HandleUpdateUserChannelState(new UserChannelState
+        {
+            ChannelId = Channel.Id,
+            UserId = ValourClient.Self.Id,
+            LastViewedTime = DateTime.UtcNow
+        });
     }
 
     public async Task SwapChannel(Channel newChannel)
@@ -108,7 +118,7 @@
             return;
         
         // Close old channel
-        await Channel.Close(Window.Id);
+        await HandleWindowClose();
         
         // Remove channel event listeners
         Channel.OnUpdated -= OnChatChannelUpdate;
@@ -142,7 +152,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await Channel.Close(Window.Id + _instanceId);
+        await HandleWindowClose();
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -237,9 +247,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        GlobalWindowData.RemoveGlobalChatWindow(this);
-        
-        await Channel.Close(Window.Id);
+        await HandleWindowClose();
         
         if (_planet is not null)
         {
@@ -251,6 +259,12 @@
         
         ValourClient.OnMessageReceived -= OnReceiveMessage;
         _thisRef.Dispose();
+    }
+
+    public async Task HandleWindowClose()
+    {
+        GlobalWindowData.RemoveGlobalChatWindow(this);
+        await Channel.Close(WindowChannelKey);
     }
     
 }

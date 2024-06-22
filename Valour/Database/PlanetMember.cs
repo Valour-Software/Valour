@@ -26,6 +26,9 @@ public class PlanetMember : Item, ISharedPlanetMember
     [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
     
+    [JsonIgnore]
+    public virtual ICollection<MemberChannelAccess> ChannelAccess { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

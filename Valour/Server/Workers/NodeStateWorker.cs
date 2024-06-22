@@ -33,27 +33,29 @@ public class NodeStateWorker : IHostedService, IDisposable
     {
         using var scope = _serviceProvider.CreateScope();
         _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
-
-        /*
+        
+        // Migrate to new access system
         var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
-        foreach (var account in await db.EcoAccounts.IgnoreQueryFilters().Where(x => x.PlanetMemberId == null).ToListAsync())
+        var accessService = scope.ServiceProvider.GetRequiredService<ChannelAccessService>();
+        
+        Console.WriteLine("Migrating to channel access system...");
+
+        int c = 0;
+
+        var allBaseRoles = await db.PlanetRoles.Where(x => x.Position == int.MaxValue).Select(x => x.Id).ToListAsync();
+        
+        foreach (var id in allBaseRoles)
         {
-            if (account.PlanetMemberId is not null)
-                continue;
-
-            var member = await db.PlanetMembers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.PlanetId == account.PlanetId && x.UserId == account.UserId);
-            if (member is null)
-                continue;
-
-            account.PlanetMemberId = member.Id;
-
-            await db.SaveChangesAsync();
-
-            Console.WriteLine($"Migrated account {account.Id}");
+            await accessService.UpdateAllChannelAccessForMembersInRole(id);
+            
+            if (c % 20 == 0)
+                Console.WriteLine($"Done {c} / {allBaseRoles.Count}");
+            
+            c++;
         }
 
         Console.WriteLine("Finished migrate");
-        */
+        
         
         await _longNodeService.AnnounceNode();
         
