@@ -53,6 +53,9 @@ public class ChannelService
     /// </summary>
     public async ValueTask<Channel> GetAsync(long id) =>
         (await _db.Channels.FindAsync(id)).ToModel();
+    
+    public Task<bool> ExistsAsync(long id) =>
+        _db.Channels.AnyAsync(x => x.Id == id);
 
     /// <summary>
     /// Given two user ids, returns the direct chat channel between them
@@ -426,17 +429,15 @@ public class ChannelService
     /// </summary>
     public async Task<bool> IsMemberAsync(Channel channel, long userId)
     {
+        // Direct messages access
         if (channel.PlanetId is null)
         {
             return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
         }
+        // Planet channel access
         else
         {
-            var member = await _memberService.GetByUserAsync(userId, channel.PlanetId.Value);
-            if (member is null)
-                return false;
-
-            return await _memberService.HasPermissionAsync(member, channel, ChannelPermissions.View);
+            return await _db.MemberChannelAccess.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
         }
     }
     

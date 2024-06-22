@@ -107,4 +107,27 @@ public class ChannelStateService
         
         return states;
     }
+
+    public async Task<UserChannelState> UpdateUserChannelState(long channelId, long userId, DateTime? updateTime)
+    {
+        updateTime ??= DateTime.UtcNow;
+
+        var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);
+
+        if (channelState is null)
+        {
+            channelState = new UserChannelState()
+            {
+                UserId = userId,
+                ChannelId = channelId
+            }.ToDatabase();
+
+            _db.UserChannelStates.Add(channelState);
+        }
+            
+        channelState.LastViewedTime = updateTime.Value;
+        await _db.SaveChangesAsync();
+
+        return channelState.ToModel();
+    }
 }
