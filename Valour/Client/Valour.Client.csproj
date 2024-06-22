@@ -31,4 +31,8 @@
     <UpToDateCheckInput Remove="Components\WindowsX\WindowX.razor" />
     <UpToDateCheckInput Remove="Components\WindowsX\WindowXContent.razor" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Toast\" />
+  </ItemGroup>
 </Project>

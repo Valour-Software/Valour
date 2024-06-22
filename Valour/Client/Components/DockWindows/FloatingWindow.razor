@@ -41,8 +41,10 @@
     [Parameter]
     public WindowData WindowData { get; set; }
     
-    public override void ChangeType(Type newType, object newData, string newTitle, string newIcon)
+    public override async Task ChangeType(Type newType, object newData, string newTitle, string newIcon)
     {
+        await WindowData.NotifyClose();
+        
         WindowData.Type = newType;
         WindowData.Data = newData;
         WindowData.Title = newTitle;
@@ -59,6 +61,7 @@
     
     public override async Task CloseAsync()
     {
+        await WindowData.NotifyClose();
         await Container.RemoveFloater(WindowData);
     }
     

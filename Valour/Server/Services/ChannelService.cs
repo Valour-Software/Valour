@@ -21,6 +21,8 @@ public class ChannelService
     private readonly PlanetRoleService _planetRoleService;
     private readonly NotificationService _notificationService;
     private readonly NodeService _nodeService;
+    private readonly ChannelAccessService _accessService;
+    private readonly ChannelStateService _stateService;
 
     public ChannelService(
         ValourDB db,
@@ -30,7 +32,9 @@ public class ChannelService
         ILogger<ChannelService> logger,
         PlanetRoleService planetRoleService,
         NotificationService notificationService,
-        NodeService nodeService)
+        NodeService nodeService,
+        ChannelAccessService accessService,
+        ChannelStateService stateService)
     {
         _db = db;
         _http = http;
@@ -40,6 +44,8 @@ public class ChannelService
         _planetRoleService = planetRoleService;
         _notificationService = notificationService;
         _nodeService = nodeService;
+        _accessService = accessService;
+        _stateService = stateService;
     }
     
     /// <summary>
@@ -47,6 +53,9 @@ public class ChannelService
     /// </summary>
     public async ValueTask<Channel> GetAsync(long id) =>
         (await _db.Channels.FindAsync(id)).ToModel();
+    
+    public Task<bool> ExistsAsync(long id) =>
+        _db.Channels.AnyAsync(x => x.Id == id);
 
     /// <summary>
     /// Given two user ids, returns the direct chat channel between them
@@ -270,14 +279,34 @@ public class ChannelService
         if (!baseValid.Success)
             return TaskResult<Channel>.FromError(baseValid.Message);
 
+        var trans = await _db.Database.BeginTransactionAsync();
+        
         // Update
         try
         {
+            var updateAccess = false;
+            
+            // Permission inheritance is being changed
+            if (old.InheritsPerms != updated.InheritsPerms)
+            {
+                updateAccess = true;
+            }
+            
             _db.Entry(old).CurrentValues.SetValues(updated);
             await _db.SaveChangesAsync();
+
+            if (updateAccess)
+            {
+                await _accessService.UpdateAllChannelAccessForChannel(updated.Id);
+            }
+
+            await _db.SaveChangesAsync();
+
+            await trans.CommitAsync();
         }
         catch (System.Exception e)
         {
+            await trans.RollbackAsync();
             _logger.LogError("{Time}:{Error}", DateTime.UtcNow.ToShortTimeString(), e.Message);
             return new(false, e.Message);
         }
@@ -400,17 +429,15 @@ public class ChannelService
     /// </summary>
     public async Task<bool> IsMemberAsync(Channel channel, long userId)
     {
+        // Direct messages access
         if (channel.PlanetId is null)
         {
             return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
         }
+        // Planet channel access
         else
         {
-            var member = await _memberService.GetByUserAsync(userId, channel.PlanetId.Value);
-            if (member is null)
-                return false;
-
-            return await _memberService.HasPermissionAsync(member, channel, ChannelPermissions.View);
+            return await _db.MemberChannelAccess.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
         }
     }
     
@@ -636,6 +663,7 @@ public class ChannelService
             message.Content = "";
 
         message.Id = IdManager.Generate();
+        message.TimeSent = DateTime.UtcNow;
         
         List<Valour.Sdk.Models.MessageAttachment> attachments = null;
         // Handle attachments
@@ -723,6 +751,13 @@ public class ChannelService
         }
         
         StatWorker.IncreaseMessageCount();
+        
+        // Update channel state
+        _stateService.SetChannelStateTime(channel.Id, message.TimeSent, channel.PlanetId);
+        if (channel.PlanetId is not null)
+        {
+            _coreHub.NotifyChannelStateUpdate(channel.PlanetId.Value, channel.Id, message.TimeSent);
+        }
 
         return TaskResult<Message>.FromData(message);
     }

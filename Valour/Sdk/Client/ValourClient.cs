@@ -350,6 +350,28 @@ public static class ValourClient
     public static async Task<TaskResult> SendMessage(Message message)
         => await message.PostMessageAsync();
 
+    public static async Task AddJoinedPlanetAsync(Planet planet)
+    {
+        JoinedPlanets.Add(planet);
+
+        if (OnPlanetJoin is not null)
+            await OnPlanetJoin.Invoke(planet);
+
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
+    }
+    
+    public static async Task RemoveJoinedPlanetAsync(Planet planet)
+    {
+        JoinedPlanets.Remove(planet);
+
+        if (OnPlanetLeave is not null)
+            await OnPlanetLeave.Invoke(planet);
+
+        if (OnJoinedPlanetsUpdate is not null)
+            await OnJoinedPlanetsUpdate.Invoke();
+    }
+    
     /// <summary>
     /// Attempts to join the given planet
     /// </summary>
@@ -359,13 +381,7 @@ public static class ValourClient
 
         if (result.Success)
         {
-            JoinedPlanets.Add(planet);
-
-            if (OnPlanetJoin is not null)
-                await OnPlanetJoin.Invoke(planet);
-
-            if (OnJoinedPlanetsUpdate is not null)
-                await OnJoinedPlanetsUpdate.Invoke();
+            await AddJoinedPlanetAsync(planet);
         }
 
         return result;
@@ -382,13 +398,7 @@ public static class ValourClient
 
         if (result.Success)
         {
-            JoinedPlanets.Remove(planet);
-
-            if (OnPlanetLeave is not null)
-                await OnPlanetLeave.Invoke(planet);
-
-            if (OnJoinedPlanetsUpdate is not null)
-                await OnJoinedPlanetsUpdate.Invoke();
+            await RemoveJoinedPlanetAsync(planet);
         }
 
         return result;
@@ -690,6 +700,9 @@ public static class ValourClient
     private static void AddPlanetLock(string key, long planetId)
     {
         PlanetLocks[key] = planetId;
+        
+        Console.WriteLine("Planet lock added.");
+        Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
     }
 
     /// <summary>
@@ -704,8 +717,11 @@ public static class ValourClient
         {
             PlanetLocks.Remove(key);
         }
+        
+        Console.WriteLine("Planet lock removed.");
+        Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
 
-        return !PlanetLocks.Any(x => x.Value == planetId);
+        return PlanetLocks.Any(x => x.Value == planetId);
     }
     
     /// <summary>
@@ -725,12 +741,12 @@ public static class ValourClient
     {
         var found = ChannelLocks.TryGetValue(key, out var channelId);
 
-        if (!found)
+        if (found)
         {
             ChannelLocks.Remove(key);
         }
-
-        return !ChannelLocks.Any(x => x.Value == channelId);
+        
+        return ChannelLocks.Any(x => x.Value == channelId);
     }
 
     /// <summary>
@@ -744,7 +760,7 @@ public static class ValourClient
             if (locked)
                 return;
         }
-
+        
         // Already closed
         if (!OpenPlanets.Contains(planet))
             return;

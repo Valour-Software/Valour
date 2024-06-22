@@ -139,7 +139,7 @@ public class PlanetApi
             return ValourResult.NotPlanetMember();
 
         // Get all planet channels
-        var channels = await planetService.GetChannelsAsync(id);
+        var channels = await planetService.GetMemberChannelsAsync(id, member.Id);
         
         // Collection for channels that member can see
         var allowedChannels = new List<Channel>();
@@ -164,7 +164,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
         
-        var chatChannels = await planetService.GetChatChannelsAsync(id);
+        var chatChannels = await planetService.GetMemberChatChannelsAsync(id, member.Id);
 
         var allowedChannels = new List<Channel>();
 
@@ -188,7 +188,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
         
-        var voiceChannels = await planetService.GetVoiceChannelsAsync(id);
+        var voiceChannels = await planetService.GetMemberVoiceChannelsAsync(id, member.Id);
 
         var allowedChannels = new List<Channel>();
 
@@ -212,7 +212,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
         
-        var categories = await planetService.GetCategoriesAsync(id);
+        var categories = await planetService.GetMemberCategoriesAsync(id, member.Id);
 
         var allowedCategories = new List<Channel>();
 
