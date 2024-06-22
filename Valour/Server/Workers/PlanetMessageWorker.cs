@@ -103,34 +103,41 @@ namespace Valour.Server.Workers
                                              Queue size: {QueueSize}
                                              Saving {StagedCount} messages to DB", DateTimeOffset.Now, MessageQueue.Count, StagedMessages.Count);
 
-            var staged = StagedMessages.Values;
-            var channelIds = staged.Select(x => x.ChannelId).Distinct();
-
+            List<long> cleanup = null;
+            int stagedMessages = 0;
+            
             /* Update channel last active for all channels where we are saving message update */
-            foreach (var channelId in channelIds)
+            foreach (var channelMessages in StagedChannelMessages)
             {
-                var lastMessage = StagedChannelMessages[channelId].Last();
+                stagedMessages += channelMessages.Value.Count;
                 
-                var channelState = await db.ChannelStates.FindAsync(channelId);
-                if (channelState is null)
+                // If there are no messages to be posted to a channel, we can remove the staging list
+                // and save memory
+                if (channelMessages.Value.Count == 0)
                 {
-                    channelState = new Valour.Database.ChannelState()
-                    {
-                        ChannelId = channelId,
-                        LastUpdateTime = lastMessage.TimeSent,
-                        PlanetId = lastMessage.PlanetId,
-                    };
-
-                    db.ChannelStates.Add(channelState);
+                    if (cleanup is null)
+                        cleanup = new List<long>(){ channelMessages.Key };
+                    else
+                        cleanup.Add(channelMessages.Key);
                 }
-                else
+            }
+
+            var messages = new List<Valour.Database.Message>(stagedMessages);
+            foreach (var message in StagedMessages.Values)
+            {
+                messages.Add(message.ToDatabase());
+            }
+            
+            // Perform cleanup
+            if (cleanup is not null)
+            {
+                foreach (var channelId in cleanup)
                 {
-                    channelState.LastUpdateTime = lastMessage.TimeSent;
-                    db.ChannelStates.Update(channelState);
+                    StagedChannelMessages.Remove(channelId, out _);
                 }
             }
             
-            await db.Messages.AddRangeAsync(StagedMessages.Values.Select(x => x.ToDatabase()));
+            await db.Messages.AddRangeAsync(messages);
             await db.SaveChangesAsync();
             BlockSet.Clear();
             StagedMessages.Clear();

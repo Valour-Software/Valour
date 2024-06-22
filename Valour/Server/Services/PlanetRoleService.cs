@@ -14,15 +14,18 @@ public class PlanetRoleService
     private readonly ValourDB _db;
     private readonly ILogger<PlanetRoleService> _logger;
     private readonly CoreHubService _coreHub;
+    private readonly ChannelAccessService _accessService;
 
     public PlanetRoleService(
         ValourDB db, 
         ILogger<PlanetRoleService> logger, 
-        CoreHubService coreHub)
+        CoreHubService coreHub,
+        ChannelAccessService accessService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
+        _accessService = accessService;
     }
 
     /// <summary>
@@ -82,14 +85,34 @@ public class PlanetRoleService
             if (!_hexColorRegex.IsMatch(updatedRole.Color))
                 return new TaskResult<PlanetRole>(false, "Invalid hex color");
         }
+        
+        var trans = await _db.Database.BeginTransactionAsync();
 
         try
         {
+            // If any permissions or admin state changed, we need to recalculate access
+            var updateAccess = (updatedRole.IsAdmin != oldRole.IsAdmin ||
+                                updatedRole.Permissions != oldRole.Permissions ||
+                                updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
+                                updatedRole.ChatPermissions != oldRole.ChatPermissions ||
+                                updatedRole.VoicePermissions != oldRole.VoicePermissions);
+            
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
             await _db.SaveChangesAsync();
+            
+            // Check if any permissions were changed
+            if (updateAccess)
+            {
+                // Recalculate access
+                await _accessService.UpdateAllChannelAccessForMembersInRole(oldRole.Id);
+                await _db.SaveChangesAsync();
+            }
+
+            await trans.CommitAsync();
         }
         catch (System.Exception e)
         {
+            await trans.RollbackAsync();
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
@@ -140,13 +163,34 @@ public class PlanetRoleService
         
         try
         {
-            // Remove all members
-            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
-            _db.PlanetRoleMembers.RemoveRange(members);
-
+            // This order is important. We recalculate access after removing permission nodes
+            // but BEFORE the role itself is removed. This is because the procedure to
+            // recalculate access needs the role members to be present.
+            
+            // We also set all the permissions to FALSE in the role so it acts like it doesn't exist
+            
+            // Set all permissions to false
+            dbRole.Permissions = 0;
+            dbRole.ChatPermissions = 0;
+            dbRole.CategoryPermissions = 0;
+            dbRole.VoicePermissions = 0;
+            
+            await _db.SaveChangesAsync();
+            
             // Remove role nodes
             var nodes = _db.PermissionsNodes.Where(x => x.RoleId == role.Id);
             _db.PermissionsNodes.RemoveRange(nodes);
+
+            await _db.SaveChangesAsync();
+            
+            // Recalculate access
+            await _accessService.UpdateAllChannelAccessForMembersInRole(role.Id);
+            await _db.SaveChangesAsync();
+            
+            // Remove all members
+            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
+            _db.PlanetRoleMembers.RemoveRange(members);
+            await _db.SaveChangesAsync();
 
             // Remove the role
             _db.PlanetRoles.Remove(dbRole);

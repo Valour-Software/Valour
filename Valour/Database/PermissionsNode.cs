@@ -23,6 +23,9 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     [ForeignKey("RoleId")]
     public virtual PlanetRole Role { get; set; }
     
+    [ForeignKey("TargetId")]
+    public virtual Channel Target { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

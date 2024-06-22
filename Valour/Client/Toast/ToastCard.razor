@@ -1,0 +1,111 @@
+﻿@if (_hide)
+{
+    return;
+}
+
+<div style="top: @(TopOffset)px" class="toast-wrapper">
+    <div class="toast-card @GetAnimClass()" @key="@Toast">
+        @switch (Toast)
+        {
+            case ProgressToastDataBase:
+            {
+                <div class="toast-left">
+                    <div style="width: 30px; height: 30px"></div>
+                    <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_spin.json" background="transparent" speed="1" style="width: 30px; height: 30px;" loop autoplay></lottie-player>
+                    @switch (_progressState)
+                    {
+                        case ToastProgressState.Success:
+                        {
+                            <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_success.json" background="transparent" speed="1" style="width: 30px; height: 30px;" autoplay></lottie-player>
+                            break;
+                        }
+                        case ToastProgressState.Failure:
+                        {
+                            <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_failure.json" background="transparent" speed="1" style="width: 30px; height: 30px;" autoplay></lottie-player>
+                            break;
+                        }
+                    }
+
+                </div>
+                <div class="toast-right">
+                    <p class="toast-title">@Toast.Title</p>
+                    <p class="toast-desc">@Toast.Message</p>
+                </div>
+                
+                break;
+            }
+            default:
+            {
+                <div class="toast-right">
+                    <p class="toast-title">@Toast.Title</p>
+                    <p class="toast-desc">@Toast.Message</p>
+                </div>
+                break;
+            }
+        }
+    </div>
+</div>
+
+
+        
+
+
+@code {
+    [CascadingParameter]
+    public ToastContainer Container { get; set; }
+    
+    [Parameter]
+    public ToastData Toast { get; set; }
+    
+    [Parameter]
+    public int TopOffset { get; set; } = 0;
+    
+    private bool _shrink = false;
+    private bool _hide = false;
+    private ToastProgressState _progressState = ToastProgressState.Running;
+    
+    public string GetAnimClass()
+    {
+        return _shrink ? "shrink" : "";
+    }
+
+    public void Shrink()
+    {
+        _shrink = true;
+        StateHasChanged(); // Start shrinking
+    }
+
+    public void Hide()
+    {
+        _hide = true;
+        StateHasChanged(); // Stop rendering before animation resets
+    }
+
+    public void Remove()
+    {
+        Container.RemoveToast(Toast); // Remove
+    }
+
+    public void SetProgressState(ToastProgressState state)
+    {
+        _progressState = state;
+        StateHasChanged();
+    }
+
+    public async Task ShrinkAndRemove()
+    {
+        await Task.Delay(2000);
+        Shrink();
+        await Task.Delay(200);
+        Hide();
+        Remove();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Toast.AutoClose)
+        {
+            await ShrinkAndRemove();
+        }
+    }
+}

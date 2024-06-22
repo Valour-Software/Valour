@@ -31,8 +31,7 @@ public static class GlobalWindowData
         if (OnActiveWindowChange is not null)
             await OnActiveWindowChange.Invoke(window);
         
-        if (window.OnFocused is not null)
-            await window.OnFocused.Invoke();
+        await window.NotifyFocused();
     }
     
     public static List<WindowData> GlobalWindows { get; set; } = new();
@@ -86,8 +85,9 @@ public static class GlobalWindowData
 
 public class WindowData
 {
-    public Func<Task> OnFocused;
-    
+    public event Func<Task> OnFocused;
+    public event Func<Task> OnClosed;
+
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Title { get; set; }
     public string Icon { get; set; }
@@ -96,4 +96,17 @@ public class WindowData
     public WindowBase WindowBase { get; set; }
     public double StartFloatX { get; set; }
     public double StartFloatY { get; set; }
+
+    public async Task NotifyFocused()
+    {
+        if (OnFocused is not null)
+            await OnFocused.Invoke();
+    }
+    
+    public async Task NotifyClose()
+    {
+        if (OnClosed is not null)
+            await OnClosed.Invoke();
+    }
+
 }

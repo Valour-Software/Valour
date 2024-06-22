@@ -54,17 +54,17 @@
 
 	private async Task OnConfirm()
 	{
+		await CloseAsync();
+		
 		if (Data.ConfirmEvent is not null)
 			await Data.ConfirmEvent.Invoke();
-
-		await CloseAsync();
 	}
 
 	private async Task OnCancel()
 	{
+		await CloseAsync();
+		
 		if (Data.CancelEvent is not null)
 			await Data.CancelEvent.Invoke();
-
-		await CloseAsync();
 	}
 }

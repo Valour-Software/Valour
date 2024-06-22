@@ -77,8 +77,14 @@
              "Cancel",
              async () =>
              {
+                 var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+                    $"Leaving {Data.Planet.Name}",
+                    "Removing membership...",
+                    ValourClient.LeavePlanetAsync(Data.Planet),
+                    "Left planet successfully!"
+                 ));
+                 
                  Console.WriteLine("Confirmed leaving planet.");
-                 var result = await ValourClient.LeavePlanetAsync(Data.Planet);
                  Console.WriteLine("Leave: " + result.Message);
              },
              () => Task.CompletedTask

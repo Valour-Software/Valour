@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Requests;
 using Valour.Shared.Authorization;
+using Valour.Shared.Channels;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Api.Dynamic;
@@ -470,5 +471,30 @@ public class ChannelApi
         typingService.AddCurrentlyTyping(id, token.UserId);
         
         return Results.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/channels/{id}/state")]
+    [UserRequired]
+    public static async Task<IResult> UpdateStateAsync(
+        long id,
+        [FromBody] UpdateUserChannelStateRequest request,
+        ChannelStateService stateService,
+        ChannelService channelService,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        var channel = await channelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+        
+        if (!await channelService.IsMemberAsync(channel, token.UserId))
+        {
+            return ValourResult.Forbid("You are not a member of this channel");
+        }
+
+        var updated = await stateService.UpdateUserChannelState(id, token.UserId, request.UpdateTime);
+
+        return ValourResult.Json(updated);
     }
 }
