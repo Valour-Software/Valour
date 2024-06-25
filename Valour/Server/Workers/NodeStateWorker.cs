@@ -35,6 +35,8 @@ public class NodeStateWorker : IHostedService, IDisposable
         _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
         
         // Migrate to new access system
+        
+        /*
         var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
         var accessService = scope.ServiceProvider.GetRequiredService<ChannelAccessService>();
         
@@ -55,6 +57,8 @@ public class NodeStateWorker : IHostedService, IDisposable
         }
 
         Console.WriteLine("Finished migrate");
+        
+        */
         
         
         await _longNodeService.AnnounceNode();

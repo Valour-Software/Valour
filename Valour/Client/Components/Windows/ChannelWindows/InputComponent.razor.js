@@ -22,22 +22,39 @@ export function setup(id, ref) {
 // Thank you to https://www.456bereastreet.com/archive/201105/get_element_text_including_alt_text_for_images_with_javascript/
 var getElementText = function(el) {
     var text = '';
+
     // Text node (3) or CDATA node (4) - return its text
     if ( (el.nodeType === 3) || (el.nodeType === 4) ) {
         text = el.nodeValue;
+
         // If node is an element (1) and an img
     } else if ((el.nodeType === 1) && el.tagName.toLowerCase() == 'img') {
         text = el.dataset.text || el.getAttribute('data-text') || '';
-        // text = el.getAttribute('alt') || '';
+
+        // If node is a <br> element, add a line break
+    } else if ((el.nodeType === 1) && el.tagName.toLowerCase() === 'br') {
+        text = '\n';
+
+        // If node is a block-level element, add a line break before and after its content
+    } else if ((el.nodeType === 1) && el.tagName.match(/^(p|div|section|article|header|footer|blockquote|pre|h[1-6])$/i)) {
+        text = '\n';
+        var children = el.childNodes;
+        for (var i = 0, l = children.length; i < l; i++) {
+            text += getElementText(children[i]);
+        }
+        text += '\n';
+
         // Traverse children unless this is a script or style element
-    } else if ( (el.nodeType === 1) && !el.tagName.match(/^(script|style)$/i) ) {
+    } else if ((el.nodeType === 1) && !el.tagName.match(/^(script|style)$/i)) {
         var children = el.childNodes;
         for (var i = 0, l = children.length; i < l; i++) {
             text += getElementText(children[i]);
         }
     }
+
     return text;
 };
+
 
 function getCurrentValue(input) {
     return getElementText(input.element);
