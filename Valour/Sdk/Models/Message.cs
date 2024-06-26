@@ -169,6 +169,11 @@ public class Message : LiveModel, ISharedMessage
         return await FindAsync(ReplyToId.Value, ChannelId);
     }
 
+    public ValueTask<Channel> GetChannelAsync()
+    {
+        return Channel.FindAsync(ChannelId);
+    }
+
     /// <summary>
     /// Returns the user for the author of this message
     /// </summary>

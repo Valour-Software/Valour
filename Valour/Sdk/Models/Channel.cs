@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using Valour.Sdk.Client;
+using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
 using Valour.Shared;
@@ -606,6 +607,39 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 
             return sb.ToString();
         }
+    }
+
+    public async Task<TaskResult> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
+    {
+        if (!IsChatChannel)
+            return new TaskResult(false, "Cannot send messages to non-chat channels.");
+        
+        var msg = new Message()
+        {
+            Content = content,
+            ChannelId = Id,
+            PlanetId = PlanetId,
+            AuthorUserId = ValourClient.Self.Id,
+            Fingerprint = Guid.NewGuid().ToString(),
+        };
+
+        PlanetMember member;
+        if (PlanetId is not null)
+        {
+            member = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
+            msg.AuthorMemberId = member.Id;
+        }
+        
+        if (mentions is not null)
+            msg.MentionsData = JsonSerializer.Serialize(mentions);
+        
+        if (attachments is not null)
+            msg.AttachmentsData = JsonSerializer.Serialize(attachments);
+        
+        if (embed is not null)
+            msg.EmbedData = JsonSerializer.Serialize(embed);
+
+        return await ValourClient.SendMessage(msg);
     }
 
     public async Task Open(string key)
