@@ -1,0 +1,21 @@
+<h2>Mod Tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h2>
+
+<TabContainerComponent Titles="@_tabs">
+    <TabOne>
+        
+    </TabOne>
+    <TabTwo>
+        
+    </TabTwo>
+</TabContainerComponent>
+
+@code {
+    private readonly string[] _tabs =
+        new string[] { "Members", "Reports" };
+    
+    [Parameter]
+    public WindowData Window { get; set; }
+        
+    [Parameter] 
+    public ModToolsWindowData Data { get; set; }
+}
