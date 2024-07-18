@@ -81,6 +81,22 @@ public static class GlobalWindowData
             await DockContainer.MainDock.AddWindowAsync(data);
         }
     }
+    
+    /// <summary>
+    /// Adds the given window as a floating window if supported on the device,
+    /// otherwise adds it in a supported manner
+    /// </summary>
+    public static async Task TryAddFloatingWindow(WindowData data)
+    {
+        if (DockFloaters.Instance is not null)
+        {
+            await DockFloaters.Instance.AddFloater(data, 100, 100);
+        }
+        else
+        {
+            await DockContainer.MainDock.AddWindowAsync(data);
+        }
+    }
 }
 
 public class WindowData
@@ -96,6 +112,8 @@ public class WindowData
     public WindowBase WindowBase { get; set; }
     public double StartFloatX { get; set; }
     public double StartFloatY { get; set; }
+    public int StartFloatWidth { get; set; } = 400;
+    public int StartFloatHeight { get; set; } = 400;
 
     public async Task NotifyFocused()
     {
