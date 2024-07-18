@@ -53,6 +53,37 @@ public class UserService
     public async Task<User> GetAsync(long id) =>
         (await _db.Users.FindAsync(id)).ToModel();
 
+    /// <summary>
+    /// Queries users by the given attributes and returns the results
+    /// </summary>
+    /// <param name="usernameAndTag">The username + tag search</param>
+    /// <param name="skip">The number of results to skip</param>
+    /// <param name="take">The number of results to return</param>
+    /// <returns></returns>
+    public async Task<PagedResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
+    {
+        if (take > 50)
+        {
+            take = 50;
+        }
+
+        var query = _db.Users
+            .Where(x => EF.Functions.ILike("%" + usernameAndTag + "%", x.Name + "#" + x.Tag))
+            .OrderBy(x => x.Name);
+
+        var totalCount = await query.CountAsync();
+
+        var users = await query.Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+        return new PagedResponse<User>()
+        {
+            TotalCount = totalCount,
+            Items = users
+        };
+    }
+
     public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
         (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
 

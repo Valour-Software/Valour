@@ -446,4 +446,15 @@ public class UserApi
 
         return ValourResult.Ok("Deleted.");
     }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/query")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [StaffRequired]
+    public static async Task<IResult> QueryUsersAsync(
+        [FromBody] UserQueryRequest query,
+        UserService userService)
+    {
+        var result = await userService.QueryUsersAsync(query.UsernameAndTag, query.Skip, query.Take);
+        return Results.Json(result);
+    }
 }
