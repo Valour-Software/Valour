@@ -68,7 +68,7 @@ public class UserService
         }
 
         var query = _db.Users
-            .Where(x => EF.Functions.ILike("%" + usernameAndTag + "%", x.Name + "#" + x.Tag))
+            .Where(x => EF.Functions.ILike((x.Name.ToLower() + "#" + x.Tag), "%" + usernameAndTag.ToLower() + "%"))
             .OrderBy(x => x.Name);
 
         var totalCount = await query.CountAsync();

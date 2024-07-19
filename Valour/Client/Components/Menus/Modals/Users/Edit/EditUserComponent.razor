@@ -156,17 +156,7 @@
             Staff = true
         };
 
-        var dim = await DomWindow.GetWindowDimensions();
-        
-        var newWindow = new WindowData()
-        {
-            Title = "Staff Tools",
-            Icon = "_content/Valour.Client/media/logo/logo-64.png",
-            Type = typeof(ModToolsWindowComponent),
-            Data = data,
-            StartFloatWidth = dim.Width / 2,
-            StartFloatHeight = dim.Height / 2
-        };
+        var newWindow = await ModToolsWindowComponent.GetDefaultSettings(data);
 
         await GlobalWindowData.TryAddFloatingWindow(newWindow);
 

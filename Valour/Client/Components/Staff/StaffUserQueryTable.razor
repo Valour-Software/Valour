@@ -1,0 +1,69 @@
+@if (_loading)
+{
+    <h6>Loading users...</h6>
+    return;
+}
+
+<input class="form-control mt-2 mb-2" placeholder="Search name..." @onchange="@HandleNameSearch" />
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Tag</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in _users)
+        {
+            <tr>
+                <td>@user.Id</td>
+                <td>@user.Name</td>
+                <td>@user.Tag</td>
+                <td>
+                    <button class="btn btn-primary">Edit</button>
+                    <button class="btn btn-danger">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private bool _loading = true;
+    
+    private string _nameSearch = string.Empty;
+
+    private UserQueryRequest _queryRequest;
+    private PagedReader<User> _userReader;
+    
+    private List<User> _users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _queryRequest = new();
+        _userReader = new PagedReader<User>("api/users/query", 50, postData: _queryRequest);
+        _loading = false;
+
+        await Requery();
+        
+        StateHasChanged();
+    }
+
+    private async Task HandleNameSearch(ChangeEventArgs e)
+    {
+        _queryRequest.UsernameAndTag = e.Value.ToString();
+        await Requery();
+    }
+    
+    private async Task Requery()
+    {
+        _userReader.SetPostData(_queryRequest);
+        var response = await _userReader.NextPageAsync();
+        _users = response.Items;
+        
+        StateHasChanged();
+    }
+}

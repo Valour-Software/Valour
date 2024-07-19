@@ -28,6 +28,7 @@
         </div>
     </div>
     <div class="window"
+         style="@(WindowData.AutoScroll ? "overflow-y: auto" : "")"
          @onmousedown:stopPropagation="true"
          @onmousedown="@OnClickWindow">
         <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>

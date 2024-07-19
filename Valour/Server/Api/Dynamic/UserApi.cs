@@ -451,10 +451,12 @@ public class UserApi
     [UserRequired(UserPermissionsEnum.FullControl)]
     [StaffRequired]
     public static async Task<IResult> QueryUsersAsync(
+        UserService userService,
         [FromBody] UserQueryRequest query,
-        UserService userService)
+        [FromQuery] int amount = 50,
+        [FromQuery] int page = 0)
     {
-        var result = await userService.QueryUsersAsync(query.UsernameAndTag, query.Skip, query.Take);
+        var result = await userService.QueryUsersAsync(query.UsernameAndTag, amount * page, amount);
         return Results.Json(result);
     }
 }

@@ -114,6 +114,7 @@ public class WindowData
     public double StartFloatY { get; set; }
     public int StartFloatWidth { get; set; } = 400;
     public int StartFloatHeight { get; set; } = 400;
+    public bool AutoScroll { get; set; } = false;
 
     public async Task NotifyFocused()
     {
