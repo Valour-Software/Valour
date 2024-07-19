@@ -1,14 +1,15 @@
-<h2>Mod Tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h2>
+<h3 class="title">Mod Tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h3>
 
-<TabContainerComponent Titles="@_tabs">
-    <TabOne>
-        
-    </TabOne>
-    <TabTwo>
-        
-    </TabTwo>
-</TabContainerComponent>
-
+<div class="table-wrapper">
+    <TabContainerComponent Titles="@_tabs">
+        <TabOne>
+            
+        </TabOne>
+        <TabTwo>
+            
+        </TabTwo>
+    </TabContainerComponent>
+</div>
 @code {
     private readonly string[] _tabs =
         new string[] { "Members", "Reports" };
