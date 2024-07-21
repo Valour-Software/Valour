@@ -30,7 +30,7 @@ jobs:
     - name: Delete .js files if corresponding .ts files exist
       run: |
         #!/bin/bash
-        SEARCH_DIR="./Client"
+        SEARCH_DIR="./"
         find "$SEARCH_DIR" -name "*.ts" | while read tsfile; do
           jsfile="${tsfile%.ts}.js"
           if [ -f "$jsfile" ]; then
