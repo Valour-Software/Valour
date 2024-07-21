@@ -582,39 +582,40 @@ public class UserService
         try
         {
             // Remove messages
-            await _db.Messages.Where(x => x.AuthorUserId == dbUser.Id)
+            await _db.Messages.IgnoreQueryFilters().Where(x => x.AuthorUserId == dbUser.Id)
                 .ExecuteDeleteAsync();
             
             // Remove message attachments
-            var msgAttachments = _db.CdnBucketItems.Where(x => x.UserId == user.Id);
+            var msgAttachments = _db.CdnBucketItems.IgnoreQueryFilters().Where(x => x.UserId == user.Id);
             _db.CdnBucketItems.RemoveRange(msgAttachments);
             
             await _db.SaveChangesAsync();
 
             // Channel states
-            var states = _db.UserChannelStates.Where(x => x.UserId == dbUser.Id);
+            var states = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.UserChannelStates.RemoveRange(states);
 
             await _db.SaveChangesAsync();
 
-            var memberIds = await _db.PlanetMembers.Where(x => x.UserId == dbUser.Id).Select(x => x.Id).ToListAsync();
+            var memberIds = await _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id).Select(x => x.Id).ToListAsync();
             foreach (var memberId in memberIds)
             {
                 // Channel access
-                var access = _db.MemberChannelAccess.Where(x => x.MemberId == memberId);
+                var access = _db.MemberChannelAccess.IgnoreQueryFilters().Where(x => x.MemberId == memberId);
                 _db.MemberChannelAccess.RemoveRange(access);
             }
             
             await _db.SaveChangesAsync();
             
             // Channel membership
-            var dchannelMembers = _db.ChannelMembers.Where(x => x.UserId == dbUser.Id);
+            var dchannelMembers = _db.ChannelMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.ChannelMembers.RemoveRange(dchannelMembers);
 
             await _db.SaveChangesAsync();
             
             // Direct Message Channels
             var dChannels = await _db.Channels
+                .IgnoreQueryFilters()
                 .Include(x => x.Members)
                 .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat && 
                                     x.Members.Any(m => m.UserId == dbUser.Id))
@@ -623,14 +624,14 @@ public class UserService
             foreach (var dc in dChannels)
             {
                 // channel states
-                var st = _db.UserChannelStates.Where(x => x.ChannelId == dc.Id);
+                var st = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.UserChannelStates.RemoveRange(st);
                 
-                var pst = _db.ChannelStates.Where(x => x.ChannelId == dc.Id);
+                var pst = _db.ChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.ChannelStates.RemoveRange(pst);
                 
                 // notifications
-                var dnots = _db.Notifications.Where(x => x.ChannelId == dc.Id);
+                var dnots = _db.Notifications.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.Notifications.RemoveRange(dnots);
                 
                 await _db.SaveChangesAsync();
@@ -643,73 +644,73 @@ public class UserService
             await _db.SaveChangesAsync();
 
             // Remove friends and friend requests
-            var requests = _db.UserFriends.Where(x => x.UserId == dbUser.Id || x.FriendId == dbUser.Id);
+            var requests = _db.UserFriends.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id || x.FriendId == dbUser.Id);
             _db.UserFriends.RemoveRange(requests);
 
             // Remove email confirm codes
-            var codes = _db.EmailConfirmCodes.Where(x => x.UserId == dbUser.Id);
+            var codes = _db.EmailConfirmCodes.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.EmailConfirmCodes.RemoveRange(codes);
             
             // Remove user emails
-            var emails = _db.UserEmails.Where(x => x.UserId == dbUser.Id);
+            var emails = _db.UserEmails.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.UserEmails.RemoveRange(emails);
 
             // Remove credentials
-            var creds = _db.Credentials.Where(x => x.UserId == dbUser.Id);
+            var creds = _db.Credentials.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.Credentials.RemoveRange(creds);
 
-            var recovs = _db.PasswordRecoveries.Where(x => x.UserId == dbUser.Id);
+            var recovs = _db.PasswordRecoveries.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PasswordRecoveries.RemoveRange(recovs);
             
             await _db.SaveChangesAsync();
             
             // Remove eco stuff
-            var transactions = _db.Transactions.Where(x => x.UserFromId == dbUser.Id || x.UserToId == dbUser.Id);
+            var transactions = _db.Transactions.IgnoreQueryFilters().Where(x => x.UserFromId == dbUser.Id || x.UserToId == dbUser.Id);
             _db.Transactions.RemoveRange(transactions);
             
-            var ecoAccounts = _db.EcoAccounts.Where(x => x.UserId == dbUser.Id);
+            var ecoAccounts = _db.EcoAccounts.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.EcoAccounts.RemoveRange(ecoAccounts);
             
             await _db.SaveChangesAsync();
 
             // Remove membership stuff
-            var pRoles = _db.PlanetRoleMembers.Where(x => x.UserId == dbUser.Id);
+            var pRoles = _db.PlanetRoleMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PlanetRoleMembers.RemoveRange(pRoles);
 
             // Remove planet membership
-            var members = _db.PlanetMembers.Where(x => x.UserId == dbUser.Id);
+            var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PlanetMembers.RemoveRange(members);
 
             await _db.SaveChangesAsync();
 
             // Authtokens
-            var tokens = _db.AuthTokens.Where(x => x.UserId == dbUser.Id);
+            var tokens = _db.AuthTokens.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.AuthTokens.RemoveRange(tokens);
 
             // Referrals
-            var refer = _db.Referrals.Where(x => x.UserId == dbUser.Id || x.ReferrerId == dbUser.Id);
+            var refer = _db.Referrals.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id || x.ReferrerId == dbUser.Id);
             _db.Referrals.RemoveRange(refer);
 
             // Notifications
-            var nots = _db.NotificationSubscriptions.Where(x => x.UserId == dbUser.Id);
+            var nots = _db.NotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.NotificationSubscriptions.RemoveRange(nots);
             
             // Also notifications
-            var noots  = _db.Notifications.Where(x => x.UserId == dbUser.Id);
+            var noots  = _db.Notifications.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.Notifications.RemoveRange(noots);
             
             // Bans
-            var bans = _db.PlanetBans.Where(x => x.IssuerId == dbUser.Id || x.TargetId == dbUser.Id);
+            var bans = _db.PlanetBans.IgnoreQueryFilters().Where(x => x.IssuerId == dbUser.Id || x.TargetId == dbUser.Id);
             _db.PlanetBans.RemoveRange(bans);
 
             // Planet invites
-            var invites = _db.PlanetInvites.Where(x => x.IssuerId == dbUser.Id);
+            var invites = _db.PlanetInvites.IgnoreQueryFilters().Where(x => x.IssuerId == dbUser.Id);
             _db.PlanetInvites.RemoveRange(invites);
 
             await _db.SaveChangesAsync();
             
             // Assign ownership of planets to the system
-            var planets = _db.Planets.Where(x => x.OwnerId == dbUser.Id);
+            var planets = _db.Planets.IgnoreQueryFilters().Where(x => x.OwnerId == dbUser.Id);
             foreach (var planet in planets)
             {
                 planet.OwnerId = ISharedUser.VictorUserId;
@@ -732,7 +733,7 @@ public class UserService
             // Themes
             // we re-assign ownership of themes to Victor
             
-            var themes = _db.Themes.Where(x => x.AuthorId == dbUser.Id);
+            var themes = _db.Themes.IgnoreQueryFilters().Where(x => x.AuthorId == dbUser.Id);
             foreach (var theme in themes)
             {
                 theme.AuthorId = ISharedUser.VictorUserId;
