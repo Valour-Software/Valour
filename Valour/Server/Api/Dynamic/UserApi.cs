@@ -442,8 +442,25 @@ public class UserApi
         }
         
         // Validated
-        await userService.HardDelete(user);
+        var result =  await userService.HardDelete(user);
+        if (!result.Success)
+        {
+            return ValourResult.Problem(result.Message);
+        }
 
         return ValourResult.Ok("Deleted.");
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/query")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    [StaffRequired]
+    public static async Task<IResult> QueryUsersAsync(
+        UserService userService,
+        [FromBody] UserQueryRequest query,
+        [FromQuery] int amount = 50,
+        [FromQuery] int page = 0)
+    {
+        var result = await userService.QueryUsersAsync(query.UsernameAndTag, amount * page, amount);
+        return Results.Json(result);
     }
 }

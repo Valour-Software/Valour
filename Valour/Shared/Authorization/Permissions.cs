@@ -200,7 +200,7 @@ public class PlanetPermission : Permission
 
 public enum UserPermissionsEnum
 {
-    FullControl,
+    FullControl, 
     Minimum,
     View,
     Membership,

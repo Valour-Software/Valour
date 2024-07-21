@@ -15,6 +15,9 @@
 
     [Parameter]
     public string Color { get; set; }
+    
+    [Parameter]
+    public Func<Task> OnClickOverride { get; set; }
 
     public string TextStyle
     {
@@ -46,6 +49,12 @@
 
     public Task OnClick(MouseEventArgs e)
     {
+        if (OnClickOverride is not null)
+        {
+            OnClickOverride.Invoke();
+            return Task.CompletedTask;
+        }
+        
         bigMenuTopLevelMenuComponent.bigMenuComponent.SelectedSubMenu = this;
         bigMenuTopLevelMenuComponent.bigMenuComponent.ShowRightSide = true;
         bigMenuTopLevelMenuComponent.bigMenuComponent.ShowLeftSide = false;

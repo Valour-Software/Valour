@@ -1,4 +1,5 @@
-﻿@inherits Modal<EditUserComponent.ModalParams>
+﻿@using Valour.Client.Components.Windows.ModTools
+@inherits Modal<EditUserComponent.ModalParams>
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
 
@@ -28,7 +29,7 @@
                     <BigMenuSubMenuComponent Icon="phone-fill" Name="Device Preferences"></BigMenuSubMenuComponent>
                     @if (ValourClient.Self.ValourStaff)
                     {
-                        <BigMenuSubMenuComponent Icon="hammer" Name="Staff Tools"></BigMenuSubMenuComponent>
+                        <BigMenuSubMenuComponent OnClickOverride="OpenStaffTools" Icon="hammer" Name="Staff Tools"></BigMenuSubMenuComponent>
                     }
                     <BigMenuSubMenuComponent Icon="x-octagon-fill" Name="Log Out"></BigMenuSubMenuComponent>
                 </BigMenuTopLevelMenuComponent>
@@ -68,7 +69,6 @@
                     case "Log Out":
                         <EditUserInfoComponent User="@Data.User"></EditUserInfoComponent>
                         break;
-                        
                 }
                 break;
         }
@@ -76,6 +76,9 @@
 </BigMenuComponent>
 
 @code {
+    
+    [CascadingParameter]
+    public DomWindowData DomWindow { get; set; }
 
     public class ModalParams
     {
@@ -144,5 +147,19 @@
             Console.WriteLine(result.Message);
             NavManager.NavigateTo("/", true);
         }
+    }
+    
+    private async Task OpenStaffTools()
+    {
+        var data = new ModToolsWindowData()
+        {
+            Staff = true
+        };
+
+        var newWindow = await ModToolsWindowComponent.GetDefaultSettings(data);
+
+        await GlobalWindowData.TryAddFloatingWindow(newWindow);
+
+        await CloseAsync();
     }
 }

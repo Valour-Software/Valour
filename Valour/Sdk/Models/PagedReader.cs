@@ -12,19 +12,21 @@ public class PagedReader<T>
     private readonly int _pageSize;
     
     private  Dictionary<string, string> _query;
+    private object _postData;
     
     private int _currentPageIndex;
     private PagedResponse<T> _currentPage;
     private int _currentIndex;
     private int _totalCount;
     
-    public PagedReader(string url, int pageSize = 20, Dictionary<string, string> query = null)
+    public PagedReader(string url, int pageSize = 20, Dictionary<string, string> query = null, object postData = null)
     {
         _url = url;
         _pageSize = pageSize;
         _query = query;
         _currentIndex = -1; // Initializing with -1, as no item has been fetched yet.
         _totalCount = -1; // Initializing with -1, as the total count is not known yet.
+        _postData = postData;
     }
 
     public int GetCurrentIndex()
@@ -40,8 +42,18 @@ public class PagedReader<T>
             foreach (var (key, value) in _query)
                 baseQuery += $"&{key}={WebUtility.UrlEncode(value)}";
         }
+        
+        TaskResult<PagedResponse<T>> response;
 
-        var response = await ValourClient.PrimaryNode.GetJsonAsync<PagedResponse<T>>(_url + baseQuery);
+        if (_postData is not null)
+        {
+            response = await ValourClient.PrimaryNode.PostAsyncWithResponse<PagedResponse<T>>(_url + baseQuery, _postData);
+        }
+        else
+        {
+            response = await ValourClient.PrimaryNode.GetJsonAsync<PagedResponse<T>>(_url + baseQuery);
+        }
+
         _currentPageIndex++;
 
         if (!response.Success)
@@ -94,6 +106,13 @@ public class PagedReader<T>
         return _currentPage.Items[_currentIndex % _pageSize];
     }
     
+    public void SetPostData(object postData)
+    {
+        _postData = postData;
+        
+        ResetReader();
+    }
+    
     public void SetQuery(string key, string value)
     {
         if (_query is null)
@@ -101,7 +120,11 @@ public class PagedReader<T>
         
         _query[key] = value;
         
-        // Reset the reader
+        ResetReader();
+    }
+
+    private void ResetReader()
+    {
         _currentPageIndex = 0;
         _currentIndex = -1;
         _currentPage = null;

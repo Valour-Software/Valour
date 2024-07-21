@@ -2,7 +2,7 @@
 @inject IJSRuntime JsRuntime
 
 <div class="window-wrapper"
-     style="z-index: @GetZIndex(); left:  @(_left)px; top:  @(_top)px;"
+     style="z-index: @GetZIndex(); left:  @(_left)px; top:  @(_top)px; width: @(_width)px; height: @(_height)px;"
      @ref="@_element">
     <div class="tab-wrapper"
          @onmousedown:stopPropagation="true"
@@ -28,6 +28,7 @@
         </div>
     </div>
     <div class="window"
+         style="@(WindowData.AutoScroll ? "overflow-y: auto" : "")"
          @onmousedown:stopPropagation="true"
          @onmousedown="@OnClickWindow">
         <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
@@ -72,6 +73,9 @@
     private double _left;
     private double _top;
 
+    private double _width;
+    private double _height;
+
     private Dictionary<string, object> _windowParams;
 
     private bool _render = false;
@@ -86,6 +90,9 @@
 
         _left = WindowData.StartFloatX;
         _top = WindowData.StartFloatY;
+        
+        _width = WindowData.StartFloatWidth;
+        _height = WindowData.StartFloatHeight;
     }
 
     protected override bool ShouldRender() => _render;

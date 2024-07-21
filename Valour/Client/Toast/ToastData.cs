@@ -17,6 +17,11 @@ public class ToastData
 
     public virtual bool AutoClose => ShouldAutoClose;
     
+    public ToastData()
+    {
+        
+    }
+    
     public ToastData(string title, string message)
     {
         Title = title;
@@ -30,6 +35,11 @@ public abstract class ProgressToastDataBase : ToastData
     public string FailureMessage { get; set; }
     
     public override bool AutoClose => false;
+
+    public ProgressToastDataBase()
+    {
+        
+    }
     
     public ProgressToastDataBase(string title, string message) : base(title, message)
     {
@@ -40,7 +50,11 @@ public abstract class ProgressToastDataBase : ToastData
 public class ProgressToastData : ProgressToastDataBase
 {
     public Task ProgressTask { get; set; }
-    
+
+    public ProgressToastData()
+    {
+        
+    }
     
     public ProgressToastData(string title, string message, Task progressTask, string successMessage = null, string failureMessage = null) : base(title, message)
     {
@@ -55,6 +69,11 @@ public class ProgressToastData : ProgressToastDataBase
 public class ProgressToastData<T> : ProgressToastDataBase
 {
     public Task<T> ProgressTask { get; set; }
+    
+    public ProgressToastData()
+    {
+        
+    }
     
     public ProgressToastData(string title, string message, Task<T> progressTask, string successMessage = null, string failureMessage = null) : base(title, message)
     {
