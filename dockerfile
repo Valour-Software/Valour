@@ -13,9 +13,6 @@ RUN apt-get install libatomic1
 # Copy the app's source code to the container image
 COPY . .
 
-# Clean up
-RUN dotnet clean
-
 # Restore workloads
 RUN dotnet workload restore
 
