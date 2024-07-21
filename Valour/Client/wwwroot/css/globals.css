@@ -103,6 +103,7 @@
 }
 
 .v-btn.inline {
+    display: inline;
     margin-left: auto;
     margin-right: auto;
 }

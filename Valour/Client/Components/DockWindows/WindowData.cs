@@ -24,14 +24,25 @@ public static class GlobalWindowData
 
     public static async Task SetGlobalActiveWindowAsync(WindowData window)
     {
-        if (window.Id == GlobalActiveWindow?.Id)
+        if (window is null)
+        {
+            if (GlobalActiveWindow is null)
+            {
+                return;
+            }
+        }
+        else if (window.Id == GlobalActiveWindow?.Id) {
             return;
-        
+        }
+
         GlobalActiveWindow = window;
         if (OnActiveWindowChange is not null)
             await OnActiveWindowChange.Invoke(window);
-        
-        await window.NotifyFocused();
+
+        if (window is not null)
+        {
+            await window.NotifyFocused();
+        }
     }
     
     public static List<WindowData> GlobalWindows { get; set; } = new();

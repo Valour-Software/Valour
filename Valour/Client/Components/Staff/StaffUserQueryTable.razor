@@ -23,8 +23,17 @@
                 <td>@user.Name</td>
                 <td>@user.Tag</td>
                 <td>
-                    <button class="btn btn-primary">Edit</button>
-                    <button class="btn btn-danger">Delete</button>
+                    <div class="button-row">
+                        @if (user.Disabled)
+                        {
+                            <button class="v-btn primary" @onclick="@(async () => await EnableUser(user.Id))">Enable</button>
+                        }
+                        else 
+                        {
+                            <button class="v-btn secondary" @onclick="@(async () => await DisableUser(user.Id))">Disable</button>
+                        }
+                        <button class="v-btn danger" @onclick="@(async () => await DeleteUser(user))">Delete</button>
+                    </div>
                 </td>
             </tr>
         }
@@ -32,6 +41,9 @@
 </table>
 
 @code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
     private bool _loading = true;
     
     private string _nameSearch = string.Empty;
@@ -44,7 +56,7 @@
     protected override async Task OnInitializedAsync()
     {
         _queryRequest = new();
-        _userReader = new PagedReader<User>("api/users/query", 50, postData: _queryRequest);
+        _userReader = StaffTools.GetUserQueryReader(_queryRequest, 50);
         _loading = false;
 
         await Requery();
@@ -66,4 +78,74 @@
         
         StateHasChanged();
     }
+    
+    /* Staff Controls */
+    
+    private async Task DisableUser(long userId)
+    {
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            Title = "Disabling User",
+            SuccessMessage = "User has been disabled",
+            Message = "Waiting for result...",
+            ProgressTask = StaffTools.SetUserDisabledAsync(userId, true)
+        };
+        
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+        if (result.Success)
+        {
+            await Requery();
+        }
+    }
+    
+    private async Task EnableUser(long userId)
+    {
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            Title = "Enabling User",
+            SuccessMessage = "User has been enabled",
+            Message = "Waiting for result...",
+            ProgressTask = StaffTools.SetUserDisabledAsync(userId, false)
+        };
+        
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+        if (result.Success)
+        {
+            await Requery();
+        }
+    }
+    
+    private Task DeleteUser(User user)
+    {
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams()
+        {
+            Title = $"Hard Delete {user.NameAndTag}?",
+            Description = "This CANNOT be undone. Are you sure you want to delete this user?",
+            CancelText = "Cancel",
+            ConfirmText = "DELETE",
+            ConfirmEvent = async () =>
+            {
+                var toastData = new ProgressToastData<TaskResult>()
+                {
+                    Title = "Deleting User",
+                    SuccessMessage = "User has been deleted",
+                    Message = "Waiting for result...",
+                    ProgressTask = StaffTools.DeleteUserAsync(user.Id)
+                };
+        
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+                if (result.Success)
+                {
+                    await Requery();
+                }
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+    
+    
 }

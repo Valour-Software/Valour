@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Models.Staff;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class StaffApi
@@ -12,7 +15,7 @@ public class StaffApi
     
     [StaffRequired]
     [ValourRoute(HttpVerbs.Put, "api/staff/reports/{reportId}/reviewed/{value}")]
-    public static async Task<IResult> SetReportReviewedAsync(StaffService staffService, string reportId, bool value)
+    public static async Task<IResult> SetReportReviewedAsync(StaffService staffService, [FromQuery] string reportId, [FromQuery] bool value)
     {
         var result = await staffService.SetReportReviewedAsync(reportId, value);
         if (!result.Success)
@@ -20,5 +23,43 @@ public class StaffApi
         
         return ValourResult.Ok();
     }
+
+    [StaffRequired]
+    [ValourRoute(HttpVerbs.Post, "api/staff/disable")]
+    public static async Task<IResult> DisableUserAsync(StaffService staffService, [FromBody] DisableUserRequest request)
+    {
+        var result = await staffService.DisableUserAsync(request.UserId, request.Value);
+        if (!result.Success)
+        {
+            if (result.Code == 404)
+            {
+                return ValourResult.NotFound(result.Message);
+            }
+            else
+            {
+                return ValourResult.BadRequest(result.Message);
+            }
+        }
+
+        return ValourResult.Ok();
+    }
     
+    [StaffRequired]
+    [ValourRoute(HttpVerbs.Post, "api/staff/delete")]
+    public static async Task<IResult> DeleteUserAsync(UserService userService, StaffService staffService, [FromBody] DeleteUserRequest request)
+    {
+        var requestor = await userService.GetCurrentUserAsync();
+        
+        // For now, only Spike can do this
+        if (requestor.Id != 12200448886571008)
+        {
+            return ValourResult.Forbid("SuperAdmins only.");
+        }
+        
+        var result = await staffService.DeleteUserAsync(request.UserId);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return ValourResult.Ok();
+    }
 }

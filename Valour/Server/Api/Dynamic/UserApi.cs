@@ -442,7 +442,11 @@ public class UserApi
         }
         
         // Validated
-        await userService.HardDelete(user);
+        var result =  await userService.HardDelete(user);
+        if (!result.Success)
+        {
+            return ValourResult.Problem(result.Message);
+        }
 
         return ValourResult.Ok("Deleted.");
     }

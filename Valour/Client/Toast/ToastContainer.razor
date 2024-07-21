@@ -105,7 +105,7 @@
         AddToast(toast);
 
         try {
-            var result = await toast.ProgressTask;
+            var result = await Task.Run(async () => await toast.ProgressTask);
 
             if (toast.Card is null)
             {

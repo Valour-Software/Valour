@@ -155,16 +155,5 @@ public class User : LiveModel, ISharedUser
     
     public string GetFailedAvatarUrl() =>
         ISharedUser.GetFailedAvatarUrl(this);
-    
-    // Staff APIs //
-    public static PagedReader<User> QueryUsers(string search = null, int amount = 50)
-    {
-        var request = new UserQueryRequest()
-        {
-            UsernameAndTag = search
-        };
-        
-        return new PagedReader<User>("api/users", amount, postData: request);
-    }
 }
 

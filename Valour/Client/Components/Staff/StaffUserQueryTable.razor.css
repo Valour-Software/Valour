@@ -22,3 +22,10 @@ table td, table th {
 table th {
     background-color: rgba(0, 0, 0, 0.2);
 }
+
+.button-row {
+    display: flex;
+    flex-direction: row;
+    margin-top: 1em;
+    gap: 1em;
+}
