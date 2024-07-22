@@ -1,5 +1,11 @@
 @typeparam TModel
 
+@if (Columns is null)
+{
+    <h6>Waiting for column defs...</h6>
+    return;
+}
+
 @if (_pageItems is null)
 {
     <h6>Loading...</h6>
@@ -21,7 +27,7 @@
         <tr>
             @foreach (var column in Columns)
             {
-                <td>@column.RenderFragment(item)</td>
+                <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
             }
         </tr>
     }

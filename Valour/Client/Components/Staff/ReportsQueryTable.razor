@@ -13,22 +13,22 @@
         new ()
         {
             Name = "ID",
-            RenderFragment = (item) => @<p>@item.Id</p>
+            RenderFragment = (rowData) => @<p>@rowData.Row.Id</p>
         },
         new ()
         {
             Name = "Type",
-            RenderFragment = (item) => @<p>@item.ReasonCode.ToString()</p>
+            RenderFragment = (rowData) => @<p>@rowData.Row.ReasonCode.ToString()</p>
         },
         new ()
         {
             Name = "Reviewed",
-            RenderFragment = (item) => @<p>@(item.Reviewed ? "Yes" : "No")</p>
+            RenderFragment = (rowData) => @<p>@(rowData.Row.Reviewed ? "Yes" : "No")</p>
         },
         new ()
         {
             Name = "Message ID",
-            RenderFragment = (item) => @<p>@item.MessageId</p>
+            RenderFragment = (rowData) => @<p>@rowData.Row.MessageId</p>
         }
     };
 }
