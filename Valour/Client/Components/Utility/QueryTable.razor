@@ -1,0 +1,104 @@
+@typeparam TModel
+
+@if (_pageItems is null)
+{
+    <h6>Loading...</h6>
+    return;
+}
+
+<table class="table">
+    <thead>
+    <tr>
+        @foreach (var column in Columns)
+        {
+            <th>@column.Name</th>
+        }
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in _pageItems)
+    {
+        <tr>
+            @foreach (var column in Columns)
+            {
+                <td>@column.RenderFragment(item)</td>
+            }
+        </tr>
+    }
+    </tbody>
+</table>
+<div class="table-footer">
+    <div class="button-row">
+        @if (!_reader.IsFirstPage())
+        {
+            <button class="v-btn primary" @onclick="@LoadPreviousPageAsync">Previous</button>
+        }
+        
+        @if (!_reader.IsLastPage())
+        {
+            <button class="v-btn primary" @onclick="@LoadNextPageAsync">Next</button>
+        }
+    </div>
+    <span>Showing items @((_reader.GetCurrentPageIndex() - 1) * PageSize)-@(Math.Min(_reader.GetCurrentPageIndex() * PageSize, _reader.GetTotalCount())) of @_reader.GetTotalCount() </span>
+</div>
+
+
+@code {
+    
+    [Parameter]
+    public int PageSize { get; set; } = 50;
+
+    [Parameter]
+    public List<ColumnDefinition<TModel>> Columns { get; set; }
+    
+    [Parameter]
+    public QueryModel Model { get; set; }
+    
+    [Parameter]
+    public Dictionary<string, string> Parameters { get; set; }
+    
+    private PagedReader<TModel> _reader;
+    private List<TModel> _pageItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Columns is null)
+        {
+            throw new ArgumentNullException(nameof(Columns));
+        }
+        
+        if (Model is null)
+        {
+            throw new ArgumentNullException(nameof(Model));
+        }
+        
+        _reader = new PagedReader<TModel>(Model.GetApiUrl(), PageSize);
+
+        await Requery();
+    }
+
+    public async Task Requery()
+    {
+        _reader.SetModel(Model);
+        _reader.SetParameters(Parameters);
+        
+        var response = await _reader.RefreshCurrentPageAsync();
+        _pageItems = response.Items;
+        
+        StateHasChanged();
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        var results = await _reader.NextPageAsync();
+        _pageItems = results.Items;
+        StateHasChanged();
+    }
+    
+    private async Task LoadPreviousPageAsync()
+    {
+        var results = await _reader.PreviousPageAsync();
+        _pageItems = results.Items;
+        StateHasChanged();
+    }
+}

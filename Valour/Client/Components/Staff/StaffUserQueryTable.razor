@@ -1,4 +1,4 @@
-@if (_loading)
+@if (_loading || _users == null)
 {
     <h6>Loading users...</h6>
     return;
@@ -48,15 +48,16 @@
     
     private string _nameSearch = string.Empty;
 
-    private UserQueryRequest _queryRequest;
+    private UserQueryRequest _userQueryRequest;
     private PagedReader<User> _userReader;
     
     private List<User> _users;
 
     protected override async Task OnInitializedAsync()
     {
-        _queryRequest = new();
-        _userReader = StaffTools.GetUserQueryReader(_queryRequest, 50);
+        _userQueryRequest = new();
+        _userReader = StaffTools.GetUserQueryReader(_userQueryRequest, 50);
+        
         _loading = false;
 
         await Requery();
@@ -66,13 +67,13 @@
 
     private async Task HandleNameSearch(ChangeEventArgs e)
     {
-        _queryRequest.UsernameAndTag = e.Value.ToString();
+        _userQueryRequest.UsernameAndTag = e.Value.ToString();
         await Requery();
     }
     
     private async Task Requery()
     {
-        _userReader.SetPostData(_queryRequest);
+        _userReader.SetModel(_userQueryRequest);
         var response = await _userReader.NextPageAsync();
         _users = response.Items;
         

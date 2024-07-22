@@ -1,4 +1,6 @@
 using Valour.Shared;
+using Valour.Shared.Models;
+using Valour.Shared.Models.Staff;
 
 namespace Valour.Server.Services;
 
@@ -16,6 +18,36 @@ public class StaffService
     
     public async Task<List<Report>> GetReportsAsync() =>
         await _db.Reports.Select(x => x.ToModel()).ToListAsync();
+    
+    public async Task<PagedResponse<Report>> QueryReportsAsync(ReportQueryModel model, int amount, int page)
+    {
+        var query = _db.Reports.AsQueryable();
+
+        if (model.Filter is not null)
+        {
+            if (model.Filter.Reason.HasValue)
+                query = query.Where(x => x.ReasonCode == model.Filter.Reason);
+        }
+
+        if (model.Sort is not null)
+        {
+            // TODO: Sorting
+        }
+        else
+        {
+            // Sort by time created
+            query = query.OrderByDescending(x => x.TimeCreated);
+        }
+        
+        var reports = await query.Skip(amount * page).Take(amount).Select(x => x.ToModel()).ToListAsync();
+        var total = await query.CountAsync();
+        
+        return new PagedResponse<Report>()
+        {
+            Items = reports,
+            TotalCount = total
+        };
+    }
 
     public async Task<TaskResult> SetReportReviewedAsync(string reportId, bool value)
     {

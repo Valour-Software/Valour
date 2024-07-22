@@ -102,6 +102,12 @@
     transition: background-color 0.2s ease-in-out;
 }
 
+.v-btn:disabled {
+    background-color: var(--main-5) !important;
+    cursor: not-allowed !important;
+
+}
+
 .v-btn.inline {
     display: inline;
     margin-left: auto;

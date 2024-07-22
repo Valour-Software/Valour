@@ -14,6 +14,18 @@ public class StaffApi
     }
     
     [StaffRequired]
+    [ValourRoute(HttpVerbs.Post, "api/staff/reports/query")]
+    public static async Task<IResult> QueryReportsAsync(
+        StaffService staffService,
+        [FromBody] ReportQueryModel query,
+        [FromQuery] int amount = 50,
+        [FromQuery] int page = 0)
+    {
+        var result = await staffService.QueryReportsAsync(query, amount, page);
+        return Results.Json(result);
+    }
+    
+    [StaffRequired]
     [ValourRoute(HttpVerbs.Put, "api/staff/reports/{reportId}/reviewed/{value}")]
     public static async Task<IResult> SetReportReviewedAsync(StaffService staffService, [FromQuery] string reportId, [FromQuery] bool value)
     {
