@@ -3,6 +3,10 @@
 # Start with the official .NET Core 8.0 SDK image
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 
+# Install Node.js (replace with the latest LTS version)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
 # Set the working directory to the app's source code directory
 WORKDIR /app
 
@@ -18,6 +22,15 @@ RUN dotnet workload restore
 
 # Restore the app's dependencies
 RUN dotnet restore
+
+# Remove .js files that have corresponding .ts files
+RUN find . -name "*.ts" | while read tsfile; do \
+        jsfile="${tsfile%.ts}.js"; \
+        if [ -f "$jsfile" ]; then \
+            echo "Deleting $jsfile because $tsfile exists"; \
+            rm "$jsfile"; \
+        fi; \
+    done
 
 # Build the app
 RUN dotnet publish -c Release -o out
