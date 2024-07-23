@@ -1,87 +1,71 @@
-@if (_loading)
-{
-    <h6>Loading users...</h6>
-    return;
-}
-
 <input class="form-control mt-2 mb-2" placeholder="Search name..." @onchange="@HandleNameSearch" />
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Tag</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var user in _users)
-        {
-            <tr>
-                <td>@user.Id</td>
-                <td>@user.Name</td>
-                <td>@user.Tag</td>
-                <td>
-                    <div class="button-row">
-                        @if (user.Disabled)
-                        {
-                            <button class="v-btn primary" @onclick="@(async () => await EnableUser(user.Id))">Enable</button>
-                        }
-                        else 
-                        {
-                            <button class="v-btn secondary" @onclick="@(async () => await DisableUser(user.Id))">Disable</button>
-                        }
-                        <button class="v-btn danger" @onclick="@(async () => await DeleteUser(user))">Delete</button>
-                    </div>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<QueryTable 
+    @ref="@_table"
+    TModel="User"
+    Columns="@_columns"
+    Model="@_userQueryModel"
+/>
 
 @code {
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
     
-    private bool _loading = true;
+    private QueryTable<User> _table { get; set; }
+
+    private List<ColumnDefinition<User>> _columns;
     
     private string _nameSearch = string.Empty;
 
-    private UserQueryRequest _queryRequest;
-    private PagedReader<User> _userReader;
-    
-    private List<User> _users;
+    private UserQueryModel _userQueryModel;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        _queryRequest = new();
-        _userReader = StaffTools.GetUserQueryReader(_queryRequest, 50);
-        _loading = false;
-
-        await Requery();
+        _userQueryModel = new UserQueryModel();
         
-        StateHasChanged();
+        _columns = new()
+        {
+            new ()
+            {
+                Name = "Card",
+                RenderFragment = (rowData) =>
+                    @<UserInfoComponent User="@rowData.Row" />
+            },
+            new ()
+            {
+                Name = "Name",
+                RenderFragment = (rowData) =>
+                    @<span>@rowData.Row.NameAndTag</span>
+            },
+            new ()
+            {
+                Name = "Actions",
+                RenderFragment = (rowData) =>
+                    @<div class="button-row">
+                        @if (rowData.Row.Disabled)
+                        {
+                            <button class="v-btn primary" @onclick="@(async () => await EnableUser(rowData.Row.Id))">Enable</button>
+                        }
+                        else
+                        {
+                            <button class="v-btn secondary" @onclick="@(async () => await DisableUser(rowData.Row.Id))">Disable</button>
+                        }
+                        
+                        <button class="v-btn danger" @onclick="@(async () => await DeleteUser(rowData.Row))">Delete</button>
+                    </div>
+            }
+        };
     }
 
     private async Task HandleNameSearch(ChangeEventArgs e)
     {
-        _queryRequest.UsernameAndTag = e.Value.ToString();
-        await Requery();
-    }
-    
-    private async Task Requery()
-    {
-        _userReader.SetPostData(_queryRequest);
-        var response = await _userReader.NextPageAsync();
-        _users = response.Items;
-        
-        StateHasChanged();
+        _userQueryModel.UsernameAndTag = e.Value.ToString();
+        await _table.Requery();
     }
     
     /* Staff Controls */
     
-    private async Task DisableUser(long userId)
+    public async Task DisableUser(long userId)
     {
         var toastData = new ProgressToastData<TaskResult>()
         {
@@ -95,7 +79,7 @@
 
         if (result.Success)
         {
-            await Requery();
+            await _table.Requery();
         }
     }
     
@@ -113,11 +97,11 @@
 
         if (result.Success)
         {
-            await Requery();
+            await _table.Requery();
         }
     }
     
-    private Task DeleteUser(User user)
+    public Task DeleteUser(User user)
     {
         ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams()
         {
@@ -139,13 +123,11 @@
 
                 if (result.Success)
                 {
-                    await Requery();
+                    await _table.Requery();
                 }
             }
         });
 
         return Task.CompletedTask;
     }
-    
-    
 }

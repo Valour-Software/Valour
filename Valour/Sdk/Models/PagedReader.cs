@@ -11,7 +11,7 @@ public class PagedReader<T>
     private readonly string _url;
     private readonly int _pageSize;
     
-    private  Dictionary<string, string> _query;
+    private  Dictionary<string, string> _parameters;
     private object _postData;
     
     private int _currentPageIndex;
@@ -19,14 +19,24 @@ public class PagedReader<T>
     private int _currentIndex;
     private int _totalCount;
     
-    public PagedReader(string url, int pageSize = 20, Dictionary<string, string> query = null, object postData = null)
+    public PagedReader(string url, int pageSize = 20, Dictionary<string, string> parameters = null, object postData = null)
     {
         _url = url;
         _pageSize = pageSize;
-        _query = query;
+        _parameters = parameters;
         _currentIndex = -1; // Initializing with -1, as no item has been fetched yet.
         _totalCount = -1; // Initializing with -1, as the total count is not known yet.
         _postData = postData;
+    }
+    
+    public bool IsFirstPage()
+    {
+        return _totalCount == -1 || _currentPageIndex == 1;
+    }
+    
+    public bool IsLastPage()
+    {
+        return _totalCount == -1 || _currentPageIndex * _pageSize >= _totalCount;
     }
 
     public int GetCurrentIndex()
@@ -34,12 +44,17 @@ public class PagedReader<T>
         return _currentIndex;
     }
     
+    public int GetCurrentPageIndex()
+    {
+        return _currentPageIndex;
+    }
+    
     public async Task<PagedResponse<T>> NextPageAsync()
     {
         var baseQuery = $"?amount={_pageSize}&page={_currentPageIndex}";
-        if (_query is not null)
+        if (_parameters is not null)
         {
-            foreach (var (key, value) in _query)
+            foreach (var (key, value) in _parameters)
                 baseQuery += $"&{key}={WebUtility.UrlEncode(value)}";
         }
         
@@ -66,6 +81,30 @@ public class PagedReader<T>
         _totalCount = _currentPage.TotalCount;
         
         return _currentPage;
+    }
+    
+    public async Task<PagedResponse<T>> RefreshCurrentPageAsync()
+    {
+        if (_currentPageIndex == 0)
+            return await NextPageAsync();
+        
+        _currentPageIndex--;
+        return await NextPageAsync();
+    }
+
+    public async Task<PagedResponse<T>> PreviousPageAsync()
+    {
+        if (_currentPageIndex < 2)
+        {
+            return new PagedResponse<T>()
+            {
+                Items = new List<T>(),
+                TotalCount = _totalCount
+            };
+        }
+
+        _currentPageIndex -= 2;
+        return await NextPageAsync();
     }
     
     public async Task<T> NextAsync()
@@ -106,19 +145,26 @@ public class PagedReader<T>
         return _currentPage.Items[_currentIndex % _pageSize];
     }
     
-    public void SetPostData(object postData)
+    public void SetModel(object postData)
     {
         _postData = postData;
         
         ResetReader();
     }
     
-    public void SetQuery(string key, string value)
+    public void SetParameter(string key, string value)
     {
-        if (_query is null)
-            _query = new Dictionary<string, string>();
+        if (_parameters is null)
+            _parameters = new Dictionary<string, string>();
         
-        _query[key] = value;
+        _parameters[key] = value;
+        
+        ResetReader();
+    }
+    
+    public void SetParameters(Dictionary<string, string> query)
+    {
+        _parameters = query;
         
         ResetReader();
     }
@@ -131,11 +177,8 @@ public class PagedReader<T>
         _totalCount = -1;
     }
     
-    public async Task<int> GetTotalCount()
+    public int GetTotalCount()
     {
-        if (_totalCount == -1)
-            await NextPageAsync(); // Load in first page
-        
         return _totalCount;
     }
 }

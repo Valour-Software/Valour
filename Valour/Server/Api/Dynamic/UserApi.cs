@@ -456,7 +456,7 @@ public class UserApi
     [StaffRequired]
     public static async Task<IResult> QueryUsersAsync(
         UserService userService,
-        [FromBody] UserQueryRequest query,
+        [FromBody] UserQueryModel query,
         [FromQuery] int amount = 50,
         [FromQuery] int page = 0)
     {

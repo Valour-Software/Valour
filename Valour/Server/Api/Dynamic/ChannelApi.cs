@@ -36,6 +36,45 @@ public class ChannelApi
         return Results.Json(channel);
     }
 
+    [ValourRoute(HttpVerbs.Put, "api/channels/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> UpdateRouteAsync(
+        [FromBody] Channel updated,
+        long id,
+        ChannelService channelService,
+        PlanetMemberService memberService)
+    {
+        if (updated.Id != id)
+            return ValourResult.BadRequest("Channel id in body does not match channel id in route");
+        
+        var old = await channelService.GetAsync(id);
+        if (old is null)
+            return ValourResult.NotFound<Channel>();
+
+        if (old.PlanetId is null)
+        {
+            return ValourResult.BadRequest("Only planet channels can be updated through this endpoint");
+        }
+        
+        // Get the planet member
+        var member = await memberService.GetCurrentAsync(old.PlanetId.Value);
+        if (member is null)
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        if (!await channelService.HasPermissionAsync(old, member, ChatChannelPermissions.ManageChannel))
+        {
+            return ValourResult.Forbid("You do not have permission to update this channel");
+        }
+
+        var result = await channelService.UpdateAsync(updated);
+        if (!result.Success)
+        {
+            return ValourResult.BadRequest(result.Message);
+        }
+
+        return ValourResult.Json(result.Data);
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/channels")]
     [UserRequired]
     public static async Task<IResult> CreateAsync(

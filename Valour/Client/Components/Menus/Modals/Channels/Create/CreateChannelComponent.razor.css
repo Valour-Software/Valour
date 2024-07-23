@@ -1,3 +1,8 @@
+section {
+    background-color: var(--main-2);
+    border-radius: 8px 8px 0 0;
+}
+
 .title {
     text-align: center;
 }

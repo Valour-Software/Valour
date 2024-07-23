@@ -1,0 +1,39 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--font-color);
+}
+
+table tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/*
+table tr:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+ */
+
+table td, table th {
+    border: none;
+    padding: 8px;
+    text-align: left;
+    vertical-align: middle;
+} 
+
+table th {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.button-row {
+    display: flex;
+    flex-direction: row;
+    margin-top: 1em;
+    gap: 1em;
+}
+
+.table-footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}

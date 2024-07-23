@@ -275,7 +275,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _myThemes = await Theme.GetMyThemes();
-        _popularThemeCount = await _popularThemes.GetTotalCount();
+        _popularThemeCount = _popularThemes.GetTotalCount();
         StateHasChanged();
     }
 
@@ -298,7 +298,7 @@ else
     {
         await Logger.Log($"New search: {e.Value}", "cyan");
         
-        _popularThemes.SetQuery("search", e.Value?.ToString());
+        _popularThemes.SetParameter("search", e.Value?.ToString());
         if (_expander is not null)
         {
             await _expander.Reset();

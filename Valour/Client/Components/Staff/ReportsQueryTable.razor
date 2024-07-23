@@ -1,0 +1,34 @@
+<QueryTable
+    TModel="Report"
+    Columns="@_columns"
+    Model="@_queryModel"
+/>
+
+@code {
+
+    private ReportQueryModel _queryModel = new();
+    
+    private List<ColumnDefinition<Report>> _columns = new()
+    {
+        new ()
+        {
+            Name = "ID",
+            RenderFragment = (rowData) => @<p>@rowData.Row.Id</p>
+        },
+        new ()
+        {
+            Name = "Type",
+            RenderFragment = (rowData) => @<p>@rowData.Row.ReasonCode.ToString()</p>
+        },
+        new ()
+        {
+            Name = "Reviewed",
+            RenderFragment = (rowData) => @<p>@(rowData.Row.Reviewed ? "Yes" : "No")</p>
+        },
+        new ()
+        {
+            Name = "Message ID",
+            RenderFragment = (rowData) => @<p>@rowData.Row.MessageId</p>
+        }
+    };
+}
