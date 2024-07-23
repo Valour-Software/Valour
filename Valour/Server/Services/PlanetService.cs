@@ -415,6 +415,9 @@ public class PlanetService
 
             _db.Planets.Add(planet);
             await _db.SaveChangesAsync();
+
+            // Ensure new owner has access to new channels
+            await _accessService.UpdateAllChannelAccessMember(member.Id);
             
             await tran.CommitAsync();
         }

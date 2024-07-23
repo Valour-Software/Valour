@@ -228,6 +228,9 @@ public class ChannelService
                 await _db.PermissionsNodes.AddRangeAsync(nodes.Select(x => x.ToDatabase()));
                 await _db.SaveChangesAsync();
             }
+            
+            // Add access
+            await _accessService.UpdateAllChannelAccessForChannel(channel.Id);
 
             await tran.CommitAsync();
         }
