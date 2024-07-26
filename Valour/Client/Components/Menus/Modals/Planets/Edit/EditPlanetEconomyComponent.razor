@@ -1,4 +1,3 @@
-@inherits Modal<EditPlanetEconomyComponent.ModalParams>
 @using Valour.Sdk.Models.Economy
 @using Valour.Shared.Models.Economy
 
@@ -124,12 +123,13 @@
 
 
 @code {
+    
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
 
-    public class ModalParams
-    {
-        public Planet Planet;
-    }
-
+    [Parameter]
+    public Planet Planet { get; set; }
+    
     private Virtualize<EcoAccount> _planetVirtualize;
 
     private static readonly string[] TabTitles = new [] { "Planet Accounts", "User Accounts" };
@@ -152,13 +152,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Data.Planet.Id}/planet", Data.Planet.Id);
-        _userAccountProvider = new EconomyMemberProvider($"api/eco/accounts/planet/{Data.Planet.Id}/member", Data.Planet.Id);
+        _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Planet.Id}/planet", Planet.Id);
+        _userAccountProvider = new EconomyMemberProvider($"api/eco/accounts/planet/{Planet.Id}/member", Planet.Id);
         
-        var self = await ValourClient.GetSelfMember(Data.Planet);
+        var self = await ValourClient.GetSelfMember(Planet);
         _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
 
-        Currency = await Currency.FindByPlanetAsync(Data.Planet.Id);
+        Currency = await Currency.FindByPlanetAsync(Planet.Id);
 
         _loading = false;
     }
@@ -166,7 +166,7 @@
     private void OnClickSetup()
     {
         Currency = new Currency();
-        Currency.PlanetId = Data.Planet.Id;
+        Currency.PlanetId = Planet.Id;
     }
 
     private async Task OnClickSaveCurrency()
@@ -258,7 +258,6 @@
             Description = "How much currency would you like to issue?",
             ConfirmText = "Issue",
             CancelText = "Cancel",
-            CancelEvent = CloseAsync,
             ConfirmEvent = (value) => OnConfirmIssue(account, value)
         };
         
