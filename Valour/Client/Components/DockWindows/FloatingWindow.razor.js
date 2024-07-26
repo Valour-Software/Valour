@@ -1,4 +1,4 @@
-﻿export function enableDrag(el, dotnet, x, y) {
+﻿export function enableDrag(el, dotnet, x, y, startDragging = false) {
     let offsetX, offsetY;
     let initialX = x;
     let initialY = y;
@@ -160,10 +160,11 @@
 
 
     el.floater = true;
-    el.classList.add('dragging');
     
-    
-    armDrag(el, true);
+    if (startDragging) {
+        el.classList.add('dragging');
+        armDrag(el, false);
+    }
 }
 
 export function cleanupFloater(el) {

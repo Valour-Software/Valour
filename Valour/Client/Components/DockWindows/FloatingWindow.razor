@@ -88,8 +88,8 @@
             {"Data", WindowData.Data}
         };
 
-        _left = WindowData.StartFloatX;
-        _top = WindowData.StartFloatY;
+        _left = WindowData.StartFloatX ?? 100;
+        _top = WindowData.StartFloatY ?? 100;
         
         _width = WindowData.StartFloatWidth;
         _height = WindowData.StartFloatHeight;
@@ -104,7 +104,7 @@
             Console.WriteLine("Floater first render " + WindowData.Id);
             _dotnetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/FloatingWindow.razor.js");
-            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef, WindowData.StartFloatX, WindowData.StartFloatY);
+            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef, WindowData.StartFloatX, WindowData.StartFloatY, WindowData.StartDragging);
         }
         
         _render = false;
@@ -142,7 +142,10 @@
         // Get current window position
         var pos = await GetPositionAsync();
         
-        await Container.AddFloater(newTabData, pos.ClientX + 50, pos.ClientY + 50);
+        newTabData.StartFloatX = pos.ClientX + 50;
+        newTabData.StartFloatY = pos.ClientY + 50;
+        
+        await Container.AddFloater(newTabData);
     }
     
     private async Task OnClickMinus()

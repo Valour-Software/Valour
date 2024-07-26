@@ -436,7 +436,7 @@
 
         _isBuilt = true;
 
-        if (render)
+        if (render || Holder is null)
             ReRender();
     }
 
@@ -465,7 +465,7 @@
         if (User != null)
             User.OnUpdated += OnUserUpdated;
         
-        if (!IsInnerReply && !Ghost)
+        if (Holder is not null && !IsInnerReply && !Ghost)
         {
             Holder.AddRenderedMessage(this);
         }

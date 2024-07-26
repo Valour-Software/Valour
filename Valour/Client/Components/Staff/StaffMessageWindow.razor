@@ -1,0 +1,54 @@
+﻿@if (_params is null)
+{
+    <h5>Loading message...</h5>
+    return;
+}
+
+<MessageComponent ParamData="@_params" />
+
+@code {
+    [Parameter]
+    public WindowData Window { get; set; }
+    
+    [Parameter]
+    public StaffMessageWindow.Props Data { get; set; }
+    
+    private MessageHolderComponent.MessageComponentParams _params;
+
+    public class Props
+    {
+        public Message Message { get; set; }
+    }
+
+    public static async Task<WindowData> GetDefaultSettings(StaffMessageWindow.Props props)
+    {
+        var dim = await DomWindowData.Instance.GetWindowDimensions();
+        var mousePos = await DomWindowData.Instance.GetMousePosition();
+
+        var avatar = await props.Message.GetAuthorImageUrlAsync();
+        
+        var window = new WindowData(){
+            Title = "Message " + props.Message.Id,
+            Icon = avatar,
+            Type = typeof(StaffMessageWindow),
+            Data = props,
+            StartFloatWidth = Math.Min(dim.Width, 400),
+            StartFloatHeight = Math.Min(dim.Height, 200),
+            StartFloatX = mousePos.X,
+            StartFloatY = mousePos.Y,
+            AutoScroll = true
+        };
+        
+        return window;
+    }    
+    
+    protected override void OnInitialized()
+    {
+        _params = new MessageHolderComponent.MessageComponentParams
+        {
+            Message = Data.Message
+        };
+        
+        StateHasChanged();
+    }
+}

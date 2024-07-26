@@ -14,12 +14,19 @@
         
         <div class="fade-wrap">
             <Fade @ref="@modal.FadeRef" OnFadeOut="@(() => { RemoveModal(modal.Id); return Task.CompletedTask; })">
-                <!-- Outer wrapper covers entire screen with darken effect -->
-                <div id="@modal.Id" class="modal-bg" @key="@(modal.Id + "-bg")" @onclick="CloseTopModal">
-                    <div @onclick:stopPropagation="true">
-                        <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data"></DynamicComponent>
+                @if (modal.Background)
+                {
+                    <!-- Outer wrapper covers entire screen with darken effect -->
+                    <div id="@modal.Id" class="modal-bg" @key="@(modal.Id + "-bg")" @onclick="CloseTopModal">
+                        <div @onclick:stopPropagation="true">
+                            <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data" />
+                        </div>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data" />
+                }
             </Fade>
         </div>
     }
@@ -35,6 +42,7 @@
         public Type Type { get; set; }
         public object Data { get; set; }
         public Fade FadeRef { get; set; }
+        public bool Background { get; set; } = true;
     }
     
     [Parameter]
@@ -76,12 +84,13 @@
         }
     }
 
-    public void OpenModal<T>(object data = null) where T : ComponentBase
+    public void OpenModal<T>(object data = null, bool background = true) where T : ComponentBase
     {
         var modal = new ModalInstance
         {
             Type = typeof(T),
-            Data = data
+            Data = data,
+            Background = background
         };
         
         _openModals.Add(modal);

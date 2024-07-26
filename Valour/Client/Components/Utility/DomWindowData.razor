@@ -20,6 +20,12 @@
         public int Width { get; set; }
         public int Height { get; set; }
     }
+
+    public class ScreenPosition
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
     
     private DotNetObjectReference<DomWindowData> _dotnetRef;
     private IJSInProcessObjectReference _jsModule;
@@ -30,6 +36,9 @@
         {
             _dotnetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/DomWindowData.razor.js");
+            
+            await _jsModule.InvokeVoidAsync("initialize");
+            
             await Logger.Log("Loaded DomWindowData component.", "cyan");
             var dims = await GetWindowDimensions();
             await Logger.Log("Starting window dimensions: " + dims.Width + "x" + dims.Height, "cyan");
@@ -40,5 +49,11 @@
     {
         var dimensions = await _jsModule.InvokeAsync<WindowDimensions>("getWindowDimensions");
         return dimensions;
+    }
+    
+    public async Task<ScreenPosition> GetMousePosition()
+    {
+        var position = await _jsModule.InvokeAsync<ScreenPosition>("getMousePosition");
+        return position;
     }
 }

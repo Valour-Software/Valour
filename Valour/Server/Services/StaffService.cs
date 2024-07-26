@@ -98,4 +98,10 @@ public class StaffService
         
         return TaskResult.SuccessResult;
     }
+
+    public async Task<Message> GetMessageAsync(long messageId)
+    {
+        var msg = await _db.Messages.FirstOrDefaultAsync(x => x.Id == messageId);
+        return msg.ToModel();
+    }
 }

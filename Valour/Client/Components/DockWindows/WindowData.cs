@@ -99,9 +99,11 @@ public static class GlobalWindowData
     /// </summary>
     public static async Task TryAddFloatingWindow(WindowData data)
     {
+        
+        
         if (DockFloaters.Instance is not null)
         {
-            await DockFloaters.Instance.AddFloater(data, 100, 100);
+            await DockFloaters.Instance.AddFloater(data);
         }
         else
         {
@@ -121,11 +123,12 @@ public class WindowData
     public Type Type { get; set; }
     public object Data { get; set; }
     public WindowBase WindowBase { get; set; }
-    public double StartFloatX { get; set; }
-    public double StartFloatY { get; set; }
+    public double? StartFloatX { get; set; }
+    public double? StartFloatY { get; set; }
     public int StartFloatWidth { get; set; } = 400;
     public int StartFloatHeight { get; set; } = 400;
     public bool AutoScroll { get; set; } = false;
+    public bool StartDragging { get; set; } = false;
 
     public async Task NotifyFocused()
     {

@@ -183,7 +183,9 @@
     [JSInvokable]
     public async Task OnFloaterStart(double clientX, double clientY)
     {
-        await Container.NotifyNewFloater(WindowData, clientX, clientY);
+        WindowData.StartFloatX = clientX;
+        WindowData.StartFloatY = clientY;
+        await Container.NotifyNewFloater(WindowData);
     }
     
     public void ReRender()

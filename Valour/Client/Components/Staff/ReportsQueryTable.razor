@@ -5,30 +5,78 @@
 />
 
 @code {
+    
+    [CascadingParameter]
+    public ModalRoot Modal { get; set; }
 
     private ReportQueryModel _queryModel = new();
-    
-    private List<ColumnDefinition<Report>> _columns = new()
+
+    private List<ColumnDefinition<Report>> _columns;
+
+    protected override void OnInitialized()
     {
-        new ()
+        _columns = new()
         {
-            Name = "ID",
-            RenderFragment = (rowData) => @<p>@rowData.Row.Id</p>
-        },
-        new ()
+            new ()
+            {
+                Name = "ID",
+                RenderFragment = (rowData) => @<p>@rowData.Row.Id</p>
+            },
+            new ()
+            {
+                Name = "Type",
+                RenderFragment = (rowData) => @<p>@rowData.Row.ReasonCode.ToString()</p>
+            },
+            new ()
+            {
+                Name = "Reviewed",
+                RenderFragment = (rowData) => @<p>@(rowData.Row.Reviewed ? "Yes" : "No")</p>
+            },
+            new ()
+            {
+                Name = "Message ID",
+                RenderFragment = (rowData) => 
+                    @<p>
+                        @rowData.Row.MessageId
+                        @if (rowData.Row.MessageId is not null)
+                        {
+                            <button class="v-btn primary" @onclick="() => OpenMessageWindow(rowData.Row.MessageId ?? 0)">View</button>
+                        }
+                    </p>
+            }
+        };
+    }
+
+    public async Task OpenMessageWindow(long messageId)
+    {
+        
+        var message = await StaffTools.GetMessageAsync(messageId);
+        if (message is null)
         {
-            Name = "Type",
-            RenderFragment = (rowData) => @<p>@rowData.Row.ReasonCode.ToString()</p>
-        },
-        new ()
-        {
-            Name = "Reviewed",
-            RenderFragment = (rowData) => @<p>@(rowData.Row.Reviewed ? "Yes" : "No")</p>
-        },
-        new ()
-        {
-            Name = "Message ID",
-            RenderFragment = (rowData) => @<p>@rowData.Row.MessageId</p>
+            var task = Task.Run(() =>
+            {
+                throw new Exception("Failed to load message");
+            });
+            
+            var toastData = new ProgressToastData()
+            {
+                Message = "Error",
+                ProgressTask = task,
+            };
+            
+            ToastContainer.Instance.AddToast(toastData);
+
+            return;
         }
-    };
+        
+        var props = new StaffMessageWindow.Props()
+        {
+            Message = message
+        };
+        
+        var windowData = await StaffMessageWindow.GetDefaultSettings(props);
+
+        await GlobalWindowData.TryAddFloatingWindow(windowData);
+    }
+
 }

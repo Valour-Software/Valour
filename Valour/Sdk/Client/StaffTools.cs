@@ -36,4 +36,10 @@ public static class StaffTools
         
         return await ValourClient.PrimaryNode.PostAsync($"api/staff/delete", request);
     }
+
+    public static async Task<Message> GetMessageAsync(long messageId)
+    {
+        var result = await ValourClient.PrimaryNode.GetJsonAsync<Message>($"api/staff/messages/{messageId}");
+        return result.Data;
+    }
 }

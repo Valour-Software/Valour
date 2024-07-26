@@ -242,10 +242,11 @@
         NotifyTabWindowsChange();
     }
 
-    public async Task NotifyNewFloater(WindowData window, double clientX = 0, double clientY = 0)
+    public async Task NotifyNewFloater(WindowData window)
     {
         Console.WriteLine("New floater: " + window.Id);
-        await DockFloaters.Instance.AddFloater(window, clientX, clientY);
+        window.StartDragging = true;
+        await DockFloaters.Instance.AddFloater(window);
         
         await RemoveWindow(window);
         

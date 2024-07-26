@@ -74,4 +74,17 @@ public class StaffApi
         
         return ValourResult.Ok();
     }
+
+    [StaffRequired]
+    [ValourRoute(HttpVerbs.Get, "api/staff/messages/{messageId}")]
+    public static async Task<IResult> GetMessageAsync(
+        StaffService staffService,
+        long messageId)
+    {
+        var msg = await staffService.GetMessageAsync(messageId);
+        if (msg is null)
+            return ValourResult.NotFound("Message not found");
+        
+        return Results.Json(msg);
+    }
 }
