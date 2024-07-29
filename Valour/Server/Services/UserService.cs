@@ -1,9 +1,19 @@
+using Valour.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using AuthToken = Valour.Server.Models.AuthToken;
+using EmailConfirmCode = Valour.Server.Models.EmailConfirmCode;
+using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
+using Planet = Valour.Server.Models.Planet;
+using TenorFavorite = Valour.Server.Models.TenorFavorite;
+using User = Valour.Server.Models.User;
+using UserChannelState = Valour.Server.Models.UserChannelState;
+using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
+using UserProfile = Valour.Server.Models.UserProfile;
 
 namespace Valour.Server.Services;
 
@@ -491,7 +501,7 @@ public class UserService
     public Task<int> GetJoinedPlanetCount(long userId) => 
         _db.PlanetMembers.CountAsync(x => x.UserId == userId);
 
-    public async Task<TaskResult<User>> ValidateAsync(string credential_type, string identifier, string secret)
+    public async Task<TaskResult<User>> ValidateCredentialAsync(string credential_type, string identifier, string secret)
     {
         // Find the credential that matches the identifier and type
         Valour.Database.Credential credential = await _db.Credentials.FirstOrDefaultAsync(
@@ -566,6 +576,33 @@ public class UserService
         }
 
         return new(true, "Success", token.ToModel());
+    }
+
+    public async Task<TaskResult> ChangePasswordAsync(long userId, string newPassword)
+    {
+        var cred = await _db.Credentials.FirstOrDefaultAsync(x => x.UserId == userId && x.CredentialType == CredentialType.PASSWORD);
+        
+        if (cred is null)
+            return new TaskResult(false, "Credential not found.");
+        
+        var salt = PasswordManager.GenerateSalt();
+        var hash = PasswordManager.GetHashForPassword(newPassword, salt);
+        
+        cred.Salt = salt;
+        cred.Secret = hash;
+        
+        try
+        {
+            _db.Credentials.Update(cred);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
+        
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>

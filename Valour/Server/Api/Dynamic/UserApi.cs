@@ -245,7 +245,7 @@ public class UserApi
         if (user.Disabled)
             return ValourResult.Forbid("Your account is disabled.");
 
-        var validResult = await userService.ValidateAsync(Valour.Database.CredentialType.PASSWORD, tokenRequest.Email, tokenRequest.Password);
+        var validResult = await userService.ValidateCredentialAsync(Valour.Database.CredentialType.PASSWORD, tokenRequest.Email, tokenRequest.Password);
         if (!validResult.Success)
             return Results.Unauthorized();
 
@@ -424,6 +424,33 @@ public class UserApi
         var userId = await userService.GetCurrentUserIdAsync();
         return Results.Json(await userService.GetReferralDataAsync(userId));
     }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/self/password")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> ChangePasswordRouteAsync(
+        [FromBody] ChangePasswordRequest request,
+        UserService userService)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
+        
+        // Ensure current password is valid
+        var currentCredential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
+        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.OldPassword);
+        if (!validResult.Success)
+            return ValourResult.Forbid(validResult.Message);
+
+        var passValid = UserUtils.TestPasswordComplexity(request.NewPassword);
+        if (!passValid.Success)
+            return ValourResult.BadRequest(passValid.Message);
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await userService.ChangePasswordAsync(userId, request.NewPassword);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.NoContent();
+    }
 
     [ValourRoute(HttpVerbs.Post, "api/users/self/hardDelete")]
     [UserRequired(UserPermissionsEnum.FullControl)]
@@ -434,7 +461,7 @@ public class UserApi
         var cred = await userService.GetCredentialAsync(user.Id);
         
         // Check password
-        var passResult = await userService.ValidateAsync(CredentialType.PASSWORD, cred.Identifier, model.Password);
+        var passResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, cred.Identifier, model.Password);
 
         if (!passResult.Success)
         {
