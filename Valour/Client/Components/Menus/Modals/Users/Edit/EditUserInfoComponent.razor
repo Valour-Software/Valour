@@ -60,7 +60,10 @@
 <br/>
 
 <h3>DANGER ZONE</h3>
-<button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my account</button>
+<div class="btn-row">
+    <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
+    <button class="btn v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
+</div> 
 <br/>
 <br/>
 
@@ -197,7 +200,11 @@
 
     private void OnClickDeleteAccount()
     {
-        Console.WriteLine("ModalRoot is null: " + (ModalRoot == null));
         ModalRoot.OpenModal<DeleteAccountModal>();
+    }
+    
+    private void OnClickChangePassword()
+    {
+        ModalRoot.OpenModal<ChangePasswordModal>();
     }
 }

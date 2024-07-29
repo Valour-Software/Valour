@@ -2238,6 +2238,11 @@ public static class ValourClient
     }
 
 #endregion
+
+    public static async Task<TaskResult> UpdatePasswordAsync(string oldPassword, string newPassword) {
+        var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };
+        return await PrimaryNode.PostAsync("api/users/self/password", model);
+    }
     
     // Sad zone
     public static async Task<TaskResult> DeleteAccountAsync(string password)
