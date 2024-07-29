@@ -74,6 +74,40 @@ public class ChannelApi
 
         return ValourResult.Json(result.Data);
     }
+    
+    [ValourRoute(HttpVerbs.Delete, "api/channels/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> DeleteRouteAsync(
+        long id,
+        ChannelService channelService,
+        PlanetMemberService memberService)
+    {
+        var channel = await channelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.PlanetId is null)
+        {
+            return ValourResult.BadRequest("Only planet channels can be deleted through this endpoint");
+        }
+        
+        var member = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+        if (member is null)
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        if (!await channelService.HasPermissionAsync(channel, member, ChatChannelPermissions.ManageChannel))
+        {
+            return ValourResult.Forbid("You do not have permission to delete this channel");
+        }
+
+        var result = await channelService.DeleteAsync(id);
+        if (!result.Success)
+        {
+            return ValourResult.BadRequest(result.Message);
+        }
+
+        return Results.Ok();
+    }
 
     [ValourRoute(HttpVerbs.Post, "api/channels")]
     [UserRequired]

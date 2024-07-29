@@ -134,9 +134,9 @@ public class ChannelService
     /// <summary>
     /// Soft deletes the given channel
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(Channel channel)
+    public async Task<TaskResult> DeleteAsync(long id)
     {
-        var dbChannel = await _db.Channels.FindAsync(channel.Id);
+        var dbChannel = await _db.Channels.FindAsync(id);
         if (dbChannel is null)
             return TaskResult.FromError( "Channel not found.");
         
@@ -146,9 +146,11 @@ public class ChannelService
         dbChannel.IsDeleted = true;
         _db.Channels.Update(dbChannel);
         await _db.SaveChangesAsync();
+        
+        var model = dbChannel.ToModel();
 
-        if (channel.PlanetId is not null)
-            _coreHub.NotifyPlanetItemDelete(channel.PlanetId.Value, channel);
+        if (model.PlanetId is not null)
+            _coreHub.NotifyPlanetItemDelete(model.PlanetId.Value, model);
         
         return TaskResult.SuccessResult;
     }
