@@ -24,5 +24,39 @@ namespace Valour.Sdk.Extensions
                     targetField.SetValue(target, sourceField.GetValue(source));
             }
         }
+        
+        public static void CopyAllNonDefaultTo<T>(this T source, T target)
+        {
+            var type = typeof(T);
+            foreach (var sourceProperty in type.GetProperties())
+            {
+                var targetProperty = type.GetProperty(sourceProperty.Name);
+                if (targetProperty.CanWrite)
+                {
+                    var sourceValue = sourceProperty.GetValue(source, null);
+                    if (sourceValue != null && !IsDefaultValue(sourceValue))
+                    {
+                        targetProperty.SetValue(target, sourceValue, null);
+                    }
+                }
+            }
+            foreach (var sourceField in type.GetFields())
+            {
+                var targetField = type.GetField(sourceField.Name);
+                if (!targetField.IsStatic)
+                {
+                    var sourceValue = sourceField.GetValue(source);
+                    if (sourceValue != null && !IsDefaultValue(sourceValue))
+                    {
+                        targetField.SetValue(target, sourceValue);
+                    }
+                }
+            }
+        }
+
+        private static bool IsDefaultValue<T>(T value)
+        {
+            return EqualityComparer<T>.Default.Equals(value, default(T));
+        }
     }
 }

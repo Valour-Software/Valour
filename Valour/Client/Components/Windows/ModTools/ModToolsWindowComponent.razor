@@ -15,11 +15,11 @@
 </div>
 @code {
 
-    public static async Task<WindowData> GetDefaultSettings(ModToolsWindowData data)
+    public static async Task<WindowTab> GetDefaultSettings(ModToolsWindowData data)
     {
         var dim = await DomWindowData.Instance.GetWindowDimensions();
         
-        var window = new WindowData(){
+        var window = new WindowTab(){
             Title = "Staff Tools",
             Icon = "_content/Valour.Client/media/logo/logo-64.png",
             Type = typeof(ModToolsWindowComponent),
@@ -37,7 +37,7 @@
         new string[] { "Members", "Reports" };
     
     [Parameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
         
     [Parameter] 
     public ModToolsWindowData Data { get; set; }

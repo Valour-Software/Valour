@@ -94,7 +94,7 @@ else
 	{
 		var channel = await Channel.GetDirectChannelAsync(Data.User.Id, true);
 		
-		var newWindow = new WindowData()
+		var newWindow = new WindowTab()
 		{
 			Title = await channel.GetTitleAsync(),
 			Icon = await channel.GetIconAsync(),
@@ -102,6 +102,6 @@ else
 			Data = channel,
 		};
 
-		await GlobalWindowData.OpenWindowAtActive(newWindow);
+		await WindowService.OpenWindowAtActive(newWindow);
 	}
 }

@@ -158,7 +158,7 @@
 
         var newWindow = await ModToolsWindowComponent.GetDefaultSettings(data);
 
-        await GlobalWindowData.TryAddFloatingWindow(newWindow);
+        await WindowService.TryAddFloatingWindow(newWindow);
 
         await CloseAsync();
     }

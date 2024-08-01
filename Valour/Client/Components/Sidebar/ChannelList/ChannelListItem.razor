@@ -144,7 +144,7 @@
         {
             var css = "channel";
 
-            if (GlobalWindowData.GlobalChatWindows.Any(x => x.Channel.Id == Channel.Id))
+            if (WindowService.GlobalChatWindows.Any(x => x.Channel.Id == Channel.Id))
                 css += " open";
 
             if (ListManager.DragOverId == Channel.Id)
@@ -217,22 +217,17 @@
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
-            var newWindow = new WindowData()
+            var newWindow = new WindowTab()
             {
                 Title = await Channel.GetTitleAsync(),
                 Icon = await Channel.GetIconAsync(),
                 Type = typeof(ChatChannelWindowComponent),
-                Data = Channel
+                Data = Channel,
+                PlanetId = Channel.PlanetId
             };
             
-            if (GlobalWindowData.GlobalActiveWindow is not null)
-            {
-                await GlobalWindowData.GlobalActiveWindow.WindowBase.AddSiblingWindow(newWindow);
-            }
-            else
-            {
-                await DockContainer.MainDock.AddWindowAsync(newWindow);
-            }
+            // Replace current window with new one
+            await WindowService.ReplaceGlobalActiveWindowAsync(newWindow);
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {

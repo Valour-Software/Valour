@@ -37,7 +37,7 @@
     public User Friend { get; set; }
 
     [Parameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
 
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
@@ -99,13 +99,16 @@
         // this can probably be optimized to only create the channel if the first message
         // is being sent, but this is fine for now
         var channel = await Channel.GetDirectChannelAsync(Friend.Id, create: true);
-        
-        Window.WindowBase.ChangeType(
-            typeof(ChatChannelWindowComponent), 
-            channel,
-            await channel.GetTitleAsync(),
-            await channel.GetIconAsync()
-        );
+
+        var newWindowData = new WindowTab()
+        {
+            Title = await channel.GetTitleAsync(),
+            Icon = await channel.GetIconAsync(),
+            Type = typeof(ChatChannelWindowComponent),
+            Data = channel
+        };
+
+        await Window.WindowBase.ReplaceAsync(newWindowData);
 
         Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
 

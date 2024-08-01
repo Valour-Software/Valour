@@ -15,7 +15,7 @@
 	
 	private DockContainer _dock;
 
-	private List<WindowData> _startWindows;
+	private List<WindowTab> _startWindows;
 	
 	public bool CanRender { get; set; }
 
@@ -34,7 +34,7 @@
 	{
 		Console.WriteLine(JsonSerializer.Serialize(StartData));
 
-		var startWindow = new WindowData()
+		var startWindow = new WindowTab()
 		{
 			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
 			Type = typeof(HomeWindowComponent),
@@ -78,7 +78,7 @@
 			}
 		}
 
-		_startWindows = new List<WindowData>()
+		_startWindows = new List<WindowTab>()
 		{
 			startWindow
 		};

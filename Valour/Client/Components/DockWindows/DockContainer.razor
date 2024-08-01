@@ -8,7 +8,7 @@
         {
             foreach (var window in Windows)
             {
-                <DockWindow @ref="@window.WindowBase" @key="@window.Id" Container="@this" WindowData="@window"/>
+                <DockWindow @ref="@window.WindowBase" @key="@window.Id" Container="@this" WindowTab="@window"/>
             }
             break;
         }
@@ -77,15 +77,15 @@
     public DockContainer ParentContainer { get; set; }
     
     [Parameter] // Can be initialized via parent container
-    public List<WindowData> Windows { get; set; }
+    public List<WindowTab> Windows { get; set; }
     
     // Only used if this dock is in split mode
     public DockContainer ChildContainerA { get; set; }
     public DockContainer ChildContainerB { get; set; }
-    public List<WindowData> SplitWindowsA { get; set; }
-    public List<WindowData> SplitWindowsB { get; set; }
+    public List<WindowTab> SplitWindowsA { get; set; }
+    public List<WindowTab> SplitWindowsB { get; set; }
     
-    public WindowData ActiveWindow { get; set; }
+    public WindowTab ActiveWindow { get; set; }
     
     public static DockContainer MainDock { get; set; }
 
@@ -98,7 +98,7 @@
         
         if (Windows is null)
         {
-            Windows = new List<WindowData>();
+            Windows = new List<WindowTab>();
         }
         else
         {
@@ -130,7 +130,7 @@
         }
     }
 
-    public async Task AddWindowAsync(WindowData window)
+    public async Task AddWindowAsync(WindowTab window)
     {
         // Mobile devices can only have one window
         if (DeviceInfo.IsMobile)
@@ -138,11 +138,13 @@
             Windows.Clear();
         }
         
+        await window.NotifyAdded();
+        
         Windows.Add(window);
         ActiveWindow = window;
 
-        GlobalWindowData.AddGlobalWindow(window);
-        await GlobalWindowData.SetGlobalActiveWindowAsync(window);
+        WindowService.AddGlobalWindow(window);
+        await WindowService.SetGlobalActiveWindowAsync(window);
         
         StateHasChanged();
         
@@ -151,7 +153,7 @@
     
     public async Task AddDefaultWindowAsync()
     {
-        var window = new WindowData
+        var window = new WindowTab
         {
             Title = "Home",
             Icon = "./_content/Valour.Client/media/logo/logo-128.png",
@@ -163,7 +165,7 @@
         NotifyTabWindowsChange();
     }
     
-    public async Task RemoveWindow(WindowData window)
+    public async Task RemoveWindow(WindowTab window)
     {
         Windows.Remove(window);
         // SplitWindowsA?.Remove(window);
@@ -187,19 +189,19 @@
             ActiveWindow = Windows.LastOrDefault();
         }
 
-        if (window == GlobalWindowData.GlobalActiveWindow)
+        if (window == WindowService.GlobalActiveWindow)
         {
             if (Windows.Any())
             {
-                await GlobalWindowData.SetGlobalActiveWindowAsync(Windows.Last());
+                await WindowService.SetGlobalActiveWindowAsync(Windows.Last());
             }
             else
             {
-                await GlobalWindowData.SetGlobalActiveWindowAsync(GlobalWindowData.GlobalWindows.LastOrDefault());
+                await WindowService.SetGlobalActiveWindowAsync(WindowService.GlobalWindows.LastOrDefault());
             }
         }
         
-        GlobalWindowData.RemoveGlobalWindow(window);
+        WindowService.RemoveGlobalWindow(window);
         
         StateHasChanged();
         
@@ -227,7 +229,7 @@
         }
     }
     
-    public void SetActiveTabWindow(WindowData window)
+    public void SetActiveTabWindow(WindowTab window)
     {
         if (!Windows.Contains(window))
             return;
@@ -242,7 +244,7 @@
         NotifyTabWindowsChange();
     }
 
-    public async Task NotifyNewFloater(WindowData window, double clientX = 0, double clientY = 0)
+    public async Task NotifyNewFloater(WindowTab window, double clientX = 0, double clientY = 0)
     {
         Console.WriteLine("New floater: " + window.Id);
         await DockFloaters.Instance.AddFloater(window, clientX, clientY);
@@ -308,7 +310,7 @@
                 Windows = null;
                 
                 // Set right to the currently dragging window
-                SplitWindowsB = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                SplitWindowsB = new List<WindowTab> { DockFloaters.CurrentlyDragging };
                 
                 // Init split state
                 Split = SplitState.Horizontal;
@@ -332,7 +334,7 @@
                 Windows = null;
                 
                 // Set left to the currently dragging window
-                SplitWindowsA = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                SplitWindowsA = new List<WindowTab> { DockFloaters.CurrentlyDragging };
                 
                 // Init split state
                 Split = SplitState.Horizontal;
@@ -356,7 +358,7 @@
                 Windows = null;
                 
                 // Set top to the currently dragging window
-                SplitWindowsA = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                SplitWindowsA = new List<WindowTab> { DockFloaters.CurrentlyDragging };
                 
                 // Init split state
                 Split = SplitState.Vertical;
@@ -380,7 +382,7 @@
                 Windows = null;
                 
                 // Set bottom to the currently dragging window
-                SplitWindowsB = new List<WindowData> { DockFloaters.CurrentlyDragging };
+                SplitWindowsB = new List<WindowTab> { DockFloaters.CurrentlyDragging };
                 
                 // Init split state
                 Split = SplitState.Vertical;
@@ -404,7 +406,7 @@
         
         Split = SplitState.None;
         
-        Windows = new List<WindowData>();
+        Windows = new List<WindowTab>();
         
         if (SplitWindowsA is not null)
             Windows.AddRange(SplitWindowsA);

@@ -99,7 +99,7 @@
 
 		await base.OnInitializedAsync();
 
-		GlobalWindowData.OnActivePlanetChange += OnPlanetChange;
+		WindowService.OnActivePlanetChange += OnPlanetChange;
 		ValourClient.OnLogin += OnLoginAsync;
 	}
 
@@ -111,7 +111,7 @@
 
 	public void Dispose()
 	{
-		GlobalWindowData.OnActivePlanetChange -= OnPlanetChange;
+		WindowService.OnActivePlanetChange -= OnPlanetChange;
 	}
 
 	protected override async void OnAfterRender(bool firstRender)
@@ -140,14 +140,14 @@
 
 	private async Task OnClickHome()
 	{
-		var window = new WindowData
+		var window = new WindowTab
 		{
 			Title = "Home",
 			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
 			Type = typeof(HomeWindowComponent),
 		};
 
-		await GlobalWindowData.OpenWindowAtActive(window);
+		await WindowService.OpenWindowAtActive(window);
 	}
 
 	[JSInvokable("OnRefocus")]

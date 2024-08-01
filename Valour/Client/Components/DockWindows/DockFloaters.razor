@@ -2,18 +2,18 @@
 
 @foreach (var floater in Floaters)
 {
-    <FloatingWindow @ref="@floater.WindowBase" @key="@floater.Id" WindowData="@floater" Container="@this" />
+    <FloatingWindow @ref="@floater.WindowBase" @key="@floater.Id" WindowTab="@floater" Container="@this" />
 }
 
 @code {
     
     private IJSInProcessObjectReference _jsModule;
     
-    public List<WindowData> Floaters = new List<WindowData>();
-    public WindowData ActiveFloater { get; set; }
+    public List<WindowTab> Floaters = new List<WindowTab>();
+    public WindowTab ActiveFloater { get; set; }
     
     public static DockFloaters Instance;
-    public static WindowData CurrentlyDragging { get; set; }
+    public static WindowTab CurrentlyDragging { get; set; }
     public static event Func<Task> OnStartDragging;
     public static event Func<Task> OnStopDragging;
 
@@ -30,12 +30,12 @@
         }
     }
     
-    public void SetActiveFloater(WindowData windowData)
+    public void SetActiveFloater(WindowTab windowTab)
     {
-        if (ActiveFloater?.Id == windowData.Id)
+        if (ActiveFloater?.Id == windowTab.Id)
             return;
         
-        ActiveFloater = windowData;
+        ActiveFloater = windowTab;
 
         foreach (var floater in Floaters)
         {
@@ -45,40 +45,40 @@
         StateHasChanged();
     }
     
-    public async Task AddFloater(WindowData windowData, double clientX, double clientY)
+    public async Task AddFloater(WindowTab windowTab, double clientX, double clientY)
     {
-        windowData.StartFloatX = clientX;
-        windowData.StartFloatY = clientY;
-        Floaters.Add(windowData);
-        ActiveFloater = windowData;
+        windowTab.StartFloatX = clientX;
+        windowTab.StartFloatY = clientY;
+        Floaters.Add(windowTab);
+        ActiveFloater = windowTab;
 
-        GlobalWindowData.AddGlobalWindow(windowData);
-        await GlobalWindowData.SetGlobalActiveWindowAsync(windowData);
+        WindowService.AddGlobalWindow(windowTab);
+        await WindowService.SetGlobalActiveWindowAsync(windowTab);
         
         StateHasChanged();
     }
     
-    public async Task RemoveFloater(WindowData windowData)
+    public async Task RemoveFloater(WindowTab windowTab)
     {
-        Floaters.Remove(windowData);
+        Floaters.Remove(windowTab);
         StateHasChanged();
 
-        GlobalWindowData.RemoveGlobalWindow(windowData);
+        WindowService.RemoveGlobalWindow(windowTab);
 
-        if (windowData.Id == ActiveFloater?.Id)
+        if (windowTab.Id == ActiveFloater?.Id)
         {
             ActiveFloater = Floaters.LastOrDefault();
         }
 
-        if (windowData.Id == GlobalWindowData.GlobalActiveWindow.Id)
+        if (windowTab.Id == WindowService.GlobalActiveWindow.Id)
         {
             if (Floaters.Any())
             {
-                await GlobalWindowData.SetGlobalActiveWindowAsync(Floaters.Last());
+                await WindowService.SetGlobalActiveWindowAsync(Floaters.Last());
             }
             else
             {
-                await GlobalWindowData.SetGlobalActiveWindowAsync(GlobalWindowData.GlobalWindows.LastOrDefault());
+                await WindowService.SetGlobalActiveWindowAsync(WindowService.GlobalWindows.LastOrDefault());
             }
         }
     }
@@ -91,7 +91,7 @@
         }
     }
     
-    public async Task NotifyDragging(WindowData window)
+    public async Task NotifyDragging(WindowTab window)
     {
         CurrentlyDragging = window;
 

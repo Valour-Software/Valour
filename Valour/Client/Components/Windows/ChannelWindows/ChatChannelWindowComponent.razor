@@ -38,7 +38,7 @@
     // Runs when page is initialized
     protected override Task OnInitializedAsync()
     {
-        GlobalWindowData.AddGlobalChatWindow(this);
+        WindowService.AddGlobalChatWindow(this);
         
         _thisRef = DotNetObjectReference.Create(this);
         
@@ -59,7 +59,7 @@
         // When this window is focused, focus the planet
         if (_planet is not null)
         {
-            await GlobalWindowData.SetGlobalActivePlanetAsync(_planet);
+            await WindowService.SetGlobalActivePlanetAsync(_planet);
         }
     }
 
@@ -89,7 +89,7 @@
             
             ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(_selfMember.Id);
             
-            await GlobalWindowData.SetGlobalActivePlanetAsync(_planet);
+            await WindowService.SetGlobalActivePlanetAsync(_planet);
         }
         
         Channel.OnUpdated += OnChatChannelUpdate;
@@ -215,7 +215,7 @@
 
     public async Task OnClickWindow()
     {
-        await GlobalWindowData.SetGlobalActivePlanetAsync(_planet);
+        await WindowService.SetGlobalActivePlanetAsync(_planet);
     }
     
     public async Task OnPlanetDeleted()
@@ -263,7 +263,7 @@
 
     public async Task HandleWindowClose()
     {
-        GlobalWindowData.RemoveGlobalChatWindow(this);
+        WindowService.RemoveGlobalChatWindow(this);
         await Channel.Close(WindowChannelKey);
     }
     

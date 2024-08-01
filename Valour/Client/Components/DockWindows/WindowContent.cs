@@ -8,5 +8,5 @@ public class WindowContent<T> : ComponentBase
     public T Data { get; set; }
     
     [Parameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
 }

@@ -166,7 +166,7 @@
     public MessageHolderComponent Holder { get; set; }
 
     [CascadingParameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
     
     [CascadingParameter]
     public ChatChannelWindowComponent ChatComponent { get; set; }
@@ -329,7 +329,7 @@
         }
         else
         {
-            await GlobalWindowData.SetGlobalActiveWindowAsync(Window);
+            await WindowService.SetGlobalActiveWindowAsync(Window);
         }
     }
 

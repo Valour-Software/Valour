@@ -32,7 +32,7 @@
     
     protected override void OnInitialized()
     {
-        GlobalWindowData.OnActivePlanetChange += OnPlanetChange;
+        WindowService.OnActivePlanetChange += OnPlanetChange;
         ValourClient.OnPlanetOpen += OnPlanetOpen;
         ValourClient.OnPlanetClose += OnPlanetClose;
     }

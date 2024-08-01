@@ -15,7 +15,7 @@
     public Channel Channel { get; set; }
     
     [CascadingParameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -54,7 +54,7 @@
     public async Task OnClicked()
     {
 
-        var newWindow = new WindowData()
+        var newWindow = new WindowTab()
         {
             Title = await _targetChannel.GetTitleAsync(),
             Icon = await _targetChannel.GetIconAsync(),

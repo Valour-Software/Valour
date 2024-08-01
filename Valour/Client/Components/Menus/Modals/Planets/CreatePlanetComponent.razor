@@ -39,7 +39,7 @@
 	
 	public class ModalParams
 	{
-		public WindowData Window { get; set; }
+		public WindowTab Window { get; set; }
 	}
 	
 	private ITaskResult _result;
@@ -100,7 +100,7 @@
 		
 		var mainChannel = await planet.GetPrimaryChannelAsync();
 
-		await Data.Window.WindowBase.AddSiblingWindow(new WindowData()
+		await Data.Window.WindowBase.AddSiblingWindow(new WindowTab()
 		{
 			Title = $"{mainChannel.Name} - {planet.Name}",
 			Data = mainChannel,

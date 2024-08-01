@@ -1,4 +1,5 @@
-﻿@inherits WindowBase
+﻿@using Valour.Sdk.Extensions
+@inherits WindowBase
 @inject IJSRuntime JsRuntime
 
 <div class="window-wrapper"
@@ -9,13 +10,13 @@
          @onmousedown="@OnClickTab">
         <div class="tab">
             <div class="tab-info">
-                <img alt="tab icon" class="tab-icon" src="@WindowData.Icon"/>
-                <span class="tab-title">@WindowData.Title</span>
+                <img alt="tab icon" class="tab-icon" src="@WindowTab.Icon"/>
+                <span class="tab-title">@WindowTab.Title</span>
             </div>
             <div class="tab-buttons"
                  @onclick:stopPropagation="true"
                  @onmousedown:stopPropagation="true">
-                @if (WindowData.Type != typeof(HomeWindowComponent))
+                @if (WindowTab.Type != typeof(HomeWindowComponent))
                 {
                     <span class="home" @onclick="@OnClickHome">
                         <i class="bi bi-house-door-fill"></i>
@@ -28,10 +29,10 @@
         </div>
     </div>
     <div class="window"
-         style="@(WindowData.AutoScroll ? "overflow-y: auto" : "")"
+         style="@(WindowTab.AutoScroll ? "overflow-y: auto" : "")"
          @onmousedown:stopPropagation="true"
          @onmousedown="@OnClickWindow">
-        <DynamicComponent Type="@WindowData.Type" Parameters="@_windowParams"/>
+        <DynamicComponent Type="@WindowTab.Type" Parameters="@_windowParams"/>
     </div>
 </div>
 
@@ -40,21 +41,17 @@
     public DockFloaters Container { get; set; }
     
     [Parameter]
-    public WindowData WindowData { get; set; }
+    public WindowTab WindowTab { get; set; }
     
-    public override async Task ChangeType(Type newType, object newData, string newTitle, string newIcon)
+    public override async Task ReplaceAsync(WindowTab newTab)
     {
-        await WindowData.NotifyClose();
+        await WindowTab.NotifyClose();
         
-        WindowData.Type = newType;
-        WindowData.Data = newData;
-        WindowData.Title = newTitle;
-        WindowData.Icon = newIcon;
-        
+        newTab.CopyAllNonDefaultTo(WindowTab);
         _windowParams = new Dictionary<string, object>()
         {
-            {"Window", WindowData},
-            {"Data", WindowData.Data}
+            {"Window", WindowTab},
+            {"Data", WindowTab.Data}
         };
 
         ReRender();
@@ -62,8 +59,8 @@
     
     public override async Task CloseAsync()
     {
-        await WindowData.NotifyClose();
-        await Container.RemoveFloater(WindowData);
+        await WindowTab.NotifyClose();
+        await Container.RemoveFloater(WindowTab);
     }
     
     private IJSInProcessObjectReference _jsModule;
@@ -84,15 +81,15 @@
     {
         _windowParams = new Dictionary<string, object>()
         {
-            {"Window", WindowData},
-            {"Data", WindowData.Data}
+            {"Window", WindowTab},
+            {"Data", WindowTab.Data}
         };
 
-        _left = WindowData.StartFloatX;
-        _top = WindowData.StartFloatY;
+        _left = WindowTab.StartFloatX;
+        _top = WindowTab.StartFloatY;
         
-        _width = WindowData.StartFloatWidth;
-        _height = WindowData.StartFloatHeight;
+        _width = WindowTab.StartFloatWidth;
+        _height = WindowTab.StartFloatHeight;
     }
 
     protected override bool ShouldRender() => _render;
@@ -101,15 +98,15 @@
     {
         if (firstRender)
         {
-            Console.WriteLine("Floater first render " + WindowData.Id);
+            Console.WriteLine("Floater first render " + WindowTab.Id);
             _dotnetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/FloatingWindow.razor.js");
-            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef, WindowData.StartFloatX, WindowData.StartFloatY);
+            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef, WindowTab.StartFloatX, WindowTab.StartFloatY);
         }
         
         _render = false;
         
-        Console.WriteLine("Rendered " + WindowData.Id);
+        Console.WriteLine("Rendered " + WindowTab.Id);
     }
     
     public override void NotifyNeedsReRender()
@@ -118,7 +115,7 @@
         // ReRender();
         
         // Instead, we use JS to re-render the window
-        _jsModule.InvokeVoid("reRender", _element, Container.ActiveFloater.Id == WindowData.Id);
+        _jsModule.InvokeVoid("reRender", _element, Container.ActiveFloater.Id == WindowTab.Id);
     }
 
     public class FloaterPositionData
@@ -137,12 +134,12 @@
         };
     }
     
-    public override async Task AddSiblingWindow(WindowData newTabData)
+    public override async Task AddSiblingWindow(WindowTab newTabTab)
     {
         // Get current window position
         var pos = await GetPositionAsync();
         
-        await Container.AddFloater(newTabData, pos.ClientX + 50, pos.ClientY + 50);
+        await Container.AddFloater(newTabTab, pos.ClientX + 50, pos.ClientY + 50);
     }
     
     private async Task OnClickMinus()
@@ -152,7 +149,7 @@
 
     private int GetZIndex()
     {
-        if (Container?.ActiveFloater == WindowData)
+        if (Container?.ActiveFloater == WindowTab)
             return 101;
 
         return 100;
@@ -160,36 +157,36 @@
     
     private async Task OnClickTab()
     {
-        Container.SetActiveFloater(this.WindowData);
-        await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
+        Container.SetActiveFloater(this.WindowTab);
+        await WindowService.SetGlobalActiveWindowAsync(this.WindowTab);
     }
 
     private async Task OnClickWindow()
     {
-        Container.SetActiveFloater(this.WindowData);
-        await GlobalWindowData.SetGlobalActiveWindowAsync(this.WindowData);
+        Container.SetActiveFloater(this.WindowTab);
+        await WindowService.SetGlobalActiveWindowAsync(this.WindowTab);
     }
     
     private async Task OnClickHome()
     {
-        ChangeType(
-            typeof(HomeWindowComponent), 
-            null, 
-            "Home",
-            "./_content/Valour.Client/media/logo/logo-128.png"
-            );
+        var newData = new WindowTab()
+        {
+            Title = "Home",
+            Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+            Type = typeof(HomeWindowComponent)
+        };
 
         var pos = await GetPositionAsync();
         _top = pos.ClientY;
         _left = pos.ClientX;
-        
-        StateHasChanged();
+
+        await ReplaceAsync(newData);
     }
 
     [JSInvokable]
     public async Task OnDragStart()
     {
-        await Container.NotifyDragging(this.WindowData);
+        await Container.NotifyDragging(this.WindowTab);
     }
     
     [JSInvokable]
