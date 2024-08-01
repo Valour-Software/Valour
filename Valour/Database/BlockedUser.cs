@@ -1,7 +1,8 @@
-using Microsoft.EntityFrameworkCore
+using Microsoft.EntityFrameworkCore;
+
 namespace Valour.Database;
 
-public class BlockedUsers
+public class BlockedUser
 {
     public virtual User SourceUser { get; set; }
     public virtual User TargetUser { get; set; }
@@ -22,7 +23,7 @@ public class BlockedUsers
 
     public static void OnModelCreating(ModelBuilder builder)
     {
-        builder.Entity<BlockedUsers>(e =>
+        builder.Entity<BlockedUser>(e =>
         {
             e.ToTable("blocked_users");
 
@@ -31,7 +32,7 @@ public class BlockedUsers
             e.Property(x => x.TargetUser)
                 .HasColumnName("target_user_id");
             e.Property(x => x.Reason)
-                .HasColumnName("reason");
+                .HasColumnName("reason")
                 .HasMaxLength(64);
             e.Property(x => x.Timestamp)
                 .HasColumnName("timestamp");

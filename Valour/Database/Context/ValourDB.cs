@@ -77,8 +77,8 @@ public class ValourDB : DbContext
         modelBuilder.Entity<PermissionCheckResult>().HasNoKey();
         modelBuilder.Entity<UpdateAccessResult>().HasNoKey();
         modelBuilder.Entity<UpdateAccessRowCountResult>().HasNoKey();
-        BlockedUserEmails.OnModelCreating(modelBuilder);
-
+            
+        BlockedUser.OnModelCreating(modelBuilder);
     }
 
     // These are the database sets we can access
@@ -222,7 +222,7 @@ public class ValourDB : DbContext
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
-    public DbSet<BlockedUsers> BlockUsers { get; set; }
+    public DbSet<BlockedUser> BlockedUsers { get; set; }
 
     ////////////////
     // Eco System //
