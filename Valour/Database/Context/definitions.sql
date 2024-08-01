@@ -490,5 +490,15 @@ CREATE TABLE IF NOT EXISTS member_channel_access (
     CONSTRAINT fk_member FOREIGN KEY(member_id) REFERENCES planet_members(id),
 );
 
+CREATE TABLE IF NOT EXISTS blocked_users (
+    source_user_id BIGINT NOT NULL,
+    target_user_id BIGINT NOT NULL,
+    reason TEXT,
+    timestamp TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+
+    CONSTRAINT fk_source_user FOREIGN KEY(source_user_id) REFERENCES users(id),
+    CONSTRAINT fk_target_user FOREIGN KEY(target_user_id) REFERENCES users(id)
+);
+
 COMMIT;
 
