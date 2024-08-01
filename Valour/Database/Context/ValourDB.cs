@@ -77,6 +77,7 @@ public class ValourDB : DbContext
         modelBuilder.Entity<PermissionCheckResult>().HasNoKey();
         modelBuilder.Entity<UpdateAccessResult>().HasNoKey();
         modelBuilder.Entity<UpdateAccessRowCountResult>().HasNoKey();
+        BlockedUserEmails.OnModelCreating(modelBuilder);
 
     }
 
@@ -221,6 +222,7 @@ public class ValourDB : DbContext
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
+    public DbSet<BlockedUsers> BlockUsers { get; set; }
 
     ////////////////
     // Eco System //

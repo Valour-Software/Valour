@@ -15,6 +15,9 @@ public class User : Item, ISharedUser
 
     [InverseProperty("User")]
     public virtual ICollection<PlanetMember> Membership { get; set; }
+
+    public virtual Icollection<BlockedUser> BlockedUsers { get; set; }
+    public virtual Icollection<BlockedUser> BlockedBy { get; set;e }
     
     /// <summary>
     /// True if the user has a custom profile picture
