@@ -130,13 +130,15 @@
         }
     }
 
-    public async Task AddWindowAsync(WindowTab window)
+    public async Task AddWindowAsync(WindowContent content)
     {
         // Mobile devices can only have one window
         if (DeviceInfo.IsMobile)
         {
             Windows.Clear();
         }
+        
+        var window = new WindowTab(content);
         
         await window.NotifyAdded();
         
@@ -153,7 +155,7 @@
     
     public async Task AddDefaultWindowAsync()
     {
-        var window = new WindowTab
+        var window = new WindowContent()
         {
             Title = "Home",
             Icon = "./_content/Valour.Client/media/logo/logo-128.png",
@@ -294,7 +296,7 @@
                 await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
 
                 // Add to this dock container
-                await AddWindowAsync(DockFloaters.CurrentlyDragging);
+                await AddWindowAsync(DockFloaters.CurrentlyDragging.Content );
                 
                 break;
             }

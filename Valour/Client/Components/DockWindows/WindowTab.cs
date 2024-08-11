@@ -174,6 +174,16 @@ public class WindowTab
     public int StartFloatWidth { get; set; } = 400;
     public int StartFloatHeight { get; set; } = 400;
     public bool Rendered { get; set; }
+
+    public WindowTab()
+    {
+        
+    }
+    
+    public WindowTab(WindowContent content)
+    {
+        Content = content;
+    }
     
     public void SetContent(WindowContent content)
     {
