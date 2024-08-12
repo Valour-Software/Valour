@@ -1,18 +1,19 @@
 using Microsoft.EntityFrameworkCore;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
-public class BlockedUser
+public class BlockedUser : ISharedBlockedUser
 {
     public virtual User SourceUser { get; set; }
     public virtual User TargetUser { get; set; }
 
     /// <summary>
-    ///  The id of the user who intiated the block
+    ///  The id of the user who initiated the block
     /// </summary>
     public long SourceUserId { get; set; }
 
-    /// <summar>
+    /// <summary>
     /// the user who is being blocked
     /// </summary>
     public long TargetUserId { get; set; }
