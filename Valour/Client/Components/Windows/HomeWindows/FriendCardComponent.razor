@@ -2,7 +2,7 @@
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
-<div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 240)" @onclick="OnClick"> 
+<div id="flipper-friend-@Friend.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle" @oncontextpress="@OnContextMenu">
         <div class="text-hide-circle"></div>
         
@@ -37,7 +37,7 @@
     public User Friend { get; set; }
 
     [Parameter]
-    public WindowTab Window { get; set; }
+    public WindowContent WindowCtx { get; set; }
 
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
@@ -100,17 +100,10 @@
         // is being sent, but this is fine for now
         var channel = await Channel.GetDirectChannelAsync(Friend.Id, create: true);
 
-        var newWindowData = new WindowTab()
-        {
-            Title = await channel.GetTitleAsync(),
-            Icon = await channel.GetIconAsync(),
-            Type = typeof(ChatChannelWindowComponent),
-            Data = channel
-        };
+        var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+        await WindowCtx.Tab.AddSiblingTab(newWindowContent);
 
-        await Window.WindowBase.ReplaceAsync(newWindowData);
-
-        Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
+        Console.WriteLine($"Switching window {WindowCtx.Id} to direct chat channel {channel.Id}");
 
         // await WindowManager.ReplaceWindow(Window, newWindow);
         // await WindowManager.SetSelectedWindow(newWindow);

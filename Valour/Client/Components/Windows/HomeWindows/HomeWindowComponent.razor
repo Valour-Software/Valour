@@ -5,9 +5,9 @@
     <div class="icon-container">
         @foreach (Planet planet in ValourClient.JoinedPlanets)
         {
-            <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window' HomeWindowComponent="this"></PlanetCardComponent>
+            <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' WindowCtx='WindowCtx' HomeWindowComponent="this"></PlanetCardComponent>
         }
-        <div id="flipper-planet-create-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-create-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 240)" @onclick="OnClickCreatePlanet">
+        <div id="flipper-planet-create-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-create-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-planet-create-@WindowCtx.Id', 240)" @onclick="OnClickCreatePlanet">
             <div class="outer-circle">
                 <div class="text-hide-circle"></div>
                 <svg class="icon create" style="border-radius: 0; transform: scale(0.7)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
@@ -50,10 +50,10 @@
 
         @foreach (var friend in ValourClient.Friends)
         {
-            <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" Window="Window" HomeWindowComponent="this" />
+            <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" WindowCtx="WindowCtx" HomeWindowComponent="this" />
         }
         
-        <div id="flipper-friend-add-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-add-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-add-@Window.Id', 240)" @onclick="OnClickAddFriend">
+        <div id="flipper-friend-add-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-add-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-friend-add-@WindowCtx.Id', 240)" @onclick="OnClickAddFriend">
             <div class="outer-circle">
                 <div class="text-hide-circle" />
                 @if (ValourClient.FriendRequests.Count > 0)
@@ -114,7 +114,7 @@
             if (ValourClient.JoinedPlanets.Any(x => x.Id == planet.Id))
                 continue;
 
-            <PlanetDiscoverableComponent @key='"discovery-" + planet.Id' Planet="planet" Window="Window"></PlanetDiscoverableComponent>
+            <PlanetDiscoverableComponent @key='"discovery-" + planet.Id' Planet="planet" WindowCtx="WindowCtx"></PlanetDiscoverableComponent>
         }
     </div>
 
@@ -124,7 +124,7 @@
     
 
 @code {
-    public static readonly WindowContent<HomeWindowComponent> DefaultContent = new(){
+    public static WindowContent<HomeWindowComponent> DefaultContent => new(){
         Icon = "./_content/Valour.Client/media/logo/logo-128.png",
         Title = "Welcome back!"
     };

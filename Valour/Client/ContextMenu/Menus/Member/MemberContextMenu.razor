@@ -129,16 +129,8 @@ else
 		await CloseAsync();
 		
 		var channel = await Channel.GetDirectChannelAsync(_user.Id, true);
-		
-		var newWindow = new WindowTab()
-		{
-			Title = await channel.GetTitleAsync(),
-			Icon = await channel.GetIconAsync(),
-			Type = typeof(ChatChannelWindowComponent),
-			Data = channel,
-		};
-
-		await WindowService.OpenWindowAtFocused(newWindow);
+		var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+		await WindowService.OpenWindowAtFocused(newWindowContent);
 	}
 
 	private async Task OnClickCopyNickname(){

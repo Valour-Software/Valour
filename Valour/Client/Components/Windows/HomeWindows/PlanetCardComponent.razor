@@ -2,7 +2,7 @@
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
 
-<div id="flipper-planet-@Planet.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 240)" @onclick="OnClick"> 
+<div id="flipper-planet-@Planet.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-@Planet.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-planet-@Planet.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle"
          @oncontextpress="@OnContextPress">
         <div class="text-hide-circle"></div>
@@ -53,7 +53,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public WindowTab Window { get; set; }
+    public WindowContent WindowCtx { get; set; }
     
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
@@ -189,15 +189,8 @@
             return;
         }
 
-        var newWindowData = new WindowTab()
-        {
-            Title = await channel.GetTitleAsync(),
-            Icon = await channel.GetIconAsync(),
-            Type = typeof(ChatChannelWindowComponent),
-            Data = channel
-        };
-
-        await Window.WindowBase.ReplaceAsync(newWindowData);
+        var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+        await WindowCtx.Tab.SetContent(newWindowContent);
 
         StateHasChanged();
     }
