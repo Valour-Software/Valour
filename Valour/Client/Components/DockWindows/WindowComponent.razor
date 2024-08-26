@@ -1,0 +1,252 @@
+﻿@inject IJSRuntime JsRuntime
+
+<div class="window-wrapper @WindowWrapperClasses"
+     style="@WindowWrapperStyles z-index: @ZIndex"
+     @ref="@_element">
+    <div class="tab-wrapper @TabWrapperClasses"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickTab"
+         @ondrag:stopPropagation="true"
+         @ondrag="OnDragTab"
+         style="@TabWrapperStyle">
+        @* Mobile does not have tabs *@
+        @if (!DeviceInfo.IsMobile)
+        {
+            <div class="tab">
+                <div class="tab-info">
+                    <img alt="tab icon" class="tab-icon" src="@Icon"/>
+                    <span class="tab-title">@Title</span>
+                </div>
+                <div class="tab-buttons"
+                     @onclick:stopPropagation="true"
+                     @onmousedown:stopPropagation="true">
+                    @if (Type != typeof(HomeWindowComponent))
+                    {
+                        <span class="home" @onclick="@OnClickHome">
+                            <i class="bi bi-house-door-fill"></i>
+                        </span>
+                    }
+                    <span class="plus" @onclick="@OnClickPlus">
+                        <i class="bi bi-plus-circle-fill"></i>
+                    </span>
+                    @if (Layout.Tabs.Count > 1)
+                    {
+                        <span class="minus" @onclick="@OnClickMinus">
+                            <i class="bi bi-dash-circle-fill"></i>
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <div class="window"
+         style="@WindowStyle"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickWindow">
+        @* Window Content *@
+        @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
+    </div>
+</div>
+
+@code {
+
+    ////////////
+    // Params //
+    ////////////
+    [Parameter] public WindowTab WindowTab { get; set; }
+    
+    ///////////////////////
+    // Public properties //
+    ///////////////////////
+    public WindowLayout Layout => WindowTab.Layout;
+    public bool IsActive => Layout.FocusedTab == WindowTab;
+    public bool IsFloating => WindowTab.IsFloating;
+
+    ///////////////////////
+    // Private properties //
+    ///////////////////////
+
+    private int ZIndex => IsActive ? 2 : 1;
+
+    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: {GetTabWidth() * GetIndex()}%";
+
+    private string TabWrapperClasses
+    {
+        get
+        {
+            string classes;
+            if (IsFloating)
+            {
+                classes = "floating ";
+            }
+            else
+            {
+                classes = "docked ";
+                
+                if (GetIndex() == Layout.Tabs .Count - 1)
+                {
+                    classes += "last ";
+                }
+            }
+
+            return classes;
+        }
+    }
+
+    private string WindowWrapperClasses
+    {
+        get
+        {
+            var classes = IsFloating ? "floating " : "docked ";
+            
+            if (IsActive)
+                classes += "active ";
+
+            return classes;
+        }
+    }
+
+    private string WindowWrapperStyles
+    {
+        // Floating window uses floating props, otherwise uses layout
+        get
+        {
+            if (IsFloating && WindowTab.FloatingProps is not null)
+            {
+                return $"top: {WindowTab.FloatingProps.FloatY}px; left: {WindowTab.FloatingProps.FloatX}px; width: {WindowTab.FloatingProps.FloatWidth}px; height: {WindowTab.FloatingProps.FloatHeight}px";
+            }
+            
+            return Layout?.Position.Style ?? string.Empty;
+        }
+    }
+
+    private string Icon => WindowTab.Content?.Icon ?? HomeWindowComponent.DefaultContent.Icon;
+    private string Title => WindowTab.Content?.Title ?? HomeWindowComponent.DefaultContent.Title;
+    private Type Type => WindowTab.Content.ComponentType ?? HomeWindowComponent.DefaultContent.ComponentType;
+    private string WindowStyle => (WindowTab.Content?.AutoScroll ?? true) ? "overflow-y: auto" : string.Empty;
+    
+    ///////////////
+    // Lifecycle //
+    ///////////////
+    
+    // Render flag: blocks or allows rendering
+    private bool _canRender = false;
+    protected override bool ShouldRender() => _canRender;
+
+    // Runs after every render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Runs only on first render
+        if (firstRender)
+        {
+            // Setup JS interop
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowComponent.razor.js");
+            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef);
+        }
+        
+        // Reset render flag
+        _canRender = false;
+
+        Console.WriteLine("Rendered " + WindowTab.Id);
+    }
+    
+    public void ReRender()
+    {
+        _canRender = true;
+        StateHasChanged();
+    }
+    
+    
+    public async Task ReplaceAsync(WindowContent content)
+    {
+        await WindowTab.NotifyClose();
+        
+        WindowTab.SetContent(content);
+        await WindowTab.NotifyAdded();
+        
+        ReRender();
+    }
+
+    public async Task CloseAsync()
+    {
+        await WindowTab.NotifyClose();
+        Layout.RemoveTab(WindowTab);
+    }
+
+    public Task AddSiblingTab(WindowContent content)
+    {
+        Layout.AddTab(content);
+        return Task.CompletedTask;
+    }
+
+    public void NotifyNeedsReRender()
+    {
+        ReRender();
+    }
+    
+    private float GetTabWidth()
+    {
+        if (Layout.Tabs.Count == 1)
+            return 100f;
+        
+        return (100f / Layout.Tabs.Count);
+    }
+
+    private int GetIndex()
+    {
+        return Layout.Tabs.IndexOf(WindowTab);
+    }
+
+    private async Task SetActive()
+    {
+        Layout.SetFocusedTab(WindowTab);
+    }
+
+    private async Task OnClickPlus()
+    {
+        await AddSiblingTab(WindowContent.Home);
+    }
+    
+    private async Task OnClickMinus()
+    {
+        await CloseAsync();
+    }
+
+    private Task OnClickTab(MouseEventArgs e)
+    {
+        return SetActive();
+    }
+    
+    private Task OnClickWindow()
+    {
+        return SetActive();
+    }
+
+    private async Task OnDragTab(MouseEventArgs e)
+    {
+        
+    }
+
+    private Task OnClickHome()
+    {
+        return ReplaceAsync(WindowContent.Home);
+    }
+    
+    ////////////////
+    // JS Interop //
+    ////////////////
+    
+    private IJSInProcessObjectReference _jsModule;
+    private ElementReference _element;
+    private DotNetObjectReference<WindowComponent> _dotnetRef;
+    
+    /* Dragging */
+
+    [JSInvokable]
+    public async Task OnFloaterStart(double clientX, double clientY)
+    {
+        // await Container.NotifyNewFloater(WindowTab, clientX, clientY);
+    }
+
+}

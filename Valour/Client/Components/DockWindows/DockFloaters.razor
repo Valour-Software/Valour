@@ -1,4 +1,6 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@*
+
+@inject IJSRuntime JsRuntime
 
 @foreach (var floater in Floaters)
 {
@@ -70,7 +72,7 @@
             ActiveFloater = Floaters.LastOrDefault();
         }
 
-        if (windowTab.Id == WindowService.GlobalActiveWindow.Id)
+        if (windowTab.Id == WindowService.FocusedTab.Id)
         {
             if (Floaters.Any())
             {
@@ -78,7 +80,7 @@
             }
             else
             {
-                await WindowService.SetGlobalActiveWindowAsync(WindowService.GlobalWindows.LastOrDefault());
+                await WindowService.SetGlobalActiveWindowAsync(WindowService.GlobalTabs.LastOrDefault());
             }
         }
     }

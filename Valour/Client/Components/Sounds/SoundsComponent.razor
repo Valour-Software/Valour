@@ -30,7 +30,7 @@
             // unless it's a mention
             if (notification.Source == NotificationSource.DirectReply)
             {
-                foreach (var window in WindowService.GlobalWindows)
+                foreach (var window in WindowService.GlobalTabs)
                 {
                     if (window.Type == typeof(ChatChannelWindowComponent))
                     {

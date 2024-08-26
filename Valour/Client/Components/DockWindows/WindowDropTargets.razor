@@ -1,0 +1,34 @@
+﻿<div class="drop-targets"
+     @onclick:stopPropagation="true">
+    <div class="targets">
+        <div @onclick="(async () => await OnDrop(DropLocation.Center))" class="center w-drop-target"><i class="bi bi-bullseye"></i></div>
+        <div @onclick="(async () => await OnDrop(DropLocation.Up))" class="up w-drop-target"><i class="bi bi-caret-up-fill"></i></div>
+        <div @onclick="(async () => await OnDrop(DropLocation.Down))" class="down w-drop-target"><i class="bi bi-caret-down-fill"></i></div>
+        <div @onclick="(async () => await OnDrop(DropLocation.Left))" class="left w-drop-target"><i class="bi bi-caret-left-fill"></i></div>
+        <div @onclick="(async () => await OnDrop(DropLocation.Right))" class="right w-drop-target"><i class="bi bi-caret-right-fill"></i></div>
+    </div>
+</div>
+
+@code {
+    
+    public WindowComponent Window { get; set; }
+    
+    public enum DropLocation
+    {
+        Center,
+        Up,
+        Down,
+        Left,
+        Right
+    }
+    
+    public Task OnDrop(DropLocation location)
+    {
+        Console.WriteLine("Dropped: " + location);
+        
+        //if (DockFloaters.CurrentlyDragging is null)
+        //    return Task.CompletedTask;
+
+        return Window.Layout.OnTabDropped(Window.WindowTab, location);
+    }
+}

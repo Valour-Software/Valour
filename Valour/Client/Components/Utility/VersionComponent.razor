@@ -10,9 +10,8 @@
 </div>
 
 @code {
-    private async Task OnClickLogo()
+    private void OnClickLogo()
     {
-        await DockContainer.MainDock.CloseAllAsync();
-        await DockFloaters.Instance.CloseAllAsync();
+        WindowService.ResetAll();
     }
 }

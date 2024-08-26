@@ -1,4 +1,6 @@
-﻿<div class="inner-window @_mobileTag">
+﻿@inherits WindowContentComponent
+
+<div class="inner-window @_mobileTag">
     <h6 class="mt-4 text-center icons-title">Your Planets</h6>
     <div class="icon-container">
         @foreach (Planet planet in ValourClient.JoinedPlanets)
@@ -122,12 +124,10 @@
     
 
 @code {
-    
-    [Parameter]
-    public object Data { get; set; }
-
-    [Parameter]
-    public WindowTab Window { get; set; }
+    public static readonly WindowContent<HomeWindowComponent> DefaultContent = new(){
+        Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+        Title = "Welcome back!"
+    };
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }

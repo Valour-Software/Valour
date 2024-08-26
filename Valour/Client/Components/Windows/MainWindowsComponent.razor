@@ -34,12 +34,8 @@
 	{
 		Console.WriteLine(JsonSerializer.Serialize(StartData));
 
-		var startWindow = new WindowTab()
-		{
-			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
-			Type = typeof(HomeWindowComponent),
-			Title = "Welcome back!"
-		};
+		var startWindow = new WindowContent()
+		
 		
 		if (StartData is not null)
 		{

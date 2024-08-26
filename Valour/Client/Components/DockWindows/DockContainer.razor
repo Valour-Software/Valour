@@ -1,10 +1,12 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@*
+
+@inject IJSRuntime JsRuntime
 
 <div @ref="@_element" class="dock-container @GetSplitClass()">
     @switch (Split)
     {
         // No split
-        case SplitState.None:
+        case SplitDirection.None:
         {
             foreach (var window in Windows)
             {
@@ -12,8 +14,8 @@
             }
             break;
         }
-        case SplitState.Horizontal:
-        case SplitState.Vertical:
+        case SplitDirection.Horizontal:
+        case SplitDirection.Vertical:
         {
             <DockContainer @ref="@ChildContainerA" ParentContainer="@this" Windows="@SplitWindowsA" />
             <DockContainer @ref="@ChildContainerB" ParentContainer="@this" Windows="@SplitWindowsB" />
@@ -22,48 +24,27 @@
     }
     
 
-    @if (DockFloaters.CurrentlyDragging is not null && Split == SplitState.None)
+    @if (DockFloaters.CurrentlyDragging is not null && Split == SplitDirection.None)
     {
-        <div class="drop-targets"
-             @onclick:stopPropagation="true">
-            <div class="targets">
-                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Center))" class="center w-drop-target"><i class="bi bi-bullseye"></i></div>
-                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Up))" class="up w-drop-target"><i class="bi bi-caret-up-fill"></i></div>
-                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Down))" class="down w-drop-target"><i class="bi bi-caret-down-fill"></i></div>
-                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Left))" class="left w-drop-target"><i class="bi bi-caret-left-fill"></i></div>
-                <div @onclick="(async () => await OnDrop(DockContainer.DropLocation.Right))" class="right w-drop-target"><i class="bi bi-caret-right-fill"></i></div>
-            </div>
-        </div>
+        
     }
 </div>
 
 @code {
     
-    public enum DropLocation
-    {
-        Center,
-        Up,
-        Down,
-        Left,
-        Right
-    }
+
     
-    public enum SplitState
-    {
-        None,
-        Horizontal,
-        Vertical
-    }
+    
 
     private string GetSplitClass()
     {
         switch (Split)
         {
-            case SplitState.None:
+            case SplitDirection.None:
                 return "";
-            case SplitState.Horizontal:
+            case SplitDirection.Horizontal:
                 return "split horizontal";
-            case SplitState.Vertical:
+            case SplitDirection.Vertical:
                 return "split vertical";
         }
 
@@ -89,7 +70,7 @@
     
     public static DockContainer MainDock { get; set; }
 
-    public SplitState Split { get; set; } = SplitState.None;
+    public SplitDirection Split { get; set; } = SplitDirection.None;
     private bool _armSplit;
     private bool _armUnSplit;
 
@@ -120,7 +101,7 @@
         if (_armSplit)
         {
             _armSplit = false;
-            await _jsModule.InvokeVoidAsync("doSplit", _element, Split == SplitState.Horizontal ? "horizontal" : "vertical");
+            await _jsModule.InvokeVoidAsync("doSplit", _element, Split == SplitDirection.Horizontal ? "horizontal" : "vertical");
         }
         
         if (_armUnSplit)
@@ -174,7 +155,7 @@
         // SplitWindowsB?.Remove(window);
 
         // Out of windows and not split - need to add default window or kill self
-        if (Windows.Count == 0 && Split == SplitState.None)
+        if (Windows.Count == 0 && Split == SplitDirection.None)
         {
             if (ParentContainer is null)
             {
@@ -191,7 +172,7 @@
             ActiveWindow = Windows.LastOrDefault();
         }
 
-        if (window == WindowService.GlobalActiveWindow)
+        if (window == WindowService.FocusedWindow)
         {
             if (Windows.Any())
             {
@@ -277,136 +258,13 @@
         StateHasChanged();
         return Task.CompletedTask;
     }
-
-    public async Task OnDrop(DropLocation location)
-    {
-        Console.WriteLine("Dropped: " + location);
-        
-        if (DockFloaters.CurrentlyDragging is null)
-            return;
-        
-        switch (location)
-        {
-            case DropLocation.Center:
-            {
-                if (Windows.Contains(DockFloaters.CurrentlyDragging))
-                    return;
-                
-                // Remove from current dock container
-                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
-
-                // Add to this dock container
-                await AddWindowAsync(DockFloaters.CurrentlyDragging.Content );
-                
-                break;
-            }
-            case DropLocation.Right:
-            {
-                // Remove currently dragging from its own container
-                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
-                
-                // Set left to all other windows
-                SplitWindowsA = Windows;
-                
-                // Clear normal windows
-                Windows = null;
-                
-                // Set right to the currently dragging window
-                SplitWindowsB = new List<WindowTab> { DockFloaters.CurrentlyDragging };
-                
-                // Init split state
-                Split = SplitState.Horizontal;
-                
-                _armSplit = true;
-                
-                // Re-render
-                StateHasChanged();
-                
-                break;
-            }
-            case DropLocation.Left:
-            {
-                // Remove currently dragging from its own container
-                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
-                
-                // Set right to all other windows
-                SplitWindowsB = Windows;
-                
-                // Clear normal windows
-                Windows = null;
-                
-                // Set left to the currently dragging window
-                SplitWindowsA = new List<WindowTab> { DockFloaters.CurrentlyDragging };
-                
-                // Init split state
-                Split = SplitState.Horizontal;
-                
-                _armSplit = true;
-                
-                // Re-render
-                StateHasChanged();
-                
-                break;
-            }
-            case DropLocation.Up:
-            {
-                // Remove currently dragging from its own container
-                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
-                
-                // Set bottom to all other windows
-                SplitWindowsB = Windows;
-                
-                // Clear normal windows
-                Windows = null;
-                
-                // Set top to the currently dragging window
-                SplitWindowsA = new List<WindowTab> { DockFloaters.CurrentlyDragging };
-                
-                // Init split state
-                Split = SplitState.Vertical;
-                
-                _armSplit = true;
-                
-                // Re-render
-                StateHasChanged();
-                
-                break;
-            }
-            case DropLocation.Down:
-            {
-                // Remove currently dragging from its own container
-                await DockFloaters.Instance.RemoveFloater(DockFloaters.CurrentlyDragging);
-                
-                // Set top to all other windows
-                SplitWindowsA = Windows;
-                
-                // Clear normal windows
-                Windows = null;
-                
-                // Set bottom to the currently dragging window
-                SplitWindowsB = new List<WindowTab> { DockFloaters.CurrentlyDragging };
-                
-                // Init split state
-                Split = SplitState.Vertical;
-                
-                _armSplit = true;
-                
-                // Re-render
-                StateHasChanged();
-                
-                break;
-            }
-        }
-
-        DockFloaters.CurrentlyDragging = null;
-    }
-
+    
     public Task UnSplit()
     {
-        if (Split == SplitState.None)
+        if (Split == SplitDirection.None)
             return Task.CompletedTask;
         
-        Split = SplitState.None;
+        Split = SplitDirection.None;
         
         Windows = new List<WindowTab>();
         

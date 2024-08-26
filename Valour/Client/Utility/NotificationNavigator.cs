@@ -26,7 +26,7 @@ public static class NotificationNavigator
                 if (channel is null)
                     break;
 
-                await WindowService.OpenWindowAtActive(new WindowTab()
+                await WindowService.OpenWindowAtFocused(new WindowTab()
                 {
                     Title = await channel.GetTitleAsync(),
                     Data = channel,
@@ -43,7 +43,7 @@ public static class NotificationNavigator
                 if (channel is null)
                     break;
                 
-                await WindowService.OpenWindowAtActive(new WindowTab()
+                await WindowService.OpenWindowAtFocused(new WindowTab()
                     {
                         Title = await channel.GetTitleAsync(),
                         Data = channel,

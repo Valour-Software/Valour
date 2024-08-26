@@ -329,7 +329,7 @@
         }
         else
         {
-            await WindowService.SetGlobalActiveWindowAsync(Window);
+            await Window.NotifyFocused();
         }
     }
 

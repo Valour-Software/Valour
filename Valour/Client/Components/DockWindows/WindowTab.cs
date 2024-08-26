@@ -1,194 +1,226 @@
-﻿using Valour.Client.Components.Windows.ChannelWindows;
+﻿using Microsoft.AspNetCore.Components;
+using Valour.Client.Components.Windows.ChannelWindows;
+using Valour.Client.Components.Windows.HomeWindows;
 using Valour.Sdk.Client;
 using Valour.Sdk.Extensions;
 using Valour.Sdk.Models;
 
 namespace Valour.Client.Components.DockWindows;
 
-public static class WindowService
+public abstract class WindowContent
 {
-    public static Planet GlobalActivePlanet { get; set; }
-    public static event Func<Planet, Task> OnActivePlanetChange;
+    /// <summary>
+    /// Event that is called when the window content is focused (ie clicked on)
+    /// </summary>
+    public event Func<Task> OnFocused;
     
-    public static async Task SetGlobalActivePlanetAsync(Planet planet)
+    /// <summary>
+    /// Event that is called when the window content is closed
+    /// </summary>
+    public event Func<Task> OnClosed;
+    
+    /// <summary>
+    /// Event that is called when the window content is opened
+    /// </summary>
+    public event Func<Task> OnOpened;
+    
+    public string Id { get; private set; } = Guid.NewGuid().ToString();
+    public string Title { get; set; }
+    public string Icon { get; set; }
+    public long? PlanetId { get; set; }
+    public bool AutoScroll { get; set; }
+    
+    public WindowTab Tab { get; set; }
+    
+    private WindowContentComponent _component;
+    
+    public virtual Type ComponentType => _component.GetType();
+
+    public virtual object ComponentData => null;
+    
+
+    public virtual WindowContentComponent Component
     {
-        if (planet.Id == GlobalActivePlanet?.Id)
-            return;
+        get => _component;
+        private set {
+            _component = value;
+        }
+    }
+    
+    public void SetComponent(WindowContentComponent component)
+    {
+        Component = component;
+    }
+    
+    public async Task NotifyFocused()
+    {
+        if (OnFocused is not null)
+            await OnFocused.Invoke();
+    }
+    
+    public async Task NotifyClosed()
+    {
+        if (OnClosed is not null)
+            await OnClosed.Invoke();
         
-        GlobalActivePlanet = planet;
-        
-        if (OnActivePlanetChange is not null)
-            await OnActivePlanetChange.Invoke(planet);
-    }
-    
-    public static WindowTab GlobalActiveWindow { get; set; }
-    public static event Func<WindowTab, Task> OnActiveWindowChange;
-    
-    public static async Task ReplaceGlobalActiveWindowAsync(WindowTab newTab)
-    {
-        if (newTab is null)
+        if (PlanetId is not null)
         {
-            return;
-        }
-
-        if (GlobalActiveWindow is not null)
-        {
-            await GlobalActiveWindow.WindowBase.ReplaceAsync(newTab);
-        }
-        else
-        {
-            // If there is no window, create one
-            await DockContainer.MainDock.AddWindowAsync(newTab);
-            await SetGlobalActiveWindowAsync(newTab);
-        }
-
-        if (OnActiveWindowChange is not null)
-            await OnActiveWindowChange.Invoke(GlobalActiveWindow);
-
-        await GlobalActiveWindow.NotifyFocused();
-    }
-
-    public static async Task SetGlobalActiveWindowAsync(WindowTab window)
-    {
-        if (window is null)
-        {
-            if (GlobalActiveWindow is null)
-            {
-                return;
-            }
-        }
-        else if (window.Id == GlobalActiveWindow?.Id) {
-            return;
-        }
-
-        GlobalActiveWindow = window;
-        if (OnActiveWindowChange is not null)
-            await OnActiveWindowChange.Invoke(window);
-
-        if (window is not null)
-        {
-            if (window.Content?.PlanetId is not null)
-            {
-                if (OnActivePlanetChange is not null)
-                {
-                    var planet = await Planet.FindAsync(window.Content.PlanetId.Value);
-                    await OnActivePlanetChange.Invoke(planet);
-                }
-            }
-            
-            await window.NotifyFocused();
+            var planet = await Planet.FindAsync(PlanetId.Value);
+            await ValourClient.ClosePlanetConnection(planet, Id);
         }
     }
     
-    public static List<WindowTab> GlobalWindows { get; set; } = new();
-    
-    public static void AddGlobalWindow(WindowTab window)
+    public async Task NotifyOpened()
     {
-        if (GlobalWindows.Contains(window))
-            return;
-        
-        GlobalWindows.Add(window);
-    }
-    
-    public static void RemoveGlobalWindow(WindowTab window)
-    {
-        if (!GlobalWindows.Contains(window))
-            return;
-        
-        GlobalWindows.Remove(window);
-    }
-    
-    public static List<ChatChannelWindowComponent> GlobalChatWindows { get; set; } = new();
-    
-    public static void AddGlobalChatWindow(ChatChannelWindowComponent window)
-    {
-        if (GlobalChatWindows.Contains(window))
-            return;
-        
-        GlobalChatWindows.Add(window);
-    }
-    
-    public static void RemoveGlobalChatWindow(ChatChannelWindowComponent window)
-    {
-        if (!GlobalChatWindows.Contains(window))
-            return;
-        
-        GlobalChatWindows.Remove(window);
-    }
+        if (OnOpened is not null)
+            await OnOpened.Invoke();
 
-    public static async Task OpenWindowAtActive(WindowTab tab)
+        if (PlanetId is not null)
+        {
+            var planet = await Planet.FindAsync(PlanetId.Value);
+            await ValourClient.OpenPlanetConnection(planet, Id);
+        }
+    }
+    
+    public abstract RenderFragment RenderContent { get; }
+}
+
+public class WindowContent<TWindow> : WindowContent where TWindow : WindowContentComponent
+{
+    /// <summary>
+    /// The component of the Window content -- not the Window Tab!
+    /// </summary>
+    public override TWindow Component
     {
-        if (GlobalActiveWindow is not null)
-        {
-            await GlobalActiveWindow.WindowBase.AddSiblingWindow(tab);
-        }
-        else
-        {
-            await DockContainer.MainDock.AddWindowAsync(tab);
-        }
+        get => (TWindow) base.Component;
     }
     
     /// <summary>
-    /// Adds the given window as a floating window if supported on the device,
-    /// otherwise adds it in a supported manner
+    /// The type of the component for this window content
     /// </summary>
-    public static async Task TryAddFloatingWindow(WindowTab tab)
+    public override Type ComponentType => typeof(TWindow);
+
+    public override RenderFragment RenderContent => builder =>
     {
-        if (DockFloaters.Instance is not null)
-        {
-            await DockFloaters.Instance.AddFloater(tab, 100, 100);
-        }
-        else
-        {
-            await DockContainer.MainDock.AddWindowAsync(tab);
-        }
-    }
+        builder.OpenComponent<TWindow>(0);
+        builder.AddComponentParameter(1, "WindowCtx", this);
+        builder.CloseComponent();
+    };
 }
 
-public class WindowContent
+public class WindowContent<TWindow, TData> : 
+    WindowContent<TWindow> where TWindow : WindowContentComponent<TData> where TData : class
 {
-    public WindowTab Tab { get; set; }
+    public TData Data { get; set; }
     
-    public string Title { get; set; }
-    public string Icon { get; set; }
-    public Type Type { get; set; }
-    public object Data { get; set; }
-    public long? PlanetId { get; set; }
-    public bool AutoScroll { get; set; }
+    public override TData ComponentData => Data;
+    
+    public override RenderFragment RenderContent => builder =>
+    {
+        builder.OpenComponent<TWindow>(0);
+        builder.AddComponentParameter(1, "WindowCtx", this);
+        builder.AddComponentParameter(2, "Data", Data);
+        builder.CloseComponent();
+    };
+}
+
+public class FloatingWindowProps
+{
+    public double FloatX { get; set; }
+    public double FloatY { get; set; }
+    public int FloatWidth { get; set; } = 400;
+    public int FloatHeight { get; set; } = 400;    
 }
 
 public class WindowTab
 {
+    /// <summary>
+    /// Event that is called when the window tab is focused (ie clicked on)
+    /// </summary>
     public event Func<Task> OnFocused;
+    
+    /// <summary>
+    /// Event that is called when the window tab is closed
+    /// </summary>
     public event Func<Task> OnClosed;
+    
+    /// <summary>
+    /// Event that is called when the window tab is opened
+    /// </summary>
     public event Func<Task> OnOpened;
     
+    /// <summary>
+    /// The unique identifier of the window tab
+    /// </summary>
+    public string Id { get; private set; } = Guid.NewGuid().ToString();
+    
+    /// <summary>
+    /// The history of the content the window tab has displayed
+    /// </summary>
     public List<WindowContent> History { get; set; } = new();
+    
+    /// <summary>
+    /// The current content of the window tab
+    /// </summary>
     public WindowContent Content { get; private set; }
-
-    public WindowBase WindowBase { get; set; }
     
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-    public double StartFloatX { get; set; }
-    public double StartFloatY { get; set; }
-    public int StartFloatWidth { get; set; } = 400;
-    public int StartFloatHeight { get; set; } = 400;
-    public bool Rendered { get; set; }
-
-    public WindowTab()
-    {
-        
-    }
+    /// <summary>
+    /// The component for this window tab
+    /// </summary>
+    public WindowComponent Component { get; set; }
     
-    public WindowTab(WindowContent content)
+    /// <summary>
+    /// The layout this window tab belongs to
+    /// </summary>
+    public WindowLayout Layout { get; private set; }
+    
+    /// <summary>
+    /// If the window is floating
+    /// </summary>
+    public bool IsFloating => FloatingProps is not null;
+    
+    /// <summary>
+    /// The properties of the window if it is floating
+    /// </summary>
+    public FloatingWindowProps FloatingProps { get; private set; }
+    
+    public WindowTab(WindowContent content, FloatingWindowProps floatingProps = null)
     {
-        Content = content;
+        FloatingProps = floatingProps;
+        SetContent(content);
     }
     
     public void SetContent(WindowContent content)
     {
         Content = content;
-        Rendered = false;
+        content.Tab = this;
+    }
+    
+    /// <summary>
+    /// Sets the layout for this window tab to render within
+    /// </summary>
+    public void SetLayout(WindowLayout layout, bool render = true)
+    {
+        // If the layout is the same, return
+        if (Layout == layout)
+            return;
+        
+        // Get reference to old layout
+        var oldLayout = Layout;
+        
+        // Set layout
+        Layout = layout;
+        
+        // Remove from old layout
+        oldLayout?.RemoveTab(this, false);
+        
+        // Add to new layout
+        Layout?.AddTab(this, render);
+    }
+
+    public void SetFloatingProps(FloatingWindowProps props)
+    {
+        FloatingProps = props;
     }
 
     public async Task NotifyAdded()
@@ -202,8 +234,17 @@ public class WindowTab
     
     public async Task NotifyFocused()
     {
+        if (WindowService.FocusedTab == this)
+            return;
+        
         if (OnFocused is not null)
             await OnFocused.Invoke();
+        
+        // Call for content
+        await Content.NotifyFocused();
+        
+        // Set global focused tab
+        await WindowService.SetFocusedTab(this);
     }
     
     public async Task NotifyClose()
@@ -211,27 +252,16 @@ public class WindowTab
         if (OnClosed is not null)
             await OnClosed.Invoke();
 
-        if (Content?.PlanetId is not null)
-        {
-            var planet = await Planet.FindAsync(Content.PlanetId.Value);
-            await ValourClient.ClosePlanetConnection(planet, Id);
-        }
+        // Call for content
+        await Content.NotifyClosed();
     }
     
-    public async Task NotifyOpen()
+    public async Task NotifyOpened()
     {
         if (OnOpened is not null)
             await OnOpened.Invoke();
+            
+        // Call for content
+        await Content.NotifyOpened();
     }
-
-    public async Task NotifyRendered()
-    {
-        if (!Rendered)
-        {
-            await NotifyOpen();
-        }
-        
-        Rendered = true;
-    }
-
 }

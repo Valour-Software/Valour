@@ -8,7 +8,7 @@
     [Parameter]
     public RenderFragment ChildContent { get; set; }
     
-    public static DomWindowData Instance { get; private set; }
+    public static DomWindow Instance { get; private set; }
 
     protected override void OnInitialized()
     {
@@ -21,7 +21,7 @@
         public int Height { get; set; }
     }
     
-    private DotNetObjectReference<DomWindowData> _dotnetRef;
+    private DotNetObjectReference<DomWindow> _dotnetRef;
     private IJSInProcessObjectReference _jsModule;
     
     protected override async Task OnAfterRenderAsync(bool firstRender)

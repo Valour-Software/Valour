@@ -1,4 +1,6 @@
-﻿@using Valour.Sdk.Extensions
+﻿@*
+
+@using Valour.Sdk.Extensions
 @inherits WindowBase
 @inject IJSRuntime JsRuntime
 
@@ -10,7 +12,7 @@
          @onclick="@OnClickTab"
          style="width: @GetTabWidth()%;
          margin-left: @(GetTabWidth() * GetIndex())%;">
-        @* Mobile does not have tabs *@
+
         @if (!DeviceInfo.IsMobile)
         {
             <div class="tab">
@@ -41,7 +43,7 @@
         }
     </div>
     <div class="window"
-         style="@(WindowTab.AutoScroll ? "overflow-y: auto" : "")"
+         style="@(WindowTab.Content.AutoScroll ? "overflow-y: auto" : "")"
          @onclick:stopPropagation="true"
          @onclick="@OnClickWindow">
         <DynamicComponent @key="@WindowTab.Id" Type="@WindowTab.Content.Type" Parameters="@_windowParams"/>

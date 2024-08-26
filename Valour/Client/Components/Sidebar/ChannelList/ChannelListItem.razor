@@ -144,7 +144,7 @@
         {
             var css = "channel";
 
-            if (WindowService.GlobalChatWindows.Any(x => x.Channel.Id == Channel.Id))
+            if (WindowService.GlobalChatTabs.Any(x => x.Channel.Id == Channel.Id))
                 css += " open";
 
             if (ListManager.DragOverId == Channel.Id)
@@ -227,7 +227,7 @@
             };
             
             // Replace current window with new one
-            await WindowService.ReplaceGlobalActiveWindowAsync(newWindow);
+            await WindowService.SetFocusedWindowAsync(newWindow);
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {

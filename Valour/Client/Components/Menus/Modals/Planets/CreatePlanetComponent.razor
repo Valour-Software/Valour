@@ -10,7 +10,7 @@
 
 		<div class="form-group mt-4">
 			<label>Community Name</label>
-			<input class="form-control" @bind-value="@_name" type=''/>
+			<input class="form-control" @bind-value="@_name" />
 		</div>
 
 		<div class="form-group mt-4">
@@ -100,13 +100,7 @@
 		
 		var mainChannel = await planet.GetPrimaryChannelAsync();
 
-		await Data.Window.WindowBase.AddSiblingWindow(new WindowTab()
-		{
-			Title = $"{mainChannel.Name} - {planet.Name}",
-			Data = mainChannel,
-			Type = typeof(ChatChannelWindowComponent),
-			Icon = planet.GetIconUrl(IconFormat.Webp64)
-		});
+		await Data.Window.Layout.AddTab(await WindowContent.GetChannelWindowContent(mainChannel));
 	}
 
 }

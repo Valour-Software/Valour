@@ -39,4 +39,8 @@
   <ItemGroup>
     <Folder Include="Toast\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
+  </ItemGroup>
 </Project>
