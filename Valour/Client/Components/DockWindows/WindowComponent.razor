@@ -113,7 +113,7 @@
         {
             if (IsFloating && WindowTab.FloatingProps is not null)
             {
-                return $"top: {WindowTab.FloatingProps.FloatY}px; left: {WindowTab.FloatingProps.FloatX}px; width: {WindowTab.FloatingProps.FloatWidth}px; height: {WindowTab.FloatingProps.FloatHeight}px";
+                return $"top: {WindowTab.FloatingProps.Y}px; left: {WindowTab.FloatingProps.X}px; width: {WindowTab.FloatingProps.Width}px; height: {WindowTab.FloatingProps.Height}px";
             }
             
             return Layout?.Position.Style ?? string.Empty;
@@ -205,7 +205,7 @@
 
     private async Task OnClickPlus()
     {
-        await AddSiblingTab(WindowContent.Home);
+        await AddSiblingTab(HomeWindowComponent.DefaultContent);
     }
     
     private async Task OnClickMinus()
@@ -230,7 +230,7 @@
 
     private Task OnClickHome()
     {
-        return ReplaceAsync(WindowContent.Home);
+        return ReplaceAsync(HomeWindowComponent.DefaultContent);
     }
     
     ////////////////

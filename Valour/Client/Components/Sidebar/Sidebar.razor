@@ -118,7 +118,7 @@
 		}
 
 
-		if (WindowService.GlobalActivePlanet is null)
+		if (WindowService.FocusedPlanet is null)
 		{
 			// Home window layout
 			if (Flip)
@@ -149,7 +149,7 @@
 	private async Task OnSelected(TabStripItem tab)
 	{
 		// Save change to local storage
-		if (WindowService.GlobalActivePlanet is null)
+		if (WindowService.FocusedPlanet is null)
 		{
 			if (Flip)
 			{

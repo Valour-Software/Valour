@@ -50,17 +50,31 @@
         Render();
     }
     
-    public void AddFloatingTab(WindowContent content, FloatingWindowProps floatingProps)
+    public async Task AddFloatingTab(WindowContent content, FloatingWindowProps floatingProps)
     {
         var tab = new WindowTab(content, floatingProps);
-        AddFloatingTab(tab, floatingProps);
+        await AddFloatingTab(tab, floatingProps);
     }
     
     /// <summary>
     /// Adds a tab as a floating window.
     /// </summary>
-    public void AddFloatingTab(WindowTab tab, FloatingWindowProps floatingProps)
+    public async Task AddFloatingTab(WindowTab tab, FloatingWindowProps floatingProps)
     {
+        if (floatingProps is null)
+        {
+            var domWindowPos = await DomWindow.Instance.GetWindowDimensions();
+            
+            floatingProps = new FloatingWindowProps()
+            {
+                // Center window with half size
+                X = domWindowPos.Width / 4f,
+                Y = domWindowPos.Height / 4f,
+                Width = domWindowPos.Width / 2,
+                Height = domWindowPos.Height / 2
+            };
+        }
+        
         tab.SetLayout(null);
         
         tab.SetFloatingProps(floatingProps);

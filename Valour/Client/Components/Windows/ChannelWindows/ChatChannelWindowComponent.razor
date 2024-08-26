@@ -187,14 +187,12 @@
 
     public Task OnPlanetDeleted()
     {
-        WindowCtx.Tab.SetContent(WindowContent.Home);
-        return Task.CompletedTask;
+        return WindowCtx.Tab.SetContent(HomeWindowComponent.DefaultContent);
     }
 
     public Task OnSelfMemberDeleted()
     {
-        WindowCtx.Tab.SetContent(WindowContent.Home);
-        return Task.CompletedTask;
+        return WindowCtx.Tab.SetContent(HomeWindowComponent.DefaultContent);
     }
     
     public async Task<List<PlanetMember>> GetLastChatMembers(int count)

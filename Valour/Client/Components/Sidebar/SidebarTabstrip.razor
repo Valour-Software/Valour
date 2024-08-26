@@ -81,13 +81,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        WindowService.OnActivePlanetChange += OnPlanetFocused;
+        WindowService.OnFocusedPlanetChanged += OnPlanetFocused;
         await LoadStoredLayout(null);
     }
     
     void IDisposable.Dispose()
     {
-        WindowService.OnActivePlanetChange -= OnPlanetFocused;
+        WindowService.OnFocusedPlanetChanged -= OnPlanetFocused;
     }
 
     private async Task LoadStoredLayout(Planet planet)
@@ -174,7 +174,7 @@
 
     private TabStripItem[] GetCurrentItems()
     {
-        if (WindowService.GlobalActivePlanet is null)
+        if (WindowService.FocusedPlanet is null)
             return _homeItems;
 
         return _planetItems;

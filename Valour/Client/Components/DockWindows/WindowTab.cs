@@ -126,10 +126,10 @@ public class WindowContent<TWindow, TData> :
 
 public class FloatingWindowProps
 {
-    public double FloatX { get; set; }
-    public double FloatY { get; set; }
-    public int FloatWidth { get; set; } = 400;
-    public int FloatHeight { get; set; } = 400;    
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Width { get; set; } = 400;
+    public float Height { get; set; } = 400;    
 }
 
 public class WindowTab
@@ -190,10 +190,21 @@ public class WindowTab
         SetContent(content);
     }
     
-    public void SetContent(WindowContent content)
+    public async Task SetContent(WindowContent content)
     {
+        var oldContent = Content;
+        
         Content = content;
         content.Tab = this;
+        
+        if (oldContent is not null)
+        {
+            // Let old content know it's closing
+            await oldContent.NotifyClosed();
+        }
+        
+        // Let new content know it's opening
+        await content.NotifyOpened();
     }
     
     /// <summary>
@@ -216,6 +227,24 @@ public class WindowTab
         
         // Add to new layout
         Layout?.AddTab(this, render);
+    }
+    
+    public async Task AddSiblingTab(WindowContent content)
+    {
+        var tab = new WindowTab(content);
+        await AddSiblingTab(tab);
+    }
+
+    public async Task AddSiblingTab(WindowTab tab)
+    {
+        if (Layout is not null)
+        {
+            await Layout.AddTab(tab);
+        }
+        else
+        {
+            WindowService.TryAddFloatingWindow(tab);
+        }
     }
 
     public void SetFloatingProps(FloatingWindowProps props)

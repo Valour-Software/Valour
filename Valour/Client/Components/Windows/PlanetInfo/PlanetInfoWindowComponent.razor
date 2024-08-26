@@ -1,3 +1,5 @@
+@inherits WindowContentComponent<Planet>
+
 <h3>@Data.Name</h3>
 <hr/>
 <br/>
@@ -5,8 +7,15 @@
     @Data.Description
 </p>
 
-
 @code {
-    [Parameter]
-    public Planet Data { get; set; }
+    public static WindowContent<PlanetInfoWindowComponent, Planet> GetDefaultContent(Planet planet)
+    {
+        return new WindowContent<PlanetInfoWindowComponent, Planet>()
+        {
+            Title = "Info - " + planet.Name,
+            Icon = planet.GetIconUrl(IconFormat.Webp64),
+            Data = planet,
+            PlanetId = planet.Id
+        };
+    }
 }

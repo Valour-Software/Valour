@@ -101,7 +101,7 @@
 
     protected override void OnInitialized()
     {
-        _id = $"innerWindow-{ChatComponent.Window.Id}";
+        _id = $"innerWindow-{ChatComponent.WindowCtx.Id}";
         
         RenderedMessages = new List<MessageComponent>();
         DisplayedMessages = new List<Message>();
@@ -374,7 +374,7 @@
 
         var firstId = DisplayedMessages[0].Id;
 
-        Console.WriteLine($"Fetching older messages from id {firstId} for window {ChatComponent.Window.Id}");
+        Console.WriteLine($"Fetching older messages from id {firstId} for window {ChatComponent.WindowCtx.Id}");
 
         var messages = await ChatComponent.Channel.GetMessagesAsync(firstId, 64);
 

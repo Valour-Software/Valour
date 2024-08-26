@@ -5,6 +5,9 @@ namespace Valour.Client.Components.DockWindows;
 
 public static class WindowService
 {
+    public static event Func<WindowTab, Task> OnFocusedTabChanged;
+    public static event Func<Planet, Task> OnFocusedPlanetChanged;
+    
     public static List<WindowDockComponent> Docks { get; private set; } = new();
     public static WindowDockComponent MainDock { get; private set; }
     
@@ -17,11 +20,20 @@ public static class WindowService
     
     public static async Task SetFocusedTab(WindowTab tab)
     {
+        if (FocusedTab == tab)
+            return;
+        
         FocusedTab = tab;
+        
+        if (OnFocusedTabChanged is not null)
+            await OnFocusedTabChanged.Invoke(tab);
         
         if (tab.Content.PlanetId is not null)
         {
             FocusedPlanet = await Planet.FindAsync(tab.Content.PlanetId.Value);
+            
+            if (OnFocusedPlanetChanged is not null)
+                await OnFocusedPlanetChanged.Invoke(FocusedPlanet);
         }
     }
     
@@ -65,6 +77,12 @@ public static class WindowService
         // Handle this ourselves to avoid multiple calls to NotifyDockLayoutUpdated
         NotifyDockLayoutUpdated();
     }
+
+    public static async Task OpenWindowAtFocused(WindowContent content)
+    {
+        var tab = new WindowTab(content);
+        await OpenWindowAtFocused(tab);
+    }
     
     public static async Task OpenWindowAtFocused(WindowTab tab)
     {
@@ -74,7 +92,7 @@ public static class WindowService
         }
         else
         {
-            await MainDock.Layout.AddTab(tab);
+            await TryAddFloatingWindow(tab);
         }
     }
     
@@ -82,17 +100,17 @@ public static class WindowService
     /// Adds the given window as a floating window if supported on the device,
     /// otherwise adds it in a supported manner
     /// </summary>
-    public static void TryAddFloatingWindow(WindowTab tab, FloatingWindowProps props)
+    public static Task TryAddFloatingWindow(WindowTab tab, FloatingWindowProps props = null)
     {
-        MainDock.AddFloatingTab(tab, props);
+        return MainDock.AddFloatingTab(tab, props);
     }
     
     /// <summary>
     /// Adds the given window content as a floating window if supported on the device,
     /// otherwise adds it in a supported manner
     /// </summary>
-    public static void TryAddFloatingWindow(WindowContent content, FloatingWindowProps props)
+    public static async Task TryAddFloatingWindow(WindowContent content, FloatingWindowProps props = null)
     {
-        MainDock.AddFloatingTab(content, props);
+        await MainDock.AddFloatingTab(content, props);
     }
 }

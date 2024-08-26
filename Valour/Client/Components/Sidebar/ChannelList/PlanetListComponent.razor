@@ -169,12 +169,7 @@
     
     private async Task OnClickPlanetInfo()
     {
-        await WindowService.OpenWindowAtFocused(new WindowTab()
-        {
-            Title = "Info - " + Planet.Name,
-            Icon = Planet.GetIconUrl(IconFormat.Webp64),
-            Type = typeof(PlanetInfoWindowComponent),
-            Data = Planet
-        });
+        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(Planet);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 }

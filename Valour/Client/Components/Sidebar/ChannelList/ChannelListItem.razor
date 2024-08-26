@@ -217,17 +217,10 @@
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
-            var newWindow = new WindowTab()
-            {
-                Title = await Channel.GetTitleAsync(),
-                Icon = await Channel.GetIconAsync(),
-                Type = typeof(ChatChannelWindowComponent),
-                Data = Channel,
-                PlanetId = Channel.PlanetId
-            };
+            var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(Channel);
             
             // Replace current window with new one
-            await WindowService.SetFocusedWindowAsync(newWindow);
+            await WindowService.FocusedTab.SetContent(newWindowContent);
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {
