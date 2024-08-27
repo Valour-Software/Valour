@@ -32,24 +32,24 @@ public abstract class WindowContent
     
     public WindowTab Tab { get; set; }
     
-    private WindowContentComponent _component;
+    private WindowContentComponentBase _componentBase;
     
-    public virtual Type ComponentType => _component.GetType();
+    public virtual Type ComponentType => _componentBase.GetType();
 
     public virtual object ComponentData => null;
     
 
-    public virtual WindowContentComponent Component
+    public virtual WindowContentComponentBase ComponentBase
     {
-        get => _component;
+        get => _componentBase;
         private set {
-            _component = value;
+            _componentBase = value;
         }
     }
     
-    public void SetComponent(WindowContentComponent component)
+    public void SetComponent(WindowContentComponentBase componentBase)
     {
-        Component = component;
+        ComponentBase = componentBase;
     }
     
     public async Task NotifyFocused()
@@ -85,14 +85,14 @@ public abstract class WindowContent
     public abstract RenderFragment RenderContent { get; }
 }
 
-public class WindowContent<TWindow> : WindowContent where TWindow : WindowContentComponent
+public class WindowContent<TWindow> : WindowContent where TWindow : WindowContentComponentBase
 {
     /// <summary>
     /// The component of the Window content -- not the Window Tab!
     /// </summary>
-    public override TWindow Component
+    public override TWindow ComponentBase
     {
-        get => (TWindow) base.Component;
+        get => (TWindow) base.ComponentBase;
     }
     
     /// <summary>
@@ -187,7 +187,9 @@ public class WindowTab
     public WindowTab(WindowContent content, FloatingWindowProps floatingProps = null)
     {
         FloatingProps = floatingProps;
-        SetContent(content);
+        
+        Content = content;
+        content.Tab = this;
     }
     
     public async Task SetContent(WindowContent content)
@@ -203,8 +205,17 @@ public class WindowTab
             await oldContent.NotifyClosed();
         }
         
+        // Render new component. We do this first because it feels
+        // much faster to the user
+        Component?.ReRender();
+        
         // Let new content know it's opening
         await content.NotifyOpened();
+    }
+
+    public void NotifyLayoutChanged()
+    {
+        Component?.NotifyLayoutChanged();
     }
     
     /// <summary>

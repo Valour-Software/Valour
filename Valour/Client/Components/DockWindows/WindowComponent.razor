@@ -7,7 +7,7 @@
          @onclick:stopPropagation="true"
          @onclick="@OnClickTab"
          @ondrag:stopPropagation="true"
-         @ondrag="OnDragTab"
+         @ondrag="@OnDragTab"
          style="@TabWrapperStyle">
         @* Mobile does not have tabs *@
         @if (!DeviceInfo.IsMobile)
@@ -133,6 +133,11 @@
     private bool _canRender = false;
     protected override bool ShouldRender() => _canRender;
 
+    protected override void OnInitialized()
+    {
+        WindowTab.Component = this;
+    }
+
     // Runs after every render
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -141,8 +146,8 @@
         {
             // Setup JS interop
             _dotnetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowComponent.razor.js");
-            await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef);
+            //_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowComponent.razor.js");
+            //await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef);
         }
         
         // Reset render flag
@@ -162,7 +167,7 @@
     {
         await WindowTab.NotifyClose();
         
-        WindowTab.SetContent(content);
+        await WindowTab.SetContent(content);
         await WindowTab.NotifyAdded();
         
         ReRender();
@@ -200,7 +205,13 @@
 
     private async Task SetActive()
     {
-        Layout.SetFocusedTab(WindowTab);
+        await Layout.SetFocusedTab(WindowTab);
+    }
+    
+    // For the layout to tell this tab the tab-stack has changed
+    public void NotifyLayoutChanged()
+    {
+        ReRender();
     }
 
     private async Task OnClickPlus()

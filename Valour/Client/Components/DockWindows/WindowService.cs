@@ -60,7 +60,7 @@ public static class WindowService
         {
             GlobalTabs.AddRange(dock.Tabs);
             
-            var chatTabs = dock.Tabs.Select(x => x.Content.Component)
+            var chatTabs = dock.Tabs.Select(x => x.Content.ComponentBase)
                 .OfType<ChatChannelWindowComponent>().ToList();
             
             GlobalChatTabs.AddRange(chatTabs);

@@ -2,7 +2,7 @@
 
 namespace Valour.Client.Components.DockWindows;
 
-public class WindowContentComponent : ComponentBase 
+public class WindowContentComponentBase : ComponentBase 
 {
     [Parameter]
     public WindowContent WindowCtx { get; set; }
@@ -14,7 +14,7 @@ public class WindowContentComponent : ComponentBase
     }
 }
 
-public class WindowContentComponent<T> : WindowContentComponent
+public class WindowContentComponent<T> : WindowContentComponentBase
 {
     [Parameter]
     public T Data { get; set; }

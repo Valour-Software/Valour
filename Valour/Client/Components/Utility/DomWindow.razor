@@ -29,7 +29,7 @@
         if (firstRender)
         {
             _dotnetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/DomWindowData.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/DomWindow.razor.js");
             await Logger.Log("Loaded DomWindowData component.", "cyan");
             var dims = await GetWindowDimensions();
             await Logger.Log("Starting window dimensions: " + dims.Width + "x" + dims.Height, "cyan");

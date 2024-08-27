@@ -12,6 +12,18 @@ public enum SplitDirection
 /// </summary>
 public struct WindowLayoutPosition
 {
+    public static readonly WindowLayoutPosition FullScreen = new WindowLayoutPosition
+    {
+        Width = 100,
+        Height = 100,
+        OffsetX = 0,
+        OffsetY = 0,
+        WidthPixelModifier = 0,
+        HeightPixelModifier = 0,
+        OffsetXPixelModifier = 0,
+        OffsetYPixelModifier = 0
+    };
+    
     // Relative to parent in percentage //
     public float Width { get; set; }
     public float Height { get; set; }
@@ -141,7 +153,7 @@ public class WindowLayout
         // We cannot add tabs to a split layout.
         if (IsSplit)
         {
-            ChildOne.AddTab(tab, false);
+            await ChildOne.AddTab(tab, false);
             return;
         }
         
@@ -152,13 +164,16 @@ public class WindowLayout
         tab.SetLayout(this, false);
         
         // Set the active tab if there is none
-        SetFocusedTab(tab, false);
+        await SetFocusedTab(tab, false);
 
         // Notify base dock that a change has occurred
         if (render)
         {
             DockComponent.NotifyLayoutChanged();
         }
+        
+        // Notify tabs of tab-stack change
+        NotifyTabsOfChange();
         
         // Let the tab know it has been opened
         await tab.NotifyOpened();
@@ -178,6 +193,17 @@ public class WindowLayout
         
         // Let the tab know it has been focused
         await tab.NotifyFocused();
+        
+        // Notify tabs of tab-stack change
+        NotifyTabsOfChange();
+    }
+
+    public void NotifyTabsOfChange()
+    {
+        foreach (var tab in Tabs)
+        {
+            tab.NotifyLayoutChanged();
+        }
     }
     
     /// <summary>
@@ -222,6 +248,9 @@ public class WindowLayout
         {
             DockComponent.NotifyLayoutChanged();
         }
+        
+        // Notify tabs of tab-stack change
+        NotifyTabsOfChange();
     }
 
     public Task OnTabDropped(WindowTab tab, WindowDropTargets.DropLocation location)
@@ -293,71 +322,79 @@ public class WindowLayout
 
     public void RecalculatePosition()
     {
-        // If the parent is not split, the position is the same as the parent
-        // Technically this shouldn't happen, but we'll cover the edge case
-        if (!Parent.IsSplit)
+        if (Parent is null)
         {
-            _position = Parent.Position;
-        }
-        
-        // If the parent is split horizontally
-        if (Parent.Split.SplitDirection == SplitDirection.Horizontal)
-        {
-            // If this is the first child
-            if (Parent.ChildOne == this)
-            {
-                _position.Width = Parent.Position.Width * Parent.Split.SplitRatio;
-                _position.Height = Parent.Position.Height;
-                _position.OffsetX = Parent.Position.OffsetX;
-                _position.OffsetY = Parent.Position.OffsetY;
-                
-                _position.WidthPixelModifier = -(SliderSize / 2);
-                _position.HeightPixelModifier = 0;
-                _position.OffsetXPixelModifier = 0;
-                _position.OffsetYPixelModifier = 0;
-            }
-            // If this is the second child
-            else
-            {
-                _position.Width = (Parent.Position.Width * (1 - Parent.Split.SplitRatio));
-                _position.Height = Parent.Position.Height;
-                _position.OffsetX = Parent.Position.OffsetX + (Parent.Position.Width * Parent.Split.SplitRatio);
-                _position.OffsetY = Parent.Position.OffsetY;
-                
-                _position.WidthPixelModifier = -(SliderSize / 2);
-                _position.HeightPixelModifier = 0;
-                _position.OffsetXPixelModifier = SliderSize;
-                _position.OffsetYPixelModifier = 0;
-            }
+            _position = WindowLayoutPosition.FullScreen;
         }
         else
         {
-            if (Parent.ChildOne == this)
+            // If the parent is not split, the position is the same as the parent
+            // Technically this shouldn't happen, but we'll cover the edge case
+            if (!Parent.IsSplit)
             {
-                _position.Width = Parent.Position.Width;
-                _position.Height = (Parent.Position.Height * Parent.Split.SplitRatio);
-                _position.OffsetX = Parent.Position.OffsetX;
-                _position.OffsetY = Parent.Position.OffsetY;
-                
-                _position.WidthPixelModifier = 0;
-                _position.HeightPixelModifier = -(SliderSize / 2);
-                _position.OffsetXPixelModifier = 0;
-                _position.OffsetYPixelModifier = 0;
+                _position = Parent.Position;
+            }
+
+            // If the parent is split horizontally
+            if (Parent.Split.SplitDirection == SplitDirection.Horizontal)
+            {
+                // If this is the first child
+                if (Parent.ChildOne == this)
+                {
+                    _position.Width = Parent.Position.Width * Parent.Split.SplitRatio;
+                    _position.Height = Parent.Position.Height;
+                    _position.OffsetX = Parent.Position.OffsetX;
+                    _position.OffsetY = Parent.Position.OffsetY;
+
+                    _position.WidthPixelModifier = -(SliderSize / 2);
+                    _position.HeightPixelModifier = 0;
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = 0;
+                }
+                // If this is the second child
+                else
+                {
+                    _position.Width = (Parent.Position.Width * (1 - Parent.Split.SplitRatio));
+                    _position.Height = Parent.Position.Height;
+                    _position.OffsetX = Parent.Position.OffsetX + (Parent.Position.Width * Parent.Split.SplitRatio);
+                    _position.OffsetY = Parent.Position.OffsetY;
+
+                    _position.WidthPixelModifier = -(SliderSize / 2);
+                    _position.HeightPixelModifier = 0;
+                    _position.OffsetXPixelModifier = SliderSize;
+                    _position.OffsetYPixelModifier = 0;
+                }
             }
             else
             {
-                _position.Width = Parent.Position.Width;
-                _position.Height = (Parent.Position.Height * (1 - Parent.Split.SplitRatio));
-                _position.OffsetX = Parent.Position.OffsetX;
-                _position.OffsetY = Parent.Position.OffsetY + (Parent.Position.Height * Parent.Split.SplitRatio) + SliderSize;
-                
-                _position.WidthPixelModifier = 0;
-                _position.HeightPixelModifier = -(SliderSize / 2);
-                _position.OffsetXPixelModifier = 0;
-                _position.OffsetYPixelModifier = SliderSize;
+                if (Parent.ChildOne == this)
+                {
+                    _position.Width = Parent.Position.Width;
+                    _position.Height = (Parent.Position.Height * Parent.Split.SplitRatio);
+                    _position.OffsetX = Parent.Position.OffsetX;
+                    _position.OffsetY = Parent.Position.OffsetY;
+
+                    _position.WidthPixelModifier = 0;
+                    _position.HeightPixelModifier = -(SliderSize / 2);
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = 0;
+                }
+                else
+                {
+                    _position.Width = Parent.Position.Width;
+                    _position.Height = (Parent.Position.Height * (1 - Parent.Split.SplitRatio));
+                    _position.OffsetX = Parent.Position.OffsetX;
+                    _position.OffsetY = Parent.Position.OffsetY + (Parent.Position.Height * Parent.Split.SplitRatio) +
+                                        SliderSize;
+
+                    _position.WidthPixelModifier = 0;
+                    _position.HeightPixelModifier = -(SliderSize / 2);
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = SliderSize;
+                }
             }
         }
-        
+
         // Recalculate children
         if (ChildOne is not null)
         {

@@ -32,6 +32,7 @@
 }
 
 .window {
+    display: flex;
     flex-direction: column;
     pointer-events: all;
     background-color: var(--main-3);

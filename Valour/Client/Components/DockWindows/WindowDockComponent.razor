@@ -1,13 +1,15 @@
-﻿<div class="window-dock">
+﻿@using Valour.Client.Pages
+<div class="window-dock">
     @foreach (var tab in Tabs)
     {
-        <WindowContentComponent WindowTab="@tab"/>
+        <WindowComponent @key="@tab.Id" WindowTab="@tab" />
     }
 </div>
 
 @code {
     
-    public static WindowDockComponent MainDock { get; private set; }
+    [Parameter]
+    public StartScreenData StartData { get; set; }
     
     public WindowLayout Layout { get; private set; }
 
