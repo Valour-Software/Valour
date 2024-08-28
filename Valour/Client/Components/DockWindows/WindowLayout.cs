@@ -179,7 +179,7 @@ public class WindowLayout
         await tab.NotifyOpened();
     }
     
-    public async Task SetFocusedTab(WindowTab tab, bool render = true)
+    public async Task SetFocusedTab(WindowTab tab, bool render = true, bool notifyTab = true)
     {
         // If the tab is not in the layout, return
         if (!Tabs.Contains(tab))
@@ -187,13 +187,13 @@ public class WindowLayout
         
         // Set the focused tab
         FocusedTab = tab;
-        
-        // Notify base dock that a change has occurred
-        DockComponent.NotifyLayoutChanged();
-        
-        // Let the tab know it has been focused
-        await tab.NotifyFocused();
-        
+
+        if (notifyTab)
+        {
+            // Let the tab know it has been focused
+            await tab.NotifyFocused();
+        }
+
         // Notify tabs of tab-stack change
         NotifyTabsOfChange();
     }

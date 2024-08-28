@@ -153,7 +153,7 @@
         // Reset render flag
         _canRender = false;
 
-        Console.WriteLine("Rendered " + WindowTab.Id);
+        Console.WriteLine("Rendered window " + WindowTab.Id);
     }
     
     public void ReRender()
@@ -205,7 +205,7 @@
 
     private async Task SetActive()
     {
-        await Layout.SetFocusedTab(WindowTab);
+        await Layout.SetFocusedTab(WindowTab, notifyTab: false);
     }
     
     // For the layout to tell this tab the tab-stack has changed

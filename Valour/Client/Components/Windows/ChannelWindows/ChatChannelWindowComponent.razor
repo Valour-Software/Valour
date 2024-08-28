@@ -53,15 +53,8 @@
         
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
-
-        WindowCtx.OnClosed += OnWindowClosed;
-        WindowCtx.OnFocused += OnWindowFocused;
+        
         return Task.CompletedTask;
-    }
-
-    private Task OnWindowFocused()
-    {
-        return WindowCtx.Tab.NotifyFocused();
     }
 
     public void Refresh()
@@ -114,12 +107,6 @@
         }
         
         _canRenderFlag = false;
-    }
-
-    public async Task OnWindowClosed()
-    {
-        Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await HandleWindowClose();
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -234,5 +221,4 @@
     {
         await Channel.Close(WindowChannelKey);
     }
-    
 }

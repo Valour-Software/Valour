@@ -9,21 +9,6 @@ namespace Valour.Client.Components.DockWindows;
 
 public abstract class WindowContent
 {
-    /// <summary>
-    /// Event that is called when the window content is focused (ie clicked on)
-    /// </summary>
-    public event Func<Task> OnFocused;
-    
-    /// <summary>
-    /// Event that is called when the window content is closed
-    /// </summary>
-    public event Func<Task> OnClosed;
-    
-    /// <summary>
-    /// Event that is called when the window content is opened
-    /// </summary>
-    public event Func<Task> OnOpened;
-    
     public string Id { get; private set; } = Guid.NewGuid().ToString();
     public string Title { get; set; }
     public string Icon { get; set; }
@@ -54,15 +39,10 @@ public abstract class WindowContent
     
     public async Task NotifyFocused()
     {
-        if (OnFocused is not null)
-            await OnFocused.Invoke();
     }
     
     public async Task NotifyClosed()
     {
-        if (OnClosed is not null)
-            await OnClosed.Invoke();
-        
         if (PlanetId is not null)
         {
             var planet = await Planet.FindAsync(PlanetId.Value);
@@ -72,9 +52,6 @@ public abstract class WindowContent
     
     public async Task NotifyOpened()
     {
-        if (OnOpened is not null)
-            await OnOpened.Invoke();
-
         if (PlanetId is not null)
         {
             var planet = await Planet.FindAsync(PlanetId.Value);
@@ -135,21 +112,6 @@ public class FloatingWindowProps
 public class WindowTab
 {
     /// <summary>
-    /// Event that is called when the window tab is focused (ie clicked on)
-    /// </summary>
-    public event Func<Task> OnFocused;
-    
-    /// <summary>
-    /// Event that is called when the window tab is closed
-    /// </summary>
-    public event Func<Task> OnClosed;
-    
-    /// <summary>
-    /// Event that is called when the window tab is opened
-    /// </summary>
-    public event Func<Task> OnOpened;
-    
-    /// <summary>
     /// The unique identifier of the window tab
     /// </summary>
     public string Id { get; private set; } = Guid.NewGuid().ToString();
@@ -199,15 +161,15 @@ public class WindowTab
         Content = content;
         content.Tab = this;
         
+        // Render new component. We do this first because it feels
+        // much faster to the user
+        Component?.ReRender();
+        
         if (oldContent is not null)
         {
             // Let old content know it's closing
             await oldContent.NotifyClosed();
         }
-        
-        // Render new component. We do this first because it feels
-        // much faster to the user
-        Component?.ReRender();
         
         // Let new content know it's opening
         await content.NotifyOpened();
@@ -254,7 +216,7 @@ public class WindowTab
         }
         else
         {
-            WindowService.TryAddFloatingWindow(tab);
+            await WindowService.TryAddFloatingWindow(tab);
         }
     }
 
@@ -277,9 +239,6 @@ public class WindowTab
         if (WindowService.FocusedTab == this)
             return;
         
-        if (OnFocused is not null)
-            await OnFocused.Invoke();
-        
         // Call for content
         await Content.NotifyFocused();
         
@@ -289,18 +248,12 @@ public class WindowTab
     
     public async Task NotifyClose()
     {
-        if (OnClosed is not null)
-            await OnClosed.Invoke();
-
         // Call for content
         await Content.NotifyClosed();
     }
     
     public async Task NotifyOpened()
     {
-        if (OnOpened is not null)
-            await OnOpened.Invoke();
-            
         // Call for content
         await Content.NotifyOpened();
     }
