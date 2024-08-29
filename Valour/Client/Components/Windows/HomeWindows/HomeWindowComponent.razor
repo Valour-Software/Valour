@@ -134,9 +134,9 @@
 
     public List<Planet> Discoverables { get; set; } = new List<Planet>();
 
-    public event Func<Task> RerenderFriendCards;
+    public event Func<Task> OnRerenderFriendCards;
 
-    public event Func<Task> RerenderPlanetCards;
+    public event Func<Task> OnRerenderPlanetCards;
 
     private string _mobileTag = "";
 
@@ -150,13 +150,13 @@
 
         await ValourClient.LoadChannelStatesAsync();
 
-        if (RerenderFriendCards is not null)
-            await RerenderFriendCards.Invoke();
+        if (OnRerenderFriendCards is not null)
+            await OnRerenderFriendCards.Invoke();
 
-        if (RerenderPlanetCards is not null)
-            await RerenderPlanetCards.Invoke();
+        if (OnRerenderPlanetCards is not null)
+            await OnRerenderPlanetCards.Invoke();
 
-        StateHasChanged();
+        ReRender();
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -166,14 +166,16 @@
             if (DeviceInfo.IsMobile)
             {
                 _mobileTag = "mobile";
-                StateHasChanged();
+                ReRender();
             }
         }
+        
+        base.OnAfterRender(firstRender);
     }
 
     private Task OnJoinedPlanetsUpdate()
     {
-        StateHasChanged();
+        ReRender();
         return Task.CompletedTask;
     }
 
@@ -201,18 +203,14 @@
     
     private Task FriendEventHandler(FriendEventData eventData)
     {
-        StateHasChanged();
+        ReRender();
         return Task.CompletedTask;
     }
 
     private Task OnFriendsListUpdate()
     {
-        StateHasChanged();
+        ReRender();
         return Task.CompletedTask;
     }
-
-    public void Refresh()
-    {
-        StateHasChanged();
-    }
+    
 }

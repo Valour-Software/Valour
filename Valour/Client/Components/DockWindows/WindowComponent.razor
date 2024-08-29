@@ -203,9 +203,9 @@
         return Layout.Tabs.IndexOf(WindowTab);
     }
 
-    private async Task SetActive()
+    private async Task SetFocused()
     {
-        await Layout.SetFocusedTab(WindowTab, notifyTab: false);
+        await Layout.SetFocusedTab(WindowTab);
     }
     
     // For the layout to tell this tab the tab-stack has changed
@@ -226,12 +226,12 @@
 
     private Task OnClickTab(MouseEventArgs e)
     {
-        return SetActive();
+        return SetFocused();
     }
     
     private Task OnClickWindow()
     {
-        return SetActive();
+        return SetFocused();
     }
 
     private async Task OnDragTab(MouseEventArgs e)

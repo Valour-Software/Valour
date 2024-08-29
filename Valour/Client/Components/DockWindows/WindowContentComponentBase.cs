@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Valour.Client.Components.Utility;
 
 namespace Valour.Client.Components.DockWindows;
 
-public class WindowContentComponentBase : ComponentBase 
+public class WindowContentComponentBase : ControlledRenderComponentBase
 {
     [Parameter]
     public WindowContent WindowCtx { get; set; }

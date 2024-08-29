@@ -164,7 +164,7 @@ public class WindowLayout
         tab.SetLayout(this, false);
         
         // Set the active tab if there is none
-        await SetFocusedTab(tab, false);
+        await SetFocusedTab(tab);
 
         // Notify base dock that a change has occurred
         if (render)
@@ -179,23 +179,27 @@ public class WindowLayout
         await tab.NotifyOpened();
     }
     
-    public async Task SetFocusedTab(WindowTab tab, bool render = true, bool notifyTab = true)
+    public async Task SetFocusedTab(WindowTab tab)
     {
         // If the tab is not in the layout, return
         if (!Tabs.Contains(tab))
             return;
         
+        // If the tab is already focused, return
+        if (FocusedTab == tab)
+            return;
+        
         // Set the focused tab
         FocusedTab = tab;
-
-        if (notifyTab)
-        {
-            // Let the tab know it has been focused
-            await tab.NotifyFocused();
-        }
+        
+        // Let the tab know it has been focused
+        await tab.NotifyFocused();
 
         // Notify tabs of tab-stack change
         NotifyTabsOfChange();
+        
+        // Set global focused tab
+        await WindowService.SetFocusedTab(tab);
     }
 
     public void NotifyTabsOfChange()

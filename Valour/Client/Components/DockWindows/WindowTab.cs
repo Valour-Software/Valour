@@ -37,8 +37,9 @@ public abstract class WindowContent
         ComponentBase = componentBase;
     }
     
-    public async Task NotifyFocused()
+    public Task NotifyFocused()
     {
+        return Task.CompletedTask;
     }
     
     public async Task NotifyClosed()
@@ -80,6 +81,7 @@ public class WindowContent<TWindow> : WindowContent where TWindow : WindowConten
     public override RenderFragment RenderContent => builder =>
     {
         builder.OpenComponent<TWindow>(0);
+        builder.SetKey(Id);
         builder.AddComponentParameter(1, "WindowCtx", this);
         builder.CloseComponent();
     };
@@ -95,6 +97,7 @@ public class WindowContent<TWindow, TData> :
     public override RenderFragment RenderContent => builder =>
     {
         builder.OpenComponent<TWindow>(0);
+        builder.SetKey(Id);
         builder.AddComponentParameter(1, "WindowCtx", this);
         builder.AddComponentParameter(2, "Data", Data);
         builder.CloseComponent();
@@ -236,14 +239,8 @@ public class WindowTab
     
     public async Task NotifyFocused()
     {
-        if (WindowService.FocusedTab == this)
-            return;
-        
         // Call for content
         await Content.NotifyFocused();
-        
-        // Set global focused tab
-        await WindowService.SetFocusedTab(this);
     }
     
     public async Task NotifyClose()

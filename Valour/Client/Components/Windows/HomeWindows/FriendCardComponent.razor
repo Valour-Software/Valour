@@ -53,7 +53,7 @@
         _animatedAvatarUrl = Friend.GetAvatarUrl(AvatarFormat.WebpAnimated256);
         _fallbackAvatarUrl = Friend.GetFailedAvatarUrl();
         
-        HomeWindowComponent.RerenderFriendCards += Refresh;
+        HomeWindowComponent.OnRerenderFriendCards += Refresh;
     }
 
     private void OnContextMenu(ContextPressEventArgs e)
@@ -89,7 +89,7 @@
 
     public void Dispose()
     {
-        HomeWindowComponent.RerenderFriendCards -= Refresh;
+        HomeWindowComponent.OnRerenderFriendCards -= Refresh;
     }
     
 

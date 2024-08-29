@@ -34,8 +34,6 @@
     private Planet _planet;
     private PlanetMember _selfMember;
     
-    private bool _canRenderFlag;
-    
     public Channel Channel;
 
     private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
@@ -55,12 +53,6 @@
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
         
         return Task.CompletedTask;
-    }
-
-    public void Refresh()
-    {
-        _canRenderFlag = true;
-        StateHasChanged();
     }
 
     public virtual Type GetInputComponentType() => 
@@ -86,7 +78,7 @@
         
         Channel.OnUpdated += OnChatChannelUpdate;
         
-        Refresh();
+        ReRender();
         
         MessageHolder.Clear();
         await MessageHolder.LoadRecentMessages(64);
@@ -105,8 +97,8 @@
         {
             await SetupNewChannelAsync();
         }
-        
-        _canRenderFlag = false;
+
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -118,13 +110,10 @@
     {
         await MessageHolder.InputComponent.OnStopEdit(cancel);
     }
-
-    protected override bool ShouldRender()
-        => _canRenderFlag;
-
+    
     public Task OnChatChannelUpdate(ModelUpdateEvent eventData)
     {
-        Refresh();
+        ReRender();
         return Task.CompletedTask;
     }
 
