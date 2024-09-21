@@ -93,8 +93,8 @@ public static class WindowService
         else
         {
             await TryAddFloatingWindow(tab);
-        }
-    }
+        } 
+l    }
     
     /// <summary>
     /// Adds the given window as a floating window if supported on the device,
