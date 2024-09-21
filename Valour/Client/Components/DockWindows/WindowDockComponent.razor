@@ -65,7 +65,7 @@
     {
         if (floatingProps is null)
         {
-            var domWindowPos = await DomWindow.Instance.GetWindowDimensions();
+            var domWindowPos = await DomContext.Instance.GetWindowDimensions();
             
             floatingProps = new FloatingWindowProps()
             {

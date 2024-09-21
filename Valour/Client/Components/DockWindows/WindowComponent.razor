@@ -6,8 +6,8 @@
     <div class="tab-wrapper @TabWrapperClasses"
          @onclick:stopPropagation="true"
          @onclick="@OnClickTab"
-         @ondrag:stopPropagation="true"
-         @ondrag="@OnDragTab"
+         @onmousedown:stopPropagation="true"
+         @onmousedown="@OnTabDown"
          style="@TabWrapperStyle">
         @* Mobile does not have tabs *@
         @if (!DeviceInfo.IsMobile)
@@ -227,6 +227,33 @@
     private Task OnClickTab(MouseEventArgs e)
     {
         return SetFocused();
+    }
+    
+    private async Task OnTabDown(MouseEventArgs e)
+    {
+        // Enable mouse move listener
+        MouseListener.SubscribeMouseMove(OnDragTab);
+        
+        // Enable mouse up listener
+        
+        // Why not just use the up event on the tab? Because the mouse can move off the tab,
+        // and we still want to be able to drag the tab. So we need to listen for the up event
+        // globally.
+        MouseListener.SubscribeMouseUp(OnTabUp);
+    }
+    
+    private async Task OnTabUp(MouseUpEvent e)
+    {
+        // Disable mouse move listener
+        MouseListener.UnsubscribeMouseMove(OnDragTab);
+        
+        // Disable mouse up listener
+        MouseListener.UnsubscribeMouseUp(OnTabUp);
+    }
+
+    private async Task OnDragTab(MouseMoveEvent e)
+    {
+        Console.WriteLine("Dragging tab");
     }
     
     private Task OnClickWindow()

@@ -29,7 +29,7 @@
     
     public static async Task<FloatingWindowProps> GetDefaultFloatingProps()
     {
-        var dim = await DomWindow.Instance.GetWindowDimensions();
+        var dim = await DomContext.Instance.GetWindowDimensions();
 
         return new FloatingWindowProps()
         {
