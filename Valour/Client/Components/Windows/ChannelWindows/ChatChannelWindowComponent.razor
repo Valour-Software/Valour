@@ -51,6 +51,7 @@
         
         ValourClient.OnMessageReceived += OnReceiveMessage;
         ValourClient.OnMessageEdited += OnReceiveMessageEdit;
+        WindowCtx.Tab.OnStartFloating += OnStartFloating;
         
         return Task.CompletedTask;
     }
@@ -159,6 +160,11 @@
     public async Task OnClickWindow()
     {
         await WindowCtx.Tab.NotifyFocused();
+    }
+    
+    public Task OnStartFloating()
+    {
+        return MessageHolder.ScrollToBottom();
     }
 
     public Task OnPlanetDeleted()

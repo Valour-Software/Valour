@@ -9,7 +9,10 @@
          @onclick:stopPropagation="true"
          @onclick="@OnClickTab"
          @onmousedown:stopPropagation="true"
+         @onmousedown:preventDefault="true"
          @onmousedown="@OnTabDown"
+         @onmousemove:stopPropagation="true"
+         @onmousemove:preventDefault="true"
          style="@TabWrapperStyle">
         @* Mobile does not have tabs *@
         @if (!DeviceInfo.IsMobile)
@@ -47,9 +50,7 @@
     <div class="window"
          style="@WindowStyle"
          @onclick:stopPropagation="true"
-         @onclick="@OnClickWindow"
-         @onmousemove:stopPropagation="@_dragging"
-         @onmousemove:preventDefault="@_dragging">
+         @onclick="@OnClickWindow">
         @* Window Content *@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
     </div>
@@ -110,6 +111,9 @@
             
             if (IsActive)
                 classes += "active ";
+            
+            if (_dragging)
+                classes += "dragging ";
 
             return classes;
         }
@@ -142,12 +146,6 @@
             {
                 styles += "overflow-y: auto;";
             }
-
-            if (_dragging)
-            {
-                // Prevent pointer events while dragging, otherwise weird things happen
-                styles += "pointer-events: none;";
-            }
             
             return styles;
         }
@@ -168,10 +166,16 @@
     }
 
     // Runs after every render
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Reset render flag
         _canRender = false;
+
+        if (_armFloatEvent)
+        {
+            _armFloatEvent = false;
+            await WindowTab.NotifyFloating(); // Fire off event
+        }
     }
     
     public void ReRender()
@@ -278,6 +282,7 @@
     private float _dragStartY;
 
     private bool _dragging = false;
+    private bool _armFloatEvent = false; // Used to trigger event when the window starts floating. See OnAfterRenderAsync.
     
     /// <summary>
     /// Runs when the mouse goes down on the tab - prepares for dragging.
@@ -328,6 +333,8 @@
                     Width = 300,
                     Height = 300,
                 });
+                
+                _armFloatEvent = true;
             }
         }
         else

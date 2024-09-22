@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Valour.Client.Components.Utility;
 using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Client.Components.Windows.HomeWindows;
+using Valour.Client.Utility;
 using Valour.Sdk.Client;
 using Valour.Sdk.Extensions;
 using Valour.Sdk.Models;
@@ -114,6 +116,8 @@ public class FloatingWindowProps
 
 public class WindowTab
 {
+    public event Func<Task> OnStartFloating;
+    
     /// <summary>
     /// The unique identifier of the window tab
     /// </summary>
@@ -255,5 +259,11 @@ public class WindowTab
     {
         // Call for content
         await Content.NotifyOpened();
+    }
+
+    public async Task NotifyFloating()
+    {
+        if (OnStartFloating is not null)
+            await OnStartFloating.Invoke();
     }
 }

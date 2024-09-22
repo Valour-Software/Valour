@@ -7,18 +7,6 @@
 @code {
     [Parameter]
     public RenderFragment ChildContent { get; set; }
-
-    public struct ElementDimensions
-    {
-        public float Width { get; set; }
-        public float Height { get; set; }
-    }
-
-    public struct ElementPosition
-    {
-        public float X { get; set; }
-        public float Y { get; set; }
-    }
     
     private static DotNetObjectReference<BrowserUtils> _dotnetRef;
     private static  IJSInProcessObjectReference _jsModule;

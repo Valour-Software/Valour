@@ -3,11 +3,6 @@
     flex-direction: column;
 }
 
-.window-wrapper.dragging {
-    width: 100% !important;
-    margin-left: 0 !important;
-}
-
 .window-wrapper.floating {
     position: fixed;
     width: 300px;
