@@ -2,7 +2,7 @@
 <div class="window-dock">
     @foreach (var tab in Tabs)
     {
-        <WindowComponent @key="@tab.Id" WindowTab="@tab" />
+        <WindowComponent @key="@tab.Id" WindowTab="@tab" Dock="@this" />
     }
 </div>
 
@@ -65,7 +65,7 @@
     {
         if (floatingProps is null)
         {
-            var domWindowPos = await DomContext.Instance.GetWindowDimensions();
+            var domWindowPos = await BrowserUtils.GetWindowDimensions();
             
             floatingProps = new FloatingWindowProps()
             {
@@ -77,12 +77,27 @@
             };
         }
         
-        tab.SetLayout(null);
+        await tab.SetLayout(null);
         
         tab.SetFloatingProps(floatingProps);
         
         _floaters.Add(tab);
         
+        NotifyLayoutChanged();
+    }
+    
+    public async Task RemoveFloatingTab(WindowContent content)
+    {
+        var tab = content.Tab;
+        if (tab is not null)
+        {
+            await RemoveFloatingTab(tab);
+        }
+    }
+    
+    public async Task RemoveFloatingTab(WindowTab tab)
+    {
+        _floaters.Remove(tab);
         NotifyLayoutChanged();
     }
 

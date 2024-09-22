@@ -186,7 +186,7 @@ public class WindowTab
     /// <summary>
     /// Sets the layout for this window tab to render within
     /// </summary>
-    public void SetLayout(WindowLayout layout, bool render = true)
+    public async Task SetLayout(WindowLayout layout, bool render = true)
     {
         // If the layout is the same, return
         if (Layout == layout)
@@ -199,10 +199,12 @@ public class WindowTab
         Layout = layout;
         
         // Remove from old layout
-        oldLayout?.RemoveTab(this, false);
+        if (oldLayout is not null)
+            await oldLayout.RemoveTab(this, false);
         
         // Add to new layout
-        Layout?.AddTab(this, render);
+        if (Layout is not null) 
+            await Layout.AddTab(this, render);
     }
     
     public async Task AddSiblingTab(WindowContent content)

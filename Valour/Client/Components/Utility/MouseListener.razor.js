@@ -1,13 +1,13 @@
 export const init = (dotnet) => {
     const service = {
-        lastX: 0,
-        lastY: 0,
+        lastX: null,
+        lastY: null,
         moveListener: (e) => {
             if (e.clientX === service.lastX && e.clientY === service.lastY) {
                 return;
             }
-            const deltaX = e.clientX - service.lastX;
-            const deltaY = e.clientY - service.lastY;
+            const deltaX = service.lastX ? e.clientX - service.lastX : 0;
+            const deltaY = service.lastY ? e.clientY - service.lastY : 0;
             service.lastX = e.clientX;
             service.lastY = e.clientY;
             dotnet.invokeMethod('NotifyMouseMove', e.clientX, e.clientY, deltaX, deltaY);
@@ -17,6 +17,8 @@ export const init = (dotnet) => {
         },
         stopMoveListener: () => {
             document.removeEventListener('mousemove', service.moveListener);
+            service.lastX = null;
+            service.lastY = null;
         },
         upListener: (e) => {
             dotnet.invokeMethod('NotifyMouseUp', e.clientX, e.clientY);

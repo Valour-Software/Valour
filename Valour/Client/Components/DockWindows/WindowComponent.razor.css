@@ -151,4 +151,5 @@
     margin-left: 0.25em;
     user-select: none;
     border-radius: 1em;
+    pointer-events: none;
 }

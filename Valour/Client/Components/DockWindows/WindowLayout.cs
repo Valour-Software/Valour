@@ -1,4 +1,6 @@
-﻿namespace Valour.Client.Components.DockWindows;
+﻿using Valour.Client.Components.Windows.HomeWindows;
+
+namespace Valour.Client.Components.DockWindows;
 
 public enum SplitDirection
 {
@@ -161,7 +163,7 @@ public class WindowLayout
         Tabs.Add(tab);
         
         // Set the layout of the tab
-        tab.SetLayout(this, false);
+        await tab.SetLayout(this, false);
         
         // Set the active tab if there is none
         await SetFocusedTab(tab);
@@ -240,13 +242,28 @@ public class WindowLayout
         }
     }
 
-    public void RemoveTab(WindowTab tab, bool render = true)
+    public async Task RemoveTab(WindowTab tab, bool render = true)
     {
         if (!Tabs.Contains(tab))
             return;
         
         Tabs.Remove(tab);
-        tab.SetLayout(null, false);
+        await tab.SetLayout(null, false);
+        
+        if (Tabs.Count == 0)
+        {
+            // If we're out of tabs, this layout should be removed
+            if (Parent is null)
+            {
+                // If this is the root layout, we can't remove it
+                // so instead we add the home tab
+                await AddTab(HomeWindowComponent.DefaultContent);
+            }
+            else
+            {
+                Parent?.RemoveChild(this);
+            }
+        }
 
         if (render)
         {
@@ -321,6 +338,30 @@ public class WindowLayout
         }
         
         // Re-render layouts
+        DockComponent.NotifyLayoutChanged();
+    }
+
+    public void RemoveChild(WindowLayout child)
+    {
+        // Both children get removed but the other one becomes the tab stack
+        if (ChildOne == child)
+        {
+            Tabs = ChildTwo.Tabs;
+            ChildTwo.Parent = null;
+            ChildTwo = null;
+        }
+        else
+        {
+            Tabs = ChildOne.Tabs;
+            ChildOne.Parent = null;
+            ChildOne = null;
+        }
+        
+        // Remove split
+        Split = null;
+        
+        RecalculatePosition();
+        
         DockComponent.NotifyLayoutChanged();
     }
 

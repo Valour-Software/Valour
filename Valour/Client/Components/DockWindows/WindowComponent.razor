@@ -2,7 +2,9 @@
 
 <div class="window-wrapper @WindowWrapperClasses"
      style="@WindowWrapperStyles z-index: @ZIndex"
-     @ref="@_element">
+     @ref="@_windowElement"
+     @onmouseup:stopPropagation="true"
+     @onmouseup="@OnWindowMouseUp">
     <div class="tab-wrapper @TabWrapperClasses"
          @onclick:stopPropagation="true"
          @onclick="@OnClickTab"
@@ -26,10 +28,13 @@
                             <i class="bi bi-house-door-fill"></i>
                         </span>
                     }
-                    <span class="plus" @onclick="@OnClickPlus">
-                        <i class="bi bi-plus-circle-fill"></i>
-                    </span>
-                    @if (Layout.Tabs.Count > 1)
+                    @if (Layout is not null)
+                    {
+                        <span class="plus" @onclick="@OnClickPlus">
+                            <i class="bi bi-plus-circle-fill"></i>
+                        </span>
+                    }
+                    @if (Layout is null || Layout.Tabs.Count > 1)
                     {
                         <span class="minus" @onclick="@OnClickMinus">
                             <i class="bi bi-dash-circle-fill"></i>
@@ -42,31 +47,35 @@
     <div class="window"
          style="@WindowStyle"
          @onclick:stopPropagation="true"
-         @onclick="@OnClickWindow">
+         @onclick="@OnClickWindow"
+         @onmousemove:stopPropagation="@_dragging"
+         @onmousemove:preventDefault="@_dragging">
         @* Window Content *@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
     </div>
 </div>
 
 @code {
+    private ElementReference _windowElement;
 
     ////////////
     // Params //
     ////////////
     [Parameter] public WindowTab WindowTab { get; set; }
+    [Parameter] public WindowDockComponent Dock { get; set; }
     
     ///////////////////////
     // Public properties //
     ///////////////////////
     public WindowLayout Layout => WindowTab.Layout;
-    public bool IsActive => Layout.FocusedTab == WindowTab;
+    public bool IsActive => Layout?.FocusedTab == WindowTab;
     public bool IsFloating => WindowTab.IsFloating;
 
     ///////////////////////
     // Private properties //
     ///////////////////////
-
-    private int ZIndex => IsActive ? 2 : 1;
+    
+    private int ZIndex => IsFloating ? (IsActive ? 101 : 100) : (IsActive ? 2 : 1);
 
     private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: {GetTabWidth() * GetIndex()}%";
 
@@ -113,7 +122,7 @@
         {
             if (IsFloating && WindowTab.FloatingProps is not null)
             {
-                return $"top: {WindowTab.FloatingProps.Y}px; left: {WindowTab.FloatingProps.X}px; width: {WindowTab.FloatingProps.Width}px; height: {WindowTab.FloatingProps.Height}px";
+                return $"top: {WindowTab.FloatingProps.Y}px; left: {WindowTab.FloatingProps.X}px; width: {WindowTab.FloatingProps.Width}px; height: {WindowTab.FloatingProps.Height}px;";
             }
             
             return Layout?.Position.Style ?? string.Empty;
@@ -123,7 +132,27 @@
     private string Icon => WindowTab.Content?.Icon ?? HomeWindowComponent.DefaultContent.Icon;
     private string Title => WindowTab.Content?.Title ?? HomeWindowComponent.DefaultContent.Title;
     private Type Type => WindowTab.Content.ComponentType ?? HomeWindowComponent.DefaultContent.ComponentType;
-    private string WindowStyle => (WindowTab.Content?.AutoScroll ?? true) ? "overflow-y: auto" : string.Empty;
+
+    private string WindowStyle
+    {
+        get
+        {
+            var styles = string.Empty;
+            if (WindowTab.Content?.AutoScroll ?? true)
+            {
+                styles += "overflow-y: auto;";
+            }
+
+            if (_dragging)
+            {
+                // Prevent pointer events while dragging, otherwise weird things happen
+                styles += "pointer-events: none;";
+            }
+            
+            return styles;
+        }
+        
+    } 
     
     ///////////////
     // Lifecycle //
@@ -139,21 +168,10 @@
     }
 
     // Runs after every render
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
-        // Runs only on first render
-        if (firstRender)
-        {
-            // Setup JS interop
-            _dotnetRef = DotNetObjectReference.Create(this);
-            //_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowComponent.razor.js");
-            //await _jsModule.InvokeVoidAsync("enableDrag", _element, _dotnetRef);
-        }
-        
         // Reset render flag
         _canRender = false;
-
-        Console.WriteLine("Rendered window " + WindowTab.Id);
     }
     
     public void ReRender()
@@ -176,7 +194,15 @@
     public async Task CloseAsync()
     {
         await WindowTab.NotifyClose();
-        Layout.RemoveTab(WindowTab);
+
+        if (!IsFloating)
+        {
+            await Layout.RemoveTab(WindowTab);
+        }
+        else
+        {
+            await Dock.RemoveFloatingTab(WindowTab);
+        }
     }
 
     public Task AddSiblingTab(WindowContent content)
@@ -200,12 +226,16 @@
 
     private int GetIndex()
     {
+        if (Layout is null)
+            return 0;
+        
         return Layout.Tabs.IndexOf(WindowTab);
     }
 
     private async Task SetFocused()
     {
-        await Layout.SetFocusedTab(WindowTab);
+        if (Layout is not null)
+            await Layout.SetFocusedTab(WindowTab);
     }
     
     // For the layout to tell this tab the tab-stack has changed
@@ -229,8 +259,35 @@
         return SetFocused();
     }
     
+    private Task OnClickWindow()
+    {
+        return SetFocused();
+    }
+    
+    private Task OnClickHome()
+    {
+        return ReplaceAsync(HomeWindowComponent.DefaultContent);
+    }
+
+    
+    ///////////////////////
+    // Tab drag handling //
+    ///////////////////////
+    
+    private float _dragStartX;
+    private float _dragStartY;
+
+    private bool _dragging = false;
+    
+    /// <summary>
+    /// Runs when the mouse goes down on the tab - prepares for dragging.
+    /// </summary>
     private async Task OnTabDown(MouseEventArgs e)
     {
+        // Store the start position
+        _dragStartX = (float)e.ClientX;
+        _dragStartY = (float)e.ClientY;
+        
         // Enable mouse move listener
         MouseListener.SubscribeMouseMove(OnDragTab);
         
@@ -244,47 +301,57 @@
     
     private async Task OnTabUp(MouseUpEvent e)
     {
+        _dragging = false;
+        
         // Disable mouse move listener
         MouseListener.UnsubscribeMouseMove(OnDragTab);
         
         // Disable mouse up listener
         MouseListener.UnsubscribeMouseUp(OnTabUp);
+        
+        ReRender();
     }
 
     private async Task OnDragTab(MouseMoveEvent e)
     {
-        Console.WriteLine("Dragging tab");
-    }
-    
-    private Task OnClickWindow()
-    {
-        return SetFocused();
-    }
-
-    private async Task OnDragTab(MouseEventArgs e)
-    {
+        if (!IsFloating)
+        {
+            Console.WriteLine("Started floating");
+            
+            // If not floating, we start floating if the mouse moves a certain distance
+            if (Math.Abs(e.X - _dragStartX) > 10 || Math.Abs(e.Y - _dragStartY) > 10)
+            {
+                await Layout.DockComponent.AddFloatingTab(WindowTab, new FloatingWindowProps()
+                {
+                    X = e.X - 150,
+                    Y = e.Y - 15,
+                    Width = 300,
+                    Height = 300,
+                });
+            }
+        }
+        else
+        {
+            // Just move the floating window
+            WindowTab.FloatingProps.X += e.DeltaX;
+            WindowTab.FloatingProps.Y += e.DeltaY;
+            
+            _dragging = true;
+        }
         
+        ReRender();
     }
-
-    private Task OnClickHome()
+    
+    public async Task OnWindowMouseUp(MouseEventArgs e)
     {
-        return ReplaceAsync(HomeWindowComponent.DefaultContent);
+        if (IsFloating)
+        {
+            // On floating windows we check if the element has been resized when the mouse is released
+            var dims = await BrowserUtils.GetElementDimensions(_windowElement);
+            WindowTab.FloatingProps.Width = dims.Width;
+            WindowTab.FloatingProps.Height = dims.Height;
+            
+            Console.WriteLine("Updated floating window size to " + dims.Width + "x" + dims.Height);
+        }
     }
-    
-    ////////////////
-    // JS Interop //
-    ////////////////
-    
-    private IJSInProcessObjectReference _jsModule;
-    private ElementReference _element;
-    private DotNetObjectReference<WindowComponent> _dotnetRef;
-    
-    /* Dragging */
-
-    [JSInvokable]
-    public async Task OnFloaterStart(double clientX, double clientY)
-    {
-        // await Container.NotifyNewFloater(WindowTab, clientX, clientY);
-    }
-
 }

@@ -1,8 +1,8 @@
 import DotNetObject = DotNet.DotNetObject;
 
 type MouseMoveService = {
-    lastX: number;
-    lastY: number;
+    lastX?: number;
+    lastY?: number;
     
     moveListener: (e: MouseEvent) => void;
     
@@ -17,16 +17,16 @@ type MouseMoveService = {
 
 export const init = (dotnet: DotNetObject): MouseMoveService => {
     const service = {
-        lastX: 0,
-        lastY: 0,
+        lastX: null,
+        lastY: null,
         
         moveListener: (e: MouseEvent) => {
             if (e.clientX === service.lastX && e.clientY === service.lastY) {
                 return;
             }
-
-            const deltaX = e.clientX - service.lastX;
-            const deltaY = e.clientY - service.lastY;
+            
+            const deltaX = service.lastX ? e.clientX - service.lastX : 0;
+            const deltaY = service.lastY ? e.clientY - service.lastY : 0;
 
             service.lastX = e.clientX;
             service.lastY = e.clientY;
@@ -40,6 +40,8 @@ export const init = (dotnet: DotNetObject): MouseMoveService => {
         
         stopMoveListener: () => {
             document.removeEventListener('mousemove', service.moveListener);
+            service.lastX = null;
+            service.lastY = null;
         },
         
         upListener: (e: MouseEvent) => {

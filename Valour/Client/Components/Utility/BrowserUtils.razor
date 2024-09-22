@@ -1,0 +1,55 @@
+@inject IJSRuntime JsRuntime
+
+<CascadingValue Value="@this" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public struct ElementDimensions
+    {
+        public float Width { get; set; }
+        public float Height { get; set; }
+    }
+
+    public struct ElementPosition
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+    }
+    
+    private static DotNetObjectReference<BrowserUtils> _dotnetRef;
+    private static  IJSInProcessObjectReference _jsModule;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
+            await Logger.Log("Loaded DomWindowData component.", "cyan");
+            var dims = await GetWindowDimensions();
+            await Logger.Log("Starting window dimensions: " + dims.Width + "x" + dims.Height, "cyan");
+        }
+    }
+    
+    public static async Task<ElementDimensions> GetWindowDimensions()
+    {
+        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getWindowDimensions");
+        return dimensions;
+    }
+    
+    public static async Task<ElementDimensions> GetElementDimensions(ElementReference element)
+    {
+        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensions", element);
+        return dimensions;
+    }
+
+    public static async Task<ElementPosition> GetElementPosition(ElementReference element)
+    {
+        var position = await _jsModule.InvokeAsync<ElementPosition>("getElementPosition", element);
+        return position;
+    }
+}
