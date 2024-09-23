@@ -1,3 +1,10 @@
+export const init = (dotnet) => {
+    const onResize = () => {
+        const dimensions = getWindowDimensions();
+        dotnet.invokeMethod('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
+    };
+    window.addEventListener('resize', onResize);
+};
 export const getWindowDimensions = () => {
     const { innerWidth: width, innerHeight: height } = window;
     return { width, height };

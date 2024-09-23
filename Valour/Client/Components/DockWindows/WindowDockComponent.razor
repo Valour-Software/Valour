@@ -65,15 +65,13 @@
     {
         if (floatingProps is null)
         {
-            var domWindowPos = await BrowserUtils.GetWindowDimensions();
-            
             floatingProps = new FloatingWindowProps()
             {
                 // Center window with half size
-                X = domWindowPos.Width / 4f,
-                Y = domWindowPos.Height / 4f,
-                Width = domWindowPos.Width / 2,
-                Height = domWindowPos.Height / 2
+                X = BrowserUtils.WindowDimensions.Width / 4f,
+                Y = BrowserUtils.WindowDimensions.Height / 4f,
+                Width = BrowserUtils.WindowDimensions.Width / 2,
+                Height = BrowserUtils.WindowDimensions.Height / 2
             };
         }
         

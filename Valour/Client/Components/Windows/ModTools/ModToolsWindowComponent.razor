@@ -27,14 +27,12 @@
         };
     }
     
-    public static async Task<FloatingWindowProps> GetDefaultFloatingProps()
+    public static FloatingWindowProps GetDefaultFloatingProps()
     {
-        var dim = await BrowserUtils.GetWindowDimensions();
-
         return new FloatingWindowProps()
         {
-            Height = dim.Height / 2,
-            Width = dim.Width / 2,
+            Height = BrowserUtils.WindowDimensions.Height / 2,
+            Width = BrowserUtils.WindowDimensions.Width / 2,
             X = 100,
             Y = 100
         };

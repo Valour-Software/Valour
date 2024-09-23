@@ -157,9 +157,8 @@
         };
 
         var content = ModToolsWindowComponent.GetDefaultContent(data);
-        var floatingProps = await ModToolsWindowComponent.GetDefaultFloatingProps();
-
-        WindowService.TryAddFloatingWindow(content, floatingProps);
+        var floatingProps = ModToolsWindowComponent.GetDefaultFloatingProps();
+        await WindowService.TryAddFloatingWindow(content, floatingProps);
 
         await CloseAsync();
     }

@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@implements IDisposable
 
 <div class="window-wrapper @WindowWrapperClasses"
      style="@WindowWrapperStyles z-index: @ZIndex"
@@ -163,6 +163,7 @@
     protected override void OnInitialized()
     {
         WindowTab.Component = this;
+        BrowserUtils.OnWindowResize += OnWindowResize;
     }
 
     // Runs after every render
@@ -287,7 +288,7 @@
     /// <summary>
     /// Runs when the mouse goes down on the tab - prepares for dragging.
     /// </summary>
-    private async Task OnTabDown(MouseEventArgs e)
+    private Task OnTabDown(MouseEventArgs e)
     {
         // Store the start position
         _dragStartX = (float)e.ClientX;
@@ -302,9 +303,11 @@
         // and we still want to be able to drag the tab. So we need to listen for the up event
         // globally.
         MouseListener.SubscribeMouseUp(OnTabUp);
+        
+        return Task.CompletedTask;
     }
     
-    private async Task OnTabUp(MouseUpEvent e)
+    private Task OnTabUp(MouseUpEvent e)
     {
         _dragging = false;
         
@@ -315,6 +318,8 @@
         MouseListener.UnsubscribeMouseUp(OnTabUp);
         
         ReRender();
+        
+        return Task.CompletedTask;
     }
 
     private async Task OnDragTab(MouseMoveEvent e)
@@ -328,8 +333,8 @@
             {
                 await Layout.DockComponent.AddFloatingTab(WindowTab, new FloatingWindowProps()
                 {
-                    X = e.X - 150,
-                    Y = e.Y - 15,
+                    X = Math.Max(0, e.X - 150),
+                    Y = Math.Max(0, e.Y - 15),
                     Width = 300,
                     Height = 300,
                 });
@@ -342,6 +347,8 @@
             // Just move the floating window
             WindowTab.FloatingProps.X += e.DeltaX;
             WindowTab.FloatingProps.Y += e.DeltaY;
+
+            EnsureOnScreen();
             
             _dragging = true;
         }
@@ -360,5 +367,56 @@
             
             Console.WriteLine("Updated floating window size to " + dims.Width + "x" + dims.Height);
         }
+    }
+
+    public bool EnsureOnScreen()
+    {
+        var changed = false;
+        
+        // Prevent going off screen
+        if (WindowTab.FloatingProps.X < 0)
+        {
+            WindowTab.FloatingProps.X = 0;
+            changed = true;
+        }
+
+        if (WindowTab.FloatingProps.Y < 0)
+        {
+            WindowTab.FloatingProps.Y = 0;
+            changed = true;
+        }
+
+        if (WindowTab.FloatingProps.X + WindowTab.FloatingProps.Width > BrowserUtils.WindowDimensions.Width)
+        {
+            WindowTab.FloatingProps.X = BrowserUtils.WindowDimensions.Width - WindowTab.FloatingProps.Width;
+            changed = true;
+        }
+
+        if (WindowTab.FloatingProps.Y + WindowTab.FloatingProps.Height > BrowserUtils.WindowDimensions.Height)
+        {
+            WindowTab.FloatingProps.Y = BrowserUtils.WindowDimensions.Height - WindowTab.FloatingProps.Height;
+            changed = true;
+        }
+
+        return changed;
+    }
+    
+    private Task OnWindowResize(ElementDimensions dims)
+    {
+        if (IsFloating)
+        {
+            var changed = EnsureOnScreen();
+            if (changed)
+            {
+                ReRender();
+            }
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    public void Dispose()
+    {
+        BrowserUtils.OnWindowResize -= OnWindowResize;
     }
 }
