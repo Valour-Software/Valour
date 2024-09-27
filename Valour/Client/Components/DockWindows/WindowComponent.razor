@@ -1,6 +1,7 @@
 ﻿@implements IDisposable
 
-<div class="window-wrapper @WindowWrapperClasses"
+<div id="tab-@WindowTab.Id"
+     class="window-wrapper @WindowWrapperClasses"
      style="@WindowWrapperStyles z-index: @ZIndex"
      @ref="@_windowElement"
      @onmouseup:stopPropagation="true"
@@ -54,6 +55,13 @@
         @* Window Content *@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
     </div>
+    
+    @if (!IsFloating && // floating tabs don't have drop targets
+         WindowService.DraggingTab is not null && 
+         WindowService.DraggingTab != WindowTab)
+    {
+        <WindowDropTargets Window="@this" />
+    }
 </div>
 
 @code {
@@ -93,7 +101,7 @@
             {
                 classes = "docked ";
                 
-                if (GetIndex() == Layout.Tabs .Count - 1)
+                if (GetIndex() == Layout.Tabs.Count - 1)
                 {
                     classes += "last ";
                 }
@@ -162,8 +170,11 @@
 
     protected override void OnInitialized()
     {
+        Console.WriteLine("Initialized window tab component " + WindowTab.Id);
+        
         WindowTab.Component = this;
         BrowserUtils.OnWindowResize += OnWindowResize;
+        WindowService.OnTabDragging += OnGlobalTabDragging;
     }
 
     // Runs after every render
@@ -311,11 +322,16 @@
     {
         _dragging = false;
         
+        // End window target scanner
+        WindowTargetScanner.Finalize(e.X, e.Y);
+        
         // Disable mouse move listener
         MouseListener.UnsubscribeMouseMove(OnDragTab);
         
         // Disable mouse up listener
         MouseListener.UnsubscribeMouseUp(OnTabUp);
+        
+        WindowService.NotifyTabDragging(null);
         
         ReRender();
         
@@ -326,11 +342,18 @@
     {
         if (!IsFloating)
         {
-            Console.WriteLine("Started floating");
+            if (_armFloatEvent)
+            {
+                return; // Waiting for render to float
+            }
             
             // If not floating, we start floating if the mouse moves a certain distance
             if (Math.Abs(e.X - _dragStartX) > 10 || Math.Abs(e.Y - _dragStartY) > 10)
             {
+                Console.WriteLine("Started floating");
+                
+                _armFloatEvent = true;
+                
                 await Layout.DockComponent.AddFloatingTab(WindowTab, new FloatingWindowProps()
                 {
                     X = Math.Max(0, e.X - 150),
@@ -338,19 +361,27 @@
                     Width = 300,
                     Height = 300,
                 });
-                
-                _armFloatEvent = true;
             }
         }
         else
         {
+            // Console.WriteLine("Dragging " + WindowTab.Id);
+            
             // Just move the floating window
             WindowTab.FloatingProps.X += e.DeltaX;
             WindowTab.FloatingProps.Y += e.DeltaY;
+            
+            // Console.WriteLine("Pos: " + JsonSerializer.Serialize(WindowTab.FloatingProps));
 
             EnsureOnScreen();
             
             _dragging = true;
+            
+            // Notify global windows of dragging
+            WindowService.NotifyTabDragging(this.WindowTab);
+            
+            // Run window target scanner
+            WindowTargetScanner.Scan(e.X, e.Y);
         }
         
         ReRender();
@@ -415,8 +446,21 @@
         return Task.CompletedTask;
     }
     
+    private void OnGlobalTabDragging(WindowTab tab)
+    {
+        if (tab == WindowTab)
+            return;
+        
+        // If we aren't visible, we don't need to do anything
+        //if (!IsActive)
+        //    return;
+        
+        ReRender();
+    }
+    
     public void Dispose()
     {
         BrowserUtils.OnWindowResize -= OnWindowResize;
+        WindowService.OnTabDragging -= OnGlobalTabDragging;
     }
 }

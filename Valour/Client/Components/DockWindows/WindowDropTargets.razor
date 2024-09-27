@@ -10,7 +10,7 @@
 </div>
 
 @code {
-    
+    [Parameter]
     public WindowComponent Window { get; set; }
     
     public enum DropLocation
@@ -24,11 +24,6 @@
     
     public Task OnDrop(DropLocation location)
     {
-        Console.WriteLine("Dropped: " + location);
-        
-        //if (DockFloaters.CurrentlyDragging is null)
-        //    return Task.CompletedTask;
-
-        return Window.Layout.OnTabDropped(Window.WindowTab, location);
+        return Window.Layout.OnTabDropped(WindowService.DraggingTab, location);
     }
 }

@@ -1,4 +1,5 @@
-﻿using Valour.Client.Components.Windows.HomeWindows;
+﻿using System.Text.Json;
+using Valour.Client.Components.Windows.HomeWindows;
 
 namespace Valour.Client.Components.DockWindows;
 
@@ -12,7 +13,7 @@ public enum SplitDirection
 /// <summary>
 /// Window Layout Positions are used to store the position of a WindowLayout relative to its parent.
 /// </summary>
-public struct WindowLayoutPosition
+public class WindowLayoutPosition
 {
     public static readonly WindowLayoutPosition FullScreen = new WindowLayoutPosition
     {
@@ -124,12 +125,14 @@ public class WindowLayout
     private WindowLayoutPosition _position;
     public WindowLayoutPosition Position => _position;
     
-    public WindowLayout(WindowDockComponent dockComponent, WindowLayout parent = null, List<WindowTab> tabs = null)
+    public WindowLayout(WindowDockComponent dockComponent, WindowLayout parent = null)
     {
         DockComponent = dockComponent;
         Parent = parent;
 
-        Tabs = tabs ?? new List<WindowTab>();
+        Tabs = new List<WindowTab>();
+        
+        _position = new WindowLayoutPosition();
         
         // Calculate initial position
         RecalculatePosition();
@@ -139,6 +142,32 @@ public class WindowLayout
     // This is used to prevent multiple layout changes from rendering the layout multiple times.
     // For example, one operation may both add and remove a tab. We don't want to render the layout twice.
 
+    public void SetTabsRaw(List<WindowTab> tabs)
+    {
+        Tabs = tabs;
+
+        foreach (var tab in tabs)
+        {
+            if (tab.Layout != this)
+            {
+                tab.SetLayoutRaw(this);
+            }
+        }
+    }
+    
+    public async Task AddTabs(List<WindowTab> tabs, bool render = true)
+    {
+        foreach (var tab in tabs)
+        {
+            await AddTab(tab, false);
+        }
+
+        if (render)
+        {
+            DockComponent.NotifyLayoutChanged();
+        }
+    }
+    
     public Task AddTab(WindowContent content, bool render = true)
     {
         var tab = new WindowTab(content);
@@ -274,21 +303,23 @@ public class WindowLayout
         NotifyTabsOfChange();
     }
 
-    public Task OnTabDropped(WindowTab tab, WindowDropTargets.DropLocation location)
+    public async Task OnTabDropped(WindowTab tab, WindowDropTargets.DropLocation location)
     {
+        // Remove tab as floater
+        await DockComponent.RemoveFloatingTab(tab);
+        
         if (location == WindowDropTargets.DropLocation.Center)
         {
-            return AddTab(tab);
+            await AddTab(tab);
         }
 
         // If we are split, we cannot split further. This event should have been handled by the child.
         if (IsSplit)
         {
             Console.WriteLine("Tried to split a split layout. This should not happen.");
-            return Task.CompletedTask;
         }
 
-        return AddSplit(tab, location);
+        await AddSplit(tab, location);
     }
 
     public async Task AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)
@@ -314,28 +345,36 @@ public class WindowLayout
         
         if (location == WindowDropTargets.DropLocation.Left || location == WindowDropTargets.DropLocation.Up)
         {
-            tabsOne = new List<WindowTab>();
+            tabsOne = new List<WindowTab>()
+            {
+                startingTab
+            };
             tabsTwo = Tabs;
             
             // Create children
-            ChildOne = new WindowLayout(DockComponent, this, tabsOne);
-            ChildTwo = new WindowLayout(DockComponent, this, tabsTwo);
+            ChildOne = new WindowLayout(DockComponent, this);
+            ChildTwo = new WindowLayout(DockComponent, this);
             
-            // Add the starting tab
-            await ChildOne.AddTab(startingTab, false);
+            ChildOne.SetTabsRaw(tabsOne);
+            ChildTwo.SetTabsRaw(tabsTwo);
         }
         else
         {
             tabsOne = Tabs;
-            tabsTwo = new List<WindowTab>();
+            tabsTwo = new List<WindowTab>()
+            {
+                startingTab
+            };
             
             // Create children
-            ChildOne = new WindowLayout(DockComponent, this, tabsOne);
-            ChildTwo = new WindowLayout(DockComponent, this, tabsTwo);
-            
-            // Add the starting tab
-            await ChildTwo.AddTab(startingTab, false);
+            ChildOne = new WindowLayout(DockComponent, this);
+            ChildTwo = new WindowLayout(DockComponent, this);
+
+            ChildOne.SetTabsRaw(tabsOne);
+            ChildTwo.SetTabsRaw(tabsTwo);
         }
+        
+        RecalculatePosition();
         
         // Re-render layouts
         DockComponent.NotifyLayoutChanged();
@@ -346,21 +385,42 @@ public class WindowLayout
         // Both children get removed but the other one becomes the tab stack
         if (ChildOne == child)
         {
+            // Take tabs from child
             Tabs = ChildTwo.Tabs;
             ChildTwo.Parent = null;
+            ChildTwo = null;
+            
+            // Remove other child
+            ChildOne = null;
+        }
+        else if (ChildTwo == child)
+        {
+            // Take tabs from child
+            Tabs = ChildOne.Tabs;
+            ChildOne.Parent = null;
+            ChildOne = null;
+            
+            // Remove other child
             ChildTwo = null;
         }
         else
         {
-            Tabs = ChildOne.Tabs;
-            ChildOne.Parent = null;
-            ChildOne = null;
+            Console.WriteLine("Tried to remove a child that is not a child of this layout.");
+            return;
         }
         
         // Remove split
         Split = null;
         
         RecalculatePosition();
+        
+        // Re-render tabs 
+        foreach (var tab in Tabs)
+        {
+            // Set tab layouts to this layout
+            tab.SetLayoutRaw(this);
+            tab.NotifyLayoutChanged();
+        }
         
         DockComponent.NotifyLayoutChanged();
     }
@@ -429,13 +489,12 @@ public class WindowLayout
                     _position.Width = Parent.Position.Width;
                     _position.Height = (Parent.Position.Height * (1 - Parent.Split.SplitRatio));
                     _position.OffsetX = Parent.Position.OffsetX;
-                    _position.OffsetY = Parent.Position.OffsetY + (Parent.Position.Height * Parent.Split.SplitRatio) +
-                                        SliderSize;
+                    _position.OffsetY = Parent.Position.OffsetY + (Parent.Position.Height * Parent.Split.SplitRatio);
 
                     _position.WidthPixelModifier = 0;
                     _position.HeightPixelModifier = -(SliderSize / 2);
                     _position.OffsetXPixelModifier = 0;
-                    _position.OffsetYPixelModifier = SliderSize;
+                    _position.OffsetYPixelModifier = (SliderSize / 2);
                 }
             }
         }
@@ -450,5 +509,7 @@ public class WindowLayout
         {
             ChildTwo.RecalculatePosition();
         }
+        
+        // Console.WriteLine("Position: " + JsonSerializer.Serialize(_position));
     }
 }

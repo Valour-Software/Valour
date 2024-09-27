@@ -75,11 +75,12 @@
             };
         }
         
+        // this HAS to happen first to prevent component re-initialization
+        _floaters.Add(tab);
+        
         await tab.SetLayout(null);
         
         tab.SetFloatingProps(floatingProps);
-        
-        _floaters.Add(tab);
         
         NotifyLayoutChanged();
     }
@@ -95,6 +96,7 @@
     
     public async Task RemoveFloatingTab(WindowTab tab)
     {
+        tab.SetFloatingProps(null);
         _floaters.Remove(tab);
         NotifyLayoutChanged();
     }

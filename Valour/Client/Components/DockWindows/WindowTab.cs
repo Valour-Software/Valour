@@ -211,6 +211,11 @@ public class WindowTab
             await Layout.AddTab(this, render);
     }
     
+    public void SetLayoutRaw(WindowLayout layout)
+    {
+        Layout = layout;
+    }
+    
     public async Task AddSiblingTab(WindowContent content)
     {
         var tab = new WindowTab(content);

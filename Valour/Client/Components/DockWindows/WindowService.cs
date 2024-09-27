@@ -8,6 +8,9 @@ public static class WindowService
     public static event Func<WindowTab, Task> OnFocusedTabChanged;
     public static event Func<Planet, Task> OnFocusedPlanetChanged;
     
+    public static event Action<WindowTab> OnTabDragging;
+    public static WindowTab DraggingTab { get; set; }
+    
     public static List<WindowDockComponent> Docks { get; private set; } = new();
     public static WindowDockComponent MainDock { get; private set; }
     
@@ -47,6 +50,14 @@ public static class WindowService
             return;
 
         Docks.Add(dock);
+    }
+    
+    public static void NotifyTabDragging(WindowTab tab)
+    {
+        DraggingTab = tab;
+        
+        if (OnTabDragging is not null)
+            OnTabDragging.Invoke(tab);
     }
 
     public static void NotifyDockLayoutUpdated()
