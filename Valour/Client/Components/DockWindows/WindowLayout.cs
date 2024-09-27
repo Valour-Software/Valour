@@ -3,13 +3,6 @@ using Valour.Client.Components.Windows.HomeWindows;
 
 namespace Valour.Client.Components.DockWindows;
 
-public enum SplitDirection
-{
-    None,
-    Horizontal,
-    Vertical
-}
-
 /// <summary>
 /// Window Layout Positions are used to store the position of a WindowLayout relative to its parent.
 /// </summary>
@@ -45,42 +38,12 @@ public class WindowLayoutPosition
         @$"width: calc({Width}% + {WidthPixelModifier}px); height: calc({Height}% + {HeightPixelModifier}px); left: calc({OffsetX}% + {OffsetXPixelModifier}px); top: calc({OffsetY}% + {OffsetYPixelModifier}px);";
 }
 
-public class WindowSplit
-{
-    /// <summary>
-    /// Unique identifier for the split
-    /// </summary>
-    public string Id { get; private set; } = Guid.NewGuid().ToString();
-    
-    /// <summary>
-    /// The state of the split. None if not split, Horizontal if split horizontally, Vertical if split vertically
-    /// </summary>
-    public SplitDirection SplitDirection { get; set; }
-    
-    /// <summary>
-    /// The ratio of the split. 0.5 is 50/50, 0.25 is 25/75, etc.
-    /// </summary>
-    public float SplitRatio { get; set; }
-    
-    public WindowSplit()
-    {
-        SplitDirection = SplitDirection.Horizontal;
-        SplitRatio = 0.5f;
-    }
-    
-    public WindowSplit(SplitDirection direction, float ratio)
-    {
-        SplitDirection = direction;
-        SplitRatio = ratio;
-    }
-}
-
 public class WindowLayout
 {
     /// <summary>
     /// Size of the gutter/slider between two windows
     /// </summary>
-    const int SliderSize = 6;
+    public static readonly int SliderSize = 6;
     
     /// <summary>
     /// The dock component this layout is attached to
@@ -338,7 +301,7 @@ public class WindowLayout
                 : SplitDirection.Vertical;
         
         // Create split
-        Split = new WindowSplit(direction, 0.5f);
+        Split = new WindowSplit(this, direction, 0.5f);
 
         List<WindowTab> tabsOne;
         List<WindowTab> tabsTwo;
@@ -451,10 +414,10 @@ public class WindowLayout
                     _position.OffsetX = Parent.Position.OffsetX;
                     _position.OffsetY = Parent.Position.OffsetY;
 
-                    _position.WidthPixelModifier = -(SliderSize / 2);
+                    _position.WidthPixelModifier = - (SliderSize / 2);
                     _position.HeightPixelModifier = 0;
-                    _position.OffsetXPixelModifier = 0;
-                    _position.OffsetYPixelModifier = 0;
+                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier;
+                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier;
                 }
                 // If this is the second child
                 else
@@ -464,10 +427,10 @@ public class WindowLayout
                     _position.OffsetX = Parent.Position.OffsetX + (Parent.Position.Width * Parent.Split.SplitRatio);
                     _position.OffsetY = Parent.Position.OffsetY;
 
-                    _position.WidthPixelModifier = -(SliderSize / 2);
+                    _position.WidthPixelModifier = - (SliderSize / 2);
                     _position.HeightPixelModifier = 0;
-                    _position.OffsetXPixelModifier = SliderSize;
-                    _position.OffsetYPixelModifier = 0;
+                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier + (SliderSize / 2);
+                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier;
                 }
             }
             else
@@ -480,9 +443,9 @@ public class WindowLayout
                     _position.OffsetY = Parent.Position.OffsetY;
 
                     _position.WidthPixelModifier = 0;
-                    _position.HeightPixelModifier = -(SliderSize / 2);
-                    _position.OffsetXPixelModifier = 0;
-                    _position.OffsetYPixelModifier = 0;
+                    _position.HeightPixelModifier = - (SliderSize / 2);
+                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier;
+                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier;
                 }
                 else
                 {
@@ -492,9 +455,9 @@ public class WindowLayout
                     _position.OffsetY = Parent.Position.OffsetY + (Parent.Position.Height * Parent.Split.SplitRatio);
 
                     _position.WidthPixelModifier = 0;
-                    _position.HeightPixelModifier = -(SliderSize / 2);
-                    _position.OffsetXPixelModifier = 0;
-                    _position.OffsetYPixelModifier = (SliderSize / 2);
+                    _position.HeightPixelModifier = - (SliderSize / 2);
+                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier;
+                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier + (SliderSize / 2);
                 }
             }
         }

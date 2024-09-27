@@ -4,6 +4,11 @@
     {
         <WindowComponent @key="@tab.Id" WindowTab="@tab" Dock="@this" />
     }
+    
+    @foreach(var split in Splits)
+    {
+        <WindowSplitComponent @key="@split.Id" Split="@split" />
+    }
 </div>
 
 @code {

@@ -1,0 +1,39 @@
+<div style="@Styles" class="window-split">
+    
+</div>
+
+@code {
+    [Parameter]
+    public WindowSplit Split { get; set; }
+
+    public string Styles
+    {
+        get
+        {
+            var styles = string.Empty;
+            
+            // Should match layout in direction of split
+            if (Split.SplitDirection == SplitDirection.Horizontal)
+            {
+                styles += $"height: {Split.Layout.Position.Height}%; width: {WindowLayout.SliderSize}px;";
+            }
+            else
+            {
+                styles += $"height: {WindowLayout.SliderSize}px; width: {Split.Layout.Position.Width}%;";
+            }
+            
+            // Position shift is based off child one size
+            if (Split.SplitDirection == SplitDirection.Horizontal)
+            {
+                styles += $"top: {Split.Layout.Position.OffsetY}%; left: calc({Split.Layout.ChildOne.Position.Width}% + {Split.Layout.ChildOne.Position.WidthPixelModifier}px);";
+            }
+            else
+            {
+                styles += $"top: calc({Split.Layout.ChildOne.Position.Height}% + {Split.Layout.ChildOne.Position.HeightPixelModifier}px); left: {Split.Layout.Position.OffsetX}%;";
+            }
+            
+            return styles;
+        }
+    }
+
+}
