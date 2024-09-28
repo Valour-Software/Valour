@@ -33,9 +33,21 @@
         return dimensions;
     }
     
-    public static async Task<ElementDimensions> GetElementDimensions(ElementReference element)
+    public static async Task<ElementDimensions> GetElementDimensionsAsync(ElementReference element)
     {
         var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensions", element);
+        return dimensions;
+    }
+    
+    public static ElementDimensions GetElementDimensions(ElementReference element)
+    {
+        var dimensions = _jsModule.Invoke<ElementDimensions>("getElementDimensions", element);
+        return dimensions;
+    }
+    
+    public static ElementDimensions GetElementDimensions(string selector)
+    {
+        var dimensions = _jsModule.Invoke<ElementDimensions>("getElementDimensionsBySelector", selector);
         return dimensions;
     }
 

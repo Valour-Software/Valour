@@ -22,6 +22,12 @@ export const getElementDimensions = (element: HTMLElement): Dimensions => {
     return { width, height };
 }
 
+export const getElementDimensionsBySelector = (selector: string): Dimensions => {
+    const element = document.querySelector(selector) as HTMLElement;
+    const { clientWidth: width, clientHeight: height } = element;
+    return { width, height };
+}
+
 export const getElementPosition = (element: HTMLElement): { x: number, y: number } => {
     const { left, top } = element.getBoundingClientRect();
     return { x: left, y: top };

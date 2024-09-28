@@ -28,11 +28,11 @@ public class WindowLayoutPosition
     public float OffsetY { get; set; }
     
     // Absolute position modifier in pixels
-    public int WidthPixelModifier { get; set; }
-    public int HeightPixelModifier { get; set; }
+    public float WidthPixelModifier { get; set; }
+    public float HeightPixelModifier { get; set; }
     
-    public int OffsetXPixelModifier { get; set; }
-    public int OffsetYPixelModifier { get; set; }
+    public float OffsetXPixelModifier { get; set; }
+    public float OffsetYPixelModifier { get; set; }
 
     public string Style =>
         @$"width: calc({Width}% + {WidthPixelModifier}px); height: calc({Height}% + {HeightPixelModifier}px); left: calc({OffsetX}% + {OffsetXPixelModifier}px); top: calc({OffsetY}% + {OffsetYPixelModifier}px);";
@@ -43,8 +43,9 @@ public class WindowLayout
     /// <summary>
     /// Size of the gutter/slider between two windows
     /// </summary>
-    public static readonly int SliderSize = 6;
+    public static readonly float SliderSize = 6;
     
+    public int Depth => Parent is null ? 0 : Parent.Depth + 1;
     /// <summary>
     /// The dock component this layout is attached to
     /// </summary>
@@ -414,10 +415,10 @@ public class WindowLayout
                     _position.OffsetX = Parent.Position.OffsetX;
                     _position.OffsetY = Parent.Position.OffsetY;
 
-                    _position.WidthPixelModifier = - (SliderSize / 2);
+                    _position.WidthPixelModifier = 0;
                     _position.HeightPixelModifier = 0;
-                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier;
-                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier;
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = 0;
                 }
                 // If this is the second child
                 else
@@ -427,10 +428,10 @@ public class WindowLayout
                     _position.OffsetX = Parent.Position.OffsetX + (Parent.Position.Width * Parent.Split.SplitRatio);
                     _position.OffsetY = Parent.Position.OffsetY;
 
-                    _position.WidthPixelModifier = - (SliderSize / 2);
+                    _position.WidthPixelModifier = 0;
                     _position.HeightPixelModifier = 0;
-                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier + (SliderSize / 2);
-                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier;
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = 0;
                 }
             }
             else
@@ -443,9 +444,9 @@ public class WindowLayout
                     _position.OffsetY = Parent.Position.OffsetY;
 
                     _position.WidthPixelModifier = 0;
-                    _position.HeightPixelModifier = - (SliderSize / 2);
-                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier;
-                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier;
+                    _position.HeightPixelModifier = 0;
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = 0;
                 }
                 else
                 {
@@ -455,9 +456,9 @@ public class WindowLayout
                     _position.OffsetY = Parent.Position.OffsetY + (Parent.Position.Height * Parent.Split.SplitRatio);
 
                     _position.WidthPixelModifier = 0;
-                    _position.HeightPixelModifier = - (SliderSize / 2);
-                    _position.OffsetXPixelModifier = Parent.Position.OffsetXPixelModifier;
-                    _position.OffsetYPixelModifier = Parent.Position.OffsetYPixelModifier + (SliderSize / 2);
+                    _position.HeightPixelModifier = 0;
+                    _position.OffsetXPixelModifier = 0;
+                    _position.OffsetYPixelModifier = 0;
                 }
             }
         }
@@ -474,5 +475,28 @@ public class WindowLayout
         }
         
         // Console.WriteLine("Position: " + JsonSerializer.Serialize(_position));
+    }
+    
+    public void ReRenderRecursive()
+    {
+        // Re-render tabs 
+        if (Tabs is not null)
+        {
+            foreach (var tab in Tabs)
+            {
+                tab.Component?.ReRender();
+            }
+        }
+
+        // Re-render children
+        if (ChildOne is not null)
+        {
+            ChildOne.ReRenderRecursive();
+        }
+        
+        if (ChildTwo is not null)
+        {
+            ChildTwo.ReRenderRecursive();
+        }
     }
 }

@@ -3,7 +3,7 @@
 <div id="tab-@WindowTab.Id"
      class="window-wrapper @WindowWrapperClasses"
      style="@WindowWrapperStyles z-index: @ZIndex"
-     @ref="@_windowElement"
+     @ref="@OuterWindowRef"
      @onmouseup:stopPropagation="true"
      @onmouseup="@OnWindowMouseUp">
     <div class="tab-wrapper @TabWrapperClasses"
@@ -65,7 +65,7 @@
 </div>
 
 @code {
-    private ElementReference _windowElement;
+    public ElementReference OuterWindowRef { get; private set; }
 
     ////////////
     // Params //
@@ -392,12 +392,17 @@
         if (IsFloating)
         {
             // On floating windows we check if the element has been resized when the mouse is released
-            var dims = await BrowserUtils.GetElementDimensions(_windowElement);
+            var dims = await GetDimensions();
             WindowTab.FloatingProps.Width = dims.Width;
             WindowTab.FloatingProps.Height = dims.Height;
             
             Console.WriteLine("Updated floating window size to " + dims.Width + "x" + dims.Height);
         }
+    }
+    
+    public async Task<ElementDimensions> GetDimensions()
+    {
+        return await BrowserUtils.GetElementDimensionsAsync(OuterWindowRef);
     }
 
     public bool EnsureOnScreen()

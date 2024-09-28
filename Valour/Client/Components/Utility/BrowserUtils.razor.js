@@ -13,6 +13,11 @@ export const getElementDimensions = (element) => {
     const { clientWidth: width, clientHeight: height } = element;
     return { width, height };
 };
+export const getElementDimensionsBySelector = (selector) => {
+    const element = document.querySelector(selector);
+    const { clientWidth: width, clientHeight: height } = element;
+    return { width, height };
+};
 export const getElementPosition = (element) => {
     const { left, top } = element.getBoundingClientRect();
     return { x: left, y: top };
