@@ -482,3 +482,12 @@
         transform: scale(0.3, 0.3);
     }
 }
+
+/* No select */
+.no-select {
+    user-select: none;
+}
+
+.no-select * {
+    user-select: none;
+}

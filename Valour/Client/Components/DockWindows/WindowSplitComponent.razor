@@ -43,6 +43,11 @@
         }
     }
 
+    protected override void OnInitialized()
+    {
+        Split.Component = this;
+    }
+
     private float _dragStartX;
     private float _dragStartY;
 
@@ -110,6 +115,9 @@
         
         // re-render
         Split.Layout.ReRenderRecursive();
+        
+        // re-render split
+        StateHasChanged();
         
         return Task.CompletedTask;
     }

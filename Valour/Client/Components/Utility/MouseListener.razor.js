@@ -3,6 +3,7 @@ export const init = (dotnet) => {
         lastX: null,
         lastY: null,
         moveListener: (e) => {
+            document.body.classList.add('no-select');
             if (e.clientX === service.lastX && e.clientY === service.lastY) {
                 return;
             }
@@ -21,6 +22,7 @@ export const init = (dotnet) => {
             service.lastY = null;
         },
         upListener: (e) => {
+            document.body.classList.remove('no-select');
             dotnet.invokeMethod('NotifyMouseUp', e.clientX, e.clientY);
         },
         startUpListener: () => {

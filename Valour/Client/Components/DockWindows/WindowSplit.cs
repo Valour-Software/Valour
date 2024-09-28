@@ -29,6 +29,8 @@ public class WindowSplit
     /// </summary>
     public float SplitRatio { get; set; }
     
+    public WindowSplitComponent Component { get; set; }
+    
     public WindowSplit(WindowLayout layout)
     {
         SplitDirection = SplitDirection.Horizontal;
