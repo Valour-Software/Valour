@@ -1,0 +1,67 @@
+@inject IJSRuntime JsRuntime
+
+<CascadingValue Value="@this" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    private static DotNetObjectReference<BrowserUtils> _dotnetRef;
+    private static  IJSInProcessObjectReference _jsModule;
+    
+    public static event Func<ElementDimensions, Task> OnWindowResize;
+    public static ElementDimensions WindowDimensions { get; private set; }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
+            await Logger.Log("Loaded DomWindowData component.", "cyan");
+            WindowDimensions = await GetWindowDimensions();
+            await Logger.Log("Starting window dimensions: " + WindowDimensions.Width + "x" + WindowDimensions.Height, "cyan");
+            await _jsModule.InvokeVoidAsync("init", _dotnetRef);
+        }
+    }
+    
+    private static async Task<ElementDimensions> GetWindowDimensions()
+    {
+        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getWindowDimensions");
+        return dimensions;
+    }
+    
+    public static async Task<ElementDimensions> GetElementDimensionsAsync(ElementReference element)
+    {
+        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensions", element);
+        return dimensions;
+    }
+    
+    public static ElementDimensions GetElementDimensions(ElementReference element)
+    {
+        var dimensions = _jsModule.Invoke<ElementDimensions>("getElementDimensions", element);
+        return dimensions;
+    }
+    
+    public static ElementDimensions GetElementDimensions(string selector)
+    {
+        var dimensions = _jsModule.Invoke<ElementDimensions>("getElementDimensionsBySelector", selector);
+        return dimensions;
+    }
+
+    public static async Task<ElementPosition> GetElementPosition(ElementReference element)
+    {
+        var position = await _jsModule.InvokeAsync<ElementPosition>("getElementPosition", element);
+        return position;
+    }
+    
+    [JSInvokable("NotifyWindowDimensions")]
+    public async Task NotifyWindowDimensions(ElementDimensions dimensions)
+    {
+        WindowDimensions = dimensions;
+        if (OnWindowResize is not null)
+            await OnWindowResize.Invoke(dimensions);
+    }
+}

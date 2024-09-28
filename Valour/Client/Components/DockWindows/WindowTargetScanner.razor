@@ -1,0 +1,32 @@
+@*
+    This component is used to scan for the window drop targets.
+    It's challenging to scan under an element, so we use some
+    JS interop to handle it.
+*@
+
+@inject IJSRuntime JsRuntime
+
+@code {
+    private static IJSInProcessObjectReference JsModule { get; set; }
+    private static IJSInProcessObjectReference JsService { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            JsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowTargetScanner.razor.js");
+            JsService = await JsModule.InvokeAsync<IJSInProcessObjectReference>("init");
+        }
+    }
+    
+    public static void Scan(float x, float y)
+    {
+        JsService.InvokeVoid("scan", x, y);
+    }
+
+    public static void Finalize(float x, float y)
+    {
+        JsService.InvokeVoid("finalize", x, y);
+    }
+
+}

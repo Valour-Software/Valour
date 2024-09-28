@@ -1,4 +1,6 @@
-﻿@using Valour.Client.Pages
+﻿@*
+
+@using Valour.Client.Pages
 @inject IJSRuntime JsRuntime
 
 <!-- Pass WindowManager this down to all children -->
@@ -15,7 +17,7 @@
 	
 	private DockContainer _dock;
 
-	private List<WindowData> _startWindows;
+	private List<WindowTab> _startWindows;
 	
 	public bool CanRender { get; set; }
 
@@ -34,12 +36,8 @@
 	{
 		Console.WriteLine(JsonSerializer.Serialize(StartData));
 
-		var startWindow = new WindowData()
-		{
-			Icon = "./_content/Valour.Client/media/logo/logo-128.png",
-			Type = typeof(HomeWindowComponent),
-			Title = "Welcome back!"
-		};
+		var startWindow = new WindowContent()
+		
 		
 		if (StartData is not null)
 		{
@@ -78,7 +76,7 @@
 			}
 		}
 
-		_startWindows = new List<WindowData>()
+		_startWindows = new List<WindowTab>()
 		{
 			startWindow
 		};

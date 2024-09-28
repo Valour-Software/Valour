@@ -1,0 +1,12 @@
+.window-split {
+    position: absolute;
+    z-index: 10;
+}
+
+.window-split.vertical {
+    cursor: row-resize;
+}
+
+.window-split.horizontal {
+    cursor: col-resize;
+}

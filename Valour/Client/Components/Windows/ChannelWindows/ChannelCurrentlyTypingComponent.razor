@@ -68,15 +68,7 @@
         await base.OnInitializedAsync();
         DisplayData = new();
         ValourClient.OnChannelCurrentlyTypingUpdate += OnCurrentlyTypingUpdate;
-        ParentComponent.OnChannelChange += OnParentChannelChange;
-
         _timer = new Timer(OnUpdateTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(3));
-    }
-
-    private Task OnParentChannelChange(Channel channel)
-    {
-        Clear();
-        return Task.CompletedTask;
     }
 
     private List<long> _remove = new();
@@ -125,7 +117,6 @@
 
     void IDisposable.Dispose()
     {
-        ParentComponent.OnChannelChange -= OnParentChannelChange;
         ValourClient.OnChannelCurrentlyTypingUpdate -= OnCurrentlyTypingUpdate;
         _timer?.Dispose();
     }

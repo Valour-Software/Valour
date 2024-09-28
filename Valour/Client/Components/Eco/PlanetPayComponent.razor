@@ -244,7 +244,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Get planet that was focused when the modal was loaded
-        _focusedPlanet = GlobalWindowData.GlobalActivePlanet;
+        _focusedPlanet = WindowService.FocusedPlanet;
 
         _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
         if (_planetCurrency is null)

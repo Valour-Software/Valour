@@ -1,0 +1,143 @@
+﻿@using Valour.Client.Pages
+<div class="window-dock">
+    @foreach (var tab in Tabs)
+    {
+        <WindowComponent @key="@tab.Id" WindowTab="@tab" Dock="@this" />
+    }
+    
+    @foreach(var split in Splits)
+    {
+        <WindowSplitComponent @key="@split.Id" Split="@split" />
+    }
+</div>
+
+@code {
+    
+    [Parameter]
+    public StartScreenData StartData { get; set; }
+    
+    public WindowLayout Layout { get; private set; }
+
+    public List<WindowTab> Tabs { get; private set; } = new();
+
+    public List<WindowSplit> Splits { get; private set; } = new();
+    
+    // Floaters are not tracked by a layout, so they are stored here
+    private List<WindowTab> _floaters = new();
+
+    protected override void OnInitialized()
+    {
+        WindowService.AddDock(this);
+        Reset();
+    }
+
+    /// <summary>
+    /// Notifies this dock that the layout has changed.
+    /// This will update the tabs and splits, and re-render if necessary.
+    /// </summary>
+    public void NotifyLayoutChanged(bool notifyService = true)
+    {
+        // Clear old lists
+        Tabs.Clear();
+        Splits.Clear();
+        
+        // Get new tabs and splits
+        Layout.GetTabs(Tabs);
+        Tabs.AddRange(_floaters);
+        
+        Layout.GetSplits(Splits);
+        
+        if (notifyService)
+        {
+            // Notify global window service
+            WindowService.NotifyDockLayoutUpdated();
+        }
+        
+        // Actually render changes
+        Render();
+    }
+    
+    public async Task AddFloatingTab(WindowContent content, FloatingWindowProps floatingProps)
+    {
+        var tab = new WindowTab(content, floatingProps);
+        await AddFloatingTab(tab, floatingProps);
+    }
+    
+    /// <summary>
+    /// Adds a tab as a floating window.
+    /// </summary>
+    public async Task AddFloatingTab(WindowTab tab, FloatingWindowProps floatingProps)
+    {
+        if (floatingProps is null)
+        {
+            floatingProps = new FloatingWindowProps()
+            {
+                // Center window with half size
+                X = BrowserUtils.WindowDimensions.Width / 4f,
+                Y = BrowserUtils.WindowDimensions.Height / 4f,
+                Width = BrowserUtils.WindowDimensions.Width / 2,
+                Height = BrowserUtils.WindowDimensions.Height / 2
+            };
+        }
+        
+        // this HAS to happen first to prevent component re-initialization
+        _floaters.Add(tab);
+        
+        await tab.SetLayout(null);
+        
+        tab.SetFloatingProps(floatingProps);
+        
+        NotifyLayoutChanged();
+    }
+    
+    public async Task RemoveFloatingTab(WindowContent content)
+    {
+        var tab = content.Tab;
+        if (tab is not null)
+        {
+            await RemoveFloatingTab(tab);
+        }
+    }
+    
+    public async Task RemoveFloatingTab(WindowTab tab)
+    {
+        tab.SetFloatingProps(null);
+        _floaters.Remove(tab);
+        NotifyLayoutChanged();
+    }
+
+    public void Reset(bool notifyService = true)
+    {
+        _floaters.Clear();
+        Tabs.Clear();
+        Splits.Clear();
+
+        Layout = new WindowLayout(this);
+        Layout.AddTab(HomeWindowComponent.DefaultContent);
+        
+        NotifyLayoutChanged(notifyService);
+    }
+
+    
+    // Rendering //
+    
+    /// <summary>
+    /// Flag that allows or disallows rendering.
+    /// </summary>
+    private bool _canRender = true;
+    
+    protected override bool ShouldRender() => _canRender;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _canRender = false;
+    }
+    
+    private void Render()
+    {
+        Console.WriteLine("Rendering window dock!");
+        _canRender = true;
+        StateHasChanged();
+    }
+
+}

@@ -194,6 +194,12 @@
 
     private void CalculateAvatar()
     {
+        if (User is null && Member is null)
+        {   
+            _avatarUrl = "./_content/Valour.Client/media/logo/logo-128.png";
+            return;
+        }
+
         _avatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.Webp128);
         if (User.HasAnimatedAvatar)
         {

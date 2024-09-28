@@ -1,0 +1,471 @@
+﻿@implements IDisposable
+
+<div id="tab-@WindowTab.Id"
+     class="window-wrapper @WindowWrapperClasses"
+     style="@WindowWrapperStyles z-index: @ZIndex"
+     @ref="@OuterWindowRef"
+     @onmouseup:stopPropagation="true"
+     @onmouseup="@OnWindowMouseUp">
+    <div class="tab-wrapper @TabWrapperClasses"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickTab"
+         @onmousedown:stopPropagation="true"
+         @onmousedown:preventDefault="true"
+         @onmousedown="@OnTabDown"
+         @onmousemove:stopPropagation="true"
+         @onmousemove:preventDefault="true"
+         style="@TabWrapperStyle">
+        @* Mobile does not have tabs *@
+        @if (!DeviceInfo.IsMobile)
+        {
+            <div class="tab">
+                <div class="tab-info">
+                    <img alt="tab icon" class="tab-icon" src="@Icon"/>
+                    <span class="tab-title">@Title</span>
+                </div>
+                <div class="tab-buttons"
+                     @onclick:stopPropagation="true"
+                     @onmousedown:stopPropagation="true">
+                    @if (Type != typeof(HomeWindowComponent))
+                    {
+                        <span class="home" @onclick="@OnClickHome">
+                            <i class="bi bi-house-door-fill"></i>
+                        </span>
+                    }
+                    @if (Layout is not null)
+                    {
+                        <span class="plus" @onclick="@OnClickPlus">
+                            <i class="bi bi-plus-circle-fill"></i>
+                        </span>
+                    }
+                    @if (Layout is null || Layout.Tabs.Count > 1)
+                    {
+                        <span class="minus" @onclick="@OnClickMinus">
+                            <i class="bi bi-dash-circle-fill"></i>
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <div class="window"
+         style="@WindowStyle"
+         @onclick:stopPropagation="true"
+         @onclick="@OnClickWindow">
+        @* Window Content *@
+        @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
+    </div>
+    
+    @if (!IsFloating && // floating tabs don't have drop targets
+         WindowService.DraggingTab is not null && 
+         WindowService.DraggingTab != WindowTab)
+    {
+        <WindowDropTargets Window="@this" />
+    }
+</div>
+
+@code {
+    public ElementReference OuterWindowRef { get; private set; }
+
+    ////////////
+    // Params //
+    ////////////
+    [Parameter] public WindowTab WindowTab { get; set; }
+    [Parameter] public WindowDockComponent Dock { get; set; }
+    
+    ///////////////////////
+    // Public properties //
+    ///////////////////////
+    public WindowLayout Layout => WindowTab.Layout;
+    public bool IsActive => Layout?.FocusedTab == WindowTab;
+    public bool IsFloating => WindowTab.IsFloating;
+
+    ///////////////////////
+    // Private properties //
+    ///////////////////////
+    
+    private int ZIndex => IsFloating ? (IsActive ? 101 : 100) : (IsActive ? 2 : 1);
+
+    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: {GetTabWidth() * GetIndex()}%";
+
+    private string TabWrapperClasses
+    {
+        get
+        {
+            string classes;
+            if (IsFloating)
+            {
+                classes = "floating ";
+            }
+            else
+            {
+                classes = "docked ";
+                
+                if (GetIndex() == Layout.Tabs.Count - 1)
+                {
+                    classes += "last ";
+                }
+            }
+
+            return classes;
+        }
+    }
+
+    private string WindowWrapperClasses
+    {
+        get
+        {
+            var classes = IsFloating ? "floating " : "docked ";
+            
+            if (IsActive)
+                classes += "active ";
+            
+            if (_dragging)
+                classes += "dragging ";
+
+            return classes;
+        }
+    }
+
+    private string WindowWrapperStyles
+    {
+        // Floating window uses floating props, otherwise uses layout
+        get
+        {
+            if (IsFloating && WindowTab.FloatingProps is not null)
+            {
+                return $"top: {WindowTab.FloatingProps.Y}px; left: {WindowTab.FloatingProps.X}px; width: {WindowTab.FloatingProps.Width}px; height: {WindowTab.FloatingProps.Height}px;";
+            }
+            
+            return Layout?.Position.Style ?? string.Empty;
+        }
+    }
+
+    private string Icon => WindowTab.Content?.Icon ?? HomeWindowComponent.DefaultContent.Icon;
+    private string Title => WindowTab.Content?.Title ?? HomeWindowComponent.DefaultContent.Title;
+    private Type Type => WindowTab.Content.ComponentType ?? HomeWindowComponent.DefaultContent.ComponentType;
+
+    private string WindowStyle
+    {
+        get
+        {
+            var styles = string.Empty;
+            if (WindowTab.Content?.AutoScroll ?? true)
+            {
+                styles += "overflow-y: auto;";
+            }
+            
+            return styles;
+        }
+        
+    } 
+    
+    ///////////////
+    // Lifecycle //
+    ///////////////
+    
+    // Render flag: blocks or allows rendering
+    private bool _canRender = false;
+    protected override bool ShouldRender() => _canRender;
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine("Initialized window tab component " + WindowTab.Id);
+        
+        WindowTab.Component = this;
+        BrowserUtils.OnWindowResize += OnWindowResize;
+        WindowService.OnTabDragging += OnGlobalTabDragging;
+    }
+
+    // Runs after every render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Reset render flag
+        _canRender = false;
+
+        if (_armFloatEvent)
+        {
+            _armFloatEvent = false;
+            await WindowTab.NotifyFloating(); // Fire off event
+        }
+    }
+    
+    public void ReRender()
+    {
+        _canRender = true;
+        StateHasChanged();
+    }
+    
+    
+    public async Task ReplaceAsync(WindowContent content)
+    {
+        await WindowTab.NotifyClose();
+        
+        await WindowTab.SetContent(content);
+        await WindowTab.NotifyAdded();
+        
+        ReRender();
+    }
+
+    public async Task CloseAsync()
+    {
+        await WindowTab.NotifyClose();
+
+        if (!IsFloating)
+        {
+            await Layout.RemoveTab(WindowTab);
+        }
+        else
+        {
+            await Dock.RemoveFloatingTab(WindowTab);
+        }
+    }
+
+    public Task AddSiblingTab(WindowContent content)
+    {
+        Layout.AddTab(content);
+        return Task.CompletedTask;
+    }
+
+    public void NotifyNeedsReRender()
+    {
+        ReRender();
+    }
+    
+    private float GetTabWidth()
+    {
+        if (Layout.Tabs.Count == 1)
+            return 100f;
+        
+        return (100f / Layout.Tabs.Count);
+    }
+
+    private int GetIndex()
+    {
+        if (Layout is null)
+            return 0;
+        
+        return Layout.Tabs.IndexOf(WindowTab);
+    }
+
+    private async Task SetFocused()
+    {
+        if (Layout is not null)
+            await Layout.SetFocusedTab(WindowTab);
+    }
+    
+    // For the layout to tell this tab the tab-stack has changed
+    public void NotifyLayoutChanged()
+    {
+        ReRender();
+    }
+
+    private async Task OnClickPlus()
+    {
+        await AddSiblingTab(HomeWindowComponent.DefaultContent);
+    }
+    
+    private async Task OnClickMinus()
+    {
+        await CloseAsync();
+    }
+
+    private Task OnClickTab(MouseEventArgs e)
+    {
+        return SetFocused();
+    }
+    
+    private Task OnClickWindow()
+    {
+        return SetFocused();
+    }
+    
+    private Task OnClickHome()
+    {
+        return ReplaceAsync(HomeWindowComponent.DefaultContent);
+    }
+
+    
+    ///////////////////////
+    // Tab drag handling //
+    ///////////////////////
+    
+    private float _dragStartX;
+    private float _dragStartY;
+
+    private bool _dragging = false;
+    private bool _armFloatEvent = false; // Used to trigger event when the window starts floating. See OnAfterRenderAsync.
+    
+    /// <summary>
+    /// Runs when the mouse goes down on the tab - prepares for dragging.
+    /// </summary>
+    private Task OnTabDown(MouseEventArgs e)
+    {
+        // Store the start position
+        _dragStartX = (float)e.ClientX;
+        _dragStartY = (float)e.ClientY;
+        
+        // Enable mouse move listener
+        MouseListener.SubscribeMouseMove(OnDragTab);
+        
+        // Enable mouse up listener
+        
+        // Why not just use the up event on the tab? Because the mouse can move off the tab,
+        // and we still want to be able to drag the tab. So we need to listen for the up event
+        // globally.
+        MouseListener.SubscribeMouseUp(OnTabUp);
+        
+        return Task.CompletedTask;
+    }
+    
+    private Task OnTabUp(MouseUpEvent e)
+    {
+        _dragging = false;
+        
+        // End window target scanner
+        WindowTargetScanner.Finalize(e.X, e.Y);
+        
+        // Disable mouse move listener
+        MouseListener.UnsubscribeMouseMove(OnDragTab);
+        
+        // Disable mouse up listener
+        MouseListener.UnsubscribeMouseUp(OnTabUp);
+        
+        WindowService.NotifyTabDragging(null);
+        
+        ReRender();
+        
+        return Task.CompletedTask;
+    }
+
+    private async Task OnDragTab(MouseMoveEvent e)
+    {
+        if (!IsFloating)
+        {
+            if (_armFloatEvent)
+            {
+                return; // Waiting for render to float
+            }
+            
+            // If not floating, we start floating if the mouse moves a certain distance
+            if (Math.Abs(e.X - _dragStartX) > 10 || Math.Abs(e.Y - _dragStartY) > 10)
+            {
+                Console.WriteLine("Started floating");
+                
+                _armFloatEvent = true;
+                
+                await Layout.DockComponent.AddFloatingTab(WindowTab, new FloatingWindowProps()
+                {
+                    X = Math.Max(0, e.X - 150),
+                    Y = Math.Max(0, e.Y - 15),
+                    Width = 300,
+                    Height = 300,
+                });
+            }
+        }
+        else
+        {
+            // Console.WriteLine("Dragging " + WindowTab.Id);
+            
+            // Just move the floating window
+            WindowTab.FloatingProps.X += e.DeltaX;
+            WindowTab.FloatingProps.Y += e.DeltaY;
+            
+            // Console.WriteLine("Pos: " + JsonSerializer.Serialize(WindowTab.FloatingProps));
+
+            EnsureOnScreen();
+            
+            _dragging = true;
+            
+            // Notify global windows of dragging
+            WindowService.NotifyTabDragging(this.WindowTab);
+            
+            // Run window target scanner
+            WindowTargetScanner.Scan(e.X, e.Y);
+        }
+        
+        ReRender();
+    }
+    
+    public async Task OnWindowMouseUp(MouseEventArgs e)
+    {
+        if (IsFloating)
+        {
+            // On floating windows we check if the element has been resized when the mouse is released
+            var dims = await GetDimensions();
+            WindowTab.FloatingProps.Width = dims.Width;
+            WindowTab.FloatingProps.Height = dims.Height;
+            
+            Console.WriteLine("Updated floating window size to " + dims.Width + "x" + dims.Height);
+        }
+    }
+    
+    public async Task<ElementDimensions> GetDimensions()
+    {
+        return await BrowserUtils.GetElementDimensionsAsync(OuterWindowRef);
+    }
+
+    public bool EnsureOnScreen()
+    {
+        var changed = false;
+        
+        // Prevent going off screen
+        if (WindowTab.FloatingProps.X < 0)
+        {
+            WindowTab.FloatingProps.X = 0;
+            changed = true;
+        }
+
+        if (WindowTab.FloatingProps.Y < 0)
+        {
+            WindowTab.FloatingProps.Y = 0;
+            changed = true;
+        }
+
+        if (WindowTab.FloatingProps.X + WindowTab.FloatingProps.Width > BrowserUtils.WindowDimensions.Width)
+        {
+            WindowTab.FloatingProps.X = BrowserUtils.WindowDimensions.Width - WindowTab.FloatingProps.Width;
+            changed = true;
+        }
+
+        if (WindowTab.FloatingProps.Y + WindowTab.FloatingProps.Height > BrowserUtils.WindowDimensions.Height)
+        {
+            WindowTab.FloatingProps.Y = BrowserUtils.WindowDimensions.Height - WindowTab.FloatingProps.Height;
+            changed = true;
+        }
+
+        return changed;
+    }
+    
+    private Task OnWindowResize(ElementDimensions dims)
+    {
+        if (IsFloating)
+        {
+            var changed = EnsureOnScreen();
+            if (changed)
+            {
+                ReRender();
+            }
+        }
+        
+        return Task.CompletedTask;
+    }
+    
+    private void OnGlobalTabDragging(WindowTab tab)
+    {
+        if (tab == WindowTab)
+            return;
+        
+        // If we aren't visible, we don't need to do anything
+        //if (!IsActive)
+        //    return;
+        
+        ReRender();
+    }
+    
+    public void Dispose()
+    {
+        BrowserUtils.OnWindowResize -= OnWindowResize;
+        WindowService.OnTabDragging -= OnGlobalTabDragging;
+    }
+}

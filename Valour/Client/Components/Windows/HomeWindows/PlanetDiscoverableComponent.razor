@@ -3,7 +3,7 @@
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
 
-<div id="flipper-discover-@Planet.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-discover-@Planet.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-discover-@Planet.Id-@Window.Id', 240)" @onclick="OnClick"> 
+<div id="flipper-discover-@Planet.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-discover-@Planet.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-discover-@Planet.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle"
          @oncontextpress="@OnContextPress">
         @if (!string.IsNullOrWhiteSpace(_iconText))
@@ -41,7 +41,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public WindowData Window { get; set; }
+    public WindowContent WindowCtx { get; set; }
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }

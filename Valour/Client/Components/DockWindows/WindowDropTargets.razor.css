@@ -1,26 +1,4 @@
-﻿.dock-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: var(--main-1);
-}
-
-.dock-container.split {
-    display: flex;
-}
-
-.dock-container.split.horizontal {
-    display: flex;
-    flex-direction: row;
-}
-
-.dock-container.split.vertical {
-    display: flex;
-    flex-direction: column;
-}
-
-.drop-targets {
+﻿.drop-targets {
     position: absolute;
     width: 100%;
     height: 100%;

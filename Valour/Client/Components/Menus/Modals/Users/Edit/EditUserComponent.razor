@@ -78,7 +78,7 @@
 @code {
     
     [CascadingParameter]
-    public DomWindowData DomWindow { get; set; }
+    public BrowserUtils DomWindow { get; set; }
 
     public class ModalParams
     {
@@ -156,9 +156,9 @@
             Staff = true
         };
 
-        var newWindow = await ModToolsWindowComponent.GetDefaultSettings(data);
-
-        await GlobalWindowData.TryAddFloatingWindow(newWindow);
+        var content = ModToolsWindowComponent.GetDefaultContent(data);
+        var floatingProps = ModToolsWindowComponent.GetDefaultFloatingProps();
+        await WindowService.TryAddFloatingWindow(content, floatingProps);
 
         await CloseAsync();
     }

@@ -166,7 +166,7 @@
     public MessageHolderComponent Holder { get; set; }
 
     [CascadingParameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
     
     [CascadingParameter]
     public ChatChannelWindowComponent ChatComponent { get; set; }
@@ -329,7 +329,7 @@
         }
         else
         {
-            await GlobalWindowData.SetGlobalActiveWindowAsync(Window);
+            await Window.NotifyFocused();
         }
     }
 
@@ -436,7 +436,7 @@
 
         _isBuilt = true;
 
-        if (render || Holder is null)
+        if (render)
             ReRender();
     }
 
@@ -465,7 +465,7 @@
         if (User != null)
             User.OnUpdated += OnUserUpdated;
         
-        if (Holder is not null && !IsInnerReply && !Ghost)
+        if (!IsInnerReply && !Ghost)
         {
             Holder.AddRenderedMessage(this);
         }

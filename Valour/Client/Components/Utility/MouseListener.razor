@@ -1,0 +1,127 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@code {
+
+    /// <summary>
+    /// Event called when the mouse is moved. Private so we can track number of subscribers.
+    /// </summary>
+    private static event Func<MouseMoveEvent, Task> OnMouseMove;
+    
+    /// <summary>
+    /// Event called when the mouse click goes up. Private so we can track number of subscribers.
+    /// </summary>
+    private static event Func<MouseUpEvent, Task> OnMouseUp;
+
+    // Interop variables
+    private static DotNetObjectReference<MouseListener> _thisRef;
+    private static IJSInProcessObjectReference _jsModule;
+    private static IJSInProcessObjectReference _jsService;
+    
+    private static int _moveSubscribers = 0;
+    private static bool _isListeningMove = false;
+    
+    private static int _upSubscribers = 0;
+    private static bool _isListeningUp = false;
+    
+    public static void SubscribeMouseMove(Func<MouseMoveEvent, Task> callback)
+    {
+        OnMouseMove += callback;
+        _moveSubscribers++;
+        
+        if (!_isListeningMove)
+        {
+            _isListeningMove = true;
+            _jsService.InvokeVoid("startMoveListener");
+        }
+    }
+    
+    public static void UnsubscribeMouseMove(Func<MouseMoveEvent, Task> callback)
+    {
+        OnMouseMove -= callback;
+        _moveSubscribers--;
+        
+        if (_moveSubscribers == 0)
+        {
+            _isListeningMove = false;
+            _jsService.InvokeVoid("stopMoveListener");
+        }
+    }
+    
+    public static void SubscribeMouseUp(Func<MouseUpEvent, Task> callback)
+    {
+        OnMouseUp += callback;
+        _upSubscribers++;
+        
+        if (!_isListeningUp)
+        {
+            _isListeningUp = true;
+            _jsService.InvokeVoid("startUpListener");
+        }
+    }
+    
+    public static void UnsubscribeMouseUp(Func<MouseUpEvent, Task> callback)
+    {
+        OnMouseUp -= callback;
+        _upSubscribers--;
+        
+        if (_upSubscribers == 0)
+        {
+            _isListeningUp = false;
+            _jsService.InvokeVoid("stopUpListener");
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Set up interop
+            _thisRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/MouseListener.razor.js");
+            
+            // Initialize
+            _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef);
+        }
+    }
+
+    [JSInvokable("NotifyMouseMove")]
+    public async Task NotifyMouseMove(float x, float y, float deltaX, float deltaY)
+    {
+        if (OnMouseMove is null)
+            return;
+        
+        await OnMouseMove.Invoke(new MouseMoveEvent()
+        {
+            X = x,
+            Y = y,
+            DeltaX = deltaX,
+            DeltaY = deltaY
+        });
+    }
+    
+    [JSInvokable("NotifyMouseUp")]
+    public async Task NotifyMouseUp(float x, float y)
+    {
+        if (OnMouseUp is null)
+            return;
+        
+        await OnMouseUp.Invoke(new MouseUpEvent()
+        {
+            X = x,
+            Y = y
+        });
+    }
+    
+    public ValueTask DisposeAsync()
+    {
+        _thisRef?.Dispose();
+        _jsModule?.Dispose();
+        _jsService?.Dispose();
+        
+        // Unsubscribe all
+        OnMouseMove = null;
+        
+        return ValueTask.CompletedTask;
+    }
+}

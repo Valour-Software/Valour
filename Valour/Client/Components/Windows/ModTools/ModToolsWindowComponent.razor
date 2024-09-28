@@ -1,3 +1,5 @@
+@inherits WindowContentComponent<ModToolsWindowData>
+
 <h4 class="title">Mod Tools for @(Data.Staff ? "Staff" : Data.Planet.Name)</h4>
 
 <div class="table-wrapper">
@@ -15,30 +17,28 @@
 </div>
 @code {
 
-    public static async Task<WindowData> GetDefaultSettings(ModToolsWindowData data)
+    public static WindowContent GetDefaultContent(ModToolsWindowData data)
     {
-        var dim = await DomWindowData.Instance.GetWindowDimensions();
-        
-        var window = new WindowData(){
+        return new WindowContent<ModToolsWindowComponent, ModToolsWindowData>()
+        {
             Title = "Staff Tools",
             Icon = "_content/Valour.Client/media/logo/logo-64.png",
-            Type = typeof(ModToolsWindowComponent),
             Data = data,
-            StartFloatWidth = dim.Width / 2,
-            StartFloatHeight = dim.Height / 2,
-            AutoScroll = true
         };
-
-        return window;
+    }
+    
+    public static FloatingWindowProps GetDefaultFloatingProps()
+    {
+        return new FloatingWindowProps()
+        {
+            Height = BrowserUtils.WindowDimensions.Height / 2,
+            Width = BrowserUtils.WindowDimensions.Width / 2,
+            X = 100,
+            Y = 100
+        };
     }
     
     
     private readonly string[] _tabs =
         new string[] { "Members", "Reports" };
-    
-    [Parameter]
-    public WindowData Window { get; set; }
-        
-    [Parameter] 
-    public ModToolsWindowData Data { get; set; }
 }
