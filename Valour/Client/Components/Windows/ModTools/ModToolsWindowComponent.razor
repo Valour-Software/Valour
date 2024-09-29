@@ -17,9 +17,39 @@
 </div>
 @code {
 
+    public class Content : WindowContent<ModToolsWindowComponent, ModToolsWindowData>
+    {
+        public class SaveData
+        {
+            public bool Staff { get; set; }
+            public long PlanetId { get; set; }
+        }
+        
+        public override async Task ImportData(string data)
+        {
+            var saved = JsonSerializer.Deserialize<SaveData>(data);
+            Data = new ModToolsWindowData()
+            {
+                Staff = saved.Staff,
+                Planet = await Planet.FindAsync(saved.PlanetId)
+            };
+        }
+
+        public override string ExportData()
+        {
+            var json = JsonSerializer.Serialize(new SaveData()
+            {
+                Staff = Data.Staff,
+                PlanetId = Data.Planet.Id
+            });
+            
+            return json;
+        }
+    }
+
     public static WindowContent GetDefaultContent(ModToolsWindowData data)
     {
-        return new WindowContent<ModToolsWindowComponent, ModToolsWindowData>()
+        return new Content()
         {
             Title = "Staff Tools",
             Icon = "_content/Valour.Client/media/logo/logo-64.png",

@@ -74,9 +74,9 @@
             Message = message
         };
         
-        var windowData = await StaffMessageWindow.GetDefaultSettings(props);
+        var windowData = await StaffMessageWindow.GetDefaultContentAsync(props);
 
-        await GlobalWindowData.TryAddFloatingWindow(windowData);
+        await WindowService.TryAddFloatingWindow(windowData);
     }
 
 }

@@ -1,4 +1,5 @@
-﻿@using Valour.Client.Pages
+﻿@inject ISyncLocalStorageService LocalStorage
+@using Valour.Client.Pages
 <div class="window-dock">
     @foreach (var tab in Tabs)
     {
@@ -25,17 +26,63 @@
     // Floaters are not tracked by a layout, so they are stored here
     private List<WindowTab> _floaters = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         WindowService.AddDock(this);
-        Reset();
+
+        var loaded = false;
+        
+        // check if state is saved
+        var layoutJson = LocalStorage.GetItemAsString("coreLayout");
+        if (!string.IsNullOrWhiteSpace(layoutJson))
+        {
+            try
+            {
+                Layout = await WindowSaveLoadAdapter.DeserializeLayout(layoutJson);
+                Layout.SetDockRecursiveRaw(this);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to load saved layout: " + e.Message);
+                Reset();
+                throw;
+            }
+            
+            loaded = true;
+        }
+        
+        var floatersJson = LocalStorage.GetItemAsString("coreFloaters");
+        if (!string.IsNullOrWhiteSpace(floatersJson))
+        {
+            try
+            {
+                _floaters = await WindowSaveLoadAdapter.DeserializeFloaters(floatersJson);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to load saved floaters: " + e.Message);
+                _floaters.Clear();
+                throw;
+            }
+        }
+        
+        if (!loaded)
+        {
+            Reset();
+        }
+        else
+        {
+            Layout.RecalculatePosition();
+            NotifyLayoutChanged(false, false);
+            Layout.ReRenderRecursive();
+        }
     }
 
     /// <summary>
     /// Notifies this dock that the layout has changed.
     /// This will update the tabs and splits, and re-render if necessary.
     /// </summary>
-    public void NotifyLayoutChanged(bool notifyService = true)
+    public void NotifyLayoutChanged(bool notifyService = true, bool saveLayout = true)
     {
         // Clear old lists
         Tabs.Clear();
@@ -55,6 +102,12 @@
         
         // Actually render changes
         Render();
+        
+        // Save layout
+        SaveLayout();
+        
+        // Save floaters
+        SaveFloaters();
     }
     
     public async Task AddFloatingTab(WindowContent content, FloatingWindowProps floatingProps)
@@ -106,7 +159,7 @@
         NotifyLayoutChanged();
     }
 
-    public void Reset(bool notifyService = true)
+    public void Reset(bool notifyService = true, bool saveLayout = true)
     {
         _floaters.Clear();
         Tabs.Clear();
@@ -115,7 +168,20 @@
         Layout = new WindowLayout(this);
         Layout.AddTab(HomeWindowComponent.DefaultContent);
         
-        NotifyLayoutChanged(notifyService);
+        NotifyLayoutChanged(notifyService, saveLayout);
+    }
+    
+    public void SaveLayout()
+    {
+        var layoutJson = WindowSaveLoadAdapter.SerializeLayout(Layout);
+        // Console.WriteLine(layoutJson);
+        LocalStorage.SetItemAsString("coreLayout", layoutJson);
+    }
+    
+    public void SaveFloaters()
+    {
+        var floatersJson = WindowSaveLoadAdapter.SerializeFloaters(_floaters);
+        LocalStorage.SetItemAsString("coreFloaters", floatersJson);
     }
 
     

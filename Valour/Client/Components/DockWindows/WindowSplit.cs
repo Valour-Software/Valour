@@ -46,4 +46,9 @@ public class WindowSplit
         
         Layout = layout;
     }
+    
+    public void SetLayoutRaw(WindowLayout layout)
+    {
+        Layout = layout;
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using Valour.Client.Components.Windows.HomeWindows;
 
 namespace Valour.Client.Components.DockWindows;
@@ -54,6 +55,7 @@ public class WindowLayout
     /// <summary>
     /// The parent (if any) layout of this WindowLayout
     /// </summary>
+    [JsonIgnore]
     public WindowLayout Parent { get; private set; }
     
     /// <summary>
@@ -102,6 +104,33 @@ public class WindowLayout
         RecalculatePosition();
     }
     
+    // For loading from serialized
+    public WindowLayout(WindowLayout childOne, WindowLayout childTwo, WindowSplit split, List<WindowTab> tabs)
+    {
+        ChildOne = childOne;
+        ChildTwo = childTwo;
+        
+        Split = split;
+        
+        Tabs = tabs;
+        
+        // Set layout of everything to this
+        childOne?.SetParentRaw(this);
+        childTwo?.SetParentRaw(this);
+        
+        split?.SetLayoutRaw(this);
+
+        if (tabs is not null)
+        {
+            foreach (var tab in tabs)
+            {
+                tab.SetLayoutRaw(this);
+            }
+        }
+        
+        _position = new WindowLayoutPosition();
+    }
+    
     // A note on bool render:
     // This is used to prevent multiple layout changes from rendering the layout multiple times.
     // For example, one operation may both add and remove a tab. We don't want to render the layout twice.
@@ -117,6 +146,26 @@ public class WindowLayout
                 tab.SetLayoutRaw(this);
             }
         }
+    }
+    
+    public void SetDockRecursiveRaw(WindowDockComponent dockComponent)
+    {
+        DockComponent = dockComponent;
+        
+        if (ChildOne is not null)
+        {
+            ChildOne.SetDockRecursiveRaw(dockComponent);
+        }
+        
+        if (ChildTwo is not null)
+        {
+            ChildTwo.SetDockRecursiveRaw(dockComponent);
+        }
+    }
+    
+    public void SetParentRaw(WindowLayout parent)
+    {
+        Parent = parent;
     }
     
     public async Task AddTabs(List<WindowTab> tabs, bool render = true)
@@ -337,6 +386,9 @@ public class WindowLayout
             ChildOne.SetTabsRaw(tabsOne);
             ChildTwo.SetTabsRaw(tabsTwo);
         }
+        
+        // Clear tabs
+        Tabs = null;
         
         RecalculatePosition();
         

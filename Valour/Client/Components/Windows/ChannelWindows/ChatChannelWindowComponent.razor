@@ -15,7 +15,27 @@
 </CascadingValue>
 
 @code {
-    public static async Task<WindowContent<ChatChannelWindowComponent, Channel>> GetDefaultContent(Channel channel)
+
+    public class Content : WindowContent<ChatChannelWindowComponent, Channel>
+    {
+        public override async Task ImportData(string data)
+        {
+            // Exported data is channel id
+            long channelId = JsonSerializer.Deserialize<long>(data);
+            var channel = await Channel.FindAsync(channelId);
+            Data = channel;
+        }
+
+        public override string ExportData()
+        {
+            if (Data is null)
+                return null;
+            
+            return JsonSerializer.Serialize(Data.Id);
+        }
+    }
+    
+    public static async Task<Content> GetDefaultContent(Channel channel)
     {
         return new()
         {

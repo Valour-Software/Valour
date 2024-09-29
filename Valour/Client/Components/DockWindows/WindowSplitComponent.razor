@@ -62,7 +62,7 @@
         return Task.CompletedTask;
     }
     
-    public Task HandleMouseMove(MouseMoveEvent e)
+    public Task HandleMouseMove(MousePosition e)
     {
         // Convert delta to split ratio change
         
@@ -125,6 +125,10 @@
     public Task HandleMouseUp(MouseUpEvent e)
     {
         MouseListener.UnsubscribeMouseMove(HandleMouseMove);
+        
+        // Tell dock to save layout
+        Split.Layout.DockComponent.SaveLayout();
+        
         return Task.CompletedTask;
     }
 }

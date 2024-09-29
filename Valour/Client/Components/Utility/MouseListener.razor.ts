@@ -33,7 +33,7 @@ export const init = (dotnet: DotNetObject): MouseMoveService => {
             service.lastX = e.clientX;
             service.lastY = e.clientY;
 
-            dotnet.invokeMethod('NotifyMouseMove', e.clientX, e.clientY, deltaX, deltaY);
+            dotnet.invokeMethod('NotifyMouseMove', e.clientX, e.clientY, e.pageX, e.pageY, deltaX, deltaY);
         },
         
         startMoveListener: () => {

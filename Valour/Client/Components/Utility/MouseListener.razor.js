@@ -11,7 +11,7 @@ export const init = (dotnet) => {
             const deltaY = service.lastY ? e.clientY - service.lastY : 0;
             service.lastX = e.clientX;
             service.lastY = e.clientY;
-            dotnet.invokeMethod('NotifyMouseMove', e.clientX, e.clientY, deltaX, deltaY);
+            dotnet.invokeMethod('NotifyMouseMove', e.clientX, e.clientY, e.pageX, e.pageY, deltaX, deltaY);
         },
         startMoveListener: () => {
             document.addEventListener('mousemove', service.moveListener);

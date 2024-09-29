@@ -8,9 +8,27 @@
 </p>
 
 @code {
+
+    public class Content : WindowContent<PlanetInfoWindowComponent, Planet>
+    {
+        public override async Task ImportData(string data)
+        {
+            // Exported data is planet id
+            long planetId = JsonSerializer.Deserialize<long>(data);
+            var planet = await Planet.FindAsync(planetId);
+            Data = planet;
+        }
+
+        public override string ExportData()
+        {
+            var json = JsonSerializer.Serialize(Data.Id);
+            return json;
+        }
+    }
+    
     public static WindowContent<PlanetInfoWindowComponent, Planet> GetDefaultContent(Planet planet)
     {
-        return new WindowContent<PlanetInfoWindowComponent, Planet>()
+        return new Content()
         {
             Title = "Info - " + planet.Name,
             Icon = planet.GetIconUrl(IconFormat.Webp64),

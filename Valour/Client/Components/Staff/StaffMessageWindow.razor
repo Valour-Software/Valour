@@ -1,4 +1,6 @@
-﻿@if (_params is null)
+﻿@inherits WindowContentComponent<StaffMessageWindow.Props>
+
+@if (_params is null)
 {
     <h5>Loading message...</h5>
     return;
@@ -7,40 +9,57 @@
 <MessageComponent ParamData="@_params" />
 
 @code {
-    [Parameter]
-    public WindowData Window { get; set; }
-    
-    [Parameter]
-    public StaffMessageWindow.Props Data { get; set; }
-    
     private MessageHolderComponent.MessageComponentParams _params;
+
+    public class Content: WindowContent<StaffMessageWindow, Props>
+    {
+        public override async Task ImportData(string data)
+        {
+            // Exported data is message id
+            long messageId = JsonSerializer.Deserialize<long>(data);
+            var message = await StaffTools.GetMessageAsync(messageId);
+            Data = new Props()
+            {
+                Message = message
+            };
+        }
+        
+        public override string ExportData()
+        {
+            return JsonSerializer.Serialize(Data.Message.Id);
+        }
+    }
 
     public class Props
     {
         public Message Message { get; set; }
     }
-
-    public static async Task<WindowData> GetDefaultSettings(StaffMessageWindow.Props props)
+    
+    public static async Task<WindowContent> GetDefaultContentAsync(StaffMessageWindow.Props data)
     {
-        var dim = await DomWindowData.Instance.GetWindowDimensions();
-        var mousePos = await DomWindowData.Instance.GetMousePosition();
-
-        var avatar = await props.Message.GetAuthorImageUrlAsync();
+        var avatar = await data.Message.GetAuthorImageUrlAsync();
         
-        var window = new WindowData(){
-            Title = "Message " + props.Message.Id,
+        return new Content()
+        {
+            Title = "Message " + data.Message.Id,
             Icon = avatar,
-            Type = typeof(StaffMessageWindow),
-            Data = props,
-            StartFloatWidth = Math.Min(dim.Width, 400),
-            StartFloatHeight = Math.Min(dim.Height, 200),
-            StartFloatX = mousePos.X,
-            StartFloatY = mousePos.Y,
-            AutoScroll = true
+            Data = data
         };
+    }
+    
+    public static FloatingWindowProps GetDefaultFloatingProps()
+    {
+        var dim = BrowserUtils.WindowDimensions;
+        var mousePos = MouseListener.Position;
         
-        return window;
-    }    
+        return new FloatingWindowProps()
+        {
+            Height = Math.Min(dim.Height, 200),
+            Width = Math.Min(dim.Width, 400),
+            X = mousePos.ClientX,
+            Y = mousePos.ClientY
+        };
+    }
     
     protected override void OnInitialized()
     {

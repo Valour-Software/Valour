@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Components;
 using Valour.Client.Components.Utility;
 using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Client.Components.Windows.HomeWindows;
@@ -89,7 +90,7 @@ public class WindowContent<TWindow> : WindowContent where TWindow : WindowConten
     };
 }
 
-public class WindowContent<TWindow, TData> : 
+public abstract class WindowContent<TWindow, TData> : 
     WindowContent<TWindow> where TWindow : WindowContentComponent<TData> where TData : class
 {
     public TData Data { get; set; }
@@ -104,6 +105,16 @@ public class WindowContent<TWindow, TData> :
         builder.AddComponentParameter(2, "Data", Data);
         builder.CloseComponent();
     };
+
+    /// <summary>
+    /// Used to export data to a form which can be serialized
+    /// </summary>
+    public abstract string ExportData();
+    
+    /// <summary>
+    /// Used to import data from a serialized form to the data object
+    /// </summary>
+    public abstract Task ImportData(string data);
 }
 
 public class FloatingWindowProps
@@ -141,6 +152,7 @@ public class WindowTab
     /// <summary>
     /// The layout this window tab belongs to
     /// </summary>
+    [JsonIgnore]
     public WindowLayout Layout { get; private set; }
     
     /// <summary>
@@ -180,6 +192,11 @@ public class WindowTab
         
         // Let new content know it's opening
         await content.NotifyOpened();
+        
+        // Let dock know to save new state
+        // Note to future self: this needs to run AFTER the new content
+        // has loaded its properties that need to be saved
+        Layout.DockComponent.SaveLayout();
     }
 
     public void NotifyLayoutChanged()

@@ -338,7 +338,7 @@
         return Task.CompletedTask;
     }
 
-    private async Task OnDragTab(MouseMoveEvent e)
+    private async Task OnDragTab(MousePosition e)
     {
         if (!IsFloating)
         {
@@ -348,7 +348,7 @@
             }
             
             // If not floating, we start floating if the mouse moves a certain distance
-            if (Math.Abs(e.X - _dragStartX) > 10 || Math.Abs(e.Y - _dragStartY) > 10)
+            if (Math.Abs(e.ClientX - _dragStartX) > 10 || Math.Abs(e.ClientY - _dragStartY) > 10)
             {
                 Console.WriteLine("Started floating");
                 
@@ -356,8 +356,8 @@
                 
                 await Layout.DockComponent.AddFloatingTab(WindowTab, new FloatingWindowProps()
                 {
-                    X = Math.Max(0, e.X - 150),
-                    Y = Math.Max(0, e.Y - 15),
+                    X = Math.Max(0, e.ClientX - 150),
+                    Y = Math.Max(0, e.ClientY - 15),
                     Width = 300,
                     Height = 300,
                 });
@@ -381,7 +381,7 @@
             WindowService.NotifyTabDragging(this.WindowTab);
             
             // Run window target scanner
-            WindowTargetScanner.Scan(e.X, e.Y);
+            WindowTargetScanner.Scan(e.ClientX, e.ClientY);
         }
         
         ReRender();
@@ -397,6 +397,8 @@
             WindowTab.FloatingProps.Height = dims.Height;
             
             Console.WriteLine("Updated floating window size to " + dims.Width + "x" + dims.Height);
+            
+            Dock.SaveFloaters();
         }
     }
     

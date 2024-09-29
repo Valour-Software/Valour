@@ -6,7 +6,7 @@
     /// <summary>
     /// Event called when the mouse is moved. Private so we can track number of subscribers.
     /// </summary>
-    private static event Func<MouseMoveEvent, Task> OnMouseMove;
+    private static event Func<MousePosition, Task> OnMouseMove;
     
     /// <summary>
     /// Event called when the mouse click goes up. Private so we can track number of subscribers.
@@ -18,58 +18,33 @@
     private static IJSInProcessObjectReference _jsModule;
     private static IJSInProcessObjectReference _jsService;
     
+    public static MousePosition Position { get; private set; }
+    
     private static int _moveSubscribers = 0;
-    private static bool _isListeningMove = false;
-    
     private static int _upSubscribers = 0;
-    private static bool _isListeningUp = false;
     
-    public static void SubscribeMouseMove(Func<MouseMoveEvent, Task> callback)
+    public static void SubscribeMouseMove(Func<MousePosition, Task> callback)
     {
         OnMouseMove += callback;
         _moveSubscribers++;
-        
-        if (!_isListeningMove)
-        {
-            _isListeningMove = true;
-            _jsService.InvokeVoid("startMoveListener");
-        }
     }
     
-    public static void UnsubscribeMouseMove(Func<MouseMoveEvent, Task> callback)
+    public static void UnsubscribeMouseMove(Func<MousePosition, Task> callback)
     {
         OnMouseMove -= callback;
         _moveSubscribers--;
-        
-        if (_moveSubscribers == 0)
-        {
-            _isListeningMove = false;
-            _jsService.InvokeVoid("stopMoveListener");
-        }
     }
     
     public static void SubscribeMouseUp(Func<MouseUpEvent, Task> callback)
     {
         OnMouseUp += callback;
         _upSubscribers++;
-        
-        if (!_isListeningUp)
-        {
-            _isListeningUp = true;
-            _jsService.InvokeVoid("startUpListener");
-        }
     }
     
     public static void UnsubscribeMouseUp(Func<MouseUpEvent, Task> callback)
     {
         OnMouseUp -= callback;
         _upSubscribers--;
-        
-        if (_upSubscribers == 0)
-        {
-            _isListeningUp = false;
-            _jsService.InvokeVoid("stopUpListener");
-        }
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -82,19 +57,31 @@
             
             // Initialize
             _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef);
+            
+            // init listeners
+            _jsService.InvokeVoid("startMoveListener");
+            _jsService.InvokeVoid("startUpListener");
         }
     }
 
     [JSInvokable("NotifyMouseMove")]
-    public async Task NotifyMouseMove(float x, float y, float deltaX, float deltaY)
+    public async Task NotifyMouseMove(
+        float x, 
+        float y, 
+        float pageX,
+        float pageY,
+        float deltaX, 
+        float deltaY)
     {
         if (OnMouseMove is null)
             return;
         
-        await OnMouseMove.Invoke(new MouseMoveEvent()
+        await OnMouseMove.Invoke(new MousePosition()
         {
-            X = x,
-            Y = y,
+            ClientX = x,
+            ClientY = y,
+            PageX = pageX,
+            PageY = pageY,
             DeltaX = deltaX,
             DeltaY = deltaY
         });
@@ -113,15 +100,18 @@
         });
     }
     
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        // Stop listeners
+        await _jsService.InvokeVoidAsync("stopMoveListener");
+        await _jsService.InvokeVoidAsync("stopUpListener");
+        
         _thisRef?.Dispose();
         _jsModule?.Dispose();
         _jsService?.Dispose();
         
         // Unsubscribe all
         OnMouseMove = null;
-        
-        return ValueTask.CompletedTask;
+        OnMouseUp = null;
     }
 }
