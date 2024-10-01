@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.8" />
     <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.5.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -32,15 +33,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <UpToDateCheckInput Remove="Components\WindowsX\WindowX.razor" />
-    <UpToDateCheckInput Remove="Components\WindowsX\WindowXContent.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Toast\" />
   </ItemGroup>
 
   <ItemGroup>
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
+    <TypeScriptCompile Remove="Utility\ResizeObserver.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\ts\ResizeObserver.js" />
+    <None Include="wwwroot\ts\ResizeObserver.js.map" />
   </ItemGroup>
 </Project>

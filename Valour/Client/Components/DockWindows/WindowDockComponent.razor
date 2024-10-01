@@ -1,6 +1,9 @@
-﻿@inject ISyncLocalStorageService LocalStorage
+﻿@implements IAsyncDisposable
+@inject ISyncLocalStorageService LocalStorage
+@inject IJSRuntime JsRuntime
+
 @using Valour.Client.Pages
-<div class="window-dock">
+<div class="window-dock" @ref="@_ref">
     @foreach (var tab in Tabs)
     {
         <WindowComponent @key="@tab.Id" WindowTab="@tab" Dock="@this" />
@@ -22,6 +25,12 @@
     public List<WindowTab> Tabs { get; private set; } = new();
 
     public List<WindowSplit> Splits { get; private set; } = new();
+    
+    public ElementDimensions Dimensions { get; private set; }
+
+    private ResizeObserver _resizeObserver;
+    
+    private ElementReference _ref;
     
     // Floaters are not tracked by a layout, so they are stored here
     private List<WindowTab> _floaters = new();
@@ -194,9 +203,18 @@
     
     protected override bool ShouldRender() => _canRender;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         _canRender = false;
+        
+        if (firstRender)
+        {
+            _resizeObserver = new ResizeObserver();
+            _resizeObserver.ResizeEvent.AddHandler(OnWindowResize);
+            await _resizeObserver.Initialize(_ref, JsRuntime, 3);
+        }
+
+        RefreshSize();
     }
     
     private void Render()
@@ -204,6 +222,24 @@
         Console.WriteLine("Rendering window dock!");
         _canRender = true;
         StateHasChanged();
+    }
+    
+    private void OnWindowResize(ElementDimensions d)
+    {
+        Dimensions = d;
+    }
+
+    private void RefreshSize()
+    {
+        Dimensions = BrowserUtils.GetElementDimensions(_ref);
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_resizeObserver is not null)
+        {
+            await _resizeObserver.DisposeAsync();
+        }
     }
 
 }

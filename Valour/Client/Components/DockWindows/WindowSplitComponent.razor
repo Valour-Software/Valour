@@ -66,30 +66,7 @@
     {
         // Convert delta to split ratio change
         
-        // First get size of parent
-        var firstChild = Split.Layout.ChildOne.Tabs.FirstOrDefault();
-        if (firstChild is null)
-        {
-            Console.WriteLine("No first child when determining layout size!");
-            return Task.CompletedTask;
-        }
-        
-        var secondChild = Split.Layout.ChildTwo.Tabs.FirstOrDefault();
-        if (secondChild is null)
-        {
-            Console.WriteLine("No second child when determining layout size!");
-            return Task.CompletedTask;
-        }
-
-        var firstSize = BrowserUtils.GetElementDimensions(firstChild.Component.OuterWindowRef);
-        var secondSize = BrowserUtils.GetElementDimensions(secondChild.Component.OuterWindowRef);
-        
-        var firstPxSize = Split.SplitDirection == SplitDirection.Horizontal ? firstSize.Width : firstSize.Height;
-        var secondPxSize = Split.SplitDirection == SplitDirection.Horizontal ? secondSize.Width : secondSize.Height;
-        
-        // we can get total size using the split ratio
-        // split ratio refers to first child size
-        var totalSizePx = firstPxSize + secondPxSize;
+        var totalSizePx = Split.SplitDirection == SplitDirection.Horizontal ? Split.Layout.GetwidthPx() : Split.Layout.GetHeightPx();
         
         // Console.WriteLine("Total size: " + totalSizePx);
         

@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Client.Components.Windows.HomeWindows;
+using Valour.Client.Utility;
 
 namespace Valour.Client.Components.DockWindows;
 
@@ -93,6 +94,12 @@ public class WindowLayout
     
     public WindowLayout(WindowDockComponent dockComponent, WindowLayout parent = null)
     {
+        HybridEvent<int> test = new();
+        test.AddHandler((int x) =>
+        {
+            
+        });
+        
         DockComponent = dockComponent;
         Parent = parent;
 
@@ -439,6 +446,38 @@ public class WindowLayout
         }
         
         DockComponent.NotifyLayoutChanged();
+    }
+
+    public float GetwidthPx()
+    {
+        if (Parent is null)
+        {
+            return DockComponent.Dimensions.Width;
+        }
+        
+        if (Parent.Split.SplitDirection == SplitDirection.Vertical)
+        {
+            return Parent.GetwidthPx();
+        }
+        
+        var multiplier = Parent.ChildOne == this ? Parent.Split.SplitRatio : 1 - Parent.Split.SplitRatio;
+        return Parent.GetwidthPx() * multiplier;
+    }
+    
+    public float GetHeightPx()
+    {
+        if (Parent is null)
+        {
+            return DockComponent.Dimensions.Height;
+        }
+        
+        if (Parent.Split.SplitDirection == SplitDirection.Horizontal)
+        {
+            return Parent.GetHeightPx();
+        }
+        
+        var multiplier = Parent.ChildOne == this ? Parent.Split.SplitRatio : 1 - Parent.Split.SplitRatio;
+        return Parent.GetHeightPx() * multiplier;
     }
 
     public void RecalculatePosition()
