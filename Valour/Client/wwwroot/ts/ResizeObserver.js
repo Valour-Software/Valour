@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.init = void 0;
-const init = (element, dotnetRef, debounce = 0) => {
+export const init = (element, dotnetRef, debounce = 0) => {
     const service = {
         timer: 0,
         observer: new ResizeObserver(async (entries) => {
@@ -25,5 +22,4 @@ const init = (element, dotnetRef, debounce = 0) => {
     };
     return service;
 };
-exports.init = init;
 //# sourceMappingURL=ResizeObserver.js.map

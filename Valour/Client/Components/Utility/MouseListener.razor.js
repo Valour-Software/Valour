@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.init = void 0;
-const init = (dotnet) => {
+export const init = (dotnet) => {
     const service = {
         lastX: null,
         lastY: null,
@@ -37,5 +34,4 @@ const init = (dotnet) => {
     };
     return service;
 };
-exports.init = init;
 //# sourceMappingURL=MouseListener.razor.js.map

@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.init = void 0;
-const init = () => {
+export const init = () => {
     const service = {
         scanTimer: 0,
         currentTarget: null,
@@ -50,5 +47,4 @@ const init = () => {
     };
     return service;
 };
-exports.init = init;
 //# sourceMappingURL=WindowTargetScanner.razor.js.map

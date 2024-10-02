@@ -1,4 +1,4 @@
-import { DotnetObject } from '../../wwwroot/ts/blazorTypes';
+import DotnetObject = DotNet.DotnetObject;
 
 type MouseMoveService = {
     lastX?: number;

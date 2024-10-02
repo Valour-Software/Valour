@@ -41,7 +41,7 @@
   </PropertyGroup>
   
   <Target Name="RunJsCleanupBeforeBuild" BeforeTargets="Build">
-    <Exec Command="node ./cleanupJs.js" />
+    <Exec Command="node ./cleanupJs.mjs" />
   </Target>
 
 </Project>

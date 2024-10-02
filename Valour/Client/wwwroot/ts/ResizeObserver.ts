@@ -1,4 +1,4 @@
-import { DotnetObject } from './blazorTypes';
+import DotnetObject = DotNet.DotnetObject;
 
 type ElementDimensions = {
     width: number;

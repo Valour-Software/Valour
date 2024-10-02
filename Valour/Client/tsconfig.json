@@ -1,8 +1,7 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ES6",
     "target": "es2021",
     "sourceMap": true
   }
