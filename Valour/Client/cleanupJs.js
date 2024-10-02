@@ -2,7 +2,7 @@
 const path = require('path');
 
 // Specify the directory where the .ts and .js files are located
-const dir = './src'; // Adjust this path to the directory where your TS and JS files are located
+const dir = './'; // Adjust this path to the directory where your TS and JS files are located
 
 fs.readdir(dir, (err, files) => {
     if (err) {

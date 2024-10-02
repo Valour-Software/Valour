@@ -35,9 +35,8 @@
   <ItemGroup>
     <Folder Include="Toast\" />
   </ItemGroup>
-
-  <Target Name="BeforeBuild">
-    <!-- Run the Node.js script to clean up old JS files -->
+  
+  <Target Name="RunJsCleanupBeforeBuild" BeforeTargets="Build">
     <Exec Command="node ./cleanupJs.js" />
   </Target>
 
