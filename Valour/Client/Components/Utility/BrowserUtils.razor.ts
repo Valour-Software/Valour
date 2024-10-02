@@ -1,9 +1,11 @@
+import { DotnetObject } from '../../wwwroot/ts/blazorTypes';
+
 type Dimensions = {
     width: number;
     height: number;
 };
 
-export const init = (dotnet: DotNetObject) => {
+export const init = (dotnet: DotnetObject) => {
     const onResize = () => {
         const dimensions = getWindowDimensions();
         dotnet.invokeMethod('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });

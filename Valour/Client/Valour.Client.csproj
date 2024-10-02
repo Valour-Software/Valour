@@ -37,12 +37,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
-    <TypeScriptCompile Remove="Utility\ResizeObserver.ts" />
+    <TypeScriptCompile Remove="Components\DockWindows\WindowComponent.razor.ts" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="wwwroot\ts\ResizeObserver.js" />
-    <None Include="wwwroot\ts\ResizeObserver.js.map" />
-  </ItemGroup>
+  <Target Name="BeforeBuild">
+    <!-- Run the Node.js script to clean up old JS files -->
+    <Exec Command="node ./cleanupJs.js" />
+  </Target>
+
 </Project>

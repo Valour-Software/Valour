@@ -1,4 +1,4 @@
-import DotNetObject = DotNet.DotNetObject;
+import { DotnetObject } from '../../wwwroot/ts/blazorTypes';
 
 type MouseMoveService = {
     lastX?: number;
@@ -15,7 +15,7 @@ type MouseMoveService = {
     stopUpListener: () => void;
 };
 
-export const init = (dotnet: DotNetObject): MouseMoveService => {
+export const init = (dotnet: DotnetObject): MouseMoveService => {
     const service = {
         lastX: null,
         lastY: null,

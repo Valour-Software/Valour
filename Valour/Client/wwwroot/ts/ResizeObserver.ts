@@ -1,3 +1,5 @@
+import { DotnetObject } from './blazorTypes';
+
 type ElementDimensions = {
     width: number;
     height: number;
@@ -10,7 +12,7 @@ type ResizeService = {
     timer: number;
 }
 
-export const init = (element: HTMLElement, dotnetRef: DotNetObject, debounce: number = 0) => {
+export const init = (element: HTMLElement, dotnetRef: DotnetObject, debounce: number = 0) => {
     const service: ResizeService = {
         timer: 0,
         observer: new ResizeObserver(async (entries) => {
