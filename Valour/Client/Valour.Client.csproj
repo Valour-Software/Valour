@@ -35,6 +35,10 @@
   <ItemGroup>
     <Folder Include="Toast\" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <PrepareForBuildDependsOn>GetTypeScriptOutputForPublishing;$(PrepareForBuildDependsOn)</PrepareForBuildDependsOn>
+  </PropertyGroup>
   
   <Target Name="RunJsCleanupBeforeBuild" BeforeTargets="Build">
     <Exec Command="node ./cleanupJs.js" />
