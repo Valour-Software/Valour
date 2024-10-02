@@ -21,7 +21,7 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.8" />
     <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.5.3">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>build; analyzers</IncludeAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.0.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.0" />
@@ -36,12 +36,12 @@
     <Folder Include="Toast\" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <PrepareForBuildDependsOn>GetTypeScriptOutputForPublishing;$(PrepareForBuildDependsOn)</PrepareForBuildDependsOn>
-  </PropertyGroup>
-  
-  <Target Name="RunJsCleanupBeforeBuild" BeforeTargets="Build">
-    <Exec Command="node ./cleanupJs.mjs" />
-  </Target>
 
+  <!-- JS Cleanup script
+  <Target Name="RunCustomBuildScripts" BeforeTargets="PrepareForBuild">
+    <Exec Condition=" '$(OS)' == 'Windows_NT' " Command="dotnet tool list -g | findstr dotnet-script || dotnet tool install -g dotnet-script" />
+    <Exec Condition=" '$(OS)' != 'Windows_NT' " Command="dotnet tool list -g | grep dotnet-script || dotnet tool install -g dotnet-script" />
+    <Exec Command="dotnet script ./BuildScripts/CleanupJs.csx" />
+  </Target>
+  -->
 </Project>
