@@ -3,7 +3,7 @@
 # Install .NET
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh -c 8.0.1 -InstallDir ./dotnet
+./dotnet-install.sh -Version 8.0.1 -InstallDir ./dotnet
 ./dotnet/dotnet --version
 
 # Build Valour
