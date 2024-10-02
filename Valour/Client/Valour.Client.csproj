@@ -21,7 +21,7 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.8" />
     <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.5.3">
       <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <IncludeAssets>build; analyzers</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.0.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.0" />
@@ -34,10 +34,6 @@
 
   <ItemGroup>
     <Folder Include="Toast\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <TypeScriptCompile Remove="Components\DockWindows\WindowComponent.razor.ts" />
   </ItemGroup>
 
   <Target Name="BeforeBuild">
