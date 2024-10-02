@@ -36,6 +36,10 @@
     <Folder Include="Toast\" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <PrepareForBuildDependsOn>GetTypeScriptOutputForPublishing;$(PrepareForBuildDependsOn)</PrepareForBuildDependsOn>
+  </PropertyGroup>
+
 
   <!-- JS Cleanup script
   <Target Name="RunCustomBuildScripts" BeforeTargets="PrepareForBuild">
