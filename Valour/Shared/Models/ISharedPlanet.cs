@@ -4,7 +4,6 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-using System.Text;
 using Valour.Shared.Utilities;
 
 namespace Valour.Shared.Models;

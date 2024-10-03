@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
-using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
 

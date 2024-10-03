@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Valour.Shared.Models;
+﻿namespace Valour.Shared.Models;
 
 public class UserState
 {

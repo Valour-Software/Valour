@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Valour.Server.Database;
 
 namespace Valour.Server.Services;
 

@@ -1,12 +1,4 @@
-﻿using StackExchange.Redis;
-using Valour.Database;
-using Valour.Server.Cdn;
-using Valour.Server.Cdn.Objects;
-using Valour.Server.Database;
-using Valour.Shared.Models;
-using Valour.Shared.Models.Economy;
-
-namespace Valour.Server.Workers;
+﻿namespace Valour.Server.Workers;
 
 /// <summary>
 /// Updates the node state in redis every 30 seconds

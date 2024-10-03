@@ -3,7 +3,6 @@ using StackExchange.Redis;
 using Valour.Shared.Authorization;
 using Valour.Shared;
 using Valour.Server.Hubs;
-using Valour.Server.Services;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

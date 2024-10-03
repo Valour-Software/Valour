@@ -1,6 +1,5 @@
 ﻿using Valour.Sdk.Models;
 using Valour.Client.Components.Messages.Attachments;
-using Valour.Shared.Models;
 
 namespace Valour.Client.Messages;
 

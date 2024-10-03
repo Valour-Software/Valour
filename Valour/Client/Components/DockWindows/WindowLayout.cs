@@ -1,7 +1,5 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Valour.Client.Components.Windows.HomeWindows;
-using Valour.Client.Utility;
 
 namespace Valour.Client.Components.DockWindows;
 
@@ -94,12 +92,6 @@ public class WindowLayout
     
     public WindowLayout(WindowDockComponent dockComponent, WindowLayout parent = null)
     {
-        HybridEvent<int> test = new();
-        test.AddHandler((int x) =>
-        {
-            
-        });
-        
         DockComponent = dockComponent;
         Parent = parent;
 

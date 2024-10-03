@@ -1,11 +1,6 @@
-﻿using System;
-using System.Xml.Linq;
-using Valour.Sdk.Nodes;
-using Valour.Server.Config;
-using Valour.Server.Database;
+﻿using Valour.Server.Config;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Hubs;
-using Valour.Shared.Models;
 
 namespace Valour.Server.API
 {

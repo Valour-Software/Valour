@@ -1,4 +1,3 @@
-using Valour.Database.Context;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;

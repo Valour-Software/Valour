@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Channels;
+﻿using Valour.Shared.Channels;
 
 namespace Valour.Sdk.Models;
 

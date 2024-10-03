@@ -1,4 +1,3 @@
-using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Models;

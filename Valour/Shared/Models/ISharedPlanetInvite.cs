@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace Valour.Shared.Models;
 
 /*  Valour - A free and secure chat client

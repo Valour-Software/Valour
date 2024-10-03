@@ -1,6 +1,4 @@
-﻿using System;
-using Valour.Sdk.Client;
-using Valour.Shared.Models;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models
 {

@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Sdk.Models.Messages.Embeds.Items;
 using Valour.Sdk.Models.Messages.Embeds.Styles.Basic;
 using Valour.Sdk.Models.Messages.Embeds.Styles.Flex;
 

@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Sdk.Models;
-using Valour.Shared.Models;
 
 namespace Valour.Sdk.Client;
 

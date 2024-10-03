@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Valour.Server.Models;
+﻿namespace Valour.Server.Models;
 
 public class EmailConfirmCode
 {

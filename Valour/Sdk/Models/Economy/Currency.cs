@@ -1,6 +1,5 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
-using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Sdk.Models.Economy;

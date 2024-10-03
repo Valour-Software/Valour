@@ -1,4 +1,3 @@
-using System.Drawing;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 

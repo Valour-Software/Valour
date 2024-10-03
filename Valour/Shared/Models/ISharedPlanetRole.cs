@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Drawing;
-using Valour.Shared.Authorization;
+﻿using Valour.Shared.Authorization;
 
 
 namespace Valour.Shared.Models;

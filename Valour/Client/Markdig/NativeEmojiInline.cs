@@ -1,4 +1,3 @@
-using Markdig.Extensions.Emoji;
 using Markdig.Syntax.Inlines;
 
 namespace Valour.Client.Markdig;

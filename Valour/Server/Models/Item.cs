@@ -1,5 +1,3 @@
-using Valour.Sdk.Models;
-using Valour.Server.Config;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Models;

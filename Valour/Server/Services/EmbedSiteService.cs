@@ -1,6 +1,3 @@
-using Valour.Sdk.Models;
-using Valour.Server.Cdn;
-
 namespace Valour.Server.Services;
 
 /// <summary>

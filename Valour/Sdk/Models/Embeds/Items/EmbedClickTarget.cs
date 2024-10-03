@@ -1,8 +1,4 @@
-﻿using Valour.Sdk.Models.Messages.Embeds;
-using System;
-using System.Text.Json.Serialization;
-using Valour.Sdk.Models.Messages.Embeds.Styles.Flex;
-using Valour.Sdk.Models.Messages.Embeds.Styles;
+﻿using System.Text.Json.Serialization;
 
 namespace Valour.Sdk.Models.Messages.Embeds.Items;
 

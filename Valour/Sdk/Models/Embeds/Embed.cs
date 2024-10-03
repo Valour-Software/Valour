@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Models.Messages.Embeds.Items;
 using Valour.Sdk.Models.Messages.Embeds.Styles;
 
