@@ -91,14 +91,14 @@
 
     public void Dispose()
     {
-        BigMenu.RefreshRightSide -= Refresh;
+        BigMenu.OnRefreshRightSide -= Refresh;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            BigMenu.RefreshRightSide += Refresh;
+            BigMenu.OnRefreshRightSide += Refresh;
         }
         return base.OnAfterRenderAsync(firstRender);
     }
