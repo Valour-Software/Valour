@@ -59,8 +59,8 @@
             _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef);
             
             // init listeners
-            _jsService.InvokeVoid("startMoveListener");
-            _jsService.InvokeVoid("startUpListener");
+            await _jsService.InvokeVoidAsync("startMoveListener");
+            await _jsService.InvokeVoidAsync("startUpListener");
         }
     }
 

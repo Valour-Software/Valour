@@ -6,9 +6,9 @@ type Dimensions = {
 };
 
 export const init = (dotnet: DotnetObject) => {
-    const onResize = () => {
+    const onResize = async () => {
         const dimensions = getWindowDimensions();
-        dotnet.invokeMethod('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
+        await dotnet.invokeMethodAsync('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
     };
     
     window.addEventListener('resize', onResize);

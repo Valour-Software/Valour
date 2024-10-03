@@ -32,7 +32,7 @@ public class Program
         
         ValourClient.SetHttpClient(httpClient);
 
-        builder.Services.AddScoped(sp =>
+        builder.Services.AddScoped(_ =>
             httpClient
         );
 
@@ -48,9 +48,7 @@ public class Program
         builder.Services.AddSingleton<ContextMenuService>();
         
         var host = builder.Build();
-
-        var navService = host.Services.GetRequiredService<NavigationManager>();
-
+        
         await host.RunAsync();
     }
 }

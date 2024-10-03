@@ -39,15 +39,15 @@
         return dimensions;
     }
     
-    public static ElementDimensions GetElementDimensions(ElementReference element)
+    public static async Task<ElementDimensions> GetElementDimensions(ElementReference element)
     {
-        var dimensions = _jsModule.Invoke<ElementDimensions>("getElementDimensions", element);
+        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensions", element);
         return dimensions;
     }
     
-    public static ElementDimensions GetElementDimensions(string selector)
+    public static async Task<ElementDimensions> GetElementDimensions(string selector)
     {
-        var dimensions = _jsModule.Invoke<ElementDimensions>("getElementDimensionsBySelector", selector);
+        var dimensions = await _jsModule.InvokeAsync<ElementDimensions>("getElementDimensionsBySelector", selector);
         return dimensions;
     }
 

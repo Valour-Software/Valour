@@ -214,7 +214,7 @@
             await _resizeObserver.Initialize(_ref, JsRuntime, 3);
         }
 
-        RefreshSize();
+        await RefreshSize();
     }
     
     private void Render()
@@ -229,9 +229,9 @@
         Dimensions = d;
     }
 
-    private void RefreshSize()
+    private async Task RefreshSize()
     {
-        Dimensions = BrowserUtils.GetElementDimensions(_ref);
+        Dimensions = await BrowserUtils.GetElementDimensions(_ref);
     }
     
     public async ValueTask DisposeAsync()
