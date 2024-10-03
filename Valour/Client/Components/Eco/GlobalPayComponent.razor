@@ -31,11 +31,11 @@
     {
         if (string.IsNullOrWhiteSpace(_errorSpan))
         {
-            @_errorFragment("Enter recipient");
+            @_errorFragment("Enter recipient")
         }
         else
         {
-            @_errorFragment(_errorSpan);
+            @_errorFragment(_errorSpan)
         }
     }
     else
@@ -50,7 +50,7 @@
         }
         else
         {
-            @_errorFragment(_errorSpan);
+            @_errorFragment(_errorSpan)
         }
     }
 }
@@ -64,7 +64,7 @@ else
     
     @if (!string.IsNullOrWhiteSpace(_errorSpan))
     {
-        @_errorFragment(_errorSpan);
+        @_errorFragment(_errorSpan)
     }
     
     <button class="v-btn" style="width: 100%" @onclick="@OnClickCreateAccount">Create Account</button>
@@ -74,7 +74,7 @@ else
 
 @code {
 
-    private RenderFragment<string> _errorFragment = (string error) =>
+    private RenderFragment<string> _errorFragment = (error) =>
         @<p style="color: red; text-align: center; margin-top: 1em">@error</p>;
 
     [Parameter]
@@ -115,7 +115,14 @@ else
 
     private void AmountChanged(ChangeEventArgs e)
     {
-        bool valid = Decimal.TryParse(e.Value.ToString(), out var amount);
+        if (e.Value is null)
+        {
+            _errorSpan = "Invalid amount.";
+            _amount = 0;
+            return;
+        }
+        
+        var valid = decimal.TryParse(e.Value.ToString(), out var amount);
         if (!valid)
         {
             _errorSpan = "Invalid amount.";

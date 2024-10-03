@@ -331,10 +331,10 @@ public class WindowLayout
             Console.WriteLine("Tried to split a split layout. This should not happen.");
         }
 
-        await AddSplit(tab, location);
+        AddSplit(tab, location);
     }
 
-    public async Task AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)
+    private void AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)
     {
         // If we are already split, we cannot split further
         if (IsSplit)
