@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly" TreatAsLocalProperty="SelfContained">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
@@ -9,12 +9,12 @@
     <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
-    <PackageReference Include="Markdig" Version="0.34.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.1" />
-    <PackageReference Include="System.Net.Http.Json" Version="8.0.0" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+    <PackageReference Include="Markdig" Version="0.37.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0-rc.1.24452.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.0-rc.1.24452.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0-rc.1.24452.1" />
+    <PackageReference Include="System.Net.Http.Json" Version="9.0.0-rc.1.24431.7" />
   </ItemGroup>
 
   <ItemGroup>

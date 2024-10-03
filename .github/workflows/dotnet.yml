@@ -41,7 +41,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.100-rc.1.24452.12 
         include-prerelease: true
     - name: Clean
       run: dotnet clean

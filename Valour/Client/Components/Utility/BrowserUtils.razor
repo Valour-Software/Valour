@@ -1,3 +1,4 @@
+@implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 
 <CascadingValue Value="@this" IsFixed="true">
@@ -13,12 +14,16 @@
     
     public static event Func<ElementDimensions, Task> OnWindowResize;
     public static ElementDimensions WindowDimensions { get; private set; }
-    
+
+    protected override void OnInitialized()
+    {
+        _dotnetRef = DotNetObjectReference.Create(this);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _dotnetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
             await Logger.Log("Loaded DomWindowData component.", "cyan");
             WindowDimensions = await GetWindowDimensions();
@@ -64,4 +69,11 @@
         if (OnWindowResize is not null)
             await OnWindowResize.Invoke(dimensions);
     }
+
+    public async ValueTask DisposeAsync()
+    {
+        _dotnetRef.Dispose();
+        await _jsModule.DisposeAsync();
+    }
+
 }

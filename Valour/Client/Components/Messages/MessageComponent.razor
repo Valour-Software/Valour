@@ -475,8 +475,11 @@
             _member = await Message.GetAuthorMemberAsync();
             
             // Hook events
-            _member.OnRoleModified += OnMemberRoleChange;
-            _member.OnUpdated += OnMemberUpdated;
+            if (_member is not null) // There is a chance they were deleted
+            {
+                _member.OnRoleModified += OnMemberRoleChange;
+                _member.OnUpdated += OnMemberUpdated;
+            }
         }
     }
 

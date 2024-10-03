@@ -1,8 +1,8 @@
 ﻿@implements IAsyncDisposable
 @inject ISyncLocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
-
 @using Valour.Client.Pages
+
 <div class="window-dock" @ref="@_ref">
     @foreach (var tab in Tabs)
     {

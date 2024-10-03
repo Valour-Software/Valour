@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Company>Valour Software Inc.</Company>
+    <TargetFramework>net9.0</TargetFramework>
+    <Company>Valour Software</Company>
     <Product>Valour Shared Library</Product>
     <Authors>The Valour Team</Authors>
     <Description>The Valour Shared Library contains shared resources for Valour and related projects, including object definitions and more.</Description>
