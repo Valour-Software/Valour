@@ -20,7 +20,7 @@ export const init = (dotnet: DotnetObject): MouseMoveService => {
         lastX: null,
         lastY: null,
         
-        moveListener: (e: MouseEvent) => {
+        moveListener: async (e: MouseEvent) => {
             document.body.classList.add('no-select');
             
             if (e.clientX === service.lastX && e.clientY === service.lastY) {
@@ -33,7 +33,7 @@ export const init = (dotnet: DotnetObject): MouseMoveService => {
             service.lastX = e.clientX;
             service.lastY = e.clientY;
 
-            dotnet.invokeMethod('NotifyMouseMove', e.clientX, e.clientY, e.pageX, e.pageY, deltaX, deltaY);
+            await dotnet.invokeMethodAsync('NotifyMouseMove', e.clientX, e.clientY, e.pageX, e.pageY, deltaX, deltaY);
         },
         
         startMoveListener: () => {
@@ -46,9 +46,9 @@ export const init = (dotnet: DotnetObject): MouseMoveService => {
             service.lastY = null;
         },
         
-        upListener: (e: MouseEvent) => {
+        upListener: async (e: MouseEvent) => {
             document.body.classList.remove('no-select');
-            dotnet.invokeMethod('NotifyMouseUp', e.clientX, e.clientY);
+            await dotnet.invokeMethodAsync('NotifyMouseUp', e.clientX, e.clientY);
         },
         
         startUpListener: () => {
