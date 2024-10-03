@@ -6,6 +6,8 @@
     <DebugType>portable</DebugType>
     <WasmEnableSIMD>false</WasmEnableSIMD>
     <WasmBuildNative>true</WasmBuildNative>
+    <!-- Fix trimming issue -->
+    <_ExtraTrimmerArgs>--keep-metadata parametername</_ExtraTrimmerArgs>
   </PropertyGroup>
 
   <ItemGroup>
