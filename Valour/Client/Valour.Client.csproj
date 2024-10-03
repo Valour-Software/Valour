@@ -36,11 +36,10 @@
     <Folder Include="Toast\" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <PrepareForBuildDependsOn>GetTypeScriptOutputForPublishing;$(PrepareForBuildDependsOn)</PrepareForBuildDependsOn>
-  </PropertyGroup>
-
-
+  <ItemGroup>
+    <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
+  </ItemGroup>
+  
   <!-- JS Cleanup script
   <Target Name="RunCustomBuildScripts" BeforeTargets="PrepareForBuild">
     <Exec Condition=" '$(OS)' == 'Windows_NT' " Command="dotnet tool list -g | findstr dotnet-script || dotnet tool install -g dotnet-script" />
