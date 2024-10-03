@@ -19,14 +19,14 @@
         }
     }
     
-    public static void Scan(float x, float y)
+    public static async Task ScanAsync(float x, float y)
     {
-        JsService.InvokeVoid("scan", x, y);
+        await JsService.InvokeVoidAsync("scan", x, y);
     }
 
-    public static void Finalize(float x, float y)
+    public static async Task FinalizeAsync(float x, float y)
     {
-        JsService.InvokeVoid("finalize", x, y);
+        await JsService.InvokeVoidAsync("finalize", x, y);
     }
 
 }

@@ -318,12 +318,12 @@
         return Task.CompletedTask;
     }
     
-    private Task OnTabUp(MouseUpEvent e)
+    private async Task OnTabUp(MouseUpEvent e)
     {
         _dragging = false;
         
         // End window target scanner
-        WindowTargetScanner.Finalize(e.X, e.Y);
+        await WindowTargetScanner.FinalizeAsync(e.X, e.Y);
         
         // Disable mouse move listener
         MouseListener.UnsubscribeMouseMove(OnDragTab);
@@ -334,8 +334,6 @@
         WindowService.NotifyTabDragging(null);
         
         ReRender();
-        
-        return Task.CompletedTask;
     }
 
     private async Task OnDragTab(MousePosition e)
@@ -381,7 +379,7 @@
             WindowService.NotifyTabDragging(this.WindowTab);
             
             // Run window target scanner
-            WindowTargetScanner.Scan(e.ClientX, e.ClientY);
+            await WindowTargetScanner.ScanAsync(e.ClientX, e.ClientY);
         }
         
         ReRender();
