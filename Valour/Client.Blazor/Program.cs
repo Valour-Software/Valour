@@ -1,5 +1,4 @@
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Valour.Sdk.Client;
 using Valour.Client.Categories;

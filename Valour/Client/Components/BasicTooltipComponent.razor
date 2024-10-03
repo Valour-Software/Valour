@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
 <div class="tooltip-holder" id="@_id" data-bs-toggle="tooltip" data-bs-placement="@Placement" title="@Title">
@@ -23,16 +23,16 @@
         if (firstRender)
         {
             // Enable tooltip
-            await JS.InvokeVoidAsync("enableTooltip", _id);
+            await JsRuntime.InvokeVoidAsync("enableTooltip", _id);
         }
         else
         {
-            await JS.InvokeVoidAsync("updateTooltip", _id);
+            await JsRuntime.InvokeVoidAsync("updateTooltip", _id);
         }
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        await JS.InvokeVoidAsync("disableTooltip", _id);
+        await JsRuntime.InvokeVoidAsync("disableTooltip", _id);
     }
 }

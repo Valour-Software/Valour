@@ -1,32 +1,31 @@
-﻿<ContextMenuBase Id="audio-context" CssClass="context">
-    
-    <BlazorContextMenu.Item CssClass='context-model' >
+﻿@inherits ContextMenu<MediaPeerComponent>
+
+<ContextMenuBase>
+    <ContextMenuItem>
         <div>
             <p>Volume</p>
-            <input type="range" id="volume" name="volume" min="0" max="150" value="@MediaPeer.GetVolume()" @onchange="OnVolumeChanged" />
+            <input type="range" id="volume" name="volume" min="0" max="150" value="@Data.GetVolume()" @onchange="@OnVolumeChanged" />
         </div>
-    </BlazorContextMenu.Item>
-    @if (MediaPeer.GetLocalMuted())
+    </ContextMenuItem>
+    @if (Data.GetLocalMuted())
     {
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='@OnClickUnmute()'>Unmute</BlazorContextMenu.Item>
+        <ContextMenuItem @onclick='@OnClickUnmute'>
+            Unmute
+        </ContextMenuItem>
     }
     else
     {
-        <BlazorContextMenu.Item CssClass='context-model' OnClick='@OnClickMute()'>Mute</BlazorContextMenu.Item>
+        <ContextMenuItem @onclick='@OnClickMute'>
+            Mute
+        </ContextMenuItem>
     }
 </ContextMenuBase>
 
 @code {
-    public static MediaPeerComponent MediaPeer { get; set; }
     
-    public static void SetSelectedItem(MediaPeerComponent mediaPeer)
-    {
-        MediaPeer = mediaPeer;
-    }
+    private Task OnClickMute() => Data.SetLocalMutedAsync(true);
     
-    private Task OnClickMute() => MediaPeer.SetLocalMutedAsync(true);
-    
-    private Task OnClickUnmute() => MediaPeer.SetLocalMutedAsync(false);
+    private Task OnClickUnmute() => Data.SetLocalMutedAsync(false);
 
     
     private DateTime _lastVolumeChange = DateTime.MinValue;
@@ -40,10 +39,17 @@
         {
             return;
         }
-        
-        await MediaPeer.SetLocalVolumeAsync(float.Parse(e.Value.ToString()));
-        
-        _lastVolumeChange = DateTime.Now;
+
+        if (e.Value is null)
+        {
+            return;
+        }
+
+        if (float.TryParse(e.Value.ToString(), out var volume))
+        {
+            await Data.SetLocalVolumeAsync(volume);
+            _lastVolumeChange = DateTime.Now;
+        }
     }
 
 }

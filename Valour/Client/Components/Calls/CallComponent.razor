@@ -1,5 +1,4 @@
-﻿@using Valour.Sdk.Extensions
-@inject IJSRuntime JsRuntime
+﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
 @if (ActiveChannel is not null)
@@ -18,23 +17,21 @@
     }
 }
 
-
-
 @code {
     
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    public RenderFragment InnerContent =>
+    private RenderFragment InnerContent =>
         @<div class="call-container">
             <h6>Active Call: @ActiveChannel.Name</h6>
 
-            <ContextMenuTrigger Style="max-height: 200px; overflow-y: auto" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='audio-context'>
+            <div style="max-height: 200px">
                 @foreach (var peer in VisiblePeers)
                 {
                     <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer"/>
                 }
-            </ContextMenuTrigger>
+            </div>
 
             <button class="v-btn large call-button" @onmousedown="@OnClickSettings"><i class="bi bi-gear-fill"></i></button>
             <button class="v-btn large call-button" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>

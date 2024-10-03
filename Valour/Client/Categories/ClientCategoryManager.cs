@@ -6,7 +6,7 @@ namespace Valour.Client.Categories
 {
     public class ClientCategoryManager
     {
-        private ConcurrentDictionary<long, bool> CategoryOpenStates = new ConcurrentDictionary<long, bool>();
+        private readonly ConcurrentDictionary<long, bool> _categoryOpenStates = new ();
 
         public bool IsOpen(Channel channel)
         {
@@ -18,12 +18,12 @@ namespace Valour.Client.Categories
 
         public bool IsOpen(long categoryId)
         {
-            if (!CategoryOpenStates.ContainsKey(categoryId))
+            if (_categoryOpenStates.TryGetValue(categoryId, out var result))
             {
-                return true;
+                return result;
             }
 
-            return CategoryOpenStates[categoryId];
+            return true;
         }
 
         public void SetOpen(Channel category, bool value)
@@ -33,16 +33,16 @@ namespace Valour.Client.Categories
 
         public void SetOpen(long categoryId, bool value)
         {
-            if (!CategoryOpenStates.ContainsKey(categoryId))
+            if (!_categoryOpenStates.ContainsKey(categoryId))
             {
-                CategoryOpenStates.TryAdd(categoryId, value);
+                _categoryOpenStates.TryAdd(categoryId, value);
 
                 //Console.WriteLine($"Set new state to {value}");
 
                 return;
             }
 
-            CategoryOpenStates[categoryId] = value;
+            _categoryOpenStates[categoryId] = value;
 
             //Console.WriteLine($"Set state to {value}");
         }
