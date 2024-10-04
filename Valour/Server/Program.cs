@@ -225,7 +225,7 @@ namespace Valour.Server
             }
 
             app.UseBlazorFrameworkFiles();
-            app.UseStaticFiles();
+            app.MapStaticAssets();
             app.UseRouting();
             app.UseRateLimiter();
             app.UseAuthentication();
