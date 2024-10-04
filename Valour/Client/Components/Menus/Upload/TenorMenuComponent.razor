@@ -160,12 +160,6 @@
         await OnSearchChange();
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        CategoryResults = await TenorService.Client.Categories();
-        Refresh();
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         _canRender = false;
@@ -194,6 +188,12 @@
     public async Task Show()
     {
         _visible = true;
+
+        if (CategoryResults is null)
+        {
+            CategoryResults = await TenorService.Client.Categories();
+        }
+        
         await FocusAndScroll();
         Refresh();
     }
