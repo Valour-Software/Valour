@@ -82,7 +82,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// <summary>
     /// The position of the channel in the channel list
     /// </summary>
-    public int? Position { get; set; }
+    public int Position { get; set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -667,5 +667,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             default:
                 break;
         }
+    }
+
+    public int Compare(Channel x, Channel y)
+    {
+        
     }
 }

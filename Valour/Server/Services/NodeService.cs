@@ -17,7 +17,7 @@ public class NodeService
     public readonly string Name;
     public readonly string Location;
     public readonly string Version;
-    public HashSet<long> Planets { get; }
+    public HashSet<long> HostedPlanets { get; }
     
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
@@ -44,7 +44,7 @@ public class NodeService
         Location = config.Location;
         Version = typeof(Valour.Shared.Models.ISharedUser).Assembly.GetName().Version.ToString();
 
-        Planets = new();
+        HostedPlanets = new();
     }
 
     /// <summary>
@@ -52,7 +52,7 @@ public class NodeService
     /// </summary>
     public async Task<bool> IsPlanetHostedLocally(long planetId)
     {
-        if (Planets.Contains((planetId)))
+        if (HostedPlanets.Contains((planetId)))
             return true;
 
         return await GetPlanetNodeAsync(planetId) == Name;
@@ -95,7 +95,7 @@ public class NodeService
     /// </summary>
     public async Task<string> GetPlanetNodeAsync(long planetId)
     {
-        if (Planets.Contains(planetId))
+        if (HostedPlanets.Contains(planetId))
             return Name; // We are hosting the planet (this is a local request)
         
         var key = $"planet:{planetId}";
@@ -110,7 +110,7 @@ public class NodeService
             if (NodeConfig.Instance.LogInfo)
                 _logger.LogInformation("Resuming hosting of {PlanetId}", planetId);
             
-            Planets.Add(planetId);
+            HostedPlanets.Add(planetId);
         }
         
         if (NodeConfig.Instance.LogInfo)
@@ -205,7 +205,7 @@ public class NodeService
         if (NodeConfig.Instance.LogInfo)
             _logger.LogInformation("Taking ownership of planet {PlanetId}", planetId);
         
-        Planets.Add(planetId);
+        HostedPlanets.Add(planetId);
         var key = $"planet:{planetId}";
         await _nodeRecords.StringSetAsync(key, Name);
     }

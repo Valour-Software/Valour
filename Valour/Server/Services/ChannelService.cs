@@ -658,7 +658,7 @@ public class ChannelService
                         var at = ((EmbedMediaItem)item).Attachment;
                         var result = MediaUriHelper.ScanMediaUri(at);
                         if (!result.Success)
-                            return TaskResult<Message>.FromError($"Error scanning media URI in embed | Page {page.Id} | Item {item.Id}) | URI {at.Location}");
+                            return TaskResult<Message>.FromError($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {at.Location}");
                     }
                 }
             }

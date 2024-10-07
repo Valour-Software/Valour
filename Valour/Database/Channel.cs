@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 namespace Valour.Database;
 
 [Table("channels")]
-public class Channel : Item, ISharedChannel
+public class Channel : Model, ISharedChannel
 {
     ///////////////////////////
     // Relational Properties //

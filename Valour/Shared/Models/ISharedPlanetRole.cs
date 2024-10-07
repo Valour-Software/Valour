@@ -3,7 +3,7 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetItem
+public interface ISharedPlanetRole : ISharedPlanetModel, IOrderedModel
 {
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions

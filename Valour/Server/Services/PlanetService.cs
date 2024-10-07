@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -12,17 +13,20 @@ public class PlanetService
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetService> _logger;
     private readonly ChannelAccessService _accessService;
+    private readonly NodeService _nodeService;
     
     public PlanetService(
         ValourDB db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
-        ChannelAccessService accessService)
+        ChannelAccessService accessService,
+        NodeService nodeService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
         _accessService = accessService;
+        _nodeService = nodeService;
     }
     
     /// <summary>
@@ -34,8 +38,26 @@ public class PlanetService
     /// <summary>
     /// Returns the planet with the given id
     /// </summary>
-    public async Task<Planet> GetAsync(long id) =>
-        (await _db.Planets.FindAsync(id)).ToModel();
+    public async Task<Planet> GetAsync(long id)
+    {
+        // check if it's in the hosted planet cache
+        if (_hostedPlanetCache.TryGetValue(id, out var cached))
+            return cached.Planet;
+        
+        // get planet from db
+        var planet = (await _db.Planets.FindAsync(id)).ToModel();
+        
+        // check if we're hosting this planet
+        if (_nodeService.HostedPlanets.Contains(id))
+        {
+            // if we are hosting it, add it to the cache
+            
+            var hostedPlanet = new HostedPlanet(planet);
+            _hostedPlanetCache.TryAdd(id, hostedPlanet);
+        }
+        
+        return planet;
+    }
 
     /// <summary>
     /// Returns the primary channel for the given planet
@@ -512,8 +534,12 @@ public class PlanetService
         }
 
         var children = await _db.Channels
-            .Where(x => x.ParentId == categoryId)
+            .Where(x => x.ParentId == categoryId && x.PlanetId == insert.PlanetId)
             .OrderBy(x => x.Position)
+            .Select(x =>
+            new {
+                Id = x.Id, ChannelType = x.ChannelType
+            })
             .ToListAsync();
 
         var position = inPosition ?? children.Count + 1;
@@ -574,12 +600,12 @@ public class PlanetService
             }
             
             // Update all positions
-            var pos = 0;
+            // var pos = 0;
             foreach (var child in children)
             {
-                child.Position = pos;
+                // child.Position = pos;
                 newCategoryOrder.Add(new(child.Id, child.ChannelType));
-                pos++;
+                // pos++;
             }
             
             await _db.SaveChangesAsync();

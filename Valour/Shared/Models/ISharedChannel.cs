@@ -29,7 +29,7 @@ public class SharedChannelNames
     };
 }
 
-public interface ISharedChannel : ISharedItem
+public interface ISharedChannel : ISharedModel, IOrderedModel
 {
     public static string GetTypeName(ChannelTypeEnum type)
     {

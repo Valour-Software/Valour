@@ -18,10 +18,32 @@ public class Planet : LiveModel, ISharedPlanet
 
     // Cached values
 
-    private PlanetModelObserver<Channel> AllChannels { get; set; }
-    private PlanetModelObserver<Channel> ChatChannels { get; set; }
-    private PlanetModelObserver<Channel> VoiceChannels { get; set; }
-    private PlanetModelObserver<Channel> Categories { get; set; }
+    // A note to future Spike:
+    // These are created at construction because they can be referred to and will *never* have their
+    // reference change. The lists are updated in realtime which means UI watching the lists do not
+    // need to get an updated list. Do not second guess this decision. It is correct.
+    // - Spike, 10/05/2024
+
+    /// <summary>
+    /// The channels in this planet
+    /// </summary>
+    private List<Channel> Channels { get; set; } = new();
+    
+    /// <summary>
+    /// The chat channels in this planet
+    /// </summary>
+    private List<Channel> ChatChannels { get; set; } = new();
+    
+    /// <summary>
+    /// The voice channels in this planet
+    /// </summary>
+    private List<Channel> VoiceChannels { get; set; } = new();
+    
+    /// <summary>
+    /// The categories in this planet
+    /// </summary>
+    private List<Channel> Categories { get; set; } = new();
+    
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
     private List<PlanetInvite> Invites { get; set; }
@@ -71,15 +93,6 @@ public class Planet : LiveModel, ISharedPlanet
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     public bool Nsfw { get; set; }
-
-    public Planet()
-    {
-        // Setup self-observing collections
-        AllChannels = new(this);
-        ChatChannels = new(this);
-        VoiceChannels = new(this);
-        Categories = new(this);
-    }
 
     #region Child Event Handlers
     

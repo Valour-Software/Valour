@@ -10,7 +10,7 @@ namespace Valour.Database;
  */
 
 [Table("permissions_nodes")]
-public class PermissionsNode : Item, ISharedPermissionsNode
+public class PermissionsNode : Model, ISharedPermissionsNode
 {
     ///////////////////////////
     // Relational Properties //

@@ -1,0 +1,75 @@
+@inherits ControlledRenderComponentBase
+
+@{
+    if (_renderedItems is null)
+    {
+        return;
+    }
+    
+    foreach (var item in _sortedItems)
+    {
+        <Virtualize Items="@_sortedItems" ItemSize="@ItemHeight">
+            <div style="height: @ItemHeight; max-height: @ItemHeight; margin-left: @(NestingMargin * @item.RenderedDepth)px">
+                @item.Content
+            </div>
+        </Virtualize>
+
+    }
+}
+
+@code {
+
+    [Parameter] 
+    public float NestingMargin { get; set; } = 8f;
+
+    [Parameter] 
+    public float ItemHeight { get; set; } = 24f;
+    
+    // all items, sorted for render
+    private List<DragListItem> _sortedItems = new();
+    
+    // items without parents
+    private List<DragListItem> _topLevelItems = new();
+
+    /// <summary>
+    /// Sets the items of this drag list. Note that changes to the list will
+    /// pass down (stored by reference) but you must manually trigger rebuilds.
+    /// </summary>
+    public void SetTopLevelItems(List<DragListItem> items)
+    {
+        _topLevelItems = items;
+    }
+    
+    /// <summary>
+    /// Orders, 
+    /// </summary>
+    public void Rebuild(bool render = true)
+    {
+        OrderItems();
+        
+        if (render)
+        {
+            ReRender();
+        }
+    }
+    
+    // Orders the items for display
+    private void OrderItems()
+    {
+        if (_topLevelItems is null || _topLevelItems.Count == 0)
+        {
+            return;
+        }
+        
+        // Items go in order of RelativePosition inside their own parent.
+        
+        // First we get the top level items: parentid is null
+        
+        _sortedItems.Clear();
+        foreach (var top in _topLevelItems)
+        {
+            top.AddToListRecursive(this, _sortedItems);
+        }
+    }
+
+}

@@ -8,7 +8,7 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRoleMember : ISharedPlanetItem
+public interface ISharedPlanetRoleMember : ISharedPlanetModel
 {
     long UserId { get; set; }
     long RoleId { get; set; }

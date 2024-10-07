@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public abstract class Item : ISharedItem
+public abstract class ServerModel : ISharedModel
 {
     /// <summary>
     /// The id of this item

@@ -9,7 +9,7 @@ namespace Valour.Sdk.Items
     /// <summary>
     /// A live model is a model that is updated in real time
     /// </summary>
-    public abstract class LiveModel : ISharedItem
+    public abstract class LiveModel : ISharedModel
     {
         public long Id { get; set; }
         
