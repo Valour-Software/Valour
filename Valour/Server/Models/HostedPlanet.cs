@@ -1,55 +1,29 @@
+using Valour.Server.Utilities;
+using Valour.Shared.Extensions;
+
 namespace Valour.Server.Models;
 
 /// <summary>
 /// The HostedPlanet class is used for caching planet information on the server
 /// for planets which are directly hosted by that node
 /// </summary>
-public class HostedPlanet
+public class HostedPlanet : IHasId
 {
-    public Planet Planet { get; set; }
+    public Planet Planet { get; private set; }
     
-    /// <summary>
-    /// Lookup table for roles by id
-    /// </summary>
-    public Dictionary<long, PlanetRole> RoleLookup { get; private set; }
-
-    /// <summary>
-    /// All roles. Guaranteed to be sorted by position.
-    /// </summary>
-    public IReadOnlyList<PlanetRole> Roles { private get; init; }
-    private List<PlanetRole> _roles;
+    public SortedModelCache<PlanetRole> Roles { get; private set; }
     
-    public HostedPlanet(Planet planet, List<PlanetRole> roles)
+    object IHasId.Id => Planet.Id;
+    
+    public HostedPlanet(Planet planet)
     {
         Planet = planet;
-        
-        RoleLookup = roles.ToDictionary(x => x.Id);
-        _roles = roles.OrderBy(x => x.Position).ToList();
-        Roles = _roles; // cast to IReadOnlyList
     }
     
-    public void AddRole(PlanetRole role)
+    public void Update(Planet updated)
     {
-        RoleLookup.Add(role.Id, role);
-        _roles.Add(role);
-        _roles.Sort(PlanetRole.Orderer);
+        Planet.CopyAllTo(updated);
     }
     
-    public void RemoveRole(long roleId)
-    {
-        if (RoleLookup.TryGetValue(roleId, out var role))
-        {
-            RoleLookup.Remove(roleId);
-            _roles.Remove(role);
-        }
-    }
     
-    public void UpdateRole(PlanetRole updated)
-    {
-        // we copy the properties of the updated to the existing updated
-        if (RoleLookup.TryGetValue(updated.Id, out var oldRole))
-        {
-            _roles.Sort(PlanetRole.Orderer);
-        }
-    }
 }

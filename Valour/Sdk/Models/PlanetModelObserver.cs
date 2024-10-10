@@ -31,7 +31,7 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Live
         _planet = planet;
         
         // If the model is ordered, set the flag for sorting
-        if (typeof(IOrderedModel).IsAssignableFrom(typeof(T)))
+        if (typeof(ISortableModel).IsAssignableFrom(typeof(T)))
             _sorted = true;
     }
     
@@ -155,7 +155,7 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Live
         if (_sorted && _models is not null)
         {
             // TODO: This is a lot of casting. Can probably be optimized.
-            _models.Sort((a, b) => ((IOrderedModel)a).Position.CompareTo(((IOrderedModel)b).Position));
+            _models.Sort((a, b) => ((ISortableModel)a).Position.CompareTo(((ISortableModel)b).Position));
         }
     }
     

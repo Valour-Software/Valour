@@ -14,19 +14,22 @@ public class PlanetService
     private readonly ILogger<PlanetService> _logger;
     private readonly ChannelAccessService _accessService;
     private readonly NodeService _nodeService;
+    private readonly HostedPlanetService _hostedPlanetService;
     
     public PlanetService(
         ValourDB db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
         ChannelAccessService accessService,
-        NodeService nodeService)
+        NodeService nodeService,
+        HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
         _accessService = accessService;
         _nodeService = nodeService;
+        _hostedPlanetService = hostedPlanetService;
     }
     
     /// <summary>
@@ -40,18 +43,17 @@ public class PlanetService
     /// </summary>
     public async Task<Planet> GetAsync(long id)
     {
-        // check if it's in the hosted planet cache
-        if (_hostedPlanetCache.TryGetValue(id, out var cached))
-            return cached.Planet;
+        var hosted = _hostedPlanetService.Get(id);
+        if (hosted is not null)
+            return hosted.Planet;
         
         // get planet from db
         var planet = (await _db.Planets.FindAsync(id)).ToModel();
         
         // check if we're hosting this planet
-        if (_nodeService.HostedPlanets.Contains(id))
+        if (await _nodeService.IsHostingPlanet(id))
         {
             // if we are hosting it, add it to the cache
-            
             var hostedPlanet = new HostedPlanet(planet);
             _hostedPlanetCache.TryAdd(id, hostedPlanet);
         }

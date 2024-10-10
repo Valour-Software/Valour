@@ -561,7 +561,7 @@ public class ChannelService
         // Handle node planet ownership
         if (message.PlanetId is not null)
         {
-            if (!await _nodeService.IsPlanetHostedLocally(message.PlanetId.Value))
+            if (!await _nodeService.IsHostingPlanet(message.PlanetId.Value))
             {
                 return TaskResult<Message>.FromError("Planet belongs to another node.");
             }

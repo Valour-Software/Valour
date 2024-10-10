@@ -3,12 +3,12 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
-using Valour.Sdk.Extensions;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
+using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Client;

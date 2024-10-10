@@ -1,5 +1,6 @@
 using System.Collections;
 using Valour.Sdk.Extensions;
+using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Utilities;
@@ -9,13 +10,13 @@ namespace Valour.Server.Utilities;
 /// caching collections of models that are frequently accessed and updated.
 /// It performs no allocations and protects the internal store.
 /// </summary>
-public class ModelCache<T> where T : ServerModel
+public class ModelCache<T> where T : IHasId
 {
     public IReadOnlyList<T> Values { get; private set; }
-    public IReadOnlyDictionary<long, T> Lookup { get; private set; }
+    public IReadOnlyDictionary<object, T> Lookup { get; private set; }
     
     private List<T> _cache;
-    private Dictionary<long, T> _lookup;
+    private Dictionary<object, T> _lookup;
     
     public ModelCache()
     {
@@ -24,6 +25,12 @@ public class ModelCache<T> where T : ServerModel
     }
     
     public ModelCache(List<T> initial)
+    {
+        _cache = initial;
+        _lookup = _cache.ToDictionary(x => x.Id);
+    }
+    
+    public void Reset(List<T> initial)
     {
         _cache = initial;
         _lookup = _cache.ToDictionary(x => x.Id);
@@ -63,21 +70,32 @@ public class ModelCache<T> where T : ServerModel
     }
 }
 
-public class OrderedModelCache<T> where T : ServerModel, IOrderedModel
+public class SortedModelCache<T> where T : ISortableModel, IHasId
 {
     public IReadOnlyList<T> Values { get; private set; }
-    public IReadOnlyDictionary<long, T> Lookup { get; private set; }
+    public IReadOnlyDictionary<object, T> Lookup { get; private set; }
     
     private List<T> _cache;
-    private Dictionary<long, T> _lookup;
+    private Dictionary<object, T> _lookup;
     
-    public OrderedModelCache()
+    public SortedModelCache()
     {
         _cache = new();
         _lookup = new();
     }
     
-    public OrderedModelCache(List<T> initial)
+    public SortedModelCache(List<T> initial)
+    {
+        _cache = initial;
+        _lookup = _cache.ToDictionary(x => x.Id);
+        
+        if (_cache.Count > 0)
+        {
+            _cache.Sort(_cache[0].Compare);
+        }
+    }
+    
+    public void Reset(List<T> initial)
     {
         _cache = initial;
         _lookup = _cache.ToDictionary(x => x.Id);

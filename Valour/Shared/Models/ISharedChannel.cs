@@ -29,7 +29,7 @@ public class SharedChannelNames
     };
 }
 
-public interface ISharedChannel : ISharedModel, IOrderedModel
+public interface ISharedChannel : ISharedModel, ISortableModel
 {
     public static string GetTypeName(ChannelTypeEnum type)
     {
@@ -98,11 +98,6 @@ public interface ISharedChannel : ISharedModel, IOrderedModel
     /// The id of the parent of the channel, if any
     /// </summary>
     long? ParentId { get; set; }
-    
-    /// <summary>
-    /// The position of the channel in the channel list
-    /// </summary>
-    int? Position { get; set; }
     
     /// <summary>
     /// If this channel inherits permissions from its parent

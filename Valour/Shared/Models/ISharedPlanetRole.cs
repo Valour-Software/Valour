@@ -3,17 +3,12 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetModel, IOrderedModel
+public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
 {
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
     bool IsAdmin { get; set; }
-    
-    /// <summary>
-    /// The position of the role: Lower has more authority
-    /// </summary>
-    int Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role

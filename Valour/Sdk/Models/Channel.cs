@@ -15,8 +15,13 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 {
     // Cached values
     // Will only be used for planet channels
-    private List<PermissionsNode> PermissionsNodes { get; set; }
-    private List<User> MemberUsers { get; set; }
+    private List<PermissionsNode> _permissionNodes;
+    private List<User> _memberUsers;
+    
+    /// <summary>
+    /// Cached parent which should be linked when channels are received
+    /// </summary>
+    public Channel Parent { get; set; }
 
     public override string BaseRoute =>
         $"api/channels";
@@ -83,6 +88,46 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// The position of the channel in the channel list
     /// </summary>
     public int Position { get; set; }
+
+    /// <summary>
+    /// The total position of the channel. Works as the following:
+    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
+    /// Each 8 bits is a category, with the first category being the top level
+    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
+    /// [00000011]-[00000010]-[00000001]-[00000000]
+    /// This does limit the depth of categories to 4, and the highest position
+    /// to 254 (since 000 means no position)
+    /// </summary>
+    public int TotalPosition { get; set; } 
+    
+    /// <summary>
+    /// The depth, or how many categories deep the channel is
+    /// </summary>
+    public int Depth
+    {
+        get
+        {
+            // check if 4th layer is set
+            if ((TotalPosition & 0x000000FF) != 0)
+                return 4;
+            
+            // check if 3rd layer is set
+            if ((TotalPosition & 0x0000FF00) != 0)
+                return 3;
+            
+            // check if 2nd layer is set
+            if ((TotalPosition & 0x00FF0000) != 0)
+                return 2;
+            
+            // check if 1st layer is set
+            if ((TotalPosition & 0xFF000000) != 0)
+                return 1;
+
+            // no layers set, so we will just say 1
+            // this shouldn't happen.
+            return 1;
+        }
+    }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -271,10 +316,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         if (type is null)
             type = ChannelType;
 
-        if (PermissionsNodes is null || refresh)
+        if (_permissionNodes is null || refresh)
             await LoadPermissionNodesAsync(refresh);
 
-        return PermissionsNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
+        return _permissionNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
     }
 
     /// <summary>
@@ -285,15 +330,15 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         var planet = await GetPlanetAsync();
         var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
 
-        if (PermissionsNodes is not null)
-            PermissionsNodes.Clear();
+        if (_permissionNodes is not null)
+            _permissionNodes.Clear();
         else
-            PermissionsNodes = new List<PermissionsNode>();
+            _permissionNodes = new List<PermissionsNode>();
 
         foreach (var node in allPermissions)
         {
             if (node.TargetId == Id)
-                PermissionsNodes.Add(node);
+                _permissionNodes.Add(node);
         }
     }
 
@@ -537,12 +582,12 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             var result = await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
             if (result.Success)
-                MemberUsers = result.Data;
+                _memberUsers = result.Data;
             else
                 return new List<User>();
         }
 
-        return MemberUsers;
+        return _memberUsers;
     }
 
     public string GetDescription()
@@ -671,6 +716,6 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
 
     public int Compare(Channel x, Channel y)
     {
-        
+        return x.Position.CompareTo(y.Position);
     }
 }
