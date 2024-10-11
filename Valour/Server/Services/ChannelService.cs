@@ -176,12 +176,6 @@ public class ChannelService
         // Only planet channels have permission nodes
         if (channel.PlanetId is not null)
         {
-            var member = await _memberService.GetCurrentAsync(channel.PlanetId.Value);
-            if (member is null)
-                return TaskResult<Channel>.FromError("You are not a member of this planet.");
-
-            var authority = await _memberService.GetAuthorityAsync(member);
-            
             // Handle bundled permissions
             if (nodes is not null && nodes.Count > 0)
             {
@@ -1087,5 +1081,29 @@ public class ChannelService
             return positionValid;
 
         return TaskResult.SuccessResult;
+    }
+    
+    public async Task<int> GetNextChannelPosition(long planetId, long? parentId)
+    {
+        // count the number of children
+        var childCount = await _db.Channels.CountAsync(x => x.ParentId == parentId && x.PlanetId == planetId);
+        
+        // Max child count is 250
+        if (childCount > 249)
+        {
+            return -1;
+        }
+
+        // position within the parent
+        var relativePosition = childCount + 1;
+        var parentPosition = 0;
+        
+        if (parentId is not null)
+        {
+            parentPosition = await _db.Channels.Where(x => x.Id == parentId).Select(x => x.Position).FirstOrDefaultAsync();
+        }
+        
+        // we have to shift the relative position into place and then add it to the parent position
+        return ISharedChannel.AppendRelativePosition(parentPosition, relativePosition);
     }
 }

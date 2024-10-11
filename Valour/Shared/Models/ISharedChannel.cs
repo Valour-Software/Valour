@@ -105,43 +105,58 @@ public interface ISharedChannel : ISharedModel, ISortableModel
     /// The position of the channel within its parent
     /// </summary>
     int LocalPosition { get; }
+    
+    public static int GetDepth(ISharedChannel channel) => GetDepth(channel.Position);
 
-    public static int GetDepth(ISharedChannel channel)
+    public static int GetDepth(int position)
     {
         // Check if the third and fourth bytes (depth 3 and 4) are present
-        if ((channel.Position & 0x0000FFFF) == 0)
+        if ((position & 0x0000FFFF) == 0)
         {
             // If they are not, we must be in the first or second layer
-            if ((channel.Position & 0x00FF0000) == 0)
+            if ((position & 0x00FF0000) == 0)
             {
                 // If the second byte is also zero, it's in the first layer (top level)
-                return 1;
+                return 0;
             }
             // Otherwise, it's in the second layer
-            return 2;
+            return 1;
         }
         else
         {
             // Check the lowest byte first (fourth layer)
-            if ((channel.Position & 0x000000FF) == 0)
+            if ((position & 0x000000FF) == 0)
             {
                 // If the fourth byte is zero, it's in the third layer
-                return 3;
+                return 2;
             }
             
             // If none of the previous checks matched, it’s in the fourth layer
-            return 4;
+            return 3;
         }   
     }
 
-    public static int GetLocalPosition(ISharedChannel channel)
+    public static int GetLocalPosition(ISharedChannel channel) => GetLocalPosition(channel.Position);
+    
+    public static int GetLocalPosition(int position)
     {
-        var depth = GetDepth(channel);
+        var depth = GetDepth(position);
         // use depth to determine amount to shift
-        var shift = 8 * (4 - depth);
-        var shifted = channel.Position >> shift;
+        var shift = 8 * (3 - depth);
+        var shifted = position >> shift;
         // now clear the higher bits
         return shifted & 0xFF;
+    }
+    
+    public static int AppendRelativePosition(int parentPosition, int relativePosition)
+    {
+        var depth = GetDepth(parentPosition) + 1;
+        // use depth to determine amount to shift
+        var shift = 8 * (3 - depth);
+        // shift the relative position to the correct position
+        var shifted = relativePosition << shift;
+        // now add the relative position to the parent position
+        return parentPosition | shifted;
     }
 
     int ISortableModel.GetSortPosition()
