@@ -1,3 +1,5 @@
+@inherits WindowContentComponent<Planet>
+
 <h3>@Data.Name</h3>
 <hr/>
 <br/>
@@ -5,8 +7,33 @@
     @Data.Description
 </p>
 
-
 @code {
-    [Parameter]
-    public Planet Data { get; set; }
+
+    public class Content : WindowContent<PlanetInfoWindowComponent, Planet>
+    {
+        public override async Task ImportData(string data)
+        {
+            // Exported data is planet id
+            long planetId = JsonSerializer.Deserialize<long>(data);
+            var planet = await Planet.FindAsync(planetId);
+            Data = planet;
+        }
+
+        public override string ExportData()
+        {
+            var json = JsonSerializer.Serialize(Data.Id);
+            return json;
+        }
+    }
+    
+    public static WindowContent<PlanetInfoWindowComponent, Planet> GetDefaultContent(Planet planet)
+    {
+        return new Content()
+        {
+            Title = "Info - " + planet.Name,
+            Icon = planet.GetIconUrl(IconFormat.Webp64),
+            Data = planet,
+            PlanetId = planet.Id
+        };
+    }
 }

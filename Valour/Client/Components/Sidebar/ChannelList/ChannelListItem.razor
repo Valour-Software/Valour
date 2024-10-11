@@ -125,7 +125,7 @@
     public ChannelListItem ParentComponent { get; set; }
     
     [Parameter]
-    public List<Channel> AllChannels { get; set; }
+    public IReadOnlyList<Channel> AllChannels { get; set; }
     
     [Parameter]
     public Channel Channel { get; set; }
@@ -144,7 +144,7 @@
         {
             var css = "channel";
 
-            if (GlobalWindowData.GlobalChatWindows.Any(x => x.Channel.Id == Channel.Id))
+            if (WindowService.GlobalChatTabs.Any(x => x.Channel.Id == Channel.Id))
                 css += " open";
 
             if (ListManager.DragOverId == Channel.Id)
@@ -204,8 +204,8 @@
     {
         _children.Sort((x, y) =>
         {
-            var a = x.Position.GetValueOrDefault();
-            var b = y.Position.GetValueOrDefault();
+            var a = x.Position;
+            var b = y.Position;
             return a.CompareTo(b);
         });
     }
@@ -217,22 +217,10 @@
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
-            var newWindow = new WindowData()
-            {
-                Title = await Channel.GetTitleAsync(),
-                Icon = await Channel.GetIconAsync(),
-                Type = typeof(ChatChannelWindowComponent),
-                Data = Channel
-            };
+            var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(Channel);
             
-            if (GlobalWindowData.GlobalActiveWindow is not null)
-            {
-                await GlobalWindowData.GlobalActiveWindow.WindowBase.AddSiblingWindow(newWindow);
-            }
-            else
-            {
-                await DockContainer.MainDock.AddWindowAsync(newWindow);
-            }
+            // Replace current window with new one
+            await WindowService.FocusedTab.SetContent(newWindowContent);
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {

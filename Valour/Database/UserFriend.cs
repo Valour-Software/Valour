@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -11,7 +10,7 @@ namespace Valour.Database;
 /// ... I'll be your friend!
 /// </summary>
 [Table("user_friends")]
-public class UserFriend : Item, ISharedUserFriend
+public class UserFriend : Model, ISharedUserFriend
 {
     ///////////////////////////
     // Relational Properties //

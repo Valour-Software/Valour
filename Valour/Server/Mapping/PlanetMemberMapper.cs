@@ -1,5 +1,3 @@
-using Valour.Server.Config;
-
 namespace Valour.Server.Mapping;
 
 public static class PlanetMemberMapper

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
-using Valour.TenorTwo.Models;
 
 namespace Valour.Server.Api.Dynamic;
 

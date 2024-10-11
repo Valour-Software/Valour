@@ -1,5 +1,4 @@
 ﻿@using System.Net.Http.Headers
-@using Valour.Sdk.Extensions
 @inject HttpClient Http
 @inject NavigationManager NavManager
 
@@ -60,7 +59,10 @@
 <br/>
 
 <h3>DANGER ZONE</h3>
-<button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my account</button>
+<div class="btn-row">
+    <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
+    <button class="btn v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
+</div> 
 <br/>
 <br/>
 
@@ -90,7 +92,7 @@
     {
         var oldStatus = User.Status;
         User.Status = _status;
-        _statusChangeResult = await LiveModel.UpdateAsync(User);
+        _statusChangeResult = await ClientModel.UpdateAsync(User);
         
         // Rollback change if it failed
         if (!_statusChangeResult.Success)
@@ -123,7 +125,7 @@
         
         var oldTag = User.Tag;
         User.Tag = _tag;
-        _tagChangeResult = await LiveModel.UpdateAsync(User);
+        _tagChangeResult = await ClientModel.UpdateAsync(User);
         
         // Rollback change if it failed
         if (!_tagChangeResult.Success)
@@ -139,7 +141,7 @@
     {
         var oldStatusCode = User.UserStateCode;
         User.UserStateCode = _statusCode;
-        _statusCodeChangeResult = await LiveModel.UpdateAsync(User);
+        _statusCodeChangeResult = await ClientModel.UpdateAsync(User);
        
         // Rollback change if it failed
         if (!_statusCodeChangeResult.Success)
@@ -197,7 +199,11 @@
 
     private void OnClickDeleteAccount()
     {
-        Console.WriteLine("ModalRoot is null: " + (ModalRoot == null));
         ModalRoot.OpenModal<DeleteAccountModal>();
+    }
+    
+    private void OnClickChangePassword()
+    {
+        ModalRoot.OpenModal<ChangePasswordModal>();
     }
 }

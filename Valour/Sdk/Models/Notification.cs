@@ -2,7 +2,7 @@
 
 namespace Valour.Sdk.Models;
 
-public class Notification : LiveModel, ISharedNotification
+public class Notification : ClientModel, ISharedNotification
 {
     /// <summary>
     /// The user the notification was sent to

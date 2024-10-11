@@ -9,6 +9,7 @@
 @using Valour.Client.Components.Sounds
 @using Valour.Client.Utility
 @using Valour.Client.Components.Theme
+@using Valour.Client.Components.DockWindows
 
 @inject IJSRuntime JsRuntime
 @inject ILocalStorageService LocalStorage
@@ -17,12 +18,16 @@
 
 <!-- Enable app sounds -->
 <SoundsComponent @key="@("sounds-component")"></SoundsComponent>
+
+<!-- Enable event listeners -->
 <KeyboardListener />
+<MouseListener />
 
-<!-- Enable app cookies -->
-<CookiesComponent></CookiesComponent>
-
+<!-- Enable themes -->
 <ThemeComponent />
+
+<!-- Window Target helper -->
+<WindowTargetScanner />
 
 @if (_triedInitialLogin)
 {

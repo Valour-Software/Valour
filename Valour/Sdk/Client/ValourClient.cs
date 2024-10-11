@@ -3,12 +3,12 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
-using Valour.Sdk.Extensions;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
+using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Client;
@@ -394,7 +394,7 @@ public static class ValourClient
     {
         // Get member
         var member = await planet.GetMemberByUserAsync(ValourClient.Self.Id);
-        var result = await LiveModel.DeleteAsync(member);
+        var result = await ClientModel.DeleteAsync(member);
 
         if (result.Success)
         {
@@ -670,7 +670,7 @@ public static class ValourClient
         tasks.Add(planet.LoadMemberDataAsync());
 
         // Load channels
-        tasks.Add(planet.LoadChannelsAsync());
+        tasks.Add(planet.FetchChannelsAsync());
         
         // Load permissions nodes
         tasks.Add(planet.LoadPermissionsNodesAsync());
@@ -952,7 +952,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : LiveModel
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : ClientModel
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -1013,7 +1013,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : LiveModel
+    public static async Task DeleteItem<T>(T item) where T : ClientModel
     {
         var local = ValourCache.Get<T>(item.Id);
         
@@ -1478,10 +1478,8 @@ public static class ValourClient
                 await ValourCache.Put(planet.Id, planet);
 
                 await OpenPlanetConnection(planet, "bot-init");
-
-                var channels = await planet.GetChatChannelsAsync();
-
-                foreach (var channel in channels)
+                
+                foreach (var channel in planet.Channels)
                 {
                     await OpenPlanetChannelConnection(channel, "bot-init");
                 }
@@ -2238,6 +2236,11 @@ public static class ValourClient
     }
 
 #endregion
+
+    public static async Task<TaskResult> UpdatePasswordAsync(string oldPassword, string newPassword) {
+        var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };
+        return await PrimaryNode.PostAsync("api/users/self/password", model);
+    }
     
     // Sad zone
     public static async Task<TaskResult> DeleteAccountAsync(string password)

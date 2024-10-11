@@ -51,7 +51,7 @@
             Channel.Name = _nameValue;
             Channel.Description = _descValue;
 
-            var result = await LiveModel.UpdateAsync(Channel);
+            var result = await ClientModel.UpdateAsync(Channel);
             if (!result.Success)
             {
                 _errorSpan = "Failed to save changes. Try again?";

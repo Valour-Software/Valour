@@ -11,12 +11,17 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
+public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
 {
     // Cached values
     // Will only be used for planet channels
-    private List<PermissionsNode> PermissionsNodes { get; set; }
-    private List<User> MemberUsers { get; set; }
+    private List<PermissionsNode> _permissionNodes;
+    private List<User> _memberUsers;
+    
+    /// <summary>
+    /// Cached parent which should be linked when channels are received
+    /// </summary>
+    public Channel Parent { get; set; }
 
     public override string BaseRoute =>
         $"api/channels";
@@ -78,21 +83,37 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// The id of the parent of the channel, if any
     /// </summary>
     public long? ParentId { get; set; }
+    
+    /// <summary>
+    /// The position of the channel. Works as the following:
+    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
+    /// Each 8 bits is a category, with the first category being the top level
+    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
+    /// [00000011]-[00000010]-[00000001]-[00000000]
+    /// This does limit the depth of categories to 4, and the highest position
+    /// to 254 (since 000 means no position)
+    /// </summary>
+    public int Position { get; set; }
 
     /// <summary>
-    /// The position of the channel in the channel list
+    /// The depth, or how many categories deep the channel is
     /// </summary>
-    public int? Position { get; set; }
+    public int Depth => ISharedChannel.GetDepth(this);
+
+    /// <summary>
+    /// The position of the channel within its parent
+    /// </summary>
+    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
 
     /// <summary>
     /// If this channel inherits permissions from its parent
     /// </summary>
-    public bool? InheritsPerms { get; set; }
+    public bool InheritsPerms { get; set; }
 
     /// <summary>
     /// If this channel is the default channel
     /// </summary>
-    public bool? IsDefault { get; set; }
+    public bool IsDefault { get; set; }
 
     /// <summary>
     /// Returns the channel for the given id. Requires planetId for
@@ -271,10 +292,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         if (type is null)
             type = ChannelType;
 
-        if (PermissionsNodes is null || refresh)
+        if (_permissionNodes is null || refresh)
             await LoadPermissionNodesAsync(refresh);
 
-        return PermissionsNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
+        return _permissionNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
     }
 
     /// <summary>
@@ -285,15 +306,15 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         var planet = await GetPlanetAsync();
         var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
 
-        if (PermissionsNodes is not null)
-            PermissionsNodes.Clear();
+        if (_permissionNodes is not null)
+            _permissionNodes.Clear();
         else
-            PermissionsNodes = new List<PermissionsNode>();
+            _permissionNodes = new List<PermissionsNode>();
 
         foreach (var node in allPermissions)
         {
             if (node.TargetId == Id)
-                PermissionsNodes.Add(node);
+                _permissionNodes.Add(node);
         }
     }
 
@@ -353,8 +374,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         var target = this;
 
         // Move up until no longer inheriting
-        while (target.InheritsPerms is not null &&
-               target.InheritsPerms.Value &&
+        while (target.InheritsPerms &&
                target.ParentId is not null)
         {
             target = await target.GetParentAsync();
@@ -537,12 +557,12 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         {
             var result = await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
             if (result.Success)
-                MemberUsers = result.Data;
+                _memberUsers = result.Data;
             else
                 return new List<User>();
         }
 
-        return MemberUsers;
+        return _memberUsers;
     }
 
     public string GetDescription()
@@ -667,5 +687,10 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
             default:
                 break;
         }
+    }
+
+    public int Compare(Channel x, Channel y)
+    {
+        return x.Position.CompareTo(y.Position);
     }
 }

@@ -93,15 +93,7 @@ else
 	private async Task OnClickMessage()
 	{
 		var channel = await Channel.GetDirectChannelAsync(Data.User.Id, true);
-		
-		var newWindow = new WindowData()
-		{
-			Title = await channel.GetTitleAsync(),
-			Icon = await channel.GetIconAsync(),
-			Type = typeof(ChatChannelWindowComponent),
-			Data = channel,
-		};
-
-		await GlobalWindowData.OpenWindowAtActive(newWindow);
+		var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+		await WindowService.OpenWindowAtFocused(newWindowContent);
 	}
 }

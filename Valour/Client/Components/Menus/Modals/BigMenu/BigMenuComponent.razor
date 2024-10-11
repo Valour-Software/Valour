@@ -3,7 +3,7 @@
 
 <section class="bigmenu-section">
     <CascadingValue Value="this" IsFixed="true">
-        <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
+        <img alt="Escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
         <div class="inner">
             @if (DeviceInfo.IsMobile)
             {
@@ -31,7 +31,7 @@
                     <div class="inner-rightside">
                         @RightSide
                     </div>
-                    <div style="height: 200px" />
+                    <div style="height: 200px"></div>
                 </div>
             }
         </div>
@@ -58,12 +58,12 @@
 
     public BigMenuTopLevelMenuComponent SelectedTopLevelMenu = null;
 
-    public List<BigMenuTopLevelMenuComponent> TopLevelMenus = new();
+    public readonly List<BigMenuTopLevelMenuComponent> TopLevelMenus = new();
 
     public bool ShowLeftSide = true;
     public bool ShowRightSide = false;
 
-    public event Action RefreshRightSide;
+    public event Action OnRefreshRightSide;
 
     private bool _startSet = false;
     
@@ -91,7 +91,7 @@
         return base.OnAfterRenderAsync(firstRender);
     }
 
-    public void SetSelectedMenu(string top, string sub)
+    private void SetSelectedMenu(string top, string sub)
     {
         SelectedTopLevelMenu = TopLevelMenus.FirstOrDefault(x => x.Name == top);
         if (SelectedTopLevelMenu is not null)
@@ -100,7 +100,7 @@
         StateHasChanged();
     }
     
-    public async Task ClickEscape(MouseEventArgs e)
+    private async Task ClickEscape(MouseEventArgs e)
     {
         if (!DeviceInfo.IsMobile || ShowLeftSide)
         {
@@ -116,6 +116,6 @@
 
     public void Update()
     {
-        RefreshRightSide?.Invoke();
+        OnRefreshRightSide?.Invoke();
     }
 }

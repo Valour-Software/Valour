@@ -30,15 +30,12 @@
             // unless it's a mention
             if (notification.Source == NotificationSource.DirectReply)
             {
-                foreach (var window in GlobalWindowData.GlobalWindows)
+                foreach (var window in WindowService.GlobalTabs.Select(x => x.Content)
+                             .OfType<WindowContent<ChatChannelWindowComponent, Channel>>())
                 {
-                    if (window.Type == typeof(ChatChannelWindowComponent))
+                    if (window.Data.Id == notification.ChannelId)
                     {
-                        var channel = (Channel)window.Data;
-                        if (channel.Id == notification.ChannelId)
-                        {
-                            return;
-                        }
+                        return;
                     }
                 }
             }

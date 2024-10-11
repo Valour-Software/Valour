@@ -4,5 +4,5 @@
     "module": "ES6",
     "target": "es2021",
     "sourceMap": true
-  },
+  }
 }

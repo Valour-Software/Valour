@@ -8,7 +8,7 @@ using Valour.Sdk.Utility;
 
 namespace Valour.Sdk.Models;
 
-public class Message : LiveModel, ISharedMessage
+public class Message : ClientModel, ISharedMessage
 {
     public override string BaseRoute =>
         $"api/channels/{ChannelId}/messages";

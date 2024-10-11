@@ -53,13 +53,6 @@
         await base.OnInitializedAsync();
         DisplayData = new();
         ValourClient.OnChannelWatchingUpdate += OnWatchingUpdate;
-        ParentComponent.OnChannelChange += OnParentChannelChange;
-    }
-
-    private Task OnParentChannelChange(Channel channel)
-    {
-        Clear();
-        return Task.CompletedTask;
     }
 
     private void Clear()
@@ -71,7 +64,6 @@
 
     void IDisposable.Dispose()
     {
-        ParentComponent.OnChannelChange -= OnParentChannelChange;
         ValourClient.OnChannelWatchingUpdate -= OnWatchingUpdate;
     }
 

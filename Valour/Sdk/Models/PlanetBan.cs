@@ -1,10 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Sdk.Models;
-using Valour.Shared.Models;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class PlanetBan : LiveModel, ISharedPlanetBan
+public class PlanetBan : ClientModel, ISharedPlanetBan
 {
     #region IPlanetModel implementation
 

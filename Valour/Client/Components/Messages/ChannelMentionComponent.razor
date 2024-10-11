@@ -15,7 +15,7 @@
     public Channel Channel { get; set; }
     
     [CascadingParameter]
-    public WindowData Window { get; set; }
+    public WindowTab Window { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -53,22 +53,15 @@
 
     public async Task OnClicked()
     {
-
-        var newWindow = new WindowData()
-        {
-            Title = await _targetChannel.GetTitleAsync(),
-            Icon = await _targetChannel.GetIconAsync(),
-            Type = typeof(ChatChannelWindowComponent),
-            Data = _targetChannel
-        };
+        var windowContent = await ChatChannelWindowComponent.GetDefaultContent(_targetChannel);
         
         if (Window is not null)
         {
-            await Window.WindowBase.AddSiblingWindow(newWindow);
+            await Window.AddSiblingTab(windowContent);
         }
         else
         {
-            await DockContainer.MainDock.AddWindowAsync(newWindow);
+            await WindowService.TryAddFloatingWindow(windowContent);
         }
     }
 }

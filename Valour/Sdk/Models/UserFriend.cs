@@ -1,5 +1,4 @@
-﻿using Valour.Sdk.Models;
-using Valour.Shared.Models;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
@@ -15,7 +14,7 @@ namespace Valour.Sdk.Models;
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public class UserFriend : LiveModel, ISharedUserFriend
+public class UserFriend : ClientModel, ISharedUserFriend
 {
     #region IPlanetModel implementation
 

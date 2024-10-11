@@ -1,0 +1,63 @@
+@inherits ControlledRenderComponentBase
+
+@{
+    if (_items is null)
+    {
+        return;
+    }
+    
+    foreach (var item in _items)
+    {
+        <Virtualize Items="@_items" ItemSize="@ItemHeight">
+            <div style="height: @ItemHeight; max-height: @ItemHeight; margin-left: @(NestingMargin * @item.Depth)px">
+                @item.Content
+            </div>
+        </Virtualize>
+
+    }
+}
+
+@code {
+
+    [Parameter] 
+    public float NestingMargin { get; set; } = 8f;
+
+    [Parameter] 
+    public float ItemHeight { get; set; } = 24f;
+    
+    // all items, sorted for render
+    private List<DragListItem> _items = new();
+
+    /// <summary>
+    /// Sets the items of this drag list. Note that changes to the list will
+    /// pass down (stored by reference) but you must manually trigger rebuilds.
+    /// </summary>
+    public void SetTopLevelItems(List<DragListItem> items)
+    {
+        _items = items;
+    }
+    
+    /// <summary>
+    /// Orders, 
+    /// </summary>
+    public void Rebuild(bool render = true)
+    {
+        OrderItems();
+        
+        if (render)
+        {
+            ReRender();
+        }
+    }
+    
+    // Orders the items for display
+    private void OrderItems()
+    {
+        if (_items is null || _items.Count == 0)
+        {
+            return;
+        }
+        
+        _items.Sort(DragListItem.Compare);
+    }
+}

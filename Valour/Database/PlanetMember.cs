@@ -8,7 +8,7 @@ namespace Valour.Database;
 /// Database model for a planet member
 /// </summary>
 [Table("planet_members")]
-public class PlanetMember : Item, ISharedPlanetMember
+public class PlanetMember : Model, ISharedPlanetMember
 {
     ///////////////////////////
     // Relational Properties //

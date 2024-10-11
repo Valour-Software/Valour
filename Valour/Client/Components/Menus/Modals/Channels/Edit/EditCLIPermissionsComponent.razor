@@ -175,7 +175,7 @@
 
         Target.InheritsPerms = !Target.InheritsPerms;
         
-        await LiveModel.UpdateAsync(Target);
+        await ClientModel.UpdateAsync(Target);
 
         StateHasChanged();
     }
@@ -220,7 +220,7 @@
         {
             if (_needCreate[i])
             {
-                var result = await LiveModel.CreateAsync(_nodes[i]);
+                var result = await ClientModel.CreateAsync(_nodes[i]);
                 if (!result.Success)
                 {
                     Console.WriteLine("Error in channel permission node creation!");
@@ -235,7 +235,7 @@
             }
             else if (_needUpdate[i])
             {
-                var result = await LiveModel.UpdateAsync(_nodes[i]);
+                var result = await ClientModel.UpdateAsync(_nodes[i]);
                 if (!result.Success)
                 {
                     Console.WriteLine("Error in channel permission node update!");

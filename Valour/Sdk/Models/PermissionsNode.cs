@@ -10,7 +10,7 @@ namespace Valour.Sdk.Models;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : LiveModel, ISharedPermissionsNode
+public class PermissionsNode : ClientModel, ISharedPermissionsNode
 {
     /// <summary>
     /// The planet this node belongs to

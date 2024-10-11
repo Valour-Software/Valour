@@ -1,12 +1,11 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
-using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class User : LiveModel, ISharedUser
+public class User : ClientModel, ISharedUser
 {
     #region IPlanetModel implementation
 

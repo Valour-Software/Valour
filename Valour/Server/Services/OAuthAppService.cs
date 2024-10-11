@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using Valour.Shared;
+﻿using Valour.Shared;
 
 namespace Valour.Server.Services;
 

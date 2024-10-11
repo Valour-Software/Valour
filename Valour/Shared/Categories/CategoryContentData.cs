@@ -1,7 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using Valour.Shared.Models;
-
-namespace Valour.Shared.Categories
+﻿namespace Valour.Shared.Categories
 {
     /// <summary>
     /// This class allows for information about item contents and ordering within a category

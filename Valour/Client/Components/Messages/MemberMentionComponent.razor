@@ -1,7 +1,4 @@
-﻿@using Valour.Shared.Models;
-@using Valour.Sdk.Client
-
-<div class="@Class" style="color: @Role_Color" @onclick="ShowProfileAsync">
+﻿<div class="@Class" style="color: @Role_Color" @onclick="ShowProfileAsync">
     @if (Member == null)
     {
         <div>@@NotFound</div>

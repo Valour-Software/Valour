@@ -1,0 +1,73 @@
+﻿@inherits WindowContentComponent<StaffMessageWindow.Props>
+
+@if (_params is null)
+{
+    <h5>Loading message...</h5>
+    return;
+}
+
+<MessageComponent ParamData="@_params" />
+
+@code {
+    private MessageHolderComponent.MessageComponentParams _params;
+
+    public class Content: WindowContent<StaffMessageWindow, Props>
+    {
+        public override async Task ImportData(string data)
+        {
+            // Exported data is message id
+            long messageId = JsonSerializer.Deserialize<long>(data);
+            var message = await StaffTools.GetMessageAsync(messageId);
+            Data = new Props()
+            {
+                Message = message
+            };
+        }
+        
+        public override string ExportData()
+        {
+            return JsonSerializer.Serialize(Data.Message.Id);
+        }
+    }
+
+    public class Props
+    {
+        public Message Message { get; set; }
+    }
+    
+    public static async Task<WindowContent> GetDefaultContentAsync(StaffMessageWindow.Props data)
+    {
+        var avatar = await data.Message.GetAuthorImageUrlAsync();
+        
+        return new Content()
+        {
+            Title = "Message " + data.Message.Id,
+            Icon = avatar,
+            Data = data
+        };
+    }
+    
+    public static FloatingWindowProps GetDefaultFloatingProps()
+    {
+        var dim = BrowserUtils.WindowDimensions;
+        var mousePos = MouseListener.Position;
+        
+        return new FloatingWindowProps()
+        {
+            Height = Math.Min(dim.Height, 200),
+            Width = Math.Min(dim.Width, 400),
+            X = mousePos.ClientX,
+            Y = mousePos.ClientY
+        };
+    }
+    
+    protected override void OnInitialized()
+    {
+        _params = new MessageHolderComponent.MessageComponentParams
+        {
+            Message = Data.Message
+        };
+        
+        StateHasChanged();
+    }
+}

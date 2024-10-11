@@ -1,0 +1,33 @@
+﻿@inherits Modal<MessageModal.Props>
+
+@if (_params is null)
+{
+    <h5>Loading message...</h5>
+    return;
+}
+
+<SmoothDraggable>
+    <div class="message-modal">
+        <MessageComponent ParamData="@_params" />
+    </div>
+</SmoothDraggable>
+
+@code {
+    
+    private MessageHolderComponent.MessageComponentParams _params;
+    
+    public class Props
+    {
+        public Message Message { get; set; }
+    }
+    
+    protected override void OnInitialized()
+    {
+        _params = new MessageHolderComponent.MessageComponentParams
+        {
+            Message = Data.Message
+        };
+        
+        StateHasChanged();
+    }
+}

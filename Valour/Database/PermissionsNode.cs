@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -11,7 +10,7 @@ namespace Valour.Database;
  */
 
 [Table("permissions_nodes")]
-public class PermissionsNode : Item, ISharedPermissionsNode
+public class PermissionsNode : Model, ISharedPermissionsNode
 {
     ///////////////////////////
     // Relational Properties //

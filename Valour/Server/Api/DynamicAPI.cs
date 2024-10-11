@@ -3,7 +3,7 @@
 namespace Valour.Server.API;
 
 /// <summary>
-/// The Item API allows for easy construction of routes
+/// The ServerModel API allows for easy construction of routes
 /// relating to Valour Items.
 /// </summary>
 public class DynamicAPI<T> where T : class

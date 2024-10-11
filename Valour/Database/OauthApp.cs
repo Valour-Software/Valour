@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 namespace Valour.Database;
 
 [Table("oauth_apps")]
-public class OauthApp : Item, ISharedOauthApp
+public class OauthApp : Model, ISharedOauthApp
 {
     ///////////////////////////
     // Relational Properties //

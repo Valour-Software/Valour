@@ -1,3 +1,34 @@
+:root {
+    --font-color: #ffffff;
+    --font-alt-color: #7a7a7a;
+    --link-color: #00aaff;
+
+    --main-1: #040d14;
+    --main-2: #0b151d;
+    --main-3: #121e27;
+    --main-4: #182631;
+    --main-5: #212f3a;
+
+    --modal-main: #040d1455;
+    --modal-medium: #040d14aa;
+    --modal-dark: #040d14cc;
+
+    --slight-tint: #ffffff15;
+    --medium-tint: #ffffff30;
+    --strong-tint: #ffffff55;
+
+    /* Vibrant colors */
+    --v-purple: #bf06fd;
+    --v-blue:   #0c06fd;
+    --v-cyan:   #00faff;
+
+    /* Pastel colors */
+    --p-cyan:        #37a4ce;
+    --p-cyan-purple: #6278cd;
+    --p-purple:      #8457cd;
+    --p-red:         #cd5e5e;
+}
+
 /* Fun gradient underline */
 .v-gradient-underline {
     height: 2px;
@@ -450,4 +481,13 @@
         opacity: 0;
         transform: scale(0.3, 0.3);
     }
+}
+
+/* No select */
+.no-select {
+    user-select: none;
+}
+
+.no-select * {
+    user-select: none;
 }

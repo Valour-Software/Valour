@@ -1,0 +1,94 @@
+﻿@*
+
+@using Valour.Client.Pages
+@inject IJSRuntime JsRuntime
+
+<!-- Pass WindowManager this down to all children -->
+<CascadingValue Value="this">
+	@if (_startWindows is not null) {
+		<DockContainer Windows="@_startWindows" @ref="@_dock" />
+	}
+</CascadingValue>
+
+@code {
+	
+	[Parameter]
+	public StartScreenData StartData { get; set; }
+	
+	private DockContainer _dock;
+
+	private List<WindowTab> _startWindows;
+	
+	public bool CanRender { get; set; }
+
+	private bool _setDock = false;
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if (!_setDock)
+		{
+			DockContainer.MainDock = _dock;
+			_setDock = true;
+		}
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		Console.WriteLine(JsonSerializer.Serialize(StartData));
+
+		var startWindow = new WindowContent()
+		
+		
+		if (StartData is not null)
+		{
+			switch (StartData.Start)
+			{
+				case StartScreen.PlanetChannel:
+				{
+					var planet = ValourCache.Get<Planet>(StartData.StartPlanetId);
+					if (planet is null)
+						break;
+
+					var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == StartData.StartChannelId);
+					if (channel is null)
+						break;
+
+					startWindow.Data = channel;
+					startWindow.Type = typeof(ChatChannelWindowComponent);
+					startWindow.Title = await channel.GetTitleAsync();
+					startWindow.Icon = await channel.GetIconAsync();
+					
+					break;
+				}
+				case StartScreen.DirectChannel:
+				{
+					var channel = ValourCache.Get<Channel>(StartData.StartChannelId);
+					if (channel is null)
+						break;
+					
+					startWindow.Data = channel;
+					startWindow.Type = typeof(ChatChannelWindowComponent);
+					startWindow.Title = await channel.GetTitleAsync();
+					startWindow.Icon = await channel.GetIconAsync();
+					
+					break;
+				}
+			}
+		}
+
+		_startWindows = new List<WindowTab>()
+		{
+			startWindow
+		};
+	}
+
+	protected override bool ShouldRender()
+		=> CanRender;
+
+	public Task RefreshAsync()
+	{
+		CanRender = true;
+		StateHasChanged();
+		return Task.CompletedTask;
+	}
+}

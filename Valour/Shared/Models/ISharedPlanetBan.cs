@@ -1,9 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+﻿namespace Valour.Shared.Models;
 
-namespace Valour.Shared.Models;
-
-public interface ISharedPlanetBan : ISharedPlanetItem
+public interface ISharedPlanetBan : ISharedPlanetModel
 {
     /// <summary>
     /// The user that was banned

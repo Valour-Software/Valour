@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using Valour.Sdk.Client;
 using Valour.Shared;
 using Valour.Shared.Models;

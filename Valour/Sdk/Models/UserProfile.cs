@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class UserProfile : LiveModel, ISharedUserProfile
+public class UserProfile : ClientModel, ISharedUserProfile
 {
     public override string BaseRoute => "api/userProfiles";
 

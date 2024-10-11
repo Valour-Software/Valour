@@ -72,7 +72,7 @@
 			Reason = reason
 		};
 
-		_result = await LiveModel.CreateAsync(ban);
+		_result = await ClientModel.CreateAsync(ban);
 
 		if (_result.Success)
 		{

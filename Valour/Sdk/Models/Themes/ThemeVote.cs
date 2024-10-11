@@ -2,7 +2,7 @@
 
 namespace Valour.Sdk.Models.Themes;
 
-public class ThemeVote : LiveModel, ISharedThemeVote
+public class ThemeVote : ClientModel, ISharedThemeVote
 {
     public override string BaseRoute => $"api/themes/{ThemeId}/votes";
     

@@ -1,4 +1,3 @@
-using Valour.Server.Services;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.EndpointFilters;

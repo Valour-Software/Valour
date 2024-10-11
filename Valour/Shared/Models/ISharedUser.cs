@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /*  Valour - A free and secure chat client
@@ -10,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedUser : ISharedItem
+public interface ISharedUser : ISharedModel
 {
     const long VictorUserId = 20579262493097984;
     

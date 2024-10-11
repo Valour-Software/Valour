@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Valour.Server.EndpointFilters;
-using Valour.Server.EndpointFilters.Attributes;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.Api.Dynamic;

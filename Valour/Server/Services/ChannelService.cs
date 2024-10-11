@@ -102,14 +102,15 @@ public class ChannelService
                 ChannelType = ChannelTypeEnum.DirectChat,
                 LastUpdateTime = DateTime.UtcNow,
                 IsDeleted = false,
+                
+                Position = 0,
+                InheritsPerms = false,
+                IsDefault = false,
 
                 // These are null and technically we don't have to show this
                 // but I am showing it so you know it SHOULD be null!
                 PlanetId = null,
                 ParentId = null,
-                Position = null,
-                InheritsPerms = null,
-                IsDefault = null
             };
             
             await _db.Channels.AddAsync(channel);
@@ -134,9 +135,9 @@ public class ChannelService
     /// <summary>
     /// Soft deletes the given channel
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(Channel channel)
+    public async Task<TaskResult> DeleteAsync(long id)
     {
-        var dbChannel = await _db.Channels.FindAsync(channel.Id);
+        var dbChannel = await _db.Channels.FindAsync(id);
         if (dbChannel is null)
             return TaskResult.FromError( "Channel not found.");
         
@@ -146,9 +147,11 @@ public class ChannelService
         dbChannel.IsDeleted = true;
         _db.Channels.Update(dbChannel);
         await _db.SaveChangesAsync();
+        
+        var model = dbChannel.ToModel();
 
-        if (channel.PlanetId is not null)
-            _coreHub.NotifyPlanetItemDelete(channel.PlanetId.Value, channel);
+        if (model.PlanetId is not null)
+            _coreHub.NotifyPlanetItemDelete(model.PlanetId.Value, model);
         
         return TaskResult.SuccessResult;
     }
@@ -559,7 +562,7 @@ public class ChannelService
         // Handle node planet ownership
         if (message.PlanetId is not null)
         {
-            if (!await _nodeService.IsPlanetHostedLocally(message.PlanetId.Value))
+            if (!await _nodeService.IsHostingPlanet(message.PlanetId.Value))
             {
                 return TaskResult<Message>.FromError("Planet belongs to another node.");
             }
@@ -656,7 +659,7 @@ public class ChannelService
                         var at = ((EmbedMediaItem)item).Attachment;
                         var result = MediaUriHelper.ScanMediaUri(at);
                         if (!result.Success)
-                            return TaskResult<Message>.FromError($"Error scanning media URI in embed | Page {page.Id} | Item {item.Id}) | URI {at.Location}");
+                            return TaskResult<Message>.FromError($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {at.Location}");
                     }
                 }
             }

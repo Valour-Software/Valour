@@ -1,11 +1,6 @@
-﻿using System;
-using System.Xml.Linq;
-using Valour.Sdk.Nodes;
-using Valour.Server.Config;
-using Valour.Server.Database;
+﻿using Valour.Server.Config;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Hubs;
-using Valour.Shared.Models;
 
 namespace Valour.Server.API
 {
@@ -31,10 +26,10 @@ namespace Valour.Server.API
         {
             app.MapGet("api/node/name", () => NodeConfig.Instance.Name);
             
-            app.MapGet("api/node/handshake", (NodeService service) => new NodeHandshakeResponse()
+            app.MapGet("api/node/handshake", (NodeService service, HostedPlanetService hostedService) => new NodeHandshakeResponse()
             {
                 Version = service.Version,
-                PlanetIds = service.Planets
+                PlanetIds = hostedService.GetHostedPlanetIds()
             });
             
             app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeService service, long id) =>
@@ -49,14 +44,16 @@ namespace Valour.Server.API
                 return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);
             });
 
-            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeService service, ValourDB db) => {
+            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeService service, HostedPlanetService hostedService, ValourDB db) => {
 
+                var hostedPlanetIds = hostedService.GetHostedPlanetIds();
+                
                 DetailedNodeStats stats = new()
                 {
                     Name = NodeConfig.Instance.Name,
                     ConnectionCount = ConnectionTracker.ConnectionIdentities.Count,
                     ConnectionGroupCount = ConnectionTracker.ConnectionGroups.Count,
-                    PlanetCount = service.Planets.Count,
+                    PlanetCount = hostedPlanetIds.Count(),
 
                     GroupConnections = ConnectionTracker.GroupConnections,
                     GroupUserIds = ConnectionTracker.GroupUserIds,
@@ -75,7 +72,7 @@ namespace Valour.Server.API
                                               $"<hr/><br/>" +
                                               $"<h5>Connections: {ConnectionTracker.ConnectionIdentities.Count}</h5> \n" +
                                               $"<h5>Groups: {ConnectionTracker.ConnectionGroups.Count}</h5> \n" +
-                                              $"<h5>Planets: {service.Planets.Count}</h5> \n" +
+                                              $"<h5>HostedPlanets: {hostedPlanetIds.Count()}</h5> \n" +
                                               $"<br/>");
 
                 await ctx.Response.WriteAsync($"<h4>Group Connections:</h4> \n");

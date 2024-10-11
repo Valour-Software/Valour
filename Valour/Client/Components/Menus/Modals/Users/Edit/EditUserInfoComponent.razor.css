@@ -16,3 +16,10 @@
     scale: 1.5;
     margin-left: 3em;
 }
+
+.btn-row {
+    display: flex;
+    justify-content: start;
+    gap: 1em;
+    flex-direction: row;
+}

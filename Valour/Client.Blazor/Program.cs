@@ -1,5 +1,4 @@
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Valour.Sdk.Client;
 using Valour.Client.Categories;
@@ -32,7 +31,7 @@ public class Program
         
         ValourClient.SetHttpClient(httpClient);
 
-        builder.Services.AddScoped(sp =>
+        builder.Services.AddScoped(_ =>
             httpClient
         );
 
@@ -48,9 +47,7 @@ public class Program
         builder.Services.AddSingleton<ContextMenuService>();
         
         var host = builder.Build();
-
-        var navService = host.Services.GetRequiredService<NavigationManager>();
-
+        
         await host.RunAsync();
     }
 }

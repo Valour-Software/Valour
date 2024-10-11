@@ -1,7 +1,4 @@
-﻿using Valour.Server.Database;
-using Valour.Server.Services;
-
-namespace Valour.Server.Workers;
+﻿namespace Valour.Server.Workers;
 
 public class ChannelWatchingWorker : BackgroundService
 {

@@ -1,8 +1,8 @@
-﻿<div id="@ElementId" @onmousedown="@SetContextSelected">
+﻿<div id="@ElementId" @oncontextpress="@OnContextMenu">
     @if (Peer.Kind == "video")
     {
         <div class="peer-video-wrapper">
-            <video class="media peer-video" playsinline autoplay />
+            <video class="media peer-video" playsinline autoplay></video>
             <div class='pause-button'>
                 Pause
             </div>
@@ -194,8 +194,8 @@
         }
     }
 
-    private void SetContextSelected()
+    private void OnContextMenu(ContextPressEventArgs e)
     {
-        AudioContextMenuComponent.SetSelectedItem(this);
+        ContextMenuService.Root.OpenMenu<AudioContextMenuComponent>(e, this);
     }
 }

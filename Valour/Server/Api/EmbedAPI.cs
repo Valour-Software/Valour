@@ -1,19 +1,10 @@
-﻿using IdGen;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using Valour.Sdk.Models.Messages;
 using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
-using Valour.Shared;
-using Valour.Shared.Models;
 using Valour.Sdk.Models.Messages.Embeds.Items;
-using Valour.Server.Api.Dynamic;
 using Valour.Server.Cdn;
-using System.Runtime.ConstrainedExecution;
 
 namespace Valour.Server.API;
 public class EmbedAPI : BaseAPI

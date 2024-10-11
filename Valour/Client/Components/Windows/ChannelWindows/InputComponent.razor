@@ -1,8 +1,6 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
-@using System.Text.RegularExpressions
-@using Valour.Sdk.Models.Messages;
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
@@ -19,7 +17,7 @@
                     LastMessage = MessageHolder.GetLastMessage(),
                 };
 
-                <MessageComponent @key="@($"{ChatComponent.Window.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+                <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
             }
         }
     </div>
@@ -43,17 +41,17 @@
     </div>
     
     <div style="position: relative">
-        <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.Window.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
+        <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
     </div>
     <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
     <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
 
     <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
         <div class="textbox" @ref="_dropZoneElement">
-            <InputFile id="@("upload-core-" + ChatComponent.Window.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <InputFile id="@("upload-core-" + ChatComponent.WindowCtx.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.Window.Id" data-window="@ChatComponent.Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.Window.Id').focus()" autofocus>
+                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.WindowCtx.Id').focus()" autofocus>
                 </div>
                 @if (!CanUserPost)
                 {
@@ -238,7 +236,7 @@
 
     private async Task OnClickUploadAsync()
     {
-        await _jsModule.InvokeVoidAsync("OpenUploadFile", ChatComponent.Window.Id);
+        await _jsModule.InvokeVoidAsync("OpenUploadFile", ChatComponent.WindowCtx.Id);
     }
 
     private static Dictionary<long, string> _retainedInputCache = new();
@@ -293,7 +291,7 @@
 
     public async Task SetInputContent(string content)
     {
-        await _jsModule.InvokeVoidAsync("setInputContent", ChatComponent.Window.Id, content);
+        await _jsModule.InvokeVoidAsync("setInputContent", ChatComponent.WindowCtx.Id, content);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -669,32 +667,32 @@
     // C# -> JS
     private ValueTask SetupJsAsync()
     {
-        return _jsModule.InvokeVoidAsync("setup", ChatComponent.Window.Id, _thisRef);
+        return _jsModule.InvokeVoidAsync("setup", ChatComponent.WindowCtx.Id, _thisRef);
     }
 
     public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
-        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, ChatComponent.Window.Id);
+        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, ChatComponent.WindowCtx.Id);
     }
     
     public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes)
     {
-        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, ChatComponent.Window.Id);
+        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, ChatComponent.WindowCtx.Id);
     }
 
     public async Task OnSubmitClick()
     {
-        await _jsModule.InvokeVoidAsync("submitMessage", ChatComponent.Window.Id, true);
+        await _jsModule.InvokeVoidAsync("submitMessage", ChatComponent.WindowCtx.Id, true);
     }
 
     private ValueTask SelectEnd()
     {
-        return _jsModule.InvokeVoidAsync("selectEnd", ChatComponent.Window.Id);
+        return _jsModule.InvokeVoidAsync("selectEnd", ChatComponent.WindowCtx.Id);
     }
     
     private ValueTask FocusInputAsync()
     {
-        return _jsModule.InvokeVoidAsync("focusInput", ChatComponent.Window.Id);
+        return _jsModule.InvokeVoidAsync("focusInput", ChatComponent.WindowCtx.Id);
     }
 
     // JS -> C#

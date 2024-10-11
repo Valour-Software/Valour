@@ -1,9 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using StackExchange.Redis;
-using System.Data;
-using Valour.Client.Pages;
-using Valour.Server.Database;
-using Valour.Server.Services;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 

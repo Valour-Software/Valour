@@ -78,7 +78,7 @@
 @code {
     
     [CascadingParameter]
-    public DomWindowData DomWindow { get; set; }
+    public BrowserUtils DomWindow { get; set; }
 
     public class ModalParams
     {
@@ -91,14 +91,14 @@
 
     public void Dispose()
     {
-        BigMenu.RefreshRightSide -= Refresh;
+        BigMenu.OnRefreshRightSide -= Refresh;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            BigMenu.RefreshRightSide += Refresh;
+            BigMenu.OnRefreshRightSide += Refresh;
         }
         return base.OnAfterRenderAsync(firstRender);
     }
@@ -156,9 +156,9 @@
             Staff = true
         };
 
-        var newWindow = await ModToolsWindowComponent.GetDefaultSettings(data);
-
-        await GlobalWindowData.TryAddFloatingWindow(newWindow);
+        var content = ModToolsWindowComponent.GetDefaultContent(data);
+        var floatingProps = ModToolsWindowComponent.GetDefaultFloatingProps();
+        await WindowService.TryAddFloatingWindow(content, floatingProps);
 
         await CloseAsync();
     }

@@ -1,8 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Valour.Shared.Models;
-
-namespace Valour.Shared.Models;
+﻿namespace Valour.Shared.Models;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -14,7 +10,7 @@ namespace Valour.Shared.Models;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetMember : ISharedPlanetItem
+public interface ISharedPlanetMember : ISharedPlanetModel
 {
     /// <summary>
     /// The user within the planet

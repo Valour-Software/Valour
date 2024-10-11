@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Valour.Shared.Models;
+﻿namespace Valour.Shared.Models;
 
 /// <summary>
 /// Used to request a password recovery operation

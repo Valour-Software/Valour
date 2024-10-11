@@ -1,6 +1,5 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
-using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Sdk.Models.Economy;
@@ -8,7 +7,7 @@ namespace Valour.Sdk.Models.Economy;
 /// <summary>
 /// Currencies represent one *type* of cash, declared by a community.
 /// </summary>
-public class Currency : LiveModel, ISharedCurrency
+public class Currency : ClientModel, ISharedCurrency
 {
     public override string BaseRoute => "api/eco/currencies";
 

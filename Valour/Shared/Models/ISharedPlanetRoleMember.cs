@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+﻿
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -9,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRoleMember : ISharedPlanetItem
+public interface ISharedPlanetRoleMember : ISharedPlanetModel
 {
     long UserId { get; set; }
     long RoleId { get; set; }

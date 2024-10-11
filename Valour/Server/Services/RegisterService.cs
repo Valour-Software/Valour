@@ -14,7 +14,7 @@ public class RegisterService
     private const string ValourWelcome = "## Welcome to Valour!\nI'm *Victor*, the Valour mascot. I'm here to help you get started. " +
                                          "If you have any questions, feel free to ask me. I may not be fast to respond (I am run by humans!) " +
                                          "You can also ask other users, or check out the Valour Central planet for more information." +
-                                         " Some basics: \n- Valour communities are named Planets! You can join or create planets for your interests. " +
+                                         " Some basics: \n- Valour communities are named HostedPlanets! You can join or create planets for your interests. " +
                                          "\n- You can also add friends and direct message them. " +
                                          "\n- Valour (desktop) supports opening multiple windows with controls on the top right of each window. ";
     

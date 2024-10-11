@@ -1,8 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-
-namespace Valour.Shared.Models;
+﻿namespace Valour.Shared.Models;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
@@ -14,7 +10,7 @@ namespace Valour.Shared.Models;
 /// Oauth apps allow an organization or person to issue tokens on behalf of a user
 /// which can be easily tracked and revoked
 /// </summary>
-public interface ISharedOauthApp : ISharedItem
+public interface ISharedOauthApp : ISharedModel
 {
     /// <summary>
     /// The secret key for the app

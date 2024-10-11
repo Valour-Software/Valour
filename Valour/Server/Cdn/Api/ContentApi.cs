@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Net;
-using System.Web.Http;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using Valour.Server.Cdn.Objects;

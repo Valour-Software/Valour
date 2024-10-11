@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Security.Cryptography;
-using Valour.Server.Database;
+﻿using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Models;
 

@@ -12,7 +12,7 @@
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public interface ISharedUserFriend : ISharedItem
+public interface ISharedUserFriend : ISharedModel
 {
     /// <summary>
     /// The user who added the friend

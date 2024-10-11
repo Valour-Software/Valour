@@ -1,9 +1,8 @@
-﻿using Valour.Sdk.Models;
-using Valour.Shared.Models;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class PlanetRoleMember : LiveModel, ISharedPlanetRoleMember
+public class PlanetRoleMember : ClientModel, ISharedPlanetRoleMember
 {
     public long UserId { get; set; }
     public long RoleId { get; set; }

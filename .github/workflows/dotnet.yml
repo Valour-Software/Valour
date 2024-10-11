@@ -41,10 +41,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 9.0.100-rc.1.24452.12 
         include-prerelease: true
     - name: Restore workload
       run: dotnet workload restore
+    - name: Clean
+      run: dotnet clean
     - name: Restore dependencies
       run: dotnet restore
     - name: Clean

@@ -22,17 +22,12 @@ public static class NotificationNavigator
                 if (planet is null)
                     break;
 
-                var channel = (await planet.GetChatChannelsAsync()).FirstOrDefault(x => x.Id == notification.ChannelId);
+                var channel = planet.ChatChannels.FirstOrDefault(x => x.Id == notification.ChannelId);
                 if (channel is null)
                     break;
 
-                await GlobalWindowData.OpenWindowAtActive(new WindowData()
-                {
-                    Title = await channel.GetTitleAsync(),
-                    Data = channel,
-                    Type = typeof(ChatChannelWindowComponent),
-                    Icon = planet.GetIconUrl(IconFormat.Webp64)
-                });
+                var content = await ChatChannelWindowComponent.GetDefaultContent(channel);
+                await WindowService.OpenWindowAtFocused(content);
 
                 break;
             }
@@ -43,14 +38,8 @@ public static class NotificationNavigator
                 if (channel is null)
                     break;
                 
-                await GlobalWindowData.OpenWindowAtActive(new WindowData()
-                    {
-                        Title = await channel.GetTitleAsync(),
-                        Data = channel,
-                        Type = typeof(ChatChannelWindowComponent),
-                        Icon = await channel.GetIconAsync()
-                    }
-                );
+                var content = await ChatChannelWindowComponent.GetDefaultContent(channel);
+                await WindowService.OpenWindowAtFocused(content);
                 
                 break;
             }

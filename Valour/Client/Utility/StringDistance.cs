@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace Valour.Client.Utility
+﻿namespace Valour.Client.Utility
 {
     public class StringDistance
     {

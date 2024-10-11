@@ -1,7 +1,7 @@
 ﻿@inject IJSRuntime JsRuntime
 
-@using Valour.Sdk.Extensions
 @using System.Net.Http.Headers
+@using Valour.Shared.Extensions
 @* Editing page *@
 @if (_editingTheme is not null)
 {
@@ -423,12 +423,12 @@ else
         if (_editingTheme.Id == 0)
         {
             // New theme
-            _editingResult = await LiveModel.CreateAsync(_editingTheme);
+            _editingResult = await ClientModel.CreateAsync(_editingTheme);
         }
         else
         {
             // Existing theme
-            _editingResult = await LiveModel.UpdateAsync(_editingTheme);
+            _editingResult = await ClientModel.UpdateAsync(_editingTheme);
         }
 
         if (!_editingResult.Value.Success)

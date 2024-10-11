@@ -1,12 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Drawing;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_roles")]
-public class PlanetRole : Item, ISharedPlanetRole
+public class PlanetRole : Model, ISharedPlanetRole
 {
     ///////////////////////////
     // Relational Properties //
