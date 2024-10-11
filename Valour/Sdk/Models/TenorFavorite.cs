@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class TenorFavorite : LiveModel, ISharedTenorFavorite
+public class TenorFavorite : ClientModel, ISharedTenorFavorite
 {
     #region IPlanetModel implementation
 

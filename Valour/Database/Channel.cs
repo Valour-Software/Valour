@@ -79,17 +79,23 @@ public class Channel : Model, ISharedChannel
     /// The position of the channel in the channel list
     /// </summary>
     [Column("position")]
-    public int? Position { get; set; }
+    public int Position { get; set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
     /// </summary>
     [Column("inherits_perms")]
-    public bool? InheritsPerms { get; set; }
+    public bool InheritsPerms { get; set; }
     
     /// <summary>
     /// True if this is the default chat channel
     /// </summary>
     [Column("is_default")]
-    public bool? IsDefault { get; set; }
+    public bool IsDefault { get; set; }
+    
+    ////////////////////////
+    // Shared Non-columns //
+    ////////////////////////
+    public int Depth => ISharedChannel.GetDepth(this);
+    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
 }

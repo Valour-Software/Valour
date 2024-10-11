@@ -11,7 +11,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
+public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
 {
     // Cached values
     // Will only be used for planet channels
@@ -83,14 +83,9 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// The id of the parent of the channel, if any
     /// </summary>
     public long? ParentId { get; set; }
-
+    
     /// <summary>
-    /// The position of the channel in the channel list
-    /// </summary>
-    public int Position { get; set; }
-
-    /// <summary>
-    /// The total position of the channel. Works as the following:
+    /// The position of the channel. Works as the following:
     /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
     /// Each 8 bits is a category, with the first category being the top level
     /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
@@ -98,46 +93,27 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
     /// This does limit the depth of categories to 4, and the highest position
     /// to 254 (since 000 means no position)
     /// </summary>
-    public int TotalPosition { get; set; } 
-    
+    public int Position { get; set; }
+
     /// <summary>
     /// The depth, or how many categories deep the channel is
     /// </summary>
-    public int Depth
-    {
-        get
-        {
-            // check if 4th layer is set
-            if ((TotalPosition & 0x000000FF) != 0)
-                return 4;
-            
-            // check if 3rd layer is set
-            if ((TotalPosition & 0x0000FF00) != 0)
-                return 3;
-            
-            // check if 2nd layer is set
-            if ((TotalPosition & 0x00FF0000) != 0)
-                return 2;
-            
-            // check if 1st layer is set
-            if ((TotalPosition & 0xFF000000) != 0)
-                return 1;
+    public int Depth => ISharedChannel.GetDepth(this);
 
-            // no layers set, so we will just say 1
-            // this shouldn't happen.
-            return 1;
-        }
-    }
+    /// <summary>
+    /// The position of the channel within its parent
+    /// </summary>
+    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
 
     /// <summary>
     /// If this channel inherits permissions from its parent
     /// </summary>
-    public bool? InheritsPerms { get; set; }
+    public bool InheritsPerms { get; set; }
 
     /// <summary>
     /// If this channel is the default channel
     /// </summary>
-    public bool? IsDefault { get; set; }
+    public bool IsDefault { get; set; }
 
     /// <summary>
     /// Returns the channel for the given id. Requires planetId for
@@ -398,8 +374,7 @@ public class Channel : LiveModel, IChannel, ISharedChannel, IPlanetModel
         var target = this;
 
         // Move up until no longer inheriting
-        while (target.InheritsPerms is not null &&
-               target.InheritsPerms.Value &&
+        while (target.InheritsPerms &&
                target.ParentId is not null)
         {
             target = await target.GetParentAsync();

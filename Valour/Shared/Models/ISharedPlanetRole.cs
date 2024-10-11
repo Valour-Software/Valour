@@ -49,6 +49,11 @@ public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
     /// True if the role can be mentioned by non-admins
     /// </summary>
     bool AnyoneCanMention { get; set; }
+    
+    /// <summary>
+    /// The position of the role: Lower has more authority
+    /// </summary>
+    int Position { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
@@ -62,5 +67,9 @@ public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
         => Permission.HasPermission(role.Permissions, perm);
 
+    int ISortableModel.GetSortPosition()
+    {
+        return Position;
+    }
 }
 

@@ -8,4 +8,9 @@ public interface ISortableModel
     {
         return x.GetSortPosition().CompareTo(y.GetSortPosition());
     }
+    
+    public static int Compare<T>(T x, T y) where T : ISortableModel
+    {
+        return x.GetSortPosition().CompareTo(y.GetSortPosition());
+    }
 }

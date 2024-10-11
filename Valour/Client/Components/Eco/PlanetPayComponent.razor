@@ -329,7 +329,7 @@ else
     {
         _errorSpan = null;
         
-        var result = await LiveModel.CreateAsync(new EcoAccount()
+        var result = await ClientModel.CreateAsync(new EcoAccount()
         {
             PlanetId = _focusedPlanet.Id,
             UserId = ValourClient.Self.Id,

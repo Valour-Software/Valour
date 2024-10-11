@@ -17,7 +17,8 @@ public class NodeService
     public readonly string Name;
     public readonly string Location;
     public readonly string Version;
-    private HashSet<long> _hostedPlanets { get; }
+    
+    private HashSet<long> _hostedPlanets;
     
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;

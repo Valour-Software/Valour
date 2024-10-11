@@ -171,11 +171,7 @@
     
     private async Task OnClick()
     {
-        var channel = await Planet.GetPrimaryChannelAsync();
-        if (channel is null)
-        {
-            channel = (await Planet.GetChatChannelsAsync()).FirstOrDefault();
-        }
+        var channel = Planet.GetPrimaryChannel();
         if (channel is null)
         {
             // Show failure toast

@@ -102,14 +102,15 @@ public class ChannelService
                 ChannelType = ChannelTypeEnum.DirectChat,
                 LastUpdateTime = DateTime.UtcNow,
                 IsDeleted = false,
+                
+                Position = 0,
+                InheritsPerms = false,
+                IsDefault = false,
 
                 // These are null and technically we don't have to show this
                 // but I am showing it so you know it SHOULD be null!
                 PlanetId = null,
                 ParentId = null,
-                Position = null,
-                InheritsPerms = null,
-                IsDefault = null
             };
             
             await _db.Channels.AddAsync(channel);

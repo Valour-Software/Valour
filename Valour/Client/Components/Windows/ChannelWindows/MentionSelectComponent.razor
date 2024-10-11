@@ -60,7 +60,7 @@
 
     private Planet _planet;
 
-    private List<Channel> _chatChannels;
+    private IReadOnlyList<Channel> _chatChannels;
     private List<PlanetMember> _members;
     private List<PlanetRole> _roles;
     private List<User> _users;
@@ -102,7 +102,7 @@
             {
                 _planet = await Channel.GetPlanetAsync();
                 _members = await _planet.GetMembersAsync();
-                _chatChannels = await _planet.GetChatChannelsAsync();
+                _chatChannels = _planet.ChatChannels;
                 _roles = await _planet.GetRolesAsync();
             }
             else

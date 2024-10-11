@@ -1,5 +1,3 @@
-using System.Collections;
-using Valour.Sdk.Extensions;
 using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
@@ -91,7 +89,7 @@ public class SortedModelCache<T> where T : ISortableModel, IHasId
         
         if (_cache.Count > 0)
         {
-            _cache.Sort(_cache[0].Compare);
+            _cache.Sort(ISortableModel.Compare);
         }
     }
     
@@ -105,7 +103,7 @@ public class SortedModelCache<T> where T : ISortableModel, IHasId
     {
         _cache.Add(item);
         _lookup.Add(item.Id, item);
-        _cache.Sort(item.Compare);
+        _cache.Sort(ISortableModel.Compare);
     }
     
     public void Remove(long id)
@@ -124,15 +122,15 @@ public class SortedModelCache<T> where T : ISortableModel, IHasId
             updated.CopyAllTo(old);
             
             // check if the position has changed
-            if (old.Position != updated.Position)
+            if (old.GetSortPosition() != updated.GetSortPosition())
             {
-                _cache.Sort(updated.Compare);
+                _cache.Sort(ISortableModel.Compare);
             }
         }
         else
         {
             Add(updated);
-            _cache.Sort(updated.Compare);
+            _cache.Sort(ISortableModel.Compare);
         }
     }
     

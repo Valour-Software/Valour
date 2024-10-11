@@ -98,7 +98,7 @@
 
 		await ValourClient.AddJoinedPlanetAsync(planet);
 		
-		var mainChannel = await planet.GetPrimaryChannelAsync();
+		var mainChannel = planet.GetPrimaryChannel();
 
 		await Data.Window.Layout.AddTab(await ChatChannelWindowComponent.GetDefaultContent(mainChannel));
 	}

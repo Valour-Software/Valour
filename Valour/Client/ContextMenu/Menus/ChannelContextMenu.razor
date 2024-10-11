@@ -82,10 +82,9 @@
         
         if (Data.Channel.ChannelType == ChannelTypeEnum.PlanetCategory){
             var planet = await Data.Channel.GetPlanetAsync();
-            var channels = await planet.GetAllChannelsAsync();
 
             // Ensure category has no children if we are deleting it
-            if (channels.Any(x => x.ParentId == Data.Channel.Id)){
+            if (planet.Channels.Any(x => x.ParentId == Data.Channel.Id)){
 
                 var data = new InfoModalComponent.ModalParams(
                     "You can't delete this!",
@@ -111,7 +110,7 @@
              async () =>
              {
                  Console.WriteLine("Confirmed channel model deletion.");
-                 var result = await LiveModel.DeleteAsync(Data.Channel);
+                 var result = await ClientModel.DeleteAsync(Data.Channel);
              },
              () =>
              {

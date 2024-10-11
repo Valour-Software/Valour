@@ -48,17 +48,7 @@ public class PlanetService
             return hosted.Planet;
         
         // get planet from db
-        var planet = (await _db.Planets.FindAsync(id)).ToModel();
-        
-        // check if we're hosting this planet
-        if (await _nodeService.IsHostingPlanet(id))
-        {
-            // if we are hosting it, add it to the cache
-            var hostedPlanet = new HostedPlanet(planet);
-            _hostedPlanetCache.TryAdd(id, hostedPlanet);
-        }
-        
-        return planet;
+        return (await _db.Planets.FindAsync(id)).ToModel();
     }
 
     /// <summary>
@@ -66,9 +56,7 @@ public class PlanetService
     /// </summary>
     public async Task<Channel> GetPrimaryChannelAsync(long planetId) =>
         (await _db.Channels.FirstOrDefaultAsync(x => 
-            x.PlanetId == planetId && 
-            x.IsDefault != null &&
-            x.IsDefault.Value)).ToModel();
+            x.PlanetId == planetId && x.IsDefault)).ToModel();
 
     /// <summary>
     /// Returns the default role for the given planet
@@ -591,14 +579,20 @@ public class PlanetService
             insert.ParentId = categoryId;
             insert.PlanetId = insert.PlanetId;
             insert.Position = position;
+
+            var insertData = new
+            {
+                insert.Id,
+                insert.ChannelType
+            };
             
             if (position >= children.Count)
             {
-                children.Add(insert);
+                children.Add(insertData);
             }
             else
             {
-                children.Insert(position, insert);
+                children.Insert(position, insertData);
             }
             
             // Update all positions
