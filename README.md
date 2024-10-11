@@ -1,6 +1,6 @@
 ![Valour logo](Valour/Client/wwwroot/media/logo/wide/logo_wide_blue_black_trans.png)
 
-![.NET Test](https://github.com/your-username/your-repo-name/actions/workflows/dotnet.yml/badge.svg)
+![.NET Test](https://github.com/Valour-Software/Valour/actions/workflows/dotnet.yml/badge.svg)
 
 # Valour
 
