@@ -118,12 +118,19 @@ public class PlanetService
     /// </summary>
     public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<PlanetRole> order)
     {
+        var distinct = order.DistinctBy(x => x.Id);
+        
         var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
         if (totalRoles != order.Count)
             return new TaskResult(false, "Your order does not contain all the planet roles.");
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
+        var defaultRole = distinct.FirstOrDefault(x => x.IsDefault);
+        
+        if (defaultRole is null)
+            return new TaskResult(false, "You must include the default role in the order.");
+        
         List<PlanetRole> roles = new();
         
         try
@@ -131,7 +138,7 @@ public class PlanetService
 
             List<long> changedRoleIds = new();
             
-            var pos = 0;
+            uint pos = 0;
 
             foreach (var role in order)
             {
@@ -142,8 +149,10 @@ public class PlanetService
                 if (old is null)
                     return new TaskResult(false, $"Role {role.Id} could not be found");
                 
-                // If default (everyone), force lowest position
-                role.Position = old.IsDefault ? int.MaxValue : pos;
+                if (role.IsDefault)
+                {
+                    continue;
+                }
                 
                 // If position changed, add to list
                 if (old.Position != role.Position)
@@ -155,12 +164,23 @@ public class PlanetService
                 _db.PlanetRoles.Update(old);
                 roles.Add(role);
 
-                // Don't increase position for default role
-                if (role.Position != int.MaxValue)
-                {
-                    pos++;
-                }
+                pos++;
             }
+            
+            // Update default role
+            if (pos != defaultRole.Position)
+            {
+                var old = await _db.PlanetRoles.FindAsync(defaultRole.Id);
+                if (old is null)
+                    return new TaskResult(false, $"Default role {defaultRole.Id} could not be found");
+                
+                defaultRole.Position = pos;
+                _db.Entry(old).CurrentValues.SetValues(defaultRole);
+                _db.PlanetRoles.Update(old);
+            }
+            
+            roles.Add(defaultRole);
+
 
             await _db.SaveChangesAsync();
             
@@ -345,7 +365,7 @@ public class PlanetService
                 Name = "General",
                 ParentId = null,
                 Description = "General category",
-                Position = 0,
+                RawPosition = 0,
                 
                 ChannelType = ChannelTypeEnum.PlanetCategory
             };
@@ -359,7 +379,7 @@ public class PlanetService
                 Id = IdManager.Generate(),
                 Name = "General",
                 Description = "General chat channel",
-                Position = 0,
+                RawPosition = 0,
                 IsDefault = true,
                 
                 ChannelType = ChannelTypeEnum.PlanetChat
@@ -525,19 +545,19 @@ public class PlanetService
 
         var children = await _db.Channels
             .Where(x => x.ParentId == categoryId && x.PlanetId == insert.PlanetId)
-            .OrderBy(x => x.Position)
+            .OrderBy(x => x.RawPosition)
             .Select(x =>
             new {
                 Id = x.Id, ChannelType = x.ChannelType
             })
             .ToListAsync();
 
-        var position = inPosition ?? children.Count + 1;
+        var position = (uint)(inPosition ?? children.Count + 1);
         
         // If unspecified or too high, set to next position
         if (position < 0 || position > children.Count)
         {
-            position = children.Count + 1;
+            position = (uint)(children.Count + 1);
         }
         
         var oldCategoryId = insert.ParentId;
@@ -558,7 +578,7 @@ public class PlanetService
 
                 var oldCategoryChildren = await _db.Channels
                     .Where(x => x.ParentId == oldCategory.Id)
-                    .OrderBy(x => x.Position)
+                    .OrderBy(x => x.RawPosition)
                     .ToListAsync();
 
                 // Remove from old category
@@ -567,10 +587,10 @@ public class PlanetService
                 oldCategoryOrder = new();
                 
                 // Update all positions
-                var opos = 0;
+                uint opos = 0;
                 foreach (var child in oldCategoryChildren)
                 {
-                    child.Position = opos;
+                    child.RawPosition = opos;
                     oldCategoryOrder.Add(new(child.Id, child.ChannelType));
                     opos++;
                 }
@@ -578,7 +598,7 @@ public class PlanetService
 
             insert.ParentId = categoryId;
             insert.PlanetId = insert.PlanetId;
-            insert.Position = position;
+            insert.RawPosition = position;
 
             var insertData = new
             {
@@ -592,7 +612,7 @@ public class PlanetService
             }
             else
             {
-                children.Insert(position, insertData);
+                children.Insert((int)position, insertData);
             }
             
             // Update all positions

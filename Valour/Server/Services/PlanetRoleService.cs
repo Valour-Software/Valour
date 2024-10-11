@@ -40,7 +40,7 @@ public class PlanetRoleService
         if (!_hexColorRegex.IsMatch(role.Color))
             return new TaskResult<PlanetRole>(false, "Invalid hex color");
 
-        role.Position = await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
+        role.Position = (uint)await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
         role.Id = IdManager.Generate();
 
         try

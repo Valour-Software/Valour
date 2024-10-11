@@ -1183,7 +1183,7 @@ public static class ValourClient
     public static async Task HandleCategoryOrderUpdate(CategoryOrderEvent eventData)
     {
         // Update channels in cache
-        int pos = 0;
+        uint pos = 0;
         foreach (var data in eventData.Order)
         {
             var channel = ValourCache.Get<Channel>(data.Id);
@@ -1195,7 +1195,7 @@ public static class ValourClient
                 channel.ParentId = eventData.CategoryId;
 
                 // Position can be changed in this event
-                channel.Position = pos;
+                channel.RawPosition = pos;
             }
 
             pos++;

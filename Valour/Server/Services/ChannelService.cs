@@ -7,6 +7,7 @@ using Valour.Server.Utilities;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -103,7 +104,7 @@ public class ChannelService
                 LastUpdateTime = DateTime.UtcNow,
                 IsDeleted = false,
                 
-                Position = 0,
+                RawPosition = 0,
                 InheritsPerms = false,
                 IsDefault = false,
 
@@ -269,7 +270,7 @@ public class ChannelService
             return TaskResult<Channel>.FromError("Use the order endpoint in the parent category to update parent.");
         }
         // Channel is being moved
-        if (old.Position != updated.Position)
+        if (old.RawPosition != updated.RawPosition)
         {
             return TaskResult<Channel>.FromError("Use the order endpoint in the parent category to change position.");
         }
@@ -348,7 +349,7 @@ public class ChannelService
 
         try
         {
-            var pos = 0;
+            uint pos = 0;
             foreach (var childId in order)
             {
                 var child = await _db.Channels.FindAsync(childId);
@@ -358,7 +359,7 @@ public class ChannelService
                 if (child.ParentId != categoryId)
                     return new(false, $"Category {childId} is not a child of {categoryId}.");
 
-                child.Position = pos;
+                child.RawPosition = pos;
 
                 newOrder.Add(new(child.Id, child.ChannelType));
 
@@ -393,7 +394,7 @@ public class ChannelService
     /// </summary>
     public Task<List<Channel>> GetChildrenAsync(long id) =>
         _db.Channels.Where(x => x.ParentId == id)
-            .OrderBy(x => x.Position)
+            .OrderBy(x => x.RawPosition)
             .Select(x => x.ToModel())
             .ToListAsync();
 
@@ -941,6 +942,32 @@ public class ChannelService
 
         return TaskResult.SuccessResult;
     }
+
+    /// <summary>
+    /// Returns all the descendents for a given channel position
+    /// </summary>
+    public async Task<List<Channel>> GetAllDescendants(Channel channel)
+    {
+        if (channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+            return new();
+        
+        // This works because position values contain the parent information.
+        
+        // First, get the depth of the channel
+        var depth = channel.Position.Depth;
+        
+        // If depth is 4, it can't have children
+        // (Technically you shouldn't even be able to have a category at level 4)
+        if (depth == 4)
+            return new();
+        
+        var descendants = await _db.Channels
+            .DescendantsOf(channel)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+        
+        return descendants;
+    }
     
     ////////////////
     // Validation //
@@ -954,7 +981,7 @@ public class ChannelService
     /// <summary>
     /// Validates that a given name is allowable
     /// </summary>
-    private TaskResult ValidateName(string name)
+    private static TaskResult ValidateName(string name)
     {
         if (name.Length > 32)
             return TaskResult.FromError("Channel names must be 32 characters or less.");
@@ -965,7 +992,7 @@ public class ChannelService
     /// <summary>
     /// Validates that a given description is allowable
     /// </summary>
-    private TaskResult ValidateDescription(string desc)
+    private static TaskResult ValidateDescription(string desc)
     {
         if (desc.Length > 500)
         {
@@ -981,8 +1008,9 @@ public class ChannelService
     /// </summary>
     private async Task<bool> HasUniquePosition(Channel channel) =>
         // Ensure position is not already taken
-        !await _db.Channels.AnyAsync(x => x.ParentId == channel.ParentId && // Same parent
-                                                x.Position == channel.Position && // Same position
+        // Note: with new position system, we need to check the position and parent separately
+        !await _db.Channels.AnyAsync(x => (x.ParentId == channel.ParentId || // Same parent
+                                                x.RawPosition == channel.RawPosition) && // Same position
                                                 x.Id != channel.Id); // Not self
     
     /// <summary>
@@ -1023,9 +1051,13 @@ public class ChannelService
         }
 
         // Auto determine position
-        if (channel.Position < 0)
+        if (channel.RawPosition < 0)
         {
-            channel.Position = await _db.Channels.CountAsync(x => x.ParentId == channel.ParentId);
+            var nextPosResult = await TryGetNextChannelPosition(channel.PlanetId, channel.ParentId, channel.ChannelType);
+            if (!nextPosResult.Success)
+                return nextPosResult.WithoutData();
+            
+            channel.RawPosition = nextPosResult.Data;
         }
         else
         {
@@ -1083,27 +1115,72 @@ public class ChannelService
         return TaskResult.SuccessResult;
     }
     
-    public async Task<int> GetNextChannelPosition(long planetId, long? parentId)
+    public async Task<TaskResult<uint>> TryGetNextChannelPosition(long? planetId, long? parentId, ChannelTypeEnum channelType)
     {
-        // count the number of children
-        var childCount = await _db.Channels.CountAsync(x => x.ParentId == parentId && x.PlanetId == planetId);
+        var parent = (await _db.Channels.FindAsync(parentId)).ToModel();
+        if (parent is null)
+            return TaskResult<uint>.FromError("Parent channel not found");
         
-        // Max child count is 250
-        if (childCount > 249)
-        {
-            return -1;
-        }
+        return await TryGetNextChannelPosition(planetId, parent, channelType);
+    }
 
-        // position within the parent
-        var relativePosition = childCount + 1;
-        var parentPosition = 0;
+    public async Task<TaskResult<uint>> TryGetNextChannelPosition(long? planetId, Channel parentCategory, ChannelTypeEnum channelType)
+    {
+        // non-planet channels do not have a position
+        if (planetId is null)
+            return TaskResult<uint>.FromData(0);
         
-        if (parentId is not null)
+        // position within the parent
+        var parentPosition = 0u;
+        
+        if (parentCategory is not null)
         {
-            parentPosition = await _db.Channels.Where(x => x.Id == parentId).Select(x => x.Position).FirstOrDefaultAsync();
+            var parentDepth = 0u;
+            
+            // you can't place a channel under a non-category
+            if (parentCategory.ChannelType != ChannelTypeEnum.PlanetCategory)
+                return TaskResult<uint>.FromData(0);
+            
+            parentDepth = parentCategory.Position.Depth;
+            
+            if (channelType == ChannelTypeEnum.PlanetCategory)
+            {
+                // We don't allow categories at greater than depth 2
+                // because they wouldn't be able to contain anything
+                if (parentDepth > 1) 
+                {
+                    return TaskResult<uint>.FromError("Max category depth reached (2)");
+                }
+            }
+            else
+            {
+                if (parentDepth > 2)
+                {
+                    return TaskResult<uint>.FromError("Max channel depth reached (3)");
+                }
+            }
         }
         
-        // we have to shift the relative position into place and then add it to the parent position
-        return ISharedChannel.AppendRelativePosition(parentPosition, relativePosition);
+        // Get the child with the highest position within the bounds
+        var highestChildRawPosition = await _db.Channels
+            .DirectChildrenOf(planetId, parentPosition)
+            .Select(x => x.RawPosition)
+            .DefaultIfEmpty(0u)
+            .MaxAsync();
+
+        var highestChildPosition = new ChannelPosition(highestChildRawPosition);
+        
+        if (highestChildPosition.LocalPosition > 249)
+        {
+            return TaskResult<uint>.FromError("Max category children reached");
+        }
+        
+        // Add one to the highest child's relative position to get the new local position
+        var newLocalPosition = highestChildPosition.LocalPosition + 1;
+        
+        // Stick the new local position onto the parent position to get the new position
+        var newPosition =  ChannelPosition.AppendRelativePosition(parentPosition, newLocalPosition);
+        
+        return TaskResult<uint>.FromData(newPosition);
     }
 }

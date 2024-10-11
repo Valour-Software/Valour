@@ -99,6 +99,8 @@ namespace Valour.Shared
             value = Data;
             return Success;
         }
+        
+        public TaskResult WithoutData() => new(Success, Message, Details, Code);
 
         public override string ToString()
         {

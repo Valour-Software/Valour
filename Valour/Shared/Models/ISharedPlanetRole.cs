@@ -53,21 +53,21 @@ public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    int Position { get; set; }
+    uint Position { get; set; }
 
-    public int GetAuthority() =>
+    public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
     
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
-    public static int GetAuthority(ISharedPlanetRole role) =>
-        int.MaxValue - role.Position - 1; // Subtract one so owner can have higher
+    public static uint GetAuthority(ISharedPlanetRole role) =>
+        uint.MaxValue - role.Position - 1; // Subtract one so owner can have higher
     
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
         => Permission.HasPermission(role.Permissions, perm);
 
-    int ISortableModel.GetSortPosition()
+    uint ISortableModel.GetSortPosition()
     {
         return Position;
     }

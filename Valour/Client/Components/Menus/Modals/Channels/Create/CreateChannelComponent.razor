@@ -160,11 +160,11 @@
                 Description = "A category",
                 ParentId = parentId,
                 PlanetId = planetId,
-                Position = -1,
                 
                 ChannelType = Data.ChannelType
             },
-            Nodes = new()
+            Nodes = new(),
+            TargetId = null
         };
 
         if (_isPrivate)

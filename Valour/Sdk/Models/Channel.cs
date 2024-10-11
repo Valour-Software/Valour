@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
@@ -84,6 +85,9 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public long? ParentId { get; set; }
     
+    // Backing store for RawPosition
+    private uint _rawPosition;
+    
     /// <summary>
     /// The position of the channel. Works as the following:
     /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
@@ -93,17 +97,18 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /// This does limit the depth of categories to 4, and the highest position
     /// to 254 (since 000 means no position)
     /// </summary>
-    public int Position { get; set; }
+    public uint RawPosition
+    {
+        get => _rawPosition;
+        set
+        {
+            _rawPosition = value;
+            Position = new ChannelPosition(value);
+        }
+    }
 
-    /// <summary>
-    /// The depth, or how many categories deep the channel is
-    /// </summary>
-    public int Depth => ISharedChannel.GetDepth(this);
-
-    /// <summary>
-    /// The position of the channel within its parent
-    /// </summary>
-    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
+    [JsonIgnore]
+    public ChannelPosition Position { get; protected set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -691,6 +696,6 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
 
     public int Compare(Channel x, Channel y)
     {
-        return x.Position.CompareTo(y.Position);
+        return x.RawPosition.CompareTo(y.RawPosition);
     }
 }

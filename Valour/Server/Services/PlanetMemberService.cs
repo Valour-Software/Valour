@@ -230,13 +230,13 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
-    public async Task<int> GetAuthorityAsync(PlanetMember member)
+    public async Task<uint> GetAuthorityAsync(PlanetMember member)
     {
         var planet = await _db.Planets.FindAsync(member.PlanetId);
         
         // Planet owner has highest possible authority
         if (planet.OwnerId == member.UserId)
-            return int.MaxValue;
+            return uint.MaxValue;
         
         // Otherwise, we get the primary role's position
         var rolePos = await _db.PlanetRoleMembers
@@ -248,7 +248,7 @@ public class PlanetMemberService
             .FirstAsync();
         
         // Calculate the authority
-        return int.MaxValue - rolePos - 1;
+        return uint.MaxValue - rolePos - 1;
     }
     
     /// <summary>

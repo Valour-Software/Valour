@@ -37,7 +37,7 @@ public class PlanetRole : Model, ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     [Column("position")]
-    public int Position { get; set; }
+    public uint Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -88,7 +88,7 @@ public class PlanetRole : Model, ISharedPlanetRole
     [Column("anyone_can_mention")]
     public bool AnyoneCanMention { get; set; }
 
-    public int GetAuthority() =>
+    public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public bool HasPermission(PlanetPermission perm) =>

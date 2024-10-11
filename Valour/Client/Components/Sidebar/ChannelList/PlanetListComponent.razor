@@ -125,8 +125,8 @@
     {
         TopChannels.Sort((x, y) =>
         {
-            var a = x.Position;
-            var b = y.Position;
+            var a = x.RawPosition;
+            var b = y.RawPosition;
             return a.CompareTo(b);
         });
     }
