@@ -1,0 +1,41 @@
+﻿@inherits Modal<ChangeUsernameModal.Params>
+
+<div class="col-md-12">
+    <section class="modal-bg">
+        <h3>Change your username</h3>
+        <h5>Stargazers can change their usernames once a week!</h5>
+		
+        <div class="form-group mt-2">
+            <label class="m-2">New Username</label>
+            <input id="new-username-input" type="text" autocomplete="off" class="form-control" @bind-value="@_newUsername" />
+            <label class="m-2">Password</label>
+            <input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" />
+        </div>
+        <br />
+        
+        <ResultLabel Result="@_result" />
+        
+        <br />
+        <div @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel</div>
+        <div @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</div>
+    </section>
+</div>
+
+@code {
+    public class Params {}
+
+    private string _password = "";
+    private string _newUsername = "";
+
+    private ITaskResult _result;
+    
+
+    private void OnCancel()
+    {
+        return;
+    }
+    private void OnConfirm()
+    {
+        return;
+    }
+}
