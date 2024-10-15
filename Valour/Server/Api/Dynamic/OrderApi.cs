@@ -381,7 +381,7 @@ public class OrderApi
                 unit
             },
             ReferenceId = $"{userId}-{productId}-{DateTime.UtcNow}",
-            SoftDescriptor = $"VALOUR - {productId}",
+            SoftDescriptor = $"Valour (TM) - {productId}",
             AppContext = new AppContext()
             {
                 ShippingPreference = "NO_SHIPPING"
