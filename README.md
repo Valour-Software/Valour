@@ -67,4 +67,9 @@ Building a platform is hard work. You can directly support Valour at the followi
 - Ethereum: 0x40B56C98Fc115f4e503d8FaBa77F8DeF6d8412F1
 
 ## Trademark Notice
-The name "Valour" is a trademark of Valour Software LLC. A trademark application is currently pending. Unauthorized use of this trademark is discouraged. For more information, please contact us.
+
+The name "Valour" is a trademark of Valour Software LLC, and a trademark application is pending. While the project is open-source, use of the trademark must not imply endorsement by Valour Software LLC or mislead others regarding the origin of the project. 
+
+Forks or derivative projects may not use the name "Valour" or related branding without prior written permission from Valour Software LLC. Any use of the trademark outside the scope of this project requires explicit permission. 
+
+While use of the trademark is not permitted for forks of the project itself, use of the mark is allowed for Valour bots, plugins, or integrations. If you are unsure, contact us!
