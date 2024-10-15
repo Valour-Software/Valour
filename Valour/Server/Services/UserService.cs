@@ -19,7 +19,7 @@ namespace Valour.Server.Services;
 
 public class UserService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
     private readonly CoreHubService _coreHub;
@@ -32,7 +32,7 @@ public class UserService
     private User _currentUser;
 
     public UserService(
-        ValourDB db,
+        ValourDb db,
         TokenService tokenService,
         ILogger<UserService> logger,
         CoreHubService coreHub,

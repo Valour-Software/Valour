@@ -6,10 +6,10 @@ namespace Valour.Server.Services;
 
 public class StaffService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly UserService _userService;
     
-    public StaffService(ValourDB db, UserService userService)
+    public StaffService(ValourDb db, UserService userService)
     {
         _db = db;
         _userService = userService;

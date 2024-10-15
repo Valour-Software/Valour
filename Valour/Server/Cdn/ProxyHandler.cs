@@ -19,7 +19,7 @@ public static class ProxyHandler
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
     }
 
-    public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDB db, HttpClient client)
+    public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDb db, HttpClient client)
     {
         var urls = CdnUtils.UrlRegex.Matches(url);
 
@@ -45,7 +45,7 @@ public static class ProxyHandler
     /// This can be an image, video, or even an embed website view
     /// Also handles converting to ValourCDN when necessary
     /// </summary>
-    public static async Task<MessageAttachment> GetAttachmentFromUrl(string url, ValourDB db, HttpClient client)
+    public static async Task<MessageAttachment> GetAttachmentFromUrl(string url, ValourDb db, HttpClient client)
     {
         var uri = new Uri(url.Replace("www.", ""));
 

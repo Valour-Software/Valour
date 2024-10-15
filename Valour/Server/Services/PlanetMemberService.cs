@@ -15,7 +15,7 @@ namespace Valour.Server.Services;
 
 public class PlanetMemberService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly ChannelAccessService _accessService;
@@ -24,7 +24,7 @@ public class PlanetMemberService
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
 
     public PlanetMemberService(
-        ValourDB db,
+        ValourDb db,
         CoreHubService coreHub,
         TokenService tokenService,
         ChannelAccessService accessService,

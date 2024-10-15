@@ -13,7 +13,7 @@ using Valour.Database.Themes;
 
 namespace Valour.Database.Context;
 
-public class ValourDB : DbContext
+public class ValourDb : DbContext
 {
     public static readonly string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
 
@@ -244,7 +244,7 @@ public class ValourDB : DbContext
     public DbSet<Theme> Themes { get; set; }
     public DbSet<ThemeVote> ThemeVotes { get; set; }
 
-    public ValourDB(DbContextOptions options)
+    public ValourDb(DbContextOptions options)
     {
 
     }

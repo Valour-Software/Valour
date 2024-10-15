@@ -100,7 +100,7 @@ public class UserApi
     public static async Task<IResult> VerifyEmailRouteAsync(
         string code,
         UserService userService,
-        ValourDB db)
+        ValourDb db)
     {
         var confirmCode = await db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code);
         if (confirmCode is null)

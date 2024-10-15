@@ -16,7 +16,7 @@ namespace Valour.Server.Database
     {
         public const string HubUrl = "/hubs/core";
 
-        private readonly ValourDB _db;
+        private readonly ValourDb _db;
         private readonly CoreHubService _hubService;
         private readonly UserOnlineService _onlineService;
         private readonly PlanetMemberService _memberService;
@@ -24,7 +24,7 @@ namespace Valour.Server.Database
         private readonly IConnectionMultiplexer _redis;
 
         public CoreHub(
-            ValourDB db, 
+            ValourDb db, 
             CoreHubService hubService, 
             UserOnlineService onlineService,
             PlanetMemberService memberService,

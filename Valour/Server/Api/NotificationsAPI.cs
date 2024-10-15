@@ -15,7 +15,7 @@ public class NotificationsAPI : BaseAPI
         app.MapPost("api/notification/unsubscribe", Unsubscribe);
     }
 
-    public static async Task<IResult> Subscribe(ValourDB db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
+    public static async Task<IResult> Subscribe(ValourDb db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();
@@ -62,7 +62,7 @@ public class NotificationsAPI : BaseAPI
         return Results.Ok("Subscription was accepted.");
     }
 
-    public static async Task<IResult> Unsubscribe(ValourDB db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
+    public static async Task<IResult> Unsubscribe(ValourDb db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();

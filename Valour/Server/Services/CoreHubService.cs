@@ -20,11 +20,11 @@ public class CoreHubService
     public static ConcurrentDictionary<long, List<long>> PrevCurrentlyTyping = new ConcurrentDictionary<long, List<long>>();
     
     private readonly IHubContext<CoreHub> _hub;
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
 
-    public CoreHubService(ValourDB db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis)
+    public CoreHubService(ValourDb db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis)
     {
         _db = db;
         _hub = hub;

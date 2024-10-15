@@ -14,7 +14,7 @@ namespace Valour.Server.Services;
 
 public class ChannelService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly HttpClient _http;
     private readonly PlanetMemberService _memberService;
     private readonly ILogger<ChannelService> _logger;
@@ -26,7 +26,7 @@ public class ChannelService
     private readonly ChannelStateService _stateService;
 
     public ChannelService(
-        ValourDB db,
+        ValourDb db,
         HttpClient http,
         PlanetMemberService memberService,
         CoreHubService coreHubService,

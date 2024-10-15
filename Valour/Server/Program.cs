@@ -153,7 +153,7 @@ namespace Valour.Server
 
             int c = 0;
 
-            using (ValourDB db = new ValourDB(ValourDB.DbOptions)){
+            using (ValourDb db = new ValourDb(ValourDb.DbOptions)){
                 foreach (var user in db.Users){
                     if (!db.PlanetMembers.Any(x => x.PlanetId == 735703679107072 &&
                          user.Id == x.UserId)){
@@ -180,7 +180,7 @@ namespace Valour.Server
 
             // Run
 
-            //using (ValourDB db = new(ValourDB.DbOptions))
+            //using (ValourDb db = new(ValourDb.DbOptions))
             //{
             //    foreach (User user in await db.Users.ToListAsync())
             //    {
@@ -279,9 +279,9 @@ namespace Valour.Server
                 options.MultipartBodyLengthLimit = 20480000;
             });
 
-            services.AddDbContext<ValourDB>(options =>
+            services.AddDbContext<ValourDb>(options =>
             {
-                options.UseNpgsql(ValourDB.ConnectionString);
+                options.UseNpgsql(ValourDb.ConnectionString);
             });
             
             services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));

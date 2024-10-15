@@ -23,7 +23,7 @@ public class RegisterService
     private readonly UserFriendService _friendService;
     private readonly UserService _userService;
 
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     
     private readonly ILogger<RegisterService> _logger;
     
@@ -33,7 +33,7 @@ public class RegisterService
         UserFriendService friendService,
         UserService userService,
         ILogger<RegisterService> logger,
-        ValourDB db)
+        ValourDb db)
     {
         _memberService = memberService;
         _channelService = channelService;

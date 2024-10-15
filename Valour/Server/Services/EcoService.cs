@@ -12,7 +12,7 @@ namespace Valour.Server.Services;
 /// </summary>
 public class EcoService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<EcoService> _logger;
     private readonly CoreHubService _coreHub;
     private readonly NodeService _nodeService;
@@ -24,7 +24,7 @@ public class EcoService
     private readonly ConcurrentDictionary<long, Currency> _currencyCache = new();
 
     public EcoService(
-        ValourDB db, 
+        ValourDb db, 
         ILogger<EcoService> logger, 
         CoreHubService coreHub, 
         NodeService nodeService, 

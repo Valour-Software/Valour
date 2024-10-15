@@ -11,11 +11,11 @@ namespace Valour.Server.Services;
 
 public class ThemeService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<ThemeService> _logger;
     private readonly StylesheetParser _parser = new();
 
-    public ThemeService(ValourDB db, ILogger<ThemeService> logger)
+    public ThemeService(ValourDb db, ILogger<ThemeService> logger)
     {
         _db = db;
         _logger = logger;

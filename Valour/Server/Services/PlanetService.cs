@@ -9,7 +9,7 @@ namespace Valour.Server.Services;
 
 public class PlanetService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetService> _logger;
     private readonly ChannelAccessService _accessService;
@@ -17,7 +17,7 @@ public class PlanetService
     private readonly HostedPlanetService _hostedPlanetService;
     
     public PlanetService(
-        ValourDB db,
+        ValourDb db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
         ChannelAccessService accessService,

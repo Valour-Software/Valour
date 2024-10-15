@@ -4,9 +4,9 @@ namespace Valour.Server.Services;
 
 public class ReportService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     
-    public ReportService(ValourDB db)
+    public ReportService(ValourDb db)
     {
         _db = db;
     }

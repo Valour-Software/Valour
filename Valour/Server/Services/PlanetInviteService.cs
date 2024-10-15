@@ -5,12 +5,12 @@ namespace Valour.Server.Services;
 
 public class PlanetInviteService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<PlanetInviteService> _logger;
     private readonly CoreHubService _coreHub;
 
     public PlanetInviteService(
-        ValourDB db,
+        ValourDb db,
         ILogger<PlanetInviteService> logger,
         CoreHubService coreHub)
     {

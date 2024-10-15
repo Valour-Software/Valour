@@ -10,10 +10,10 @@ namespace Valour.Server.Services;
 /// </summary>
 public class ChannelAccessService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<ChannelAccessService> _logger;
     
-    public ChannelAccessService(ValourDB db, ILogger<ChannelAccessService> logger)
+    public ChannelAccessService(ValourDb db, ILogger<ChannelAccessService> logger)
     {
         _db = db;
         _logger = logger;
