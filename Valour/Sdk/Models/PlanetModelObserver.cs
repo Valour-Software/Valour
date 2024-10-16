@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : ClientModel, IPlanetModel
+public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : ClientModel, IClientPlanetModel
 {
     /// <summary>
     /// If true, this collection will sort when necessary
@@ -97,7 +97,7 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Clie
         foreach (var model in newModels)
         {
             await model.AddToCache<T>(model, true);
-            var cached = ValourCache.Get<T>(model.Id);
+            var cached = ModelCache<,>.Get<T>(model.Id);
             if (cached is not null)
             {
                 _models.Add(cached);

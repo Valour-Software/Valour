@@ -125,7 +125,7 @@ public class User : ClientModel, ISharedUser
     {
         if (!force_refresh)
         {
-            var cached = ValourCache.Get<User>(id);
+            var cached = ModelCache<,>.Get<User>(id);
             if (cached is not null)
                 return cached;
         }
@@ -134,7 +134,7 @@ public class User : ClientModel, ISharedUser
 
         if (item is not null)
         {
-            await ValourCache.Put(id, item);
+            await ModelCache<,>.Put(id, item);
         }
 
         return item;

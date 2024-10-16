@@ -19,7 +19,7 @@ public class PlanetRole : ServerModel, ISharedPlanetRole
         VoicePermissions = VoiceChannelPermissions.Default,
         AnyoneCanMention = false,
     };
-    
+
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>

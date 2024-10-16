@@ -67,7 +67,7 @@ public class EcoAccount : ClientModel, ISharedEcoAccount
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<EcoAccount>(id);
+            var cached = ModelCache<,>.Get<EcoAccount>(id);
             if (cached != null)
                 return cached;
         }

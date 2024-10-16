@@ -55,7 +55,7 @@ public class Currency : ClientModel, ISharedCurrency
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<Currency>(id);
+            var cached = ModelCache<,>.Get<Currency>(id);
             if (cached != null)
                 return cached;
         }

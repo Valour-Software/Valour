@@ -18,7 +18,7 @@ public static class NotificationNavigator
             case NotificationSource.PlanetRoleMention:
             case NotificationSource.PlanetMemberReply:
             {
-                var planet = ValourCache.Get<Planet>(notification.PlanetId);
+                var planet = ModelCache<,>.Get<Planet>(notification.PlanetId);
                 if (planet is null)
                     break;
 
@@ -34,7 +34,7 @@ public static class NotificationNavigator
             case NotificationSource.DirectMention:
             case NotificationSource.DirectReply:
             {
-                var channel = ValourCache.Get<Channel>(notification.ChannelId);
+                var channel = ModelCache<,>.Get<Channel>(notification.ChannelId);
                 if (channel is null)
                     break;
                 

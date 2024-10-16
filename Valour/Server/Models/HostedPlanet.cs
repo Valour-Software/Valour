@@ -1,5 +1,6 @@
 using Valour.Server.Utilities;
 using Valour.Shared.Extensions;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
@@ -7,13 +8,17 @@ namespace Valour.Server.Models;
 /// The HostedPlanet class is used for caching planet information on the server
 /// for planets which are directly hosted by that node
 /// </summary>
-public class HostedPlanet : IHasId
+public class HostedPlanet : ISharedModel<long>
 {
     public Planet Planet { get; private set; }
+
+    public SortedModelCache<PlanetRole, long> Roles;
     
-    public SortedModelCache<PlanetRole> Roles { get; private set; }
-    
-    object IHasId.Id => Planet.Id;
+    public long Id
+    {
+        get => Planet.Id;
+        set => Planet.Id = value;
+    }
     
     public HostedPlanet(Planet planet)
     {
@@ -24,6 +29,4 @@ public class HostedPlanet : IHasId
     {
         Planet.CopyAllTo(updated);
     }
-    
-    
 }

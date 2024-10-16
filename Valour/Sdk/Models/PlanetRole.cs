@@ -11,14 +11,14 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
+public class PlanetRole : ClientModel<long>, IClientPlanetModel, ISharedPlanetRole
 {
     #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetModel.GetPlanetAsync(this, refresh);
+        IClientPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/roles";
@@ -128,7 +128,7 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<PlanetRole>(id);
+            var cached = ModelCache<,>.Get<PlanetRole>(id);
             if (cached is not null)
                 return cached;
         }
@@ -167,7 +167,7 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
         foreach (var node in nodes)
         {
             // Skip event for bulk loading
-            await ValourCache.Put(node.Id, node, true);
+            await ModelCache<,>.Put(node.Id, node, true);
         }
 
         // Create container if needed
@@ -179,7 +179,7 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
         // Retrieve cache values (this is necessary to ensure single copies of items)
         foreach (var node in nodes)
         {
-            var cNode = ValourCache.Get<PermissionsNode>(node.Id);
+            var cNode = ModelCache<,>.Get<PermissionsNode>(node.Id);
 
             if (cNode is not null)
                 PermissionsNodes.Add(cNode);

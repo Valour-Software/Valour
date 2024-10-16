@@ -78,7 +78,7 @@ public class PermissionsNode : ClientModel, ISharedPermissionsNode
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<PermissionsNode>((targetId, (roleId, type)));
+            var cached = ModelCache<,>.Get<PermissionsNode>((targetId, (roleId, type)));
             if (cached is not null)
                 return cached;
         }
@@ -93,8 +93,8 @@ public class PermissionsNode : ClientModel, ISharedPermissionsNode
 
     public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Id, this, skipEvent);
-        await ValourCache.Put((TargetId, (RoleId, TargetType)), this, true); // Skip duplicate event
+        await ModelCache<,>.Put(Id, this, skipEvent);
+        await ModelCache<,>.Put((TargetId, (RoleId, TargetType)), this, true); // Skip duplicate event
     }
 
     public static async Task<List<PermissionsNode>> GetAllForPlanetAsync(long planetId)
@@ -109,7 +109,7 @@ public class PermissionsNode : ClientModel, ISharedPermissionsNode
             await node.AddToCache(node);
             
             // Put cached node in results
-            results.Add(ValourCache.Get<PermissionsNode>(node.Id));
+            results.Add(ModelCache<,>.Get<PermissionsNode>(node.Id));
         }
         
         // Return results

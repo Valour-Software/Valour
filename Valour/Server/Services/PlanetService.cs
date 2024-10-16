@@ -77,12 +77,20 @@ public class PlanetService
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
-    public async Task<List<long>> GetRoleIdsAsync(long planetId) =>
+    public async Task<List<long>> GetRoleIdsAsync(long planetId)
+    {
+        var hosted = _hostedPlanetService.Get(planetId);
+        if (hosted is not null)
+        {
+            
+        }
+        
         await _db.PlanetRoles.AsNoTracking()
             .Where(x => x.PlanetId == planetId)
             .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.Id)
             .ToListAsync();
+    }
 
     /// <summary>
     /// Returns the invites for a given planet id
@@ -116,9 +124,10 @@ public class PlanetService
     /// <summary>
     /// Sets the order of planet roles to the order in which role ids are provided
     /// </summary>
-    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<PlanetRole> order)
+    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<long> order)
     {
-        var distinct = order.DistinctBy(x => x.Id);
+        var planetRoleIds = await GetRoleIdsAsync(planetId); 
+        
         
         var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
         if (totalRoles != order.Count)

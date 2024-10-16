@@ -10,14 +10,14 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetInvite : ClientModel, IPlanetModel, ISharedPlanetInvite
+public class PlanetInvite : ClientModel, IClientPlanetModel, ISharedPlanetInvite
 {
     #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetModel.GetPlanetAsync(this, refresh);
+        IClientPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute => $"api/invites";
 
@@ -53,7 +53,7 @@ public class PlanetInvite : ClientModel, IPlanetModel, ISharedPlanetInvite
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<PlanetInvite>(code);
+            var cached = ModelCache<,>.Get<PlanetInvite>(code);
             if (cached is not null)
                 return cached;
         }
@@ -68,7 +68,7 @@ public class PlanetInvite : ClientModel, IPlanetModel, ISharedPlanetInvite
 
     public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Code, this, skipEvent);
+        await ModelCache<,>.Put(Code, this, skipEvent);
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";

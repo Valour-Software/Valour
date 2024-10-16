@@ -1,8 +1,8 @@
 ﻿namespace Valour.Shared.Models;
 
-public interface ISharedModel
+public interface ISharedModel<TId>
 {
-    long Id { get; set; }
+    TId Id { get; set; }
 }
 
 

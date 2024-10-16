@@ -34,13 +34,13 @@ public class EconomyMemberProvider
             if (item.Member is not null)
             {
                 await item.Member.AddToCache(item.Member);
-                item.Member = ValourCache.Get<PlanetMember>(item.Member.Id);
+                item.Member = ModelCache<,>.Get<PlanetMember>(item.Member.Id);
             }
 
             if (item.Account is not null)
             {
                 await item.Account.AddToCache(item.Account);
-                item.Account = ValourCache.Get<EcoAccount>(item.Account.Id);
+                item.Account = ModelCache<,>.Get<EcoAccount>(item.Account.Id);
             }
             
         }

@@ -94,7 +94,7 @@
 
 		var planet = result.Data;
 		
-		await ValourCache.Put(planet.Id, planet);
+		await ModelCache<,>.Put(planet.Id, planet);
 
 		await ValourClient.AddJoinedPlanetAsync(planet);
 		

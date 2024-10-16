@@ -279,7 +279,7 @@ public static class ValourClient
 
         // Add victor dummy member
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        ValourCache.Put(long.MaxValue, new PlanetMember()
+        PlanetMember.Cache.Put(long.MaxValue, new PlanetMember()
         {
             Nickname = "Victor",
             Id = long.MaxValue,
@@ -925,7 +925,7 @@ public static class ValourClient
     public static async Task HandleUpdateChannelState(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
-        var channel = ValourCache.Get<Channel>(update.ChannelId);
+        var channel = ModelCache<,>.Get<Channel>(update.ChannelId);
         if (channel is null)
             return;
         
@@ -961,7 +961,7 @@ public static class ValourClient
         var eventData = new ModelUpdateEvent<T>();
         eventData.Flags = flags;
 
-        var local = ValourCache.Get<T>(updated.Id);
+        var local = ModelCache<,>.Get<T>(updated.Id);
 
         if (local != null)
         {
@@ -1015,9 +1015,9 @@ public static class ValourClient
     /// </summary>
     public static async Task DeleteItem<T>(T item) where T : ClientModel
     {
-        var local = ValourCache.Get<T>(item.Id);
+        var local = ModelCache<,>.Get<T>(item.Id);
         
-        ValourCache.Remove<T>(item.Id);
+        ModelCache<,>.Remove<T>(item.Id);
 
         if (local is null)
         {
@@ -1046,7 +1046,7 @@ public static class ValourClient
     public static async Task HandleNotificationReceived(Notification notification)
     {
         await notification.AddToCache(notification);
-        var cached = ValourCache.Get<Notification>(notification.Id);
+        var cached = ModelCache<,>.Get<Notification>(notification.Id);
         
         if (cached.TimeRead is null)
         {
@@ -1086,10 +1086,10 @@ public static class ValourClient
     public static async Task HandlePlanetMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
-        await ValourCache.Put(message.Id, message);
+        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
         }
 
         if (OnMessageReceived is not null)
@@ -1102,10 +1102,10 @@ public static class ValourClient
     public static async Task HandlePlanetMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
-        await ValourCache.Put(message.Id, message);
+        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
         }
         
         if (OnMessageEdited is not null)
@@ -1118,10 +1118,10 @@ public static class ValourClient
     public static async Task HandleDirectMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
-        await ValourCache.Put(message.Id, message);
+        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
         }
         
         if (OnMessageReceived is not null)
@@ -1134,10 +1134,10 @@ public static class ValourClient
     public static async Task HandleDirectMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
-        await ValourCache.Put(message.Id, message);
+        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
         }
         
         if (OnMessageEdited is not null)
@@ -1186,7 +1186,7 @@ public static class ValourClient
         uint pos = 0;
         foreach (var data in eventData.Order)
         {
-            var channel = ValourCache.Get<Channel>(data.Id);
+            var channel = ModelCache<,>.Get<Channel>(data.Id);
             if (channel is not null)
             {
                 Console.WriteLine($"{pos}: {channel.Name}");
@@ -1229,7 +1229,7 @@ public static class ValourClient
         private static async Task OnPlanetRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
         {
             // If we don't have the planet loaded, we don't need to update anything
-            var planet = ValourCache.Get<Planet>(eventData.Model.PlanetId);
+            var planet = ModelCache<,>.Get<Planet>(eventData.Model.PlanetId);
             if (planet is null)
                 return;
 
@@ -1252,7 +1252,7 @@ public static class ValourClient
         private static async Task OnPlanetRoleDeleted(PlanetRole role)
         {
             // If we don't have the planet loaded, we don't need to update anything
-            var planet = ValourCache.Get<Planet>(role.PlanetId);
+            var planet = ModelCache<,>.Get<Planet>(role.PlanetId);
             if (planet is null)
                 return;
 
@@ -1276,7 +1276,7 @@ public static class ValourClient
         private static async Task OnMemberRoleAdded(ModelUpdateEvent<PlanetRoleMember> eventData)
         {
             // If we don't have the member loaded, we don't need to update anything
-            var member = ValourCache.Get<PlanetMember>(eventData.Model.MemberId);
+            var member = ModelCache<,>.Get<PlanetMember>(eventData.Model.MemberId);
             if (member is null)
                 return;
 
@@ -1291,7 +1291,7 @@ public static class ValourClient
         private static async Task OnMemberRoleDeleted(PlanetRoleMember roleMember)
         {
             // If we don't have the member loaded, we don't need to update anything
-            var member = ValourCache.Get<PlanetMember>(roleMember.MemberId);
+            var member = ModelCache<,>.Get<PlanetMember>(roleMember.MemberId);
             if (member is null)
                 return;
 
@@ -1475,7 +1475,7 @@ public static class ValourClient
         {
             planetTasks.Add(new Task(async () =>
             {
-                await ValourCache.Put(planet.Id, planet);
+                await ModelCache<,>.Put(planet.Id, planet);
 
                 await OpenPlanetConnection(planet, "bot-init");
                 
@@ -1570,7 +1570,7 @@ public static class ValourClient
         // This second step is necessary because we need to ensure we only use the cache objects
         foreach (var channel in response.Data)
         {
-            DirectChatChannels.Add(ValourCache.Get<Channel>(channel.Id));
+            DirectChatChannels.Add(ModelCache<,>.Get<Channel>(channel.Id));
         }
         
         Console.WriteLine($"Loaded {DirectChatChannels.Count} direct chat channels...");
@@ -1642,7 +1642,7 @@ public static class ValourClient
         
         foreach (var notification in notifications)
         {
-            var cached = ValourCache.Get<Notification>(notification.Id);
+            var cached = ModelCache<,>.Get<Notification>(notification.Id);
             if (cached is null)
                 continue;
 
@@ -1684,10 +1684,10 @@ public static class ValourClient
         var data = friendResult.Data;
 
         foreach (var added in data.Added)
-            await ValourCache.Put(added.Id, added);
+            await ModelCache<,>.Put(added.Id, added);
 
         foreach (var addedBy in data.AddedBy)
-            await ValourCache.Put(addedBy.Id, addedBy);
+            await ModelCache<,>.Put(addedBy.Id, addedBy);
 
         Friends = new();
         FriendFastLookup = new();
@@ -1721,7 +1721,7 @@ public static class ValourClient
         var planets = response.Data;
 
         foreach (var planet in planets)
-            await ValourCache.Put(planet.Id, planet, true);
+            await ModelCache<,>.Put(planet.Id, planet, true);
 
         return planets;
     }

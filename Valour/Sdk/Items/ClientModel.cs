@@ -10,9 +10,12 @@ namespace Valour.Sdk.Items
     /// <summary>
     /// A live model is a model that is updated in real time
     /// </summary>
-    public abstract class ClientModel : ISharedModel
+    public abstract class ClientModel<TSelf, TId> : ISharedModel<TId>
+        where TSelf : ClientModel<TSelf, TId> // curiously recurring template pattern
     {
-        public long Id { get; set; }
+        public static readonly ModelCache<TSelf, TId> Cache = new();
+        
+        public TId Id { get; set; }
         
         [JsonIgnore]
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
@@ -56,10 +59,10 @@ namespace Valour.Sdk.Items
                     case Planet planet: 
                         // Planets have node known
                         return NodeManager.GetNodeFromName(planet.NodeName);
-                    case IPlanetModel planetItem:
+                    case IClientPlanetModel planetItem:
                     {
                         // Doesn't actually have a planet
-                        if (planetItem.Id == -1)
+                        if (planetItem.PlanetId == -1)
                             return ValourClient.PrimaryNode;
                         
                         // Planet items can just check their planet
@@ -72,15 +75,9 @@ namespace Valour.Sdk.Items
             }
         }
         
-        /// <summary>
-        /// This exists because of some type weirdness in C#
-        /// Basically, if we do not use a generic, for some reason the cache does not
-        /// insert into the right type. So yes, it's weird the item has to be passed in to
-        /// its own method, but it works.
-        /// </summary>
-        public virtual async Task AddToCache<T>(T item, bool skipEvent = false) where T : ClientModel
+        public virtual async Task AddToCache<T>(bool skipEvent = false)
         {
-            await ValourCache.Put<T>(this.Id, item, skipEvent);
+            await Cache.Put(Id, (TSelf)this, skipEvent);
         }
 
         /// <summary>
@@ -111,16 +108,16 @@ namespace Valour.Sdk.Items
         /// <typeparam name="T">The type of object being created</typeparam>
         /// <param name="item">The item to create</param>
         /// <returns>The result, with the created item (if successful)</returns>
-        public static async Task<TaskResult<T>> CreateAsync<T>(T item) where T : ClientModel
+        public static async Task<TaskResult<TSelf>> CreateAsync(TSelf item)
         {
             Node node;
 
-            if (item is IPlanetModel planetItem)
+            if (item is IClientPlanetModel planetItem)
                 node = await NodeManager.GetNodeForPlanetAsync(planetItem.PlanetId);
             else
                 node = ValourClient.PrimaryNode;
 
-            return await node.PostAsyncWithResponse<T>(item.BaseRoute, item);
+            return await node.PostAsyncWithResponse<TSelf>(item.BaseRoute, item);
         }
 
         /// <summary>
@@ -129,7 +126,7 @@ namespace Valour.Sdk.Items
         /// <typeparam name="T">The type of object being created</typeparam>
         /// <param name="item">The item to update</param>
         /// <returns>The result, with the updated item (if successful)</returns>
-        public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : ClientModel
+        public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : ClientModel<TId>
         {
             return await item.Node.PutAsyncWithResponse(item.IdRoute, item);
         }
@@ -140,7 +137,7 @@ namespace Valour.Sdk.Items
         /// <typeparam name="T">The type of object being deleted</typeparam>
         /// <param name="item">The item to delete</param>
         /// <returns>The result</returns>
-        public static async Task<TaskResult> DeleteAsync<T>(T item) where T : ClientModel
+        public static async Task<TaskResult> DeleteAsync<T>(T item) where T : ClientModel<TId>
         {
             return await item.Node.DeleteAsync(item.IdRoute);
         }

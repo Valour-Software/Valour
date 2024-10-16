@@ -515,7 +515,7 @@ public class Message : ClientModel, ISharedMessage
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<Message>(id);
+            var cached = ModelCache<,>.Get<Message>(id);
             if (cached is not null)
                 return cached;
         }

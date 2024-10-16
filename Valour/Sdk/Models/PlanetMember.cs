@@ -11,14 +11,14 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
+public class PlanetMember : ClientModel<PlanetMember, long>, IClientPlanetModel, ISharedPlanetMember
 {
     #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetModel.GetPlanetAsync(this, refresh);
+        IClientPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/members";
@@ -57,7 +57,7 @@ public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<PlanetMember>(id);
+            var cached = Cache.Get(id);
             if (cached is not null)
                 return cached;
         }
@@ -83,10 +83,10 @@ public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
         await planet.NotifyMemberDeleteAsync(this);
     }
 
-    public override async Task AddToCache<T>(T item, bool skipEvent = false)
+    public override async Task AddToCache<T>(bool skipEvent = false)
     {
-        await ValourCache.Put(Id, this, skipEvent);
-        await ValourCache.Put((PlanetId, UserId), this, true); // Skip event because we already called it above
+        await ModelCache<,>.Put(Id, this, skipEvent);
+        await ModelCache<,>.Put((PlanetId, UserId), this, true); // Skip event because we already called it above
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<PlanetMember>((planetId, userId));
+            var cached = ModelCache<,>.Get<PlanetMember>((planetId, userId));
             if (cached is not null)
                 return cached;
         }
@@ -106,8 +106,8 @@ public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
 
         if (member is not null)
         {
-            await ValourCache.Put(member.Id, member);
-            await ValourCache.Put((planetId, userId), member);
+            await ModelCache<,>.Put(member.Id, member);
+            await ModelCache<,>.Put((planetId, userId), member);
         }
 
         return member;

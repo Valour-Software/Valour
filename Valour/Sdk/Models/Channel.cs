@@ -12,7 +12,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
+public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
 {
     // Cached values
     // Will only be used for planet channels
@@ -66,7 +66,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /// This is used to allow the IPlanetModel interface to be used
     /// Please ensure you know what you're doing if you use this
     /// </summary>
-    long IPlanetModel.PlanetId
+    long IClientPlanetModel.PlanetId
     {
         get
         {
@@ -129,7 +129,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<Channel>(id);
+            var cached = ModelCache<,>.Get<Channel>(id);
             if (cached is not null)
                 return cached;
         }
@@ -197,7 +197,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
 
         if (DirectChannelIdLookup.TryGetValue(key, out var id))
         {
-            var cached = ValourCache.Get<Channel>(id);
+            var cached = ModelCache<,>.Get<Channel>(id);
             if (cached is not null)
                 return cached;
         }

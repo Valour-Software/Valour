@@ -167,7 +167,7 @@ public class Planet : ClientModel, ISharedPlanet
     public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
         NodeManager.PlanetToNode[Id] = NodeName;
-        await ValourCache.Put(this.Id, this, skipEvent);
+        await ModelCache<,>.Put(this.Id, this, skipEvent);
     }
 
     /// <summary>
@@ -177,7 +177,7 @@ public class Planet : ClientModel, ISharedPlanet
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<Planet>(id);
+            var cached = ModelCache<,>.Get<Planet>(id);
             if (cached is not null)
                 return cached;
         }
@@ -398,7 +398,7 @@ public class Planet : ClientModel, ISharedPlanet
 
         foreach (var info in allResults)
         {
-            var member = ValourCache.Get<PlanetMember>(info.Member.Id);
+            var member = ModelCache<,>.Get<PlanetMember>(info.Member.Id);
 
             if (member is not null)
                 Members.Add(member);
@@ -442,8 +442,8 @@ public class Planet : ClientModel, ISharedPlanet
         foreach (var invite in invites)
         {
             // Skip event for bulk loading
-            await ValourCache.Put(invite.Id, invite, true);
-            await ValourCache.Put(invite.Code, invite, true);
+            await ModelCache<,>.Put(invite.Id, invite, true);
+            await ModelCache<,>.Put(invite.Code, invite, true);
         }
 
         if (Invites is null)
@@ -486,7 +486,7 @@ public class Planet : ClientModel, ISharedPlanet
         foreach (var role in roles)
         {
             // Skip event for bulk loading
-            await ValourCache.Put(role.Id, role, true);
+            await ModelCache<,>.Put(role.Id, role, true);
         }
 
         if (Roles is null)
