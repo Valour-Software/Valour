@@ -110,7 +110,19 @@ public class User : Item, ISharedUser
     /// </summary>
     [Column("subscription_type")]
     public string SubscriptionType { get; set; }
-    
+
+    /// <summary>
+    /// The user's prior username, if they have changed it before.
+    /// </summary>
+    [Column("prior_name")]
+    public string PriorName { get; set; }
+
+    /// <summary>
+    /// The date and time the user last changed their username.
+    /// </summary>
+    [Column("last_name_change")]
+    public DateTime LastNameChange { get; set; }
+
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
         ISharedUser.GetAvatarUrl(this, format);
 }
