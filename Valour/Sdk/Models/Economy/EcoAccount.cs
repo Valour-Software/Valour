@@ -144,7 +144,7 @@ public class EcoAccount : ClientModel, ISharedEcoAccount
             foreach (var account in results.Items)
             {
                 await account.Account.AddToCache(account.Account);
-                await account.Member.AddToCache(account.Member);
+                await account.Member.AddToCacheAsync(account.Member);
             }
         }
 

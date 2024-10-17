@@ -12,6 +12,8 @@
 /// </summary>
 public interface ISharedPlanetMember : ISharedPlanetModel<long>
 {
+    const string BaseRoute = "api/members";
+    
     /// <summary>
     /// The user within the planet
     /// </summary>

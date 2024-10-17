@@ -33,7 +33,7 @@ public class EconomyMemberProvider
             // This ensures the cache instance is used
             if (item.Member is not null)
             {
-                await item.Member.AddToCache(item.Member);
+                await item.Member.AddToCacheAsync(item.Member);
                 item.Member = ModelCache<,>.Get<PlanetMember>(item.Member.Id);
             }
 

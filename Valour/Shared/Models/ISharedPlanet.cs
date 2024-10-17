@@ -8,8 +8,10 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanet : ISharedModel
+public interface ISharedPlanet : ISharedModel<long>
 {
+    const string BaseRoute = "api/planets";
+    
     /// <summary>
     /// The Id of Valour Central, used for some platform-wide features
     /// </summary>

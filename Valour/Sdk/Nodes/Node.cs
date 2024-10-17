@@ -222,7 +222,7 @@ public class Node
         await Logger.Log("[Item Events]: Hooking events.", "yellow");
 
         // For every single item...
-        foreach (var type in Assembly.GetAssembly(typeof(ClientModel)).GetTypes()
+        foreach (var type in Assembly.GetAssembly(typeof(ClientModel))!.GetTypes()
             .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(ClientModel))))
         {
             // Console.WriteLine(type.Name);
@@ -406,7 +406,7 @@ public class Node
     /// <summary>
     /// Puts a json resource in the specified uri and returns the response message
     /// </summary>
-    public Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, T content)
+    public Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
         => WaitUntilReadyThen(ValourClient.PutAsyncWithResponse<T>(uri, content, HttpClient));
 
     /// <summary>

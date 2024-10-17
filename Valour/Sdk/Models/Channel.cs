@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
@@ -12,7 +13,35 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
+/// <summary>
+/// The DirectChannelKey uses two user ids to build a key to get the direct channel between them
+/// </summary>
+public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
+{
+    public readonly long LowerId;
+    public readonly long HigherId;
+
+    public DirectChannelKey(long user1Id, long user2Id)
+    {
+        if (user1Id < user2Id)
+        {
+            LowerId = user1Id;
+            HigherId = user2Id;
+        }
+        else
+        {
+            LowerId = user2Id;
+            HigherId = user1Id;
+        }
+    }
+
+    public bool Equals(DirectChannelKey other)
+    {
+        return LowerId == other.LowerId && HigherId == other.HigherId;
+    }
+}
+
+public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, ISharedChannel
 {
     // Cached values
     // Will only be used for planet channels
@@ -24,8 +53,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
     /// </summary>
     public Channel Parent { get; set; }
 
-    public override string BaseRoute =>
-        $"api/channels";
+    public override string BaseRoute => ISharedChannel.BaseRoute;
 
     /////////////////////////////////
     // Shared between all channels //
@@ -58,27 +86,10 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
     /////////////////////////////
 
     /// <summary>
-    /// The id of the planet this channel belongs to, if any
+    /// The planet this channel belongs to, if any
     /// </summary>
     public long? PlanetId { get; set; }
-
-    /// <summary>
-    /// This is used to allow the IPlanetModel interface to be used
-    /// Please ensure you know what you're doing if you use this
-    /// </summary>
-    long IClientPlanetModel.PlanetId
-    {
-        get
-        {
-            if (PlanetId is null)
-            {
-                return -1;
-            }
-
-            return PlanetId.Value;
-        }
-        set => PlanetId = value;
-    }
+    public override long? GetPlanetId() => PlanetId;
 
     /// <summary>
     /// The id of the parent of the channel, if any
@@ -129,27 +140,18 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
     {
         if (!refresh)
         {
-            var cached = ModelCache<,>.Get<Channel>(id);
+            var cached = Cache.Get(id);
             if (cached is not null)
                 return cached;
         }
 
-        Node node;
-        if (planetId is null)
-        {
-            node = ValourClient.PrimaryNode;
-        }
-        else
-        {
-            node = await NodeManager.GetNodeForPlanetAsync(id);
-        }
-
-        var item = (await node.GetJsonAsync<Channel>($"api/channels/{id}", refresh)).Data;
+        var node = planetId is null ? ValourClient.PrimaryNode : GetNodeForPlanet(planetId);
+        var item = (await node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id), refresh)).Data;
 
         if (item is not null)
-            await item.AddToCache(item);
+            return await item.SyncAsync();
 
-        return item;
+        return null;
     }
 
     /// <summary>
@@ -173,7 +175,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
     /// <summary>
     /// Used to speed up direct channel lookups
     /// </summary>
-    public static readonly Dictionary<(long, long), long> DirectChannelIdLookup = new();
+    public static readonly Dictionary<DirectChannelKey, long> DirectChannelIdLookup = new();
 
     /// <summary>
     /// Given a user id, returns the direct channel between them and the requester.
@@ -182,53 +184,58 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IClientPlanetModel
     public static async ValueTask<Channel> GetDirectChannelAsync(long otherUserId, bool create = false,
         bool refresh = false)
     {
-        // We insert into the cache with lower-value id first to ensure a match
-        // so we do the same to get it back
-        var lowerId = ValourClient.Self.Id;
-        var higherId = otherUserId;
-
-        if (lowerId > higherId)
-        {
-            // Swap
-            (lowerId, higherId) = (higherId, lowerId);
-        }
-
-        var key = (lowerId, higherId);
-
+        var key = new DirectChannelKey(ValourClient.Self.Id, otherUserId);
+        
         if (DirectChannelIdLookup.TryGetValue(key, out var id))
         {
-            var cached = ModelCache<,>.Get<Channel>(id);
+            var cached = Cache.Get(id);
             if (cached is not null)
                 return cached;
         }
 
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>(
-            $"api/channels/direct/{otherUserId}?create={create}")).Data;
+            $"{ISharedChannel.BaseRoute}/direct/{otherUserId}?create={create}")).Data;
 
         if (item is not null)
-        {
-            DirectChannelIdLookup.Add(key, item.Id);
-            await item.AddToCache(item);
-        }
+            return await item.SyncAsync();
 
-        return item;
+        return null;
+    }
+
+    public override Channel AddToCacheOrReturnExisting()
+    {
+        // Add to direct channel lookup if needed
+        if (ChannelType == ChannelTypeEnum.DirectChat)
+        {
+            if (Members is not null && Members.Count == 2)
+            {
+                var key = new DirectChannelKey(Members[0].UserId, Members[1].UserId);
+                DirectChannelIdLookup[key] = Id;
+            }
+        }
+        
+        return base.AddToCacheOrReturnExisting();
+    }
+    
+    public override Channel TakeAndRemoveFromCache()
+    {
+        // Remove from direct channel lookup if needed
+        if (ChannelType == ChannelTypeEnum.DirectChat)
+        {
+            if (Members is not null && Members.Count == 2)
+            {
+                var key = new DirectChannelKey(Members[0].UserId, Members[1].UserId);
+                DirectChannelIdLookup.Remove(key);
+            }
+        }
+        
+        return base.TakeAndRemoveFromCache();
     }
 
     /// <summary>
     /// Returns if this channel is a chat channel
     /// </summary>
     public bool IsChatChannel => ISharedChannel.ChatChannelTypes.Contains(ChannelType);
-
-    /// <summary>
-    /// Returns the planet for this channel, if any
-    /// </summary>
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false)
-    {
-        if (PlanetId is null)
-            return ValueTask.FromResult<Planet>(null);
-
-        return Planet.FindAsync(PlanetId.Value, refresh);
-    }
 
     /// <summary>
     /// Returns the parent of this channel, if any

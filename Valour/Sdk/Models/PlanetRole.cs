@@ -1,4 +1,5 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -11,20 +12,19 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : ClientModel<long>, IClientPlanetModel, ISharedPlanetRole
+public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
-    #region IPlanetModel implementation
-
+    public override string BaseRoute =>
+        $"api/roles";
+    
+    /// <summary>
+    /// The id of the planet this belongs to
+    /// </summary>
     public long PlanetId { get; set; }
 
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IClientPlanetModel.GetPlanetAsync(this, refresh);
-
-    public override string BaseRoute =>
-            $"api/roles";
-
-    #endregion
-
+    public override long? GetPlanetId()
+        => PlanetId;
+    
     // Coolest role on this damn platform.
     // Fight me.
     public static PlanetRole VictorRole = new PlanetRole()
@@ -128,7 +128,7 @@ public class PlanetRole : ClientModel<long>, IClientPlanetModel, ISharedPlanetRo
     {
         if (!refresh)
         {
-            var cached = ModelCache<,>.Get<PlanetRole>(id);
+            var cached = Cache.Get(id);
             if (cached is not null)
                 return cached;
         }
@@ -137,12 +137,12 @@ public class PlanetRole : ClientModel<long>, IClientPlanetModel, ISharedPlanetRo
         var item = (await node.GetJsonAsync<PlanetRole>($"api/roles/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache(item);
+            await item.SyncAsync();
 
         return item;
     }
 
-    protected override async Task OnUpdated(ModelUpdateEvent eventData)
+    protected override async Task OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {
         var planet = await GetPlanetAsync();
         await planet.NotifyRoleUpdateAsync(this, eventData);
@@ -167,7 +167,7 @@ public class PlanetRole : ClientModel<long>, IClientPlanetModel, ISharedPlanetRo
         foreach (var node in nodes)
         {
             // Skip event for bulk loading
-            await ModelCache<,>.Put(node.Id, node, true);
+            await Models.PermissionsNode. (node.Id, node, true);
         }
 
         // Create container if needed

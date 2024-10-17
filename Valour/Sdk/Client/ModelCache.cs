@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Valour.Sdk.ModelLogic;
 
 namespace Valour.Sdk.Client;
 
@@ -8,24 +9,36 @@ namespace Valour.Sdk.Client;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class ModelCache<TModel, TId> where TModel : ClientModel<TModel, TId>
+public class ModelCache<TModel, TId> 
+    where TModel : ClientModel
+    where TId : IEquatable<TId>
 {
     
     private readonly ConcurrentDictionary<TId, TModel> _innerCache = new();
     
     /// <summary>
-    /// Places an item into the cache
+    /// Places an item into the cache. Returns if the item already exists and should be updated.
     /// </summary>
-    public Task Put(TId id, TModel model, bool skipEvent = false, int flags = 0)
+    public TModel Put(TId id, TModel model)
     {
         // Empty object is ignored
-        if (model == null)
-            return Task.CompletedTask;
+        if (model is null)
+            return null;
 
         if (!_innerCache.TryAdd(id, model)) // Fails if already exists
         {
-            return ValourClient.UpdateItem(model, flags, skipEvent); // Update if already exists
+            return _innerCache[id];
         }
+
+        return null;
+    }
+    
+    /// <summary>
+    /// Places an item into the cache, and replaces the item if it already exists
+    /// </summary>
+    public void PutReplace(TId id, TModel model)
+    {
+        _innerCache[id] = model;
     }
 
     /// <summary>
@@ -59,6 +72,12 @@ public class ModelCache<TModel, TId> where TModel : ClientModel<TModel, TId>
     public void Remove(TId id)
     {
         _innerCache.TryRemove(id, out var _);
+    }
+    
+    public TModel TakeAndRemove(TId id)
+    {
+        _innerCache.TryRemove(id, out var model);
+        return model;
     }
 }
 

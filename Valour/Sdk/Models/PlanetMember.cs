@@ -1,9 +1,25 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
+
+public struct PlanetUserKey : IEquatable<PlanetUserKey>
+{
+    public readonly long UserId;
+    public readonly long PlanetId;
+    
+    public PlanetUserKey(long userId, long planetId)
+    {
+        UserId = userId;
+        PlanetId = planetId;
+    }
+    
+    public bool Equals(PlanetUserKey other) =>
+        UserId == other.UserId && PlanetId == other.PlanetId;
+}
 
 /*  Valour (TM) - A free and secure chat client
 *  Copyright (C) 2024 Valour Software LLC
@@ -11,19 +27,21 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : ClientModel<PlanetMember, long>, IClientPlanetModel, ISharedPlanetMember
+public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanetMember
 {
-    #region IPlanetModel implementation
-
-    public long PlanetId { get; set; }
-
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IClientPlanetModel.GetPlanetAsync(this, refresh);
+    // Extra cache for userid-planetid
+    public static readonly Dictionary<PlanetUserKey, long> MemberIdLookup = new();
 
     public override string BaseRoute =>
-            $"api/members";
+        ISharedPlanetMember.BaseRoute;
+    
+    /// <summary>
+    /// The id of the planet this belongs to
+    /// </summary>
+    public long PlanetId { get; set; }
 
-    #endregion
+    public override long? GetPlanetId()
+        => PlanetId;
 
     /// <summary>
     /// Runs if a role is added, removed, or updated
@@ -63,18 +81,18 @@ public class PlanetMember : ClientModel<PlanetMember, long>, IClientPlanetModel,
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/{id}")).Data;
+        var member = (await node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
 
         if (member is not null)
-            await member.AddToCache(member);
+            return await member.SyncAsync();
 
-        return member;
+        return null;
     }
     
-    protected override async Task OnUpdated(ModelUpdateEvent eventData)
+    protected override async Task OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         var planet = await GetPlanetAsync();
-        await planet.NotifyMemberUpdateAsync(this, eventData);
+        await planet.NotifyMemberUpdateAsync(eventData);
     }
 
     protected override async Task OnDeleted()
@@ -82,11 +100,21 @@ public class PlanetMember : ClientModel<PlanetMember, long>, IClientPlanetModel,
         var planet = await GetPlanetAsync();
         await planet.NotifyMemberDeleteAsync(this);
     }
-
-    public override async Task AddToCache<T>(bool skipEvent = false)
+    
+    public override PlanetMember AddToCacheOrReturnExisting()
     {
-        await ModelCache<,>.Put(Id, this, skipEvent);
-        await ModelCache<,>.Put((PlanetId, UserId), this, true); // Skip event because we already called it above
+        var key = new PlanetUserKey(UserId, PlanetId);
+        MemberIdLookup[key] = Id;
+        
+        return base.AddToCacheOrReturnExisting();
+    }
+
+    public override PlanetMember TakeAndRemoveFromCache()
+    {
+        var key = new PlanetUserKey(UserId, PlanetId);
+        MemberIdLookup.Remove(key);
+        
+        return base.TakeAndRemoveFromCache();
     }
 
     /// <summary>
@@ -96,21 +124,22 @@ public class PlanetMember : ClientModel<PlanetMember, long>, IClientPlanetModel,
     {
         if (!refresh)
         {
-            var cached = ModelCache<,>.Get<PlanetMember>((planetId, userId));
-            if (cached is not null)
-                return cached;
+            var key = new PlanetUserKey(userId, planetId);
+            if (MemberIdLookup.TryGetValue(key, out var id))
+            {
+                var cached = Cache.Get(id);
+                if (cached is not null)
+                    return cached;
+            }
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/byuser/{planetId}/{userId}", true)).Data;
+        var member = (await node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{planetId}/{userId}", true)).Data;
 
         if (member is not null)
-        {
-            await ModelCache<,>.Put(member.Id, member);
-            await ModelCache<,>.Put((planetId, userId), member);
-        }
+            return await member.SyncAsync();
 
-        return member;
+        return null;
     }
 
     public async Task NotifyRoleEventAsync(MemberRoleEvent eventData)

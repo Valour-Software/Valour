@@ -291,7 +291,7 @@
 
         await RefreshButtons();
 
-        ModelObserver<PermissionsNode>.OnAnyUpdated += OnPermissionNodeUpdate;
+        ModelObserver<PermissionsNode>.AnyUpdated += OnPermissionNodeUpdate;
     }
 
     private async Task OnPermissionNodeUpdate(ModelUpdateEvent<PermissionsNode> eventData)

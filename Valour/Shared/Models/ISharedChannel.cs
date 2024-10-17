@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.CompilerServices;
-
-namespace Valour.Shared.Models;
+﻿namespace Valour.Shared.Models;
 
 public enum ChannelTypeEnum
 {
@@ -18,7 +15,7 @@ public enum ChannelTypeEnum
     GroupVoice = 6,
 }
 
-public class SharedChannelNames
+public static class SharedChannelNames
 {
     public static readonly string[] ChannelTypeNames = new string[]
     {
@@ -32,8 +29,11 @@ public class SharedChannelNames
     };
 }
 
-public interface ISharedChannel : ISharedModel, ISortableModel
+public interface ISharedChannel : ISharedModel<long>, ISortableModel
 {
+    public const string BaseRoute = "api/channels";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    
     public static string GetTypeName(ChannelTypeEnum type)
     {
         var i = (int)type;

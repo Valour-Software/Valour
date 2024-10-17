@@ -1,18 +1,15 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class User : ClientModel, ISharedUser
+public class User : ClientModel<User, long>, ISharedUser
 {
-    #region IPlanetModel implementation
-
     public override string BaseRoute =>
-            $"api/users";
-
-    #endregion
+            ISharedUser.BaseRoute;
 
     [JsonIgnore]
     public static User Victor = new User()
@@ -119,35 +116,35 @@ public class User : ClientModel, ISharedUser
     }
 
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"api/users/{Id}/apps")).Data;
+        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"{BaseRoute}/{Id}/apps")).Data;
 
-    public static async ValueTask<User> FindAsync(long id, bool force_refresh = false)
+    public static async ValueTask<User> FindAsync(long id, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
-            var cached = ModelCache<,>.Get<User>(id);
+            var cached = Cache.Get(id);
             if (cached is not null)
                 return cached;
         }
 
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"api/users/{id}")).Data;
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
 
         if (item is not null)
         {
-            await ModelCache<,>.Put(id, item);
+            return await item.SyncAsync();
         }
 
-        return item;
+        return null;
     }
     
     public async Task<TaskResult<UserProfile>> GetProfileAsync() =>
         await ValourClient.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
 
     public async Task<TaskResult<List<User>>> GetFriendsAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/users/{Id}/friends");
+        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"{IdRoute}/friends");
 
     public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/users/{Id}/frienddata");
+        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"{IdRoute}/frienddata");
 
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
         ISharedUser.GetAvatarUrl(this, format);

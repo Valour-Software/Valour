@@ -1,4 +1,5 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
@@ -11,16 +12,19 @@ namespace Valour.Sdk.Models;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : ClientModel, ISharedPlanet
+public class Planet : ClientModel<Planet, long>, ISharedPlanet
 {
     public override string BaseRoute =>
-            $"api/planets";
+        ISharedPlanet.BaseRoute;
+
+    public override Node Node => 
+        NodeManager.GetNodeFromName(NodeName); // Planets have node known
 
     // Cached values
 
     // A note to future Spike:
-    // These are created at construction because they can be referred to and will *never* have their
-    // reference change. The lists are updated in realtime which means UI watching the lists do not
+    // These can be referred to and will *never* have their reference change.
+    // The lists are updated in realtime which means UI watching the lists do not
     // need to get an updated list. Do not second guess this decision. It is correct.
     // - Spike, 10/05/2024
 
@@ -107,8 +111,10 @@ public class Planet : ClientModel, ISharedPlanet
 
     #region Child Event Handlers
     
-    public void NotifyChannelUpdate(Channel channel, ModelUpdateEvent eventData)
+    public void NotifyChannelUpdate(ModelUpdateEvent<Channel> eventData)
     {
+        var channel = eventData.Model;
+        
         if (_channels is null || channel.PlanetId != Id)
             return;
         
@@ -116,8 +122,10 @@ public class Planet : ClientModel, ISharedPlanet
     }
     
     
-    public Task NotifyRoleUpdateAsync(PlanetRole role, ModelUpdateEvent eventData)
+    public Task NotifyRoleUpdateAsync(ModelUpdateEvent<PlanetRole> eventData)
     {
+        var role = eventData.Model;
+        
         if (Roles is null || role.PlanetId != Id)
             return Task.CompletedTask;
 
@@ -141,8 +149,10 @@ public class Planet : ClientModel, ISharedPlanet
         return Task.CompletedTask;
     }
 
-    public Task NotifyMemberUpdateAsync(PlanetMember member, ModelUpdateEvent eventData)
+    public Task NotifyMemberUpdateAsync(ModelUpdateEvent<PlanetMember> eventData)
     {
+        var member = eventData.Model;
+        
         if (Members is null || member.PlanetId != Id)
             return Task.CompletedTask;
 
@@ -163,13 +173,7 @@ public class Planet : ClientModel, ISharedPlanet
     }
     
     #endregion
-
-    public override async Task AddToCache<T>(T item, bool skipEvent = false)
-    {
-        NodeManager.PlanetToNode[Id] = NodeName;
-        await ModelCache<,>.Put(this.Id, this, skipEvent);
-    }
-
+    
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
@@ -177,7 +181,7 @@ public class Planet : ClientModel, ISharedPlanet
     {
         if (!refresh)
         {
-            var cached = ModelCache<,>.Get<Planet>(id);
+            var cached = Cache.Get(id);
             if (cached is not null)
                 return cached;
         }
@@ -186,18 +190,15 @@ public class Planet : ClientModel, ISharedPlanet
         var item = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
 
         if (item is not null)
-            await item.AddToCache(item);
+            return await item.SyncAsync();
 
-        return item;
+        return null;
     }
-
-    /// <summary>
-    /// Returns the primary channel of the planet
-    /// </summary>
-    public Channel GetPrimaryChannel()
+    
+    public override Planet AddToCacheOrReturnExisting()
     {
-        var primary = _chatChannels.FirstOrDefault(x => x.IsDefault == true);
-        return primary ?? _chatChannels.FirstOrDefault();
+        NodeManager.PlanetToNode[Id] = NodeName;
+        return base.AddToCacheOrReturnExisting();
     }
 
     public async ValueTask<PlanetRole> GetDefaultRoleAsync(bool refresh = false)
@@ -392,8 +393,8 @@ public class Planet : ClientModel, ISharedPlanet
 
             // Set in cache
             // Skip event for bulk loading
-            await info.Member.AddToCache(info.Member, true);
-            await info.User.AddToCache(info.User, true);
+            await info.Member.SyncAsync(true);
+            await info.User.SyncAsync(true);
         }
 
         foreach (var info in allResults)

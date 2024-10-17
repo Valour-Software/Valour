@@ -8,20 +8,23 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPermissionsTarget
-{
-    /// <summary>
-    /// The type of target this item is
-    /// </summary>
-    public ChannelTypeEnum Type { get; }
-}
-
 /// <summary>
 /// A permission node is a set of permissions for a specific thing
 /// </summary>
-public interface ISharedPermissionsNode : ISharedPlanetModel
+public interface ISharedPermissionsNode : ISharedPlanetModel<long>
 {
+    // Routes //
+    const string BaseRoute = "api/permissionsnodes";
+    
+    public static string GetIdRoute(ISharedPermissionsNode node) 
+        => GetIdRoute(node.TargetId, node.RoleId, node.TargetType);
 
+    public static string GetIdRoute(long targetId, long roleId, ChannelTypeEnum targetType) 
+        => $"{BaseRoute}/{targetType}/{targetId}/{roleId}";
+    
+    public static string GetAllRoute(long planetId) 
+        => $"{BaseRoute}/all/{planetId}";
+    
     /// <summary>
     /// The permission code that this node has set
     /// </summary>

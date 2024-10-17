@@ -30,13 +30,13 @@
 		_roles = await (await Member.GetPlanetAsync()).GetRolesAsync();
 		_memberRoles = await Member.GetRolesAsync();
 
-		ModelObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+		ModelObserver<PlanetRole>.AnyUpdated += OnRoleUpdate;
 		Member.OnRoleModified += OnMemberRoleUpdate;
 	}
 
 	void IDisposable.Dispose()
 	{
-		ModelObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
+		ModelObserver<PlanetRole>.AnyUpdated -= OnRoleUpdate;
 		Member.OnRoleModified -= OnMemberRoleUpdate;
 	}
 

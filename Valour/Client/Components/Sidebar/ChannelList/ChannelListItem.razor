@@ -163,8 +163,8 @@
     
     protected override void OnInitialized()
     {
-        ModelObserver<Channel>.OnAnyUpdated += OnChannelUpdate;
-        ModelObserver<Channel>.OnAnyDeleted += OnChannelDeletion;
+        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
+        ModelObserver<Channel>.AnyDeleted += OnChannelDeletion;
 
         ValourClient.OnChannelOpen += OnChannelOpenedChange;
         ValourClient.OnChannelClose += OnChannelOpenedChange;
@@ -509,7 +509,7 @@
     
     public void Dispose()
     {
-        ModelObserver<Channel>.OnAnyUpdated -= OnChannelUpdate;
+        ModelObserver<Channel>.AnyUpdated -= OnChannelUpdate;
 
         ValourClient.OnChannelOpen -= OnChannelOpenedChange;
         ValourClient.OnChannelClose -= OnChannelOpenedChange;

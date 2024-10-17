@@ -56,10 +56,10 @@
         TopChannels = new List<Channel>();
 
         // Handle list change
-        ModelObserver<Channel>.OnAnyUpdated += OnChannelUpdate;
+        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
 
         // Handle Deletions
-        ModelObserver<Channel>.OnAnyDeleted += OnChannelDelete;
+        ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
         ValourClient.OnCategoryOrderUpdate += OnOrderUpdate;
         

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
@@ -276,17 +277,14 @@ public static class ValourClient
 
     static ValourClient()
     {
-
         // Add victor dummy member
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        PlanetMember.Cache.Put(long.MaxValue, new PlanetMember()
+        PlanetMember.Cache.PutReplace(long.MaxValue, new PlanetMember()
         {
             Nickname = "Victor",
             Id = long.MaxValue,
             MemberAvatar = "/media/victor-cyan.png"
         });
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-
+        
         OpenPlanets = new List<Planet>();
         OpenPlanetChannels = new List<Channel>();
         JoinedPlanets = new List<Planet>();
@@ -949,90 +947,6 @@ public static class ValourClient
             await OnChannelStateUpdate.Invoke(update);
     }
 
-    /// <summary>
-    /// Updates an item's properties
-    /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : ClientModel
-    {
-        // printing to console is SLOW, only turn on for debugging reasons
-        //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
-
-        // Create object for event data
-        var eventData = new ModelUpdateEvent<T>();
-        eventData.Flags = flags;
-
-        var local = ModelCache<,>.Get<T>(updated.Id);
-
-        if (local != null)
-        {
-            // Find changed properties
-            var pInfo = local.GetType().GetProperties();
-
-            foreach (var prop in pInfo)
-            {
-                var a = prop.GetValue(local);
-                var b = prop.GetValue(updated);
-
-                if (a != b)
-                    eventData.PropsChanged.Add(prop.Name);
-            }
-            
-            // Update local copy
-            updated.CopyAllTo(local);
-        }
-        else
-        {
-            // Set new flag
-            eventData.NewToClient = true;
-        }
-
-        if (!skipEvent)
-        {
-            // Update
-            if (local != null)
-            {
-                eventData.Model = local;
-                // Fire off local event on item
-                await local.InvokeUpdatedEventAsync(new ModelUpdateEvent(){ Flags = flags, PropsChanged = eventData.PropsChanged});
-            }
-            // New
-            else
-            {
-                eventData.Model = updated;
-                await updated.AddToCache(updated);
-            }
-            
-            // Fire off global events
-            await ModelObserver<T>.InvokeAnyUpdated(eventData);
-
-            // printing to console is SLOW, only turn on for debugging reasons
-            //Console.WriteLine("Invoked update events for " + updated.Id);
-        }
-    }
-
-    /// <summary>
-    /// Updates an item's properties
-    /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : ClientModel
-    {
-        var local = ModelCache<,>.Get<T>(item.Id);
-        
-        ModelCache<,>.Remove<T>(item.Id);
-
-        if (local is null)
-        {
-            // Invoke static "any" delete
-            await item.InvokeDeletedEventAsync();
-            await ModelObserver<T>.InvokeAnyDeleted(item);
-        }
-        else
-        {
-            // Invoke static "any" delete
-            await local.InvokeDeletedEventAsync();
-            await ModelObserver<T>.InvokeAnyDeleted(local);
-        }
-    }
-
     public static int GetPlanetNotifications(long planetId)
     {
         return UnreadNotifications.Count(x => x.PlanetId == planetId);
@@ -1559,7 +1473,7 @@ public static class ValourClient
                 }
             }
             
-            await channel.AddToCache(channel);
+            await channel.AddToCacheAsync(channel);
         }
 
         if (DirectChatChannels is null)
@@ -1614,7 +1528,7 @@ public static class ValourClient
 
         // Add to cache
         foreach (var planet in planets)
-            await planet.AddToCache(planet);
+            await planet.AddToCacheAsync(planet);
 
         JoinedPlanets = planets;
 
@@ -1911,7 +1825,7 @@ public static class ValourClient
     /// <summary>
     /// Puts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, T content, HttpClient http = null)
+    public static async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content, HttpClient http = null)
     {
         if (http is null)
             http = Http;

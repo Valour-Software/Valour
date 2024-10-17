@@ -328,11 +328,11 @@
 
         await UpdateRoleMemberCount();
 
-        ModelObserver<PlanetRole>.OnAnyUpdated += OnRolesUpdate;
-        ModelObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+        ModelObserver<PlanetRole>.AnyUpdated += OnRolesUpdate;
+        ModelObserver<PlanetRole>.AnyDeleted += OnRoleDeletion;
 
-        ModelObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdate;
-        ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDelete;
+        ModelObserver<PlanetRoleMember>.AnyUpdated += OnMemberRoleUpdate;
+        ModelObserver<PlanetRoleMember>.AnyDeleted += OnMemberRoleDelete;
     }
 
     private async Task UpdateRoleMemberCount()

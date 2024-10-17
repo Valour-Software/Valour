@@ -9,11 +9,14 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedUser : ISharedModel
+public interface ISharedUser : ISharedModel<long>
 {
+    const string BaseRoute = "api/users";
+    
     const long VictorUserId = 20579262493097984;
     
     const int FLAGS_TIME_UPDATE = 0x01;
+    
     const string TagChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     
     /// <summary>
