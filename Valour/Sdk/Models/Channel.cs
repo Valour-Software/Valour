@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.ModelLogic.Exceptions;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
@@ -315,8 +316,13 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     /// </summary>
     private async Task LoadPermissionNodesAsync(bool refresh = false)
     {
-        var planet = await GetPlanetAsync();
-        var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
+        if (PlanetId is null)
+            return;
+
+        if (Planet is null)
+            throw new PlanetNotLoadedException(PlanetId.Value, this); 
+        
+        var allPermissions = await Planet.GetPermissionsNodesAsync(refresh);
 
         if (_permissionNodes is not null)
             _permissionNodes.Clear();
@@ -371,14 +377,16 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         if (PlanetId is null)
             return true;
 
+        // Planet wasn't loaded properly
+        if (Planet is null)
+            throw new PlanetNotLoadedException(PlanetId.Value, this);
+
         // Member is from another planet
         if (member.PlanetId != PlanetId)
             return false;
-
-        var planet = await member.GetPlanetAsync();
-
+        
         // Owners have all permissions
-        if (planet.OwnerId == member.UserId)
+        if (Planet.OwnerId == member.UserId)
             return true;
 
         var memberRoles = await member.GetRolesAsync();
@@ -466,6 +474,9 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     {
         if (PlanetId is null)
             return null;
+        
+        if (Planet is null)
+            throw new PlanetNotLoadedException(PlanetId.Value, this);
 
         var member = await PlanetMember.FindAsync(memberId, PlanetId.Value);
         var roles = await member.GetRolesAsync();
@@ -482,11 +493,9 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             TargetId = Id,
             TargetType = ChannelType
         };
-
-        var planet = await GetPlanetAsync();
-
+        
         // Easy cheat for owner
-        if (planet.OwnerId == member.UserId)
+        if (Planet.OwnerId == member.UserId)
         {
             dummyNode.Code = Permission.FULL_CONTROL;
             return dummyNode;
@@ -588,11 +597,12 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     {
         var result = "./_content/Valour.Client/media/logo/logo-128.png";
         
-        if (ISharedChannel.PlanetChannelTypes.Contains(ChannelType))
+        if (PlanetId is not null)
         {
-            var planet = await GetPlanetAsync();
-            if (planet is not null)
-                result = planet.GetIconUrl(IconFormat.Webp64);
+            if (Planet is null)
+                throw new PlanetNotLoadedException(PlanetId.Value, this);
+            
+            result = Planet.GetIconUrl(IconFormat.Webp64);
         }
         else
         {

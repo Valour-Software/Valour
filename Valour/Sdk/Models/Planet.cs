@@ -31,28 +31,22 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// <summary>
     /// The channels in this planet
     /// </summary>
-    public IReadOnlyList<Channel> Channels { get; private set; }
+    public SortedReactiveList<Channel> Channels { get; private set; }
     
     /// <summary>
     /// The chat channels in this planet
     /// </summary>
-    public IReadOnlyList<Channel> ChatChannels { get; private set; }
+    public SortedReactiveList<Channel> ChatChannels { get; private set; }
     
     /// <summary>
     /// The voice channels in this planet
     /// </summary>
-    public IReadOnlyList<Channel> VoiceChannels { get; private set; }
+    public SortedReactiveList<Channel> VoiceChannels { get; private set; }
     
     /// <summary>
     /// The categories in this planet
     /// </summary>
-    public IReadOnlyList<Channel> Categories { get; private set; }
-    
-    // Internal channel lists
-    private List<Channel> _channels;
-    private List<Channel> _chatChannels;
-    private List<Channel> _voiceChannels;
-    private List<Channel> _categories;
+    public SortedReactiveList<Channel> Categories { get; private set; }
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -112,10 +106,10 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     #region Child Event Handlers
     
     public void NotifyChannelUpdate(ModelUpdateEvent<Channel> eventData)
-    {
+    { 
         var channel = eventData.Model;
         
-        if (_channels is null || channel.PlanetId != Id)
+        if (Channels is null || channel.PlanetId != Id)
             return;
         
         InsertChannelIntoLists(channel);
@@ -209,55 +203,20 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
         return Roles?.FirstOrDefault(x => x.IsDefault);
     }
     
-    private void ClearChannels()
+    private void ClearOrInitChannels()
     {
-        if (_channels is null)
-        {
-            _channels = new();
-            Channels = _channels;
-        }
-        else
-        {
-            _channels.Clear();
-        }
-
-        if (_chatChannels is null)
-        {
-            _chatChannels = new();
-            ChatChannels = _chatChannels;
-        }
-        else
-        {
-            _chatChannels.Clear();
-        }
-        
-        if (_voiceChannels is null)
-        {
-            _voiceChannels = new();
-            VoiceChannels = _voiceChannels;
-        }
-        else
-        {
-            _voiceChannels.Clear();
-        }
-        
-        if (_categories is null)
-        {
-            _categories = new();
-            Categories = _categories;
-        }
-        else
-        {
-            _categories.Clear();
-        }
+        Channels = Channels.ClearOrInit();
+        ChatChannels = ChatChannels.ClearOrInit();
+        VoiceChannels = VoiceChannels.ClearOrInit();
+        Categories = Categories.ClearOrInit();
     }
 
     public void SortChannels()
     {
-        _channels.Sort(ISortableModel.Compare);
-        _chatChannels.Sort(ISortableModel.Compare);
-        _voiceChannels.Sort(ISortableModel.Compare);
-        _categories.Sort(ISortableModel.Compare);
+        Channels.Sort();
+        ChatChannels.Sort();
+        VoiceChannels.Sort();
+        Categories.Sort();
     }
 
     /// <summary>
@@ -267,13 +226,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     private void InsertChannelIntoLists(Channel channel, bool sort = true)
     {
         // We already have this channel inserted
-        if (_channels.Contains(channel))
+        if (Channels.Contains(channel))
             return;
 
-        
-        _channels.Add(channel);
         if (sort)
-            _channels.Sort(ISortableModel.Compare);
+            Channels.Upsert(channel);
+        else
+            Channels.UpsertNoSort(channel);
         
         // Note: We don't need to check if the channel is already in these lists
         // because channels are always added to the main list. If it's not there,
@@ -283,9 +242,10 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
         {
             case ChannelTypeEnum.PlanetChat:
             {
-                _chatChannels.Add(channel);
                 if (sort)
-                    _chatChannels.Sort(ISortableModel.Compare);
+                    ChatChannels.Upsert(channel);
+                else
+                    ChatChannels.UpsertNoSort(channel);
                 
                 if (channel.IsDefault)
                     PrimaryChatChannel = channel;
@@ -294,17 +254,19 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
             }
             case ChannelTypeEnum.PlanetCategory:
             {
-                _categories.Add(channel);
                 if (sort)
-                    _categories.Sort(ISortableModel.Compare);
+                    Categories.Upsert(channel);
+                else
+                    Categories.UpsertNoSort(channel);
                 
                 break;
             }
             case ChannelTypeEnum.PlanetVoice:
             {
-                _voiceChannels.Add(channel);
                 if (sort)
-                    _voiceChannels.Sort(ISortableModel.Compare);
+                    VoiceChannels.Upsert(channel);
+                else
+                    VoiceChannels.UpsertNoSort(channel);
                 
                 break;
             }
@@ -321,7 +283,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// </summary>
     public void ApplyChannels(List<Channel> channels)
     {
-        ClearChannels();
+        ClearOrInitChannels();
 
         foreach (var channel in channels)
         {
@@ -393,7 +355,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
 
             // Set in cache
             // Skip event for bulk loading
-            await info.Member.SyncAsync(true);
+            var cachedMember = await info.Member.SyncAsync(true);
             await info.User.SyncAsync(true);
         }
 

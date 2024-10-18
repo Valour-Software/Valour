@@ -29,7 +29,7 @@ public static class SharedChannelNames
     };
 }
 
-public interface ISharedChannel : ISharedModel<long>, ISortableModel
+public interface ISharedChannel : ISharedModel<long>, ISortable
 {
     public const string BaseRoute = "api/channels";
     public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
@@ -99,7 +99,7 @@ public interface ISharedChannel : ISharedModel<long>, ISortableModel
     /// </summary>
     public uint RawPosition { get; set; }
     
-    uint ISortableModel.GetSortPosition()
+    uint ISortable.GetSortPosition()
     {
         return RawPosition;
     }

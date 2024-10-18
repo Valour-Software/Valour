@@ -69,7 +69,7 @@ public class ModelCache<T, TId> where T : ISharedModel<TId>
     }
 }
 
-public class SortedModelCache<T, TId> where T : ISortableModel, ISharedModel<TId>
+public class SortedModelCache<T, TId> where T : ISortable, ISharedModel<TId>
 {
     public IReadOnlyList<T> Values { get; private set; }
     public IReadOnlyDictionary<TId, T> Lookup { get; private set; }
@@ -90,7 +90,7 @@ public class SortedModelCache<T, TId> where T : ISortableModel, ISharedModel<TId
         
         if (_cache.Count > 0)
         {
-            _cache.Sort(ISortableModel.Compare);
+            _cache.Sort(ISortable.Compare);
         }
     }
     
@@ -101,7 +101,7 @@ public class SortedModelCache<T, TId> where T : ISortableModel, ISharedModel<TId
         
         if (_cache.Count > 0)
         {
-            _cache.Sort(ISortableModel.Compare);
+            _cache.Sort(ISortable.Compare);
         }
     }
     
@@ -109,7 +109,7 @@ public class SortedModelCache<T, TId> where T : ISortableModel, ISharedModel<TId
     {
         _cache.Add(item);
         _lookup.Add(item.Id, item);
-        _cache.Sort(ISortableModel.Compare);
+        _cache.Sort(ISortable.Compare);
     }
     
     public void Remove(TId id)
@@ -131,13 +131,13 @@ public class SortedModelCache<T, TId> where T : ISortableModel, ISharedModel<TId
             // check if the position has changed
             if (oldPos != updated.GetSortPosition())
             {
-                _cache.Sort(ISortableModel.Compare);
+                _cache.Sort(ISortable.Compare);
             }
         }
         else
         {
             Add(updated);
-            _cache.Sort(ISortableModel.Compare);
+            _cache.Sort(ISortable.Compare);
         }
     }
     

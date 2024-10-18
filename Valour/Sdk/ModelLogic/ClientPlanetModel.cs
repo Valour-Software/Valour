@@ -7,6 +7,28 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
     where TSelf : ClientPlanetModel<TSelf, TId>
     where TId : IEquatable<TId>
 {
+    private Planet _planet;
+
+    /// <summary>
+    /// The Planet this model belongs to.
+    /// The Planet should always be in cache before Planet Models are grabbed.
+    /// If for some reason planet is null, it will be fetched from the cache.
+    /// If it is not in cache, you should have loaded the planet first.
+    /// </summary>
+    public Planet Planet
+    {
+        get
+        {
+            if (_planet is not null)
+                return _planet;
+            
+            var planetId = GetPlanetId();
+            return planetId is null || planetId == -1
+                ? null
+                : _planet ??= Planet.Cache.Get(planetId.Value);
+        }
+    }
+    
     public override Node Node => GetNodeForPlanet(GetPlanetId());
     
     public static Node GetNodeForPlanet(long? planetId)
@@ -18,21 +40,6 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
     }
 
     public abstract long? GetPlanetId();
-
-    /// <summary>
-    /// Returns the planet for this model
-    /// </summary>
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false)
-    {
-        var planetId = GetPlanetId();
-        
-        if (planetId is null || planetId == -1)
-            return ValueTask.FromResult<Planet>(null);
-        
-        return Planet.FindAsync(planetId.Value, refresh);
-    }
-
-
 }
 
 

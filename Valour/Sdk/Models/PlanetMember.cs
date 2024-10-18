@@ -89,16 +89,14 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         return null;
     }
     
-    protected override async Task OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
+    protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyMemberUpdateAsync(eventData);
+        Planet?.NotifyMemberUpdateAsync(eventData);
     }
 
-    protected override async Task OnDeleted()
+    protected override void OnDeleted()
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyMemberDeleteAsync(this);
+        Planet?.NotifyMemberDeleteAsync(this);
     }
     
     public override PlanetMember AddToCacheOrReturnExisting()
@@ -281,8 +279,10 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
 
     public async Task<bool> HasPermissionAsync(PlanetPermission permission)
     {
-        var planet = await GetPlanetAsync();
-        if (planet.OwnerId == UserId)
+        if (Planet is null)
+            return false;
+        
+        if (Planet.OwnerId == UserId)
             return true;
 
         var topRole = await GetPrimaryRoleAsync();

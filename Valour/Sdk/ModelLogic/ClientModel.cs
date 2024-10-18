@@ -42,18 +42,12 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     /// <summary>
     /// Custom logic on model update
     /// </summary>
-    protected virtual Task OnUpdated(ModelUpdateEvent<TSelf> eventData)
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual void OnUpdated(ModelUpdateEvent<TSelf> eventData) { }
 
     /// <summary>
     /// Custom logic on model deletion
     /// </summary>
-    protected virtual Task OnDeleted()
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual void OnDeleted() { }
 
     [JsonIgnore] 
     public virtual Node Node => ValourClient.PrimaryNode;
@@ -96,23 +90,23 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     /// <summary>
     /// Safely invokes the updated event
     /// </summary>
-    public async Task InvokeUpdatedEventAsync(ModelUpdateEvent<TSelf> eventData)
+    public void InvokeUpdatedEventAsync(ModelUpdateEvent<TSelf> eventData)
     {
-        await OnUpdated(eventData);
+        OnUpdated(eventData);
 
         if (Updated != null)
-            await Updated.Invoke(eventData);
+            Updated.Invoke(eventData);
     }
 
     /// <summary>
     /// Safely invokes the deleted event
     /// </summary>
-    public async Task InvokeDeletedEventAsync()
+    public void InvokeDeletedEventAsync()
     {
-        await OnDeleted();
+        OnDeleted();
         
         if (Deleted != null)
-            await Deleted.Invoke();
+            Deleted.Invoke();
     }
 
     /// <summary>

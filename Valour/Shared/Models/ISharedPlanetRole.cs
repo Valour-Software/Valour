@@ -3,7 +3,7 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortableModel
+public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 {
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
@@ -67,7 +67,7 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortableModel
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
         => Permission.HasPermission(role.Permissions, perm);
 
-    uint ISortableModel.GetSortPosition()
+    uint ISortable.GetSortPosition()
     {
         return Position;
     }
