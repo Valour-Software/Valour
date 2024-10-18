@@ -32,22 +32,26 @@ public readonly struct ListChangeEvent<T>
 /// <summary>
 /// Reactive lists are lists that can be observed for changes.
 /// </summary>
-public class ReactiveList<T>
+public class ReactiveModelStore<TModel, TId>
+    where TModel : ClientModel<TModel, TId>
+    where TId : IEquatable<TId>
 {
-    public HybridEvent<ListChangeEvent<T>> ItemChange; // We don't assign because += and -= will do it
+    public HybridEvent<ListChangeEvent<TModel>> ItemChange; // We don't assign because += and -= will do it
     public HybridEvent<ListFullChangeType> ListChange;
     
-    protected List<T> List;
-    public IReadOnlyList<T> Values;
+    protected List<TModel> List;
+    protected Dictionary<TId, TModel> IdMap;
+    public IReadOnlyList<TModel> Values;
     
-    public ReactiveList(List<T> startingList = null)
+    public ReactiveModelStore(List<TModel> startingList = null)
     {
-        List = startingList ?? new List<T>();
+        List = startingList ?? new List<TModel>();
+        IdMap = List.ToDictionary(x => x.Id);
         Values = List;
     }
 
-    public void Upsert(T item)
-    {
+    public void Upsert(TModel item)
+    {  
         ListItemChangeType changeType;
         
         if (!List.Contains(item))
@@ -60,25 +64,29 @@ public class ReactiveList<T>
             changeType = ListItemChangeType.Update;
         }
         
+        IdMap[item.Id] = item;
+        
         if (ItemChange is not null)
-            ItemChange.Invoke(new ListChangeEvent<T>(changeType, item));
+            ItemChange.Invoke(new ListChangeEvent<TModel>(changeType, item));
     }
     
-    public void Remove(T item)
+    public void Remove(TModel item)
     {
         if (!List.Contains(item))
             return;
         
         List.Remove(item);
+        IdMap.Remove(item.Id);
         
         if (ItemChange is not null)
-            ItemChange.Invoke(new ListChangeEvent<T>(ListItemChangeType.Remove, item));
+            ItemChange.Invoke(new ListChangeEvent<TModel>(ListItemChangeType.Remove, item));
     }
     
-    public void Set(List<T> items)
+    public void Set(List<TModel> items)
     {
         List = items;
         Values = List;
+        IdMap = List.ToDictionary(x => x.Id);
         if (ListChange is not null)
             ListChange.Invoke(ListFullChangeType.Set);
     }
@@ -86,18 +94,25 @@ public class ReactiveList<T>
     public void Clear()
     {
         List.Clear();
+        IdMap.Clear();
         if (ListChange is not null)
             ListChange.Invoke(ListFullChangeType.Clear);
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Contains(T item)
+    public bool TryGet(TId id, out TModel item)
     {
-        return List.Contains(item);
+        return IdMap.TryGetValue(id, out item);
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Sort(Comparison<T> comparison)
+    public bool Contains(TModel item)
+    {
+        return IdMap.ContainsKey(item.Id); // This is faster than List.Contains
+        // return List.Contains(item);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Sort(Comparison<TModel> comparison)
     {
         List.Sort(comparison);
     }
@@ -107,20 +122,22 @@ public class ReactiveList<T>
 /// Reactive lists are lists that can be observed for changes.
 /// This version of the list is ordered, and will automatically sort the list when items are added or updated.
 /// </summary>
-public class SortedReactiveList<T> : ReactiveList<T>
-    where T : ISortable
+public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, TId>
+    where TModel : ClientModel<TModel, TId>, ISortable
+    where TId : IEquatable<TId>
 {
-    public SortedReactiveList(List<T> startingList = null) : base(startingList)
+    public SortedReactiveModelStore(List<TModel> startingList = null) : base(startingList)
     {
     }    
     
-    public new void Upsert(T item)
+    public new void Upsert(TModel item)
     {
         ListItemChangeType changeType;
         
         if (!List.Contains(item))
         {
             List.Add(item);
+            IdMap[item.Id] = item;
             Sort();
             changeType = ListItemChangeType.Add;
         }
@@ -131,10 +148,10 @@ public class SortedReactiveList<T> : ReactiveList<T>
         }
         
         if (ItemChange is not null)
-            ItemChange.Invoke(new ListChangeEvent<T>(changeType, item));
+            ItemChange.Invoke(new ListChangeEvent<TModel>(changeType, item));
     }
 
-    public void UpsertNoSort(T item)
+    public void UpsertNoSort(TModel item)
     {
         base.Upsert(item);
     }
@@ -147,22 +164,25 @@ public class SortedReactiveList<T> : ReactiveList<T>
 
 public static class ReactiveListExtensions
 {
-    public static ReactiveList<T> ClearOrInit<T>(this ReactiveList<T> list)
+    public static ReactiveModelStore<TModel, TId> ClearOrInit<TModel, TId>(this ReactiveModelStore<TModel,TId> modelStore)
+        where TModel : ClientModel<TModel, TId>
+        where TId : IEquatable<TId>
     {
-        if (list is null)
-            return new ReactiveList<T>();
+        if (modelStore is null)
+            return new ReactiveModelStore<TModel, TId>();
         
-        list.Clear();
-        return list;
+        modelStore.Clear();
+        return modelStore;
     }
     
-    public static SortedReactiveList<T> ClearOrInit<T>(this SortedReactiveList<T> list)
-        where T : ISortable
+    public static SortedReactiveModelStore<TModel, TId> ClearOrInit<TModel, TId>(this SortedReactiveModelStore<TModel, TId> modelStore)
+        where TModel : ClientModel<TModel, TId>, ISortable
+        where TId : IEquatable<TId>
     {
-        if (list is null)
-            return new SortedReactiveList<T>();
+        if (modelStore is null)
+            return new SortedReactiveModelStore<TModel, TId>();
         
-        list.Clear();
-        return list;
+        modelStore.Clear();
+        return modelStore;
     }
 }

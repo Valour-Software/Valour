@@ -318,9 +318,6 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     {
         if (PlanetId is null)
             return;
-
-        if (Planet is null)
-            throw new PlanetNotLoadedException(PlanetId.Value, this); 
         
         var allPermissions = await Planet.GetPermissionsNodesAsync(refresh);
 
@@ -376,11 +373,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         // No permission rules for non-planet channels (at least for now)
         if (PlanetId is null)
             return true;
-
-        // Planet wasn't loaded properly
-        if (Planet is null)
-            throw new PlanetNotLoadedException(PlanetId.Value, this);
-
+        
         // Member is from another planet
         if (member.PlanetId != PlanetId)
             return false;
@@ -475,9 +468,6 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         if (PlanetId is null)
             return null;
         
-        if (Planet is null)
-            throw new PlanetNotLoadedException(PlanetId.Value, this);
-
         var member = await PlanetMember.FindAsync(memberId, PlanetId.Value);
         var roles = await member.GetRolesAsync();
 
@@ -599,9 +589,6 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         
         if (PlanetId is not null)
         {
-            if (Planet is null)
-                throw new PlanetNotLoadedException(PlanetId.Value, this);
-            
             result = Planet.GetIconUrl(IconFormat.Webp64);
         }
         else
@@ -624,31 +611,29 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         {
             return Name;
         }
-        else
+        
+        var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
+
+        if (!others.Any())
+            return "Chat with yourself";
+        
+        var sb = new StringBuilder("Chat with ");
+        
+        var i = 0;
+        foreach (var other in others)
         {
-            var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
-
-            if (!others.Any())
-                return "Chat with yourself";
+            var user = await User.FindAsync(other.UserId);
             
-            var sb = new StringBuilder("Chat with ");
+            sb.Append(user.Name);
+            if (i < others.Count - 1)
+                sb.Append(", ");
+            else
+                sb.Append(" ");
             
-            var i = 0;
-            foreach (var other in others)
-            {
-                var user = await User.FindAsync(other.UserId);
-                
-                sb.Append(user.Name);
-                if (i < others.Count - 1)
-                    sb.Append(", ");
-                else
-                    sb.Append(" ");
-                
-                i++;
-            }
-
-            return sb.ToString();
+            i++;
         }
+
+        return sb.ToString();
     }
 
     public async Task<TaskResult> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
@@ -664,11 +649,10 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             AuthorUserId = ValourClient.Self.Id,
             Fingerprint = Guid.NewGuid().ToString(),
         };
-
-        PlanetMember member;
+        
         if (PlanetId is not null)
         {
-            member = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
+            var member = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
             msg.AuthorMemberId = member.Id;
         }
         

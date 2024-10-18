@@ -1,4 +1,5 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic.Exceptions;
 using Valour.Sdk.Nodes;
 
 namespace Valour.Sdk.ModelLogic;
@@ -19,13 +20,20 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
     {
         get
         {
-            if (_planet is not null)
+            if (_planet is not null) // If the planet is already stored, return it
                 return _planet;
             
-            var planetId = GetPlanetId();
-            return planetId is null || planetId == -1
-                ? null
-                : _planet ??= Planet.Cache.Get(planetId.Value);
+            var planetId = GetPlanetId(); // Get the planet id from the model
+            if (planetId is null || planetId == -1) // If the id is null or -1, the model is not associated with a planet
+                return null;
+                    
+            _planet ??= Planet.Cache.Get(planetId.Value); // Try to assign from cache
+            
+            if (_planet is null) // If it wasn't in cache, throw an exception. Should have loaded the planet first.
+                throw new PlanetNotLoadedException(planetId.Value, this);
+            
+            // Return the planet
+            return _planet;
         }
     }
     

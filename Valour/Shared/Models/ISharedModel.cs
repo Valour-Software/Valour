@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Shared.Models;
 
 public interface ISharedModel
 {

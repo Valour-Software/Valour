@@ -31,22 +31,22 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// <summary>
     /// The channels in this planet
     /// </summary>
-    public SortedReactiveList<Channel> Channels { get; private set; }
+    public SortedReactiveModelStore<Channel, long> Channels { get; private set; }
     
     /// <summary>
     /// The chat channels in this planet
     /// </summary>
-    public SortedReactiveList<Channel> ChatChannels { get; private set; }
+    public SortedReactiveModelStore<Channel, long> ChatChannels { get; private set; }
     
     /// <summary>
     /// The voice channels in this planet
     /// </summary>
-    public SortedReactiveList<Channel> VoiceChannels { get; private set; }
+    public SortedReactiveModelStore<Channel, long> VoiceChannels { get; private set; }
     
     /// <summary>
     /// The categories in this planet
     /// </summary>
-    public SortedReactiveList<Channel> Categories { get; private set; }
+    public SortedReactiveModelStore<Channel, long> Categories { get; private set; }
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -357,14 +357,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
             // Skip event for bulk loading
             var cachedMember = await info.Member.SyncAsync(true);
             await info.User.SyncAsync(true);
-        }
-
-        foreach (var info in allResults)
-        {
-            var member = ModelCache<,>.Get<PlanetMember>(info.Member.Id);
-
-            if (member is not null)
-                Members.Add(member);
+            
+            Members.Add(cachedMember);
         }
     }
 

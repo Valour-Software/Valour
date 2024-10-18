@@ -1,5 +1,5 @@
-﻿using System.Net.Http.Json;
-using Valour.Sdk.Client;
+﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -10,18 +10,10 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetInvite : ClientModel, IClientPlanetModel, ISharedPlanetInvite
+public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlanetInvite
 {
-    #region IPlanetModel implementation
-
-    public long PlanetId { get; set; }
-
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IClientPlanetModel.GetPlanetAsync(this, refresh);
-
-    public override string BaseRoute => $"api/invites";
-
-    #endregion
+    public override string BaseRoute => ISharedPlanetInvite.BaseRoute;    
+    public override string IdRoute => ISharedPlanetInvite.GetIdRoute(Id);
 
     /// <summary>
     /// the invite code
@@ -42,36 +34,32 @@ public class PlanetInvite : ClientModel, IClientPlanetModel, ISharedPlanetInvite
     /// The time when this invite expires. Null for never.
     /// </summary>
     public DateTime? TimeExpires { get; set; }
+    
+    public long PlanetId { get; set; }
+    public override long? GetPlanetId() => PlanetId;
 
     public bool IsPermanent() =>
         ISharedPlanetInvite.IsPermanent(this);
 
     /// <summary>
-    /// Returns the invite for the given invite code
+    /// Returns the invite for the given invite code (id)
     /// </summary>
     public static async Task<PlanetInvite> FindAsync(string code, bool refresh = false)
     {
         if (!refresh)
         {
-            var cached = ModelCache<,>.Get<PlanetInvite>(code);
+            var cached = Cache.Get(code);
             if (cached is not null)
                 return cached;
         }
         
-        var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>($"api/invites/{code}")).Data;
+        var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>(ISharedPlanetInvite.GetIdRoute(code))).Data;
 
         if (invResult is not null)
-            await invResult.AddToCache(invResult);
+            return await invResult.SyncAsync();
 
-        return invResult;
+        return null;
     }
-
-    public override async Task AddToCache<T>(T item, bool skipEvent = false)
-    {
-        await ModelCache<,>.Put(Code, this, skipEvent);
-    }
-
-    public override string IdRoute => $"{BaseRoute}/{Code}";
 
     /// <summary>
     /// Returns the name of the invite's planet
@@ -86,6 +74,7 @@ public class PlanetInvite : ClientModel, IClientPlanetModel, ISharedPlanetInvite
         (await Node.GetJsonAsync<string>($"{IdRoute}/planeticon")).Data ?? "";
 
     public static async Task<InviteScreenModel> GetInviteScreenData(string code) =>
-        (await (await ValourClient.Http.GetAsync($"{ValourClient.BaseAddress}api/invites/{code}/screen")).Content.ReadFromJsonAsync<InviteScreenModel>());
+        (await ValourClient.PrimaryNode.GetJsonAsync<InviteScreenModel>(
+            $"{ISharedPlanetInvite.BaseRoute}/{code}/screen")).Data;
 }
 

@@ -10,13 +10,11 @@ namespace Valour.Shared.Models;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetInvite : ISharedPlanetModel
+public interface ISharedPlanetInvite : ISharedPlanetModel<string>
 {
-    /// <summary>
-    /// the invite code
-    /// </summary>
-    string Code { get; set; }
-
+    public const string BaseRoute = "api/invites";
+    public static string GetIdRoute(string id) => $"{BaseRoute}/{id}";
+    
     /// <summary>
     /// The user that created the invite
     /// </summary>

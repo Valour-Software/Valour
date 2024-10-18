@@ -24,8 +24,9 @@ public class PlanetInvite : Model, ISharedPlanetInvite
     /// The invite code
     /// </summary>
     [Column("code")]
-    public string Code { get; set; }
-
+    public string Id { get; set; }
+    
+    
     /// <summary>
     /// The user that created the invite
     /// </summary>
