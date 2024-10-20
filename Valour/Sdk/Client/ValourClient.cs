@@ -7,6 +7,7 @@ using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
+using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Extensions;
@@ -118,18 +119,6 @@ public static class ValourClient
     /// The primary node this client is connected to
     /// </summary>
     public static Node PrimaryNode { get; set; }
-
-    /// <summary>
-    /// The friends of this client
-    /// </summary>
-    public static List<User> Friends { get; set; }
-
-    /// <summary>
-    /// The fast lookup set for friends
-    /// </summary>
-    public static HashSet<long> FriendFastLookup { get; set; }
-    public static List<User> FriendRequests { get; set; }
-    public static List<User> FriendsRequested { get; set; }
     
     /// <summary>
     /// Pain and suffering for thee
@@ -158,11 +147,6 @@ public static class ValourClient
     /// Run when the client browser is refocused
     /// </summary>
     public static event Func<Task> OnRefocus;
-
-    /// <summary>
-    /// Run when the friends list updates
-    /// </summary>
-    public static event Func<Task> OnFriendsUpdate;
 
     /// <summary>
     /// Run when SignalR opens a planet
@@ -198,21 +182,6 @@ public static class ValourClient
     /// Run when SignalR closes a channel
     /// </summary>
     public static event Func<Channel, Task> OnChannelClose;
-
-    /// <summary>
-    /// Run when a message is received
-    /// </summary>
-    public static event Func<Message, Task> OnMessageReceived;
-    
-    /// <summary>
-    /// Run when a message is edited
-    /// </summary>
-    public static event Func<Message, Task> OnMessageEdited;
-
-    /// <summary>
-    /// Run when a planet is deleted
-    /// </summary>
-    public static event Func<Message, Task> OnMessageDeleted;
 
     /// <summary>
     /// Run when a notification is received
@@ -253,11 +222,6 @@ public static class ValourClient
     /// Run when a category is reordered
     /// </summary>
     public static event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
-
-    /// <summary>
-    /// Run when there is a friend event
-    /// </summary>
-    public static event Func<FriendEventData, Task> OnFriendEvent;
 
     /// <summary>
     /// Run when the user logs in
@@ -329,12 +293,6 @@ public static class ValourClient
 
         return TenorFavorites;
     }
-
-    /// <summary>
-    /// Sends a message
-    /// </summary>
-    public static async Task<TaskResult> SendMessage(Message message)
-        => await message.PostMessageAsync();
 
     public static async Task AddJoinedPlanetAsync(Planet planet)
     {
@@ -459,135 +417,6 @@ public static class ValourClient
 
         return result;
     }
-
-    public static async Task HandleFriendEventReceived(FriendEventData eventData)
-    {
-        if (eventData.Type == FriendEventType.Added)
-        {
-            // If we already had a friend request to them,
-            if (FriendsRequested.Any(x => x.Id == eventData.User.Id))
-            {
-                // Add as a friend
-                Friends.Add(eventData.User);
-            }
-            // otherwise,
-            else
-            {
-                // add to friend requests
-                FriendRequests.Add(eventData.User);
-            }
-        } 
-        else if (eventData.Type == FriendEventType.Removed)
-        {
-            // If they were already a friend,
-            if (Friends.Any(x => x.Id == eventData.User.Id))
-            {
-                // remove them
-                Friends.RemoveAll(x => x.Id == eventData.User.Id);
-            }
-            // otherwise,
-            else
-            {
-                // remove from friend requests
-                FriendRequests.RemoveAll(x => x.Id == eventData.User.Id);
-            }
-        }
-        
-        if (OnFriendEvent is not null)
-            await OnFriendEvent.Invoke(eventData);
-    }
-
-    /// <summary>
-    /// Adds a friend
-    /// </summary>
-    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
-    {
-        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(nameAndTag)}");
-
-        if (result.Success)
-        {
-            var addedUser = await User.FindAsync(result.Data.FriendId);
-
-			// If we already had a friend request from them,
-			// add them to the friends list
-			var request = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
-            if (request is not null)
-            {
-                FriendRequests.Remove(request);
-				Friends.Add(addedUser);
-                FriendFastLookup.Add(addedUser.Id);
-
-                if (OnFriendsUpdate is not null)
-                    await OnFriendsUpdate.Invoke();
-			}
-			// Otherwise, add this request to our request list
-			else
-			{
-                FriendsRequested.Add(addedUser);
-            }
-		}
-
-        return result;
-    }
-
-	/// <summary>
-	/// Declines a friend request
-	/// </summary>
-	public static async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
-	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(nameAndTag)}", null);
-
-        if (result.Success)
-        {
-            var declined = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
-            if (declined is not null)
-                FriendRequests.Remove(declined);
-        }
-
-		return result;
-	}
-
-	/// <summary>
-	/// Removes a friend
-	/// </summary>
-	public static async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
-    {
-        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(nameAndTag)}", null);
-
-        if (result.Success)
-        {
-            FriendsRequested.RemoveAll(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
-            var friend = Friends.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
-            if (friend is not null)
-            {
-                Friends.Remove(friend);
-                FriendFastLookup.Remove(friend.Id);
-
-                FriendRequests.Add(friend);
-
-                if (OnFriendsUpdate is not null)
-					await OnFriendsUpdate.Invoke();
-			}
-        }
-        return result;
-    }
-
-	/// <summary>
-	/// Cancels a friend request
-	/// </summary>
-	public static async Task<TaskResult> CancelFriendAsync(string nameAndTag)
-	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(nameAndTag)}", null);
-
-		if (result.Success)
-		{
-			var canceled = FriendsRequested.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
-			if (canceled is not null)
-				FriendsRequested.Remove(canceled);
-		}
-
-		return result;
-	}
 
 	#region SignalR Groups
 
@@ -990,81 +819,6 @@ public static class ValourClient
             await OnNotificationsCleared.Invoke();
     }
 
-    /// <summary>
-    /// Ran when a message is recieved
-    /// </summary>
-    public static async Task HandlePlanetMessageReceived(Message message)
-    {
-        Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = message.ReplyTo.Sync();
-        }
-        
-        var cached = message.Sync();
-
-        if (OnMessageReceived is not null)
-            await OnMessageReceived.Invoke(cached);
-    }
-    
-    /// <summary>
-    /// Ran when a message is edited
-    /// </summary>
-    public static async Task HandlePlanetMessageEdited(Message message)
-    {
-        Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = message.ReplyTo.Sync();
-        }
-
-        var cached = message.Sync();
-        
-        if (OnMessageEdited is not null)
-            await OnMessageEdited.Invoke(cached);
-    }
-    
-    /// <summary>
-    /// Ran when a message is recieved
-    /// </summary>
-    public static async Task HandleDirectMessageReceived(Message message)
-    {
-        Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
-        
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = message.ReplyTo.Sync();
-        }
-        
-        var cached = message.Sync();
-        
-        if (OnMessageReceived is not null)
-            await OnMessageReceived.Invoke(cached);
-    }
-    
-    /// <summary>
-    /// Ran when a message is edited
-    /// </summary>
-    public static async Task HandleDirectMessageEdited(Message message)
-    {
-        Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = message.ReplyTo.Sync();
-        }
-        
-        var cached = message.Sync();
-        
-        if (OnMessageEdited is not null)
-            await OnMessageEdited.Invoke(cached);
-    }
-
-    public static async Task HandleMessageDeleted(Message message)
-    {
-        if (OnMessageDeleted is not null)
-            await OnMessageDeleted.Invoke(message);
-    }
-
     public static async Task HandleChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
     {
         //Console.WriteLine("Watching: " + update.ChannelId);
@@ -1296,7 +1050,7 @@ public static class ValourClient
         var loadTasks = new List<Task>()
         {
             // LoadChannelStatesAsync(), this is already done by the Home component
-            LoadFriendsAsync(),
+            FriendService.LoadFriendsAsync(),
             LoadJoinedPlanetsAsync(),
             LoadTenorFavoritesAsync(),
             LoadDirectChatChannelsAsync(),
@@ -1582,48 +1336,6 @@ public static class ValourClient
     {
         var result = await PrimaryNode.PostAsync("api/notifications/self/clear", null);
         return result;
-    }
-
-    public static async Task LoadFriendsAsync()
-    {
-        var friendResult = await Self.GetFriendDataAsync();
-
-        if (!friendResult.Success)
-        {
-            await Logger.Log("Error loading friends.", "red");
-            await Logger.Log(friendResult.Message, "red");
-            return;
-        }
-
-        var data = friendResult.Data;
-
-        foreach (var added in data.Added)
-            await ModelCache<,>.Put(added.Id, added);
-
-        foreach (var addedBy in data.AddedBy)
-            await ModelCache<,>.Put(addedBy.Id, addedBy);
-
-        Friends = new();
-        FriendFastLookup = new();
-        FriendRequests = data.AddedBy;
-        FriendsRequested = data.Added;
-
-        foreach (var req in FriendRequests)
-        {
-            if (FriendsRequested.Any(x => x.Id == req.Id))
-            {
-                Friends.Add(req);
-                FriendFastLookup.Add(req.Id);
-            }
-        }
-
-        foreach (var friend in Friends)
-        {
-            FriendRequests.RemoveAll(x => x.Id == friend.Id);
-            FriendsRequested.RemoveAll(x => x.Id == friend.Id);
-        }
-
-        await Logger.Log($"Loaded {Friends.Count} friends.", "cyan");
     }
 
     public static async Task<List<Planet>> GetDiscoverablePlanetsAsync()
