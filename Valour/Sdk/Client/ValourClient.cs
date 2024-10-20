@@ -243,58 +243,6 @@ public static class ValourClient
 
         return TenorFavorites;
     }
-
-    public static async Task AddJoinedPlanetAsync(Planet planet)
-    {
-        JoinedPlanets.Add(planet);
-
-        if (OnPlanetJoin is not null)
-            await OnPlanetJoin.Invoke(planet);
-
-        if (OnJoinedPlanetsUpdate is not null)
-            await OnJoinedPlanetsUpdate.Invoke();
-    }
-    
-    public static async Task RemoveJoinedPlanetAsync(Planet planet)
-    {
-        JoinedPlanets.Remove(planet);
-
-        if (OnPlanetLeave is not null)
-            await OnPlanetLeave.Invoke(planet);
-
-        if (OnJoinedPlanetsUpdate is not null)
-            await OnJoinedPlanetsUpdate.Invoke();
-    }
-    
-    /// <summary>
-    /// Attempts to join the given planet
-    /// </summary>
-    public static async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
-    {
-        var result = await PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planet.Id}/discover");
-
-        if (result.Success)
-        {
-            await AddJoinedPlanetAsync(planet);
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Attempts to leave the given planet
-    /// </summary>
-    public static async Task<TaskResult> LeavePlanetAsync(Planet planet)
-    {
-        // Get member
-        var member = await planet.GetMemberByUserAsync(ValourClient.Self.Id);
-        var result = await member.DeleteAsync();
-
-        if (result.Success)
-            await RemoveJoinedPlanetAsync(planet);
-
-        return result;
-    }
     
     public static void SetChannelLastViewedState(long channelId, DateTime lastViewed)
     {
@@ -758,8 +706,8 @@ public static class ValourClient
         var loadTasks = new List<Task>()
         {
             // LoadChannelStatesAsync(), this is already done by the Home component
-            FriendService.LoadFriendsAsync(),
-            LoadJoinedPlanetsAsync(),
+            FriendService.FetchesFriendsAsync(),
+            PlanetService.FetchJoinedPlanetsAsync(),
             LoadTenorFavoritesAsync(),
             LoadDirectChatChannelsAsync(),
             LoadUnreadNotificationsAsync(),
@@ -974,30 +922,6 @@ public static class ValourClient
 
         Console.WriteLine("Loaded " + ChannelsLastViewedState.Count + " channel states.");
         // Console.WriteLine(JsonSerializer.Serialize(response.Data));
-    }
-
-    /// <summary>
-    /// Should only be run during initialization!
-    /// </summary>
-    public static async Task LoadJoinedPlanetsAsync()
-    {
-        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/self/planets");
-
-        if (!response.Success)
-            return;
-
-        var planets = response.Data;
-
-        // Add to cache
-        foreach (var planet in planets)
-            await planet.AddToCacheAsync(planet);
-
-        JoinedPlanets = planets;
-
-        _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
-
-        if (OnJoinedPlanetsUpdate is not null)
-            await OnJoinedPlanetsUpdate.Invoke();
     }
 
     public static async Task LoadUnreadNotificationsAsync()

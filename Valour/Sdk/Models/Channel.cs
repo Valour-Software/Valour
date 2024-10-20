@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
-using Valour.Sdk.ModelLogic.Exceptions;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
@@ -170,24 +169,19 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     /// If create is true, this will create the channel if it is not found.
     /// </summary>
     public static async ValueTask<Channel> GetDirectChannelAsync(long otherUserId, bool create = false,
-        bool refresh = false)
+        bool skipCache = false)
     {
         var key = new DirectChannelKey(ValourClient.Self.Id, otherUserId);
-        
-        if (DirectChannelIdLookup.TryGetValue(key, out var id))
-        {
-            var cached = Cache.Get(id);
-            if (cached is not null)
-                return cached;
-        }
 
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>(
+        if (!skipCache &&
+            DirectChannelIdLookup.TryGetValue(key, out var id) &&
+            Cache.TryGet(id, out var cached))
+            return cached;
+
+        var dmChannel = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>(
             $"{ISharedChannel.BaseRoute}/direct/{otherUserId}?create={create}")).Data;
-
-        if (item is not null)
-            return item.Sync();
-
-        return null;
+        
+        return dmChannel?.Sync();
     }
 
     public override Channel AddToCacheOrReturnExisting()

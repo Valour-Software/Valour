@@ -2,6 +2,7 @@ namespace Valour.Sdk.Models;
 
 public enum FriendEventType
 {
+    FetchedAll, // We fetched all friends
     AddedThem, // We added someone
     RemovedThem, // We removed someone
     DeclinedThem, // We declined a friend request

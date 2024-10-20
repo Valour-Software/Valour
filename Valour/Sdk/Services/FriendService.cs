@@ -24,7 +24,10 @@ public static class FriendService
     public static List<User> FriendRequests { get; set; }
     public static List<User> FriendsRequested { get; set; }
     
-    public static async Task LoadFriendsAsync()
+    /// <summary>
+    /// Fetches friend data from the server
+    /// </summary>
+    public static async Task FetchesFriendsAsync()
     {
 	    var friendResult = await ValourClient.Self.GetFriendDataAsync();
 
@@ -67,6 +70,12 @@ public static class FriendService
 	    }
 
 	    await Logger.Log($"Loaded {Friends.Count} friends.", "cyan");
+	    
+	    FriendsUpdated?.Invoke(new FriendEventData()
+	    {
+		    User = null,
+		    Type = FriendEventType.FetchedAll
+	    });
     }
     
     public static void OnFriendEventReceived(FriendEventData eventData)

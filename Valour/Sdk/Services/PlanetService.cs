@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
+using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Utilities;
@@ -73,6 +74,30 @@ public static class PlanetService
         ConnectedPlanets = _connectedPlanets;
         PlanetLocks = _planetLocks;
         ConnectedPlanetsLookup = _connectedPlanetsLookup;
+    }
+    
+    /// <summary>
+    /// Fetches all planets that the user has joined from the server
+    /// </summary>
+    public static async Task<TaskResult> FetchJoinedPlanetsAsync()
+    {
+        var response = await ValourClient.PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/self/planets");
+        if (!response.Success)
+            return response.WithoutData();
+
+        var planets = response.Data;
+
+        _joinedPlanets.Clear();
+        
+        // Add to cache
+        foreach (var planet in planets)
+        {
+            _joinedPlanets.Add(planet.Sync());
+        }
+        
+        JoinedPlanetsUpdate?.Invoke();
+        
+        return TaskResult.SuccessResult;
     }
     
     /// <summary>
@@ -214,6 +239,58 @@ public static class PlanetService
         Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
 
         return PlanetLocks.Any(x => x.Value == planetId);
+    }
+    
+    /// <summary>
+    /// Adds a planet to the joined planets list and invokes the event.
+    /// </summary>
+    public static void AddJoinedPlanet(Planet planet)
+    {
+        _joinedPlanets.Add(planet);
+
+        PlanetJoined?.Invoke(planet);
+        JoinedPlanetsUpdate?.Invoke();
+    }
+    
+    /// <summary>
+    /// Removes a planet from the joined planets list and invokes the event.
+    /// </summary>
+    public static void RemoveJoinedPlanet(Planet planet)
+    {
+        _joinedPlanets.Remove(planet);
+        
+        PlanetLeft?.Invoke(planet);
+        JoinedPlanetsUpdate?.Invoke();
+    }
+    
+    /// <summary>
+    /// Attempts to join the given planet
+    /// </summary>
+    public static async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
+    {
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planet.Id}/discover");
+
+        if (result.Success)
+        {
+            AddJoinedPlanet(planet);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to leave the given planet
+    /// </summary>
+    public static async Task<TaskResult> LeavePlanetAsync(Planet planet)
+    {
+        // Get member
+        var member = await planet.GetSelfMemberAsync();
+        var result = await member.DeleteAsync();
+
+        if (result.Success)
+            RemoveJoinedPlanet(planet);
+
+        return result;
     }
     
 }
