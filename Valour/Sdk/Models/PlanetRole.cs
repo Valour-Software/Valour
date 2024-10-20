@@ -137,21 +137,19 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         var item = (await node.GetJsonAsync<PlanetRole>($"api/roles/{id}")).Data;
 
         if (item is not null)
-            await item.SyncAsync();
+            return item.Sync();
 
         return item;
     }
 
-    protected override async Task OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
+    protected override void OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyRoleUpdateAsync(this, eventData);
+        Planet.NotifyRoleUpdate(eventData);
     }
 
-    protected override async Task OnDeleted()
+    protected override void OnDeleted()
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyRoleDeleteAsync(this);
+        Planet.NotifyRoleDelete(this);
     }
 
     /// <summary>
@@ -162,27 +160,19 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
         if (nodes is null)
             return;
-
-        // Update cache values
-        foreach (var node in nodes)
-        {
-            // Skip event for bulk loading
-            await Models.PermissionsNode. (node.Id, node, true);
-        }
-
+        
         // Create container if needed
         if (PermissionsNodes == null)
             PermissionsNodes = new List<PermissionsNode>();
         else
             PermissionsNodes.Clear();
 
-        // Retrieve cache values (this is necessary to ensure single copies of items)
+        // Update cache values
         foreach (var node in nodes)
         {
-            var cNode = ModelCache<,>.Get<PermissionsNode>(node.Id);
-
-            if (cNode is not null)
-                PermissionsNodes.Add(cNode);
+            // Skip event for bulk loading
+            var cached = node.Sync(true);
+            PermissionsNodes.Add(cached);
         }
     }
 

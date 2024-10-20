@@ -302,18 +302,6 @@ public static class ValourClient
     public static void SetHttpClient(HttpClient client) => _httpClient = client;
 
     /// <summary>
-    /// Returns the member for this client's user given a planet
-    /// </summary>
-    public static ValueTask<PlanetMember> GetSelfMember(Planet planet, bool forceRefresh = false) =>
-        GetSelfMember(planet.Id, forceRefresh);
-
-    /// <summary>
-    /// Returns the member for this client's user given a planet id
-    /// </summary>
-    public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool forceRefresh = false) =>
-        PlanetMember.FindAsyncByUser(Self.Id, planetId, forceRefresh);
-
-    /// <summary>
     /// Sets the compliance data for the current user
     /// </summary>
     public static async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
@@ -392,12 +380,10 @@ public static class ValourClient
     {
         // Get member
         var member = await planet.GetMemberByUserAsync(ValourClient.Self.Id);
-        var result = await ClientModel.DeleteAsync(member);
+        var result = await member.DeleteAsync();
 
         if (result.Success)
-        {
             await RemoveJoinedPlanetAsync(planet);
-        }
 
         return result;
     }
@@ -620,11 +606,11 @@ public static class ValourClient
     /// <summary>
     /// Opens a planet and prepares it for use
     /// </summary>
-    public static async Task OpenPlanetConnection(Planet planet, string key)
+    public static async Task<TaskResult> OpenPlanetConnection(Planet planet, string key)
     {
         // Cannot open null
-        if (planet == null)
-            return;
+        if (planet is null)
+            return TaskResult.FromFailure("Planet is null");
 
         if (PlanetLocks.ContainsKey(key))
         {
@@ -638,7 +624,7 @@ public static class ValourClient
 
         // Already open
         if (OpenPlanets.Contains(planet))
-            return;
+            return TaskResult.SuccessResult;
 
         // Mark as opened
         OpenPlanets.Add(planet);
@@ -659,19 +645,19 @@ public static class ValourClient
         Console.WriteLine(result.Message);
 
         if (!result.Success)
-            return;
+            return result;
 
         // Load roles early for cached speed
         await planet.LoadRolesAsync();
 
         // Load member data early for the same reason (speed)
-        tasks.Add(planet.LoadMemberDataAsync());
+        tasks.Add(planet.FetchMemberDataAsync());
 
         // Load channels
         tasks.Add(planet.FetchChannelsAsync());
         
         // Load permissions nodes
-        tasks.Add(planet.LoadPermissionsNodesAsync());
+        tasks.Add(planet.FetchPermissionsNodesAsync());
 
         // requesting/loading the data does not require data from other requests/types
         // so just await them all, instead of one by one
@@ -689,6 +675,8 @@ public static class ValourClient
             Console.WriteLine($"Invoking Open Planet event for {planet.Name} ({planet.Id})");
             await OnPlanetOpen.Invoke(planet);
         }
+        
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
@@ -750,18 +738,18 @@ public static class ValourClient
     /// <summary>
     /// Closes a SignalR connection to a planet
     /// </summary>
-    public static async Task ClosePlanetConnection(Planet planet, string key, bool force = false)
+    public static async Task<TaskResult> TryClosePlanetConnection(Planet planet, string key, bool force = false)
     {
         if (!force)
         {
             var locked = RemovePlanetLock(key);
             if (locked)
-                return;
+                return TaskResult.FromFailure("Planet is locked by other keys.");
         }
         
         // Already closed
         if (!OpenPlanets.Contains(planet))
-            return;
+            return TaskResult.SuccessResult;
 
         // Close connection
         await planet.Node.HubConnection.SendAsync("LeavePlanet", planet.Id);
@@ -777,16 +765,18 @@ public static class ValourClient
             Console.WriteLine($"Invoking close planet event for {planet.Name} ({planet.Id})");
             await OnPlanetClose.Invoke(planet);
         }
+        
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
     /// Opens a SignalR connection to a channel if it does not already have one,
     /// and stores a key to prevent it from being closed
     /// </summary>
-    public static async Task OpenPlanetChannelConnection(Channel channel, string key)
+    public static async Task<TaskResult> TryOpenPlanetChannelConnection(Channel channel, string key)
     {
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
-            return;
+            return TaskResult.FromFailure("Channel is not a planet chat channel");
 
         if (ChannelLocks.ContainsKey(key))
         {
@@ -800,19 +790,21 @@ public static class ValourClient
         
         // Already opened
         if (OpenPlanetChannels.Contains(channel))
-            return;
+            return TaskResult.SuccessResult;
 
-        var planet = await channel.GetPlanetAsync();
+        var planet = channel.Planet;
 
         // Ensure planet is opened
-        await OpenPlanetConnection(planet, key);
+        var planetResult = await OpenPlanetConnection(planet, key);
+        if (!planetResult.Success)
+            return planetResult;
 
         // Join channel SignalR group
         var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
         Console.WriteLine(result.Message);
 
         if (!result.Success)
-            return;
+            return result;
 
         // Add to open set
         OpenPlanetChannels.Add(channel);
@@ -821,15 +813,17 @@ public static class ValourClient
 
         if (OnChannelOpen is not null)
             await OnChannelOpen.Invoke(channel);
+        
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
     /// Closes a SignalR connection to a channel
     /// </summary>
-    public static async Task ClosePlanetChannelConnection(Channel channel, string key, bool force = false)
+    public static async Task<TaskResult> TryClosePlanetChannelConnection(Channel channel, string key, bool force = false)
     {
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
-            return;
+            return TaskResult.FromFailure("Channel is not a planet chat channel");
 
         if (!force)
         {
@@ -838,12 +832,12 @@ public static class ValourClient
 
             // If there are still any locks, don't close
             if (locked)
-                return;
+                return TaskResult.FromFailure("Channel is locked by other keys.");
         }
 
         // Not opened
         if (!OpenPlanetChannels.Contains(channel))
-            return;
+            return TaskResult.FromFailure("Channel is not open.");
 
         // Leaves channel SignalR group
         await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
@@ -856,7 +850,9 @@ public static class ValourClient
         if (OnChannelClose is not null)
             await OnChannelClose.Invoke(channel);
 
-        await ClosePlanetConnection(await channel.GetPlanetAsync(), key);
+        await TryClosePlanetConnection(channel.Planet, key);
+        
+        return TaskResult.SuccessResult;
     }
     
     /// <summary>
@@ -923,9 +919,10 @@ public static class ValourClient
     public static async Task HandleUpdateChannelState(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
-        var channel = ModelCache<,>.Get<Channel>(update.ChannelId);
-        if (channel is null)
+        if (!Channel.Cache.TryGet(update.ChannelId, out var channel))
+        {
             return;
+        }
         
         if (!CurrentChannelStates.TryGetValue(channel.Id, out var state))
         {
@@ -959,8 +956,7 @@ public static class ValourClient
 
     public static async Task HandleNotificationReceived(Notification notification)
     {
-        await notification.AddToCache(notification);
-        var cached = ModelCache<,>.Get<Notification>(notification.Id);
+        var cached = notification.Sync();   
         
         if (cached.TimeRead is null)
         {
@@ -1000,14 +996,15 @@ public static class ValourClient
     public static async Task HandlePlanetMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
-        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
+            message.ReplyTo = message.ReplyTo.Sync();
         }
+        
+        var cached = message.Sync();
 
         if (OnMessageReceived is not null)
-            await OnMessageReceived.Invoke(message);
+            await OnMessageReceived.Invoke(cached);
     }
     
     /// <summary>
@@ -1016,14 +1013,15 @@ public static class ValourClient
     public static async Task HandlePlanetMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
-        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
+            message.ReplyTo = message.ReplyTo.Sync();
         }
+
+        var cached = message.Sync();
         
         if (OnMessageEdited is not null)
-            await OnMessageEdited.Invoke(message);
+            await OnMessageEdited.Invoke(cached);
     }
     
     /// <summary>
@@ -1032,14 +1030,16 @@ public static class ValourClient
     public static async Task HandleDirectMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
-        await ModelCache<,>.Put(message.Id, message);
+        
         if (message.ReplyTo is not null)
         {
-            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
+            message.ReplyTo = message.ReplyTo.Sync();
         }
         
+        var cached = message.Sync();
+        
         if (OnMessageReceived is not null)
-            await OnMessageReceived.Invoke(message);
+            await OnMessageReceived.Invoke(cached);
     }
     
     /// <summary>
@@ -1048,14 +1048,15 @@ public static class ValourClient
     public static async Task HandleDirectMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
-        await ModelCache<,>.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ModelCache<,>.Put(message.ReplyTo.Id, message.ReplyTo);
+            message.ReplyTo = message.ReplyTo.Sync();
         }
         
+        var cached = message.Sync();
+        
         if (OnMessageEdited is not null)
-            await OnMessageEdited.Invoke(message);
+            await OnMessageEdited.Invoke(cached);
     }
 
     public static async Task HandleMessageDeleted(Message message)
@@ -1094,14 +1095,14 @@ public static class ValourClient
             await OnChannelEmbedUpdate.Invoke(update);
     }
 
+    // TODO: change
     public static async Task HandleCategoryOrderUpdate(CategoryOrderEvent eventData)
     {
         // Update channels in cache
         uint pos = 0;
         foreach (var data in eventData.Order)
         {
-            var channel = ModelCache<,>.Get<Channel>(data.Id);
-            if (channel is not null)
+            if (Channel.Cache.TryGet(data.Id, out var channel))
             {
                 Console.WriteLine($"{pos}: {channel.Name}");
 
@@ -1125,30 +1126,29 @@ public static class ValourClient
 
         private static void HookPlanetEvents()
         {
-            ModelObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleAdded;
-            ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
-            ModelObserver<PlanetRole>.OnAnyUpdated += OnPlanetRoleUpdated;
-            ModelObserver<PlanetRole>.OnAnyDeleted += OnPlanetRoleDeleted;
-
-            ModelObserver<Planet>.OnAnyDeleted += OnPlanetDeleted;
+            ModelObserver<PlanetRoleMember>.AnyUpdated += OnMemberRoleAdded;
+            ModelObserver<PlanetRoleMember>.AnyDeleted += OnMemberRoleDeleted;
+            ModelObserver<PlanetRole>.AnyUpdated += OnPlanetRoleUpdated;
+            ModelObserver<PlanetRole>.AnyDeleted += OnPlanetRoleDeleted;
+            ModelObserver<Planet>.AnyDeleted += OnPlanetDeleted;
         }
 
         private static async Task OnPlanetDeleted(Planet planet)
         {
             _joinedPlanetIds.Remove(planet.Id);
             JoinedPlanets = JoinedPlanets.Where(x => x.Id != planet.Id).ToList();
-            await ClosePlanetConnection(planet, "", true);
+            await TryClosePlanetConnection(planet, "", true);
         }
         
+        // TODO: Change member role caching
         private static async Task OnPlanetRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
         {
             // If we don't have the planet loaded, we don't need to update anything
-            var planet = ModelCache<,>.Get<Planet>(eventData.Model.PlanetId);
-            if (planet is null)
+            if (!Planet.Cache.TryGet(eventData.Model.PlanetId, out var planet))
                 return;
 
             // This is a little messy.
-            foreach (var member in await planet.GetMembersAsync())
+            foreach (var member in planet.Members.Values)
             {
                 // Skip if doesn't have role
                 if (!(await member.GetRolesAsync()).Contains(eventData.Model))
@@ -1395,7 +1395,7 @@ public static class ValourClient
                 
                 foreach (var channel in planet.Channels)
                 {
-                    await OpenPlanetChannelConnection(channel, "bot-init");
+                    await TryOpenPlanetChannelConnection(channel, "bot-init");
                 }
             }));
         }

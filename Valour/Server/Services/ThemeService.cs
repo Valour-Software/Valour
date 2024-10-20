@@ -105,7 +105,7 @@ public class ThemeService
         {
             if (theme.CustomCss.Contains('[') || theme.CustomCss.Contains(']'))
             {
-                return TaskResult.FromError(
+                return TaskResult.FromFailure(
                     "CSS contains disallowed characters []. Attribute selectors are not allowed in custom CSS for security reasons.");
             }
 
@@ -134,24 +134,24 @@ public class ThemeService
 
         if (!colorsValid)
         {
-            return TaskResult.FromError("One or more color codes are invalid.");
+            return TaskResult.FromFailure("One or more color codes are invalid.");
         }
 
         if (string.IsNullOrWhiteSpace(theme.Name))
         {
-            return TaskResult.FromError("Theme name is required.");
+            return TaskResult.FromFailure("Theme name is required.");
         }
 
         if (theme.Name.Length > 50)
         {
-            return TaskResult.FromError("Theme name is too long.");
+            return TaskResult.FromFailure("Theme name is too long.");
         }
 
         if (!string.IsNullOrWhiteSpace(theme.Description))
         {
             if (theme.Description.Length > 500)
             {
-                return TaskResult.FromError("Theme description is too long. Limit 500 characters.");
+                return TaskResult.FromFailure("Theme description is too long. Limit 500 characters.");
             }
         }
 
@@ -263,7 +263,7 @@ public class ThemeService
     {
         var existing = await _db.Themes.FindAsync(id);
         if (existing is null)
-            return TaskResult.FromError("Theme not found");
+            return TaskResult.FromFailure("Theme not found");
 
         var trans = await _db.Database.BeginTransactionAsync();
 
@@ -279,7 +279,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             _logger.LogError("Failed to delete theme", e);
-            return TaskResult.FromError("An error occured removing theme from the database.");
+            return TaskResult.FromFailure("An error occured removing theme from the database.");
         }
     }
 
@@ -349,7 +349,7 @@ public class ThemeService
         var existing = await _db.ThemeVotes.FindAsync(id);
 
         if (existing is null)
-            return TaskResult.FromError("Vote not found");
+            return TaskResult.FromFailure("Vote not found");
 
         var trans = await _db.Database.BeginTransactionAsync();
         
@@ -367,7 +367,7 @@ public class ThemeService
             await trans.RollbackAsync();
             
             _logger.LogError("Failed to delete theme vote", e);
-            return TaskResult.FromError("An error occured removing vote from the database.");
+            return TaskResult.FromFailure("An error occured removing vote from the database.");
         }
     }
 

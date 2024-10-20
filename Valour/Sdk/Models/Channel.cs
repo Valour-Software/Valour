@@ -150,7 +150,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         var item = (await node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id), refresh)).Data;
 
         if (item is not null)
-            return await item.SyncAsync();
+            return item.Sync();
 
         return null;
     }
@@ -198,7 +198,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             $"{ISharedChannel.BaseRoute}/direct/{otherUserId}?create={create}")).Data;
 
         if (item is not null)
-            return await item.SyncAsync();
+            return item.Sync();
 
         return null;
     }
@@ -673,7 +673,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await ValourClient.OpenPlanetChannelConnection(this, key);
+                await ValourClient.TryOpenPlanetChannelConnection(this, key);
                 break;
             case ChannelTypeEnum.DirectChat:
                 await UpdateUserState(DateTime.UtcNow); // Update the user state
@@ -688,7 +688,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await ValourClient.ClosePlanetChannelConnection(this, key);
+                await ValourClient.TryClosePlanetChannelConnection(this, key);
                 break;
             default:
                 break;

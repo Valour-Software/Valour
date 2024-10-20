@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("channels")]
-public class Channel : Model, ISharedChannel
+public class Channel : ISharedChannel
 {
     ///////////////////////////
     // Relational Properties //
@@ -28,6 +29,10 @@ public class Channel : Model, ISharedChannel
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     /// <summary>
     /// The name of the channel

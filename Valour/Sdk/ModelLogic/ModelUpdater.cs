@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Shared.Extensions;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.ModelLogic;
 
@@ -40,10 +41,31 @@ public static class ModelUpdater
         HashSetPool.Return(propsChanged);
     }
     
+    public static void AddPositionChange<TModel, TId>(ISortableModel<TModel, TId> oldModel, ISortableModel<TModel, TId> newModel, ModelUpdateEvent<TModel> eventData) 
+        where TModel : ClientModel<TModel, TId>
+        where TId : IEquatable<TId>
+    {
+        if (oldModel.GetSortPosition() != newModel.GetSortPosition())
+        {
+            eventData.PositionChange = new PositionChange()
+            {
+                OldPosition = oldModel.GetSortPosition(),
+                NewPosition = newModel.GetSortPosition()
+            };
+        }
+    }
+    
+    public static void AddPositionChange<TModel, TId>(TModel oldModel, TModel newModel, ModelUpdateEvent<TModel> eventData) 
+        where TModel : ClientModel<TModel, TId>
+        where TId : IEquatable<TId>
+    {
+        return;
+    }
+    
     /// <summary>
     /// Updates a model's properties and returns the global instance
     /// </summary>
-    public static async Task<TModel> UpdateItemAsync<TModel, TId>(TModel updated, TModel cached, int flags, bool skipEvent = false) 
+    public static TModel UpdateItem<TModel, TId>(TModel updated, TModel cached, int flags, bool skipEvent = false) 
         where TModel : ClientModel<TModel, TId>
         where TId : IEquatable<TId>
     {
@@ -67,6 +89,9 @@ public static class ModelUpdater
                     eventData.PropsChanged.Add(prop.Name);
             }
             
+            // Check position change
+            AddPositionChange<TModel, TId>(cached, updated, eventData);
+            
             // Update local copy
             // This uses the cached property info to avoid expensive reflection
             updated.CopyAllTo(cached, pInfo, null);
@@ -79,17 +104,21 @@ public static class ModelUpdater
             {
                 eventData.Model = cached;
                 // Fire off local event on item
-                await cached.InvokeUpdatedEventAsync(eventData);
+                cached.InvokeUpdatedEvent(eventData);
             }
             // New
             else
             {
                 eventData.Model = updated;
-                await updated.SyncAsync();
+                
+                // Add to cache
+                updated.AddToCacheOrReturnExisting();
+                // Fire off local event on item
+                updated.InvokeUpdatedEvent(eventData);
             }
             
             // Fire off global events
-            await ModelObserver<TModel>.InvokeAnyUpdated(eventData);
+            ModelObserver<TModel>.InvokeAnyUpdated(eventData);
 
             // printing to console is SLOW, only turn on for debugging reasons
             //Console.WriteLine("Invoked update events for " + updated.Id);
@@ -109,14 +138,14 @@ public static class ModelUpdater
         if (cached is null)
         {
             // Invoke static "any" delete
-            await model.InvokeDeletedEventAsync();
-            await ModelObserver<TModel>.InvokeAnyDeleted(model);
+            model.InvokeDeletedEvent();
+            ModelObserver<TModel>.InvokeAnyDeleted(model);
         }
         else
         {
             // Invoke static "any" delete
-            await cached.InvokeDeletedEventAsync();
-            await ModelObserver<TModel>.InvokeAnyDeleted(cached);
+            cached.InvokeDeletedEvent();
+            ModelObserver<TModel>.InvokeAnyDeleted(cached);
         }
     }
 }

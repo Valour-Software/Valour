@@ -3,12 +3,13 @@ using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Utility;
 
 namespace Valour.Sdk.Models;
 
-public class Message : ClientModel, ISharedMessage
+public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 {
     public override string BaseRoute =>
         $"api/channels/{ChannelId}/messages";
@@ -19,7 +20,8 @@ public class Message : ClientModel, ISharedMessage
     /// The planet (if any) this message belongs to
     /// </summary>
     public long? PlanetId { get; set; }
-    
+    public override long? GetPlanetId() => PlanetId;
+
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
@@ -188,11 +190,14 @@ public class Message : ClientModel, ISharedMessage
     /// </summary>
     public async ValueTask<PlanetMember> GetAuthorMemberAsync()
     {
-        if (AuthorMemberId is not null && PlanetId is not null)
-        {
-            _authorMemberCached ??= await PlanetMember.FindAsync(AuthorMemberId.Value, PlanetId.Value);
-        }
+        if (_authorMemberCached is not null)
+            return _authorMemberCached;
 
+        if (AuthorMemberId is null)
+            return null;
+        
+        _authorMemberCached = await Planet.FindMemberAsync(AuthorMemberId.Value);
+        
         return _authorMemberCached;
     }
 
@@ -307,7 +312,7 @@ public class Message : ClientModel, ISharedMessage
                     
                     if (selfMember is null)
                     {
-                        selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
+                        selfMember = await Planet.GetSelfMemberAsync();
                     }
                     
                     if (mention.TargetId == selfMember.Id)
@@ -324,7 +329,7 @@ public class Message : ClientModel, ISharedMessage
                     {
                         if (selfMember is null)
                         {
-                            selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
+                            selfMember = await Planet.GetSelfMemberAsync();
                         }
                         
                         selfRoles = await selfMember.GetRolesAsync();

@@ -10,7 +10,7 @@ namespace Valour.Database;
 /// ... I'll be your friend!
 /// </summary>
 [Table("user_friends")]
-public class UserFriend : Model, ISharedUserFriend
+public class UserFriend : ISharedUserFriend
 {
     ///////////////////////////
     // Relational Properties //
@@ -45,4 +45,9 @@ public class UserFriend : Model, ISharedUserFriend
     /// </summary>
     [Column("friend_id")]
     public long FriendId { get; set; }
+
+    public object GetId()
+    {
+        return (UserId, FriendId);
+    }
 }

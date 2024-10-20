@@ -1,5 +1,11 @@
 ﻿namespace Valour.Sdk.ModelLogic;
 
+public struct PositionChange
+{
+    public uint OldPosition { get; set; }
+    public uint NewPosition { get; set; }
+}
+
 public class ModelUpdateEvent<TModel> : IDisposable
     where TModel : ClientModel
 {
@@ -14,6 +20,11 @@ public class ModelUpdateEvent<TModel> : IDisposable
     /// The fields that changed on the item
     /// </summary>
     public HashSet<string> PropsChanged { get; set; }
+    
+    /// <summary>
+    /// If not null, the position change of the item
+    /// </summary>
+    public PositionChange PositionChange { get; set; }
     
     /// <summary>
     /// True if the item is new to the client

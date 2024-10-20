@@ -13,22 +13,20 @@ namespace Valour.Sdk.Models;
 
 public readonly struct PermissionsNodeKey : IEquatable<PermissionsNodeKey>
 {
-    public readonly long PlanetId;
     public readonly long TargetId;
     public readonly long RoleId;
     public readonly ChannelTypeEnum TargetType;
     
-    public PermissionsNodeKey(long planetId, long targetId, long roleId, ChannelTypeEnum targetType)
+    public PermissionsNodeKey(long targetId, long roleId, ChannelTypeEnum targetType)
     {
         TargetId = targetId;
         RoleId = roleId;
         TargetType = targetType;
-        PlanetId = planetId;
     }
     
     public bool Equals(PermissionsNodeKey other)
     {
-        return TargetId == other.TargetId && RoleId == other.RoleId && TargetType == other.TargetType && PlanetId == other.PlanetId;
+        return TargetId == other.TargetId && RoleId == other.RoleId && TargetType == other.TargetType;
     }
 }
 
@@ -92,42 +90,8 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     /// <summary>
     /// Returns a key used for caching nodes via several properties
     /// </summary>
-    public PermissionsNodeKey GetCombinedKey() => new(PlanetId, TargetId, RoleId, TargetType);
-
-    /// <summary>
-    /// Returns the chat channel permissions node for the given channel and role
-    /// </summary>
-    public static ValueTask<PermissionsNode> FindAsync(Channel channel, PlanetRole role, ChannelTypeEnum targetType) =>
-        FindAsync(new PermissionsNodeKey(role.PlanetId, channel.Id, role.Id, targetType));
+    public PermissionsNodeKey GetCombinedKey() => new(TargetId, RoleId, TargetType);
     
-    /// <summary>
-    /// Returns the permissions node for the given values
-    /// </summary>
-    public static async ValueTask<PermissionsNode> FindAsync(PermissionsNodeKey key, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            if (PermissionNodeIdLookup.TryGetValue(key, out var id))
-            {
-                var cached = Cache.Get(id);
-                if (cached is not null)
-                    return cached;
-            }
-        }
-
-        var node = GetNodeForPlanet(key.PlanetId);
-        var permNode = (await node.GetJsonAsync<PermissionsNode>(
-            ISharedPermissionsNode.GetIdRoute(key.TargetId, key.RoleId, key.TargetType), 
-            true)
-        ).Data;
-        
-        if (permNode is not null)
-            return await permNode.SyncAsync();
-
-        return null;
-    }
-    
-
     public override PermissionsNode AddToCacheOrReturnExisting()
     {
         var existing = base.AddToCacheOrReturnExisting();
@@ -146,27 +110,6 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
         PermissionNodeIdLookup.Remove(key);
         
         return base.TakeAndRemoveFromCache();
-    }
-
-    public static async Task<List<PermissionsNode>> GetAllForPlanetAsync(long planetId)
-    {
-        var node = GetNodeForPlanet(planetId);
-        var permissionsNode = (await node.GetJsonAsync<List<PermissionsNode>>(
-            ISharedPermissionsNode.GetAllRoute(planetId)
-        )).Data;
-
-        var results = new List<PermissionsNode>();
-        
-        foreach (var permNode in permissionsNode)
-        {
-            // Add or update in cache
-            var cached = await permNode.SyncAsync();
-            // Put cached node in results
-            results.Add(cached);
-        }
-        
-        // Return results
-        return results;
     }
 }
 

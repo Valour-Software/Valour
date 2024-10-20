@@ -56,7 +56,7 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
         var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>(ISharedPlanetInvite.GetIdRoute(code))).Data;
 
         if (invResult is not null)
-            return await invResult.SyncAsync();
+            return await invResult.Sync();
 
         return null;
     }

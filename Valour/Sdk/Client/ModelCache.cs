@@ -61,9 +61,9 @@ public class ModelCache<TModel, TId>
     /// <summary>
     /// Returns the item for the given id, or null if it does not exist
     /// </summary>
-    public TModel Get(TId id)
+    public bool TryGet(TId id, out TModel model)
     {
-        return _innerCache.GetValueOrDefault(id);
+        return _innerCache.TryGetValue(id, out model);
     }
 
     /// <summary>

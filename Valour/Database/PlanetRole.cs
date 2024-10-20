@@ -1,11 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_roles")]
-public class PlanetRole : Model, ISharedPlanetRole
+public class PlanetRole : ISharedPlanetRole
 {
     ///////////////////////////
     // Relational Properties //
@@ -20,6 +21,10 @@ public class PlanetRole : Model, ISharedPlanetRole
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions

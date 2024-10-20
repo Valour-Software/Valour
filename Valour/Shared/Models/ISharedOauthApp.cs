@@ -10,7 +10,7 @@
 /// Oauth apps allow an organization or person to issue tokens on behalf of a user
 /// which can be easily tracked and revoked
 /// </summary>
-public interface ISharedOauthApp : ISharedModel
+public interface ISharedOauthApp : ISharedModel<long>
 {
     /// <summary>
     /// The secret key for the app

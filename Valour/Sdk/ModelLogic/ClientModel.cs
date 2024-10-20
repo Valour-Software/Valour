@@ -57,10 +57,10 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     /// fires off event for the update. Flags can be added for additional data.
     /// Returns the global cached instance of the model.
     /// </summary>
-    public virtual async Task<TSelf> SyncAsync(bool skipEvent = false, int flags = 0)
+    public virtual TSelf Sync(bool skipEvent = false, int flags = 0)
     {
         var existing = AddToCacheOrReturnExisting();
-        return await ModelUpdater.UpdateItemAsync<TSelf, TId>((TSelf)this, existing, flags, skipEvent); // Update if already exists
+        return ModelUpdater.UpdateItem<TSelf, TId>((TSelf)this, existing, flags, skipEvent); // Update if already exists
     }
 
     /// <summary>
@@ -90,7 +90,7 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     /// <summary>
     /// Safely invokes the updated event
     /// </summary>
-    public void InvokeUpdatedEventAsync(ModelUpdateEvent<TSelf> eventData)
+    public void InvokeUpdatedEvent(ModelUpdateEvent<TSelf> eventData)
     {
         OnUpdated(eventData);
 
@@ -101,7 +101,7 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     /// <summary>
     /// Safely invokes the deleted event
     /// </summary>
-    public void InvokeDeletedEventAsync()
+    public void InvokeDeletedEvent()
     {
         OnDeleted();
         

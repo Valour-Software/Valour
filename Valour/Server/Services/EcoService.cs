@@ -158,34 +158,34 @@ public class EcoService
     public static TaskResult ValidateCurrency(Currency currency)
     {
         if (currency.Name.Length > 20)
-            return TaskResult.FromError("Max name length is 20 characters");
+            return TaskResult.FromFailure("Max name length is 20 characters");
 
         if (string.IsNullOrEmpty(currency.Name))
-            return TaskResult.FromError("Currency must have a name");
+            return TaskResult.FromFailure("Currency must have a name");
 
         if (currency.PluralName.Length > 20)
-            return TaskResult.FromError("Max name plural length is 20 characters");
+            return TaskResult.FromFailure("Max name plural length is 20 characters");
 
         if (string.IsNullOrEmpty(currency.PluralName))
-            return TaskResult.FromError("Currency must have a plural name");
+            return TaskResult.FromFailure("Currency must have a plural name");
 
         if (currency.ShortCode.Length > 5)
-            return TaskResult.FromError("Max shortcode length is 5 characters");
+            return TaskResult.FromFailure("Max shortcode length is 5 characters");
 
         if (string.IsNullOrEmpty(currency.ShortCode))
-            return TaskResult.FromError("Currency must have a shortcode");
+            return TaskResult.FromFailure("Currency must have a shortcode");
 
         if (currency.Symbol.Length > 5)
-            return TaskResult.FromError("Max symbol length is 5 characters");
+            return TaskResult.FromFailure("Max symbol length is 5 characters");
 
         if (string.IsNullOrEmpty(currency.Symbol))
-            return TaskResult.FromError("Currency must have a symbol");
+            return TaskResult.FromFailure("Currency must have a symbol");
 
         if (currency.DecimalPlaces > 8)
-            return TaskResult.FromError("Currency can have max 8 decimals");
+            return TaskResult.FromFailure("Currency can have max 8 decimals");
 
         if (currency.DecimalPlaces < 0)
-            return TaskResult.FromError("Negative decimals are not allowed");
+            return TaskResult.FromFailure("Negative decimals are not allowed");
 
         return TaskResult.SuccessResult;
     }

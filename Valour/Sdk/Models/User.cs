@@ -130,9 +130,7 @@ public class User : ClientModel<User, long>, ISharedUser
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
 
         if (item is not null)
-        {
-            return await item.SyncAsync();
-        }
+            return item.Sync();
 
         return null;
     }

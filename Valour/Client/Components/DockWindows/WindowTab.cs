@@ -45,7 +45,7 @@ public abstract class WindowContent
         if (PlanetId is not null)
         {
             var planet = await Planet.FindAsync(PlanetId.Value);
-            await ValourClient.ClosePlanetConnection(planet, Id);
+            await ValourClient.TryClosePlanetConnection(planet, Id);
         }
     }
     

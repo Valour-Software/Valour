@@ -1,8 +1,9 @@
-﻿using Valour.Shared.Models;
+﻿using Valour.Sdk.ModelLogic;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Notification : ClientModel, ISharedNotification
+public class Notification : ClientModel<Notification, long>, ISharedNotification
 {
     /// <summary>
     /// The user the notification was sent to

@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 namespace Valour.Database;
 
 [Table("planet_invites")]
-public class PlanetInvite : Model, ISharedPlanetInvite
+public class PlanetInvite : ISharedPlanetInvite
 {
     ///////////////////////////
     // Relational Properties //
@@ -16,9 +16,6 @@ public class PlanetInvite : Model, ISharedPlanetInvite
     ///////////////////////
     // Entity Properties //
     ///////////////////////
-
-    [Column("planet_id")]
-    public long PlanetId { get; set; }
     
     /// <summary>
     /// The invite code
@@ -26,6 +23,8 @@ public class PlanetInvite : Model, ISharedPlanetInvite
     [Column("code")]
     public string Id { get; set; }
     
+    [Column("planet_id")]
+    public long PlanetId { get; set; }
     
     /// <summary>
     /// The user that created the invite

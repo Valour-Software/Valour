@@ -1,17 +1,15 @@
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class TenorFavorite : ClientModel, ISharedTenorFavorite
+public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavorite
 {
-    #region IPlanetModel implementation
-
     public override string BaseRoute =>
-            $"api/tenorfavorites";
+            ISharedTenorFavorite.BaseRoute;
 
-    #endregion
     /// <summary>
     /// The Tenor Id of this favorite
     /// </summary>

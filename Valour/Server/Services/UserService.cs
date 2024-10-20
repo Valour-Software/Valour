@@ -614,7 +614,7 @@ public class UserService
         
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)
-            return TaskResult.FromError("User not found.");
+            return TaskResult.FromFailure("User not found.");
         
         try
         {

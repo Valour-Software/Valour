@@ -53,7 +53,7 @@ public class StaffService
     {
         var report = await _db.Reports.FindAsync(reportId);
         if (report is null)
-            return TaskResult.FromError("Report not found");
+            return TaskResult.FromFailure("Report not found");
         
         report.Reviewed = value;
         
@@ -66,7 +66,7 @@ public class StaffService
     {
         var user = await _db.Users.FindAsync(userId);
         if (user is null)
-            return TaskResult.FromError("Account not found", errorCode: 404);
+            return TaskResult.FromFailure("Account not found", errorCode: 404);
         
         user.Disabled = value;
         
@@ -89,11 +89,11 @@ public class StaffService
         {
             var result = await _userService.HardDelete(user.ToModel());
             if (!result.Success)
-                return TaskResult.FromError(result.Message);
+                return TaskResult.FromFailure(result.Message);
         }
         catch (Exception e)
         {
-            return TaskResult.FromError(e.Message);
+            return TaskResult.FromFailure(e.Message);
         }
         
         return TaskResult.SuccessResult;

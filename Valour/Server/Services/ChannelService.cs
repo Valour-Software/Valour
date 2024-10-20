@@ -140,10 +140,10 @@ public class ChannelService
     {
         var dbChannel = await _db.Channels.FindAsync(id);
         if (dbChannel is null)
-            return TaskResult.FromError( "Channel not found.");
+            return TaskResult.FromFailure( "Channel not found.");
         
         if (dbChannel.IsDefault == true)
-            return TaskResult.FromError("You cannot delete the default channel.");
+            return TaskResult.FromFailure("You cannot delete the default channel.");
         
         dbChannel.IsDeleted = true;
         _db.Channels.Update(dbChannel);
@@ -332,7 +332,7 @@ public class ChannelService
         
         // Ensure that the category exists (and is actually a category)
         if (category is null)
-            return TaskResult.FromError("Category not found.");
+            return TaskResult.FromFailure("Category not found.");
         
         // Prevent duplicates
         order = order.Distinct().ToList();
@@ -354,7 +354,7 @@ public class ChannelService
             {
                 var child = await _db.Channels.FindAsync(childId);
                 if (child is null)
-                    return TaskResult.FromError($"Child with id {childId} does not exist!");
+                    return TaskResult.FromFailure($"Child with id {childId} does not exist!");
 
                 if (child.ParentId != categoryId)
                     return new(false, $"Category {childId} is not a child of {categoryId}.");
@@ -912,7 +912,7 @@ public class ChannelService
             }
             else
             {
-                return TaskResult.FromError("Message not found");
+                return TaskResult.FromFailure("Message not found");
             }
         }
         else
@@ -927,7 +927,7 @@ public class ChannelService
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to delete message");
-                return TaskResult.FromError("Failed to delete message in database.");
+                return TaskResult.FromFailure("Failed to delete message in database.");
             }
         }
         
@@ -984,7 +984,7 @@ public class ChannelService
     private static TaskResult ValidateName(string name)
     {
         if (name.Length > 32)
-            return TaskResult.FromError("Channel names must be 32 characters or less.");
+            return TaskResult.FromFailure("Channel names must be 32 characters or less.");
 
         return TaskResult.SuccessResult;
     }
@@ -996,7 +996,7 @@ public class ChannelService
     {
         if (desc.Length > 500)
         {
-            return TaskResult.FromError("Planet descriptions must be 500 characters or less.");
+            return TaskResult.FromFailure("Planet descriptions must be 500 characters or less.");
         }
 
         return TaskResult.SuccessResult;
@@ -1024,7 +1024,7 @@ public class ChannelService
             // Only planet channels can have a parent
             if (channel.PlanetId is null)
             {
-                return TaskResult.FromError("Only planet channels can have a parent.");
+                return TaskResult.FromFailure("Only planet channels can have a parent.");
             }
             
             var parent = await _db.Channels.FirstOrDefaultAsync
@@ -1033,10 +1033,10 @@ public class ChannelService
                   && x.ChannelType == ChannelTypeEnum.PlanetCategory); // Only categories can be parents 
 
             if (parent is null)
-                return TaskResult.FromError( "Parent channel not found");
+                return TaskResult.FromFailure( "Parent channel not found");
             
             if (parent.Id == channel.Id)
-                return TaskResult.FromError( "A channel cannot be its own parent.");
+                return TaskResult.FromFailure( "A channel cannot be its own parent.");
 
             // Ensure that the channel is not a descendant of itself
             var loopScan = parent;
@@ -1044,7 +1044,7 @@ public class ChannelService
             while (loopScan.ParentId is not null)
             {
                 if (loopScan.ParentId == channel.Id)
-                    return TaskResult.FromError( "A channel cannot be a descendant of itself.");
+                    return TaskResult.FromFailure( "A channel cannot be a descendant of itself.");
                 
                 loopScan = await _db.Channels.FirstOrDefaultAsync(x => x.Id == loopScan.ParentId);
             }
@@ -1062,7 +1062,7 @@ public class ChannelService
         else
         {
             if (!await HasUniquePosition(channel))
-                return TaskResult.FromError( "The position is already taken.");
+                return TaskResult.FromFailure( "The position is already taken.");
         }
 
         return TaskResult.SuccessResult;
@@ -1077,14 +1077,14 @@ public class ChannelService
         {
             if (!await _db.Planets.AnyAsync(x => x.Id == channel.PlanetId))
             {
-                return TaskResult.FromError("Planet not found.");
+                return TaskResult.FromFailure("Planet not found.");
             }
         }
         else
         {
             if (channel.PlanetId is not null)
             {
-                return TaskResult.FromError("Only planet channel types can have a planet id.");
+                return TaskResult.FromFailure("Only planet channel types can have a planet id.");
             } 
         }
 

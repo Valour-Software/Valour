@@ -50,7 +50,7 @@ public class ReactiveModelStore<TModel, TId>
         Values = List;
     }
 
-    public void Upsert(TModel item)
+    public virtual void Upsert(TModel item, bool skipEvent = false)
     {  
         ListItemChangeType changeType;
         
@@ -66,36 +66,40 @@ public class ReactiveModelStore<TModel, TId>
         
         IdMap[item.Id] = item;
         
-        if (ItemChange is not null)
+        if (!skipEvent && ItemChange is not null)
             ItemChange.Invoke(new ListChangeEvent<TModel>(changeType, item));
     }
     
-    public void Remove(TModel item)
+    public virtual void Remove(TModel item, bool skipEvent = false)
     {
-        if (!List.Contains(item))
+        if (!IdMap.ContainsKey(item.Id))
             return;
         
         List.Remove(item);
         IdMap.Remove(item.Id);
         
-        if (ItemChange is not null)
+        if (!skipEvent && ItemChange is not null)
             ItemChange.Invoke(new ListChangeEvent<TModel>(ListItemChangeType.Remove, item));
     }
     
-    public void Set(List<TModel> items)
+    public virtual void Set(List<TModel> items, bool skipEvent = false)
     {
-        List = items;
-        Values = List;
+        // We clear rather than replace the list to ensure that the reference is maintained
+        // Because the reference may be used across the application.
+        List.Clear();
+        IdMap.Clear();
+        
+        List.AddRange(items);
         IdMap = List.ToDictionary(x => x.Id);
-        if (ListChange is not null)
+        if (!skipEvent && ListChange is not null)
             ListChange.Invoke(ListFullChangeType.Set);
     }
     
-    public void Clear()
+    public virtual void Clear(bool skipEvent = false)
     {
         List.Clear();
         IdMap.Clear();
-        if (ListChange is not null)
+        if (!skipEvent && ListChange is not null)
             ListChange.Invoke(ListFullChangeType.Clear);
     }
     
@@ -116,6 +120,15 @@ public class ReactiveModelStore<TModel, TId>
     {
         List.Sort(comparison);
     }
+    
+    /// <summary>
+    /// Exists so that external full list changes can be notified.
+    /// </summary>
+    public void NotifySet()
+    {
+        if (ListChange is not null)
+            ListChange.Invoke(ListFullChangeType.Set);
+    }
 }
 
 /// <summary>
@@ -128,34 +141,69 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
 {
     public SortedReactiveModelStore(List<TModel> startingList = null) : base(startingList)
     {
-    }    
-    
-    public new void Upsert(TModel item)
+    }
+
+    public void Upsert(ModelUpdateEvent<TModel> updateEvent, bool skipEvent = false)
+    {
+        Upsert(updateEvent.Model, skipEvent, updateEvent.PositionChange);
+    }
+
+    public override void Upsert(TModel item, bool skipEvent = false)
+    {
+        Upsert(item, skipEvent, null);
+    }
+
+    public void Upsert(TModel item, bool skipEvent = false, PositionChange? positionChange = null)
     {
         ListItemChangeType changeType;
-        
-        if (!List.Contains(item))
+
+        var index = List.BinarySearch(item, ISortable.Comparer);
+        if (index < 0)
         {
-            List.Add(item);
+            // Insert new item at the correct position
+            index = ~index;
+            List.Insert(index, item);
             IdMap[item.Id] = item;
-            Sort();
             changeType = ListItemChangeType.Add;
         }
         else
         {
-            Sort();
+            // If positionChange is specified, resort the item
+            if (positionChange is not null)
+            {
+                List.RemoveAt(index);
+                var newIndex = List.BinarySearch(item, ISortable.Comparer);
+                if (newIndex < 0) newIndex = ~newIndex;
+                List.Insert(newIndex, item);
+            }
+
             changeType = ListItemChangeType.Update;
         }
-        
-        if (ItemChange is not null)
-            ItemChange.Invoke(new ListChangeEvent<TModel>(changeType, item));
+
+        if (!skipEvent && ItemChange is not null)
+            ItemChange?.Invoke(new ListChangeEvent<TModel>(changeType, item));
     }
 
-    public void UpsertNoSort(TModel item)
+
+    public void UpsertNoSort(TModel item, bool skipEvent = false)
     {
-        base.Upsert(item);
+        base.Upsert(item, skipEvent);
     }
-    
+
+    public override void Set(List<TModel> items, bool skipEvent = false)
+    {
+        List.Clear();
+        IdMap.Clear();
+        
+        List.AddRange(items);
+        IdMap = List.ToDictionary(x => x.Id);
+        
+        Sort();
+        
+        if (!skipEvent && ListChange is not null)
+            ListChange.Invoke(ListFullChangeType.Set);
+    }
+
     public void Sort()
     {
         List.Sort(ISortable.Compare);

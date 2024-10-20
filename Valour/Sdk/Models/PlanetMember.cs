@@ -67,36 +67,15 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// The pfp to be used within the planet
     /// </summary>
     public string MemberAvatar { get; set; }
-
-    /// <summary>
-    /// Returns the member for the given id
-    /// </summary>
-    public static async ValueTask<PlanetMember> FindAsync(long id, long planetId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var cached = Cache.Get(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
-
-        if (member is not null)
-            return await member.SyncAsync();
-
-        return null;
-    }
     
     protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
-        Planet?.NotifyMemberUpdateAsync(eventData);
+        Planet?.NotifyMemberUpdate(eventData);
     }
 
     protected override void OnDeleted()
     {
-        Planet?.NotifyMemberDeleteAsync(this);
+        Planet?.NotifyMemberDelete(this);
     }
     
     public override PlanetMember AddToCacheOrReturnExisting()
@@ -113,31 +92,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         MemberIdLookup.Remove(key);
         
         return base.TakeAndRemoveFromCache();
-    }
-
-    /// <summary>
-    /// Returns the member for the given id
-    /// </summary>
-    public static async ValueTask<PlanetMember> FindAsyncByUser(long userId, long planetId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var key = new PlanetUserKey(userId, planetId);
-            if (MemberIdLookup.TryGetValue(key, out var id))
-            {
-                var cached = Cache.Get(id);
-                if (cached is not null)
-                    return cached;
-            }
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{planetId}/{userId}", true)).Data;
-
-        if (member is not null)
-            return await member.SyncAsync();
-
-        return null;
     }
 
     public async Task NotifyRoleEventAsync(MemberRoleEvent eventData)
@@ -317,6 +271,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
     /// It will NOT change anything on the server.
     /// </summary>
+    // TODO: this is weird, going to improve this
     public async Task SetLocalRoleIds(List<long> ids) =>
         await LoadRolesAsync(ids);
 

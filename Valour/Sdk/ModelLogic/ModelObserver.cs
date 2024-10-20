@@ -17,16 +17,16 @@ public static class ModelObserver<T> where T : ClientModel
     /// </summary>
     public static HybridEvent<T> AnyDeleted;
 
-    public static async Task InvokeAnyUpdated(ModelUpdateEvent<T> eventData)
+    public static void InvokeAnyUpdated(ModelUpdateEvent<T> eventData)
     {
-        if (AnyUpdated != null)
-            await AnyUpdated.Invoke(eventData);
+        if (AnyUpdated is not null)
+            AnyUpdated.Invoke(eventData);
     }
 
-    public static async Task InvokeAnyDeleted(T deleted)
+    public static void InvokeAnyDeleted(T deleted)
     {
-        if (AnyDeleted != null)
-            await AnyDeleted.Invoke(deleted);
+        if (AnyDeleted is not null)
+            AnyDeleted.Invoke(deleted);
     }
 }
 

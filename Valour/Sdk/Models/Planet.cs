@@ -31,32 +31,52 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// <summary>
     /// The channels in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> Channels { get; private set; }
+    public SortedReactiveModelStore<Channel, long> Channels { get; } = new();
     
     /// <summary>
     /// The chat channels in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> ChatChannels { get; private set; }
+    public SortedReactiveModelStore<Channel, long> ChatChannels { get; } = new();
     
     /// <summary>
     /// The voice channels in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> VoiceChannels { get; private set; }
+    public SortedReactiveModelStore<Channel, long> VoiceChannels { get; } = new();
     
     /// <summary>
     /// The categories in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> Categories { get; private set; }
+    public SortedReactiveModelStore<Channel, long> Categories { get; } = new();
 
     /// <summary>
     /// The primary (default) chat channel of the planet
     /// </summary>
-    public Channel PrimaryChatChannel { get; set; }
+    public Channel PrimaryChatChannel { get; private set; }
     
-    private List<PlanetRole> Roles { get; set; }
-    private List<PlanetMember> Members { get; set; }
-    private List<PlanetInvite> Invites { get; set; }
-    private List<PermissionsNode> PermissionsNodes { get; set; }
+    /// <summary>
+    /// The roles in this planet
+    /// </summary>
+    public SortedReactiveModelStore<PlanetRole, long> Roles { get; } = new();
+    
+    /// <summary>
+    /// The default (everyone) role of this planet
+    /// </summary>
+    public PlanetRole DefaultRole { get; private set; }
+    
+    /// <summary>
+    /// The members of this planet
+    /// </summary>
+    public ReactiveModelStore<PlanetMember, long> Members { get; } = new();
+    
+    /// <summary>
+    /// The invites of this planet
+    /// </summary>
+    public ReactiveModelStore<PlanetInvite, string> Invites { get; } = new();
+    
+    /// <summary>
+    /// The permission nodes of this planet
+    /// </summary>
+    public ReactiveModelStore<PermissionsNode, long> PermissionsNodes { get; } = new();
 
     /// <summary>
     /// The Id of the owner of this planet
@@ -107,63 +127,86 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     
     public void NotifyChannelUpdate(ModelUpdateEvent<Channel> eventData)
     { 
-        var channel = eventData.Model;
-        
-        if (Channels is null || channel.PlanetId != Id)
-            return;
-        
-        InsertChannelIntoLists(channel);
+        // We have our own method for this because there are
+        // many channel lists to maintain
+        UpsertChannel(eventData);
     }
     
-    
-    public Task NotifyRoleUpdateAsync(ModelUpdateEvent<PlanetRole> eventData)
+    public void NotifyChannelDelete(Channel channel)
     {
-        var role = eventData.Model;
-        
-        if (Roles is null || role.PlanetId != Id)
-            return Task.CompletedTask;
-
-        if (!Roles.Any(x => x.Id == role.Id))
-        {
-            Roles.Add(role);
-            
-            Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
-        }
-
-        return Task.CompletedTask;
-    }
-    
-    public Task NotifyRoleDeleteAsync(PlanetRole role)
-    {
-        if (Roles is null || !Roles.Contains(role))
-            return Task.CompletedTask;
-
-        Roles.Remove(role);
-
-        return Task.CompletedTask;
+        Channels?.Remove(channel);
+        ChatChannels?.Remove(channel);
+        VoiceChannels?.Remove(channel);
+        Categories?.Remove(channel);
     }
 
-    public Task NotifyMemberUpdateAsync(ModelUpdateEvent<PlanetMember> eventData)
-    {
-        var member = eventData.Model;
-        
-        if (Members is null || member.PlanetId != Id)
-            return Task.CompletedTask;
 
-        if (!Members.Any(x => x.Id == member.Id))
-            Members.Add(member);
+    public void NotifyRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
+    {
+        if (eventData.Model.IsDefault)
+            DefaultRole = eventData.Model;
         
-        return Task.CompletedTask;
+        Roles?.Upsert(eventData);
+    }
+        
+    
+    public void NotifyRoleDelete(PlanetRole role) =>
+        Roles?.Remove(role);
+
+    public void NotifyMemberUpdate(ModelUpdateEvent<PlanetMember> eventData) =>
+        Members?.Upsert(eventData.Model);
+    
+    public void NotifyMemberDelete(PlanetMember member) =>
+        Members?.Remove(member);
+    
+    #endregion
+    
+    #region Finding Planet Models
+    
+    /// <summary>
+    /// Returns the member for the given id
+    /// </summary>
+    public async ValueTask<PlanetMember> FindMemberAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && Members.TryGet(id, out var cached))
+            return cached;
+        
+        var member = (await Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
+        
+        return member?.Sync();
     }
     
-    public Task NotifyMemberDeleteAsync(PlanetMember member)
+    /// <summary>
+    /// Returns the member for the given id
+    /// </summary>
+    public async ValueTask<PlanetMember> FindMemberByUserAsync(long userId, bool skipCache = false)
     {
-        if (Members is null || !Members.Contains(member))
-            return Task.CompletedTask;
+        var key = new PlanetUserKey(userId, Id);
+        
+        if (!skipCache && PlanetMember.MemberIdLookup.TryGetValue(key, out var id) &&
+            Members.TryGet(id, out var cached))
+            return cached;
+        
+        var member = (await Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{Id}/{userId}", true)).Data;
 
-        Members.Remove(member);
-
-        return Task.CompletedTask;
+        return member?.Sync();
+    }
+    
+    /// <summary>
+    /// Returns the permissions node for the given values
+    /// </summary>
+    public async ValueTask<PermissionsNode> FindPermissionsNodeAsync(PermissionsNodeKey key, bool refresh = false)
+    {
+        if (!refresh && 
+            PermissionsNode.PermissionNodeIdLookup.TryGetValue(key, out var id) &&
+            PermissionsNodes.TryGet(id, out var cached))
+            return cached;
+        
+        var permNode = (await Node.GetJsonAsync<PermissionsNode>(
+                ISharedPermissionsNode.GetIdRoute(key.TargetId, key.RoleId, key.TargetType), 
+                true)).Data;
+        
+        return permNode?.Sync();
     }
     
     #endregion
@@ -171,22 +214,15 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async ValueTask<Planet> FindAsync(long id, bool refresh = false)
+    public static async ValueTask<Planet> FindAsync(long id, bool skipCache = false)
     {
-        if (!refresh)
-        {
-            var cached = Cache.Get(id);
-            if (cached is not null)
-                return cached;
-        }
+        if (!skipCache && Cache.TryGet(id, out var cached))
+            return cached;
 
         var node = await NodeManager.GetNodeForPlanetAsync(id);
-        var item = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
+        var planet = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
 
-        if (item is not null)
-            return await item.SyncAsync();
-
-        return null;
+        return planet?.Sync();
     }
     
     public override Planet AddToCacheOrReturnExisting()
@@ -194,21 +230,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
         NodeManager.PlanetToNode[Id] = NodeName;
         return base.AddToCacheOrReturnExisting();
     }
-
-    public async ValueTask<PlanetRole> GetDefaultRoleAsync(bool refresh = false)
-    {
-        if (Roles == null || refresh)
-            await LoadRolesAsync();
-
-        return Roles?.FirstOrDefault(x => x.IsDefault);
-    }
     
-    private void ClearOrInitChannels()
+    private void ClearChannels(bool skipEvent = false)
     {
-        Channels = Channels.ClearOrInit();
-        ChatChannels = ChatChannels.ClearOrInit();
-        VoiceChannels = VoiceChannels.ClearOrInit();
-        Categories = Categories.ClearOrInit();
+        Channels.Clear(skipEvent);
+        ChatChannels.Clear(skipEvent);
+        VoiceChannels.Clear(skipEvent);
+        Categories.Clear(skipEvent);
     }
 
     public void SortChannels()
@@ -219,33 +247,27 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
         Categories.Sort();
     }
 
+    public void NotifyChannelsSet()
+    {
+        Channels.NotifySet();
+        ChatChannels.NotifySet();
+        VoiceChannels.NotifySet();
+        Categories.NotifySet();
+    }
+
     /// <summary>
     /// Inserts a channel into the planet's channel lists.
     /// If sort is true, the lists will be sorted after insertion.
     /// </summary>
-    private void InsertChannelIntoLists(Channel channel, bool sort = true)
+    private void FastUpsertChannel(Channel channel)
     {
-        // We already have this channel inserted
-        if (Channels.Contains(channel))
-            return;
-
-        if (sort)
-            Channels.Upsert(channel);
-        else
-            Channels.UpsertNoSort(channel);
-        
-        // Note: We don't need to check if the channel is already in these lists
-        // because channels are always added to the main list. If it's not there,
-        // it's not in any of the other lists.
+        Channels.UpsertNoSort(channel, true);
         
         switch (channel.ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-            {
-                if (sort)
-                    ChatChannels.Upsert(channel);
-                else
-                    ChatChannels.UpsertNoSort(channel);
+            { 
+                ChatChannels.UpsertNoSort(channel, true);
                 
                 if (channel.IsDefault)
                     PrimaryChatChannel = channel;
@@ -254,19 +276,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
             }
             case ChannelTypeEnum.PlanetCategory:
             {
-                if (sort)
-                    Categories.Upsert(channel);
-                else
-                    Categories.UpsertNoSort(channel);
+                Categories.UpsertNoSort(channel, true);
                 
                 break;
             }
             case ChannelTypeEnum.PlanetVoice:
             {
-                if (sort)
-                    VoiceChannels.Upsert(channel);
-                else
-                    VoiceChannels.UpsertNoSort(channel);
+                VoiceChannels.UpsertNoSort(channel, true);
                 
                 break;
             }
@@ -274,6 +290,42 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
                 Console.WriteLine("[!!!] Planet returned unknown or non-planet channel type!");
                 break;
         }
+    }
+
+    /// <summary>
+    /// Version of UpsertChannel to be used directly with events
+    /// </summary>
+    /// <param name="eventData"></param>
+    private void UpsertChannel(ModelUpdateEvent<Channel> eventData)
+    {
+        Channels.Upsert(eventData);
+        
+        switch (eventData.Model.ChannelType)
+        {
+            case ChannelTypeEnum.PlanetChat:
+            {
+                ChatChannels.Upsert(eventData);
+                
+                if (eventData.Model.IsDefault)
+                    PrimaryChatChannel = eventData.Model;
+                
+                break;
+            }
+            case ChannelTypeEnum.PlanetCategory:
+            {
+                Categories.Upsert(eventData);
+                break;
+            }
+            case ChannelTypeEnum.PlanetVoice:
+            {
+                VoiceChannels.Upsert(eventData);
+                break;
+            }
+            default:
+                Console.WriteLine("[!!!] Planet returned unknown or non-planet channel type!");
+                break;
+        }
+        
     }
     
     /// <summary>
@@ -283,15 +335,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// </summary>
     public void ApplyChannels(List<Channel> channels)
     {
-        ClearOrInitChannels();
+        ClearChannels(true);
 
         foreach (var channel in channels)
         {
-            // Sort is false because we will sort at the end
-            InsertChannelIntoLists(channel, false);
+            // Use fast upsert (no sort) because we will sort at the end
+            FastUpsertChannel(channel);
         }
         
         SortChannels();
+        
+        NotifyChannelsSet();
     }
 
     /// <summary>
@@ -308,44 +362,49 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     }
 
     /// <summary>
-    /// Returns the members of the planet
-    /// </summary>
-    public async ValueTask<List<PlanetMember>> GetMembersAsync(bool force_refresh = false)
-    {
-        if (Members is null || force_refresh)
-        {
-            await LoadMemberDataAsync();
-        }
-
-        return Members;
-    }
-
-    /// <summary>
     /// Loads the member data for the planet (this is quite heavy) 
     /// </summary>
-    public async Task LoadMemberDataAsync()
+    public async Task FetchMemberDataAsync()
     {
         Console.WriteLine("Loading members");
-
-        if (Members is null)
-            Members = new List<PlanetMember>();
-        else
-            Members.Clear();
-
-        var totalCount = 1;
-
+        
         PlanetMemberInfo currentResult;
         List<PlanetMemberData> allResults = new();
-
-        var page = 0;
-
-        while (page == 0 || page * 100 < totalCount)
+        
+        // First result to get total count
+        currentResult = (await Node.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page=0")).Data;
+        
+        if (currentResult is null)
+            return;
+        
+        Members.Clear(true);
+        
+        var totalCount = currentResult.TotalCount;
+        allResults.AddRange(currentResult.Members);
+        
+        // If there are more results to get...
+        if (totalCount > 100)
         {
-            currentResult = (await Node.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page={page}")).Data;
-            totalCount = currentResult.TotalCount;
-            allResults.AddRange(currentResult.Members);
-
-            page++;
+            // Calculate number of pages left to get
+            var pagesLeft = (int) Math.Ceiling((float) totalCount / 100) - 1;
+            
+            // Create tasks to get the rest of the data
+            var tasks = new List<Task<TaskResult<PlanetMemberInfo>>>();
+            for (var i = 1; i <= pagesLeft; i++)
+            {
+                tasks.Add(Node.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page={i}"));
+            }
+            
+            // Wait for all tasks to complete
+            await Task.WhenAll(tasks);
+            
+            // Add all results to the list
+            foreach (var task in tasks)
+            {
+                var result = task.Result.Data;
+                if (result is not null)
+                    allResults.AddRange(result.Members);
+            }
         }
 
         foreach (var info in allResults)
@@ -355,37 +414,34 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
 
             // Set in cache
             // Skip event for bulk loading
-            var cachedMember = await info.Member.SyncAsync(true);
-            await info.User.SyncAsync(true);
+            var cachedMember = info.Member.Sync(true);
+            // info.Member.User = info.User; TODO: Always send user with member data
+            info.User.Sync(true);
             
-            Members.Add(cachedMember);
+            Members.Upsert(cachedMember, true);
         }
+        
+        Members.NotifySet();
     }
 
-    public async ValueTask<List<PermissionsNode>> GetPermissionsNodesAsync(bool refresh = false)
+    public async Task FetchPermissionsNodesAsync()
     {
-        if (PermissionsNodes is null || refresh)
-            await LoadPermissionsNodesAsync();
-
-        return PermissionsNodes;
+        var permissionsNodes = (await Node.GetJsonAsync<List<PermissionsNode>>(
+            ISharedPermissionsNode.GetAllRoute(Id)
+        )).Data;
+        
+        PermissionsNodes.Clear(true);
+        
+        foreach (var permNode in permissionsNodes)
+        {
+            // Add or update in cache
+            var cached = permNode.Sync();
+            PermissionsNodes.Upsert(cached, true);
+        }
+        
+        PermissionsNodes.NotifySet();
     }
-
-    public async Task LoadPermissionsNodesAsync()
-    {
-        PermissionsNodes =  await PermissionsNode.GetAllForPlanetAsync(Id);
-    }
-
-    /// <summary>
-    /// Returns the invites of the planet
-    /// </summary>
-    public async ValueTask<List<PlanetInvite>> GetInvitesAsync(bool refresh = false)
-    {
-        if (Invites is null || refresh)
-            await LoadInvitesAsync();
-
-        return Invites;
-    }
-
+    
     /// <summary>
     /// Loads the planet's invites from the server
     /// </summary>
@@ -395,41 +451,18 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
 
         if (invites is null)
             return;
+        
+        Invites.Clear(true);
 
         foreach (var invite in invites)
         {
-            // Skip event for bulk loading
-            await ModelCache<,>.Put(invite.Id, invite, true);
-            await ModelCache<,>.Put(invite.Code, invite, true);
+            var cached = invite.Sync(true);
+            Invites.Upsert(cached, true);
         }
-
-        if (Invites is null)
-            Invites = new();
-        else
-            Invites.Clear();
-
-        foreach (var invite in invites)
-        {
-            var cInvite = await PlanetInvite.FindAsync(invite.Code);
-
-            if (cInvite is not null)
-                Invites.Add(cInvite);
-        }
+        
+        Invites.NotifySet();
     }
-
-    /// <summary>
-    /// Returns the roles of a planet
-    /// </summary>
-    public async ValueTask<List<PlanetRole>> GetRolesAsync(bool force_refresh = false)
-    {
-        if (Roles is null || force_refresh)
-        {
-            await LoadRolesAsync();
-        }
-
-        return Roles;
-    }
-
+    
     /// <summary>
     /// Loads the roles of a planet from the server
     /// </summary>
@@ -439,44 +472,29 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
 
         if (roles is null)
             return;
+        
+        Roles.Clear();
 
         foreach (var role in roles)
         {
             // Skip event for bulk loading
-            await ModelCache<,>.Put(role.Id, role, true);
+            var cached = role.Sync(true);
+            
+            Roles.UpsertNoSort(cached, true);
         }
-
-        if (Roles is null)
-            Roles = new List<PlanetRole>();
-        else
-            Roles.Clear();
-
-        foreach (var role in roles)
-        {
-            var cRole = await PlanetRole.FindAsync(role.Id, Id);
-
-            if (cRole is not null)
-                Roles.Add(cRole);
-        }
-
-        Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
+        
+        Roles.Sort();
+        
+        Roles.NotifySet();
     }
 
     
     /// <summary>
     /// Returns the member for the current user in this planet (if it exists)
     /// </summary>
-    public ValueTask<PlanetMember> GetSelfMemberAsync(bool forceRefresh = false)
+    public ValueTask<PlanetMember> GetSelfMemberAsync(bool skipCache = false)
     {
-        return GetMemberByUserAsync(ValourClient.Self.Id, forceRefresh);
-    }
-
-    /// <summary>
-    /// Returns the member for a given user id
-    /// </summary>
-    public ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool forceRefresh = false)
-    {
-        return PlanetMember.FindAsyncByUser(userId, Id, forceRefresh);
+        return FindMemberByUserAsync(ValourClient.Self.Id, skipCache);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

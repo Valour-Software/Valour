@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -10,7 +11,7 @@ namespace Valour.Database;
  */
 
 [Table("permissions_nodes")]
-public class PermissionsNode : Model, ISharedPermissionsNode
+public class PermissionsNode : ISharedPermissionsNode
 {
     ///////////////////////////
     // Relational Properties //
@@ -28,6 +29,10 @@ public class PermissionsNode : Model, ISharedPermissionsNode
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     [Column("planet_id")]
     public long PlanetId { get; set; }

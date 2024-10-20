@@ -36,9 +36,9 @@ namespace Valour.Shared
             Code = errorCode;
         }
 
-        public static TaskResult FromError(ITaskResult error) => new(false, error.Message, error.Details, error.Code);
+        public static TaskResult FromFailure(ITaskResult failure) => new(false, failure.Message, failure.Details, failure.Code);
 
-        public static TaskResult FromError(string error, int? errorCode = null) => new(false, error, errorCode: errorCode);
+        public static TaskResult FromFailure(string message, int? errorCode = null) => new(false, message, errorCode: errorCode);
 
         public override string ToString()
         {
