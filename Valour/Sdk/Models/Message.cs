@@ -196,7 +196,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         if (AuthorMemberId is null)
             return null;
         
-        _authorMemberCached = await Planet.FindMemberAsync(AuthorMemberId.Value);
+        _authorMemberCached = await Planet.FetchMemberAsync(AuthorMemberId.Value);
         
         return _authorMemberCached;
     }

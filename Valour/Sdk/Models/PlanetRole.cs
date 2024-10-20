@@ -15,7 +15,7 @@ namespace Valour.Sdk.Models;
 public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
     public override string BaseRoute =>
-        $"api/roles";
+        ISharedPlanetRole.BaseRoute;
     
     /// <summary>
     /// The id of the planet this belongs to
@@ -124,32 +124,14 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         };
     }
 
-    public static async Task<PlanetRole> FindAsync(long id, long planetId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var cached = Cache.Get(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetRole>($"api/roles/{id}")).Data;
-
-        if (item is not null)
-            return item.Sync();
-
-        return item;
-    }
-
     protected override void OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {
-        Planet.NotifyRoleUpdate(eventData);
+        Planet.OnRoleUpdated(eventData);
     }
 
     protected override void OnDeleted()
     {
-        Planet.NotifyRoleDelete(this);
+        Planet.OnRoleDeleted(this);
     }
 
     /// <summary>

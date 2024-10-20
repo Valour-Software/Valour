@@ -12,7 +12,7 @@ namespace Valour.Sdk.Models;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : ClientModel<Planet, long>, ISharedPlanet
+public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 {
     public override string BaseRoute =>
         ISharedPlanet.BaseRoute;
@@ -125,14 +125,14 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
 
     #region Child Event Handlers
     
-    public void NotifyChannelUpdate(ModelUpdateEvent<Channel> eventData)
+    public void OnChannelUpdated(ModelUpdateEvent<Channel> eventData)
     { 
         // We have our own method for this because there are
         // many channel lists to maintain
         UpsertChannel(eventData);
     }
     
-    public void NotifyChannelDelete(Channel channel)
+    public void OnChannelDeleted(Channel channel)
     {
         Channels?.Remove(channel);
         ChatChannels?.Remove(channel);
@@ -141,23 +141,36 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     }
 
 
-    public void NotifyRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
+    public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {
         if (eventData.Model.IsDefault)
             DefaultRole = eventData.Model;
         
-        Roles?.Upsert(eventData);
-    }
+        Roles.Upsert(eventData);
         
-    
-    public void NotifyRoleDelete(PlanetRole role) =>
-        Roles?.Remove(role);
+        // Let members know
+        foreach (var member in Members)
+        {
+            member.OnRoleUpdated(eventData);
+        }
+    }
 
-    public void NotifyMemberUpdate(ModelUpdateEvent<PlanetMember> eventData) =>
-        Members?.Upsert(eventData.Model);
+    public void OnRoleDeleted(PlanetRole role)
+    {
+        Roles.Remove(role);
+        
+        // Let members know
+        foreach (var member in Members)
+        {
+            member.OnRoleDeleted(role);
+        }
+    }
+
+    public void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData) =>
+        Members.Upsert(eventData.Model);
     
-    public void NotifyMemberDelete(PlanetMember member) =>
-        Members?.Remove(member);
+    public void OnMemberDeleted(PlanetMember member) =>
+        Members.Remove(member);
     
     #endregion
     
@@ -166,7 +179,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public async ValueTask<PlanetMember> FindMemberAsync(long id, bool skipCache = false)
+    public async ValueTask<PlanetMember> FetchMemberAsync(long id, bool skipCache = false)
     {
         if (!skipCache && Members.TryGet(id, out var cached))
             return cached;
@@ -179,7 +192,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public async ValueTask<PlanetMember> FindMemberByUserAsync(long userId, bool skipCache = false)
+    public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, bool skipCache = false)
     {
         var key = new PlanetUserKey(userId, Id);
         
@@ -192,12 +205,22 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
         return member?.Sync();
     }
     
+    public async Task<PlanetRole> FetchRoleAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && PlanetRole.Cache.TryGet(id, out var cached))
+            return cached;
+        
+        var role = (await Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.BaseRoute}/{id}")).Data;
+        
+        return role?.Sync();
+    }
+    
     /// <summary>
     /// Returns the permissions node for the given values
     /// </summary>
-    public async ValueTask<PermissionsNode> FindPermissionsNodeAsync(PermissionsNodeKey key, bool refresh = false)
+    public async ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, bool skipCache = false)
     {
-        if (!refresh && 
+        if (!skipCache && 
             PermissionsNode.PermissionNodeIdLookup.TryGetValue(key, out var id) &&
             PermissionsNodes.TryGet(id, out var cached))
             return cached;
@@ -209,12 +232,20 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
         return permNode?.Sync();
     }
     
-    #endregion
+    public async ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && Channels.TryGet(id, out var cached))
+            return cached;
+        
+        var channel = (await Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id), skipCache)).Data;
+
+        return channel?.Sync();
+    }
     
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async ValueTask<Planet> FindAsync(long id, bool skipCache = false)
+    public static async ValueTask<Planet> FetchAsync(long id, bool skipCache = false)
     {
         if (!skipCache && Cache.TryGet(id, out var cached))
             return cached;
@@ -224,7 +255,27 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
 
         return planet?.Sync();
     }
+
     
+    #endregion
+
+    protected override void OnDeleted()
+    {
+        
+    }
+    
+    public void Dispose()
+    {
+        Channels.Dispose();
+        ChatChannels.Dispose();
+        VoiceChannels.Dispose();
+        Categories.Dispose();
+        Roles.Dispose();
+        Members.Dispose();
+        Invites.Dispose();
+        PermissionsNodes.Dispose();
+    }
+
     public override Planet AddToCacheOrReturnExisting()
     {
         NodeManager.PlanetToNode[Id] = NodeName;
@@ -494,7 +545,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet
     /// </summary>
     public ValueTask<PlanetMember> GetSelfMemberAsync(bool skipCache = false)
     {
-        return FindMemberByUserAsync(ValourClient.Self.Id, skipCache);
+        return FetchMemberByUserAsync(ValourClient.Self.Id, skipCache);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

@@ -69,7 +69,7 @@ public static class FriendService
 	    await Logger.Log($"Loaded {Friends.Count} friends.", "cyan");
     }
     
-    public static void HandleFriendEventReceived(FriendEventData eventData)
+    public static void OnFriendEventReceived(FriendEventData eventData)
     {
         if (eventData.Type == FriendEventType.AddedMe)
         {

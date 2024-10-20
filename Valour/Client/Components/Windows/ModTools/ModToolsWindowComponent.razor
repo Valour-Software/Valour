@@ -31,7 +31,7 @@
             Data = new ModToolsWindowData()
             {
                 Staff = saved.Staff,
-                Planet = await Planet.FindAsync(saved.PlanetId)
+                Planet = await Planet.FetchAsync(saved.PlanetId)
             };
         }
 

@@ -44,7 +44,7 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planet = await Planet.FindAsync(PlanetId.Value);
+            var planet = await Planet.FetchAsync(PlanetId.Value);
             await ValourClient.TryClosePlanetConnection(planet, Id);
         }
     }
@@ -53,7 +53,7 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planet = await Planet.FindAsync(PlanetId.Value);
+            var planet = await Planet.FetchAsync(PlanetId.Value);
             await ValourClient.OpenPlanetConnection(planet, Id);
         }
     }
@@ -255,7 +255,7 @@ public class WindowTab
     {
         if (Content?.PlanetId is not null)
         {
-            var planet = await Planet.FindAsync(Content.PlanetId.Value);
+            var planet = await Planet.FetchAsync(Content.PlanetId.Value);
             await ValourClient.OpenPlanetConnection(planet, Id);
         }
     }

@@ -132,27 +132,14 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     /// </summary>
     public bool IsDefault { get; set; }
 
-    /// <summary>
-    /// Returns the channel for the given id. Requires planetId for
-    /// planet channels. Makes a request to the server if the channel
-    /// is not cached or refresh is true.
-    /// </summary>
-    public static async ValueTask<Channel> FindAsync(long id, long? planetId = null, bool refresh = false)
+    protected override void OnUpdated(ModelUpdateEvent<Channel> eventData)
     {
-        if (!refresh)
-        {
-            var cached = Cache.Get(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = planetId is null ? ValourClient.PrimaryNode : GetNodeForPlanet(planetId);
-        var item = (await node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id), refresh)).Data;
-
-        if (item is not null)
-            return item.Sync();
-
-        return null;
+        Planet.OnChannelUpdated(eventData);
+    }
+    
+    protected override void OnDeleted()
+    {
+        Planet.OnChannelDeleted(this);
     }
 
     /// <summary>

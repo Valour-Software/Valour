@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections;
+using System.Runtime.CompilerServices;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
@@ -32,7 +33,7 @@ public readonly struct ListChangeEvent<T>
 /// <summary>
 /// Reactive lists are lists that can be observed for changes.
 /// </summary>
-public class ReactiveModelStore<TModel, TId>
+public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     where TModel : ClientModel<TModel, TId>
     where TId : IEquatable<TId>
 {
@@ -49,6 +50,11 @@ public class ReactiveModelStore<TModel, TId>
         IdMap = List.ToDictionary(x => x.Id);
         Values = List;
     }
+    
+    // Make iterable
+    public TModel this[int index] => List[index];
+    public IEnumerator<TModel> GetEnumerator() => List.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => List.GetEnumerator();
 
     public virtual void Upsert(TModel item, bool skipEvent = false)
     {  
@@ -129,6 +135,18 @@ public class ReactiveModelStore<TModel, TId>
         if (ListChange is not null)
             ListChange.Invoke(ListFullChangeType.Set);
     }
+    
+    public void Dispose()
+    {
+        ItemChange?.Dispose();
+        ListChange?.Dispose();
+        
+        ItemChange = null;
+        ListChange = null;
+        
+        List.Clear();
+        IdMap.Clear();
+    }
 }
 
 /// <summary>
@@ -151,6 +169,17 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
     public override void Upsert(TModel item, bool skipEvent = false)
     {
         Upsert(item, skipEvent, null);
+    }
+
+    /// <summary>
+    /// Updates if the item is in the list. If the item is not in the list, it is ignored.
+    /// </summary>
+    public void Update(ModelUpdateEvent<TModel> updateEvent, bool skipEvent = false)
+    {
+        if (!Contains(updateEvent.Model))
+            return;
+        
+        Upsert(updateEvent.Model, skipEvent, updateEvent.PositionChange);
     }
 
     public void Upsert(TModel item, bool skipEvent = false, PositionChange? positionChange = null)

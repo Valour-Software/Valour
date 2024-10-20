@@ -61,16 +61,6 @@ public static class ValourClient
     private static string _token;
 
     /// <summary>
-    /// The planets this client has joined
-    /// </summary>
-    public static List<Planet> JoinedPlanets;
-
-    /// <summary>
-    /// The IDs of the client's joined planets
-    /// </summary>
-    private static List<long> _joinedPlanetIds;
-
-    /// <summary>
     /// The HttpClient to be used for general request (no node!)
     /// </summary>
     public static HttpClient Http => _httpClient;
@@ -84,16 +74,8 @@ public static class ValourClient
     /// True if the client is logged in
     /// </summary>
     public static bool IsLoggedIn => Self != null;
-
-    /// <summary>
-    /// Currently opened planets
-    /// </summary>
-    public static List<Planet> OpenPlanets { get; private set; }
     
-    /// <summary>
-    /// A set of locks used to prevent planet connections from closing automatically
-    /// </summary>
-    public static Dictionary<string, long> PlanetLocks { get; private set; } = new();
+    
 
     /// <summary>
     /// Currently opened channels
@@ -145,28 +127,9 @@ public static class ValourClient
 
     /// <summary>
     /// Run when the client browser is refocused
+    /// TODO: Nothing browser-related should be in SDK.
     /// </summary>
     public static event Func<Task> OnRefocus;
-
-    /// <summary>
-    /// Run when SignalR opens a planet
-    /// </summary>
-    public static event Func<Planet, Task> OnPlanetOpen;
-
-    /// <summary>
-    /// Run when SignalR closes a planet
-    /// </summary>
-    public static event Func<Planet, Task> OnPlanetClose;
-
-    /// <summary>
-    /// Run when a planet is joined
-    /// </summary>
-    public static event Func<Planet, Task> OnPlanetJoin;
-
-    /// <summary>
-    /// Run when a planet is left
-    /// </summary>
-    public static event Func<Planet, Task> OnPlanetLeave;
 
     /// <summary>
     /// Run when a UserChannelState is updated
@@ -228,8 +191,6 @@ public static class ValourClient
     /// </summary>
     public static event Func<Task> OnLogin;
 
-    public static event Func<Task> OnJoinedPlanetsUpdate;
-
     public static event Func<Node, Task> OnNodeReconnect;
 
     public static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
@@ -241,18 +202,7 @@ public static class ValourClient
 
     static ValourClient()
     {
-        // Add victor dummy member
-        PlanetMember.Cache.PutReplace(long.MaxValue, new PlanetMember()
-        {
-            Nickname = "Victor",
-            Id = long.MaxValue,
-            MemberAvatar = "/media/victor-cyan.png"
-        });
-        
-        OpenPlanets = new List<Planet>();
         OpenPlanetChannels = new List<Channel>();
-        JoinedPlanets = new List<Planet>();
-        PlanetLocks = new();
         UnreadNotifications = new();
         UnreadNotificationsLookup = new();
         
@@ -420,124 +370,11 @@ public static class ValourClient
 
 	#region SignalR Groups
 
-	/// <summary>
-	/// Returns if the given planet is open
-	/// </summary>
-	public static bool IsPlanetOpen(Planet planet) =>
-        OpenPlanets.Any(x => x.Id == planet.Id);
-
     /// <summary>
     /// Returns if the channel is open
     /// </summary>
     public static bool IsPlanetChannelOpen(Channel channel) =>
         OpenPlanetChannels.Any(x => x.Id == channel.Id);
-
-    /// <summary>
-    /// Opens a planet and prepares it for use
-    /// </summary>
-    public static async Task<TaskResult> OpenPlanetConnection(Planet planet, string key)
-    {
-        // Cannot open null
-        if (planet is null)
-            return TaskResult.FromFailure("Planet is null");
-
-        if (PlanetLocks.ContainsKey(key))
-        {
-            PlanetLocks[key] = planet.Id;
-        }
-        else
-        {
-            // Add lock
-            AddPlanetLock(key, planet.Id);
-        }
-
-        // Already open
-        if (OpenPlanets.Contains(planet))
-            return TaskResult.SuccessResult;
-
-        // Mark as opened
-        OpenPlanets.Add(planet);
-
-        Console.WriteLine($"Opening planet {planet.Name} ({planet.Id})");
-
-        Stopwatch sw = new Stopwatch();
-
-        sw.Start();
-
-        // Get node for planet
-        var node = await NodeManager.GetNodeForPlanetAsync(planet.Id);
-
-        List<Task> tasks = new();
-
-        // Joins SignalR group
-        var result = await node.HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
-        Console.WriteLine(result.Message);
-
-        if (!result.Success)
-            return result;
-
-        // Load roles early for cached speed
-        await planet.LoadRolesAsync();
-
-        // Load member data early for the same reason (speed)
-        tasks.Add(planet.FetchMemberDataAsync());
-
-        // Load channels
-        tasks.Add(planet.FetchChannelsAsync());
-        
-        // Load permissions nodes
-        tasks.Add(planet.FetchPermissionsNodesAsync());
-
-        // requesting/loading the data does not require data from other requests/types
-        // so just await them all, instead of one by one
-        await Task.WhenAll(tasks);
-
-        sw.Stop();
-
-        Console.WriteLine($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
-
-        // Log success
-        Console.WriteLine($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
-
-        if (OnPlanetOpen is not null)
-        {
-            Console.WriteLine($"Invoking Open Planet event for {planet.Name} ({planet.Id})");
-            await OnPlanetOpen.Invoke(planet);
-        }
-        
-        return TaskResult.SuccessResult;
-    }
-
-    /// <summary>
-    /// Prevents a planet from closing connections automatically.
-    /// Key is used to allow multiple locks per planet.
-    /// </summary>
-    private static void AddPlanetLock(string key, long planetId)
-    {
-        PlanetLocks[key] = planetId;
-        
-        Console.WriteLine("Planet lock added.");
-        Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
-    }
-
-    /// <summary>
-    /// Removes the lock for a planet.
-    /// Returns if there are any locks left for the planet.
-    /// </summary>
-    private static bool RemovePlanetLock(string key)
-    {
-        var found = PlanetLocks.TryGetValue(key, out var planetId);
-
-        if (found)
-        {
-            PlanetLocks.Remove(key);
-        }
-        
-        Console.WriteLine("Planet lock removed.");
-        Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
-
-        return PlanetLocks.Any(x => x.Value == planetId);
-    }
     
     /// <summary>
     /// Prevents a channel from closing connections automatically.
@@ -564,39 +401,7 @@ public static class ValourClient
         return ChannelLocks.Any(x => x.Value == channelId);
     }
 
-    /// <summary>
-    /// Closes a SignalR connection to a planet
-    /// </summary>
-    public static async Task<TaskResult> TryClosePlanetConnection(Planet planet, string key, bool force = false)
-    {
-        if (!force)
-        {
-            var locked = RemovePlanetLock(key);
-            if (locked)
-                return TaskResult.FromFailure("Planet is locked by other keys.");
-        }
-        
-        // Already closed
-        if (!OpenPlanets.Contains(planet))
-            return TaskResult.SuccessResult;
 
-        // Close connection
-        await planet.Node.HubConnection.SendAsync("LeavePlanet", planet.Id);
-
-        // Remove from list
-        OpenPlanets.Remove(planet);
-
-        Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
-
-        // Invoke event
-        if (OnPlanetClose is not null)
-        {
-            Console.WriteLine($"Invoking close planet event for {planet.Name} ({planet.Id})");
-            await OnPlanetClose.Invoke(planet);
-        }
-        
-        return TaskResult.SuccessResult;
-    }
 
     /// <summary>
     /// Opens a SignalR connection to a channel if it does not already have one,
@@ -624,7 +429,7 @@ public static class ValourClient
         var planet = channel.Planet;
 
         // Ensure planet is opened
-        var planetResult = await OpenPlanetConnection(planet, key);
+        var planetResult = await PlanetService.TryOpenPlanetConnection(planet, key);
         if (!planetResult.Success)
             return planetResult;
 
@@ -679,7 +484,7 @@ public static class ValourClient
         if (OnChannelClose is not null)
             await OnChannelClose.Invoke(channel);
 
-        await TryClosePlanetConnection(channel.Planet, key);
+        await PlanetService.TryClosePlanetConnection(channel.Planet, key);
         
         return TaskResult.SuccessResult;
     }
@@ -873,103 +678,6 @@ public static class ValourClient
         if (OnCategoryOrderUpdate is not null)
             await OnCategoryOrderUpdate.Invoke(eventData);
     }
-
-    #endregion
-
-    #region Planet Event Handling
-
-        private static void HookPlanetEvents()
-        {
-            ModelObserver<PlanetRoleMember>.AnyUpdated += OnMemberRoleAdded;
-            ModelObserver<PlanetRoleMember>.AnyDeleted += OnMemberRoleDeleted;
-            ModelObserver<PlanetRole>.AnyUpdated += OnPlanetRoleUpdated;
-            ModelObserver<PlanetRole>.AnyDeleted += OnPlanetRoleDeleted;
-            ModelObserver<Planet>.AnyDeleted += OnPlanetDeleted;
-        }
-
-        private static async Task OnPlanetDeleted(Planet planet)
-        {
-            _joinedPlanetIds.Remove(planet.Id);
-            JoinedPlanets = JoinedPlanets.Where(x => x.Id != planet.Id).ToList();
-            await TryClosePlanetConnection(planet, "", true);
-        }
-        
-        // TODO: Change member role caching
-        private static async Task OnPlanetRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
-        {
-            // If we don't have the planet loaded, we don't need to update anything
-            if (!Planet.Cache.TryGet(eventData.Model.PlanetId, out var planet))
-                return;
-
-            // This is a little messy.
-            foreach (var member in planet.Members.Values)
-            {
-                // Skip if doesn't have role
-                if (!(await member.GetRolesAsync()).Contains(eventData.Model))
-                    continue;
-                
-                // If it does have the role, fire event
-                await member.NotifyRoleEventAsync(new MemberRoleEvent()
-                {
-                    Type = MemberRoleEventType.Added,
-                    Role = eventData.Model,
-                });
-            }
-        }
-        
-        private static async Task OnPlanetRoleDeleted(PlanetRole role)
-        {
-            // If we don't have the planet loaded, we don't need to update anything
-            var planet = ModelCache<,>.Get<Planet>(role.PlanetId);
-            if (planet is null)
-                return;
-
-            // This is a little messy.
-            foreach (var member in await planet.GetMembersAsync())
-            {
-                // Skip if doesn't have role
-                if (!(await member.GetRolesAsync()).Contains(role))
-                    continue;
-                
-                // If it does have the role, fire event
-                await member.NotifyRoleEventAsync(new MemberRoleEvent()
-                {
-                    // Deleting the role also means removing it from everyone
-                    Type = MemberRoleEventType.Removed,
-                    Role = role,
-                });
-            }
-        }
-
-        private static async Task OnMemberRoleAdded(ModelUpdateEvent<PlanetRoleMember> eventData)
-        {
-            // If we don't have the member loaded, we don't need to update anything
-            var member = ModelCache<,>.Get<PlanetMember>(eventData.Model.MemberId);
-            if (member is null)
-                return;
-
-            var role = await PlanetRole.FindAsync(eventData.Model.RoleId, eventData.Model.PlanetId);
-            await member.NotifyRoleEventAsync(new MemberRoleEvent()
-            {
-                Type = MemberRoleEventType.Added,
-                Role = role,
-            });
-        }
-
-        private static async Task OnMemberRoleDeleted(PlanetRoleMember roleMember)
-        {
-            // If we don't have the member loaded, we don't need to update anything
-            var member = ModelCache<,>.Get<PlanetMember>(roleMember.MemberId);
-            if (member is null)
-                return;
-
-            var role = await PlanetRole.FindAsync(roleMember.RoleId, roleMember.PlanetId);
-            await member.NotifyRoleEventAsync(new MemberRoleEvent()
-            {
-                Type = MemberRoleEventType.Removed,
-                Role = role,
-            });
-        }
 
     #endregion
 
@@ -1368,7 +1076,7 @@ public static class ValourClient
 
         foreach (var id in planetIds)
         {
-            JoinedPlanets.Add(await Planet.FindAsync(id));
+            JoinedPlanets.Add(await Planet.FetchAsync(id));
         }
 
         if (OnJoinedPlanetsUpdate is not null)

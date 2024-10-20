@@ -15,7 +15,7 @@
         {
             // Exported data is planet id
             long planetId = JsonSerializer.Deserialize<long>(data);
-            var planet = await Planet.FindAsync(planetId);
+            var planet = await Planet.FetchAsync(planetId);
             Data = planet;
         }
 
