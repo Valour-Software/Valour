@@ -39,25 +39,25 @@ public static class PlanetService
     /// The planets this client has joined
     /// </summary>
     public static IReadOnlyList<Planet> JoinedPlanets { get; private set; }
-    private static List<Planet> _joinedPlanets = new();
+    private static readonly List<Planet> JoinedPlanetsInternal = new();
     
     /// <summary>
     /// Currently opened planets
     /// </summary>
     public static IReadOnlyList<Planet> ConnectedPlanets { get; private set; }
-    private static List<Planet> _connectedPlanets = new();
+    private static readonly List<Planet> ConnectedPlanetsInternal = new();
     
     /// <summary>
     /// Lookup for opened planets by id
     /// </summary>
     public static IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup { get; private set; }
-    private static Dictionary<long, Planet> _connectedPlanetsLookup = new();
+    private static readonly Dictionary<long, Planet> ConnectedPlanetsLookupInternal = new();
     
     /// <summary>
     /// A set of locks used to prevent planet connections from closing automatically
     /// </summary>
     public static IReadOnlyDictionary<string, long> PlanetLocks { get; private set; }
-    private static Dictionary<string, long> _planetLocks = new();
+    private static readonly Dictionary<string, long> PlanetLocksInternal = new();
     
     static PlanetService()
     {
@@ -70,10 +70,10 @@ public static class PlanetService
         });
         
         // Setup readonly collections
-        JoinedPlanets = _joinedPlanets;
-        ConnectedPlanets = _connectedPlanets;
-        PlanetLocks = _planetLocks;
-        ConnectedPlanetsLookup = _connectedPlanetsLookup;
+        JoinedPlanets = JoinedPlanetsInternal;
+        ConnectedPlanets = ConnectedPlanetsInternal;
+        PlanetLocks = PlanetLocksInternal;
+        ConnectedPlanetsLookup = ConnectedPlanetsLookupInternal;
     }
     
     /// <summary>
@@ -87,12 +87,12 @@ public static class PlanetService
 
         var planets = response.Data;
 
-        _joinedPlanets.Clear();
+        JoinedPlanetsInternal.Clear();
         
         // Add to cache
         foreach (var planet in planets)
         {
-            _joinedPlanets.Add(planet.Sync());
+            JoinedPlanetsInternal.Add(planet.Sync());
         }
         
         JoinedPlanetsUpdate?.Invoke();
@@ -103,7 +103,7 @@ public static class PlanetService
     /// <summary>
     /// Returns if the given planet is open
     /// </summary>
-    public static bool IsPlanetOpen(Planet planet) =>
+    public static bool IsPlanetConnected(Planet planet) =>
         ConnectedPlanets.Any(x => x.Id == planet.Id);
     
     /// <summary>
@@ -117,7 +117,7 @@ public static class PlanetService
 
         if (PlanetLocks.ContainsKey(key))
         {
-            _planetLocks[key] = planet.Id;
+            PlanetLocksInternal[key] = planet.Id;
         }
         else
         {
@@ -130,8 +130,8 @@ public static class PlanetService
             return TaskResult.SuccessResult;
 
         // Mark as opened
-        _connectedPlanets.Add(planet);
-        _connectedPlanetsLookup[planet.Id] = planet;
+        ConnectedPlanetsInternal.Add(planet);
+        ConnectedPlanetsLookupInternal[planet.Id] = planet;
 
         Console.WriteLine($"Opening planet {planet.Name} ({planet.Id})");
 
@@ -186,9 +186,20 @@ public static class PlanetService
     {
         if (!force)
         {
-            var locked = RemovePlanetLock(key);
-            if (locked)
+            var lockResult = RemovePlanetLock(key);
+            if (lockResult == ConnectionLockResult.Locked)
+            {
                 return TaskResult.FromFailure("Planet is locked by other keys.");
+            }
+            // If for some reason our key isn't actually there
+            // (shouldn't happen, but just in case)
+            else if (lockResult == ConnectionLockResult.NotFound)
+            {
+                if (PlanetLocksInternal.Values.Any(x => x == planet.Id))
+                {
+                    return TaskResult.FromFailure("Planet is locked by other keys.");
+                }
+            }
         }
         
         // Already closed
@@ -199,8 +210,8 @@ public static class PlanetService
         await planet.Node.HubConnection.SendAsync("LeavePlanet", planet.Id);
 
         // Remove from list
-        _connectedPlanets.Remove(planet);
-        _connectedPlanetsLookup.Remove(planet.Id);
+        ConnectedPlanetsInternal.Remove(planet);
+        ConnectedPlanetsLookupInternal.Remove(planet.Id);
 
         Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 
@@ -216,7 +227,7 @@ public static class PlanetService
     /// </summary>
     private static void AddPlanetLock(string key, long planetId)
     {
-        _planetLocks[key] = planetId;
+        PlanetLocksInternal[key] = planetId;
         
         Console.WriteLine("Planet lock added.");
         Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
@@ -226,19 +237,18 @@ public static class PlanetService
     /// Removes the lock for a planet.
     /// Returns if there are any locks left for the planet.
     /// </summary>
-    private static bool RemovePlanetLock(string key)
+    private static ConnectionLockResult RemovePlanetLock(string key)
     {
-        var found = PlanetLocks.TryGetValue(key, out var planetId);
-
-        if (found)
+        if (PlanetLocksInternal.TryGetValue(key, out var planetId))
         {
-            _planetLocks.Remove(key);
+            Console.WriteLine($"Planet lock {key} removed.");
+            PlanetLocksInternal.Remove(key);
+            return PlanetLocksInternal.Any(x => x.Value == planetId) ? 
+                ConnectionLockResult.Locked : 
+                ConnectionLockResult.Unlocked;
         }
         
-        Console.WriteLine("Planet lock removed.");
-        Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
-
-        return PlanetLocks.Any(x => x.Value == planetId);
+        return ConnectionLockResult.NotFound;
     }
     
     /// <summary>
@@ -246,7 +256,7 @@ public static class PlanetService
     /// </summary>
     public static void AddJoinedPlanet(Planet planet)
     {
-        _joinedPlanets.Add(planet);
+        JoinedPlanetsInternal.Add(planet);
 
         PlanetJoined?.Invoke(planet);
         JoinedPlanetsUpdate?.Invoke();
@@ -257,7 +267,7 @@ public static class PlanetService
     /// </summary>
     public static void RemoveJoinedPlanet(Planet planet)
     {
-        _joinedPlanets.Remove(planet);
+        JoinedPlanetsInternal.Remove(planet);
         
         PlanetLeft?.Invoke(planet);
         JoinedPlanetsUpdate?.Invoke();

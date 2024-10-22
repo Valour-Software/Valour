@@ -1,16 +1,11 @@
-using Microsoft.AspNetCore.SignalR.Client;
-using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Web;
-using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Client;
@@ -74,28 +69,6 @@ public static class ValourClient
     /// True if the client is logged in
     /// </summary>
     public static bool IsLoggedIn => Self != null;
-    
-    
-
-    /// <summary>
-    /// Currently opened channels
-    /// </summary>
-    public static List<Channel> OpenPlanetChannels { get; private set; }
-
-    /// <summary>
-    /// A set of locks used to prevent channel connections from closing automatically
-    /// </summary>
-    public static Dictionary<string, long> ChannelLocks { get; private set; } = new();
-    
-    /// <summary>
-    /// The state of channels this user has access to
-    /// </summary>
-    private static readonly Dictionary<long, DateTime?> ChannelsLastViewedState = new();
-    
-    /// <summary>
-    /// The last update times of channels this user has access to
-    /// </summary>
-    private static readonly Dictionary<long, ChannelState> CurrentChannelStates = new();
 
     /// <summary>
     /// The primary node this client is connected to
@@ -108,7 +81,7 @@ public static class ValourClient
     public static List<Notification> UnreadNotifications { get; set; }
     
     /// <summary>
-    /// A set from the source if of notifications to the notification.
+    /// A set from the source of notifications to the notification.
     /// Used for extremely efficient lookups.
     /// </summary>
     public static Dictionary<long, Notification> UnreadNotificationsLookup { get; set; }
@@ -131,20 +104,7 @@ public static class ValourClient
     /// </summary>
     public static event Func<Task> OnRefocus;
 
-    /// <summary>
-    /// Run when a UserChannelState is updated
-    /// </summary>
-    public static event Func<UserChannelState, Task> OnUserChannelStateUpdate;
-
-    /// <summary>
-    /// Run when SignalR opens a channel
-    /// </summary>
-    public static event Func<Channel, Task> OnChannelOpen;
-
-    /// <summary>
-    /// Run when SignalR closes a channel
-    /// </summary>
-    public static event Func<Channel, Task> OnChannelClose;
+    
 
     /// <summary>
     /// Run when a notification is received
@@ -175,11 +135,6 @@ public static class ValourClient
     /// Run when a channel embed update is received
     /// </summary>
     public static event Func<ChannelEmbedUpdate, Task> OnChannelEmbedUpdate;
-    
-    /// <summary>
-    /// Run when a channel state updates
-    /// </summary>
-    public static event Func<ChannelStateUpdate, Task> OnChannelStateUpdate;
 
     /// <summary>
     /// Run when a category is reordered
@@ -202,12 +157,8 @@ public static class ValourClient
 
     static ValourClient()
     {
-        OpenPlanetChannels = new List<Channel>();
         UnreadNotifications = new();
         UnreadNotificationsLookup = new();
-        
-        // Hook top level events
-        HookPlanetEvents();
     }
 
     /// <summary>
@@ -244,46 +195,6 @@ public static class ValourClient
         return TenorFavorites;
     }
     
-    public static void SetChannelLastViewedState(long channelId, DateTime lastViewed)
-    {
-        ChannelsLastViewedState[channelId] = lastViewed;
-    }
-
-    public static bool GetPlanetUnreadState(long planetId)
-    {
-        var channelStates = CurrentChannelStates.Where(x => x.Value.PlanetId == planetId);
-
-        // Console.WriteLine($"[{planetId}] Checking {channelStates.Count()} channels");
-        // Console.WriteLine(JsonSerializer.Serialize(channelStates));
-        
-        foreach (var state in channelStates)
-        {
-            if (GetChannelUnreadState(state.Key))
-                return true;
-        }
-
-        return false;
-    }
-
-    public static bool GetChannelUnreadState(long channelId)
-    {
-        if (OpenPlanetChannels.Any(x => x.Id == channelId))
-            return false;
-
-        if (!ChannelsLastViewedState.TryGetValue(channelId, out var lastRead))
-        {
-            return true;
-        }
-
-        if (!CurrentChannelStates.TryGetValue(channelId, out var lastUpdate))
-        {
-            return false;
-        }
-        
-        // Console.WriteLine($"[{channelId}]: {lastRead} < {lastUpdate.LastUpdateTime}");
-        
-        return lastRead < lastUpdate.LastUpdateTime;
-    }
 
     public static async Task<TaskResult<List<ReferralDataModel>>> GetReferralsAsync()
     {
@@ -317,125 +228,6 @@ public static class ValourClient
     }
 
 	#region SignalR Groups
-
-    /// <summary>
-    /// Returns if the channel is open
-    /// </summary>
-    public static bool IsPlanetChannelOpen(Channel channel) =>
-        OpenPlanetChannels.Any(x => x.Id == channel.Id);
-    
-    /// <summary>
-    /// Prevents a channel from closing connections automatically.
-    /// Key is used to allow multiple locks per channel.
-    /// </summary>
-    private static void AddChannelLock(string key, long planetId)
-    {
-        ChannelLocks[key] = planetId;
-    }
-
-    /// <summary>
-    /// Removes the lock for a channel.
-    /// Returns if there are any locks left for the channel.
-    /// </summary>
-    private static bool RemoveChannelLock(string key)
-    {
-        var found = ChannelLocks.TryGetValue(key, out var channelId);
-
-        if (found)
-        {
-            ChannelLocks.Remove(key);
-        }
-        
-        return ChannelLocks.Any(x => x.Value == channelId);
-    }
-
-
-
-    /// <summary>
-    /// Opens a SignalR connection to a channel if it does not already have one,
-    /// and stores a key to prevent it from being closed
-    /// </summary>
-    public static async Task<TaskResult> TryOpenPlanetChannelConnection(Channel channel, string key)
-    {
-        if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
-            return TaskResult.FromFailure("Channel is not a planet chat channel");
-
-        if (ChannelLocks.ContainsKey(key))
-        {
-            ChannelLocks[key] = channel.Id;
-        }
-        else
-        {
-            // Add lock
-            AddChannelLock(key, channel.Id);   
-        }
-        
-        // Already opened
-        if (OpenPlanetChannels.Contains(channel))
-            return TaskResult.SuccessResult;
-
-        var planet = channel.Planet;
-
-        // Ensure planet is opened
-        var planetResult = await PlanetService.TryOpenPlanetConnection(planet, key);
-        if (!planetResult.Success)
-            return planetResult;
-
-        // Join channel SignalR group
-        var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
-        Console.WriteLine(result.Message);
-
-        if (!result.Success)
-            return result;
-
-        // Add to open set
-        OpenPlanetChannels.Add(channel);
-
-        Console.WriteLine($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
-
-        if (OnChannelOpen is not null)
-            await OnChannelOpen.Invoke(channel);
-        
-        return TaskResult.SuccessResult;
-    }
-
-    /// <summary>
-    /// Closes a SignalR connection to a channel
-    /// </summary>
-    public static async Task<TaskResult> TryClosePlanetChannelConnection(Channel channel, string key, bool force = false)
-    {
-        if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
-            return TaskResult.FromFailure("Channel is not a planet chat channel");
-
-        if (!force)
-        {
-            // Remove key from locks
-            var locked = RemoveChannelLock(key);
-
-            // If there are still any locks, don't close
-            if (locked)
-                return TaskResult.FromFailure("Channel is locked by other keys.");
-        }
-
-        // Not opened
-        if (!OpenPlanetChannels.Contains(channel))
-            return TaskResult.FromFailure("Channel is not open.");
-
-        // Leaves channel SignalR group
-        await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
-
-        // Remove from open set
-        OpenPlanetChannels.Remove(channel);
-
-        Console.WriteLine($"Left SignalR group for channel {channel.Name} ({channel.Id})");
-
-        if (OnChannelClose is not null)
-            await OnChannelClose.Invoke(channel);
-
-        await PlanetService.TryClosePlanetConnection(channel.Planet, key);
-        
-        return TaskResult.SuccessResult;
-    }
     
     /// <summary>
     /// Subscribe to Valour Plus! (...or Premium? What are we even calling it???)
@@ -496,34 +288,6 @@ public static class ValourClient
     {
         if (OnNodeReconnect is not null)
             await OnNodeReconnect.Invoke(node);
-    }
-
-    public static async Task HandleUpdateChannelState(ChannelStateUpdate update)
-    {
-        // Right now only planet chat channels have state updates
-        if (!Channel.Cache.TryGet(update.ChannelId, out var channel))
-        {
-            return;
-        }
-        
-        if (!CurrentChannelStates.TryGetValue(channel.Id, out var state))
-        {
-            state = new ChannelState()
-            {
-                ChannelId = update.ChannelId,
-                PlanetId = update.PlanetId,
-                LastUpdateTime = update.Time
-            };
-
-            CurrentChannelStates[channel.Id] = state;
-        }
-        else
-        {
-            CurrentChannelStates[channel.Id].LastUpdateTime = update.Time;
-        }
-
-        if (OnChannelStateUpdate is not null)
-            await OnChannelStateUpdate.Invoke(update);
     }
 
     public static int GetPlanetNotifications(long planetId)
@@ -818,15 +582,6 @@ public static class ValourClient
 
         if (OnJoinedPlanetsUpdate != null)
             await OnJoinedPlanetsUpdate.Invoke();
-    }
-
-    public static async Task HandleUpdateUserChannelState(UserChannelState channelState)
-    {
-        ChannelsLastViewedState[channelState.ChannelId] = channelState.LastViewedTime;
-        
-        // Access dict again to maintain references (do not try to optimize and break everything)
-        if (OnUserChannelStateUpdate is not null)
-            await OnUserChannelStateUpdate.Invoke(channelState);
     }
 
     public static async Task LoadTenorFavoritesAsync()
