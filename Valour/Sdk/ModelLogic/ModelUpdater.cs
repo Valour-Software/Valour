@@ -130,7 +130,7 @@ public static class ModelUpdater
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<TModel, TId>(TModel model) 
+    public static void DeleteItem<TModel, TId>(TModel model) 
         where TModel : ClientModel<TModel, TId>
         where TId : IEquatable<TId>
     {

@@ -118,21 +118,14 @@ public class User : ClientModel<User, long>, ISharedUser
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
         (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"{BaseRoute}/{Id}/apps")).Data;
 
-    public static async ValueTask<User> FindAsync(long id, bool refresh = false)
+    public static async ValueTask<User> FindAsync(long id, bool skipCache = false)
     {
-        if (!refresh)
-        {
-            var cached = Cache.Get(id);
-            if (cached is not null)
-                return cached;
-        }
+        if (!skipCache && Cache.TryGet(id, out var cached))
+            return cached;
+        
+        var user = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
 
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
-
-        if (item is not null)
-            return item.Sync();
-
-        return null;
+        return user?.Sync();
     }
     
     public async Task<TaskResult<UserProfile>> GetProfileAsync() =>

@@ -98,7 +98,7 @@ public static class ChannelStateService
         ChannelStateUpdated?.Invoke(update);
     }
     
-    public static void HandleUpdateUserChannelState(UserChannelState channelState)
+    public static void OnUserChannelStateUpdated(UserChannelState channelState)
     {
         ChannelsLastViewedStateInternal[channelState.ChannelId] = channelState.LastViewedTime;
         UserChannelStateUpdated?.Invoke(channelState);

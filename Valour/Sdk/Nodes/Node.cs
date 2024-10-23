@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
+using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
@@ -30,11 +32,6 @@ public class Node
     /// Hub connection for SignalR client
     /// </summary>
     public HubConnection HubConnection { get; private set; }
-
-    /// <summary>
-    /// The authentication token being used for this node
-    /// </summary>
-    public string Token { get; set; }
 
     /// <summary>
     /// True if this node is currently reconnecting
@@ -76,10 +73,9 @@ public class Node
     }
 
 
-    public async Task InitializeAsync(string name, string token, bool isPrimary = false)
+    public async Task InitializeAsync(string name, bool isPrimary = false)
     {
         Name = name;
-        Token = token;
         IsPrimary = isPrimary;
 
         NodeManager.AddNode(this);
@@ -89,7 +85,7 @@ public class Node
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
-        HttpClient.DefaultRequestHeaders.Add("Authorization", Token);
+        HttpClient.DefaultRequestHeaders.Add("Authorization", AuthService.Token);
 
         await Logger.Log($"[SignalR]: Setting up new hub for node '{Name}'");
 
@@ -204,7 +200,7 @@ public class Node
             if (tries > 0)
                 Thread.Sleep(3000);
 
-            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Token);
+            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", AuthService.Token);
             authorized = response.Success;
             tries++;
         }
@@ -217,33 +213,85 @@ public class Node
         await Log(response.Message);
     }
 
+    private void HookModelEvents<TModel, TId>(TModel model, TId id)
+        where TModel : ClientModel<TModel, TId>
+        where TId : IEquatable<TId>
+    {
+        var typeName = nameof(TModel);
+        HubConnection.On<TModel, int>($"{typeName}-Update", OnModelUpdate<TModel, TId>);
+        HubConnection.On<TModel>($"{typeName}-Delete", OnModelDelete<TModel, TId>);
+    }
+
+    /// <summary>
+    /// Specific model update event
+    /// </summary>
+    private void OnModelUpdate<TModel, TId>(TModel model, int flags)
+        where TModel : ClientModel<TModel, TId>
+        where TId : IEquatable<TId>
+    {
+        model.Sync(true, flags);
+    }
+    
+    private void OnModelDelete<TModel, TId>(TModel model)
+        where TModel : ClientModel<TModel, TId>
+        where TId : IEquatable<TId>
+    {
+        ModelUpdater.DeleteItem<TModel, TId>(model);
+    }
+
     public async Task HookSignalREvents()
     {
         await Logger.Log("[Item Events]: Hooking events.", "yellow");
 
         // For every single item...
-        foreach (var type in Assembly.GetAssembly(typeof(ClientModel))!.GetTypes()
-            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(ClientModel))))
+        var baseType = typeof(ClientModel<,>);
+        
+        // Filter types that inherit from the generic ClientModel<>
+        var derivedTypes = Assembly.GetAssembly(baseType)!.GetTypes()
+            .Where(t => 
+                t.BaseType != null && 
+                t.BaseType.IsGenericType && 
+                t.BaseType.GetGenericTypeDefinition() == baseType)
+            .ToList();
+        
+        foreach (var type in derivedTypes)
         {
-            // Console.WriteLine(type.Name);
+            var genericArguments = type.BaseType!.GetGenericArguments();
 
-            // Register events
+            var modelType = type; // TModel
+            var idType = genericArguments[1]; // TId
 
-            HubConnection.On($"{type.Name}-Update", new Type[] { type, typeof(int) }, i => ValourClient.UpdateItem((dynamic)i[0], (int)i[1]));
-            HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => ValourClient.DeleteItem((dynamic)i[0]));
+            // Get the method info
+            var methodInfo = this.GetType()
+                .GetMethod(nameof(HookModelEvents), BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // Make the generic method
+            var genericMethod = methodInfo!.MakeGenericMethod(modelType, idType);
+
+            // Create an instance of the model
+            var modelInstance = Activator.CreateInstance(modelType);
+
+            // Get the Id value
+            var idProperty = modelType.GetProperty("Id");
+            var idValue = idProperty!.GetValue(modelInstance);
+
+            // Invoke the generic method
+            genericMethod.Invoke(this, [modelInstance, idValue]);
+            
+            Console.WriteLine($"Registered ClientModel type: {type.Name}");
         }
 
-        HubConnection.On<Message>("Relay", ValourClient.HandlePlanetMessageReceived);
-        HubConnection.On<Message>("RelayEdit", ValourClient.HandlePlanetMessageEdited);
-        HubConnection.On<Message>("RelayDirect", ValourClient.HandleDirectMessageReceived);
-        HubConnection.On<Message>("RelayDirectEdit", ValourClient.HandleDirectMessageEdited);
+        HubConnection.On<Message>("Relay", MessageService.OnPlanetMessageReceived);
+        HubConnection.On<Message>("RelayEdit", MessageService.OnPlanetMessageEdited);
+        HubConnection.On<Message>("RelayDirect", MessageService.OnDirectMessageReceived);
+        HubConnection.On<Message>("RelayDirectEdit", MessageService.OnDirectMessageEdited);
         HubConnection.On<Notification>("RelayNotification", ValourClient.HandleNotificationReceived);
         HubConnection.On("RelayNotificationsCleared", ValourClient.HandleNotificationsCleared);
-        HubConnection.On<FriendEventData>("RelayFriendEvent", ValourClient.HandleFriendEventReceived);
+        HubConnection.On<FriendEventData>("RelayFriendEvent", FriendService.OnFriendEventReceived);
         
-        HubConnection.On<Message>("DeleteMessage", ValourClient.HandleMessageDeleted);
-        HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.HandleUpdateChannelState);
-        HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.HandleUpdateUserChannelState);
+        HubConnection.On<Message>("DeleteMessage", MessageService.OnMessageDeleted);
+        HubConnection.On<ChannelStateUpdate>("Channel-State", ChannelStateService.OnChannelStateUpdated);
+        HubConnection.On<UserChannelState>("UserChannelState-Update", ChannelStateService.OnUserChannelStateUpdated);
         HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", ValourClient.HandleChannelWatchingUpdateRecieved);
         HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", ValourClient.HandleChannelCurrentlyTypingUpdateRecieved);
         HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.HandlePersonalEmbedUpdate);
@@ -340,12 +388,12 @@ public class Node
     /// <summary>
     /// Run when SignalR reconnects
     /// </summary>
-    public  async Task OnSignalRReconnect(string data)
+    private async Task OnSignalRReconnect(string data)
     {
         await Log("SignalR has reconnected. " + data, "lime");
         await HandleReconnect();
 
-        await ValourClient.NotifyNodeReconnect(this);
+        NodeService.NodeReconnected?.Invoke(this);
     }
 
     /// <summary>
@@ -356,18 +404,6 @@ public class Node
         // Authenticate and connect to personal channel
         await AuthenticateSignalR();
         await ConnectToUserSignalRChannel();
-
-        foreach (var planet in ValourClient.OpenPlanets.Where(x => x.NodeName == Name))
-        {
-            await HubConnection.SendAsync("JoinPlanet", planet.Id);
-            await Log($"Rejoined SignalR group for planet {planet.Id}", "lime");
-        }
-
-        foreach (var channel in ValourClient.OpenPlanetChannels.Where(x => x.Node?.Name == Name))
-        {
-            await HubConnection.SendAsync("JoinChannel", channel.Id);
-            await Log($"Rejoined SignalR group for channel {channel.Id}", "lime");
-        }
     }
 
     public async Task<TaskResult> ConnectToUserSignalRChannel()

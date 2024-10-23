@@ -29,7 +29,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static void HandlePlanetMessageReceived(Message message)
+    public static void OnPlanetMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -45,7 +45,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static void HandlePlanetMessageEdited(Message message)
+    public static void OnPlanetMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -61,7 +61,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static void HandleDirectMessageReceived(Message message)
+    public static void OnDirectMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         
@@ -78,7 +78,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static void HandleDirectMessageEdited(Message message)
+    public static void OnDirectMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -91,7 +91,7 @@ public static class MessageService
         MessageEdited?.Invoke(cached);
     }
 
-    public static void HandleMessageDeleted(Message message)
+    public static void OnMessageDeleted(Message message)
     {
         MessageDeleted?.Invoke(message);
     }

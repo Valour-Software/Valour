@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
@@ -40,6 +41,9 @@ public static class PlanetChannelService
         ConnectedPlanetChannels = ConnectedPlanetChannelsInternal;
         ChannelLocks = ChannelLocksInternal;
         ConnectedPlanetChannelsLookup = ConnectedPlanetChannelsLookupInternal;
+        
+        // Reconnect channels on node reconnect
+        NodeService.NodeReconnected += OnNodeReconnect;
     }
     
     /// <summary>
@@ -172,4 +176,13 @@ public static class PlanetChannelService
     /// </summary>
     public static bool IsChannelConnected(long channelId) =>
         ConnectedPlanetChannelsLookupInternal.ContainsKey(channelId);
+
+    public static async Task OnNodeReconnect(Node node)
+    {
+        foreach (var channel in ConnectedPlanetChannelsInternal.Where(x => x.Node?.Name == node.Name))
+        {
+            await node.HubConnection.SendAsync("JoinChannel", channel.Id);
+            await node.Log($"Rejoined SignalR group for channel {channel.Id}", "lime");
+        }
+    }
 }

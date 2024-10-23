@@ -1,6 +1,7 @@
 ﻿@page "/"
 @page "/planetchannels/{StartPlanetId:long}/{StartChannelId:long}/{StartMessageId:long}"
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
+@using Valour.SDK.Services
 
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavigationManager
@@ -100,13 +101,12 @@
 		await base.OnInitializedAsync();
 
 		WindowService.OnFocusedPlanetChanged += OnPlanetChange;
-		ValourClient.OnLogin += OnLoginAsync;
+		AuthService.LoggedIn += OnLoginAsync;
 	}
 
-	private Task OnLoginAsync()
+	private void OnLoginAsync(User user)
 	{
 		StateHasChanged();
-		return Task.CompletedTask;
 	}
 
 	public void Dispose()

@@ -72,14 +72,6 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     }
     
     /// <summary>
-    /// Returns the cached copy of this item.
-    /// </summary>
-    public TSelf GetCachedCopy()
-    {
-        return Cache.Get(Id);
-    }
-    
-    /// <summary>
     /// Returns and removes this item from the cache.
     /// </summary>
     public virtual TSelf TakeAndRemoveFromCache()

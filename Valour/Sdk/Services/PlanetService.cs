@@ -74,6 +74,9 @@ public static class PlanetService
         ConnectedPlanets = ConnectedPlanetsInternal;
         PlanetLocks = PlanetLocksInternal;
         ConnectedPlanetsLookup = ConnectedPlanetsLookupInternal;
+        
+        // Setup reconnect logic
+        NodeService.NodeReconnected += OnNodeReconnect;
     }
     
     /// <summary>
@@ -301,6 +304,23 @@ public static class PlanetService
             RemoveJoinedPlanet(planet);
 
         return result;
+    }
+
+    public static void SetJoinedPlanets(List<Planet> planets)
+    {
+        JoinedPlanetsInternal.Clear();
+        JoinedPlanetsInternal.AddRange(planets);
+        
+        JoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task OnNodeReconnect(Node node)
+    {
+        foreach (var planet in ConnectedPlanetsInternal.Where(x => x.NodeName == node.Name))
+        {
+            await node.HubConnection.SendAsync("JoinPlanet", planet.Id);
+            await node.Log($"Rejoined SignalR group for planet {planet.Id}", "lime");
+        }
     }
     
 }

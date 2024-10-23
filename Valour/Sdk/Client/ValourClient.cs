@@ -46,16 +46,6 @@ public static class ValourClient
     public static User Self { get; set; }
 
     /// <summary>
-    /// The token for this client instance
-    /// </summary>
-    public static string Token => _token;
-
-    /// <summary>
-    /// The internal token for this client
-    /// </summary>
-    private static string _token;
-
-    /// <summary>
     /// The HttpClient to be used for general request (no node!)
     /// </summary>
     public static HttpClient Http => _httpClient;
@@ -141,13 +131,6 @@ public static class ValourClient
     /// </summary>
     public static event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
 
-    /// <summary>
-    /// Run when the user logs in
-    /// </summary>
-    public static event Func<Task> OnLogin;
-
-    public static event Func<Node, Task> OnNodeReconnect;
-
     public static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
     {
         PropertyNameCaseInsensitive = true,
@@ -166,6 +149,14 @@ public static class ValourClient
     /// </summary>
     public static void SetHttpClient(HttpClient client) => _httpClient = client;
 
+    public static void SetupHttpClient()
+    {
+        _httpClient = new HttpClient()
+        {
+            BaseAddress = new Uri(BaseAddress)
+        };
+    }
+    
     /// <summary>
     /// Sets the compliance data for the current user
     /// </summary>
@@ -284,12 +275,6 @@ public static class ValourClient
             await OnRefocus.Invoke();
     }
 
-    public static async Task NotifyNodeReconnect(Node node)
-    {
-        if (OnNodeReconnect is not null)
-            await OnNodeReconnect.Invoke(node);
-    }
-
     public static int GetPlanetNotifications(long planetId)
     {
         return UnreadNotifications.Count(x => x.PlanetId == planetId);
@@ -396,77 +381,18 @@ public static class ValourClient
     #region Initialization
 
     /// <summary>
-    /// Gets the Token for the client
-    /// </summary>
-    public static async Task<TaskResult<AuthToken>> GetToken(string email, string password)
-    {
-        TokenRequest request = new()
-        {
-            Email = email,
-            Password = password
-        };
-
-        var response = await PostAsyncWithResponse<AuthToken>($"api/users/token", request);
-
-        if (response.Success)
-        {
-            var token = response.Data.Id;
-            _token = token;
-        }
-        
-        return response;
-    }
-
-    /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
-    public static async Task<TaskResult<User>> InitializeUser(string token)
+    public static async Task<TaskResult> InitializeUser(string token)
     {
-        // Store token 
-        _token = token;
-
-        if (Http.DefaultRequestHeaders.Contains("authorization"))
-        {
-            Http.DefaultRequestHeaders.Remove("authorization");
-        }
-
-        // Add auth header so we never have to do that again
-        Http.DefaultRequestHeaders.Add("authorization", Token);
-
-        TaskResult<string> nodeName;
-
-        do
-        {
-            // Get primary node identity
-            nodeName = await GetAsync("api/node/name");
-
-            if (!nodeName.Success)
-            {
-                Console.WriteLine("Failed to get primary node name... trying again in three seconds.");
-                Console.WriteLine("(Possible network issues)");
-                await Task.Delay(3000);
-            }
-            
-        } while (!nodeName.Success);
-            
-        // Set node to primary node for main http client
-        Http.DefaultRequestHeaders.Add("X-Server-Select", nodeName.Data);
+        // Login to Valour
+        var userResult = await AuthService.LoginAsync(token);
+        if (!userResult.Success)
+            return userResult;
         
-        // Get user
-
-        var response = await GetJsonAsync<User>($"api/users/self");
-
-        if (!response.Success)
-            return response;
-
-        // Set reference to self user
-        Self = response.Data;
-
-        // Now that we have our user, it should have node data we can use to set up our first node
-        // Initialize primary node
-        PrimaryNode = new Node();
-        await PrimaryNode.InitializeAsync(nodeName.Data, _token, true);
-
+        // Setup primary node
+        await NodeService.SetupPrimaryNodeAsync();
+        
         var loadTasks = new List<Task>()
         {
             // LoadChannelStatesAsync(), this is already done by the Home component
@@ -479,109 +405,8 @@ public static class ValourClient
 
         // Load user data concurrently
         await Task.WhenAll(loadTasks);
-
-        if (OnLogin is not null)
-            await OnLogin.Invoke();
         
-        return new TaskResult<User>(true, "Success", Self);
-    }
-
-    /// <summary>
-    /// Logs in and prepares the bot's client for use
-    /// </summary>
-    public static async Task<TaskResult<User>> InitializeBot(string email, string password, HttpClient http = null)
-    {
-        SetHttpClient(http is not null ? http : new HttpClient()
-        {
-            BaseAddress = new Uri(BaseAddress)
-        });
-
-        var tokenResult = await GetToken(email, password);
-
-        if (!tokenResult.Success) 
-            return new TaskResult<User>(false, tokenResult.Message);
-        
-        TaskResult<string> nodeName;
-
-        do
-        {
-            // Get primary node identity
-            nodeName = await GetAsync("api/node/name");
-
-            if (!nodeName.Success)
-            {
-                Console.WriteLine("Failed to get primary node name... trying again in three seconds.");
-                Console.WriteLine("(Possible network issues)");
-                await Task.Delay(3000);
-            }
-            
-        } while (!nodeName.Success);
-        
-        // Set node to primary node for main http client
-        Http.DefaultRequestHeaders.Add("X-Server-Select", nodeName.Data);
-
-        // Get user
-
-        var response = await GetJsonAsync<User>($"api/users/self");
-
-        if (!response.Success)
-            return response;
-
-        // Set reference to self user
-        Self = response.Data;
-
-        // Now that we have our user, it should have node data we can use to set up our first node
-        // Initialize primary node
-        PrimaryNode = new Node();
-        await PrimaryNode.InitializeAsync(nodeName.Data, _token, true);
-
-        // Add auth header so we never have to do that again
-        Http.DefaultRequestHeaders.Add("authorization", Token);
-
-        Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
-
-        if (OnLogin is not null)
-            await OnLogin.Invoke();
-
-        await JoinAllChannelsAsync();
-
-        return new TaskResult<User>(true, "Success", Self);
-    }
-
-    /// <summary>
-    /// Should only be run during initialization of bots!
-    /// </summary>
-    public static async Task JoinAllChannelsAsync()
-    {
-        // Get all joined planets
-        var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
-
-        var planetTasks = new List<Task>();
-        
-        // Add to cache
-        foreach (var planet in planets)
-        {
-            planetTasks.Add(new Task(async () =>
-            {
-                await ModelCache<,>.Put(planet.Id, planet);
-
-                await OpenPlanetConnection(planet, "bot-init");
-                
-                foreach (var channel in planet.Channels)
-                {
-                    await TryOpenPlanetChannelConnection(channel, "bot-init");
-                }
-            }));
-        }
-
-        await Task.WhenAll(planetTasks);
-
-        JoinedPlanets = planets;
-
-        _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
-
-        if (OnJoinedPlanetsUpdate != null)
-            await OnJoinedPlanetsUpdate.Invoke();
+        return TaskResult.SuccessResult;
     }
 
     public static async Task LoadTenorFavoritesAsync()
