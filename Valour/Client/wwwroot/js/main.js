@@ -151,6 +151,10 @@ function SetDate() {
     if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
 }
 
+// TODO: Cleanup SW stuff
+// const registerClient = async () => {
+// }
+
 window.blazorFuncs = {
     registerClient: function (caller) {
         window['updateAvailable']

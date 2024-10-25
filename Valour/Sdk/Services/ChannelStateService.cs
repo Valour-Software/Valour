@@ -1,44 +1,73 @@
-﻿using Valour.Shared.Models;
+﻿using Valour.Sdk.Client;
+using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public static class ChannelStateService
+public class ChannelStateService
 {
     /// <summary>
     /// Run when a UserChannelState is updated
     /// </summary>
-    public static HybridEvent<UserChannelState> UserChannelStateUpdated;
+    public HybridEvent<UserChannelState> UserChannelStateUpdated;
     
     /// <summary>
     /// Run when a channel state updates
     /// </summary>
-    public static HybridEvent<ChannelStateUpdate> ChannelStateUpdated;
+    public HybridEvent<ChannelStateUpdate> ChannelStateUpdated;
     
     /// <summary>
     /// The state of channels this user has access to
     /// </summary>
-    public static IReadOnlyDictionary<long, DateTime?> ChannelsLastViewedState { get; private set; }
-    private static readonly Dictionary<long, DateTime?> ChannelsLastViewedStateInternal = new();
+    public IReadOnlyDictionary<long, DateTime?> ChannelsLastViewedState { get; private set; }
+    private readonly Dictionary<long, DateTime?> _channelsLastViewedState = new();
     
     /// <summary>
     /// The last update times of channels this user has access to
     /// </summary>
-    public static IReadOnlyDictionary<long, ChannelState> CurrentChannelStates { get; private set; }
-    private static readonly Dictionary<long, ChannelState> CurrentChannelStatesInternal = new();
+    public IReadOnlyDictionary<long, ChannelState> CurrentChannelStates { get; private set; }
+    private readonly Dictionary<long, ChannelState> _currentChannelStates = new();
     
-    static ChannelStateService()
+    private readonly ValourClient _client;
+    
+    public ChannelStateService(ValourClient client)
     {
-        ChannelsLastViewedState = ChannelsLastViewedStateInternal;
-        CurrentChannelStates = CurrentChannelStatesInternal;
+        _client = client;
+
+        ChannelsLastViewedState = _channelsLastViewedState;
+        CurrentChannelStates = _currentChannelStates;
     }
     
-    public static void SetChannelLastViewedState(long channelId, DateTime lastViewed)
+    public async Task LoadChannelStatesAsync()
     {
-        ChannelsLastViewedStateInternal[channelId] = lastViewed;
+        var response = await _client.GetJsonAsync<List<ChannelStateData>>($"api/users/self/statedata");
+        if (!response.Success)
+        {
+            Console.WriteLine("** Failed to load channel states **");
+            Console.WriteLine(response.Message);
+
+            return;
+        }
+
+        foreach (var state in response.Data)
+        {
+            if (state.ChannelState is not null)
+                _currentChannelStates[state.ChannelId] = state.ChannelState;
+            
+            if (state.LastViewedTime is not null)
+                _channelsLastViewedState[state.ChannelId] = state.LastViewedTime;
+        }
+
+        Console.WriteLine("Loaded " + ChannelsLastViewedState.Count + " channel states.");
+        // Console.WriteLine(JsonSerializer.Serialize(response.Data));
+    }
+    
+    public void SetChannelLastViewedState(long channelId, DateTime lastViewed)
+    {
+        _channelsLastViewedState[channelId] = lastViewed;
     }
 
-    public static bool GetPlanetUnreadState(long planetId)
+    public bool GetPlanetUnreadState(long planetId)
     {
         var channelStates = 
             CurrentChannelStates.Where(x => x.Value.PlanetId == planetId);
@@ -52,18 +81,18 @@ public static class ChannelStateService
         return false;
     }
 
-    public static bool GetChannelUnreadState(long channelId)
+    public bool GetChannelUnreadState(long channelId)
     {
         // TODO: this will act weird with multiple tabs
-        if (PlanetChannelService.IsChannelConnected(channelId))
+        if (_client.PlanetChannelService.IsChannelConnected(channelId))
             return false;
 
-        if (!ChannelsLastViewedStateInternal.TryGetValue(channelId, out var lastRead))
+        if (!_channelsLastViewedState.TryGetValue(channelId, out var lastRead))
         {
             return true;
         }
 
-        if (!CurrentChannelStatesInternal.TryGetValue(channelId, out var lastUpdate))
+        if (!_currentChannelStates.TryGetValue(channelId, out var lastUpdate))
         {
             return false;
         }
@@ -71,7 +100,7 @@ public static class ChannelStateService
         return lastRead < lastUpdate.LastUpdateTime;
     }
     
-    public static void OnChannelStateUpdated(ChannelStateUpdate update)
+    public void OnChannelStateUpdated(ChannelStateUpdate update)
     {
         // Right now only planet chat channels have state updates
         if (!Channel.Cache.TryGet(update.ChannelId, out var channel))
@@ -79,7 +108,7 @@ public static class ChannelStateService
             return;
         }
         
-        if (!CurrentChannelStatesInternal.TryGetValue(channel.Id, out var state))
+        if (!_currentChannelStates.TryGetValue(channel.Id, out var state))
         {
             state = new ChannelState()
             {
@@ -88,19 +117,19 @@ public static class ChannelStateService
                 LastUpdateTime = update.Time
             };
 
-            CurrentChannelStatesInternal[channel.Id] = state;
+            _currentChannelStates[channel.Id] = state;
         }
         else
         {
-            CurrentChannelStatesInternal[channel.Id].LastUpdateTime = update.Time;
+            _currentChannelStates[channel.Id].LastUpdateTime = update.Time;
         }
         
         ChannelStateUpdated?.Invoke(update);
     }
     
-    public static void OnUserChannelStateUpdated(UserChannelState channelState)
+    public void OnUserChannelStateUpdated(UserChannelState channelState)
     {
-        ChannelsLastViewedStateInternal[channelState.ChannelId] = channelState.LastViewedTime;
+        _channelsLastViewedState[channelState.ChannelId] = channelState.LastViewedTime;
         UserChannelStateUpdated?.Invoke(channelState);
     }
 }

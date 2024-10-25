@@ -1,6 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
@@ -11,22 +15,17 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Nodes;
 
-public class Node
+public class Node : ServiceBase // each node acts like a service
 {
     /// <summary>
     /// The name of this node
     /// </summary>
-    public string Name { get; set; }
+    public string Name { get; private set; }
     
     /// <summary>
     /// The HttpClient for this node. Should be configured to send requests only to this node
     /// </summary>
-    public HttpClient HttpClient { get; set; }
-
-    /// <summary>
-    /// True if SignalR has hooked events
-    /// </summary>
-    public bool SignalREventsHooked { get; private set; }
+    public HttpClient HttpClient { get; private set; }
 
     /// <summary>
     /// Hub connection for SignalR client
@@ -36,82 +35,94 @@ public class Node
     /// <summary>
     /// True if this node is currently reconnecting
     /// </summary>
-    public bool IsReconnecting { get; set; }
+    public bool IsReconnecting { get; private set; }
     
     /// <summary>
     /// True if this node is ready to send and recieve requests
     /// </summary>
-    public bool IsReady { get; set; }
+    public bool IsReady { get; private set; }
     
     /// <summary>
     /// True if this is the primary node for this client
     /// </summary>
-    public bool IsPrimary { get; set; }
+    public bool IsPrimary { get; private set; }
+    
+    public static readonly JsonSerializerOptions DefaultJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
     
     /// <summary>
     /// Timer that updates the user's online status
     /// </summary>
     private static Timer _onlineTimer;
-
-    public async Task<T> WaitUntilReadyThen<T>(Task<T> next)
+    
+    private readonly ValourClient _client;
+    
+    public Node(ValourClient client)
     {
-        if (IsReady)
-            return await next;
-
-        // Don't allocate or do any of this unless IsReady is false...
-        var tries = 0;
-        while (!IsReady)
-        {
-            if (tries % 10 == 0)
-                await Log($"** Node {Name} is waiting for init to begin a request...  (try {tries})**");
-                
-            await Task.Delay(200);
-            tries++;
-        }
-
-        return await next;
+        _client = client;
     }
-
-
+    
     public async Task InitializeAsync(string name, bool isPrimary = false)
     {
         Name = name;
         IsPrimary = isPrimary;
 
+        var logOptions = new LogOptions(
+            "Node " + Name,
+            "#036bfc",
+            "#fc0356",
+            "#fc8403"
+        );
+        
+        SetupLogging(_client.Logger, logOptions);
+
         NodeManager.AddNode(this);
 
         HttpClient = new HttpClient();
-        HttpClient.BaseAddress = new Uri(ValourClient.BaseAddress);
+        HttpClient.BaseAddress = new Uri(_client.BaseAddress);
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
-        HttpClient.DefaultRequestHeaders.Add("Authorization", AuthService.Token);
+        HttpClient.DefaultRequestHeaders.Add("Authorization", _client.AuthService.Token);
 
-        await Logger.Log($"[SignalR]: Setting up new hub for node '{Name}'");
+        Log("Setting up new hub connection...");
 
         await ConnectSignalRHub();
         await AuthenticateSignalR();
-        var userResult = await ConnectToUserSignalRChannel();
+        await ConnectToUserChannel();
+        
+        IsReady = true;
+    }
 
-        if (!userResult.Success)
+    private async Task ConnectToUserChannel()
+    {
+        TaskResult userResult;
+        int tries = 0;
+
+        do
         {
-            // TODO: This should probably retry
-            await Log("** Error connecting to user channel for SignalR. **");
-            await Log(userResult.Message);
-        }
-        else
-        {
-            await Log("Connected to user channel for SignalR.");
-            IsReady = true;
-        }
+            userResult = await ConnectToUserSignalRChannel();
+            if (!userResult.Success)
+            {
+                // TODO: This should probably retry
+                LogError($"Error connecting to User SignalR channel (Retry {tries})");
+                LogError(userResult.Message);
+                await Task.Delay(3000);
+            }
+        } while (!userResult.Success);
+
+        
+        Log("Connected to user channel for SignalR.");
     }
     
     /// <summary>
     /// Starts pinging for online state
     /// </summary>
-    private async Task BeginPings()
+    private void BeginPings()
     {
-        await Logger.Log($"[{Name}] Beginning online pings...", "lime");
+        Log("Beginning online pings...");
         _onlineTimer = new Timer(OnPingTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
     }
     
@@ -124,13 +135,13 @@ public class Node
     {
         if (HubConnection.State != HubConnectionState.Connected)
         {
-            await Logger.Log($"[{Name}] Ping failed. Hub state is disconnected.", "salmon");
+            LogError($"Ping failed. Hub state is: {HubConnection.State.ToString()}");
             return;
         }
 
         try
         {
-            await Logger.Log("Doing node ping...", "lime");
+            Log("Doing node ping...");
 
             _pingStopwatch.Reset();
             _pingStopwatch.Start();
@@ -139,33 +150,26 @@ public class Node
 
             if (response == "pong")
             {
-                await Logger.Log($"[{Name}] Pinged successfully in {_pingStopwatch.ElapsedMilliseconds}ms", "lime");
+                Log($"Pinged successfully in {_pingStopwatch.ElapsedMilliseconds}ms");
             }
             else
             {
-                await Logger.Log($"[{Name}] Ping failed. Response: {response}", "salmon");
+                LogError($"Ping failed. Response: {response}");
             }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            await Logger.Log($"[{Name}] Ping failed. Exception:", "salmon");
-            await Logger.Log(e.Message, "salmon");
-            await Logger.Log(e.StackTrace, "salmon");
+            LogError("Ping failed.", ex);
         }
-    }
-
-    public async Task Log(string text, string color = "orange")
-    {
-        await Logger.Log($"[SignalR ({Name})]: " + text, color);
     }
 
     #region SignalR
 
     private async Task ConnectSignalRHub()
     {
-        string address = ValourClient.BaseAddress + "hubs/core";
+        var address = _client.BaseAddress + "hubs/core";
 
-        await Logger.Log("Connecting to Core hub at " + address);
+        Log("Connecting to Core hub at " + address);
 
         HubConnection = new HubConnectionBuilder()
         .WithUrl(address, options =>
@@ -178,39 +182,39 @@ public class Node
         HubConnection.ServerTimeout = TimeSpan.FromSeconds(20);
 
         HubConnection.Closed += OnSignalRClosed;
-        HubConnection.Reconnected += OnSignalRReconnect;
+        HubConnection.Reconnected += OnHubReconnect;
 
         await HubConnection.StartAsync();
 
-        await HookSignalREvents();
-
-        await BeginPings();
+        HookSignalREvents();
+        BeginPings();
     }
 
-    public async Task AuthenticateSignalR()
+    private async Task AuthenticateSignalR()
     {
-        await Log("Authenticating with SignalR hub...");
+        Log("Authenticating with SignalR hub...");
 
-        TaskResult response = new TaskResult(false, "Failed to authorize. This is a critical SignalR error.");
+        var response = new TaskResult(false, "Failed to authorize. This is a critical SignalR error.");
 
-        bool authorized = false;
-        int tries = 0;
+        var authorized = false;
+        var tries = 0;
+        
         while (!authorized && tries < 5)
         {
             if (tries > 0)
-                Thread.Sleep(3000);
+                await Task.Delay(3000);
 
-            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", AuthService.Token);
+            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", _client.AuthService.Token);
             authorized = response.Success;
             tries++;
         }
 
         if (!authorized)
         {
-            await Log("** FATAL: Failed to authorize with SignalR after 5 attempts. **");
+            Log("** FATAL: Failed to authorize with SignalR after 5 attempts. **");
         }
 
-        await Log(response.Message);
+        Log(response.Message);
     }
 
     private void HookModelEvents<TModel, TId>(TModel model, TId id)
@@ -239,9 +243,9 @@ public class Node
         ModelUpdater.DeleteItem<TModel, TId>(model);
     }
 
-    public async Task HookSignalREvents()
+    public void HookSignalREvents()
     {
-        await Logger.Log("[Item Events]: Hooking events.", "yellow");
+        Log("Hooking model events.");
 
         // For every single item...
         var baseType = typeof(ClientModel<,>);
@@ -278,87 +282,84 @@ public class Node
             // Invoke the generic method
             genericMethod.Invoke(this, [modelInstance, idValue]);
             
-            Console.WriteLine($"Registered ClientModel type: {type.Name}");
+            Log($"Registered ClientModel type: {type.Name}");
         }
 
-        HubConnection.On<Message>("Relay", MessageService.OnPlanetMessageReceived);
-        HubConnection.On<Message>("RelayEdit", MessageService.OnPlanetMessageEdited);
-        HubConnection.On<Message>("RelayDirect", MessageService.OnDirectMessageReceived);
-        HubConnection.On<Message>("RelayDirectEdit", MessageService.OnDirectMessageEdited);
-        HubConnection.On<Notification>("RelayNotification", ValourClient.HandleNotificationReceived);
-        HubConnection.On("RelayNotificationsCleared", ValourClient.HandleNotificationsCleared);
-        HubConnection.On<FriendEventData>("RelayFriendEvent", FriendService.OnFriendEventReceived);
+        HubConnection.On<Message>("Relay", _client.MessageService.OnPlanetMessageReceived);
+        HubConnection.On<Message>("RelayEdit", _client.MessageService.OnPlanetMessageEdited);
+        HubConnection.On<Message>("RelayDirect", _client.MessageService.OnDirectMessageReceived);
+        HubConnection.On<Message>("RelayDirectEdit", _client.MessageService.OnDirectMessageEdited);
+        HubConnection.On<Notification>("RelayNotification", _client.NotificationService.OnNotificationReceived);
+        HubConnection.On("RelayNotificationsCleared", _client.NotificationService.OnNotificationsCleared);
+        HubConnection.On<FriendEventData>("RelayFriendEvent", _client.FriendService.OnFriendEventReceived);
         
-        HubConnection.On<Message>("DeleteMessage", MessageService.OnMessageDeleted);
-        HubConnection.On<ChannelStateUpdate>("Channel-State", ChannelStateService.OnChannelStateUpdated);
-        HubConnection.On<UserChannelState>("UserChannelState-Update", ChannelStateService.OnUserChannelStateUpdated);
-        HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", ValourClient.HandleChannelWatchingUpdateRecieved);
-        HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", ValourClient.HandleChannelCurrentlyTypingUpdateRecieved);
-        HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.HandlePersonalEmbedUpdate);
-		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", ValourClient.HandleChannelEmbedUpdate);
-        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", ValourClient.HandleCategoryOrderUpdate);
+        HubConnection.On<Message>("DeleteMessage", _client.MessageService.OnMessageDeleted);
+        HubConnection.On<ChannelStateUpdate>("Channel-State", _client.ChannelStateService.OnChannelStateUpdated);
+        HubConnection.On<UserChannelState>("UserChannelState-Update", _client.ChannelStateService.OnUserChannelStateUpdated);
+        HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", _client.HandleChannelWatchingUpdateRecieved);
+        HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", _client.HandleChannelCurrentlyTypingUpdateRecieved);
+        HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", _client.HandlePersonalEmbedUpdate);
+		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", _client.HandleChannelEmbedUpdate);
+        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", _client.HandleCategoryOrderUpdate);
 
-		await Logger.Log("[Item Events]: Events hooked.", "yellow");
+		Log("Item Events hooked.");
     }
 
     /// <summary>
     /// Forces SignalR to refresh the underlying connection
     /// </summary>
-    public async Task ForceRefresh()
+    public void ForceRefresh()
     {
-        await Log("Refresh has been requested.");
-
-        // Send test ping
-        await Log("SignalR state is " + HubConnection.State);
+        LogWarning("Refresh has been requested.");
+        LogWarning("SignalR state is " + HubConnection.State);
 
         if (HubConnection.State == HubConnectionState.Disconnected)
         {
-            await Log("Disconnect has been detected. Reconnecting...");
-            await Reconnect();
+            LogError("Disconnect has been detected. Reconnecting...");
+            _ = Reconnect();
         }
     }
 
     /// <summary>
     /// Reconnects the SignalR connection
     /// </summary>
-    public async Task Reconnect()
+    private async Task Reconnect()
     {
         if (IsReconnecting)
             return;
 
         IsReconnecting = true;
-
-
+        
         try
         {
             // Test connection if it thinks it's safe
             if (HubConnection.State == HubConnectionState.Connected)
             {
-                var ping = await HubConnection.InvokeAsync<string>("ping");
+                _ = await HubConnection.InvokeAsync<string>("ping");
             }
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
-            Console.WriteLine("[Disconnect] Hub reports connection, but ping failed. Will attempt reconnect...");
+            LogError("Hub reports connection, but ping failed. Will attempt reconnect...", ex);
         }
 
         while (HubConnection.State == HubConnectionState.Disconnected)
         {
             await Task.Delay(3000);
 
-            await Log("Reconnecting to Core Hub...");
+            Log("Reconnecting to Core Hub...");
 
             try
             {
                 await HubConnection.StartAsync();
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
-                await Log("Failed to reconnect... waiting three seconds to continue.", "red");
+                LogError("Failed to reconnect... waiting three seconds to continue.", ex);
             }
         }
 
-        await OnSignalRReconnect("Success");
+        await OnHubReconnect("Success");
 
         IsReconnecting = false;
     }
@@ -366,34 +367,28 @@ public class Node
     /// <summary>
     /// Attempt to recover the connection if it is lost
     /// </summary>
-    public async Task OnSignalRClosed(Exception e)
+    private Task OnSignalRClosed(Exception ex)
     {
         // Ensure disconnect was not on purpose
-        if (e != null)
+        if (ex is not null)
         {
-            await Log("## A Breaking SignalR Error Has Occured", "red");
-            await Log("Exception: " + e.Message, "red");
-            await Log("Stacktrace: " + e.StackTrace, "red");
-
-            await Reconnect();
+            LogError("A Breaking SignalR Error Has Occured", ex);
+            return Reconnect();
         }
-        else
-        {
-            await Log("SignalR has closed without error.");
-
-            await Reconnect();
-        }
+        
+        LogError("SignalR has closed without error.");
+        // return Reconnect(); // TODO: Shouldn't we... not reconnect if it was on purpose?
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Run when SignalR reconnects
     /// </summary>
-    private async Task OnSignalRReconnect(string data)
+    private async Task OnHubReconnect(string data)
     {
-        await Log("SignalR has reconnected. " + data, "lime");
+        LogWarning("SignalR has reconnected: " + data);
         await HandleReconnect();
-
-        NodeService.NodeReconnected?.Invoke(this);
+        _client.NodeService.NodeReconnected?.Invoke(this);
     }
 
     /// <summary>
@@ -406,87 +401,219 @@ public class Node
         await ConnectToUserSignalRChannel();
     }
 
-    public async Task<TaskResult> ConnectToUserSignalRChannel()
+    private Task<TaskResult> ConnectToUserSignalRChannel()
     {
-        return await HubConnection.InvokeAsync<TaskResult>("JoinUser", IsPrimary);
+        return HubConnection.InvokeAsync<TaskResult>("JoinUser", IsPrimary);
     }
 
     #endregion
-
+    
     #region HTTP Helpers
 
     /// <summary>
-    /// Gets a json resource from the given uri and deserializes it
+    /// Gets a JSON resource from the given URI and deserializes it.
     /// </summary>
-    public Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allowNull = false)
-        => WaitUntilReadyThen(ValourClient.GetJsonAsync<T>(uri, allowNull, HttpClient));
+    public async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allow404 = false)
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync(_client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await TryDeserializeResponse<T>(response, uri);
+            }
+
+            // Handle 404 if allowed
+            if (response.StatusCode == HttpStatusCode.NotFound && allow404)
+            {
+                return TaskResult<T>.FromData(default);
+            }
+
+            // Log and return error message
+            var msg = await response.Content.ReadAsStringAsync();
+            LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+
+            return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+        }
+        catch (HttpRequestException ex)
+        {
+            LogError($"Critical HTTP Failure - POST {uri}:", ex);
+            return TaskResult<T>.FromFailure(ex);
+        }
+    }
+    /// <summary>
+    /// Gets a JSON resource from the given URI as a string.
+    /// </summary>
+    public async Task<TaskResult<string>> GetAsync(string uri, bool allow404 = false)
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync(_client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
+            var msg = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+                return TaskResult<string>.FromData(msg);
+            
+            // Handle 404 if allowed
+            if (response.StatusCode == HttpStatusCode.NotFound && allow404)
+            {
+                return TaskResult<string>.FromData(msg);
+            }
+
+            LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+            return TaskResult<string>.FromFailure(msg, (int)response.StatusCode);
+        }
+        catch (HttpRequestException ex)
+        {
+            LogError($"Critical HTTP Failure - GET {uri}:", ex);
+            return TaskResult<string>.FromFailure(ex);
+        }
+    }
+
+/// <summary>
+/// Puts a JSON resource in the specified URI and returns the deserialized response.
+/// </summary>
+public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
+{
+    var jsonContent = JsonContent.Create(content);
+
+    try
+    {
+        var response = await HttpClient.PutAsync(_client.BaseAddress + uri, jsonContent);
+
+        if (response.IsSuccessStatusCode)
+            return await TryDeserializeResponse<T>(response, uri);
+
+        var msg = await response.Content.ReadAsStringAsync();
+        LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
+        
+        return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - PUT {uri}:", ex);
+        return TaskResult<T>.FromFailure(ex);
+    }
+}
+
+/// <summary>
+/// Posts a JSON resource to the specified URI and returns the deserialized response.
+/// </summary>
+public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content)
+{
+    var jsonContent = JsonContent.Create(content);
+
+    try
+    {
+        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, jsonContent);
+
+        if (response.IsSuccessStatusCode)
+            return await TryDeserializeResponse<T>(response, uri);
+
+        var msg = await response.Content.ReadAsStringAsync();
+        LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+        
+        return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - POST {uri}:", ex);
+        return TaskResult<T>.FromFailure(ex);
+    }
+}
+
+/// <summary>
+/// Puts a JSON resource in the specified URI and returns the response message.
+/// </summary>
+public async Task<TaskResult> PutAsync(string uri, string content)
+{
+    var stringContent = new StringContent(content);
+
+    try
+    {
+        var response = await HttpClient.PutAsync(_client.BaseAddress + uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+            return TaskResult.FromSuccess(msg);
+
+        LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
+        
+        return TaskResult.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - PUT {uri}:", ex);
+        return TaskResult.FromFailure(ex);
+    }
+}
+
+/// <summary>
+/// Posts a string resource to the specified URI and returns the response message.
+/// </summary>
+public async Task<TaskResult> PostAsync(string uri, string content)
+{
+    var stringContent = new StringContent(content);
+
+    try
+    {
+        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+            return TaskResult.FromSuccess(msg);
+
+        LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+        return TaskResult.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - POST {uri}:", ex);
+        return TaskResult.FromFailure(ex);
+    }
+}
+
+/// <summary>
+/// Deletes a resource from the specified URI and returns the response message.
+/// </summary>
+public async Task<TaskResult> DeleteAsync(string uri)
+{
+    try
+    {
+        var response = await HttpClient.DeleteAsync(_client.BaseAddress + uri);
+        var msg = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+            return TaskResult.FromSuccess(msg);
+
+        LogError($"{response.StatusCode} - DELETE {uri}: \n{msg}");
+        return TaskResult.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - DELETE {uri}:", ex);
+        return TaskResult.FromFailure(ex);
+    }
+}
 
     /// <summary>
-    /// Gets a json resource from the given uri and deserializes it
+    /// Attempts to deserialize the JSON response data into the specified type and returns a TaskResult.
     /// </summary>
-    public Task<TaskResult<string>> GetAsync(string uri)
-        => WaitUntilReadyThen(ValourClient.GetAsync(uri, HttpClient));
-
-    /// <summary>
-    /// Puts a string resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult> PutAsync(string uri, string content)
-        => WaitUntilReadyThen(ValourClient.PutAsync(uri, content, HttpClient));
-
-    /// <summary>
-    /// Puts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult> PutAsync(string uri, object content)
-        => WaitUntilReadyThen(ValourClient.PutAsync(uri, content, HttpClient));
-
-    /// <summary>
-    /// Puts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
-        => WaitUntilReadyThen(ValourClient.PutAsyncWithResponse<T>(uri, content, HttpClient));
-
-    /// <summary>
-    /// Posts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult> PostAsync(string uri, string content)
-        => WaitUntilReadyThen(ValourClient.PostAsync(uri, content, HttpClient));
-
-    /// <summary>
-    /// Posts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult> PostAsync(string uri, object content)
-        => WaitUntilReadyThen(ValourClient.PostAsync(uri, content, HttpClient));
-
-    /// <summary>
-    /// Posts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
-        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
-
-    /// <summary>
-    /// Posts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
-        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, HttpClient));
-
-    /// <summary>
-    /// Posts a multipart resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, MultipartFormDataContent content)
-        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
-
-
-    /// <summary>
-    /// Posts a json resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content)
-        => WaitUntilReadyThen(ValourClient.PostAsyncWithResponse<T>(uri, content, HttpClient));
-
-    /// <summary>
-    /// Deletes a resource in the specified uri and returns the response message
-    /// </summary>
-    public Task<TaskResult> DeleteAsync(string uri)
-        => WaitUntilReadyThen(ValourClient.DeleteAsync(uri, HttpClient));
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private async Task<TaskResult<T>> TryDeserializeResponse<T>(HttpResponseMessage response, string uri)
+    {
+        try
+        {
+            var data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
+            return TaskResult<T>.FromData(data);
+        }
+        catch (JsonException ex)
+        {
+            LogError($"Bad JSON response for {uri}", ex);
+            return TaskResult<T>.FromFailure(ex);
+        }
+    }
+    
     #endregion
 }

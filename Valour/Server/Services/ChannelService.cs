@@ -170,7 +170,7 @@ public class ChannelService
         {
             if (channel.PlanetId is null)
             {
-                return TaskResult<Channel>.FromError("PlanetId is required for planet channels.");
+                return TaskResult<Channel>.FromFailure("PlanetId is required for planet channels.");
             }
         }
         
@@ -183,10 +183,10 @@ public class ChannelService
                 foreach (var node in nodes)
                 {
                     if (node.TargetId != channel.Id)
-                        return TaskResult<Channel>.FromError("Node target id does not match channel id");
+                        return TaskResult<Channel>.FromFailure("Node target id does not match channel id");
                 
                     if (node.PlanetId != channel.PlanetId)
-                        return TaskResult<Channel>.FromError("Node planet id does not match channel planet id");
+                        return TaskResult<Channel>.FromFailure("Node planet id does not match channel planet id");
                     
                     node.Id = IdManager.Generate();
                 }
@@ -196,7 +196,7 @@ public class ChannelService
         {
             if (channel.ParentId is not null)
             {
-                return TaskResult<Channel>.FromError("Only planet channels can have a parent.");
+                return TaskResult<Channel>.FromFailure("Only planet channels can have a parent.");
             }
         }
 
@@ -236,7 +236,7 @@ public class ChannelService
         {
             _logger.LogError(e, "Failed to create planet chat channel");
             await tran.RollbackAsync();
-            return TaskResult<Channel>.FromError("Failed to create channel");
+            return TaskResult<Channel>.FromFailure("Failed to create channel");
         }
 
         if (channel.PlanetId is not null)
@@ -252,33 +252,33 @@ public class ChannelService
     {
         var old = await _db.Channels.FindAsync(updated.Id);
         if (old is null) 
-            return TaskResult<Channel>.FromError("Channel not found");
+            return TaskResult<Channel>.FromFailure("Channel not found");
         
         // Update-specific validation
         if (old.Id != updated.Id)
-            return TaskResult<Channel>.FromError("Cannot change Id.");
+            return TaskResult<Channel>.FromFailure("Cannot change Id.");
         
         if (old.PlanetId != updated.PlanetId)
-            return TaskResult<Channel>.FromError("Cannot change PlanetId.");
+            return TaskResult<Channel>.FromFailure("Cannot change PlanetId.");
         
         if (old.ChannelType != updated.ChannelType)
-            return TaskResult<Channel>.FromError("Cannot change ChannelType.");
+            return TaskResult<Channel>.FromFailure("Cannot change ChannelType.");
 
         // Channel parent is being changed
         if (old.ParentId != updated.ParentId)
         {
-            return TaskResult<Channel>.FromError("Use the order endpoint in the parent category to update parent.");
+            return TaskResult<Channel>.FromFailure("Use the order endpoint in the parent category to update parent.");
         }
         // Channel is being moved
         if (old.RawPosition != updated.RawPosition)
         {
-            return TaskResult<Channel>.FromError("Use the order endpoint in the parent category to change position.");
+            return TaskResult<Channel>.FromFailure("Use the order endpoint in the parent category to change position.");
         }
         
         // Basic validation
         var baseValid = await ValidateChannel(updated);
         if (!baseValid.Success)
-            return TaskResult<Channel>.FromError(baseValid.Message);
+            return TaskResult<Channel>.FromFailure(baseValid.Message);
 
         var trans = await _db.Database.BeginTransactionAsync();
         
@@ -552,30 +552,30 @@ public class ChannelService
     public async Task<TaskResult<Message>> PostMessageAsync(Message message)
     {
         if (message is null)
-            return TaskResult<Message>.FromError("Include message");
+            return TaskResult<Message>.FromFailure("Include message");
 
         // Handle node planet ownership
         if (message.PlanetId is not null)
         {
             if (!await _nodeService.IsHostingPlanet(message.PlanetId.Value))
             {
-                return TaskResult<Message>.FromError("Planet belongs to another node.");
+                return TaskResult<Message>.FromFailure("Planet belongs to another node.");
             }
         }
         
         var user = await _db.Users.FindAsync(message.AuthorUserId);
         if (user is null)
-            return TaskResult<Message>.FromError("Author user not found.");
+            return TaskResult<Message>.FromFailure("Author user not found.");
         
         var channel = await _db.Channels.FindAsync(message.ChannelId);
         if (channel is null)
-            return TaskResult<Message>.FromError("Channel not found.");
+            return TaskResult<Message>.FromFailure("Channel not found.");
 
         if (channel.PlanetId != message.PlanetId)
-            return TaskResult<Message>.FromError("Invalid planet id. Must match channel's planet id.");
+            return TaskResult<Message>.FromFailure("Invalid planet id. Must match channel's planet id.");
         
         if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
-            return TaskResult<Message>.FromError("Channel is not a message channel.");
+            return TaskResult<Message>.FromFailure("Channel is not a message channel.");
 
         Valour.Database.Planet planet = null;
         Valour.Database.PlanetMember member = null;
@@ -584,24 +584,24 @@ public class ChannelService
         if (channel.PlanetId is not null)
         {
             if (channel.PlanetId != message.PlanetId)
-                return TaskResult<Message>.FromError("Invalid planet id. Must match channel's planet id.");
+                return TaskResult<Message>.FromFailure("Invalid planet id. Must match channel's planet id.");
 
             planet = await _db.Planets.FindAsync(channel.PlanetId);
             if (planet is null)
-                return TaskResult<Message>.FromError("Planet not found.");
+                return TaskResult<Message>.FromFailure("Planet not found.");
             
             if (!ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))
-                return TaskResult<Message>.FromError("Only planet channel messages can have a planet id.");
+                return TaskResult<Message>.FromFailure("Only planet channel messages can have a planet id.");
             
             if (message.AuthorMemberId is null)
-                return TaskResult<Message>.FromError("AuthorMemberId is required for planet channel messages.");
+                return TaskResult<Message>.FromFailure("AuthorMemberId is required for planet channel messages.");
 
             member = await _db.PlanetMembers.FindAsync(message.AuthorMemberId);
             if (member is null)
-                return TaskResult<Message>.FromError("Member id does not exist or is invalid for this planet.");
+                return TaskResult<Message>.FromFailure("Member id does not exist or is invalid for this planet.");
             
             if (member.UserId != message.AuthorUserId)
-                return TaskResult<Message>.FromError("Mismatch between member's user id and message author user id.");
+                return TaskResult<Message>.FromFailure("Mismatch between member's user id and message author user id.");
         }
 
         // Handle replies
@@ -614,12 +614,12 @@ public class ChannelService
                 replyTo = PlanetMessageWorker.GetStagedMessage(message.ReplyToId.Value);
                 
                 if (replyTo is null)
-                    return TaskResult<Message>.FromError("ReplyToId does not exist.");
+                    return TaskResult<Message>.FromFailure("ReplyToId does not exist.");
             }
 
             // TODO: Technically we could support this in the future
             if (replyTo.ChannelId != channel.Id)
-                return TaskResult<Message>.FromError("Cannot reply to a message from another channel.");
+                return TaskResult<Message>.FromFailure("Cannot reply to a message from another channel.");
             
             message.ReplyTo = replyTo;
         }
@@ -627,20 +627,20 @@ public class ChannelService
         if (string.IsNullOrEmpty(message.Content) &&
             string.IsNullOrEmpty(message.EmbedData) &&
             string.IsNullOrEmpty(message.AttachmentsData))
-            return TaskResult<Message>.FromError("Message must contain content, embed data, or attachments.");
+            return TaskResult<Message>.FromFailure("Message must contain content, embed data, or attachments.");
         
         if (message.Fingerprint is null)
-            return TaskResult<Message>.FromError("Fingerprint is required. Generating a random UUID is suggested.");
+            return TaskResult<Message>.FromFailure("Fingerprint is required. Generating a random UUID is suggested.");
         
         if (message.Content != null && message.Content.Length > 2048)
-            return TaskResult<Message>.FromError("Content must be under 2048 chars");
+            return TaskResult<Message>.FromFailure("Content must be under 2048 chars");
 
 
         if (!string.IsNullOrWhiteSpace(message.EmbedData))
         {
             if (message.EmbedData.Length > 65535)
             {
-                return TaskResult<Message>.FromError("EmbedData must be under 65535 chars");
+                return TaskResult<Message>.FromFailure("EmbedData must be under 65535 chars");
             }
             
             // load embed to check for anti-valour propaganda (incorrect media URIs)
@@ -654,7 +654,7 @@ public class ChannelService
                         var at = ((EmbedMediaItem)item).Attachment;
                         var result = MediaUriHelper.ScanMediaUri(at);
                         if (!result.Success)
-                            return TaskResult<Message>.FromError($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {at.Location}");
+                            return TaskResult<Message>.FromFailure($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {at.Location}");
                     }
                 }
             }
@@ -677,7 +677,7 @@ public class ChannelService
                 {
                     var result = MediaUriHelper.ScanMediaUri(at);
                     if (!result.Success)
-                        return TaskResult<Message>.FromError($"Error scanning media URI in message attachments | {at.Location}");
+                        return TaskResult<Message>.FromFailure($"Error scanning media URI in message attachments | {at.Location}");
                 }
             }
         }
@@ -743,7 +743,7 @@ public class ChannelService
             }
             else
             {
-                return TaskResult<Message>.FromError("Channel type not implemented!");
+                return TaskResult<Message>.FromFailure("Channel type not implemented!");
             }
         }
         else
@@ -769,7 +769,7 @@ public class ChannelService
     public async Task<TaskResult<Message>> EditMessageAsync(Message updated)
     {
         if (updated is null)
-            return TaskResult<Message>.FromError("Include updated message");
+            return TaskResult<Message>.FromFailure("Include updated message");
 
         ISharedMessage old = null;
         Message stagedOld = null;
@@ -788,7 +788,7 @@ public class ChannelService
             }
             else
             {
-                return TaskResult<Message>.FromError("Message not found");
+                return TaskResult<Message>.FromFailure("Message not found");
             }
         }
         
@@ -796,13 +796,13 @@ public class ChannelService
         if (string.IsNullOrEmpty(updated.Content) &&
             string.IsNullOrEmpty(updated.EmbedData) &&
             string.IsNullOrEmpty(updated.AttachmentsData))
-            return TaskResult<Message>.FromError("Updated message cannot be empty");
+            return TaskResult<Message>.FromFailure("Updated message cannot be empty");
         
         if (updated.EmbedData != null && updated.EmbedData.Length > 65535)
-            return TaskResult<Message>.FromError("EmbedData must be under 65535 chars");
+            return TaskResult<Message>.FromFailure("EmbedData must be under 65535 chars");
         
         if (updated.Content != null && updated.Content.Length > 2048)
-            return TaskResult<Message>.FromError("Content must be under 2048 chars");
+            return TaskResult<Message>.FromFailure("Content must be under 2048 chars");
         
         List<Valour.Sdk.Models.MessageAttachment> attachments = null;
         bool inlineChange = false;
@@ -817,7 +817,7 @@ public class ChannelService
                 {
                     var result = MediaUriHelper.ScanMediaUri(at);
                     if (!result.Success)
-                        return TaskResult<Message>.FromError(result.Message);
+                        return TaskResult<Message>.FromFailure(result.Message);
                 }
                 
                 // Remove old inline attachments
@@ -869,7 +869,7 @@ public class ChannelService
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to update message");
-                return TaskResult<Message>.FromError("Failed to update message in database.");
+                return TaskResult<Message>.FromFailure("Failed to update message in database.");
             }
         }
         
@@ -1119,7 +1119,7 @@ public class ChannelService
     {
         var parent = (await _db.Channels.FindAsync(parentId)).ToModel();
         if (parent is null)
-            return TaskResult<uint>.FromError("Parent channel not found");
+            return TaskResult<uint>.FromFailure("Parent channel not found");
         
         return await TryGetNextChannelPosition(planetId, parent, channelType);
     }
@@ -1149,14 +1149,14 @@ public class ChannelService
                 // because they wouldn't be able to contain anything
                 if (parentDepth > 1) 
                 {
-                    return TaskResult<uint>.FromError("Max category depth reached (2)");
+                    return TaskResult<uint>.FromFailure("Max category depth reached (2)");
                 }
             }
             else
             {
                 if (parentDepth > 2)
                 {
-                    return TaskResult<uint>.FromError("Max channel depth reached (3)");
+                    return TaskResult<uint>.FromFailure("Max channel depth reached (3)");
                 }
             }
         }
@@ -1172,7 +1172,7 @@ public class ChannelService
         
         if (highestChildPosition.LocalPosition > 249)
         {
-            return TaskResult<uint>.FromError("Max category children reached");
+            return TaskResult<uint>.FromFailure("Max category children reached");
         }
         
         // Add one to the highest child's relative position to get the new local position

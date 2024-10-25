@@ -8,59 +8,63 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public static class PlanetService
+public class PlanetService
 {
     /// <summary>
     /// Run when a planet connection opens
     /// </summary>
-    public static HybridEvent<Planet> PlanetConnected;
+    public HybridEvent<Planet> PlanetConnected;
 
     /// <summary>
     /// Run when SignalR closes a planet
     /// </summary>
-    public static HybridEvent<Planet> PlanetDisconnected;
+    public HybridEvent<Planet> PlanetDisconnected;
 
     /// <summary>
     /// Run when a planet is joined
     /// </summary>
-    public static HybridEvent<Planet> PlanetJoined;
+    public HybridEvent<Planet> PlanetJoined;
     
     /// <summary>
     /// Run when the joined planets list is updated
     /// </summary>
-    public static HybridEvent JoinedPlanetsUpdate;
+    public HybridEvent JoinedPlanetsUpdate;
 
     /// <summary>
     /// Run when a planet is left
     /// </summary>
-    public static HybridEvent<Planet> PlanetLeft;
+    public HybridEvent<Planet> PlanetLeft;
     
     /// <summary>
     /// The planets this client has joined
     /// </summary>
-    public static IReadOnlyList<Planet> JoinedPlanets { get; private set; }
-    private static readonly List<Planet> JoinedPlanetsInternal = new();
+    public IReadOnlyList<Planet> JoinedPlanets { get; private set; }
+    private readonly List<Planet> _joinedPlanets = new();
     
     /// <summary>
     /// Currently opened planets
     /// </summary>
-    public static IReadOnlyList<Planet> ConnectedPlanets { get; private set; }
-    private static readonly List<Planet> ConnectedPlanetsInternal = new();
+    public IReadOnlyList<Planet> ConnectedPlanets { get; private set; }
+    private readonly List<Planet> _connectedPlanets = new();
     
     /// <summary>
     /// Lookup for opened planets by id
     /// </summary>
-    public static IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup { get; private set; }
-    private static readonly Dictionary<long, Planet> ConnectedPlanetsLookupInternal = new();
+    public IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup { get; private set; }
+    private readonly Dictionary<long, Planet> _connectedPlanetsLookup = new();
     
     /// <summary>
     /// A set of locks used to prevent planet connections from closing automatically
     /// </summary>
-    public static IReadOnlyDictionary<string, long> PlanetLocks { get; private set; }
-    private static readonly Dictionary<string, long> PlanetLocksInternal = new();
+    public IReadOnlyDictionary<string, long> PlanetLocks { get; private set; }
+    private readonly Dictionary<string, long> _planetLocks = new();
+
+    private readonly ValourClient _client;
     
-    static PlanetService()
+    public PlanetService(ValourClient client)
     {
+        _client = client;
+        
         // Add victor dummy member
         PlanetMember.Cache.PutReplace(long.MaxValue, new PlanetMember()
         {
@@ -70,32 +74,32 @@ public static class PlanetService
         });
         
         // Setup readonly collections
-        JoinedPlanets = JoinedPlanetsInternal;
-        ConnectedPlanets = ConnectedPlanetsInternal;
-        PlanetLocks = PlanetLocksInternal;
-        ConnectedPlanetsLookup = ConnectedPlanetsLookupInternal;
+        JoinedPlanets = _joinedPlanets;
+        ConnectedPlanets = _connectedPlanets;
+        PlanetLocks = _planetLocks;
+        ConnectedPlanetsLookup = _connectedPlanetsLookup;
         
         // Setup reconnect logic
-        NodeService.NodeReconnected += OnNodeReconnect;
+        _client.NodeService.NodeReconnected += OnNodeReconnect;
     }
     
     /// <summary>
     /// Fetches all planets that the user has joined from the server
     /// </summary>
-    public static async Task<TaskResult> FetchJoinedPlanetsAsync()
+    public async Task<TaskResult> FetchJoinedPlanetsAsync()
     {
-        var response = await ValourClient.PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/self/planets");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/self/planets");
         if (!response.Success)
             return response.WithoutData();
 
         var planets = response.Data;
 
-        JoinedPlanetsInternal.Clear();
+        _joinedPlanets.Clear();
         
         // Add to cache
         foreach (var planet in planets)
         {
-            JoinedPlanetsInternal.Add(planet.Sync());
+            _joinedPlanets.Add(planet.Sync());
         }
         
         JoinedPlanetsUpdate?.Invoke();
@@ -106,13 +110,13 @@ public static class PlanetService
     /// <summary>
     /// Returns if the given planet is open
     /// </summary>
-    public static bool IsPlanetConnected(Planet planet) =>
+    public bool IsPlanetConnected(Planet planet) =>
         ConnectedPlanets.Any(x => x.Id == planet.Id);
     
     /// <summary>
     /// Opens a planet and prepares it for use
     /// </summary>
-    public static async Task<TaskResult> TryOpenPlanetConnection(Planet planet, string key)
+    public async Task<TaskResult> TryOpenPlanetConnection(Planet planet, string key)
     {
         // Cannot open null
         if (planet is null)
@@ -120,7 +124,7 @@ public static class PlanetService
 
         if (PlanetLocks.ContainsKey(key))
         {
-            PlanetLocksInternal[key] = planet.Id;
+            _planetLocks[key] = planet.Id;
         }
         else
         {
@@ -133,8 +137,8 @@ public static class PlanetService
             return TaskResult.SuccessResult;
 
         // Mark as opened
-        ConnectedPlanetsInternal.Add(planet);
-        ConnectedPlanetsLookupInternal[planet.Id] = planet;
+        _connectedPlanets.Add(planet);
+        _connectedPlanetsLookup[planet.Id] = planet;
 
         Console.WriteLine($"Opening planet {planet.Name} ({planet.Id})");
 
@@ -185,7 +189,7 @@ public static class PlanetService
     /// <summary>
     /// Closes a SignalR connection to a planet
     /// </summary>
-    public static async Task<TaskResult> TryClosePlanetConnection(Planet planet, string key, bool force = false)
+    public async Task<TaskResult> TryClosePlanetConnection(Planet planet, string key, bool force = false)
     {
         if (!force)
         {
@@ -198,7 +202,7 @@ public static class PlanetService
             // (shouldn't happen, but just in case)
             else if (lockResult == ConnectionLockResult.NotFound)
             {
-                if (PlanetLocksInternal.Values.Any(x => x == planet.Id))
+                if (_planetLocks.Values.Any(x => x == planet.Id))
                 {
                     return TaskResult.FromFailure("Planet is locked by other keys.");
                 }
@@ -213,8 +217,8 @@ public static class PlanetService
         await planet.Node.HubConnection.SendAsync("LeavePlanet", planet.Id);
 
         // Remove from list
-        ConnectedPlanetsInternal.Remove(planet);
-        ConnectedPlanetsLookupInternal.Remove(planet.Id);
+        _connectedPlanets.Remove(planet);
+        _connectedPlanetsLookup.Remove(planet.Id);
 
         Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 
@@ -228,9 +232,9 @@ public static class PlanetService
     /// Prevents a planet from closing connections automatically.
     /// Key is used to allow multiple locks per planet.
     /// </summary>
-    private static void AddPlanetLock(string key, long planetId)
+    private void AddPlanetLock(string key, long planetId)
     {
-        PlanetLocksInternal[key] = planetId;
+        _planetLocks[key] = planetId;
         
         Console.WriteLine("Planet lock added.");
         Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
@@ -240,13 +244,13 @@ public static class PlanetService
     /// Removes the lock for a planet.
     /// Returns if there are any locks left for the planet.
     /// </summary>
-    private static ConnectionLockResult RemovePlanetLock(string key)
+    private ConnectionLockResult RemovePlanetLock(string key)
     {
-        if (PlanetLocksInternal.TryGetValue(key, out var planetId))
+        if (_planetLocks.TryGetValue(key, out var planetId))
         {
             Console.WriteLine($"Planet lock {key} removed.");
-            PlanetLocksInternal.Remove(key);
-            return PlanetLocksInternal.Any(x => x.Value == planetId) ? 
+            _planetLocks.Remove(key);
+            return _planetLocks.Any(x => x.Value == planetId) ? 
                 ConnectionLockResult.Locked : 
                 ConnectionLockResult.Unlocked;
         }
@@ -257,10 +261,9 @@ public static class PlanetService
     /// <summary>
     /// Adds a planet to the joined planets list and invokes the event.
     /// </summary>
-    public static void AddJoinedPlanet(Planet planet)
+    public void AddJoinedPlanet(Planet planet)
     {
-        JoinedPlanetsInternal.Add(planet);
-
+        _joinedPlanets.Add(planet);
         PlanetJoined?.Invoke(planet);
         JoinedPlanetsUpdate?.Invoke();
     }
@@ -268,9 +271,9 @@ public static class PlanetService
     /// <summary>
     /// Removes a planet from the joined planets list and invokes the event.
     /// </summary>
-    public static void RemoveJoinedPlanet(Planet planet)
+    public void RemoveJoinedPlanet(Planet planet)
     {
-        JoinedPlanetsInternal.Remove(planet);
+        _joinedPlanets.Remove(planet);
         
         PlanetLeft?.Invoke(planet);
         JoinedPlanetsUpdate?.Invoke();
@@ -279,9 +282,9 @@ public static class PlanetService
     /// <summary>
     /// Attempts to join the given planet
     /// </summary>
-    public static async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
+    public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
     {
-        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planet.Id}/discover");
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planet.Id}/discover");
 
         if (result.Success)
         {
@@ -294,7 +297,7 @@ public static class PlanetService
     /// <summary>
     /// Attempts to leave the given planet
     /// </summary>
-    public static async Task<TaskResult> LeavePlanetAsync(Planet planet)
+    public async Task<TaskResult> LeavePlanetAsync(Planet planet)
     {
         // Get member
         var member = await planet.GetSelfMemberAsync();
@@ -306,17 +309,30 @@ public static class PlanetService
         return result;
     }
 
-    public static void SetJoinedPlanets(List<Planet> planets)
+    public void SetJoinedPlanets(List<Planet> planets)
     {
-        JoinedPlanetsInternal.Clear();
-        JoinedPlanetsInternal.AddRange(planets);
-        
+        _joinedPlanets.Clear();
+        _joinedPlanets.AddRange(planets);
         JoinedPlanetsUpdate?.Invoke();
     }
-
-    public static async Task OnNodeReconnect(Node node)
+    
+    public async Task<List<Planet>> FetchDiscoverablePlanetsAsync()
     {
-        foreach (var planet in ConnectedPlanetsInternal.Where(x => x.NodeName == node.Name))
+        var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/planets/discoverable");
+        if (!response.Success)
+            return new List<Planet>();
+
+        var planets = response.Data;
+
+        foreach (var planet in planets)
+            planet.Sync();
+
+        return planets;
+    }
+
+    public async Task OnNodeReconnect(Node node)
+    {
+        foreach (var planet in _connectedPlanets.Where(x => x.NodeName == node.Name))
         {
             await node.HubConnection.SendAsync("JoinPlanet", planet.Id);
             await node.Log($"Rejoined SignalR group for planet {planet.Id}", "lime");

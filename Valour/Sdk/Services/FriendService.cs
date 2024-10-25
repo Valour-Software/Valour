@@ -5,31 +5,38 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public static class FriendService
+public class FriendService
 {
     /// <summary>
     /// Run when there is a friend event
     /// </summary>
-    public static HybridEvent<FriendEventData> FriendsUpdated;
+    public HybridEvent<FriendEventData> FriendsUpdated;
     
     /// <summary>
     /// The friends of this client
     /// </summary>
-    public static List<User> Friends { get; set; }
+    public List<User> Friends { get; set; }
 
     /// <summary>
     /// The fast lookup set for friends
     /// </summary>
-    public static Dictionary<long, User> FriendLookup { get; set; }
-    public static List<User> FriendRequests { get; set; }
-    public static List<User> FriendsRequested { get; set; }
+    public Dictionary<long, User> FriendLookup { get; set; }
+    public List<User> FriendRequests { get; set; }
+    public List<User> FriendsRequested { get; set; }
+    
+    private readonly ValourClient _client;
+    
+    public FriendService(ValourClient client)
+    {
+	    _client = client;
+    }
     
     /// <summary>
     /// Fetches friend data from the server
     /// </summary>
-    public static async Task FetchesFriendsAsync()
+    public async Task FetchesFriendsAsync()
     {
-	    var friendResult = await ValourClient.Self.GetFriendDataAsync();
+	    var friendResult = await _client.Self.GetFriendDataAsync();
 
 	    if (!friendResult.Success)
 	    {
@@ -78,7 +85,7 @@ public static class FriendService
 	    });
     }
     
-    public static void OnFriendEventReceived(FriendEventData eventData)
+    public void OnFriendEventReceived(FriendEventData eventData)
     {
         if (eventData.Type == FriendEventType.AddedMe)
         {
@@ -117,9 +124,9 @@ public static class FriendService
     /// <summary>
     /// Adds a friend
     /// </summary>
-    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
+    public async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
     {
-        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(nameAndTag)}");
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(nameAndTag)}");
 
         if (!result.Success)
 	        return result;
@@ -155,13 +162,12 @@ public static class FriendService
 	/// <summary>
 	/// Declines a friend request
 	/// </summary>
-	public static async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
+	public async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
 	{
-		var result = await ValourClient.PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(nameAndTag)}", null);
+		var result = await _client.PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
 		if (!result.Success)
 			return result;
-		
         
         var declined = FriendRequests.FirstOrDefault(x => x.NameAndTag.ToLower() == nameAndTag.ToLower());
         if (declined is not null)
@@ -181,9 +187,9 @@ public static class FriendService
 	/// <summary>
 	/// Removes a friend :(
 	/// </summary>
-	public static async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
+	public async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
     {
-        var result = await ValourClient.PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(nameAndTag)}", null);
+        var result = await _client.PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
         if (!result.Success)
 			return result;
@@ -212,9 +218,9 @@ public static class FriendService
 	/// <summary>
 	/// Cancels a friend request
 	/// </summary>
-	public static async Task<TaskResult> CancelFriendAsync(string nameAndTag)
+	public async Task<TaskResult> CancelFriendAsync(string nameAndTag)
 	{
-		var result = await ValourClient.PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(nameAndTag)}", null);
+		var result = await _client.PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(nameAndTag)}", null);
 
 		if (!result.Success)
 			return result;

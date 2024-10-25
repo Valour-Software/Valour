@@ -10,9 +10,12 @@
 @using Valour.Client.Utility
 @using Valour.Client.Components.Theme
 @using Valour.Client.Components.DockWindows
+@using Valour.SDK.Services
 
 @inject IJSRuntime JsRuntime
 @inject ILocalStorageService LocalStorage
+
+<BrowserUtils Logger="@_logger" />
 
 <UpdateBanner />
 
@@ -48,50 +51,69 @@ else
     <Loading Subtext='Logging you in...'></Loading>
 }
 
-
-
 @code{
 
-    private bool _triedInitialLogin;
+    public static ValourClient Client;
     
-    // Runs when page is initialized
+    // Private because you should be using Client.Logger
+    private LoggingService _logger;
+    
+    private bool _triedInitialLogin;
+
     protected override async Task OnInitializedAsync()
     {
-        await DevicePreferences.LoadPreferences(LocalStorage);
-        await LogToConsole("Loaded user preferences", "magenta");
+        _logger = new LoggingService(false);
+        _logger.AddColorLogger(Log); // Add 
         
-        ColorLogger.App = this;
-        ColorLogger.Setup();
+        await DevicePreferences.LoadPreferences(LocalStorage);
+        _logger.Log("App", "Loaded user preferences", "magenta");
+    }
 
-        await JsRuntime.InvokeAsync<object>(
-          "blazorFuncs.registerClient",
-          DotNetObjectReference.Create(this)
+    // Runs when page is initialized
+    private async Task FirstRenderAsync()
+    {
+        var uriData = await BrowserUtils.GetUriData();
+        _logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
+        
+        // Setup client with hostname and logger
+        Client = new ValourClient(uriData.Origin, _logger);
+        
+        _ = JsRuntime.InvokeAsync<object>(
+            "blazorFuncs.registerClient",
+            DotNetObjectReference.Create(this)
         );
 
         // Request notifications in background
         _ = RequestNotificationSubscriptionAsync();
     }
 
+    private async Task OnBrowserReady()
+    {
+        
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            await FirstRenderAsync();
+            
             var isMobile = await JsRuntime.InvokeAsync<bool>("IsMobile");
             var isEmbedded = await JsRuntime.InvokeAsync<bool>("IsEmbedded");
 
             DeviceInfo.IsMobile = isMobile;
             DeviceInfo.IsEmbedded = isEmbedded;
             
-            if (!ValourClient.IsLoggedIn)
+            if (!Client.IsLoggedIn)
             {
                 var cookieToken = await JsRuntime.GetCookieAsync("token");
 
                 if (!string.IsNullOrWhiteSpace(cookieToken))
                 {
-                    var result = await ValourClient.InitializeUser(cookieToken);
+                    var result = await Client.InitializeUser(cookieToken);
 
                     if (result.Success) {
-                        await ColorLogger.Log($"Auto-logged user {result.Data.Name}", "magenta");
+                        Log("App", $"Auto-logged user {Client.Self.Name}", "magenta");
                     }
                 }
             }
@@ -109,7 +131,7 @@ else
         {
             try
             {
-                await ValourClient.PrimaryNode.PostAsync($"api/notification/subscribe", subscription);
+                await Client.PrimaryNode.PostAsync($"api/notification/subscribe", subscription);
             }
             catch (Exception ex)
             {
@@ -118,29 +140,24 @@ else
         }
     }
 
-    public async Task LogToConsole(string msg, string color = "white")
+    public void Log(string prefix, string msg, string color)
     {
-        await JsRuntime.InvokeVoidAsync($"Log", msg, color);
+        _ = JsRuntime.InvokeVoidAsync($"Log", $"[{prefix}] {msg}", color);
     }
 
     [JSInvokable("NotifyPushSub")]
     public static async Task NotifyPushSub(string endpoint, string key, string auth)
     {
-        Console.WriteLine(endpoint);
-        Console.WriteLine(key);
-        Console.WriteLine(auth);
-
         Sdk.Models.NotificationSubscription not = new()
         {
             Endpoint = endpoint,
             Auth = auth,
             Key = key,
-            UserId = ValourClient.Self.Id
+            UserId = Client.Self.Id
         };
 
         // Send subscription information to server
-        var response = await ValourClient.PostAsyncWithResponse<TaskResult>($"Notification/SubmitSubscription", not);
-
+        var response = await Client.PrimaryNode.PostAsyncWithResponse<TaskResult>($"Notification/SubmitSubscription", not);
         Console.WriteLine(response.Message);
     }
 }

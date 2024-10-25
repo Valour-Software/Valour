@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -6,58 +7,62 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public static class PlanetChannelService
+public class PlanetChannelService
 {
     /// <summary>
     /// Run when SignalR opens a channel
     /// </summary>
-    public static HybridEvent<Channel> ChannelOpened;
+    public HybridEvent<Channel> ChannelOpened;
 
     /// <summary>
     /// Run when SignalR closes a channel
     /// </summary>
-    public static HybridEvent<Channel> ChannelClosed;
+    public HybridEvent<Channel> ChannelClosed;
     
     /// <summary>
     /// Currently opened channels
     /// </summary>
-    public static IReadOnlyList<Channel> ConnectedPlanetChannels { get; private set; }
-    private static readonly List<Channel> ConnectedPlanetChannelsInternal = new();
+    public IReadOnlyList<Channel> ConnectedPlanetChannels { get; private set; }
+    private readonly List<Channel> _connectedPlanetChannels = new();
     
     /// <summary>
     /// Connected channels lookup
     /// </summary>
-    public static IReadOnlyDictionary<long, Channel> ConnectedPlanetChannelsLookup { get; private set; }
-    private static readonly Dictionary<long, Channel> ConnectedPlanetChannelsLookupInternal = new();
+    public IReadOnlyDictionary<long, Channel> ConnectedPlanetChannelsLookup { get; private set; }
+    private readonly Dictionary<long, Channel> _connectedPlanetChannelsLookup = new();
 
     /// <summary>
     /// A set of locks used to prevent channel connections from closing automatically
     /// </summary>
-    public static IReadOnlyDictionary<string, long> ChannelLocks { get; private set; }
-    private static readonly Dictionary<string, long> ChannelLocksInternal = new();
+    public IReadOnlyDictionary<string, long> ChannelLocks { get; private set; }
+    private readonly Dictionary<string, long> _channelLocks = new();
     
-    static PlanetChannelService()
+    private readonly ValourClient _client;
+    
+    public PlanetChannelService(ValourClient client)
     {
-        ConnectedPlanetChannels = ConnectedPlanetChannelsInternal;
-        ChannelLocks = ChannelLocksInternal;
-        ConnectedPlanetChannelsLookup = ConnectedPlanetChannelsLookupInternal;
+        _client = client;
+        
+        ConnectedPlanetChannels = _connectedPlanetChannels;
+        ChannelLocks = _channelLocks;
+        ConnectedPlanetChannelsLookup = _connectedPlanetChannelsLookup;
         
         // Reconnect channels on node reconnect
-        NodeService.NodeReconnected += OnNodeReconnect;
+        client.NodeService.NodeReconnected += OnNodeReconnect;
     }
     
     /// <summary>
     /// Opens a SignalR connection to a channel if it does not already have one,
     /// and stores a key to prevent it from being closed
     /// </summary>
-    public static async Task<TaskResult> TryOpenPlanetChannelConnection(Channel channel, string key)
+    public async Task<TaskResult> TryOpenPlanetChannelConnection(Channel channel, string key)
     {
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
             return TaskResult.FromFailure("Channel is not a planet chat channel");
 
-        if (ChannelLocksInternal.ContainsKey(key))
+        if (_channelLocks.ContainsKey(key))
         {
-            ChannelLocksInternal[key] = channel.Id;
+            _channelLocks[key] = channel.Id;
         }
         else
         {
@@ -66,13 +71,13 @@ public static class PlanetChannelService
         }
         
         // Already opened
-        if (ConnectedPlanetChannelsInternal.Contains(channel))
+        if (_connectedPlanetChannels.Contains(channel))
             return TaskResult.SuccessResult;
 
         var planet = channel.Planet;
 
         // Ensure planet is opened
-        var planetResult = await PlanetService.TryOpenPlanetConnection(planet, key);
+        var planetResult = await _client.PlanetService.TryOpenPlanetConnection(planet, key);
         if (!planetResult.Success)
             return planetResult;
 
@@ -84,8 +89,8 @@ public static class PlanetChannelService
             return result;
 
         // Add to open set
-        ConnectedPlanetChannelsInternal.Add(channel);
-        ConnectedPlanetChannelsLookupInternal[channel.Id] = channel;
+        _connectedPlanetChannels.Add(channel);
+        _connectedPlanetChannelsLookup[channel.Id] = channel;
 
         Console.WriteLine($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
 
@@ -97,7 +102,7 @@ public static class PlanetChannelService
     /// <summary>
     /// Closes a SignalR connection to a channel
     /// </summary>
-    public static async Task<TaskResult> TryClosePlanetChannelConnection(Channel channel, string key, bool force = false)
+    public async Task<TaskResult> TryClosePlanetChannelConnection(Channel channel, string key, bool force = false)
     {
         if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
             return TaskResult.FromFailure("Channel is not a planet chat channel");
@@ -116,7 +121,7 @@ public static class PlanetChannelService
             // (shouldn't happen, but just in case)
             else if (lockResult == ConnectionLockResult.NotFound)
             {
-                if (ChannelLocksInternal.Values.Any(x => x == channel.Id))
+                if (_channelLocks.Values.Any(x => x == channel.Id))
                 {
                     return TaskResult.FromFailure("Channel is locked by other keys.");
                 }
@@ -124,22 +129,22 @@ public static class PlanetChannelService
         }
 
         // Not opened
-        if (!ConnectedPlanetChannelsInternal.Contains(channel))
+        if (!_connectedPlanetChannels.Contains(channel))
             return TaskResult.FromFailure("Channel is not open.");
 
         // Leaves channel SignalR group
         await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
 
         // Remove from open set
-        ConnectedPlanetChannelsInternal.Remove(channel);
-        ConnectedPlanetChannelsLookupInternal.Remove(channel.Id);
+        _connectedPlanetChannels.Remove(channel);
+        _connectedPlanetChannelsLookup.Remove(channel.Id);
 
         Console.WriteLine($"Left SignalR group for channel {channel.Name} ({channel.Id})");
 
         ChannelClosed?.Invoke(channel);
 
         // Close planet connection if no other channels are open
-        await PlanetService.TryClosePlanetConnection(channel.Planet, key);
+        await _client.PlanetService.TryClosePlanetConnection(channel.Planet, key);
         
         return TaskResult.SuccessResult;
     }
@@ -148,22 +153,22 @@ public static class PlanetChannelService
     /// Prevents a channel from closing connections automatically.
     /// Key is used to allow multiple locks per channel.
     /// </summary>
-    private static void AddChannelLock(string key, long planetId)
+    private void AddChannelLock(string key, long planetId)
     {
-        ChannelLocksInternal[key] = planetId;
+        _channelLocks[key] = planetId;
     }
 
     /// <summary>
     /// Removes the lock for a channel.
     /// Returns the result of if there are any locks left for the channel.
     /// </summary>
-    private static ConnectionLockResult RemoveChannelLock(string key)
+    private ConnectionLockResult RemoveChannelLock(string key)
     {
-        if (ChannelLocksInternal.TryGetValue(key, out var channelId))
+        if (_channelLocks.TryGetValue(key, out var channelId))
         {
             Console.WriteLine($"Channel lock {key} removed.");
-            ChannelLocksInternal.Remove(key);
-            return ChannelLocksInternal.Any(x => x.Value == channelId)
+            _channelLocks.Remove(key);
+            return _channelLocks.Any(x => x.Value == channelId)
                 ? ConnectionLockResult.Locked
                 : ConnectionLockResult.Unlocked;
         }
@@ -174,12 +179,12 @@ public static class PlanetChannelService
     /// <summary>
     /// Returns if the channel is open
     /// </summary>
-    public static bool IsChannelConnected(long channelId) =>
-        ConnectedPlanetChannelsLookupInternal.ContainsKey(channelId);
+    public bool IsChannelConnected(long channelId) =>
+        _connectedPlanetChannelsLookup.ContainsKey(channelId);
 
-    public static async Task OnNodeReconnect(Node node)
+    public async Task OnNodeReconnect(Node node)
     {
-        foreach (var channel in ConnectedPlanetChannelsInternal.Where(x => x.Node?.Name == node.Name))
+        foreach (var channel in _connectedPlanetChannels.Where(x => x.Node?.Name == node.Name))
         {
             await node.HubConnection.SendAsync("JoinChannel", channel.Id);
             await node.Log($"Rejoined SignalR group for channel {channel.Id}", "lime");

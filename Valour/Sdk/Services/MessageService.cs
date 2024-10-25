@@ -1,35 +1,43 @@
-﻿using Valour.Shared;
+﻿using Valour.Sdk.Client;
+using Valour.Shared;
 using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public static class MessageService
+public class MessageService
 {
     /// <summary>
     /// Run when a message is received
     /// </summary>
-    public static HybridEvent<Message> MessageReceived;
+    public HybridEvent<Message> MessageReceived;
     
     /// <summary>
     /// Run when a message is edited
     /// </summary>
-    public static HybridEvent<Message> MessageEdited;
+    public HybridEvent<Message> MessageEdited;
 
     /// <summary>
     /// Run when a planet is deleted
     /// </summary>
-    public static HybridEvent<Message> MessageDeleted;
+    public HybridEvent<Message> MessageDeleted;
+    
+    private readonly ValourClient _client;
+    
+    public MessageService(ValourClient client)
+    {
+        _client = client;
+    }
     
     /// <summary>
     /// Sends a message
     /// </summary>
-    public static async Task<TaskResult> SendMessage(Message message)
+    public async Task<TaskResult> SendMessage(Message message)
         => await message.PostMessageAsync();
     
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static void OnPlanetMessageReceived(Message message)
+    public void OnPlanetMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -45,7 +53,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static void OnPlanetMessageEdited(Message message)
+    public void OnPlanetMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -61,7 +69,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static void OnDirectMessageReceived(Message message)
+    public void OnDirectMessageReceived(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         
@@ -78,7 +86,7 @@ public static class MessageService
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public static void OnDirectMessageEdited(Message message)
+    public void OnDirectMessageEdited(Message message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -91,7 +99,7 @@ public static class MessageService
         MessageEdited?.Invoke(cached);
     }
 
-    public static void OnMessageDeleted(Message message)
+    public void OnMessageDeleted(Message message)
     {
         MessageDeleted?.Invoke(message);
     }

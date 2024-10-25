@@ -39,7 +39,10 @@ namespace Valour.Shared
         public static TaskResult FromFailure(ITaskResult failure) => new(false, failure.Message, failure.Details, failure.Code);
 
         public static TaskResult FromFailure(string message, int? errorCode = null) => new(false, message, errorCode: errorCode);
+        public static TaskResult FromFailure(Exception ex, int? errorCode = null) => new(false, ex.Message, ex.StackTrace, errorCode);
 
+        public static TaskResult FromSuccess(string message) => new(true, message);
+        
         public override string ToString()
         {
             if (Success)
@@ -47,7 +50,7 @@ namespace Valour.Shared
                 return $"[SUCC] {Message}";
             }
 
-            return $"[FAIL] {Message}";
+            return $"[FAIL ({Code})] {Message}";
         }
 
     }
@@ -90,9 +93,11 @@ namespace Valour.Shared
 
         public static TaskResult<T> FromData(T data) => new(true, "Success", data);
 
-        public static TaskResult<T> FromError(ITaskResult error) => new(false, error.Message, default(T), error.Details, error.Code);
+        public static TaskResult<T> FromFailure(ITaskResult failure) => new(false, failure.Message, default(T), failure.Details, failure.Code);
 
-        public static TaskResult<T> FromError(string error, string details = null, int? code = null) => new(false, error, default(T), details, code: code);
+        public static TaskResult<T> FromFailure(string message, string details = null, int? code = null) => new(false, message, default(T), details, code: code);
+        public static TaskResult<T> FromFailure(string message, int? code = null) => new(false, message, default(T), null, code: code);
+        public static TaskResult<T> FromFailure(Exception ex, int? code = null) => new(false, ex.Message, default(T), ex.StackTrace, code: code);
 
         public bool IsSuccessful(out T value)
         {
@@ -122,38 +127,5 @@ namespace Valour.Shared
         int? Code { get; set; }
 
         bool Success { get; set; }
-    }
-
-    public struct HttpResult
-    {
-        [JsonInclude]
-        [JsonPropertyName("Message")]
-        public string Message { get; set; }
-
-        [JsonInclude]
-        [JsonPropertyName("Status")]
-        public int Status { get; set; }
-
-        public bool Success
-        {
-            get
-            {
-                int x = Status - 200;
-                if (x < 0) return false;
-                if (x > 99) return false;
-                return true;
-            }
-        }
-
-        public HttpResult(string message, int status)
-        {
-            Message = message;
-            Status = status;
-        }
-
-        public override string ToString()
-        {
-            return $"[{Status}]: {Message}";
-        }
     }
 }

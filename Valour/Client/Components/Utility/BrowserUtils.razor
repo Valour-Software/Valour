@@ -1,13 +1,10 @@
+@using Valour.SDK.Services
 @implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 
-<CascadingValue Value="@this" IsFixed="true">
-    @ChildContent
-</CascadingValue>
-
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public LoggingService Logger { get; set; }
     
     private static DotNetObjectReference<BrowserUtils> _dotnetRef;
     private static  IJSInProcessObjectReference _jsModule;
@@ -25,9 +22,10 @@
         if (firstRender)
         {
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
-            await Logger.Log("Loaded DomWindowData component.", "cyan");
+            // can't use client logger because the client doesn't exist yet!
+            Logger.Log("BUtils", "Loaded DomWindowData component.", "cyan");
             WindowDimensions = await GetWindowDimensions();
-            await Logger.Log("Starting window dimensions: " + WindowDimensions.Width + "x" + WindowDimensions.Height, "cyan");
+            Logger.Log("BUtils", "Starting window dimensions: " + WindowDimensions.Width + "x" + WindowDimensions.Height, "cyan");
             await _jsModule.InvokeVoidAsync("init", _dotnetRef);
         }
     }
@@ -60,6 +58,12 @@
     {
         var position = await _jsModule.InvokeAsync<ElementPosition>("getElementPosition", element);
         return position;
+    }
+    
+    public static async Task<WindowUri> GetUriData()
+    {
+        var uriData = await _jsModule.InvokeAsync<WindowUri>("getWindowUri");
+        return uriData;
     }
     
     [JSInvokable("NotifyWindowDimensions")]

@@ -45,7 +45,7 @@ public class ChannelAccessService
         catch (Exception e)
         {
             _logger.LogError(e, "Failed to update channel access for member {memberId} and channel {channelId}", memberId, channelId);
-            return TaskResult<UpdateAccessResult>.FromError("Failed to update channel access");
+            return TaskResult<UpdateAccessResult>.FromFailure("Failed to update channel access");
         }
     }
 

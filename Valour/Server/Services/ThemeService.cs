@@ -167,7 +167,7 @@ public class ThemeService
     {
         var old = await _db.Themes.FindAsync(updated.Id);
         if (old is null)
-            return TaskResult<Theme>.FromError("Theme not found");
+            return TaskResult<Theme>.FromFailure("Theme not found");
 
         var validation = await ValidateTheme(updated);
         if (!validation.Success)
@@ -175,13 +175,13 @@ public class ThemeService
 
         if (updated.AuthorId != old.AuthorId)
         {
-            return TaskResult<Theme>.FromError("Cannot change author of theme.");
+            return TaskResult<Theme>.FromFailure("Cannot change author of theme.");
         }
 
         if (updated.HasCustomBanner != old.HasCustomBanner ||
             updated.HasAnimatedBanner != old.HasAnimatedBanner)
         {
-            return TaskResult<Theme>.FromError("Cannot change custom banner status of theme. Use separate endpoint.");
+            return TaskResult<Theme>.FromFailure("Cannot change custom banner status of theme. Use separate endpoint.");
         }
 
         var trans = await _db.Database.BeginTransactionAsync();
@@ -199,7 +199,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             _logger.LogError("Failed to update theme", e);
-            return TaskResult<Theme>.FromError("An error occured updating theme in the database.");
+            return TaskResult<Theme>.FromFailure("An error occured updating theme in the database.");
         }
     }
 
@@ -217,7 +217,7 @@ public class ThemeService
         
         if (themeCount >= 20)
         {
-            return TaskResult<Theme>.FromError("You have reached the maximum number of created themes.");
+            return TaskResult<Theme>.FromFailure("You have reached the maximum number of created themes.");
         }
         
         using var transaction = await _db.Database.BeginTransactionAsync();
@@ -233,7 +233,7 @@ public class ThemeService
 
             if (!await _db.Users.AnyAsync(x => x.Id == theme.AuthorId))
             {
-                return TaskResult<Theme>.FromError("Author does not exist.");
+                return TaskResult<Theme>.FromFailure("Author does not exist.");
             }
 
             var dbTheme = theme.ToDatabase();
@@ -250,7 +250,7 @@ public class ThemeService
         {
             await transaction.RollbackAsync();
             _logger.LogError("Failed to create theme", e);
-            return TaskResult<Theme>.FromError("An error occured saving theme to the database.");
+            return TaskResult<Theme>.FromFailure("An error occured saving theme to the database.");
         }
     }
 
@@ -301,7 +301,7 @@ public class ThemeService
             if (existing is not null)
             {
                 if (existing.Sentiment == vote.Sentiment)
-                    return TaskResult<ThemeVote>.FromError("Vote already exists");
+                    return TaskResult<ThemeVote>.FromFailure("Vote already exists");
 
                 // Logic for updating an existing vote
                 existing.Sentiment = vote.Sentiment;
@@ -316,10 +316,10 @@ public class ThemeService
             }
 
             if (!await _db.Users.AnyAsync(x => x.Id == vote.UserId))
-                return TaskResult<ThemeVote>.FromError("User does not exist");
+                return TaskResult<ThemeVote>.FromFailure("User does not exist");
 
             if (!await _db.Themes.AnyAsync(x => x.Id == vote.ThemeId))
-                return TaskResult<ThemeVote>.FromError("Theme does not exist");
+                return TaskResult<ThemeVote>.FromFailure("Theme does not exist");
 
             var dbVote = vote.ToDatabase();
             dbVote.Id = IdManager.Generate();
@@ -335,7 +335,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             _logger.LogError("Failed to create theme vote", e);
-            return TaskResult<ThemeVote>.FromError("An error occured saving vote to the database.");
+            return TaskResult<ThemeVote>.FromFailure("An error occured saving vote to the database.");
         }
     }
 

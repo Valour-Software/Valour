@@ -1,34 +1,50 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
-using Valour.Shared;
 using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public static class NodeService
+public class NodeService : ServiceBase
 {
-    public static HybridEvent<Node> NodeReconnected;
+    public HybridEvent<Node> NodeReconnected;
     
-    public static async Task SetupPrimaryNodeAsync()
+    private readonly ValourClient _client;
+    
+    private static readonly LogOptions LogOptions = new (
+        "Node Service",
+        "#036bfc",
+        "#fc0356",
+        "#fc8403"
+    );
+    
+    public NodeService(ValourClient client)
     {
-        TaskResult<string> nodeName;
+        _client = client;
+        SetupLogging(client.Logger, LogOptions);
+    }
+    
+    public async Task SetupPrimaryNodeAsync()
+    {
+        string nodeName = null;
 
         do
         {
             // Get primary node identity
-            nodeName = await ValourClient.GetAsync("api/node/name");
-
-            if (!nodeName.Success)
+            var nodeNameResponse = await _client.Http.GetAsync("api/node/name");
+            var msg = await nodeNameResponse.Content.ReadAsStringAsync();
+            if (!nodeNameResponse.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to get primary node name... trying again in three seconds.");
-                Console.WriteLine("(Possible network issues)");
+                LogError("Failed to get primary node name... trying again in three seconds. Network issues? \n \n" + msg);
                 await Task.Delay(3000);
             }
-            
-        } while (!nodeName.Success);
+            else
+            {
+                nodeName = msg;
+            }
+        } while (nodeName is null);
         
         // Initialize primary node
-        ValourClient.PrimaryNode = new Node();
-        await ValourClient.PrimaryNode.InitializeAsync(nodeName.Data, true);
+        _client.PrimaryNode = new Node(_client);
+        await _client.PrimaryNode.InitializeAsync(nodeName, true);
     }
 }

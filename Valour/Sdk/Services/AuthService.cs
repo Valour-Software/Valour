@@ -8,27 +8,34 @@ namespace Valour.SDK.Services;
 /// <summary>
 /// Handles tokens and authentication
 /// </summary>
-public static class AuthService
+public class AuthService
 {
     /// <summary>
     /// Run when the user logs in
     /// </summary>
-    public static HybridEvent<User> LoggedIn;
+    public HybridEvent<User> LoggedIn;
     
     /// <summary>
     /// The token for this client instance
     /// </summary>
-    public static string Token => _token;
+    public string Token => _token;
 
     /// <summary>
     /// The internal token for this client
     /// </summary>
-    private static string _token;
+    private string _token;
+
+    private readonly ValourClient _client;
+    
+    public AuthService(ValourClient client)
+    {
+        _client = client;
+    }
     
     /// <summary>
     /// Gets the Token for the client
     /// </summary>
-    public static async Task<TaskResult> FetchToken(string email, string password)
+    public async Task<TaskResult> FetchToken(string email, string password)
     {
         TokenRequest request = new()
         {
@@ -36,7 +43,7 @@ public static class AuthService
             Password = password
         };
         
-        var response = await ValourClient.PostAsyncWithResponse<AuthToken>($"api/users/token", request);
+        var response = await _client.PostAsyncWithResponse<AuthToken>($"api/users/token", request);
 
         if (response.Success)
         {
@@ -47,7 +54,7 @@ public static class AuthService
         return response.WithoutData();
     }
 
-    public static async Task<TaskResult> LoginAsync(string email, string password)
+    public async Task<TaskResult> LoginAsync(string email, string password)
     {
         var tokenResult = await FetchToken(email, password);
         if (!tokenResult.Success)
@@ -56,25 +63,25 @@ public static class AuthService
         return await LoginAsync(Token);
     }
     
-    public static async Task<TaskResult> LoginAsync(string token)
+    public async Task<TaskResult> LoginAsync(string token)
     {
         // Ensure any existing auth headers are removed
-        if (ValourClient.Http.DefaultRequestHeaders.Contains("authorization"))
+        if (_client.Http.DefaultRequestHeaders.Contains("authorization"))
         {
-            ValourClient.Http.DefaultRequestHeaders.Remove("authorization");
+            _client.Http.DefaultRequestHeaders.Remove("authorization");
         }
         
         // Add auth header to main http client so we never have to do that again
-        ValourClient.Http.DefaultRequestHeaders.Add("authorization", Token);
+        _client.Http.DefaultRequestHeaders.Add("authorization", Token);
         
-        var response = await ValourClient.GetJsonAsync<User>($"api/users/self");
+        var response = await _client.GetJsonAsync<User>($"api/users/self");
 
         if (!response.Success)
             return response.WithoutData();
 
-        ValourClient.Self = response.Data;
+        _client.Self = response.Data;
         
-        LoggedIn?.Invoke(ValourClient.Self);
+        LoggedIn?.Invoke(_client.Self);
 
         return new TaskResult(true, "Success");
     }
