@@ -6,13 +6,14 @@ namespace Valour.SDK.Services;
 /// <summary>
 /// Provides functionality for running Valour headless bots
 /// </summary>
-public class BotService
+public class BotService : ServiceBase
 {
     private readonly ValourClient _client;
     
     public BotService(ValourClient client)
     {
         _client = client;
+        SetupLogging(client.Logger);
     }
     
     /// <summary>
@@ -46,7 +47,7 @@ public class BotService
     public async Task JoinAllChannelsAsync()
     {
         // Get all joined planets
-        var planets = (await _client.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
+        var planets = (await _client.PrimaryNode.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
 
         var planetTasks = new List<Task>();
         

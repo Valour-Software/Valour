@@ -7,7 +7,7 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public class PlanetChannelService
+public class PlanetChannelService : ServiceBase
 {
     /// <summary>
     /// Run when SignalR opens a channel
@@ -37,6 +37,13 @@ public class PlanetChannelService
     public IReadOnlyDictionary<string, long> ChannelLocks { get; private set; }
     private readonly Dictionary<string, long> _channelLocks = new();
     
+    private readonly LogOptions _logOptions = new(
+        "PlanetChannelService",
+        "#3381a3",
+        "#a3333e",
+        "#a39433"
+    );
+    
     private readonly ValourClient _client;
     
     public PlanetChannelService(ValourClient client)
@@ -46,6 +53,8 @@ public class PlanetChannelService
         ConnectedPlanetChannels = _connectedPlanetChannels;
         ChannelLocks = _channelLocks;
         ConnectedPlanetChannelsLookup = _connectedPlanetChannelsLookup;
+        
+        SetupLogging(client.Logger, _logOptions);
         
         // Reconnect channels on node reconnect
         client.NodeService.NodeReconnected += OnNodeReconnect;
@@ -182,12 +191,12 @@ public class PlanetChannelService
     public bool IsChannelConnected(long channelId) =>
         _connectedPlanetChannelsLookup.ContainsKey(channelId);
 
-    public async Task OnNodeReconnect(Node node)
+    private async Task OnNodeReconnect(Node node)
     {
         foreach (var channel in _connectedPlanetChannels.Where(x => x.Node?.Name == node.Name))
         {
             await node.HubConnection.SendAsync("JoinChannel", channel.Id);
-            await node.Log($"Rejoined SignalR group for channel {channel.Id}", "lime");
+            Log($"Rejoined SignalR group for channel {channel.Id}");
         }
     }
 }

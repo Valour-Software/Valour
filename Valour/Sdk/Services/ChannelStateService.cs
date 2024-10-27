@@ -4,7 +4,7 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public class ChannelStateService
+public class ChannelStateService : ServiceBase
 {
     /// <summary>
     /// Run when a UserChannelState is updated
@@ -28,6 +28,13 @@ public class ChannelStateService
     public IReadOnlyDictionary<long, ChannelState> CurrentChannelStates { get; private set; }
     private readonly Dictionary<long, ChannelState> _currentChannelStates = new();
     
+    private static readonly LogOptions LogOptions = new(
+        "ChannelStateService",
+        "#5c33a3",
+        "#a33340",
+        "#a39433"
+    );
+    
     private readonly ValourClient _client;
     
     public ChannelStateService(ValourClient client)
@@ -36,11 +43,13 @@ public class ChannelStateService
 
         ChannelsLastViewedState = _channelsLastViewedState;
         CurrentChannelStates = _currentChannelStates;
+        
+        SetupLogging(client.Logger, LogOptions);
     }
     
     public async Task LoadChannelStatesAsync()
     {
-        var response = await _client.GetJsonAsync<List<ChannelStateData>>($"api/users/self/statedata");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<ChannelStateData>>($"api/users/self/statedata");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load channel states **");

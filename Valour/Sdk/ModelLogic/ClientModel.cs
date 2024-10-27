@@ -19,8 +19,6 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     where TSelf : ClientModel<TSelf, TId> // curiously recurring template pattern
     where TId : IEquatable<TId>
 {
-    public static readonly ModelCache<TSelf, TId> Cache = new();
-    
     public TId Id { get; set; }
     
     [JsonIgnore]
@@ -48,9 +46,16 @@ public abstract class ClientModel<TSelf, TId> : ClientModel, ISharedModel<TId>
     /// Custom logic on model deletion
     /// </summary>
     protected virtual void OnDeleted() { }
+    
+    /// <summary>
+    /// The Valour Client this model belongs to
+    /// </summary>
+    public ValourClient Client { get; private set; }
 
-    [JsonIgnore] 
-    public virtual Node Node => ValourClient.PrimaryNode;
+    /// <summary>
+    /// The node this model belongs to
+    /// </summary>
+    public Node Node => Client?.PrimaryNode;
     
     /// <summary>
     /// Pushes this version of this model to cache and optionally

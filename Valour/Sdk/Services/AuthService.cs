@@ -8,7 +8,7 @@ namespace Valour.SDK.Services;
 /// <summary>
 /// Handles tokens and authentication
 /// </summary>
-public class AuthService
+public class AuthService : ServiceBase
 {
     /// <summary>
     /// Run when the user logs in
@@ -25,11 +25,19 @@ public class AuthService
     /// </summary>
     private string _token;
 
+    private static readonly LogOptions LogOptions = new(
+        "AuthService",
+        "#0083ab",
+        "#ab0055",
+        "#ab8900"
+    );
+
     private readonly ValourClient _client;
     
     public AuthService(ValourClient client)
     {
         _client = client;
+        SetupLogging(client.Logger, LogOptions);
     }
     
     /// <summary>
@@ -43,7 +51,7 @@ public class AuthService
             Password = password
         };
         
-        var response = await _client.PostAsyncWithResponse<AuthToken>($"api/users/token", request);
+        var response = await _client.PrimaryNode.PostAsyncWithResponse<AuthToken>($"api/users/token", request);
 
         if (response.Success)
         {
@@ -60,10 +68,10 @@ public class AuthService
         if (!tokenResult.Success)
             return tokenResult;
         
-        return await LoginAsync(Token);
+        return await LoginAsync();
     }
     
-    public async Task<TaskResult> LoginAsync(string token)
+    public async Task<TaskResult> LoginAsync()
     {
         // Ensure any existing auth headers are removed
         if (_client.Http.DefaultRequestHeaders.Contains("authorization"))
@@ -74,7 +82,7 @@ public class AuthService
         // Add auth header to main http client so we never have to do that again
         _client.Http.DefaultRequestHeaders.Add("authorization", Token);
         
-        var response = await _client.GetJsonAsync<User>($"api/users/self");
+        var response = await _client.PrimaryNode.GetJsonAsync<User>($"api/users/self");
 
         if (!response.Success)
             return response.WithoutData();

@@ -57,11 +57,11 @@ public class Node : ServiceBase // each node acts like a service
     /// </summary>
     private static Timer _onlineTimer;
     
-    private readonly ValourClient _client;
+    public ValourClient Client { get; private set; } 
     
     public Node(ValourClient client)
     {
-        _client = client;
+        Client = client;
     }
     
     public async Task InitializeAsync(string name, bool isPrimary = false)
@@ -76,16 +76,16 @@ public class Node : ServiceBase // each node acts like a service
             "#fc8403"
         );
         
-        SetupLogging(_client.Logger, logOptions);
+        SetupLogging(Client.Logger, logOptions);
 
-        NodeManager.AddNode(this);
+        Client.NodeService.AddNode(this);
 
         HttpClient = new HttpClient();
-        HttpClient.BaseAddress = new Uri(_client.BaseAddress);
+        HttpClient.BaseAddress = new Uri(Client.BaseAddress);
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
-        HttpClient.DefaultRequestHeaders.Add("Authorization", _client.AuthService.Token);
+        HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
 
         Log("Setting up new hub connection...");
 
@@ -507,6 +507,30 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object con
     try
     {
         var response = await HttpClient.PostAsync(_client.BaseAddress + uri, jsonContent);
+
+        if (response.IsSuccessStatusCode)
+            return await TryDeserializeResponse<T>(response, uri);
+
+        var msg = await response.Content.ReadAsStringAsync();
+        LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+        
+        return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - POST {uri}:", ex);
+        return TaskResult<T>.FromFailure(ex);
+    }
+}
+
+/// <summary>
+/// Posts an empty request to the specified URI and returns the deserialized response.
+/// </summary>
+public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
+{
+    try
+    {
+        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, null);
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);

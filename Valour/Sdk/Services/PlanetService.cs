@@ -8,7 +8,7 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public class PlanetService
+public class PlanetService : ServiceBase
 {
     /// <summary>
     /// Run when a planet connection opens
@@ -59,6 +59,13 @@ public class PlanetService
     public IReadOnlyDictionary<string, long> PlanetLocks { get; private set; }
     private readonly Dictionary<string, long> _planetLocks = new();
 
+    private readonly LogOptions _logOptions = new(
+        "PlanetChannelService",
+        "#3381a3",
+        "#a3333e",
+        "#a39433"
+    );
+    
     private readonly ValourClient _client;
     
     public PlanetService(ValourClient client)
@@ -79,8 +86,24 @@ public class PlanetService
         PlanetLocks = _planetLocks;
         ConnectedPlanetsLookup = _connectedPlanetsLookup;
         
+        // Setup logging
+        SetupLogging(client.Logger, _logOptions);
+        
         // Setup reconnect logic
         _client.NodeService.NodeReconnected += OnNodeReconnect;
+    }
+    
+    /// <summary>
+    /// Retrieves and returns a client planet by requesting from the server
+    /// </summary>
+    public async ValueTask<Planet> FetchPlanetAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && Planet.Cache.TryGet(id, out var cached))
+            return cached;
+        
+        var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
+        
+        return planet?.Sync();
     }
     
     /// <summary>
@@ -335,7 +358,7 @@ public class PlanetService
         foreach (var planet in _connectedPlanets.Where(x => x.NodeName == node.Name))
         {
             await node.HubConnection.SendAsync("JoinPlanet", planet.Id);
-            await node.Log($"Rejoined SignalR group for planet {planet.Id}", "lime");
+            Log($"Rejoined SignalR group for planet {planet.Id}");
         }
     }
     

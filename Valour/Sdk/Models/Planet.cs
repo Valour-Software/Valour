@@ -2,6 +2,7 @@
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
+using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -17,8 +18,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public override string BaseRoute =>
         ISharedPlanet.BaseRoute;
 
+    private Node _node;
     public override Node Node => 
-        NodeManager.GetNodeFromName(NodeName); // Planets have node known
+        _node; // Planets have node known if they are connected
 
     // Cached values
 
@@ -242,22 +244,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         return channel?.Sync();
     }
     
-    /// <summary>
-    /// Retrieves and returns a client planet by requesting from the server
-    /// </summary>
-    public static async ValueTask<Planet> FetchAsync(long id, bool skipCache = false)
-    {
-        if (!skipCache && Cache.TryGet(id, out var cached))
-            return cached;
-
-        var node = await NodeManager.GetNodeForPlanetAsync(id);
-        var planet = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
-
-        return planet?.Sync();
-    }
-
-    
     #endregion
+    
+    public void SetNode(Node node)
+    {
+        _node = node;
+    }
+    
 
     protected override void OnDeleted()
     {

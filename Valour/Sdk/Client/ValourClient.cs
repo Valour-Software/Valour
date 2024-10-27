@@ -7,6 +7,7 @@ using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Client;
 
@@ -82,7 +83,7 @@ public class ValourClient
     /// Run when the client browser is refocused
     /// TODO: Nothing browser-related should be in SDK.
     /// </summary>
-    public event Func<Task> OnRefocus;
+    public HybridEvent Refocused;
 
     /// <summary>
     /// Run when a channel sends a watching update
@@ -183,15 +184,14 @@ public class ValourClient
 
     #region SignalR Events
 
-    public async Task HandleRefocus()
+    public void HandleRefocus()
     {
         foreach (var node in NodeManager.Nodes)
         {
-            await node.ForceRefresh();
+            node.ForceRefresh();
         }
         
-        if (OnRefocus is not null)
-            await OnRefocus.Invoke();
+        Refocused?.Invoke();
     }
 
     public async Task HandleChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
