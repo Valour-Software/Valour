@@ -41,9 +41,8 @@ public static class ModelUpdater
         HashSetPool.Return(propsChanged);
     }
     
-    public static void AddPositionChange<TModel, TId>(ISortableModel<TModel, TId> oldModel, ISortableModel<TModel, TId> newModel, ModelUpdateEvent<TModel> eventData) 
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    public static void AddPositionChange<TModel>(ISortableModel<TModel> oldModel, ISortableModel<TModel> newModel, ModelUpdateEvent<TModel> eventData) 
+        where TModel : ClientModel<TModel>
     {
         if (oldModel.GetSortPosition() != newModel.GetSortPosition())
         {
@@ -55,9 +54,8 @@ public static class ModelUpdater
         }
     }
     
-    public static void AddPositionChange<TModel, TId>(TModel oldModel, TModel newModel, ModelUpdateEvent<TModel> eventData) 
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    public static void AddPositionChange<TModel>(TModel oldModel, TModel newModel, ModelUpdateEvent<TModel> eventData) 
+        where TModel : ClientModel<TModel>
     {
         return;
     }
@@ -65,9 +63,8 @@ public static class ModelUpdater
     /// <summary>
     /// Updates a model's properties and returns the global instance
     /// </summary>
-    public static TModel UpdateItem<TModel, TId>(TModel updated, TModel cached, int flags, bool skipEvent = false) 
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    public static TModel UpdateItem<TModel>(TModel updated, TModel cached, int flags, bool skipEvent = false) 
+        where TModel : ClientModel<TModel>
     {
         // Create object for event data
         var eventData = new ModelUpdateEvent<TModel>()
@@ -90,7 +87,7 @@ public static class ModelUpdater
             }
             
             // Check position change
-            AddPositionChange<TModel, TId>(cached, updated, eventData);
+            AddPositionChange<TModel>(cached, updated, eventData);
             
             // Update local copy
             // This uses the cached property info to avoid expensive reflection

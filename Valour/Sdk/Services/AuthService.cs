@@ -61,6 +61,11 @@ public class AuthService : ServiceBase
 
         return response.WithoutData();
     }
+    
+    public void SetToken(string token)
+    {
+        _token = token;
+    }
 
     public async Task<TaskResult> LoginAsync(string email, string password)
     {

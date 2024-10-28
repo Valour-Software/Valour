@@ -4,7 +4,7 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public class MessageService
+public class MessageService : ServiceBase
 {
     /// <summary>
     /// Run when a message is received
@@ -21,11 +21,21 @@ public class MessageService
     /// </summary>
     public HybridEvent<Message> MessageDeleted;
     
+    private readonly LogOptions _logOptions = new(
+        "PlanetChannelService",
+        "#3381a3",
+        "#a3333e",
+        "#a39433"
+    );
+    
     private readonly ValourClient _client;
+    private readonly CacheService _cache;
     
     public MessageService(ValourClient client)
     {
         _client = client;
+        _cache = client.Cache;
+        SetupLogging(client.Logger, _logOptions);
     }
     
     /// <summary>
@@ -39,13 +49,13 @@ public class MessageService
     /// </summary>
     public void OnPlanetMessageReceived(Message message)
     {
-        Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
+        Log($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
         {
-            message.ReplyTo = message.ReplyTo.Sync();
+            message.ReplyTo = _cache.Sync(message.ReplyTo);
         }
         
-        var cached = message.Sync();
+        var cached = _cache.Sync(message);
 
         MessageReceived?.Invoke(cached);
     }
@@ -55,13 +65,13 @@ public class MessageService
     /// </summary>
     public void OnPlanetMessageEdited(Message message)
     {
-        Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
+        Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
         {
-            message.ReplyTo = message.ReplyTo.Sync();
+            message.ReplyTo = _cache.Sync(message.ReplyTo);
         }
 
-        var cached = message.Sync();
+        var cached = _cache.Sync(message);
         
         MessageEdited?.Invoke(cached);
     }
@@ -71,14 +81,14 @@ public class MessageService
     /// </summary>
     public void OnDirectMessageReceived(Message message)
     {
-        Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
+        Log($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         
         if (message.ReplyTo is not null)
         {
-            message.ReplyTo = message.ReplyTo.Sync();
+            message.ReplyTo = _cache.Sync(message.ReplyTo);
         }
         
-        var cached = message.Sync();
+        var cached = _cache.Sync(message);
         
         MessageReceived?.Invoke(cached);
     }
@@ -88,13 +98,13 @@ public class MessageService
     /// </summary>
     public void OnDirectMessageEdited(Message message)
     {
-        Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
+        Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
         {
-            message.ReplyTo = message.ReplyTo.Sync();
+            message.ReplyTo = _cache.Sync(message.ReplyTo);
         }
         
-        var cached = message.Sync();
+        var cached = _cache.Sync(message);
         
         MessageEdited?.Invoke(cached);
     }

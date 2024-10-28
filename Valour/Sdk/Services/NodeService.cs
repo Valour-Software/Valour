@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Utilities;
@@ -7,15 +6,17 @@ namespace Valour.SDK.Services;
 
 public class NodeService : ServiceBase
 {
+    public HybridEvent<Node> NodeAdded;
+    public HybridEvent<Node> NodeRemoved;
     public HybridEvent<Node> NodeReconnected;
-    
-    public IReadOnlyList<Node> Nodes { get; init; }
+
+    public readonly IReadOnlyList<Node> Nodes;
     private readonly List<Node> _nodes = new();
-    
-    public IReadOnlyDictionary<long, string> PlanetToNodeName { get; init; }
+
+    public readonly IReadOnlyDictionary<long, string> PlanetToNodeName;
     private readonly Dictionary<long, string> _planetToNodeName = new();
-    
-    public IReadOnlyDictionary<string, Node> NameToNode { get; init; }
+
+    public readonly IReadOnlyDictionary<string, Node> NameToNode;
     private readonly Dictionary<string, Node> _nameToNode = new();
     
     private readonly ValourClient _client;
@@ -79,12 +80,17 @@ public class NodeService : ServiceBase
         return node;
     }
 
-    public void AddNode(Node node)
+    public void RegisterNode(Node node)
     {
         _nameToNode[node.Name] = node;
 
-        if (!Nodes.Any(x => x.Name == node.Name))
-            Nodes.Add(node);
+        if (_nodes.All(x => x.Name != node.Name))
+            _nodes.Add(node);
+    }
+    
+    public void SetKnownByPlanet(long planetId, string nodeName)
+    {
+        _planetToNodeName[planetId] = nodeName;
     }
 
     public async ValueTask<Node> GetNodeForPlanetAsync(long planetId)
@@ -111,12 +117,12 @@ public class NodeService : ServiceBase
         // If we don't already know about this node, create it and link it
         if (node is null) {
 
-            node = new Node();
-            await node.InitializeAsync(name, ValourClient.Token);
+            node = new Node(_client);
+            await node.InitializeAsync(name);
         }
                 
         // Set planet to node
-        PlanetToNodeName[planetId] = name;
+        _planetToNodeName[planetId] = name;
 
         return node;
     }

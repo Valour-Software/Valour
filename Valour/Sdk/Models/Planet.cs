@@ -2,6 +2,7 @@
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
+using Valour.Sdk.Requests;
 using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -176,7 +177,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     
     #endregion
     
-    #region Finding Planet Models
+    #region Planet Sub-Model CRUD
     
     /// <summary>
     /// Returns the member for the given id
@@ -188,7 +189,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         
         var member = (await Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
         
-        return member?.Sync();
+        return Client.Cache.Sync(member);
     }
     
     /// <summary>
@@ -204,17 +205,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         
         var member = (await Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{Id}/{userId}", true)).Data;
 
-        return member?.Sync();
+        return Client.Cache.Sync(member);
     }
     
     public async Task<PlanetRole> FetchRoleAsync(long id, bool skipCache = false)
     {
-        if (!skipCache && PlanetRole.Cache.TryGet(id, out var cached))
+        if (!skipCache && Client.Cache.PlanetRoles.TryGet(id, out var cached))
             return cached;
         
         var role = (await Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.BaseRoute}/{id}")).Data;
         
-        return role?.Sync();
+        return Client.Cache.Sync(role);
     }
     
     /// <summary>
@@ -223,7 +224,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public async ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, bool skipCache = false)
     {
         if (!skipCache && 
-            PermissionsNode.PermissionNodeIdLookup.TryGetValue(key, out var id) &&
+            Client.Cache.PermNodeKeyToId.TryGetValue(key, out var id) &&
             PermissionsNodes.TryGet(id, out var cached))
             return cached;
         
@@ -231,7 +232,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
                 ISharedPermissionsNode.GetIdRoute(key.TargetId, key.RoleId, key.TargetType), 
                 true)).Data;
         
-        return permNode?.Sync();
+        return Client.Cache.Sync(permNode);
     }
     
     public async ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false)
@@ -241,7 +242,15 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         
         var channel = (await Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id), skipCache)).Data;
 
-        return channel?.Sync();
+        return Client.Cache.Sync(channel);
+    }
+    
+    /// <summary>
+    /// Used to create channels. Allows specifying permissions nodes.
+    /// </summary>
+    public async Task<TaskResult<Channel>> CreateChannelWithDetails(CreateChannelRequest request)
+    {
+        return await Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
     }
     
     #endregion
@@ -271,10 +280,16 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public override Planet AddToCacheOrReturnExisting()
     {
-        NodeManager.PlanetToNode[Id] = NodeName;
-        return base.AddToCacheOrReturnExisting();
+        Client.NodeService.SetKnownByPlanet(Id, NodeName);
+        return Client.Cache.Planets.Put(Id, this);
     }
-    
+
+    public override Planet TakeAndRemoveFromCache()
+    {
+        Client.Cache.Planets.Remove(Id);
+        return this;
+    }
+
     private void ClearChannels(bool skipEvent = false)
     {
         Channels.Clear(skipEvent);

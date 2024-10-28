@@ -35,8 +35,6 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     public override string IdRoute => ISharedPermissionsNode.GetIdRoute(this);
     public override string BaseRoute => ISharedPermissionsNode.BaseRoute;
     
-    public static readonly Dictionary<PermissionsNodeKey, long> PermissionNodeIdLookup = new();
-    
     /// <summary>
     /// The planet this node belongs to
     /// </summary>

@@ -1,5 +1,4 @@
-﻿using Valour.Sdk.Client;
-using Valour.Sdk.ModelLogic.Exceptions;
+﻿using Valour.Sdk.ModelLogic.Exceptions;
 using Valour.Sdk.Nodes;
 
 namespace Valour.Sdk.ModelLogic;
@@ -8,7 +7,8 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
     where TSelf : ClientPlanetModel<TSelf, TId>
     where TId : IEquatable<TId>
 {
-    private Planet _planet;
+    private Planet _planet;    
+    protected abstract long? GetPlanetId();
 
     /// <summary>
     /// The Planet this model belongs to.
@@ -26,9 +26,8 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
             var planetId = GetPlanetId(); // Get the planet id from the model
             if (planetId is null || planetId == -1) // If the id is null or -1, the model is not associated with a planet
                 return null;
-                    
-            _planet ??= Planet.Cache.Get(planetId.Value); // Try to assign from cache
             
+            Client.Cache.Planets.TryGet(planetId.Value, out _planet); // Try to assign from cache
             if (_planet is null) // If it wasn't in cache, throw an exception. Should have loaded the planet first.
                 throw new PlanetNotLoadedException(planetId.Value, this);
             
@@ -36,18 +35,19 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
             return _planet;
         }
     }
-    
-    public override Node Node => GetNodeForPlanet(GetPlanetId());
-    
-    public static Node GetNodeForPlanet(long? planetId)
-    {
-        if (planetId is null || planetId == -1)
-            return ValourClient.PrimaryNode;
-        
-        return NodeManager.GetKnownByPlanet(planetId.Value);
-    }
 
-    public abstract long? GetPlanetId();
+    public override Node Node
+    {
+        get
+        {
+            var planetId = GetPlanetId();
+            
+            if (planetId is null || planetId == -1)
+                return Client.PrimaryNode;
+            
+            return Client.NodeService.GetKnownByPlanet(planetId.Value);
+        }
+    }
 }
 
 

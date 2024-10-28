@@ -38,11 +38,6 @@ public class Node : ServiceBase // each node acts like a service
     public bool IsReconnecting { get; private set; }
     
     /// <summary>
-    /// True if this node is ready to send and recieve requests
-    /// </summary>
-    public bool IsReady { get; private set; }
-    
-    /// <summary>
     /// True if this is the primary node for this client
     /// </summary>
     public bool IsPrimary { get; private set; }
@@ -56,12 +51,14 @@ public class Node : ServiceBase // each node acts like a service
     /// Timer that updates the user's online status
     /// </summary>
     private static Timer _onlineTimer;
-    
-    public ValourClient Client { get; private set; } 
+
+    private readonly ValourClient _client;
+    private readonly NodeService _nodeService;
     
     public Node(ValourClient client)
     {
-        Client = client;
+        _client = client;
+        _nodeService = client.NodeService;
     }
     
     public async Task InitializeAsync(string name, bool isPrimary = false)
@@ -76,24 +73,22 @@ public class Node : ServiceBase // each node acts like a service
             "#fc8403"
         );
         
-        SetupLogging(Client.Logger, logOptions);
+        SetupLogging(_client.Logger, logOptions);
 
-        Client.NodeService.AddNode(this);
+        _client.NodeService.RegisterNode(this);
 
         HttpClient = new HttpClient();
-        HttpClient.BaseAddress = new Uri(Client.BaseAddress);
+        HttpClient.BaseAddress = new Uri(_client.BaseAddress);
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
-        HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
+        HttpClient.DefaultRequestHeaders.Add("Authorization", _client.AuthService.Token);
 
         Log("Setting up new hub connection...");
 
         await ConnectSignalRHub();
         await AuthenticateSignalR();
         await ConnectToUserChannel();
-        
-        IsReady = true;
     }
 
     private async Task ConnectToUserChannel()
@@ -187,6 +182,10 @@ public class Node : ServiceBase // each node acts like a service
         await HubConnection.StartAsync();
 
         HookSignalREvents();
+        
+        // Call event so services can hook into hub events
+        _nodeService.NodeAdded?.Invoke(this);
+        
         BeginPings();
     }
 
@@ -233,7 +232,7 @@ public class Node : ServiceBase // each node acts like a service
         where TModel : ClientModel<TModel, TId>
         where TId : IEquatable<TId>
     {
-        model.Sync(true, flags);
+        _client.Cache.Sync(model, true, flags);
     }
     
     private void OnModelDelete<TModel, TId>(TModel model)
@@ -294,8 +293,6 @@ public class Node : ServiceBase // each node acts like a service
         HubConnection.On<FriendEventData>("RelayFriendEvent", _client.FriendService.OnFriendEventReceived);
         
         HubConnection.On<Message>("DeleteMessage", _client.MessageService.OnMessageDeleted);
-        HubConnection.On<ChannelStateUpdate>("Channel-State", _client.ChannelStateService.OnChannelStateUpdated);
-        HubConnection.On<UserChannelState>("UserChannelState-Update", _client.ChannelStateService.OnUserChannelStateUpdated);
         HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", _client.HandleChannelWatchingUpdateRecieved);
         HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", _client.HandleChannelCurrentlyTypingUpdateRecieved);
         HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", _client.HandlePersonalEmbedUpdate);
@@ -583,6 +580,32 @@ public async Task<TaskResult> PostAsync(string uri, string content)
     try
     {
         var response = await HttpClient.PostAsync(_client.BaseAddress + uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+            return TaskResult.FromSuccess(msg);
+
+        LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+        return TaskResult.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - POST {uri}:", ex);
+        return TaskResult.FromFailure(ex);
+    }
+}
+
+/// <summary>
+/// Posts a resource to the specified URI and returns the status.
+/// </summary>
+public async Task<TaskResult> PostAsync<T>(string uri, T content)
+{
+    // create json content
+    var jsonContent = JsonContent.Create(content);
+
+    try
+    {
+        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)

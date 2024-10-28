@@ -33,6 +33,7 @@ public class ValourClient
     // Services //
     //////////////
     
+    public CacheService Cache { get; private set; }
     public BotService BotService { get; private set; }
     public AuthService AuthService { get; private set; }
     public ChannelStateService ChannelStateService { get; private set; }
@@ -121,6 +122,7 @@ public class ValourClient
         else 
             Logger = logger;
         
+        Cache = new CacheService(this);
         AuthService = new AuthService(this);
         NodeService = new NodeService(this);
         FriendService = new FriendService(this);
@@ -186,7 +188,7 @@ public class ValourClient
 
     public void HandleRefocus()
     {
-        foreach (var node in NodeManager.Nodes)
+        foreach (var node in NodeService.Nodes)
         {
             node.ForceRefresh();
         }
@@ -231,7 +233,7 @@ public class ValourClient
         uint pos = 0;
         foreach (var data in eventData.Order)
         {
-            if (Channel.Cache.TryGet(data.Id, out var channel))
+            if (Cache.Channels.TryGet(data.Id, out var channel))
             {
                 Console.WriteLine($"{pos}: {channel.Name}");
 
@@ -258,8 +260,10 @@ public class ValourClient
     /// </summary>
     public async Task<TaskResult> InitializeUser(string token)
     {
+        AuthService.SetToken(token);
+        
         // Login to Valour
-        var userResult = await AuthService.LoginAsync(token);
+        var userResult = await AuthService.LoginAsync();
         if (!userResult.Success)
             return userResult;
         

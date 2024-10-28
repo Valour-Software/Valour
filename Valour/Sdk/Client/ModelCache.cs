@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Sdk.ModelLogic;
+using Valour.SDK.Services;
 
 namespace Valour.Sdk.Client;
 
@@ -10,10 +11,9 @@ namespace Valour.Sdk.Client;
 */
 
 public class ModelCache<TModel, TId> 
-    where TModel : ClientModel
+    where TModel : ClientModel<TModel, TId>
     where TId : IEquatable<TId>
 {
-    
     private readonly ConcurrentDictionary<TId, TModel> _innerCache = new();
     
     /// <summary>

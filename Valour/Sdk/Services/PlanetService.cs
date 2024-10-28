@@ -73,7 +73,7 @@ public class PlanetService : ServiceBase
         _client = client;
         
         // Add victor dummy member
-        PlanetMember.Cache.PutReplace(long.MaxValue, new PlanetMember()
+        _client.Cache.PlanetMembers.PutReplace(long.MaxValue, new PlanetMember()
         {
             Nickname = "Victor",
             Id = long.MaxValue,
@@ -98,7 +98,7 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async ValueTask<Planet> FetchPlanetAsync(long id, bool skipCache = false)
     {
-        if (!skipCache && Planet.Cache.TryGet(id, out var cached))
+        if (!skipCache && _client.Cache.Planets.TryGet(id, out var cached))
             return cached;
         
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
@@ -170,7 +170,7 @@ public class PlanetService : ServiceBase
         sw.Start();
 
         // Get node for planet
-        var node = await NodeManager.GetNodeForPlanetAsync(planet.Id);
+        var node = await _client.NodeService.GetNodeForPlanetAsync(planet.Id);
 
         List<Task> tasks = new();
 
