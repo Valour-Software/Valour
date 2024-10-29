@@ -1,4 +1,5 @@
 ﻿@implements IAsyncDisposable
+@inject ValourClient ValourClient
 @inject ISyncLocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
 @using Valour.Client.Pages
@@ -19,6 +20,8 @@
     
     [Parameter]
     public StartScreenData StartData { get; set; }
+
+    public ValourClient Client { get; private set; }
     
     public WindowLayout Layout { get; private set; }
 
@@ -37,6 +40,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Client = ValourClient;
+        
         WindowService.AddDock(this);
 
         var loaded = false;

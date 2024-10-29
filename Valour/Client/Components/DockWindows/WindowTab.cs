@@ -44,8 +44,8 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planet = await Planet.FetchAsync(PlanetId.Value);
-            await ValourClient.TryClosePlanetConnection(planet, Id);
+            var planetService = Tab.Layout.DockComponent.Client.PlanetService;
+            await planetService.TryClosePlanetConnection(PlanetId.Value, Tab.Id);
         }
     }
     
@@ -53,8 +53,8 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planet = await Planet.FetchAsync(PlanetId.Value);
-            await ValourClient.OpenPlanetConnection(planet, Id);
+            var planetService = Tab.Layout.DockComponent.Client.PlanetService;
+            await planetService.TryOpenPlanetConnection(PlanetId.Value, Id);
         }
     }
     
@@ -255,8 +255,8 @@ public class WindowTab
     {
         if (Content?.PlanetId is not null)
         {
-            var planet = await Planet.FetchAsync(Content.PlanetId.Value);
-            await ValourClient.OpenPlanetConnection(planet, Id);
+            var planetService = Layout.DockComponent.Client.PlanetService;
+            await planetService.TryOpenPlanetConnection(Content.PlanetId.Value, Id);
         }
     }
     

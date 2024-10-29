@@ -585,7 +585,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         
         if (PlanetId is not null)
         {
-            var member = await Planet.GetSelfMemberAsync();
+            var member = await Planet.FetchSelfMemberAsync();
             msg.AuthorMemberId = member.Id;
         }
         

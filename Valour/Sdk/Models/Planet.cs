@@ -547,7 +547,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// Returns the member for the current user in this planet (if it exists)
     /// </summary>
-    public ValueTask<PlanetMember> GetSelfMemberAsync(bool skipCache = false)
+    public ValueTask<PlanetMember> FetchSelfMemberAsync(bool skipCache = false)
     {
         return FetchMemberByUserAsync(Client.Self.Id, skipCache);
     }

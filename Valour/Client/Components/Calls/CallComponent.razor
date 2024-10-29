@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@inject ValourClient Client
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
 @if (ActiveChannel is not null)
@@ -127,7 +128,7 @@
 
         ActiveChannel = channel;
 
-        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, channel.PlanetId!.Value);
+        SelfMember = await channel.Planet.FetchSelfMemberAsync();
 
         _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
         
@@ -164,7 +165,7 @@
     {
         var data = new EditUserComponent.ModalParams()
         {
-            User = ValourClient.Self,
+            User = Client.Self,
             StartTopMenu = "General Settings",
             StartSubMenu = "Device Preferences"
         };

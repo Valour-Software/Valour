@@ -45,7 +45,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await ValourClient.GetReferralsAsync();
+        var result = await ValourClient.GetSelfReferralsAsync();
         _referrals = result.Data;
         StateHasChanged();
     }

@@ -1,12 +1,7 @@
 ﻿namespace Valour.Shared.Models.Economy;
 
-public interface ISharedEcoAccount
+public interface ISharedEcoAccount : ISharedModel<long>
 {
-    /// <summary>
-    /// The database id of this economy account
-    /// </summary>
-    long Id { get; set; }
-    
     /// <summary>
     /// The name of the account
     /// </summary>

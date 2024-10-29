@@ -1,3 +1,5 @@
+@inject ValourClient Client
+
 @if (!string.IsNullOrWhiteSpace(_transactionId))
 {
     <h5>Success!</h5>
@@ -154,14 +156,16 @@ else
     private async Task OnClickCreateAccount()
     {
         _errorSpan = null;
-        
-        var result = await ClientModel.CreateAsync(new EcoAccount()
+
+        var account = new EcoAccount()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
-            UserId = ValourClient.Self.Id,
+            UserId = Client.Self.Id,
             AccountType = AccountType.User,
             CurrencyId = ISharedCurrency.ValourCreditsId,
-        });
+        };
+        
+        var result = await account.
         
         if (!result.Success)
         {

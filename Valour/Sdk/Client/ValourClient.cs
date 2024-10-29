@@ -1,10 +1,7 @@
-using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.SDK.Services;
 using Valour.Shared;
-using Valour.Shared.Channels;
 using Valour.Shared.Models;
-using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Client;
 
@@ -128,17 +125,7 @@ public class ValourClient
             BaseAddress = new Uri(BaseAddress)
         };
     }
-    
-    public async Task<TaskResult<List<EcoAccount>>> GetEcoAccountsAsync()
-    {
-        return await PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
-    }
-    
-    public async Task<TaskResult<List<ReferralDataModel>>> GetReferralsAsync()
-    {
-        return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/self/referrals");
-    }
-    
+
     /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
@@ -169,15 +156,19 @@ public class ValourClient
         
         return TaskResult.SuccessResult;
     }
+        
+    public async Task<TaskResult<List<ReferralDataModel>>> GetSelfReferralsAsync()
+    {
+        return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/self/referrals");
+    }
     
-
-    public async Task<TaskResult> UpdatePasswordAsync(string oldPassword, string newPassword) {
+    public async Task<TaskResult> UpdateSelfPasswordAsync(string oldPassword, string newPassword) {
         var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };
         return await PrimaryNode.PostAsync("api/users/self/password", model);
     }
     
     // Sad zone
-    public async Task<TaskResult> DeleteAccountAsync(string password)
+    public async Task<TaskResult> DeleteSelfAccountAsync(string password)
     {
         var model = new DeleteAccountModel() { Password = password };
         return await PrimaryNode.PostAsync("api/users/self/hardDelete", model);

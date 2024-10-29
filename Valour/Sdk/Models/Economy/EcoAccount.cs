@@ -1,6 +1,6 @@
 using System.Web;
 using Valour.Sdk.Client;
-using Valour.Sdk.Nodes;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
@@ -20,7 +20,7 @@ namespace Valour.Sdk.Models.Economy;
 /// If you have a currency with two decimal places, and you attempt to 
 /// subtract 0.333... from cash, it will end up subtracting 0.33.
 /// </summary>
-public class EcoAccount : ClientModel, ISharedEcoAccount
+public class EcoAccount : ClientModel<EcoAccount, long>, ISharedEcoAccount
 {
     public override string BaseRoute => "api/eco/accounts";
 

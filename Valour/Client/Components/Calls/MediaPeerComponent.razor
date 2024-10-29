@@ -139,7 +139,7 @@
 
         if (long.TryParse(split[1], out var memberId))
         {
-            _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId!.Value);
+            _member = await Parent.ActiveChannel.Planet.FetchMemberAsync(memberId);
             _name = await _member.GetNameAsync();
 
             _user = await _member.GetUserAsync();

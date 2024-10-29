@@ -33,7 +33,7 @@
 
 	private async Task OnConfirm()
 	{
-		var result = await ValourClient.DeleteAccountAsync(_password);
+		var result = await ValourClient.DeleteSelfAccountAsync(_password);
 		if (result.Success)
 		{
 			NavManager.NavigateTo("/", true);

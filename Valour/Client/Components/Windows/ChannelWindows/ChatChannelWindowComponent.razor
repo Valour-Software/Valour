@@ -89,7 +89,7 @@
         if (Channel.PlanetId is not null)
         {
             _planet = await Channel.GetPlanetAsync();
-            _selfMember = await _planet.GetSelfMemberAsync();
+            _selfMember = await _planet.FetchSelfMemberAsync();
 
             _planet.Deleted += OnPlanetDeleted;
             _selfMember.Deleted += OnSelfMemberDeleted;

@@ -59,10 +59,10 @@ public class MessageService : ServiceBase
     public async Task<TaskResult> SendMessage(Message message)
         => await message.PostMessageAsync();
     
-    /// <summary>
+    /// <summars>
     /// Ran when a message is recieved
     /// </summary>
-    public void OnPlanetMessageReceived(Message message)
+    private void OnPlanetMessageReceived(Message message)
     {
         Log($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -78,7 +78,7 @@ public class MessageService : ServiceBase
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public void OnPlanetMessageEdited(Message message)
+    private void OnPlanetMessageEdited(Message message)
     {
         Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -94,7 +94,7 @@ public class MessageService : ServiceBase
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public void OnDirectMessageReceived(Message message)
+    private void OnDirectMessageReceived(Message message)
     {
         Log($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         
@@ -111,7 +111,7 @@ public class MessageService : ServiceBase
     /// <summary>
     /// Ran when a message is edited
     /// </summary>
-    public void OnDirectMessageEdited(Message message)
+    private void OnDirectMessageEdited(Message message)
     {
         Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
         if (message.ReplyTo is not null)
@@ -124,17 +124,17 @@ public class MessageService : ServiceBase
         MessageEdited?.Invoke(cached);
     }
 
-    public void OnMessageDeleted(Message message)
+    private void OnMessageDeleted(Message message)
     {
         MessageDeleted?.Invoke(message);
     }
     
-    public void OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
+    private void OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
     {
         PersonalEmbedUpdate?.Invoke(update);
     }
 
-    public void OnChannelEmbedUpdate(ChannelEmbedUpdate update)
+    private void OnChannelEmbedUpdate(ChannelEmbedUpdate update)
     {
         ChannelEmbedUpdate?.Invoke(update);
     }

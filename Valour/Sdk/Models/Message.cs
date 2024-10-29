@@ -312,7 +312,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     
                     if (selfMember is null)
                     {
-                        selfMember = await Planet.GetSelfMemberAsync();
+                        selfMember = await Planet.FetchSelfMemberAsync();
                     }
                     
                     if (mention.TargetId == selfMember.Id)
@@ -329,7 +329,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     {
                         if (selfMember is null)
                         {
-                            selfMember = await Planet.GetSelfMemberAsync();
+                            selfMember = await Planet.FetchSelfMemberAsync();
                         }
                         
                         selfRoles = await selfMember.GetRolesAsync();

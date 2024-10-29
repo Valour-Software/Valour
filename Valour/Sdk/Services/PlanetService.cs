@@ -96,7 +96,7 @@ public class PlanetService : ServiceBase
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public async ValueTask<Planet> FetchPlanetAsync(long id, bool skipCache = false)
+    public async ValueTask<Planet> FetchAsync(long id, bool skipCache = false)
     {
         if (!skipCache && _client.Cache.Planets.TryGet(id, out var cached))
             return cached;
@@ -135,7 +135,20 @@ public class PlanetService : ServiceBase
     /// </summary>
     public bool IsPlanetConnected(Planet planet) =>
         ConnectedPlanets.Any(x => x.Id == planet.Id);
-    
+
+    /// <summary>
+    /// Opens a planet and prepares it for use
+    /// </summary>
+    public Task<TaskResult> TryOpenPlanetConnection(long planetId, string key)
+    {
+        if (!_client.Cache.Planets.TryGet(planetId, out var planet))
+        {
+            return Task.FromResult(TaskResult.FromFailure("Planet not found"));
+        }
+        
+        return TryOpenPlanetConnection(planet, key);
+    }
+
     /// <summary>
     /// Opens a planet and prepares it for use
     /// </summary>
@@ -212,7 +225,20 @@ public class PlanetService : ServiceBase
         
         return TaskResult.SuccessResult;
     }
-    
+
+    /// <summary>
+    /// Closes a SignalR connection to a planet
+    /// </summary>
+    public Task<TaskResult> TryClosePlanetConnection(long planetId, string key, bool force = false)
+    {
+        if (!_client.Cache.Planets.TryGet(planetId, out var planet))
+        {
+            return Task.FromResult(TaskResult.FromFailure("Planet not found"));
+        }
+        
+        return TryClosePlanetConnection(planet, key, force);
+    }
+
     /// <summary>
     /// Closes a SignalR connection to a planet
     /// </summary>
@@ -326,7 +352,7 @@ public class PlanetService : ServiceBase
     public async Task<TaskResult> LeavePlanetAsync(Planet planet)
     {
         // Get member
-        var member = await planet.GetSelfMemberAsync();
+        var member = await planet.FetchSelfMemberAsync();
         var result = await member.DeleteAsync();
 
         if (result.Success)
