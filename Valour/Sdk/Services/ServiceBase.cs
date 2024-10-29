@@ -1,3 +1,5 @@
+using Valour.Shared;
+
 namespace Valour.SDK.Services;
 
 public class LogOptions
@@ -35,6 +37,19 @@ public abstract class ServiceBase
     protected void LogError(string message)
     {
         _logger.Log(_logOptions.Prefix, message, _logOptions.ErrorColor);
+    }
+    
+    protected void LogError(string message, ITaskResult result)
+    {
+        _logger.Log(_logOptions.Prefix, message + "\n \n" + result.Message, _logOptions.ErrorColor);
+    }
+
+    protected void LogIfError(string message, ITaskResult result)
+    {
+        if (result.Success)
+            return;
+        
+        LogError(message + "\n \n" + result.Message);
     }
     
     protected void LogError(string message, Exception ex)

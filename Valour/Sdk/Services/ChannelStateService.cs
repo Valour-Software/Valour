@@ -97,7 +97,7 @@ public class ChannelStateService : ServiceBase
     public bool GetChannelUnreadState(long channelId)
     {
         // TODO: this will act weird with multiple tabs
-        if (_client.PlanetChannelService.IsChannelConnected(channelId))
+        if (_client.ChannelService.IsChannelConnected(channelId))
             return false;
 
         if (!_channelsLastViewedState.TryGetValue(channelId, out var lastRead))

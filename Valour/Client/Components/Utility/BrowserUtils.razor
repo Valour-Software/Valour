@@ -1,11 +1,11 @@
 @using Valour.SDK.Services
+@inject ValourClient Client
 @implements IAsyncDisposable
+@inject LoggingService Logger
+@inject NodeService NodeService
 @inject IJSRuntime JsRuntime
 
 @code {
-    [Parameter]
-    public LoggingService Logger { get; set; }
-    
     private static DotNetObjectReference<BrowserUtils> _dotnetRef;
     private static  IJSInProcessObjectReference _jsModule;
     
@@ -72,6 +72,13 @@
         WindowDimensions = dimensions;
         if (OnWindowResize is not null)
             await OnWindowResize.Invoke(dimensions);
+    }
+    
+    [JSInvokable("OnRefocus")]
+    public void OnRefocus()
+    {
+        Logger.Log("BUtils", "Detected refocus event.", "cyan");
+        NodeService.CheckConnections();
     }
 
     public async ValueTask DisposeAsync()

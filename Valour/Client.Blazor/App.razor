@@ -1,5 +1,4 @@
-﻿@using Valour.Shared
-@using Valour.Sdk.Client
+﻿@using Valour.Sdk.Client
 @using Valour.Client.Device
 @using Valour.Client.Layout
 @using Valour.Client.Components.Utility
@@ -12,10 +11,12 @@
 @using Valour.Client.Components.DockWindows
 @using Valour.SDK.Services
 
+@inject ValourClient Client
+@inject LoggingService Logger
 @inject IJSRuntime JsRuntime
 @inject ILocalStorageService LocalStorage
 
-<BrowserUtils Logger="@_logger" />
+<BrowserUtils />
 
 <UpdateBanner />
 
@@ -52,31 +53,25 @@ else
 }
 
 @code{
-
-    public static ValourClient Client;
-    
-    // Private because you should be using Client.Logger
-    private LoggingService _logger;
-    
     private bool _triedInitialLogin;
 
     protected override async Task OnInitializedAsync()
     {
-        _logger = new LoggingService(false);
-        _logger.AddColorLogger(Log); // Add 
-        
+        Logger.AddColorLogger(Log); // Add 
         await DevicePreferences.LoadPreferences(LocalStorage);
-        _logger.Log("App", "Loaded user preferences", "magenta");
+        Logger.Log("App", "Loaded user preferences", "magenta");
     }
 
     // Runs when page is initialized
     private async Task FirstRenderAsync()
     {
         var uriData = await BrowserUtils.GetUriData();
-        _logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
+        Logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
         
-        // Setup client with hostname and logger
-        Client = new ValourClient(uriData.Origin, _logger);
+        // Set the origin for the client
+        // We do this here because while the value is assumed in Program.cs here
+        // we have access to the JS runtime to get the actual value
+        Client.SetOrigin(uriData.Origin);
         
         _ = JsRuntime.InvokeAsync<object>(
             "blazorFuncs.registerClient",
@@ -145,6 +140,7 @@ else
         _ = JsRuntime.InvokeVoidAsync($"Log", $"[{prefix}] {msg}", color);
     }
 
+    /* TODO: Fix push subscriptions
     [JSInvokable("NotifyPushSub")]
     public static async Task NotifyPushSub(string endpoint, string key, string auth)
     {
@@ -160,4 +156,5 @@ else
         var response = await Client.PrimaryNode.PostAsyncWithResponse<TaskResult>($"Notification/SubmitSubscription", not);
         Console.WriteLine(response.Message);
     }
+    */
 }

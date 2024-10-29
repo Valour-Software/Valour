@@ -283,21 +283,11 @@ public class Node : ServiceBase // each node acts like a service
             
             Log($"Registered ClientModel type: {type.Name}");
         }
-
-        HubConnection.On<Message>("Relay", _client.MessageService.OnPlanetMessageReceived);
-        HubConnection.On<Message>("RelayEdit", _client.MessageService.OnPlanetMessageEdited);
-        HubConnection.On<Message>("RelayDirect", _client.MessageService.OnDirectMessageReceived);
-        HubConnection.On<Message>("RelayDirectEdit", _client.MessageService.OnDirectMessageEdited);
+        
         HubConnection.On<Notification>("RelayNotification", _client.NotificationService.OnNotificationReceived);
         HubConnection.On("RelayNotificationsCleared", _client.NotificationService.OnNotificationsCleared);
         HubConnection.On<FriendEventData>("RelayFriendEvent", _client.FriendService.OnFriendEventReceived);
-        
-        HubConnection.On<Message>("DeleteMessage", _client.MessageService.OnMessageDeleted);
-        HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", _client.HandleChannelWatchingUpdateRecieved);
-        HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", _client.HandleChannelCurrentlyTypingUpdateRecieved);
-        HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", _client.HandlePersonalEmbedUpdate);
-		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", _client.HandleChannelEmbedUpdate);
-        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", _client.HandleCategoryOrderUpdate);
+
 
 		Log("Item Events hooked.");
     }
@@ -305,7 +295,7 @@ public class Node : ServiceBase // each node acts like a service
     /// <summary>
     /// Forces SignalR to refresh the underlying connection
     /// </summary>
-    public void ForceRefresh()
+    public void CheckConnection()
     {
         LogWarning("Refresh has been requested.");
         LogWarning("SignalR state is " + HubConnection.State);

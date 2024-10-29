@@ -41,7 +41,7 @@ public class NotificationService
     
     public async Task LoadUnreadNotificationsAsync()
     {
-        var response = await _client.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
 
         if (!response.Success)
             return;
@@ -54,7 +54,7 @@ public class NotificationService
         // Add to cache
         foreach (var notification in notifications)
         {
-            var cached = notification.Sync();
+            var cached = _client.Cache.Sync(notification);
             
             // Only add if unread
             if (notification.TimeRead is not null)
@@ -91,7 +91,7 @@ public class NotificationService
 
     public void OnNotificationReceived(Notification notification)
     {
-        var cached = notification.Sync();   
+        var cached = _client.Cache.Sync(notification);   
         
         if (cached.TimeRead is null)
         {

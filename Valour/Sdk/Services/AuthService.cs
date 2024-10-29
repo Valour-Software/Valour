@@ -98,4 +98,19 @@ public class AuthService : ServiceBase
 
         return new TaskResult(true, "Success");
     }
+    
+    /// <summary>
+    /// Sets the compliance data for the current user
+    /// </summary>
+    public async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
+    {
+        var result = await _client.PrimaryNode.PostAsync($"api/users/self/compliance/{birthDate.ToString("s")}/{locality}", null);
+        var taskResult = new TaskResult()
+        {
+            Success = result.Success,
+            Message = result.Message
+        };
+
+        return taskResult;
+    }
 }

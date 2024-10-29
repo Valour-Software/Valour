@@ -10,6 +10,7 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
@@ -43,6 +44,16 @@ public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
 
 public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, ISharedChannel
 {
+    /// <summary>
+    /// Run when a channel sends a watching update
+    /// </summary>
+    public HybridEvent<ChannelWatchingUpdate> WatchingUpdated;
+
+    /// <summary>
+    /// Run when a channel sends a currently typing update
+    /// </summary>
+    public HybridEvent<ChannelTypingUpdate> TypingUpdated;
+    
     // Cached values
     // Will only be used for planet channels
     private List<User> _memberUsers;
@@ -51,7 +62,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     /// Cached parent which should be linked when channels are received
     /// </summary>
     public Channel Parent { get; set; }
-
+    
     public override string BaseRoute => ISharedChannel.BaseRoute;
 
     /////////////////////////////////
@@ -595,7 +606,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await Client.PlanetChannelService.TryOpenPlanetChannelConnection(this, key);
+                await Client.ChannelService.TryOpenPlanetChannelConnection(this, key);
                 break;
             case ChannelTypeEnum.DirectChat:
                 await UpdateUserState(DateTime.UtcNow); // Update the user state
@@ -610,7 +621,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await Client.PlanetChannelService.TryClosePlanetChannelConnection(this, key);
+                await Client.ChannelService.TryClosePlanetChannelConnection(this, key);
                 break;
             default:
                 break;

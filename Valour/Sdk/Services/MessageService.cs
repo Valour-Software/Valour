@@ -1,4 +1,7 @@
-﻿using Valour.Sdk.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Valour.Sdk.Client;
+using Valour.Sdk.Models.Messages.Embeds;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Utilities;
 
@@ -21,8 +24,18 @@ public class MessageService : ServiceBase
     /// </summary>
     public HybridEvent<Message> MessageDeleted;
     
+    /// <summary>
+    /// Run when a personal embed update is received
+    /// </summary>
+    public HybridEvent<PersonalEmbedUpdate> PersonalEmbedUpdate;
+
+    /// <summary>
+    /// Run when a channel embed update is received
+    /// </summary>
+    public HybridEvent<ChannelEmbedUpdate> ChannelEmbedUpdate;
+    
     private readonly LogOptions _logOptions = new(
-        "PlanetChannelService",
+        "MessageService",
         "#3381a3",
         "#a3333e",
         "#a39433"
@@ -36,6 +49,8 @@ public class MessageService : ServiceBase
         _client = client;
         _cache = client.Cache;
         SetupLogging(client.Logger, _logOptions);
+        
+        _client.NodeService.NodeAdded += HookHubEvents;
     }
     
     /// <summary>
@@ -112,5 +127,26 @@ public class MessageService : ServiceBase
     public void OnMessageDeleted(Message message)
     {
         MessageDeleted?.Invoke(message);
+    }
+    
+    public void OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
+    {
+        PersonalEmbedUpdate?.Invoke(update);
+    }
+
+    public void OnChannelEmbedUpdate(ChannelEmbedUpdate update)
+    {
+        ChannelEmbedUpdate?.Invoke(update);
+    }
+    
+    private void HookHubEvents(Node node)
+    {
+        node.HubConnection.On<Message>("Relay", OnPlanetMessageReceived);
+        node.HubConnection.On<Message>("RelayEdit", OnPlanetMessageEdited);
+        node.HubConnection.On<Message>("RelayDirect", OnDirectMessageReceived);
+        node.HubConnection.On<Message>("RelayDirectEdit", OnDirectMessageEdited);
+        node.HubConnection.On<Message>("DeleteMessage", _client.MessageService.OnMessageDeleted);
+        node.HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", OnPersonalEmbedUpdate);
+        node.HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", OnChannelEmbedUpdate);
     }
 }

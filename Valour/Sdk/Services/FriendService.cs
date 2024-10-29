@@ -5,30 +5,39 @@ using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public class FriendService
+public class FriendService : ServiceBase
 {
     /// <summary>
     /// Run when there is a friend event
     /// </summary>
     public HybridEvent<FriendEventData> FriendsUpdated;
-    
+
     /// <summary>
     /// The friends of this client
     /// </summary>
-    public List<User> Friends { get; set; }
+    public readonly List<User> Friends = new();
 
     /// <summary>
     /// The fast lookup set for friends
     /// </summary>
-    public Dictionary<long, User> FriendLookup { get; set; }
-    public List<User> FriendRequests { get; set; }
-    public List<User> FriendsRequested { get; set; }
+    public readonly Dictionary<long, User> FriendLookup = new();
+    public readonly List<User> FriendRequests = new();
+    public readonly List<User> FriendsRequested = new ();
+    
+    private static readonly LogOptions LogOptions = new (
+	    "FriendService",
+	    "#036bfc",
+	    "#fc0356",
+	    "#fc8403"
+    );
     
     private readonly ValourClient _client;
-    
+    private readonly CacheService _cache;
     public FriendService(ValourClient client)
     {
 	    _client = client;
+	    _cache = client.Cache;
+	    SetupLogging(client.Logger, LogOptions);
     }
     
     /// <summary>
@@ -40,26 +49,24 @@ public class FriendService
 
 	    if (!friendResult.Success)
 	    {
-		    await Logger.Log("Error loading friends.", "red");
-		    await Logger.Log(friendResult.Message, "red");
+		    LogError("Error loading friends.");
+		    LogError(friendResult.Message);
 		    return;
 	    }
 
 	    var data = friendResult.Data;
 	    
-	    var cachedAdded = new List<User>();
-	    var cachedAddedBy = new List<User>();
+	    FriendRequests.Clear();
+	    FriendsRequested.Clear();
 
 	    foreach (var added in data.Added)
-		    cachedAdded.Add(added.Sync());
+		    FriendRequests.Add(_cache.Sync(added));
 
 	    foreach (var addedBy in data.AddedBy)
-		    cachedAddedBy.Add(addedBy.Sync());
+		    FriendsRequested.Add(_cache.Sync(addedBy));
 
-	    Friends = new();
-	    FriendLookup = new();
-	    FriendRequests = cachedAddedBy;
-	    FriendsRequested = cachedAdded;
+	    Friends.Clear();
+	    FriendLookup.Clear();
 
 	    foreach (var req in FriendRequests)
 	    {
@@ -76,7 +83,7 @@ public class FriendService
 		    FriendsRequested.RemoveAll(x => x.Id == friend.Id);
 	    }
 
-	    await Logger.Log($"Loaded {Friends.Count} friends.", "cyan");
+	    Log($"Loaded {Friends.Count} friends.");
 	    
 	    FriendsUpdated?.Invoke(new FriendEventData()
 	    {

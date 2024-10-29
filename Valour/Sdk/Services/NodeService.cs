@@ -22,7 +22,7 @@ public class NodeService : ServiceBase
     private readonly ValourClient _client;
     
     private static readonly LogOptions LogOptions = new (
-        "Node Service",
+        "NodeService",
         "#036bfc",
         "#fc0356",
         "#fc8403"
@@ -127,4 +127,11 @@ public class NodeService : ServiceBase
         return node;
     }
 
+    public void CheckConnections()
+    {
+        foreach (var node in Nodes)
+        {
+            node.CheckConnection();
+        }
+    }
 }

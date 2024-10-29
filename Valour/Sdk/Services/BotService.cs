@@ -38,8 +38,6 @@ public class BotService : ServiceBase
 
         return new TaskResult(true, "Success");
     }
-
-
     
     /// <summary>
     /// Should only be run during initialization of bots!
@@ -54,7 +52,7 @@ public class BotService : ServiceBase
         // Add to cache
         foreach (var planet in planets)
         {
-            var cached = planet.Sync();
+            var cached = _client.Cache.Sync(planet);
             await planet.FetchChannelsAsync();
             
             planetTasks.Add(Task.Run(async () =>
@@ -65,7 +63,7 @@ public class BotService : ServiceBase
                 
                 foreach (var channel in planet.Channels)
                 {
-                    channelTasks.Add(_client.PlanetChannelService.TryOpenPlanetChannelConnection(channel, "bot-init"));
+                    channelTasks.Add(_client.ChannelService.TryOpenPlanetChannelConnection(channel, "bot-init"));
                 }
                 
                 await Task.WhenAll(channelTasks);

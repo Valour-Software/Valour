@@ -3,19 +3,28 @@ using Valour.Shared;
 
 namespace Valour.SDK.Services;
 
-public class TenorService
+public class TenorService : ServiceBase
 {
     /// <summary>
     /// The Tenor favorites of this user
     /// </summary>
-    public IReadOnlyList<TenorFavorite> TenorFavorites { get; private set; }
+    public readonly IReadOnlyList<TenorFavorite> TenorFavorites;
     private List<TenorFavorite> _tenorFavorites = new();
+    
+    private readonly LogOptions _logOptions = new(
+        "PlanetService",
+        "#3381a3",
+        "#a3333e",
+        "#a39433"
+    );
     
     private readonly ValourClient _client;
     
     public TenorService(ValourClient client)
     {
         _client = client;
+        
+        SetupLogging(client.Logger, _logOptions);
         
         TenorFavorites = _tenorFavorites;
     }
@@ -25,15 +34,14 @@ public class TenorService
         var response = await _client.PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/users/self/tenorfavorites");
         if (!response.Success)
         {
-            _client.Log("TenorService", "** Failed to load Tenor favorites **", "red");
-            _client.Log("TenorService", response.Message, "red");
+            LogError("Failed to load Tenor favorites", response);
             return;
         }
         
         _tenorFavorites.Clear();
         _tenorFavorites.AddRange(response.Data);
         
-        Console.WriteLine($"Loaded {TenorFavorites.Count} Tenor favorites");
+        Log($"Loaded {TenorFavorites.Count} Tenor favorites");
     }
     
     /// <summary>

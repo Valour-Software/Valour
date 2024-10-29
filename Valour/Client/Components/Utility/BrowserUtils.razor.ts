@@ -16,7 +16,6 @@ type UriLocation = {
     search: string;
     hash: string;
 }
-
 export const init = (dotnet: DotnetObject) => {
     const onResize = async () => {
         const dimensions = getWindowDimensions();
@@ -24,6 +23,42 @@ export const init = (dotnet: DotnetObject) => {
     };
     
     window.addEventListener('resize', onResize);
+
+    // Check if Page Visibility API is supported
+    const visibilityChangeEvent = "visibilitychange";
+    const hiddenProperty = "hidden" in document ? "hidden" : undefined;
+    let lastRefocus: Date | null = null;
+
+    // Function to handle refocus
+    const handleRefocus = async () => {
+        console.log("Refocus event detected.");
+
+        if (lastRefocus && (new Date().getTime() - lastRefocus.getTime()) < 1000) {
+            console.log("Ignoring refocus event, too soon.");
+            return;
+        }
+
+        await dotnet.invokeMethodAsync("OnRefocus");
+        lastRefocus = new Date();
+    };
+
+    // Page visibility change event listener
+    if (hiddenProperty) {
+        document.addEventListener(visibilityChangeEvent, async () => {
+            console.log("Visibility change event detected.");
+
+            if (!document[hiddenProperty as keyof Document]) {
+                // Page is visible
+                await handleRefocus();
+            }
+        });
+    }
+
+    // Window focus event listener
+    window.addEventListener("focus", async () => {
+        console.log("Window focus event detected.");
+        await handleRefocus();
+    });
 };
 
 export const getWindowDimensions = (): Dimensions => {

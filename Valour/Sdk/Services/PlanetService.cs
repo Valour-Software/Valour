@@ -34,33 +34,33 @@ public class PlanetService : ServiceBase
     /// Run when a planet is left
     /// </summary>
     public HybridEvent<Planet> PlanetLeft;
-    
+
     /// <summary>
     /// The planets this client has joined
     /// </summary>
-    public IReadOnlyList<Planet> JoinedPlanets { get; private set; }
+    public readonly IReadOnlyList<Planet> JoinedPlanets;
     private readonly List<Planet> _joinedPlanets = new();
-    
+
     /// <summary>
     /// Currently opened planets
     /// </summary>
-    public IReadOnlyList<Planet> ConnectedPlanets { get; private set; }
+    public readonly IReadOnlyList<Planet> ConnectedPlanets;
     private readonly List<Planet> _connectedPlanets = new();
-    
+
     /// <summary>
     /// Lookup for opened planets by id
     /// </summary>
-    public IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup { get; private set; }
+    public readonly IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup;
     private readonly Dictionary<long, Planet> _connectedPlanetsLookup = new();
-    
+
     /// <summary>
     /// A set of locks used to prevent planet connections from closing automatically
     /// </summary>
-    public IReadOnlyDictionary<string, long> PlanetLocks { get; private set; }
+    public readonly IReadOnlyDictionary<string, long> PlanetLocks;
     private readonly Dictionary<string, long> _planetLocks = new();
 
     private readonly LogOptions _logOptions = new(
-        "PlanetChannelService",
+        "PlanetService",
         "#3381a3",
         "#a3333e",
         "#a39433"
@@ -77,7 +77,7 @@ public class PlanetService : ServiceBase
         {
             Nickname = "Victor",
             Id = long.MaxValue,
-            MemberAvatar = "/media/victor-cyan.png"
+            MemberAvatar = "./_content/Valour.Client/media/logo/logo-256.webp"
         });
         
         // Setup readonly collections
@@ -103,7 +103,7 @@ public class PlanetService : ServiceBase
         
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
         
-        return planet?.Sync();
+        return _client.Cache.Sync(planet);
     }
     
     /// <summary>
@@ -122,7 +122,7 @@ public class PlanetService : ServiceBase
         // Add to cache
         foreach (var planet in planets)
         {
-            _joinedPlanets.Add(planet.Sync());
+            _joinedPlanets.Add(_client.Cache.Sync(planet));
         }
         
         JoinedPlanetsUpdate?.Invoke();
@@ -163,7 +163,7 @@ public class PlanetService : ServiceBase
         _connectedPlanets.Add(planet);
         _connectedPlanetsLookup[planet.Id] = planet;
 
-        Console.WriteLine($"Opening planet {planet.Name} ({planet.Id})");
+        Log($"Opening planet {planet.Name} ({planet.Id})");
 
         var sw = new Stopwatch();
 
@@ -176,10 +176,14 @@ public class PlanetService : ServiceBase
 
         // Joins SignalR group
         var result = await node.HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
-        Console.WriteLine(result.Message);
 
         if (!result.Success)
+        {
+            LogError(result.Message);
             return result;
+        }
+        
+        Log(result.Message);
 
         // Load roles early for cached speed
         await planet.LoadRolesAsync();
@@ -199,10 +203,10 @@ public class PlanetService : ServiceBase
 
         sw.Stop();
 
-        Console.WriteLine($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
+        Log($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
 
         // Log success
-        Console.WriteLine($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
+        Log($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
 
         PlanetConnected?.Invoke(planet);
         
@@ -243,7 +247,7 @@ public class PlanetService : ServiceBase
         _connectedPlanets.Remove(planet);
         _connectedPlanetsLookup.Remove(planet.Id);
 
-        Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
+        Log($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 
         // Invoke event
         PlanetDisconnected?.Invoke(planet);
@@ -259,8 +263,7 @@ public class PlanetService : ServiceBase
     {
         _planetLocks[key] = planetId;
         
-        Console.WriteLine("Planet lock added.");
-        Console.WriteLine(JsonSerializer.Serialize(PlanetLocks));
+        Log($"Planet lock {key} added for {planetId}");
     }
 
     /// <summary>
@@ -271,7 +274,7 @@ public class PlanetService : ServiceBase
     {
         if (_planetLocks.TryGetValue(key, out var planetId))
         {
-            Console.WriteLine($"Planet lock {key} removed.");
+            Log($"Planet lock {key} removed for {planetId}");
             _planetLocks.Remove(key);
             return _planetLocks.Any(x => x.Value == planetId) ? 
                 ConnectionLockResult.Locked : 
@@ -346,14 +349,16 @@ public class PlanetService : ServiceBase
             return new List<Planet>();
 
         var planets = response.Data;
+        
+        var result = new List<Planet>();
 
         foreach (var planet in planets)
-            planet.Sync();
+            result.Add(_client.Cache.Sync(planet));
 
-        return planets;
+        return result;
     }
 
-    public async Task OnNodeReconnect(Node node)
+    private async Task OnNodeReconnect(Node node)
     {
         foreach (var planet in _connectedPlanets.Where(x => x.NodeName == node.Name))
         {

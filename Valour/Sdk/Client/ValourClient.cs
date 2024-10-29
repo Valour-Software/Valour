@@ -1,6 +1,3 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.SDK.Services;
@@ -32,22 +29,22 @@ public class ValourClient
     //////////////
     // Services //
     //////////////
-    
-    public CacheService Cache { get; private set; }
-    public BotService BotService { get; private set; }
-    public AuthService AuthService { get; private set; }
-    public ChannelStateService ChannelStateService { get; private set; }
-    public FriendService FriendService { get; private set; }
-    public MessageService MessageService { get; private set; }
-    public NodeService NodeService { get; private set; }
-    public PlanetService PlanetService { get; private set; }
-    public PlanetChannelService PlanetChannelService { get; private set; }
-    public DirectChannelService DirectChannelService { get; private set; }
-    public TenorService TenorService { get; private set; }
-    public LoggingService Logger { get; private set; }
-    public SubscriptionService SubscriptionService { get; private set; }
-    public NotificationService NotificationService { get; private set; }
-    
+
+    public readonly LoggingService Logger;
+    public readonly CacheService Cache;
+    public readonly BotService BotService;
+    public readonly AuthService AuthService;
+    public readonly ChannelStateService ChannelStateService;
+    public readonly FriendService FriendService;
+    public readonly MessageService MessageService;
+    public readonly NodeService NodeService;
+    public readonly PlanetService PlanetService;
+    public readonly ChannelService ChannelService;
+    public readonly TenorService TenorService;
+    public readonly SubscriptionService SubscriptionService;
+    public readonly NotificationService NotificationService;
+    public readonly EcoService EcoService;
+
     /// <summary>
     /// The base address the client is connected to
     /// </summary>
@@ -78,41 +75,6 @@ public class ValourClient
     /// </summary>
     public Node PrimaryNode { get; set; }
 
-    #region Event Fields
-
-    /// <summary>
-    /// Run when the client browser is refocused
-    /// TODO: Nothing browser-related should be in SDK.
-    /// </summary>
-    public HybridEvent Refocused;
-
-    /// <summary>
-    /// Run when a channel sends a watching update
-    /// </summary>
-    public event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
-
-    /// <summary>
-    /// Run when a channel sends a currently typing update
-    /// </summary>
-    public event Func<ChannelTypingUpdate, Task> OnChannelCurrentlyTypingUpdate;
-
-    /// <summary>
-    /// Run when a personal embed update is received
-    /// </summary>
-    public event Func<PersonalEmbedUpdate, Task> OnPersonalEmbedUpdate;
-
-    /// <summary>
-    /// Run when a channel embed update is received
-    /// </summary>
-    public event Func<ChannelEmbedUpdate, Task> OnChannelEmbedUpdate;
-
-    /// <summary>
-    /// Run when a category is reordered
-    /// </summary>
-    public event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
-
-#endregion
-
     public ValourClient(string baseAddress, LoggingService logger = null)
     {
         BaseAddress = baseAddress;
@@ -127,14 +89,23 @@ public class ValourClient
         NodeService = new NodeService(this);
         FriendService = new FriendService(this);
         MessageService = new MessageService(this);
-        DirectChannelService = new DirectChannelService(this);
         PlanetService = new PlanetService(this);
-        PlanetChannelService = new PlanetChannelService(this);
+        ChannelService = new ChannelService(this);
         ChannelStateService = new ChannelStateService(this);
         BotService = new BotService(this);
         TenorService = new TenorService(this);
         SubscriptionService = new SubscriptionService(this);
         NotificationService = new NotificationService(this);
+        EcoService = new EcoService(this);
+    }
+    
+    /// <summary>
+    /// Sets the origin of the client. Should only be called
+    /// before nodes are initialized. Origins must NOT end in a slash.
+    /// </summary>
+    public void SetOrigin(string origin)
+    {
+        BaseAddress = origin;
     }
 
     /// <summary>
@@ -158,103 +129,16 @@ public class ValourClient
         };
     }
     
-    /// <summary>
-    /// Sets the compliance data for the current user
-    /// </summary>
-    public async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
-    {
-        var result = await PrimaryNode.PostAsync($"api/users/self/compliance/{birthDate.ToString("s")}/{locality}", null);
-        var taskResult = new TaskResult()
-        {
-            Success = result.Success,
-            Message = result.Message
-        };
-
-        return taskResult;
-    }
-    
     public async Task<TaskResult<List<EcoAccount>>> GetEcoAccountsAsync()
     {
         return await PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
     }
     
-
     public async Task<TaskResult<List<ReferralDataModel>>> GetReferralsAsync()
     {
         return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/self/referrals");
     }
-
-    #region SignalR Events
-
-    public void HandleRefocus()
-    {
-        foreach (var node in NodeService.Nodes)
-        {
-            node.ForceRefresh();
-        }
-        
-        Refocused?.Invoke();
-    }
-
-    public async Task HandleChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
-    {
-        //Console.WriteLine("Watching: " + update.ChannelId);
-        //foreach (var watcher in update.UserIds)
-        //{
-        //    Console.WriteLine("- " + watcher);
-        //}
-
-        if (OnChannelWatchingUpdate is not null)
-            await OnChannelWatchingUpdate.Invoke(update);
-    }
-
-    public async Task HandleChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
-    {
-        if (OnChannelCurrentlyTypingUpdate is not null)
-            await OnChannelCurrentlyTypingUpdate.Invoke(update);
-    }
-
-    public async Task HandlePersonalEmbedUpdate(PersonalEmbedUpdate update)
-    {
-        if (OnPersonalEmbedUpdate is not null)
-            await OnPersonalEmbedUpdate.Invoke(update);
-    }
-
-    public async Task HandleChannelEmbedUpdate(ChannelEmbedUpdate update)
-    {
-        if (OnChannelEmbedUpdate is not null)
-            await OnChannelEmbedUpdate.Invoke(update);
-    }
-
-    // TODO: change
-    public async Task HandleCategoryOrderUpdate(CategoryOrderEvent eventData)
-    {
-        // Update channels in cache
-        uint pos = 0;
-        foreach (var data in eventData.Order)
-        {
-            if (Cache.Channels.TryGet(data.Id, out var channel))
-            {
-                Console.WriteLine($"{pos}: {channel.Name}");
-
-                // The parent can be changed in this event
-                channel.ParentId = eventData.CategoryId;
-
-                // Position can be changed in this event
-                channel.RawPosition = pos;
-            }
-
-            pos++;
-        }
-        
-        if (OnCategoryOrderUpdate is not null)
-            await OnCategoryOrderUpdate.Invoke(eventData);
-    }
-
-    #endregion
-
-    #region Initialization
-
+    
     /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
@@ -276,7 +160,7 @@ public class ValourClient
             FriendService.FetchesFriendsAsync(),
             PlanetService.FetchJoinedPlanetsAsync(),
             TenorService.LoadTenorFavoritesAsync(),
-            DirectChannelService.LoadDirectChatChannelsAsync(),
+            ChannelService.LoadDmChannelsAsync(),
             NotificationService.LoadUnreadNotificationsAsync()
         };
 
@@ -285,8 +169,7 @@ public class ValourClient
         
         return TaskResult.SuccessResult;
     }
-
-    #endregion
+    
 
     public async Task<TaskResult> UpdatePasswordAsync(string oldPassword, string newPassword) {
         var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };

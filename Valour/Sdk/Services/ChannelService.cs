@@ -2,12 +2,13 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
+using Valour.Shared.Channels;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.SDK.Services;
 
-public class PlanetChannelService : ServiceBase
+public class ChannelService : ServiceBase
 {
     /// <summary>
     /// Run when SignalR opens a channel
@@ -18,6 +19,11 @@ public class PlanetChannelService : ServiceBase
     /// Run when SignalR closes a channel
     /// </summary>
     public HybridEvent<Channel> ChannelClosed;
+    
+    /// <summary>
+    /// Run when a category is reordered
+    /// </summary>
+    public HybridEvent<CategoryOrderEvent> CategoryReordered;
 
     /// <summary>
     /// Currently opened channels
@@ -36,28 +42,110 @@ public class PlanetChannelService : ServiceBase
     /// </summary>
     public readonly IReadOnlyDictionary<string, long> ChannelLocks;
     private readonly Dictionary<string, long> _channelLocks = new();
+
+    /// <summary>
+    /// The direct chat channels (dms) of this user
+    /// </summary>
+    public readonly IReadOnlyList<Channel> DirectChatChannels;
+    private readonly List<Channel> _directChatChannels = new();
+
+    /// <summary>
+    /// Lookup for direct chat channels
+    /// </summary>
+    public readonly IReadOnlyDictionary<long, Channel> DirectChatChannelsLookup;
+    private readonly Dictionary<long, Channel> _directChatChannelsLookup = new();
     
     private readonly LogOptions _logOptions = new(
-        "PlanetChannelService",
+        "ChannelService",
         "#3381a3",
         "#a3333e",
         "#a39433"
     );
     
     private readonly ValourClient _client;
+    private readonly CacheService _cache;
     
-    public PlanetChannelService(ValourClient client)
+    public ChannelService(ValourClient client)
     {
         _client = client;
+        _cache = client.Cache;
         
         ConnectedPlanetChannels = _connectedPlanetChannels;
         ChannelLocks = _channelLocks;
         ConnectedPlanetChannelsLookup = _connectedPlanetChannelsLookup;
         
+        DirectChatChannels = _directChatChannels;
+        DirectChatChannelsLookup = _directChatChannelsLookup;
+        
         SetupLogging(client.Logger, _logOptions);
         
         // Reconnect channels on node reconnect
         client.NodeService.NodeReconnected += OnNodeReconnect;
+        client.NodeService.NodeAdded += HookHubEvents;
+    }
+    
+    /// <summary>
+    /// Given a user id, returns the direct channel between them and the requester.
+    /// If create is true, this will create the channel if it is not found.
+    /// </summary>
+    public async ValueTask<Channel> FetchDmChannelAsync(long otherUserId, bool create = false, bool skipCache = false)
+    {
+        var key = new DirectChannelKey(_client.Self.Id, otherUserId);
+
+        if (!skipCache &&
+            _cache.DmChannelKeyToId.TryGetValue(key, out var id) &&
+            _cache.Channels.TryGet(id, out var cached))
+            return cached;
+
+        var dmChannel = (await _client.PrimaryNode.GetJsonAsync<Channel>(
+            $"{ISharedChannel.BaseRoute}/direct/{otherUserId}?create={create}")).Data;
+
+        return _cache.Sync(dmChannel);
+    }
+    
+    public async Task LoadDmChannelsAsync()
+    {
+        var response = await _client.PrimaryNode.GetJsonAsync<List<Channel>>("api/channels/direct/self");
+        if (!response.Success)
+        {
+            LogError("Failed to load direct chat channels!");
+            LogError(response.Message);
+
+            return;
+        }
+        
+        // Clear existing
+        _directChatChannels.Clear();
+        _directChatChannelsLookup.Clear();
+        
+        foreach (var channel in response.Data)
+        {
+            // Custom cache insert behavior
+            if (channel.Members is not null && channel.Members.Count > 0)
+            {
+                var id0 = channel.Members[0].Id;
+                
+                // Self channel
+                if (channel.Members.Count == 1)
+                {
+                    var key = new DirectChannelKey(id0, id0);
+                    _cache.DmChannelKeyToId.Add(key, channel.Id);
+                }
+                // Other channel
+                else if (channel.Members.Count == 2)
+                {
+                    var id1 = channel.Members[1].Id;
+                    var key = new DirectChannelKey(id0, id1);
+                    _cache.DmChannelKeyToId.Add(key, channel.Id);
+                }
+            }
+
+            var cached = _cache.Sync(channel);
+            _directChatChannels.Add(cached);
+            _directChatChannelsLookup.Add(cached.Id, cached);
+        }
+        
+        Log($"Loaded {DirectChatChannels.Count} direct chat channels...");
     }
     
     /// <summary>
@@ -92,16 +180,20 @@ public class PlanetChannelService : ServiceBase
 
         // Join channel SignalR group
         var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
-        Console.WriteLine(result.Message);
-
+        
         if (!result.Success)
+        {
+            LogError(result.Message);
             return result;
-
+        }
+        
+        Log(result.Message);
+        
         // Add to open set
         _connectedPlanetChannels.Add(channel);
         _connectedPlanetChannelsLookup[channel.Id] = channel;
 
-        Console.WriteLine($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
+        Log($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
 
         ChannelOpened?.Invoke(channel);
         
@@ -148,7 +240,7 @@ public class PlanetChannelService : ServiceBase
         _connectedPlanetChannels.Remove(channel);
         _connectedPlanetChannelsLookup.Remove(channel.Id);
 
-        Console.WriteLine($"Left SignalR group for channel {channel.Name} ({channel.Id})");
+        Log($"Left SignalR group for channel {channel.Name} ({channel.Id})");
 
         ChannelClosed?.Invoke(channel);
 
@@ -175,7 +267,7 @@ public class PlanetChannelService : ServiceBase
     {
         if (_channelLocks.TryGetValue(key, out var channelId))
         {
-            Console.WriteLine($"Channel lock {key} removed.");
+            Log($"Channel lock {key} removed.");
             _channelLocks.Remove(key);
             return _channelLocks.Any(x => x.Value == channelId)
                 ? ConnectionLockResult.Locked
@@ -191,6 +283,52 @@ public class PlanetChannelService : ServiceBase
     public bool IsChannelConnected(long channelId) =>
         _connectedPlanetChannelsLookup.ContainsKey(channelId);
 
+    
+    // TODO: change
+    public void OnCategoryOrderUpdate(CategoryOrderEvent eventData)
+    {
+        // Update channels in cache
+        uint pos = 0;
+        foreach (var data in eventData.Order)
+        {
+            if (_client.Cache.Channels.TryGet(data.Id, out var channel))
+            {
+                // The parent can be changed in this event
+                channel.ParentId = eventData.CategoryId;
+
+                // Position can be changed in this event
+                channel.RawPosition = pos;
+            }
+
+            pos++;
+        }
+        
+        CategoryReordered?.Invoke(eventData);
+    }
+    
+    public void OnWatchingUpdate(ChannelWatchingUpdate update)
+    {
+        if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+            return;
+        
+        channel.WatchingUpdated?.Invoke(update);
+    }
+
+    public void OnTypingUpdate(ChannelTypingUpdate update)
+    {
+        if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+            return;
+        
+        channel.TypingUpdated?.Invoke(update);
+    }
+
+    private void HookHubEvents(Node node)
+    {
+        node.HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", OnCategoryOrderUpdate);
+        node.HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", OnWatchingUpdate);
+        node.HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", OnTypingUpdate);
+    }
+    
     private async Task OnNodeReconnect(Node node)
     {
         foreach (var channel in _connectedPlanetChannels.Where(x => x.Node?.Name == node.Name))

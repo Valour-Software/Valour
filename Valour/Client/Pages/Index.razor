@@ -3,11 +3,13 @@
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
 @using Valour.SDK.Services
 
+@inject ValourClient Client
+@inject AuthService AuthService
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavigationManager
 
 <!-- Check login status -->
-@if (!ValourClient.IsLoggedIn)
+@if (!Client.IsLoggedIn)
 {
 	<LoginComponent FromVerified="false"></LoginComponent>
 	return;
@@ -33,7 +35,7 @@
 						{
 							<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
 						}
-						<QuickNotifComponent></QuickNotifComponent>
+						<QuickNotifComponent />
 						@if (DeviceInfo.IsMobile)
 						{
 							<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
@@ -137,13 +139,6 @@
 	private async Task OnClickHome()
 	{
 		await WindowService.OpenWindowAtFocused(HomeWindowComponent.DefaultContent);
-	}
-
-	[JSInvokable("OnRefocus")]
-	public static async Task OnRefocus()
-	{
-		Console.WriteLine("Detected refocus event.");
-		await ValourClient.HandleRefocus();
 	}
 
 	public void ForceRefresh()
