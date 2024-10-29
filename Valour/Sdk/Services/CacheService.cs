@@ -14,6 +14,7 @@ public class CacheService
     
     public readonly Dictionary<DirectChannelKey, long> DmChannelKeyToId = new();
     public readonly Dictionary<PermissionsNodeKey, long> PermNodeKeyToId = new();
+    public readonly Dictionary<PlanetMemberKey, long> MemberKeyToId = new();
     
     //////////////////
     // Model Caches // 

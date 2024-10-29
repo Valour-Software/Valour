@@ -1,9 +1,7 @@
-﻿using Valour.Sdk.Client;
-using Valour.Sdk.ModelLogic;
+﻿using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
-using Valour.SDK.Services;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -197,7 +195,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, bool skipCache = false)
     {
-        var key = new PlanetUserKey(userId, Id);
+        var key = new PlanetMemberKey(userId, Id);
         
         if (!skipCache && PlanetMember.MemberIdLookup.TryGetValue(key, out var id) &&
             Members.TryGet(id, out var cached))
@@ -473,10 +471,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
             // Set in cache
             // Skip event for bulk loading
-            var cachedMember = info.Member.Sync(true);
+            var cachedMember = Client.Cache.Sync(info.Member, true);
             // info.Member.User = info.User; TODO: Always send user with member data
-            info.User.Sync(true);
-            
+            Client.Cache.Sync(info.User, true);
             Members.Upsert(cachedMember, true);
         }
         
@@ -494,7 +491,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         foreach (var permNode in permissionsNodes)
         {
             // Add or update in cache
-            var cached = permNode.Sync();
+            var cached = Client.Cache.Sync(permNode, true);
             PermissionsNodes.Upsert(cached, true);
         }
         
@@ -515,7 +512,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         foreach (var invite in invites)
         {
-            var cached = invite.Sync(true);
+            var cached = Client.Cache.Sync(invite, true);
             Invites.Upsert(cached, true);
         }
         
@@ -537,8 +534,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         foreach (var role in roles)
         {
             // Skip event for bulk loading
-            var cached = role.Sync(true);
-            
+            var cached = Client.Cache.Sync(role, true);
             Roles.UpsertNoSort(cached, true);
         }
         
@@ -553,7 +549,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public ValueTask<PlanetMember> GetSelfMemberAsync(bool skipCache = false)
     {
-        return FetchMemberByUserAsync(ValourClient.Self.Id, skipCache);
+        return FetchMemberByUserAsync(Client.Self.Id, skipCache);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

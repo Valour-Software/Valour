@@ -7,19 +7,19 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
-public struct PlanetUserKey : IEquatable<PlanetUserKey>
+public struct PlanetMemberKey : IEquatable<PlanetMemberKey>
 {
-    public readonly long UserId;
-    public readonly long PlanetId;
+    private readonly long _userId;
+    private readonly long _planetId;
     
-    public PlanetUserKey(long userId, long planetId)
+    public PlanetMemberKey(long userId, long planetId)
     {
-        UserId = userId;
-        PlanetId = planetId;
+        _userId = userId;
+        _planetId = planetId;
     }
     
-    public bool Equals(PlanetUserKey other) =>
-        UserId == other.UserId && PlanetId == other.PlanetId;
+    public bool Equals(PlanetMemberKey other) =>
+        _userId == other._userId && _planetId == other._planetId;
 }
 
 /*  Valour (TM) - A free and secure chat client
@@ -30,9 +30,6 @@ public struct PlanetUserKey : IEquatable<PlanetUserKey>
 
 public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanetMember
 {
-    // Extra cache for userid-planetid
-    public static readonly Dictionary<PlanetUserKey, long> MemberIdLookup = new();
-
     public override string BaseRoute =>
         ISharedPlanetMember.BaseRoute;
     
@@ -41,13 +38,13 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public long PlanetId { get; set; }
 
-    public override long? GetPlanetId()
+    protected override long? GetPlanetId()
         => PlanetId;
 
     /// <summary>
     /// The member's roles
     /// </summary>
-    public SortedReactiveModelStore<PlanetRole, long> Roles { get; private set; } = new();
+    public readonly SortedReactiveModelStore<PlanetRole, long> Roles = new();
     
     /// <summary>
     /// The primary role of the member
@@ -75,8 +72,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public string MemberAvatar { get; set; }
     
-    
-    
     protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         Planet?.OnMemberUpdated(eventData);
@@ -89,19 +84,20 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     
     public override PlanetMember AddToCacheOrReturnExisting()
     {
-        var key = new PlanetUserKey(UserId, PlanetId);
-        MemberIdLookup[key] = Id;
+        var key = new PlanetMemberKey(UserId, PlanetId);
+        Client.Cache.MemberKeyToId[key] = Id;
         
-        return base.AddToCacheOrReturnExisting();
+        return Client.Cache.PlanetMembers.Put(Id, this);
     }
 
     public override PlanetMember TakeAndRemoveFromCache()
     {
-        var key = new PlanetUserKey(UserId, PlanetId);
-        MemberIdLookup.Remove(key);
-        
-        return base.TakeAndRemoveFromCache();
-    }
+        var key = new PlanetMemberKey(UserId, PlanetId);
+        Client.Cache.MemberKeyToId.Remove(key);
+
+        Client.Cache.PlanetMembers.Remove(Id);
+        return this;
+    }   
 
     public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {

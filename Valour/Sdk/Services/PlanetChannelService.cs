@@ -18,23 +18,23 @@ public class PlanetChannelService : ServiceBase
     /// Run when SignalR closes a channel
     /// </summary>
     public HybridEvent<Channel> ChannelClosed;
-    
+
     /// <summary>
     /// Currently opened channels
     /// </summary>
-    public IReadOnlyList<Channel> ConnectedPlanetChannels { get; private set; }
+    public readonly IReadOnlyList<Channel> ConnectedPlanetChannels;
     private readonly List<Channel> _connectedPlanetChannels = new();
-    
+
     /// <summary>
     /// Connected channels lookup
     /// </summary>
-    public IReadOnlyDictionary<long, Channel> ConnectedPlanetChannelsLookup { get; private set; }
+    public readonly IReadOnlyDictionary<long, Channel> ConnectedPlanetChannelsLookup;
     private readonly Dictionary<long, Channel> _connectedPlanetChannelsLookup = new();
 
     /// <summary>
     /// A set of locks used to prevent channel connections from closing automatically
     /// </summary>
-    public IReadOnlyDictionary<string, long> ChannelLocks { get; private set; }
+    public readonly IReadOnlyDictionary<string, long> ChannelLocks;
     private readonly Dictionary<string, long> _channelLocks = new();
     
     private readonly LogOptions _logOptions = new(
