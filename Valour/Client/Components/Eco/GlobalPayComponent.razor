@@ -164,8 +164,8 @@ else
             AccountType = AccountType.User,
             CurrencyId = ISharedCurrency.ValourCreditsId,
         };
-        
-        var result = await account.
+
+        var result = await account.CreateAsync();
         
         if (!result.Success)
         {
@@ -188,7 +188,7 @@ else
         Transaction transaction = new()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
-            UserFromId = ValourClient.Self.Id,
+            UserFromId = Client.Self.Id,
             AccountFromId = _globalAccount.Id,
             UserToId = _targetAccountData.UserId,
             AccountToId = _targetAccountData.AccountId,

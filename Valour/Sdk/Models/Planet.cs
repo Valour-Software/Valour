@@ -197,7 +197,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     {
         var key = new PlanetMemberKey(userId, Id);
         
-        if (!skipCache && PlanetMember.MemberIdLookup.TryGetValue(key, out var id) &&
+        if (!skipCache && Client.Cache.MemberKeyToId.TryGetValue(key, out var id) &&
             Members.TryGet(id, out var cached))
             return cached;
         
@@ -243,12 +243,30 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         return Client.Cache.Sync(channel);
     }
     
+    public async ValueTask<EcoAccount> FetchEcoAccountAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && Client.Cache.EcoAccounts.TryGet(id, out var cached))
+            return cached;
+        
+        var item = (await Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
+
+        return Client.Cache.Sync(item);
+    }
+    
+    /// <summary>
+    /// Returns a reader for the planet's shared eco accounts
+    /// </summary>
+    public PagedModelReader<EcoAccount> GetSharedEcoAccountsReader(int pageSize = 50)
+    {
+        return new PagedModelReader<EcoAccount>(Node, $"api/eco/accounts/planet/{Id}/planet", pageSize);
+    }
+    
     /// <summary>
     /// Used to create channels. Allows specifying permissions nodes.
     /// </summary>
-    public async Task<TaskResult<Channel>> CreateChannelWithDetails(CreateChannelRequest request)
+    public Task<TaskResult<Channel>> CreateChannelWithDetails(CreateChannelRequest request)
     {
-        return await Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
+        return Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
     }
     
     #endregion

@@ -19,9 +19,14 @@ public class StaffService
     public async Task<List<Report>> GetReportsAsync() =>
         await _db.Reports.Select(x => x.ToModel()).ToListAsync();
     
-    public async Task<PagedResponse<Report>> QueryReportsAsync(ReportQueryModel model, int amount, int page)
+    public async Task<PagedResponse<Report>> QueryReportsAsync(ReportQueryModel model, int skip = 0, int take = 50)
     {
-        var query = _db.Reports.AsQueryable();
+        if (take > 100)
+            take = 100;
+        
+        var query = _db.Reports
+            .AsQueryable()
+            .AsNoTracking();
 
         if (model.Filter is not null)
         {
@@ -39,7 +44,12 @@ public class StaffService
             query = query.OrderByDescending(x => x.TimeCreated);
         }
         
-        var reports = await query.Skip(amount * page).Take(amount).Select(x => x.ToModel()).ToListAsync();
+        var reports = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+        
         var total = await query.CountAsync();
         
         return new PagedResponse<Report>()

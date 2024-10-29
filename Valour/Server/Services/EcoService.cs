@@ -203,16 +203,18 @@ public class EcoService
     /// <summary>
     /// Returns the user account with the given user and planet ids
     /// </summary>
-    public async ValueTask<EcoAccount> GetUserAccountAsync(long userId, long planetId) =>
+    public async Task<EcoAccount> GetUserAccountAsync(long userId, long planetId) =>
         (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId && x.AccountType == AccountType.User)).ToModel();
 
     /// <summary>
-    /// Returns the planet accounts for the given planet id
+    /// Returns the shared accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0,
+    public async Task<PagedResponse<EcoAccount>> GetPlanetSharedAccountsAsync(long planetId, int skip = 0,
         int take = 50)
     {
-        var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId)
+        var baseQuery = _db.EcoAccounts
+            .AsNoTracking()
+            .Where(x => x.AccountType == AccountType.Shared && x.PlanetId == planetId)
             .OrderByDescending(x => x.BalanceValue);
 
         var total = await baseQuery.CountAsync();
@@ -233,9 +235,11 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public async Task<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
-        var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
+        var baseQuery = _db.EcoAccounts
+            .AsNoTracking()
+            .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
             .OrderByDescending(x => x.BalanceValue);
             
         var total = await baseQuery.CountAsync();
@@ -260,10 +264,12 @@ public class EcoService
         int skip = 0, int take = 50)
     {
         var baseQuery = 
-            _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
+            _db.EcoAccounts
+                .AsNoTracking()
+                .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
                                                          x.PlanetMemberId != null)
-            .Include(x => x.PlanetMember)
-            .OrderByDescending(x => x.BalanceValue);
+                .Include(x => x.PlanetMember)
+                .OrderByDescending(x => x.BalanceValue);
         
         var total = await baseQuery.CountAsync();
         
@@ -292,7 +298,9 @@ public class EcoService
     {
         filter = filter?.ToLower() ?? "";
 
-        IQueryable<Valour.Database.Economy.EcoAccount> query = _db.EcoAccounts.Where(x => x.PlanetId == planetId && x.Id != accountId)
+        IQueryable<Valour.Database.Economy.EcoAccount> query = _db.EcoAccounts
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId && x.Id != accountId)
             .Include(x => x.User);
         
         if (!string.IsNullOrEmpty(filter))
@@ -444,6 +452,7 @@ public class EcoService
         {
 
             var transaction = await _db.Transactions
+                .AsNoTracking()
                 .Include(x => x.UserFrom)
                 .Include(x => x.UserTo)
                 .Include(x => x.AccountFrom)
@@ -495,6 +504,7 @@ public class EcoService
     {
         // Get transactions in either direction ordered by time
         return await _db.Transactions
+            .AsNoTracking()
             .Where(x => x.AccountFromId == accountId || x.AccountToId == accountId)
             .OrderByDescending(x => x.TimeStamp)
             .Select(x => x.ToModel())

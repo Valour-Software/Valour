@@ -480,10 +480,10 @@ public class UserApi
     public static async Task<IResult> QueryUsersAsync(
         UserService userService,
         [FromBody] UserQueryModel query,
-        [FromQuery] int amount = 50,
+        [FromQuery] int take = 50,
         [FromQuery] int page = 0)
     {
-        var result = await userService.QueryUsersAsync(query.UsernameAndTag, amount * page, amount);
+        var result = await userService.QueryUsersAsync(query.UsernameAndTag, page, take);
         return Results.Json(result);
     }
 }

@@ -20,7 +20,7 @@ namespace Valour.Sdk.Models.Economy;
 /// If you have a currency with two decimal places, and you attempt to 
 /// subtract 0.333... from cash, it will end up subtracting 0.33.
 /// </summary>
-public class EcoAccount : ClientModel<EcoAccount, long>, ISharedEcoAccount
+public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
 {
     public override string BaseRoute => "api/eco/accounts";
 
@@ -45,6 +45,7 @@ public class EcoAccount : ClientModel<EcoAccount, long>, ISharedEcoAccount
     /// This will always be set
     /// </summary>
     public long PlanetId { get; set; }
+    protected override long? GetPlanetId() => PlanetId;
     
     /// <summary>
     /// The member id of the planet member this account belongs to
@@ -63,59 +64,15 @@ public class EcoAccount : ClientModel<EcoAccount, long>, ISharedEcoAccount
     /// </summary>
     public decimal BalanceValue { get; set; }
     
-    public static async ValueTask<EcoAccount> FindAsync(long id, long planetId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var cached = ModelCache<,>.Get<EcoAccount>(id);
-            if (cached != null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
-    }
-    
-    public static async ValueTask<EcoGlobalAccountSearchResult> FindGlobalIdByNameAsync(string name)
-    {
-        var node = await NodeManager.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
-        return (await node.GetJsonAsync<EcoGlobalAccountSearchResult>($"api/eco/accounts/byname/{HttpUtility.UrlEncode(name)}", true)).Data;
-    }
-
-    /// <summary>
-    /// Returns all planet accounts for the given planet id
-    /// </summary>
-    public static async Task<PagedResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50)
-    {
-        if (take > 50)
-            take = 50;
-        
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<PagedResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet?skip={skip}&take={take}")).Data;
-
-        if (accounts.Items is not null)
-        {
-            foreach (var account in accounts.Items)
-            {
-                await account.AddToCache(account);
-            }
-        }
-
-        return accounts;
-    }
-    
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public static async Task<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int page = 0, int amount = 50)
     {
-        if (take > 50)
-            take = 50;
+        if (amount > 50)
+            amount = 50;
+        
+        
         
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
         var accounts = (await node.GetJsonAsync<PagedResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;

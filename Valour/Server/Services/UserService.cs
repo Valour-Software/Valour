@@ -66,18 +66,13 @@ public class UserService
     /// <summary>
     /// Queries users by the given attributes and returns the results
     /// </summary>
-    /// <param name="usernameAndTag">The username + tag search</param>
-    /// <param name="skip">The number of results to skip</param>
-    /// <param name="take">The number of results to return</param>
-    /// <returns></returns>
     public async Task<PagedResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
     {
         if (take > 50)
-        {
             take = 50;
-        }
 
         var query = _db.Users
+            .AsNoTracking()
             .Where(x => EF.Functions.ILike((x.Name.ToLower() + "#" + x.Tag), "%" + usernameAndTag.ToLower() + "%"))
             .OrderBy(x => x.Name);
 

@@ -95,8 +95,9 @@ namespace Valour.Shared
 
         public static TaskResult<T> FromFailure(ITaskResult failure) => new(false, failure.Message, default(T), failure.Details, failure.Code);
 
-        public static TaskResult<T> FromFailure(string message, string details = null, int? code = null) => new(false, message, default(T), details, code: code);
-        public static TaskResult<T> FromFailure(string message, int? code = null) => new(false, message, default(T), null, code: code);
+        public static TaskResult<T> FromFailure(string message) => new(false, message, default(T), null, code: null);
+        public static TaskResult<T> FromFailure(string message, int? code, string details) => new(false, message, default(T), details, code: code);
+        public static TaskResult<T> FromFailure(string message, int? code) => new(false, message, default(T), null, code: code);
         public static TaskResult<T> FromFailure(Exception ex, int? code = null) => new(false, ex.Message, default(T), ex.StackTrace, code: code);
 
         public bool IsSuccessful(out T value)

@@ -32,12 +32,15 @@ public class ThemeService
     /// <summary>
     /// Returns a list of theme meta info, with optional search and pagination.
     /// </summary>
-    /// <param name="amount">The number of themes to return in the page</param>
+    /// <param name="take">The number of themes to return in the page</param>
     /// <param name="page">The page to return</param>
     /// <param name="search">Search query</param>
     /// <returns>A list of theme meta info</returns>
-    public async Task<PagedResponse<ThemeMeta>> GetThemes(int amount = 20, int page = 0, string search = null)
+    public async Task<PagedResponse<ThemeMeta>> GetThemes(int skip = 0, int take = 20, string search = null)
     {
+        if (take > 50)
+            take = 50;
+        
         var baseQuery = _db.Themes
             .AsNoTracking()
             .Where(x => x.Published);
@@ -57,8 +60,8 @@ public class ThemeService
                             x.ThemeVotes.Count(v => !v.Sentiment)
             })
             .OrderByDescending(x => x.VoteCount)
-            .Skip(amount * page)
-            .Take(amount);
+            .Skip(take * page)
+            .Take(take);
         
         var count = await mainQuery.CountAsync();
         

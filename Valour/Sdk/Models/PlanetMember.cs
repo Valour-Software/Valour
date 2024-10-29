@@ -135,7 +135,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     public async Task<bool> HasPermissionAsync(Channel channel, Permission permission) =>
         await channel.HasPermissionAsync(UserId, permission);
 
-    public async Task<bool> HasPermissionAsync(PlanetPermission permission)
+    public bool HasPermissionAsync(PlanetPermission permission)
     {
         if (Planet is null)
             return false;
@@ -143,28 +143,30 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         if (Planet.OwnerId == UserId)
             return true;
 
-        var topRole = await GetPrimaryRoleAsync();
-        return topRole.HasPermission(permission);
+        return PrimaryRole.HasPermission(permission);
     }
 
     /// <summary>
-    /// Loads all of the member's role Ids from the server
+    /// Loads the member's role Ids from the server and loads associated roles into the Roles collection
     /// </summary>
-    public async Task LoadRolesAsync(List<long> roleIds = null)
+    public async Task FetchRoleMembershipAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
             roleIds = (await Node.GetJsonAsync<List<long>>($"{IdRoute}/roles")).Data;
         
-        _roles.Clear();
-
+        Roles.Clear(true);
+        
         foreach (var id in roleIds)
         {
             var role = await Planet.FetchRoleAsync(id);
             if (role is not null)
-                _roles.Add(role);
+            {
+                Roles.UpsertNoSort(role);
+            }
         }
-
-        _roles.Sort((a, b) => a.Position.CompareTo(b.Position));
+        
+        Roles.Sort();
+        Roles.NotifySet();
     }
 
     /// <summary>
@@ -173,7 +175,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     // TODO: this is weird, going to improve this
     public async Task SetLocalRoleIds(List<long> ids) =>
-        await LoadRolesAsync(ids);
+        await FetchRoleMembershipAsync(ids);
 
     /// <summary>
     /// Returns the user of the member
@@ -191,8 +193,8 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// Returns the role color of the member
     /// </summary>
-    public async Task<string> GetRoleColorAsync(bool refresh = false) =>
-        (await GetPrimaryRoleAsync(refresh))?.Color ?? "#ffffff";
+    public string GetRoleColor() =>
+        PrimaryRole?.Color ?? "#ffffff";
 
 
     /// <summary>

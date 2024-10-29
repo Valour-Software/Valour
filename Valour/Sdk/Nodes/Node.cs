@@ -52,12 +52,12 @@ public class Node : ServiceBase // each node acts like a service
     /// </summary>
     private static Timer _onlineTimer;
 
-    private readonly ValourClient _client;
+    public ValourClient Client { get; private set; }
     private readonly NodeService _nodeService;
     
     public Node(ValourClient client)
     {
-        _client = client;
+        Client = client;
         _nodeService = client.NodeService;
     }
     
@@ -73,16 +73,16 @@ public class Node : ServiceBase // each node acts like a service
             "#fc8403"
         );
         
-        SetupLogging(_client.Logger, logOptions);
+        SetupLogging(Client.Logger, logOptions);
 
-        _client.NodeService.RegisterNode(this);
+        Client.NodeService.RegisterNode(this);
 
         HttpClient = new HttpClient();
-        HttpClient.BaseAddress = new Uri(_client.BaseAddress);
+        HttpClient.BaseAddress = new Uri(Client.BaseAddress);
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
-        HttpClient.DefaultRequestHeaders.Add("Authorization", _client.AuthService.Token);
+        HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
 
         Log("Setting up new hub connection...");
 
@@ -162,7 +162,7 @@ public class Node : ServiceBase // each node acts like a service
 
     private async Task ConnectSignalRHub()
     {
-        var address = _client.BaseAddress + "hubs/core";
+        var address = Client.BaseAddress + "hubs/core";
 
         Log("Connecting to Core hub at " + address);
 
@@ -203,7 +203,7 @@ public class Node : ServiceBase // each node acts like a service
             if (tries > 0)
                 await Task.Delay(3000);
 
-            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", _client.AuthService.Token);
+            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Client.AuthService.Token);
             authorized = response.Success;
             tries++;
         }
@@ -232,7 +232,7 @@ public class Node : ServiceBase // each node acts like a service
         where TModel : ClientModel<TModel, TId>
         where TId : IEquatable<TId>
     {
-        _client.Cache.Sync(model, true, flags);
+        Client.Cache.Sync(model, true, flags);
     }
     
     private void OnModelDelete<TModel, TId>(TModel model)
@@ -284,9 +284,9 @@ public class Node : ServiceBase // each node acts like a service
             Log($"Registered ClientModel type: {type.Name}");
         }
         
-        HubConnection.On<Notification>("RelayNotification", _client.NotificationService.OnNotificationReceived);
-        HubConnection.On("RelayNotificationsCleared", _client.NotificationService.OnNotificationsCleared);
-        HubConnection.On<FriendEventData>("RelayFriendEvent", _client.FriendService.OnFriendEventReceived);
+        HubConnection.On<Notification>("RelayNotification", Client.NotificationService.OnNotificationReceived);
+        HubConnection.On("RelayNotificationsCleared", Client.NotificationService.OnNotificationsCleared);
+        HubConnection.On<FriendEventData>("RelayFriendEvent", Client.FriendService.OnFriendEventReceived);
 
 
 		Log("Item Events hooked.");
@@ -375,7 +375,7 @@ public class Node : ServiceBase // each node acts like a service
     {
         LogWarning("SignalR has reconnected: " + data);
         await HandleReconnect();
-        _client.NodeService.NodeReconnected?.Invoke(this);
+        Client.NodeService.NodeReconnected?.Invoke(this);
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ public class Node : ServiceBase // each node acts like a service
     {
         try
         {
-            var response = await HttpClient.GetAsync(_client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
+            var response = await HttpClient.GetAsync(Client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
             
             if (response.IsSuccessStatusCode)
             {
@@ -436,7 +436,7 @@ public class Node : ServiceBase // each node acts like a service
     {
         try
         {
-            var response = await HttpClient.GetAsync(_client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
+            var response = await HttpClient.GetAsync(Client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
             var msg = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -467,7 +467,7 @@ public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object cont
 
     try
     {
-        var response = await HttpClient.PutAsync(_client.BaseAddress + uri, jsonContent);
+        var response = await HttpClient.PutAsync(Client.BaseAddress + uri, jsonContent);
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);
@@ -493,7 +493,7 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object con
 
     try
     {
-        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, jsonContent);
+        var response = await HttpClient.PostAsync(Client.BaseAddress + uri, jsonContent);
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);
@@ -517,7 +517,7 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
 {
     try
     {
-        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, null);
+        var response = await HttpClient.PostAsync(Client.BaseAddress + uri, null);
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);
@@ -543,7 +543,7 @@ public async Task<TaskResult> PutAsync(string uri, string content)
 
     try
     {
-        var response = await HttpClient.PutAsync(_client.BaseAddress + uri, stringContent);
+        var response = await HttpClient.PutAsync(Client.BaseAddress + uri, stringContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
@@ -569,7 +569,7 @@ public async Task<TaskResult> PostAsync(string uri, string content)
 
     try
     {
-        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, stringContent);
+        var response = await HttpClient.PostAsync(Client.BaseAddress + uri, stringContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
@@ -595,7 +595,7 @@ public async Task<TaskResult> PostAsync<T>(string uri, T content)
 
     try
     {
-        var response = await HttpClient.PostAsync(_client.BaseAddress + uri, jsonContent);
+        var response = await HttpClient.PostAsync(Client.BaseAddress + uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)
@@ -618,7 +618,7 @@ public async Task<TaskResult> DeleteAsync(string uri)
 {
     try
     {
-        var response = await HttpClient.DeleteAsync(_client.BaseAddress + uri);
+        var response = await HttpClient.DeleteAsync(Client.BaseAddress + uri);
         var msg = await response.Content.ReadAsStringAsync();
 
         if (response.IsSuccessStatusCode)

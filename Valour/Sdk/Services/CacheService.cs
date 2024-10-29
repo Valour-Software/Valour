@@ -1,5 +1,6 @@
 ﻿using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Models.Economy;
 
 namespace Valour.SDK.Services;
 
@@ -20,7 +21,10 @@ public class CacheService
     // Model Caches // 
     //////////////////
 
+    public readonly ModelCache<EcoAccount, long> EcoAccounts = new();
+    
     public readonly ModelCache<Channel, long> Channels = new();
+    
     public readonly ModelCache<Planet, long> Planets = new();
     public readonly ModelCache<PlanetMember, long> PlanetMembers = new();
     public readonly ModelCache<PlanetRole, long> PlanetRoles = new();

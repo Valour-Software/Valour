@@ -9,11 +9,11 @@ public class ThemeApi
     [UserRequired]
     public static async Task<IResult> GetThemes(
         ThemeService themeService,
-        [FromQuery] int amount = 20, 
-        [FromQuery] int page = 0, 
+        [FromQuery] int take = 20, 
+        [FromQuery] int skip = 0, 
         [FromQuery] string search = null)
     {
-        var themes = await themeService.GetThemes(amount, page, search);
+        var themes = await themeService.GetThemes(page, take, search);
         return Results.Json(themes);
     } 
     
