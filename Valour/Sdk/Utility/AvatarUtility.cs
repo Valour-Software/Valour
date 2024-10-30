@@ -14,7 +14,7 @@ public static class AvatarUtility
         return member.MemberAvatar;
     }
 
-    public static string GetFailedPfpUrl(User user)
+    public static string GetFailedAvatarUrl(User user)
     {
         return ISharedUser.GetFailedAvatarUrl(user);
     }

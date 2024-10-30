@@ -5,25 +5,25 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.ModelLogic;
 
-public enum ListItemChangeType
+public enum ListChangeType
 {
     Add,
     Update,
     Remove,
-}
-
-public enum ListFullChangeType
-{
     Set,
     Clear
 }
 
-public readonly struct ListChangeEvent<T>
+public readonly struct ModelStoreEvent<T>
+    where T : class
 {
-    public readonly ListItemChangeType ChangeType;
+    public static readonly ModelStoreEvent<T> Set = new(ListChangeType.Set, default);
+    public static readonly ModelStoreEvent<T> Clear = new(ListChangeType.Clear, default);
+    
+    public readonly ListChangeType ChangeType;
     public readonly T Item;
     
-    public ListChangeEvent(ListItemChangeType changeType, T item)
+    public ModelStoreEvent(ListChangeType changeType, T item)
     {
         ChangeType = changeType;
         Item = item;
@@ -37,10 +37,9 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     where TModel : ClientModel<TModel, TId>
     where TId : IEquatable<TId>
 {
-    public HybridEvent<ListChangeEvent<TModel>> ItemChange; // We don't assign because += and -= will do it
-    public HybridEvent<ListFullChangeType> ListChange;
+    public HybridEvent<ModelStoreEvent<TModel>> Changed; // We don't assign because += and -= will do it
     
-    protected List<TModel> List;
+    protected readonly List<TModel> List;
     protected Dictionary<TId, TModel> IdMap;
     public IReadOnlyList<TModel> Values;
     
@@ -58,22 +57,22 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
 
     public virtual void Upsert(TModel item, bool skipEvent = false)
     {  
-        ListItemChangeType changeType;
+        ListChangeType changeType;
         
         if (!List.Contains(item))
         {
             List.Add(item);
-            changeType = ListItemChangeType.Add;
+            changeType = ListChangeType.Add;
         }
         else
         {
-            changeType = ListItemChangeType.Update;
+            changeType = ListChangeType.Update;
         }
         
         IdMap[item.Id] = item;
         
-        if (!skipEvent && ItemChange is not null)
-            ItemChange.Invoke(new ListChangeEvent<TModel>(changeType, item));
+        if (!skipEvent && Changed is not null)
+            Changed.Invoke(new ModelStoreEvent<TModel>(changeType, item));
     }
     
     public virtual void Remove(TModel item, bool skipEvent = false)
@@ -84,8 +83,8 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         List.Remove(item);
         IdMap.Remove(item.Id);
         
-        if (!skipEvent && ItemChange is not null)
-            ItemChange.Invoke(new ListChangeEvent<TModel>(ListItemChangeType.Remove, item));
+        if (!skipEvent && Changed is not null)
+            Changed.Invoke(new ModelStoreEvent<TModel>(ListChangeType.Remove, item));
     }
     
     public virtual void Set(List<TModel> items, bool skipEvent = false)
@@ -97,16 +96,17 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         
         List.AddRange(items);
         IdMap = List.ToDictionary(x => x.Id);
-        if (!skipEvent && ListChange is not null)
-            ListChange.Invoke(ListFullChangeType.Set);
+        
+        if (!skipEvent && Changed is not null)
+            Changed.Invoke(ModelStoreEvent<TModel>.Set);
     }
     
     public virtual void Clear(bool skipEvent = false)
     {
         List.Clear();
         IdMap.Clear();
-        if (!skipEvent && ListChange is not null)
-            ListChange.Invoke(ListFullChangeType.Clear);
+        if (!skipEvent && Changed is not null)
+            Changed.Invoke(ModelStoreEvent<TModel>.Clear);
     }
     
     public bool TryGet(TId id, out TModel item)
@@ -132,17 +132,14 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     /// </summary>
     public void NotifySet()
     {
-        if (ListChange is not null)
-            ListChange.Invoke(ListFullChangeType.Set);
+        Changed?.Invoke(ModelStoreEvent<TModel>.Set);
     }
     
     public void Dispose()
     {
-        ItemChange?.Dispose();
-        ListChange?.Dispose();
+        Changed?.Dispose();
         
-        ItemChange = null;
-        ListChange = null;
+        Changed = null;
         
         List.Clear();
         IdMap.Clear();
@@ -184,7 +181,7 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
 
     public void Upsert(TModel item, bool skipEvent = false, PositionChange? positionChange = null)
     {
-        ListItemChangeType changeType;
+        ListChangeType changeType;
 
         var index = List.BinarySearch(item, ISortable.Comparer);
         if (index < 0)
@@ -193,7 +190,7 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
             index = ~index;
             List.Insert(index, item);
             IdMap[item.Id] = item;
-            changeType = ListItemChangeType.Add;
+            changeType = ListChangeType.Add;
         }
         else
         {
@@ -206,11 +203,11 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
                 List.Insert(newIndex, item);
             }
 
-            changeType = ListItemChangeType.Update;
+            changeType = ListChangeType.Update;
         }
 
-        if (!skipEvent && ItemChange is not null)
-            ItemChange?.Invoke(new ListChangeEvent<TModel>(changeType, item));
+        if (!skipEvent && Changed is not null)
+            Changed?.Invoke(new ModelStoreEvent<TModel>(changeType, item));
     }
 
 
@@ -229,37 +226,12 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
         
         Sort();
         
-        if (!skipEvent && ListChange is not null)
-            ListChange.Invoke(ListFullChangeType.Set);
+        if (!skipEvent && Changed is not null)
+            Changed.Invoke(ModelStoreEvent<TModel>.Set);
     }
 
     public void Sort()
     {
         List.Sort(ISortable.Compare);
-    }
-}
-
-public static class ReactiveListExtensions
-{
-    public static ReactiveModelStore<TModel, TId> ClearOrInit<TModel, TId>(this ReactiveModelStore<TModel,TId> modelStore)
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
-    {
-        if (modelStore is null)
-            return new ReactiveModelStore<TModel, TId>();
-        
-        modelStore.Clear();
-        return modelStore;
-    }
-    
-    public static SortedReactiveModelStore<TModel, TId> ClearOrInit<TModel, TId>(this SortedReactiveModelStore<TModel, TId> modelStore)
-        where TModel : ClientModel<TModel, TId>, ISortable
-        where TId : IEquatable<TId>
-    {
-        if (modelStore is null)
-            return new SortedReactiveModelStore<TModel, TId>();
-        
-        modelStore.Clear();
-        return modelStore;
     }
 }

@@ -28,6 +28,7 @@ public class CacheService
     public readonly ModelCache<Planet, long> Planets = new();
     public readonly ModelCache<PlanetMember, long> PlanetMembers = new();
     public readonly ModelCache<PlanetRole, long> PlanetRoles = new();
+    public readonly ModelCache<PlanetBan, long> PlanetBans = new();
     public readonly ModelCache<PermissionsNode, long> PermissionsNodes = new();
     
     private readonly ValourClient _client;

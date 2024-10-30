@@ -129,13 +129,13 @@ public class User : ClientModel<User, long>, ISharedUser
     }
     
     public async Task<TaskResult<UserProfile>> GetProfileAsync() =>
-        await ValourClient.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
+        await Node.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
 
     public async Task<TaskResult<List<User>>> GetFriendsAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"{IdRoute}/friends");
+        => await Node.GetJsonAsync<List<User>>($"{IdRoute}/friends");
 
     public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"{IdRoute}/frienddata");
+        => await Node.GetJsonAsync<UserFriendData>($"{IdRoute}/frienddata");
 
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
         ISharedUser.GetAvatarUrl(this, format);

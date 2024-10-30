@@ -1,5 +1,5 @@
 ﻿@using global::Markdig.Blazor
-@inject IJSRuntime JsRuntime
+@inject ValourClient Client
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
@@ -21,12 +21,12 @@
             @if (User.HasAnimatedAvatar)
             {
                 <style>
-                    .message:hover .author-pfp-@User.Id {
+                    .message:hover .author-avatar-@User.Id {
                         background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
                     }
                 </style>
             }
-            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-pfp author-pfp-@User.Id" @onerror="OnPfpError"></div>
+            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@User.Id" @onerror="OnAvatarError"></div>
         }
         <div class="time-container">
             <p class="time" title="@_timeTitle">
@@ -57,7 +57,7 @@
                     }
                     @if (User.Id <= 22113735421460480)
                     {
-                        <span style="font-weight: bold; font-size: 8px; margin-left: 2px; color: var(--v-purple)">1k</span>
+                        <span class="badge-1k">1k</span>
                     }
                 </div>
 
@@ -274,10 +274,8 @@
     }
 
 
-    private async Task OnEditReceived(ModelUpdateEvent eventData)
+    private async Task OnEditReceived(ModelUpdateEvent<Message> eventData)
     {
-        // Console.WriteLine("EDIT RECEIVED");
-        // Console.WriteLine(JsonSerializer.Serialize(eventData));
         await BuildMessage();
         await CloseEditMode();
     }
@@ -345,16 +343,12 @@
         if (firstRender)
         {
             // Clear notification if one exists for this message
-            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(Message.Id, out var notification);
+            var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(Message.Id, out var notification);
             if (found && notification.TimeRead is null)
             {
-                await ValourClient.MarkNotificationRead(notification, true);
+                await Client.NotificationService.MarkNotificationRead(notification, true);
             }
         }
-        
-        // #if DEBUG
-        // Console.WriteLine("Rendered message " + MessageData.Message.Id);
-        // #endif
     }
 
     public async Task OpenEditMode()
@@ -448,7 +442,7 @@
         
         if (Message is null)
         {
-            await Logger.Log("[!!!] MessageData is null", "red");
+            Client.Logger.Log("Message", "MessageData is null", "red");
             return;
         }
         
@@ -477,7 +471,7 @@
             // Hook events
             if (_member is not null) // There is a chance they were deleted
             {
-                _member.OnRoleModified += OnMemberRoleChange;
+                _member.Roles.Changed += UpdateForRoleChange;
                 _member.Updated += OnMemberUpdated;
             }
         }
@@ -506,7 +500,7 @@
         return Task.CompletedTask;
     }
 
-    public async Task OnUserUpdated(ModelUpdateEvent eventData)
+    public async Task OnUserUpdated(ModelUpdateEvent<User> eventData)
     {
         bool render = false;
 
@@ -527,14 +521,8 @@
             ReRender();
         }
     }
-    
-    /* Planet Member Only */
-    private async Task OnMemberRoleChange(MemberRoleEvent roleEvent)
-    {
-        await UpdateForRoleChange();
-    }
 
-    private async Task OnMemberUpdated(ModelUpdateEvent eventData)
+    private async Task OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         var render = false;
         
@@ -557,13 +545,11 @@
     }
     
     // Update for any role changes
-    private async Task UpdateForRoleChange()
+    private void UpdateForRoleChange(ModelStoreEvent<PlanetRole> change)
     {
-        var newPrimaryRole = await _member.GetPrimaryRoleAsync();
-
-    // Cosmetic changes
-        _nameTag = newPrimaryRole.Name;
-        _nameColor = newPrimaryRole.Color;
+        // Cosmetic changes
+        _nameTag = _member.PrimaryRole.Name;
+        _nameColor = _member.PrimaryRole.Color;
         
         ReRender();
     }
@@ -608,17 +594,17 @@
         if (_member is not null)
         {
             _member.Updated -= OnMemberUpdated;
-            _member.OnRoleModified -= OnMemberRoleChange;
+            _member.Roles.Changed -= UpdateForRoleChange;
         }
     }
 
     // Always allow a re-render when the pfp fails to load
-    private bool _pfpErrorRender = false;
+    private bool _avatarErrorRender = false;
     
-    private void OnPfpError()
+    private void OnAvatarError()
     {
-        _avatarUrl = AvatarUtility.GetFailedPfpUrl(User);
-        _pfpErrorRender = true;
+        _avatarUrl = AvatarUtility.GetFailedAvatarUrl(User);
+        _avatarErrorRender = true;
         ReRender();
     }
 
@@ -627,9 +613,9 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        if (_pfpErrorRender)
+        if (_avatarErrorRender)
         {
-            _pfpErrorRender = false;
+            _avatarErrorRender = false;
             return true;
         }
 
