@@ -2,7 +2,7 @@
 
 namespace Valour.Sdk.ModelLogic;
 
-public class PagedModelResponse<T> : PagedResponse<T>
+public class ModelQueryResponse<T> : QueryResponse<T>
     where T : ClientModel<T>
 {
     public void Sync()

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Sdk.ModelLogic;
-using Valour.SDK.Services;
+using Valour.Sdk.Services;
 
 namespace Valour.Sdk.Client;
 

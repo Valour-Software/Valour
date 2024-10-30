@@ -325,12 +325,10 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         // Owners have all permissions
         if (Planet.OwnerId == member.UserId)
             return true;
-
-        var memberRoles = await member.GetRolesAsync();
-
+        
         var viewPerm = PermissionState.Undefined;
 
-        foreach (var role in memberRoles)
+        foreach (var role in member.Roles)
         {
             var node = await GetPermNodeAsync(role.Id, permission.TargetType);
             if (node is null)
@@ -341,7 +339,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
                 break;
         }
 
-        var topRole = memberRoles.FirstOrDefault() ?? PlanetRole.DefaultRole;
+        var topRole = member.PrimaryRole ?? PlanetRole.DefaultRole;
 
         if (viewPerm == PermissionState.Undefined)
         {
@@ -354,7 +352,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             return false;
 
         // Go through roles in order
-        foreach (var role in memberRoles)
+        foreach (var role in member.Roles)
         {
             var node = await GetPermNodeAsync(role.Id, permission.TargetType);
             if (node is null)
@@ -403,8 +401,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         if (PlanetId is null)
             return null;
         
-        var member = await PlanetMember.FindAsync(memberId, PlanetId.Value);
-        var roles = await member.GetRolesAsync();
+        var member = await Planet.FetchMemberAsync(memberId);
 
         // Start with no permissions
         var dummyNode = new PermissionsNode()
@@ -425,16 +422,16 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             dummyNode.Code = Permission.FULL_CONTROL;
             return dummyNode;
         }
-
+        
         // Should be in order of most power -> least,
         // so we reverse it here
-        for (int i = roles.Count - 1; i >= 0; i--)
+        for (int i = member.Roles.Count - 1; i >= 0; i--)
         {
-            var role = roles[i];
+            var role = member.Roles[i];
             PermissionsNode node;
             // If true, we grab the parent's permission node
             if (InheritsPerms == true)
-                node = await (await GetParentAsync()).GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
+                node = await Parent.GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
             else
                 node = await GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
 
@@ -579,7 +576,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             Content = content,
             ChannelId = Id,
             PlanetId = PlanetId,
-            AuthorUserId = ValourClient.Self.Id,
+            AuthorUserId = Client.Self.Id,
             Fingerprint = Guid.NewGuid().ToString(),
         };
         

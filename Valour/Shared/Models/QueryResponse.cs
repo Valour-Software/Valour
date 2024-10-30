@@ -1,8 +1,8 @@
 namespace Valour.Shared.Models;
 
-public class PagedResponse<T>
+public class QueryResponse<T>
 {
-    public static PagedResponse<T> Empty = new PagedResponse<T>()
+    public static QueryResponse<T> Empty = new QueryResponse<T>()
     {
         Items = new List<T>(),
         TotalCount = 0

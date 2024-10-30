@@ -1,4 +1,5 @@
 @inject ValourClient Client
+@inject EcoService EcoService
 
 @if (!string.IsNullOrWhiteSpace(_transactionId))
 {
@@ -197,7 +198,7 @@ else
             Description = "Sent via Valour App (Global)",
         };
         
-        var result = await Transaction.SendTransactionAsync(transaction);
+        var result = await EcoService.SendTransactionAsync(transaction);
         if (!result.Success)
         {
             _errorSpan = result.Message;
@@ -249,7 +250,7 @@ else
 
     private async Task GetTargetAccount()
     {
-        _targetAccountData = await EcoAccount.FindGlobalIdByNameAsync(_targetName);
+        _targetAccountData = await EcoService.SearchGlobalAccountsAsync(_targetName);
     }
     
     private async Task OnClickReceipt()

@@ -13,7 +13,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
     <Version>0.3.5.91</Version>
-    <RootNamespace>Valour.SDK</RootNamespace>
+    <RootNamespace>Valour.Sdk</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup>

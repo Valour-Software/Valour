@@ -3,7 +3,7 @@ using Valour.Sdk.Client;
 using Valour.Shared;
 using Valour.Shared.Utilities;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 public class FriendService : ServiceBase
 {

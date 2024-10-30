@@ -6,7 +6,7 @@ using Valour.Shared.Channels;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 public class ChannelService : ServiceBase
 {

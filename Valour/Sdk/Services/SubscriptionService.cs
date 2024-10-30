@@ -1,7 +1,7 @@
 using Valour.Sdk.Client;
 using Valour.Shared;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 public class SubscriptionService
 {

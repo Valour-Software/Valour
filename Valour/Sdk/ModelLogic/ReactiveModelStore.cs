@@ -43,6 +43,8 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     protected Dictionary<TId, TModel> IdMap;
     public IReadOnlyList<TModel> Values;
     
+    public int Count => List.Count;
+    
     public ReactiveModelStore(List<TModel> startingList = null)
     {
         List = startingList ?? new List<TModel>();

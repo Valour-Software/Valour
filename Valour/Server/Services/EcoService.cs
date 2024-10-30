@@ -209,7 +209,7 @@ public class EcoService
     /// <summary>
     /// Returns the shared accounts for the given planet id
     /// </summary>
-    public async Task<PagedResponse<EcoAccount>> GetPlanetSharedAccountsAsync(long planetId, int skip = 0,
+    public async Task<QueryResponse<EcoAccount>> GetPlanetSharedAccountsAsync(long planetId, int skip = 0,
         int take = 50)
     {
         var baseQuery = _db.EcoAccounts
@@ -225,7 +225,7 @@ public class EcoService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedResponse<EcoAccount>()
+        return new QueryResponse<EcoAccount>()
         {
             TotalCount = total,
             Items = items
@@ -235,7 +235,7 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async Task<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public async Task<QueryResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
         var baseQuery = _db.EcoAccounts
             .AsNoTracking()
@@ -250,7 +250,7 @@ public class EcoService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedResponse<EcoAccount>()
+        return new QueryResponse<EcoAccount>()
         {
             TotalCount = total,
             Items = items
@@ -260,7 +260,7 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
+    public async ValueTask<QueryResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
         int skip = 0, int take = 50)
     {
         var baseQuery = 
@@ -283,7 +283,7 @@ public class EcoService
             })
             .ToListAsync();
 
-        return new PagedResponse<EcoAccountPlanetMember>()
+        return new QueryResponse<EcoAccountPlanetMember>()
         {
             TotalCount = total,
             Items = items

@@ -66,7 +66,7 @@ public class UserService
     /// <summary>
     /// Queries users by the given attributes and returns the results
     /// </summary>
-    public async Task<PagedResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
+    public async Task<QueryResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
     {
         if (take > 50)
             take = 50;
@@ -82,7 +82,7 @@ public class UserService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedResponse<User>()
+        return new QueryResponse<User>()
         {
             TotalCount = totalCount,
             Items = users

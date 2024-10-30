@@ -1,4 +1,5 @@
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Models.Economy;
 
@@ -7,14 +8,15 @@ namespace Valour.Sdk.Models.Economy;
 /// <summary>
 /// Currencies represent one *type* of cash, declared by a community.
 /// </summary>
-public class Currency : ClientModel, ISharedCurrency
+public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
 {
-    public override string BaseRoute => "api/eco/currencies";
+    public override string BaseRoute => ISharedCurrency.BaseRoute;
 
     /// <summary>
     /// The planet this currency belongs to
     /// </summary>
     public long PlanetId { get; set; }
+    protected override long? GetPlanetId() => PlanetId;
 
     /// <summary>
     /// The name of this currency (ie dollar)

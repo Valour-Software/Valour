@@ -8,7 +8,7 @@ using System.Text.Json;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
-using Valour.SDK.Services;
+using Valour.Sdk.Services;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;

@@ -2,7 +2,7 @@ using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Utilities;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 public class NodeService : ServiceBase
 {

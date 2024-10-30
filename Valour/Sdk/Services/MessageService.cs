@@ -5,7 +5,7 @@ using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Utilities;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 public class MessageService : ServiceBase
 {

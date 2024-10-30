@@ -9,7 +9,7 @@ namespace Valour.Sdk.Models;
 // TODO: IQueryableModel system
 
 public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnumerator<TItem>
-    where TResponse : PagedResponse<TItem>, new()
+    where TResponse : QueryResponse<TItem>, new()
 {
     private readonly string _url;
     private readonly int _pageSize;
@@ -264,7 +264,7 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
     }
 }
 
-public class PagedReader<T> : PagedReader<T, PagedResponse<T>>
+public class PagedReader<T> : PagedReader<T, QueryResponse<T>>
 {
     public PagedReader(Node node, string url, int pageSize = 20, Dictionary<string, string> parameters = null, object postData = null) : 
         base(node, url, pageSize, parameters, postData)
@@ -272,14 +272,14 @@ public class PagedReader<T> : PagedReader<T, PagedResponse<T>>
     }
 }
 
-public class PagedModelReader<TModel> : PagedReader<TModel, PagedModelResponse<TModel>>
+public class PagedModelReader<TModel> : PagedReader<TModel, ModelQueryResponse<TModel>>
     where TModel : ClientModel<TModel>
 {
     public PagedModelReader(Node node, string url, int pageSize = 20, Dictionary<string, string> parameters = null, object postData = null) : base(node, url, pageSize, parameters, postData)
     {
     }
 
-    public override void ProcessPage(PagedModelResponse<TModel> page)
+    public override void ProcessPage(ModelQueryResponse<TModel> page)
     {
         page.Sync();
     }

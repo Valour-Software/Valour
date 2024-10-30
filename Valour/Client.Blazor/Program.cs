@@ -6,7 +6,7 @@ using Valour.Client.Categories;
 using Valour.Client.Components.Sidebar.ChannelList;
 using Valour.Client.ContextMenu;
 using Valour.Client.Sounds;
-using Valour.SDK.Services;
+using Valour.Sdk.Services;
 using TenorService = Valour.Client.Tenor.TenorService;
 
 namespace Valour.Client.Blazor;

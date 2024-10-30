@@ -67,7 +67,7 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int page = 0, int amount = 50)
+    public static async Task<QueryResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int page = 0, int amount = 50)
     {
         if (amount > 50)
             amount = 50;
@@ -75,7 +75,7 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
         
         
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<PagedResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
+        var accounts = (await node.GetJsonAsync<QueryResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
 
         if (accounts.Items is not null)
         {
@@ -91,10 +91,10 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<PagedResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
+    public static async Task<QueryResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var results = (await node.GetJsonAsync<PagedResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
+        var results = (await node.GetJsonAsync<QueryResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
 
         if (results.Items is not null)
         {

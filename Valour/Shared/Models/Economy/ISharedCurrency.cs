@@ -2,6 +2,8 @@
 
 public interface ISharedCurrency
 {
+    const string BaseRoute = "api/eco/currencies";
+    
     /// <summary>
     /// Constant id for Valour Credits
     /// I would choose 0, but that's the default. So I'll choose 3, the best number.

@@ -1,7 +1,7 @@
 using Valour.Sdk.Client;
 using Valour.Shared;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 /// <summary>
 /// Provides functionality for running Valour headless bots

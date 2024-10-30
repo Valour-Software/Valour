@@ -3,7 +3,7 @@ using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 /// <summary>
 /// Handles tokens and authentication

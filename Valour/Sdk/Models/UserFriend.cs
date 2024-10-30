@@ -1,4 +1,5 @@
-﻿using Valour.Shared.Models;
+﻿using Valour.Sdk.ModelLogic;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
@@ -14,14 +15,10 @@ namespace Valour.Sdk.Models;
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public class UserFriend : ClientModel, ISharedUserFriend
+public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
 {
-    #region IPlanetModel implementation
-
-    public override string BaseRoute =>
-            $"api/userfriends";
-
-    #endregion
+    public override string BaseRoute => ISharedUserFriend.BaseRoute;
+    
     /// <summary>
     /// The id of the user who added the friend
     /// </summary>
@@ -32,4 +29,14 @@ public class UserFriend : ClientModel, ISharedUserFriend
     /// (friendzoned)
     /// </summary>
     public long FriendId { get; set; }
+
+    public override UserFriend AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.UserFriends.Put(Id, this);
+    }
+
+    public override UserFriend TakeAndRemoveFromCache()
+    {
+        return Client.Cache.UserFriends.TakeAndRemove(Id);
+    }
 }

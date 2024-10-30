@@ -14,6 +14,8 @@
 /// </summary>
 public interface ISharedUserFriend : ISharedModel
 {
+    const string BaseRoute = "api/userfriends";
+    
     /// <summary>
     /// The user who added the friend
     /// </summary>

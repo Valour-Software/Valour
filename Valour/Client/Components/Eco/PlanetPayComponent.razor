@@ -1,3 +1,6 @@
+@inject ValourClient Client
+@inject EcoService EcoService
+
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
     <p style="color: red; text-align: center; margin-top: 1em">@_majorError</p>
@@ -54,7 +57,7 @@ else
             <div class="account-select" @onclick="@(async () => await OnSelectAccount(account))">
                 @if (account.AccountType == AccountType.User)
                 {
-                    <UserInfoComponent User="@ValourClient.Self" />
+                    <UserInfoComponent User="@Client.Self" />
                     <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(account.BalanceValue)</p>
                 }
                 else
@@ -70,7 +73,7 @@ else
         <div class="selected-preview">
             @if (_selectedPlanetAccount.AccountType == AccountType.User)
             {
-                <UserInfoComponent User="@ValourClient.Self" />
+                <UserInfoComponent User="@Client.Self" />
                 <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(_selectedPlanetAccount.BalanceValue)</p>
             }
             else
@@ -188,7 +191,7 @@ else
         Transaction transaction = new()
         {
             PlanetId = _focusedPlanet.Id,
-            UserFromId = ValourClient.Self.Id,
+            UserFromId = Client.Self.Id,
             AccountFromId = _selectedPlanetAccount.Id,
             UserToId = _selectedRecipientAccount.UserId,
             AccountToId = _selectedRecipientAccount.Id,
@@ -197,7 +200,7 @@ else
             Description = "Sent via Valour App",
         };
         
-        var result = await Transaction.SendTransactionAsync(transaction);
+        var result = await EcoService.SendTransactionAsync(transaction);
         if (!result.Success)
         {
             _errorSpan = result.Message;
@@ -250,7 +253,7 @@ else
         if (_planetCurrency is null)
             return;
         
-        var accResult = await ValourClient.GetEcoAccountsAsync();
+        var accResult = await EcoService.FetchSelfEcoAccountsAsync();
         if (!accResult.Success)
         {
             _majorError = accResult.Message;
@@ -329,13 +332,15 @@ else
     {
         _errorSpan = null;
         
-        var result = await ClientModel.CreateAsync(new EcoAccount()
+        var account =new EcoAccount()
         {
             PlanetId = _focusedPlanet.Id,
-            UserId = ValourClient.Self.Id,
+            UserId = Client.Self.Id,
             AccountType = AccountType.User,
             CurrencyId = _planetCurrency.Id,
-        });
+        };
+
+        var result = await account.CreateAsync();
         
         if (!result.Success)
         {

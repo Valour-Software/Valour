@@ -19,7 +19,7 @@ public class StaffService
     public async Task<List<Report>> GetReportsAsync() =>
         await _db.Reports.Select(x => x.ToModel()).ToListAsync();
     
-    public async Task<PagedResponse<Report>> QueryReportsAsync(ReportQueryModel model, int skip = 0, int take = 50)
+    public async Task<QueryResponse<Report>> QueryReportsAsync(ReportQueryModel model, int skip = 0, int take = 50)
     {
         if (take > 100)
             take = 100;
@@ -52,7 +52,7 @@ public class StaffService
         
         var total = await query.CountAsync();
         
-        return new PagedResponse<Report>()
+        return new QueryResponse<Report>()
         {
             Items = reports,
             TotalCount = total

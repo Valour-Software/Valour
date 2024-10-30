@@ -180,7 +180,7 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetSharedAccountsAsync(planetId, page, take);
+        var accounts = await ecoService.GetPlanetSharedAccountsAsync(planetId, skip, take);
         return Results.Json(accounts);
     }
     
@@ -204,7 +204,7 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId, page, take);
+        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId, skip, take);
         return Results.Json(accounts);
     }
     
@@ -228,7 +228,7 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetUserAccountMembersAsync(planetId, page, take);
+        var accounts = await ecoService.GetPlanetUserAccountMembersAsync(planetId, skip, take);
         return Results.Json(accounts);
     }
     

@@ -36,7 +36,7 @@ public class ThemeService
     /// <param name="page">The page to return</param>
     /// <param name="search">Search query</param>
     /// <returns>A list of theme meta info</returns>
-    public async Task<PagedResponse<ThemeMeta>> GetThemes(int skip = 0, int take = 20, string search = null)
+    public async Task<QueryResponse<ThemeMeta>> GetThemes(int skip = 0, int take = 20, string search = null)
     {
         if (take > 50)
             take = 50;
@@ -77,7 +77,7 @@ public class ThemeService
             PastelCyan = x.Theme.PastelCyan
         }).ToListAsync();
         
-        return new PagedResponse<ThemeMeta>()
+        return new QueryResponse<ThemeMeta>()
         {
             Items = data,
             TotalCount = count

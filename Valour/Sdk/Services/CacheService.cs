@@ -2,7 +2,7 @@
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 /// <summary>
 /// The CacheService provides caching for the Valour client.
@@ -22,8 +22,8 @@ public class CacheService
     //////////////////
 
     public readonly ModelCache<EcoAccount, long> EcoAccounts = new();
-    
     public readonly ModelCache<Channel, long> Channels = new();
+    public readonly ModelCache<UserFriend, long> UserFriends = new();
     
     public readonly ModelCache<Planet, long> Planets = new();
     public readonly ModelCache<PlanetMember, long> PlanetMembers = new();

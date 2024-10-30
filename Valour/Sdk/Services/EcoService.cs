@@ -1,10 +1,11 @@
 using System.Web;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
 
-namespace Valour.SDK.Services;
+namespace Valour.Sdk.Services;
 
 public class EcoService : ServiceBase
 {
@@ -25,7 +26,7 @@ public class EcoService : ServiceBase
         SetupLogging(client.Logger, LogOptions);
     }
     
-    public async Task<EcoGlobalAccountSearchResult> FindGlobalIdByNameAsync(string name)
+    public async Task<EcoGlobalAccountSearchResult> SearchGlobalAccountsAsync(string name)
     {
         var node = await _client.NodeService.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
         return (await node.GetJsonAsync<EcoGlobalAccountSearchResult>($"api/eco/accounts/byname/{HttpUtility.UrlEncode(name)}", true)).Data;
@@ -36,51 +37,29 @@ public class EcoService : ServiceBase
         return await _client.PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
     }
     
-    public async Task<ItemsProviderResult<EcoAccountPlanetMember>> GetItemsAsync(ItemsProviderRequest request)
+    public async ValueTask<Transaction> FetchTransactionAsync(string id)
     {
-        var node = _planetId is null ? ValourClient.PrimaryNode : await NodeManager.GetNodeForPlanetAsync(_planetId.Value);
-
-        var result = await node.GetJsonAsync<PagedResponse<EcoAccountPlanetMember>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
-
-        if (!result.Success || result.Data.Items is null)
-            return new ItemsProviderResult<EcoAccountPlanetMember>(new List<EcoAccountPlanetMember>(), 0);
-
-        // Sync to cache and use cache instances where available
-        foreach (var item in result.Data.Items)
-        {
-            // This ensures the cache instance is used
-            if (item.Member is not null)
-            {
-                await item.Member.AddToCacheAsync(item.Member);
-                item.Member = ModelCache<,>.Get<PlanetMember>(item.Member.Id);
-            }
-
-            if (item.Account is not null)
-            {
-                await item.Account.AddToCache(item.Account);
-                item.Account = ModelCache<,>.Get<EcoAccount>(item.Account.Id);
-            }
-            
-        }
-        
-        return new ItemsProviderResult<EcoAccountPlanetMember>(result.Data.Items, result.Data.TotalCount);
-    }
-    
-    public static async ValueTask<Transaction> FindAsync(string id)
-    {
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Transaction>($"api/eco/transactions/{id}")).Data;
+        var item = (await _client.PrimaryNode.GetJsonAsync<Transaction>($"api/eco/transactions/{id}")).Data;
         return item;
     }
 
-    public static async ValueTask<TaskResult<Transaction>> SendTransactionAsync(Transaction trans)
+    public async ValueTask<TaskResult<Transaction>> SendTransactionAsync(Transaction trans)
     {
-        var node = await NodeManager.GetNodeForPlanetAsync(trans.PlanetId);
+        // We do this instead of trans.Node because it's ok to send transactions without a planet being loaded
+        // also... transactions aren't a proper model!
+        var node = await _client.NodeService.GetNodeForPlanetAsync(trans.PlanetId);
         return await node.PostAsyncWithResponse<Transaction>("api/eco/transactions", trans);
     } 
     
-    public static async ValueTask<EcoReceipt> GetReceiptAsync(string id)
+    public async ValueTask<EcoReceipt> GetReceiptAsync(string id)
     {
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<EcoReceipt>($"api/eco/transactions/{id}/receipt")).Data;
+        var item = (await _client.PrimaryNode.GetJsonAsync<EcoReceipt>($"api/eco/transactions/{id}/receipt")).Data;
         return item;
     }
+    
+    public ModelQueryEngine<EcoAccount> GetSharedAccountQueryEngine(Planet planet) =>
+        new ModelQueryEngine<EcoAccount>(planet.Node, $"api/eco/accounts/planet/{planet.Id}/planet");
+    
+    public ModelQueryEngine<EcoAccountPlanetMember> GetUserAccountQueryEngine(Planet planet) =>
+        new ModelQueryEngine<EcoAccountPlanetMember>(planet.Node, $"api/eco/accounts/planet/{planet.Id}/member"); 
 }

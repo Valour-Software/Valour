@@ -2,6 +2,7 @@
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
+using Valour.Sdk.Services;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -576,8 +577,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
         await Node.PostAsync($"{IdRoute}/planetChannels/insert", model);
 
-    public Task<PagedResponse<EcoAccount>> GetPlanetAccounts(int skip = 0, int take = 50) =>
-        EcoAccount.GetPlanetPlanetAccountsAsync(Id);
+    public ModelQueryEngine<EcoAccount> GetSharedAccountQueryEngine() =>
+        Client.EcoService.GetSharedAccountQueryEngine(this);
+    
+    public ModelQueryEngine<EcoAccountPlanetMember> GetUserAccountQueryEngine() =>
+        Client.EcoService.GetUserAccountQueryEngine(this);
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);
