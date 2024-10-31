@@ -25,7 +25,7 @@ public static class UserMapper
             Compliance = user.Compliance,
             SubscriptionType = user.SubscriptionType,
             PriorName = user.PriorName,
-            LastNameChange = user.LastNameChange
+            NameChangeTime = user.NameChangeTime
         };
     }
     
@@ -52,7 +52,7 @@ public static class UserMapper
             Compliance = user.Compliance,
             SubscriptionType = user.SubscriptionType,
             PriorName = user.PriorName,
-            LastNameChange = user.LastNameChange
+            NameChangeTime = user.NameChangeTime
         };
     }
 }

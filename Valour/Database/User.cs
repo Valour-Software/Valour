@@ -120,8 +120,8 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The date and time the user last changed their username.
     /// </summary>
-    [Column("last_name_change")]
-    public DateTime LastNameChange { get; set; }
+    [Column("name_change_time")]
+    public DateTime? NameChangeTime { get; set; }
 
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
         ISharedUser.GetAvatarUrl(this, format);

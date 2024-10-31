@@ -87,7 +87,7 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The date and time the user last changed their username.
     /// </summary>
-    public DateTime LastNameChange { get; set; }
+    public DateTime? NameChangeTime { get; set; }
 
     /// <summary>
     /// The subscription the user currently has

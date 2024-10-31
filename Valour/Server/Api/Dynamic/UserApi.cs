@@ -448,6 +448,18 @@ public class UserApi
         return Results.NoContent();
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/self/username")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> ChangeUsernameAsync(
+        [FromBody] ChangeUsernameRequest request,
+        UserService userService)
+    {
+        // Get user id
+        var user = await userService.GetCurrentUserAsync();
+        // Temporary short circuit
+        return ValourResult.Forbid("This feature is disabled for now.");
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/users/self/hardDelete")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> DeleteAccountAsync(UserService userService, [FromBody] DeleteAccountModel model)

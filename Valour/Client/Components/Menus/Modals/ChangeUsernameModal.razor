@@ -23,19 +23,23 @@
 
 @code {
     public class Params {}
+    // TODO: Implement
+    private string _changeUsernameMessage;
 
     private string _password = "";
     private string _newUsername = "";
 
     private ITaskResult _result;
-    
 
-    private void OnCancel()
+
+    private async Task OnCancel()
     {
-        return;
+        await CloseAsync();
     }
+
     private void OnConfirm()
     {
+        // TODO: Implement
         return;
     }
 }
