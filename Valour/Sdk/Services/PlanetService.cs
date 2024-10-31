@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
+using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -96,7 +97,7 @@ public class PlanetService : ServiceBase
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public async ValueTask<Planet> FetchAsync(long id, bool skipCache = false)
+    public async ValueTask<Planet> FetchPlanetAsync(long id, bool skipCache = false)
     {
         if (!skipCache && _client.Cache.Planets.TryGet(id, out var cached))
             return cached;
@@ -382,6 +383,57 @@ public class PlanetService : ServiceBase
             result.Add(_client.Cache.Sync(planet));
 
         return result;
+    }
+    
+    public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        return await FetchRoleAsync(id, planet, skipCache);
+    }
+    
+    public async ValueTask<PlanetRole> FetchRoleAsync(long id, Planet planet, bool skipCache = false)
+    {
+        if (!skipCache && _client.Cache.PlanetRoles.TryGet(id, out var cached))
+            return cached;
+        
+        var role = (await planet.Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.BaseRoute}/{id}")).Data;
+        
+        return _client.Cache.Sync(role);
+    }
+
+    public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        return await FetchMemberByUserAsync(userId, planet, skipCache);
+    }
+
+    public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, Planet planet, bool skipCache = false)
+    {
+        var key = new PlanetMemberKey(userId, planet.Id);
+        
+        if (!skipCache && _client.Cache.MemberKeyToId.TryGetValue(key, out var id) &&
+            _client.Cache.PlanetMembers.TryGet(id, out var cached))
+            return cached;
+        
+        var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
+
+        return _client.Cache.Sync(member);
+    }
+
+    public async ValueTask<PlanetMember> FetchMemberAsync(long id, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        return await FetchMemberAsync(id, planet, skipCache);
+    }
+
+    public async ValueTask<PlanetMember> FetchMemberAsync(long id, Planet planet, bool skipCache = false)
+    {
+        if (!skipCache && _client.Cache.PlanetMembers.TryGet(id, out var cached))
+            return cached;
+        
+        var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
+        
+        return _client.Cache.Sync(member);
     }
 
     private async Task OnNodeReconnect(Node node)

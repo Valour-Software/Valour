@@ -22,8 +22,10 @@ public class CacheService
     //////////////////
 
     public readonly ModelCache<EcoAccount, long> EcoAccounts = new();
+    public readonly ModelCache<Currency, long> Currencies = new();
     public readonly ModelCache<Channel, long> Channels = new();
     public readonly ModelCache<UserFriend, long> UserFriends = new();
+    public readonly ModelCache<ChannelMember, long> ChannelMembers = new();
     
     public readonly ModelCache<Planet, long> Planets = new();
     public readonly ModelCache<PlanetMember, long> PlanetMembers = new();

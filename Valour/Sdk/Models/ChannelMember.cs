@@ -17,4 +17,14 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     /// Id of the user that has this membership
     /// </summary>
     public long UserId { get; set; }
+
+    public override ChannelMember AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.ChannelMembers.Put(Id, this);
+    }
+
+    public override ChannelMember TakeAndRemoveFromCache()
+    {
+        return Client.Cache.ChannelMembers.TakeAndRemove(Id);
+    }
 }

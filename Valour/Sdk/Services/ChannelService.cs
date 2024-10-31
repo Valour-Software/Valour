@@ -85,6 +85,35 @@ public class ChannelService : ServiceBase
     }
     
     /// <summary>
+    /// Given a channel id, returns the channel. Planet channels should be fetched via the Planet.
+    /// </summary>
+    public async ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && _cache.Channels.TryGet(id, out var cached))
+            return cached;
+
+        var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
+
+        return _cache.Sync(channel);
+    }
+
+    public async ValueTask<Channel> FetchChannelAsync(long id, long planetId, bool skipCache = false)
+    {
+        var planet = await _client.PlanetService.FetchPlanetAsync(planetId, skipCache);
+        return await FetchChannelAsync(id, planet, skipCache);
+    }
+    
+    public async ValueTask<Channel> FetchChannelAsync(long id, Planet planet, bool skipCache = false)
+    {
+        if (!skipCache && _cache.Channels.TryGet(id, out var cached))
+            return cached;
+
+        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
+
+        return _cache.Sync(channel);
+    }
+    
+    /// <summary>
     /// Given a user id, returns the direct channel between them and the requester.
     /// If create is true, this will create the channel if it is not found.
     /// </summary>

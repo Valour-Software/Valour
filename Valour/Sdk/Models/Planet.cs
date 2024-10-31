@@ -181,86 +181,51 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public async ValueTask<PlanetMember> FetchMemberAsync(long id, bool skipCache = false)
-    {
-        if (!skipCache && Members.TryGet(id, out var cached))
-            return cached;
-        
-        var member = (await Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
-        
-        return Client.Cache.Sync(member);
-    }
+    public async ValueTask<PlanetMember> FetchMemberAsync(long id, bool skipCache = false) =>
+        await Client.PlanetService.FetchMemberAsync(id, this, skipCache);
     
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, bool skipCache = false)
-    {
-        var key = new PlanetMemberKey(userId, Id);
-        
-        if (!skipCache && Client.Cache.MemberKeyToId.TryGetValue(key, out var id) &&
-            Members.TryGet(id, out var cached))
-            return cached;
-        
-        var member = (await Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{Id}/{userId}", true)).Data;
+    public ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, bool skipCache = false) =>
+        Client.PlanetService.FetchMemberByUserAsync(userId, this, skipCache);
 
-        return Client.Cache.Sync(member);
-    }
-    
-    public async Task<PlanetRole> FetchRoleAsync(long id, bool skipCache = false)
-    {
-        if (!skipCache && Client.Cache.PlanetRoles.TryGet(id, out var cached))
-            return cached;
-        
-        var role = (await Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.BaseRoute}/{id}")).Data;
-        
-        return Client.Cache.Sync(role);
-    }
+    /// <summary>
+    /// Returns the role for the given id
+    /// </summary>
+    public ValueTask<PlanetRole> FetchRoleAsync(long id, bool skipCache = false) =>
+        Client.PlanetService.FetchRoleAsync(id, this, skipCache);
     
     /// <summary>
-    /// Returns the permissions node for the given values
+    /// Returns the permissions node for the given key
     /// </summary>
-    public async ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, bool skipCache = false)
-    {
-        if (!skipCache && 
-            Client.Cache.PermNodeKeyToId.TryGetValue(key, out var id) &&
-            PermissionsNodes.TryGet(id, out var cached))
-            return cached;
-        
-        var permNode = (await Node.GetJsonAsync<PermissionsNode>(
-                ISharedPermissionsNode.GetIdRoute(key.TargetId, key.RoleId, key.TargetType), 
-                true)).Data;
-        
-        return Client.Cache.Sync(permNode);
-    }
+    public ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, bool skipCache = false) =>
+        Client.PermissionService.FetchPermissionsNodeAsync(key, this, skipCache);
     
-    public async ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false)
-    {
-        if (!skipCache && Channels.TryGet(id, out var cached))
-            return cached;
-        
-        var channel = (await Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id), skipCache)).Data;
-
-        return Client.Cache.Sync(channel);
-    }
+    /// <summary>
+    /// Returns the channel for the given id
+    /// </summary>
+    public ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false) =>
+        Client.ChannelService.FetchChannelAsync(id, skipCache);
     
-    public async ValueTask<EcoAccount> FetchEcoAccountAsync(long id, bool skipCache = false)
-    {
-        if (!skipCache && Client.Cache.EcoAccounts.TryGet(id, out var cached))
-            return cached;
-        
-        var item = (await Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
+    
+    /// <summary>
+    /// Returns the eco account for the given id
+    /// </summary>
+    public ValueTask<EcoAccount> FetchEcoAccountAsync(long id, bool skipCache = false) =>
+        Client.EcoService.FetchEcoAccountAsync(id, this, skipCache);
 
-        return Client.Cache.Sync(item);
-    }
+    /// <summary>
+    /// Returns the currency for this planet
+    /// </summary>
+    public ValueTask<Currency> FetchCurrencyAsync() =>
+        Client.EcoService.FetchCurrencyByPlanetAsync(this);
     
     /// <summary>
     /// Returns a reader for the planet's shared eco accounts
     /// </summary>
-    public PagedModelReader<EcoAccount> GetSharedEcoAccountsReader(int pageSize = 50)
-    {
-        return new PagedModelReader<EcoAccount>(Node, $"api/eco/accounts/planet/{Id}/planet", pageSize);
-    }
+    public PagedModelReader<EcoAccount> GetSharedEcoAccountsReader(int pageSize = 50) =>
+        Client.EcoService.GetSharedAccountPagedReader(this, pageSize);
     
     /// <summary>
     /// Used to create channels. Allows specifying permissions nodes.

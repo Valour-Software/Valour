@@ -66,6 +66,8 @@ public class Program
         builder.Services.AddSingleton(client.SubscriptionService);
         builder.Services.AddSingleton(client.NotificationService);
         builder.Services.AddSingleton(client.EcoService);
+        builder.Services.AddSingleton(client.StaffService);
+        builder.Services.AddSingleton(client.PermissionService);
         
         var host = builder.Build();
         

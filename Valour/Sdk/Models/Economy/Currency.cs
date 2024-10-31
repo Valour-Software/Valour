@@ -1,6 +1,4 @@
-using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
-using Valour.Sdk.Nodes;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Sdk.Models.Economy;
@@ -53,32 +51,13 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
         return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
     }
 
-    public static async ValueTask<Currency> FindAsync(long id, long planetId, bool refresh = false)
+    public override Currency AddToCacheOrReturnExisting()
     {
-        if (!refresh)
-        {
-            var cached = ModelCache<,>.Get<Currency>(id);
-            if (cached != null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
+        return Client.Cache.Currencies.Put(Id, this);
     }
-    
-    public static async ValueTask<Currency> FindByPlanetAsync(long planetId)
+
+    public override Currency TakeAndRemoveFromCache()
     {
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planetId}", true)).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
+        return Client.Cache.Currencies.TakeAndRemove(Id);
     }
 }

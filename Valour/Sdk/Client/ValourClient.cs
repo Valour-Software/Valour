@@ -37,10 +37,12 @@ public class ValourClient
     public readonly NodeService NodeService;
     public readonly PlanetService PlanetService;
     public readonly ChannelService ChannelService;
+    public readonly PermissionService PermissionService;
     public readonly TenorService TenorService;
     public readonly SubscriptionService SubscriptionService;
     public readonly NotificationService NotificationService;
     public readonly EcoService EcoService;
+    public readonly StaffService StaffService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -89,11 +91,13 @@ public class ValourClient
         PlanetService = new PlanetService(this);
         ChannelService = new ChannelService(this);
         ChannelStateService = new ChannelStateService(this);
+        PermissionService = new PermissionService(this);
         BotService = new BotService(this);
         TenorService = new TenorService(this);
         SubscriptionService = new SubscriptionService(this);
         NotificationService = new NotificationService(this);
         EcoService = new EcoService(this);
+        StaffService = new StaffService(this);
     }
     
     /// <summary>
