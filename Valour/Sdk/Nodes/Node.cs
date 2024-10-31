@@ -400,8 +400,14 @@ public class Node : ServiceBase // each node acts like a service
     /// <summary>
     /// Gets a JSON resource from the given URI and deserializes it.
     /// </summary>
-    public async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allow404 = false)
+    public async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allow404 = false, int retries = 0)
     {
+        if (retries > 3)
+        {
+            LogError($"Failed 3 retries - GET {uri}");
+            return TaskResult<T>.FromFailure("Failed after 3 retries.");
+        }
+        
         try
         {
             var response = await HttpClient.GetAsync(Client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
@@ -417,23 +423,42 @@ public class Node : ServiceBase // each node acts like a service
                 return TaskResult<T>.FromData(default);
             }
 
+            // Wrong node! it returned the correct node name so we can actually forward this.
+            if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+            {
+                var nodeName = await response.Content.ReadAsStringAsync();
+                LogError($"Wrong node! GET {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+                // Load the correct node
+                var node = await Client.NodeService.GetByName(nodeName);
+                
+                // Forward the request
+                return await node.GetJsonAsync<T>(uri, allow404, retries + 1);
+            }
+
             // Log and return error message
             var msg = await response.Content.ReadAsStringAsync();
-            LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+            LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
 
             return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
         }
         catch (HttpRequestException ex)
         {
-            LogError($"Critical HTTP Failure - POST {uri}:", ex);
+            LogError($"Critical HTTP Failure - GET {uri}:", ex);
             return TaskResult<T>.FromFailure(ex);
         }
     }
     /// <summary>
     /// Gets a JSON resource from the given URI as a string.
     /// </summary>
-    public async Task<TaskResult<string>> GetAsync(string uri, bool allow404 = false)
+    public async Task<TaskResult<string>> GetAsync(string uri, bool allow404 = false, int retries = 0)
     {
+        if (retries > 3)
+        {
+            LogError($"Failed 3 retries - GET {uri}");
+            return TaskResult<string>.FromFailure("Failed after 3 retries.");
+        }
+        
         try
         {
             var response = await HttpClient.GetAsync(Client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
@@ -446,6 +471,19 @@ public class Node : ServiceBase // each node acts like a service
             if (response.StatusCode == HttpStatusCode.NotFound && allow404)
             {
                 return TaskResult<string>.FromData(msg);
+            }
+            
+            // Wrong node! it returned the correct node name so we can actually forward this.
+            if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+            {
+                var nodeName = await response.Content.ReadAsStringAsync();
+                LogError($"Wrong node! GET {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+                // Load the correct node
+                var node = await Client.NodeService.GetByName(nodeName);
+                
+                // Forward the request
+                return await node.GetAsync(uri, allow404, retries + 1);
             }
 
             LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
@@ -461,8 +499,14 @@ public class Node : ServiceBase // each node acts like a service
 /// <summary>
 /// Puts a JSON resource in the specified URI and returns the deserialized response.
 /// </summary>
-public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
+public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - PUT {uri}");
+        return TaskResult<T>.FromFailure("Failed after 3 retries.");
+    }
+    
     var jsonContent = JsonContent.Create(content);
 
     try
@@ -471,6 +515,19 @@ public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object cont
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! PUT {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.PutAsyncWithResponse<T>(uri, content, retries + 1);
+        }
 
         var msg = await response.Content.ReadAsStringAsync();
         LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
@@ -487,8 +544,14 @@ public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object cont
 /// <summary>
 /// Posts a JSON resource to the specified URI and returns the deserialized response.
 /// </summary>
-public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content)
+public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - POST {uri}");
+        return TaskResult<T>.FromFailure("Failed after 3 retries.");
+    }
+    
     var jsonContent = JsonContent.Create(content);
 
     try
@@ -497,6 +560,19 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object con
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.PostAsyncWithResponse<T>(uri, content, retries + 1);
+        }
 
         var msg = await response.Content.ReadAsStringAsync();
         LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
@@ -513,14 +589,33 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object con
 /// <summary>
 /// Posts an empty request to the specified URI and returns the deserialized response.
 /// </summary>
-public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
+public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - POST {uri}");
+        return TaskResult<T>.FromFailure("Failed after 3 retries.");
+    }
+    
     try
     {
         var response = await HttpClient.PostAsync(Client.BaseAddress + uri, null);
 
         if (response.IsSuccessStatusCode)
             return await TryDeserializeResponse<T>(response, uri);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.PostAsyncWithResponse<T>(uri, retries + 1);
+        }
 
         var msg = await response.Content.ReadAsStringAsync();
         LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
@@ -537,8 +632,14 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
 /// <summary>
 /// Puts a JSON resource in the specified URI and returns the response message.
 /// </summary>
-public async Task<TaskResult> PutAsync(string uri, string content)
+public async Task<TaskResult> PutAsync(string uri, string content, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - PUT {uri}");
+        return TaskResult.FromFailure("Failed after 3 retries.");
+    }
+    
     var stringContent = new StringContent(content);
 
     try
@@ -548,6 +649,19 @@ public async Task<TaskResult> PutAsync(string uri, string content)
 
         if (response.IsSuccessStatusCode)
             return TaskResult.FromSuccess(msg);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! PUT {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.PutAsync(uri, content, retries + 1);
+        }
 
         LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
         
@@ -563,8 +677,14 @@ public async Task<TaskResult> PutAsync(string uri, string content)
 /// <summary>
 /// Posts a string resource to the specified URI and returns the response message.
 /// </summary>
-public async Task<TaskResult> PostAsync(string uri, string content)
+public async Task<TaskResult> PostAsync(string uri, string content, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - POST {uri}");
+        return TaskResult.FromFailure("Failed after 3 retries.");
+    }
+    
     var stringContent = new StringContent(content);
 
     try
@@ -574,6 +694,19 @@ public async Task<TaskResult> PostAsync(string uri, string content)
 
         if (response.IsSuccessStatusCode)
             return TaskResult.FromSuccess(msg);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.PostAsync(uri, content, retries + 1);
+        }
 
         LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
         return TaskResult.FromFailure(msg, (int)response.StatusCode);
@@ -588,8 +721,14 @@ public async Task<TaskResult> PostAsync(string uri, string content)
 /// <summary>
 /// Posts a resource to the specified URI and returns the status.
 /// </summary>
-public async Task<TaskResult> PostAsync<T>(string uri, T content)
+public async Task<TaskResult> PostAsync<T>(string uri, T content, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - POST {uri}");
+        return TaskResult.FromFailure("Failed after 3 retries.");
+    }
+    
     // create json content
     var jsonContent = JsonContent.Create(content);
 
@@ -600,6 +739,19 @@ public async Task<TaskResult> PostAsync<T>(string uri, T content)
 
         if (response.IsSuccessStatusCode)
             return TaskResult.FromSuccess(msg);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.PostAsync(uri, content, retries + 1);
+        }
 
         LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
         return TaskResult.FromFailure(msg, (int)response.StatusCode);
@@ -614,8 +766,14 @@ public async Task<TaskResult> PostAsync<T>(string uri, T content)
 /// <summary>
 /// Deletes a resource from the specified URI and returns the response message.
 /// </summary>
-public async Task<TaskResult> DeleteAsync(string uri)
+public async Task<TaskResult> DeleteAsync(string uri, int retries = 0)
 {
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - DELETE {uri}");
+        return TaskResult.FromFailure("Failed after 3 retries.");
+    }
+
     try
     {
         var response = await HttpClient.DeleteAsync(Client.BaseAddress + uri);
@@ -623,6 +781,19 @@ public async Task<TaskResult> DeleteAsync(string uri)
 
         if (response.IsSuccessStatusCode)
             return TaskResult.FromSuccess(msg);
+        
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var nodeName = await response.Content.ReadAsStringAsync();
+            LogError($"Wrong node! DELETE {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                
+            // Load the correct node
+            var node = await Client.NodeService.GetByName(nodeName);
+                
+            // Forward the request
+            return await node.DeleteAsync(uri, retries + 1);
+        }
 
         LogError($"{response.StatusCode} - DELETE {uri}: \n{msg}");
         return TaskResult.FromFailure(msg, (int)response.StatusCode);

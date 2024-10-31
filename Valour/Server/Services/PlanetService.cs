@@ -48,7 +48,13 @@ public class PlanetService
             return hosted.Planet;
         
         // get planet from db
-        return (await _db.Planets.FindAsync(id)).ToModel();
+        var planet = (await _db.Planets.FindAsync(id)).ToModel();
+        
+        // ensure that node name is set
+        var node = await _nodeService.GetNodeNameForPlanetAsync(id);
+        planet.NodeName = node;
+
+        return planet;
     }
 
     /// <summary>

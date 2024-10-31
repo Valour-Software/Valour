@@ -158,7 +158,7 @@ public class UserService
 
         foreach (var planet in planets)
         {
-            planet.NodeName = await _nodeService.GetPlanetNodeAsync(planet.Id);
+            planet.NodeName = await _nodeService.GetNodeNameForPlanetAsync(planet.Id);
         }
 
         return planets;

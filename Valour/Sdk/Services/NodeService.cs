@@ -80,6 +80,24 @@ public class NodeService : ServiceBase
         return node;
     }
 
+    /// <summary>
+    /// Returns the node with the given name
+    /// </summary>
+    public async ValueTask<Node> GetByName(string name)
+    {
+        // Do we already have the node?
+        if (_nameToNode.TryGetValue(name, out var node))
+            return node;
+        
+        // If not, create it and link it
+        node = new Node(_client);
+        await node.InitializeAsync(name);
+        
+        // TODO: We have a master list of node names so we can probably do a sanity check here
+        
+        return node;
+    }
+
     public void RegisterNode(Node node)
     {
         _nameToNode[node.Name] = node;

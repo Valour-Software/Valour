@@ -63,50 +63,6 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     /// This is just for mapping to the database.
     /// </summary>
     public decimal BalanceValue { get; set; }
-    
-    /// <summary>
-    /// Returns all user accounts for the given planet id
-    /// </summary>
-    public static async Task<QueryResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int page = 0, int amount = 50)
-    {
-        if (amount > 50)
-            amount = 50;
-        
-        
-        
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<QueryResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
-
-        if (accounts.Items is not null)
-        {
-            foreach (var account in accounts.Items)
-            {
-                await account.AddToCache(account);
-            }
-        }
-
-        return accounts;
-    }
-    
-    /// <summary>
-    /// Returns all user accounts for the given planet id
-    /// </summary>
-    public static async Task<QueryResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
-    {
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var results = (await node.GetJsonAsync<QueryResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
-
-        if (results.Items is not null)
-        {
-            foreach (var account in results.Items)
-            {
-                await account.Account.AddToCache(account.Account);
-                await account.Member.AddToCacheAsync(account.Member);
-            }
-        }
-
-        return results;
-    }
 
     /// <summary>
     /// Returns all accounts the user can send to for a given planet id
@@ -135,14 +91,15 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
         return response;
     }
 
-    public static async Task<EcoAccount> GetSelfGlobalAccountAsync()
-    {
-        var node = await NodeManager.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
-        var account = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
-        
-        if (account is not null)
-            await account.AddToCache(account);
+    
 
-        return account;
+    public override EcoAccount AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.EcoAccounts.Put(Id, this);
+    }
+
+    public override EcoAccount TakeAndRemoveFromCache()
+    {
+        return Client.Cache.EcoAccounts.TakeAndRemove(Id);
     }
 }

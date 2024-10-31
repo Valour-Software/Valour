@@ -43,6 +43,17 @@ public class EcoService : ServiceBase
     {
         return await _client.PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
     }
+    
+    public async Task<EcoAccount> GetSelfGlobalAccountAsync()
+    {
+        var planet = await _client.PlanetService.FetchPlanetAsync(ISharedPlanet.ValourCentralId);
+        var account = (await planet.Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
+        
+        if (account is not null)
+            await account.AddToCache(account);
+
+        return account;
+    }
 
     /// <summary>
     /// Returns the eco account with the given id.
@@ -60,12 +71,12 @@ public class EcoService : ServiceBase
     /// </summary>
     public async ValueTask<EcoAccount> FetchEcoAccountAsync(long id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _client.Cache.EcoAccounts.TryGet(id, out var cached))
+        if (!skipCache && _cache.EcoAccounts.TryGet(id, out var cached))
             return cached;
         
         var item = (await planet.Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
 
-        return _client.Cache.Sync(item);
+        return _cache.Sync(item);
     }
     
     /// <summary>
@@ -139,12 +150,12 @@ public class EcoService : ServiceBase
     /// </summary>
     public async ValueTask<Currency> FetchCurrencyAsync(long id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _client.Cache.Currencies.TryGet(id, out var cached))
+        if (!skipCache && _cache.Currencies.TryGet(id, out var cached))
             return cached;
         
         var item = (await _client.PrimaryNode.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
 
-        return _client.Cache.Sync(item);
+        return _cache.Sync(item);
     }
 
     /// <summary>
@@ -165,6 +176,6 @@ public class EcoService : ServiceBase
     {
         var item = (await planet.Node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planet.Id}", true)).Data;
 
-        return _client.Cache.Sync(item);
+        return _cache.Sync(item);
     }
 }
