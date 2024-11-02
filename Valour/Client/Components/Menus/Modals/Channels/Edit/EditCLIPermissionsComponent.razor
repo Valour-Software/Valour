@@ -1,4 +1,6 @@
-﻿@if (_loading)
+﻿@inject PlanetService PlanetService
+
+@if (_loading)
 {
     <h4>Loading details...</h4>
     return;
@@ -25,7 +27,7 @@
         int options = 0; 
     }
 
-    @foreach (var role in _roles)
+    @foreach (var role in Target.Planet.Roles)
     {
         // Don't show roles we can't edit
 
@@ -158,9 +160,7 @@
     public Channel Target { get; set; }
 
     private PlanetRole _selfPrimaryRole;
-    private Planet _planet;
     private PlanetMember _selfMember;
-    private List<PlanetRole> _roles;
     private PlanetRole _lastRole;
     private PlanetRole _selectedRole;
     
@@ -174,9 +174,9 @@
             return;
 
         Target.InheritsPerms = !Target.InheritsPerms;
-        
-        await ClientModel.UpdateAsync(Target);
 
+        await Target.UpdateAsync();
+        
         StateHasChanged();
     }
 
@@ -220,7 +220,7 @@
         {
             if (_needCreate[i])
             {
-                var result = await ClientModel.CreateAsync(_nodes[i]);
+                var result = await _nodes[i].CreateAsync();
                 if (!result.Success)
                 {
                     Console.WriteLine("Error in channel permission node creation!");
@@ -235,7 +235,7 @@
             }
             else if (_needUpdate[i])
             {
-                var result = await ClientModel.UpdateAsync(_nodes[i]);
+                var result = await _nodes[i].UpdateAsync();
                 if (!result.Success)
                 {
                     Console.WriteLine("Error in channel permission node update!");
@@ -259,26 +259,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _planet = await Target.GetPlanetAsync();
-        _roles = await _planet.GetRolesAsync();
-
         for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
             _buttonGroups[i] = new TriButtonComponent[ChannelPermissions.ChannelTypes[i].Permissions.Length];
         }
 
-        if (_roles.Count > 0)
-            _selectedRole = _roles[0];
+        _selectedRole = Target.Planet.Roles[0];
 
         // Get self membership
-        _selfMember = await ValourClient.GetSelfMember(_planet);
-        _selfAuthority = await _selfMember.GetAuthorityAsync();
-        _selfPrimaryRole = await _selfMember.GetPrimaryRoleAsync();
+        _selfMember = await Target.Planet.FetchSelfMemberAsync();
 
         var j = 1;
-        while (_selectedRole.GetAuthority() >= _selfAuthority && j < _roles.Count)
+        while (_selectedRole.GetAuthority() >= _selfAuthority && j < Target.Planet.Roles.Count)
         {
-            _selectedRole = _roles[j];
+            _selectedRole = Target.Planet.Roles[j];
             j += 1;
         }
         
@@ -298,14 +292,14 @@
     {
         var node = eventData.Model;
         if (node.TargetId == Target.Id) {
-            await OnRoleChange(await PlanetRole.FindAsync(node.RoleId, Target.PlanetId!.Value));
+            await OnRoleChange(await PlanetService.FetchRoleAsync(node.RoleId, Target.Planet));
         }
     }
 
     private async Task OnRoleSelect(ChangeEventArgs e)
     {
         var newRoleId = long.Parse(e.Value.ToString());
-        await OnRoleChange(_roles.FirstOrDefault(x => x.Id == newRoleId));
+        await OnRoleChange(Target.Planet.Roles.FirstOrDefault(x => x.Id == newRoleId));
     }
 
     private async Task OnRoleChange(PlanetRole role)

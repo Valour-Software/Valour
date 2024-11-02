@@ -1,4 +1,4 @@
-﻿@inject HttpClient http
+﻿@inject ValourClient Client
 
 <h3>Planet Invitations</h3>
 <hr />
@@ -130,25 +130,17 @@
         StateHasChanged();
 
         long planetId = Planet.Id;
-
-        long userId = ValourClient.Self.Id;
-
-        Invites = await Planet.GetInvitesAsync();
-
+        long userId = Client.Self.Id;
+        
         StateHasChanged();
 
-        ModelObserver<PlanetInvite>.AnyUpdated += OnPlanetInviteUpdated;
+        Planet.Invites.Changed += OnPlanetInvitesChange;
 
     }
 
-    public async Task OnPlanetInviteUpdated(ModelUpdateEvent<PlanetInvite> eventData)
+    public void OnPlanetInvitesChange(ModelStoreEvent<PlanetInvite> eventData)
     {
-        var invite = eventData.Model;
-        if (invite.PlanetId == Planet.Id)
-        {
-            Invites = await Planet.GetInvitesAsync(true);
-            StateHasChanged();
-        }
+        StateHasChanged();
     }
 
     public async Task OnCheckPublic()
@@ -156,7 +148,7 @@
         publicValue = !publicValue;
 
         Planet.Public = publicValue;
-        var result = await Planet.UpdateAsync(Planet);
+        var result = await Planet.UpdateAsync();
 
         if (result.Success)
         {
@@ -176,7 +168,7 @@
         discoverableValue = !discoverableValue;
 
         Planet.Discoverable = discoverableValue;
-        var result = await Planet.UpdateAsync(Planet);
+        var result = await Planet.UpdateAsync();
 
         if (result.Success)
         {
@@ -196,7 +188,7 @@
         nsfwValue = !nsfwValue;
 
         Planet.Nsfw = nsfwValue;
-        var result = await Planet.UpdateAsync(Planet);
+        var result = await Planet.UpdateAsync();
 
         if (result.Success)
         {

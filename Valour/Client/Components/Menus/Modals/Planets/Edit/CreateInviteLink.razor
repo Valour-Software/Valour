@@ -1,6 +1,6 @@
-﻿@inject HttpClient http
-@inject NavigationManager navManager
-@inject HttpClient Http
+﻿@inject HttpClient Http
+@inject ValourClient Client
+@inject NavigationManager NavManager
 
 <br />
 <div style="margin-bottom: 12%;margin-top:25px;">
@@ -44,7 +44,7 @@
         var invite = new PlanetInvite()
         {
             PlanetId = Planet.Id,
-            IssuerId = ValourClient.Self.Id,
+            IssuerId = Client.Self.Id,
             TimeCreated = DateTime.UtcNow,
             TimeExpires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
         };
@@ -64,7 +64,7 @@
             return;
         }
 
-        string link = navManager.BaseUri.TrimEnd('/') + "/I/" + response.Data.Code;
+        var link = NavManager.BaseUri.TrimEnd('/') + "/I/" + response.Data.Code;
 
         nameSpan = link;
         

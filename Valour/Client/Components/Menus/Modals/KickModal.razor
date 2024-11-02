@@ -31,7 +31,7 @@
 	
 	private async Task OnConfirm()
 	{
-		var result = await ClientModel.DeleteAsync(Data.Member);
+		var result = await Data.Member.DeleteAsync();
 		Console.WriteLine(result);
 		await CloseAsync();
 	}

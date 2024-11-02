@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
+using Valour.Sdk.Requests;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
@@ -111,6 +112,12 @@ public class ChannelService : ServiceBase
         var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
 
         return _cache.Sync(channel);
+    }
+
+    public Task<TaskResult<Channel>> CreatePlanetChannelAsync(Planet planet, CreateChannelRequest request)
+    {
+        request.Channel.PlanetId = planet.Id;
+        return planet.Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
     }
     
     /// <summary>

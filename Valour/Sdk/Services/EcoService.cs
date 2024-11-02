@@ -4,6 +4,7 @@ using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Economy;
 
 namespace Valour.Sdk.Services;
 
@@ -157,6 +158,9 @@ public class EcoService : ServiceBase
 
         return _cache.Sync(item);
     }
+    
+    public ValueTask<Currency> FetchGlobalCurrencyAsync() =>
+        FetchCurrencyAsync(ISharedCurrency.ValourCreditsId, ISharedPlanet.ValourCentralId);
 
     /// <summary>
     /// Returns the currency for the given planet.

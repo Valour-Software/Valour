@@ -158,7 +158,7 @@
         var self = await Planet.FetchSelfMemberAsync();
         _hasCurrencyPermission = self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
 
-        Currency = await Currency.FindByPlanetAsync(Planet.Id);
+        Currency = await Planet.FetchCurrencyAsync();
 
         _loading = false;
     }

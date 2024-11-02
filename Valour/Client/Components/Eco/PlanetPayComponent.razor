@@ -249,7 +249,7 @@ else
         // Get planet that was focused when the modal was loaded
         _focusedPlanet = WindowService.FocusedPlanet;
 
-        _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
+        _planetCurrency = await EcoService.FetchCurrencyByPlanetAsync(_focusedPlanet.Id);
         if (_planetCurrency is null)
             return;
         

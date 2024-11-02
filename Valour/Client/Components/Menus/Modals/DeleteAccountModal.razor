@@ -1,5 +1,6 @@
 @inherits Modal<DeleteAccountModal.ModalParams>
 @inject NavigationManager NavManager
+@inject ValourClient Client
 
 <div class="col-md-12">
 	<section class="modal-bg">
@@ -33,7 +34,7 @@
 
 	private async Task OnConfirm()
 	{
-		var result = await ValourClient.DeleteSelfAccountAsync(_password);
+		var result = await Client.DeleteSelfAccountAsync(_password);
 		if (result.Success)
 		{
 			NavManager.NavigateTo("/", true);

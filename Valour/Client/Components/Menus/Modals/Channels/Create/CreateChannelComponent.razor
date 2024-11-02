@@ -1,4 +1,5 @@
 @inherits Modal<CreateChannelComponent.ModalParams>
+@inject ChannelService ChannelService
 
 <section>
     <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
@@ -94,7 +95,7 @@
     List<PlanetRole> _roles = new();
     bool _isPrivate = false;
 
-    int SelfAuthority { get; set; }
+    uint SelfAuthority { get; set; }
     
     private async Task ClickEscape(MouseEventArgs e)
     {
@@ -105,12 +106,10 @@
         _roles.Clear();
         _selectedRoles.Clear();
 
-        var selfMember = await ValourClient.GetSelfMember(Data.Planet);
+        var selfMember = await Data.Planet.FetchSelfMemberAsync();
 
-        var roles = await Data.Planet.GetRolesAsync();
-
-        SelfAuthority = await selfMember.GetAuthorityAsync();
-        foreach (PlanetRole item in roles)
+        SelfAuthority = selfMember.Authority;
+        foreach (PlanetRole item in Data.Planet.Roles)
         {
             if (item.GetAuthority() > SelfAuthority)
                 continue;
@@ -149,9 +148,6 @@
         if (Data.Parent != null)
             parentId = Data.Parent.Id;
 
-        long userId = ValourClient.Self.Id;
-        //string token = ValourClient.Token;
-
         CreateChannelRequest createRequest = new()
         {
             Channel = new()
@@ -169,8 +165,6 @@
 
         if (_isPrivate)
         {
-            var defaultRoleId = (await Data.Planet.GetDefaultRoleAsync()).Id;
-            
             // set the default role channel view perms to false
 
             // only need category node for categories, but if it IS a category, we need every type of node
@@ -187,7 +181,7 @@
                 {
                     TargetId = 0,
                     PlanetId = planetId,
-                    RoleId = defaultRoleId,
+                    RoleId = Data.Planet.DefaultRole.Id,
                     Mask = 0x00,
                     Code = 0x00,
 
@@ -205,7 +199,7 @@
                 {
                     TargetId = 0,
                     PlanetId = planetId,
-                    RoleId = defaultRoleId,
+                    RoleId = Data.Planet.DefaultRole.Id,
                     Mask = 0x00,
                     Code = 0x00,
 
@@ -223,7 +217,7 @@
                 {
                     TargetId = 0,
                     PlanetId = Data.Planet.Id,
-                    RoleId = defaultRoleId,
+                    RoleId = Data.Planet.DefaultRole.Id,
                     Mask = 0x00,
                     Code = 0x00,
                     
@@ -297,7 +291,7 @@
             }
         }
 
-        var result = await Channel.CreateWithDetails(createRequest);
+        var result = await ChannelService.CreatePlanetChannelAsync(Data.Planet, createRequest);
 
         if (!result.Success)
         {

@@ -1,4 +1,5 @@
 @inject ValourClient Client
+@inject PlanetService PlanetService
 @inject EcoService EcoService
 
 @if (!string.IsNullOrWhiteSpace(_transactionId))
@@ -105,8 +106,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _globalCurrency = await Currency.FindByPlanetAsync(ISharedPlanet.ValourCentralId);
-        _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+        _globalCurrency = await EcoService.FetchGlobalCurrencyAsync();
+        _globalAccount = await EcoService.GetSelfGlobalAccountAsync();
 
         _loading = false;
         

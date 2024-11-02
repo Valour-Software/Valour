@@ -230,10 +230,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// Used to create channels. Allows specifying permissions nodes.
     /// </summary>
-    public Task<TaskResult<Channel>> CreateChannelWithDetails(CreateChannelRequest request)
-    {
-        return Node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
-    }
+    public Task<TaskResult<Channel>> CreateChannelWithDetails(CreateChannelRequest request) =>
+        Client.ChannelService.CreatePlanetChannelAsync(this, request);
     
     #endregion
     
