@@ -305,6 +305,8 @@ namespace Valour.Server
             services.AddSingleton<CdnMemoryCache>();
             services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
+            services.AddSingleton<EmojiSentimentService>();
+
             services.AddScoped<ChannelAccessService>();
             
             services.AddScoped<UserOnlineService>();
