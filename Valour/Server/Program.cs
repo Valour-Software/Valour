@@ -72,7 +72,7 @@ namespace Valour.Server
 
             // Configure application
             ConfigureApp(app);
-
+            
             app.MapGet("/api/ping", () => "pong");
 
             // Add Cdn routes
@@ -305,7 +305,7 @@ namespace Valour.Server
             services.AddSingleton<CdnMemoryCache>();
             services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-            services.AddSingleton<EmojiSentimentService>();
+            services.AddSingleton<ReactionSentimentService>();
 
             services.AddScoped<ChannelAccessService>();
             
