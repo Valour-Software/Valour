@@ -38,4 +38,17 @@ public class LoggingService
             logger(prefix, message, color);
         }
     }
+    
+    public void Log<T>(string message, string color)
+    {
+        foreach (var logger in Loggers)
+        {
+            logger(nameof(T), message);
+        }
+        
+        foreach (var logger in ColorLoggers)
+        {
+            logger(nameof(T), message, color);
+        }
+    }
 }

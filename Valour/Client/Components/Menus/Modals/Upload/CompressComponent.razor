@@ -1,4 +1,5 @@
 @inherits Modal<CompressComponent.ModalParams>
+@inject ValourClient Client
 
 <section class="outer">
     <div class="title-container">
@@ -16,7 +17,7 @@
     }
     else
     {
-        @if (ValourClient.Self.SubscriptionType is not null)
+        @if (Client.Self.SubscriptionType is not null)
         {
             <p class="inner">
                 Your image is over the 20MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
@@ -58,12 +59,12 @@
         
         var maxSize = 10240000;
         
-        if (ValourClient.Self.SubscriptionType is not null)
+        if (Client.Self.SubscriptionType is not null)
         {
             maxSize = 20480000;
         }
         
-        await Logger.Log("Attempting to compress image...", "cyan");
+        Client.Logger.Log("[Compressor]", "Attempting to compress image...", "cyan");
 
         try
         {
@@ -85,7 +86,7 @@
                 return;
             }
                             
-            await Logger.Log($"New size: {Data.File.Size} / {oldSize}", "cyan");
+            Client.Logger.Log("Compressor", $"New size: {Data.File.Size} / {oldSize}", "cyan");
             
             await Data.Input.ShowUploadMenu(Data.File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{Data.File.Name.Replace('.', '_')}.jpg", "image");
             

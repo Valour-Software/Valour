@@ -400,6 +400,18 @@ public class PlanetService : ServiceBase
         
         return _client.Cache.Sync(role);
     }
+    
+    public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)
+    {
+        var planet = await FetchPlanetAsync(planetId);
+        return await FetchRoleMembershipCountsAsync(planet);
+    }
+    
+    public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(Planet planet)
+    {
+        var response = await planet.Node.GetJsonAsync<Dictionary<long, int>>($"{planet.IdRoute}/roles/counts");
+        return response.Data;
+    }
 
     public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, long planetId, bool skipCache = false)
     {

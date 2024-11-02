@@ -22,7 +22,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PlanetMember member = await PlanetMember.FindAsyncByUser(Invite.IssuerId, Invite.PlanetId);
+        PlanetMember member = await Invite.Planet.FetchSelfMemberAsync();
         IssuerName = await member.GetNameAsync();
         StateHasChanged();
     }

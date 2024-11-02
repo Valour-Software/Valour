@@ -337,6 +337,21 @@ public class PlanetService
             TotalCount = totalCount
         };
     }
+    
+    public async Task<Dictionary<long, int>> GetRoleMembershipCountsAsync(long planetId)
+    {
+        var query = _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
+            .GroupBy(x => x.RoleId)
+            .Select(x => new
+            {
+                RoleId = x.Key,
+                Count = x.Count()
+            });
+        
+        return await query.ToDictionaryAsync(x => x.RoleId, x => x.Count);
+    }
 
     /// <summary>
     /// Soft deletes the given planet

@@ -462,6 +462,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Members.NotifySet();
     }
 
+    public Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync() =>
+        Client.PlanetService.FetchRoleMembershipCountsAsync(this);
+
     public async Task FetchPermissionsNodesAsync()
     {
         var permissionsNodes = (await Node.GetJsonAsync<List<PermissionsNode>>(

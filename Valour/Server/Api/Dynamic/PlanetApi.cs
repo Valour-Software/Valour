@@ -272,6 +272,21 @@ public class PlanetApi
         
         return Results.Json(roleIds);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles/counts")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetRoleCountsRouteAsync(
+        long id, 
+        PlanetMemberService memberService,
+        PlanetService planetService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var counts = await planetService.GetRoleMembershipCountsAsync(id);
+        return Results.Json(counts);
+    }
 
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
