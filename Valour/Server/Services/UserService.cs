@@ -605,6 +605,29 @@ public class UserService
         return TaskResult.SuccessResult;
     }
 
+    public async Task<TaskResult> ChangeUsernameAsync(long userId, string newUsername)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new TaskResult(false, "User not found.");
+
+        user.PriorName = user.Name;
+        user.Name = newUsername;
+        user.NameChangeTime = DateTime.UtcNow;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
+        
+        return TaskResult.SuccessResult;
+    }
+
     /// <summary>
     /// Nuke it.
     /// </summary>

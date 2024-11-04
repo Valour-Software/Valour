@@ -450,14 +450,28 @@ public class UserApi
 
     [ValourRoute(HttpVerbs.Post, "api/users/self/username")]
     [UserRequired(UserPermissionsEnum.FullControl)]
-    public static async Task<IResult> ChangeUsernameAsync(
+    public static async Task<IResult> ChangeUsernameRouteAsync(
         [FromBody] ChangeUsernameRequest request,
         UserService userService)
     {
-        // Get user id
-        var user = await userService.GetCurrentUserAsync();
-        // Temporary short circuit
-        return ValourResult.Forbid("This feature is disabled for now.");
+        if (request is null)
+        {
+            return ValourResult.BadRequest("Include request in body.");
+        }
+        
+        var credential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
+        
+        // Verify password
+        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, credential.Identifier, request.Password);
+        if (!validResult.Success)
+            return ValourResult.Forbid(validResult.Message);
+        
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await userService.ChangeUsernameAsync(userId, request.NewUsername);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        return Results.NoContent();
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/self/hardDelete")]
