@@ -14,25 +14,32 @@ public enum MemberRoleEventType
     /// The role was removed from the member
     /// </summary>
     Removed,
-    
-    /// <summary>
-    /// The role was updated (and the member had it)
-    /// </summary>
-    Updated,
 }
 
 /// <summary>
 /// Used to generalize role-related events on members
 /// </summary>
-public struct MemberRoleEvent
+public readonly struct RoleMembershipEvent
 {
     /// <summary>
     /// The type of event that occured
     /// </summary>
-    public MemberRoleEventType Type { get; set; }
-    
+    public readonly MemberRoleEventType Type;
+
     /// <summary>
     /// The role the event relates to
     /// </summary>
-    public PlanetRole Role { get; set; }
+    public readonly PlanetRole Role;
+
+    /// <summary>
+    /// The member the event relates to
+    /// </summary>
+    public readonly PlanetMember Member;
+    
+    public RoleMembershipEvent(MemberRoleEventType type, PlanetRole role, PlanetMember member)
+    {
+        Type = type;
+        Role = role;
+        Member = member;
+    }
 }

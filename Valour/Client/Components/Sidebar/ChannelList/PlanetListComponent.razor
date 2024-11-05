@@ -1,5 +1,6 @@
 ﻿@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
+@inject ChannelService ChannelService
 
 <div 
     class="@GetCssClass()" 
@@ -61,7 +62,7 @@
         // Handle Deletions
         ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
-        ValourClient.OnCategoryOrderUpdate += OnOrderUpdate;
+        ChannelService.CategoryReordered += OnOrderUpdate;
         
         GetTopLevelItems();
     }

@@ -1,4 +1,5 @@
 ﻿@inherits Modal<ViewAppsComponent.ModalParams>
+@inject OauthService OauthService
 
 <div class="modal-bg">
     <h4>Your Applications</h4>
@@ -31,7 +32,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Apps = await ValourClient.Self.GetOauthAppAsync();
+        Apps = await OauthService.FetchMyOauthAppAsync();
     }
 
     public void Refresh(){

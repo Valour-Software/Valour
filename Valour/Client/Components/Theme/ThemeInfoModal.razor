@@ -39,7 +39,7 @@
 
             <div class="buttons-wrapper">
                 <div class="buttons">
-                    @if (Data.ThemeMeta.AuthorId == ValourClient.Self.Id && Data.Editor is not null)
+                    @if (Data.ThemeMeta.AuthorId == ValourClient.Me.Id && Data.Editor is not null)
                     {
                         <button class="btn v-btn" @onclick="@OnClickEditAsync">Edit Theme</button>
                     }
@@ -185,7 +185,7 @@
             {
                 ThemeId = _theme.Id,
                 Sentiment = true,
-                UserId = ValourClient.Self.Id,
+                UserId = ValourClient.Me.Id,
             };
             
             var result = await ClientModel.CreateAsync(vote);
@@ -238,7 +238,7 @@
             {
                 ThemeId = _theme.Id,
                 Sentiment = false,
-                UserId = ValourClient.Self.Id,
+                UserId = ValourClient.Me.Id,
             };
             
             var result = await ClientModel.CreateAsync(vote);
@@ -259,7 +259,7 @@
         if (Data.Editor is null)
             return;
 
-        await Data.Editor.OpenEditorWithThemeAsync(_theme);
+        await Data.Editor.OpenEditorWithTheme(_theme);
         await CloseAsync();
     }
 

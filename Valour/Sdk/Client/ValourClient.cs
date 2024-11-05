@@ -31,6 +31,7 @@ public class ValourClient
     public readonly CacheService Cache;
     public readonly BotService BotService;
     public readonly AuthService AuthService;
+    public readonly UserService UserService;
     public readonly ChannelStateService ChannelStateService;
     public readonly FriendService FriendService;
     public readonly MessageService MessageService;
@@ -43,6 +44,7 @@ public class ValourClient
     public readonly NotificationService NotificationService;
     public readonly EcoService EcoService;
     public readonly StaffService StaffService;
+    public readonly OauthService OauthService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -52,7 +54,7 @@ public class ValourClient
     /// <summary>
     /// The user for this client instance
     /// </summary>
-    public User Self { get; set; }
+    public User Me { get; set; }
 
     /// <summary>
     /// The HttpClient to be used for general requests (no node!)
@@ -67,7 +69,7 @@ public class ValourClient
     /// <summary>
     /// True if the client is logged in
     /// </summary>
-    public bool IsLoggedIn => Self != null;
+    public bool IsLoggedIn => Me != null;
 
     /// <summary>
     /// The primary node this client is connected to
@@ -86,6 +88,7 @@ public class ValourClient
         Cache = new CacheService(this);
         AuthService = new AuthService(this);
         NodeService = new NodeService(this);
+        UserService = new UserService(this);
         FriendService = new FriendService(this);
         MessageService = new MessageService(this);
         PlanetService = new PlanetService(this);
@@ -93,11 +96,15 @@ public class ValourClient
         ChannelStateService = new ChannelStateService(this);
         PermissionService = new PermissionService(this);
         BotService = new BotService(this);
-        TenorService = new TenorService(this);
         SubscriptionService = new SubscriptionService(this);
         NotificationService = new NotificationService(this);
         EcoService = new EcoService(this);
         StaffService = new StaffService(this);
+        OauthService = new OauthService(this);
+
+        var tenorHttpClient = new HttpClient();
+        tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
+        TenorService = new TenorService(tenorHttpClient, this);
     }
     
     /// <summary>
@@ -161,20 +168,20 @@ public class ValourClient
         return TaskResult.SuccessResult;
     }
         
-    public async Task<TaskResult<List<ReferralDataModel>>> GetSelfReferralsAsync()
+    public async Task<TaskResult<List<ReferralDataModel>>> GetMyReferralsAsync()
     {
-        return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/self/referrals");
+        return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/me/referrals");
     }
     
-    public async Task<TaskResult> UpdateSelfPasswordAsync(string oldPassword, string newPassword) {
+    public async Task<TaskResult> UpdateMyPasswordAsync(string oldPassword, string newPassword) {
         var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };
-        return await PrimaryNode.PostAsync("api/users/self/password", model);
+        return await PrimaryNode.PostAsync("api/users/me/password", model);
     }
     
     // Sad zone
-    public async Task<TaskResult> DeleteSelfAccountAsync(string password)
+    public async Task<TaskResult> DeleteMyAccountAsync(string password)
     {
         var model = new DeleteAccountModel() { Password = password };
-        return await PrimaryNode.PostAsync("api/users/self/hardDelete", model);
+        return await PrimaryNode.PostAsync("api/users/me/hardDelete", model);
     }
 }

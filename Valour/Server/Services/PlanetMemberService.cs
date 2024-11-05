@@ -36,12 +36,18 @@ public class PlanetMemberService
         _logger = logger;
         _accessService = accessService;
     }
-    
+
     /// <summary>
     /// Returns the PlanetMember for the given id
     /// </summary>
-    public async Task<PlanetMember> GetAsync(long id) =>
-        (await _db.PlanetMembers.FindAsync(id)).ToModel();
+    public async Task<PlanetMember> GetAsync(long id)
+    {
+        var member = await _db.PlanetMembers
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        
+        return member.ToModel();
+    }
 
     /// <summary>
     /// Returns the current user's PlanetMember for the given planet id
@@ -86,12 +92,17 @@ public class PlanetMemberService
     {
         if (MemberIdLookup.TryGetValue((userId, planetId), out var memberId))
         {
-            var member = await _db.PlanetMembers.FindAsync(memberId);
+            var member = await _db.PlanetMembers
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x => x.Id == memberId);
             return member.ToModel();
         }
         else
         {
-            var member = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            var member = await _db.PlanetMembers
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            
             if (member is not null)
             {
                 MemberIdLookup.TryAdd((userId, planetId), member.Id);
@@ -434,7 +445,8 @@ public class PlanetMemberService
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
                 PlanetId = planet.Id,
-                UserId = user.Id
+                UserId = user.Id,
+                User = user
             };
         }
         
@@ -510,7 +522,9 @@ public class PlanetMemberService
     /// <returns></returns>
     public async Task<TaskResult<PlanetMember>> UpdateAsync(PlanetMember member)
     {
-        var old = await _db.PlanetMembers.FindAsync(member.Id);
+        var old = await _db.PlanetMembers
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == member.Id);
 
         if (old is null)
             return new TaskResult<PlanetMember>(false, "Member not found.");
@@ -540,6 +554,9 @@ public class PlanetMemberService
         }
         
         _coreHub.NotifyPlanetItemChange(member);
+
+        // ensure user model is included
+        member.User = old.User.ToModel();
 
         return new TaskResult<PlanetMember>(true, "Success", member);
     }

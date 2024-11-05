@@ -525,9 +525,9 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         }
         else
         {
-            var others = Members.Where(x => x.UserId != Client.Self.Id).ToList();
+            var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
             if (!others.Any())
-                result =  Client.Self.GetAvatarUrl();
+                result =  Client.Me.GetAvatarUrl();
 
             var other = await User.FindAsync(others.First().UserId);
             if (other is not null)
@@ -542,7 +542,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         if (PlanetId is not null)
             return Name;
         
-        var others = Members.Where(x => x.UserId != Client.Self.Id).ToList();
+        var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
 
         if (!others.Any())
             return "Chat with yourself";
@@ -576,13 +576,13 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             Content = content,
             ChannelId = Id,
             PlanetId = PlanetId,
-            AuthorUserId = Client.Self.Id,
+            AuthorUserId = Client.Me.Id,
             Fingerprint = Guid.NewGuid().ToString(),
         };
         
         if (PlanetId is not null)
         {
-            var member = await Planet.FetchSelfMemberAsync();
+            var member = await Planet.FetchMyMemberAsync();
             msg.AuthorMemberId = member.Id;
         }
         

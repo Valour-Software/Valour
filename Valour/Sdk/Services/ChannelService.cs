@@ -14,12 +14,12 @@ public class ChannelService : ServiceBase
     /// <summary>
     /// Run when SignalR opens a channel
     /// </summary>
-    public HybridEvent<Channel> ChannelOpened;
+    public HybridEvent<Channel> ChannelConnected;
 
     /// <summary>
     /// Run when SignalR closes a channel
     /// </summary>
-    public HybridEvent<Channel> ChannelClosed;
+    public HybridEvent<Channel> ChannelDisconnected;
     
     /// <summary>
     /// Run when a category is reordered
@@ -126,7 +126,7 @@ public class ChannelService : ServiceBase
     /// </summary>
     public async ValueTask<Channel> FetchDmChannelAsync(long otherUserId, bool create = false, bool skipCache = false)
     {
-        var key = new DirectChannelKey(_client.Self.Id, otherUserId);
+        var key = new DirectChannelKey(_client.Me.Id, otherUserId);
 
         if (!skipCache &&
             _cache.DmChannelKeyToId.TryGetValue(key, out var id) &&
@@ -231,7 +231,7 @@ public class ChannelService : ServiceBase
 
         Log($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
 
-        ChannelOpened?.Invoke(channel);
+        ChannelConnected?.Invoke(channel);
         
         return TaskResult.SuccessResult;
     }
@@ -278,7 +278,7 @@ public class ChannelService : ServiceBase
 
         Log($"Left SignalR group for channel {channel.Name} ({channel.Id})");
 
-        ChannelClosed?.Invoke(channel);
+        ChannelDisconnected?.Invoke(channel);
 
         // Close planet connection if no other channels are open
         await _client.PlanetService.TryClosePlanetConnection(channel.Planet, key);

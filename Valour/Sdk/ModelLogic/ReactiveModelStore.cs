@@ -124,6 +124,12 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool ContainsId(TId id)
+    {
+        return IdMap.ContainsKey(id);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Sort(Comparison<TModel> comparison)
     {
         List.Sort(comparison);

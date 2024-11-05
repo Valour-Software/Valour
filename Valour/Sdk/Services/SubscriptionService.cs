@@ -48,7 +48,7 @@ public class SubscriptionService
 
     public async Task<UserSubscription> GetActiveSubscriptionAsync()
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<UserSubscription>($"api/subscriptions/active/{_client.Self.Id}", true);
+        var result = await _client.PrimaryNode.GetJsonAsync<UserSubscription>($"api/subscriptions/active/{_client.Me.Id}", true);
         return result.Data;
     }
 }

@@ -6,7 +6,7 @@
     <Icon><i class="bi bi-reply-fill"></i></Icon>
 </ContextMenuItem>
 
-@if (Data.Message.AuthorUserId == ValourClient.Self.Id)
+@if (Data.Message.AuthorUserId == ValourClient.Me.Id)
 {
     <ContextMenuItem OnClick="@OnClickEdit">
         <Label>Edit</Label>
@@ -68,7 +68,7 @@
     {
         if (Data.Message.PlanetId is not null)
         {
-            _authorMember = await Data.Message.GetAuthorMemberAsync();
+            _authorMember = await Data.Message.FetchAuthorMemberAsync();
             _memberContextData = new()
             {
                 Member = _authorMember,
@@ -79,7 +79,7 @@
             _authorMember = null;
         }
 
-        if (Data.Message.AuthorUserId == ValourClient.Self.Id)
+        if (Data.Message.AuthorUserId == ValourClient.Me.Id)
         {
             _deletePermission = PermissionState.True;
         }
@@ -127,7 +127,7 @@
         {
             Report = new Report()
             {
-                ReportingUserId = ValourClient.Self.Id,
+                ReportingUserId = ValourClient.Me.Id,
                 MessageId = Data.MessageComponent.Message.Id,
                 ChannelId = Data.MessageComponent.Message.ChannelId,
                 PlanetId = Data.MessageComponent.Message.PlanetId

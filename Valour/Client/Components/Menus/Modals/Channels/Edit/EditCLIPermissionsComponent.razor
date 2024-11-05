@@ -267,7 +267,7 @@
         _selectedRole = Target.Planet.Roles[0];
 
         // Get self membership
-        _selfMember = await Target.Planet.FetchSelfMemberAsync();
+        _selfMember = await Target.Planet.FetchMyMemberAsync();
 
         var j = 1;
         while (_selectedRole.GetAuthority() >= _selfAuthority && j < Target.Planet.Roles.Count)

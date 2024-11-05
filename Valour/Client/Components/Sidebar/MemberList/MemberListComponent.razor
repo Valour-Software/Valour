@@ -1,4 +1,6 @@
-﻿<CascadingValue Value="this">
+﻿@inject PlanetService PlanetService
+
+<CascadingValue Value="this">
     <div class="role-list hide-scrollbar">
 
         @{
@@ -148,7 +150,12 @@
 
         // Events
         WindowService.OnFocusedPlanetChanged += OnPlanetChange;
-        ValourClient.OnPlanetClose += OnPlanetClose;
+        PlanetService.PlanetDisconnected += OnPlanetDisconnected;
+        
+        Planet.Roles.Changed += OnPlanetRolesChange;
+        Planet.Members.Changed += OnPlanetMembersChange;
+        Planet.RoleMembershipChanged += OnRoleMembershipChange;
+        
         ModelObserver<PlanetRole>.AnyUpdated += OnRoleUpdate;
         ModelObserver<PlanetRole>.AnyDeleted += OnRoleDeletion;
         ModelObserver<PlanetMember>.AnyUpdated += OnMemberUpdate;
@@ -384,12 +391,9 @@
         {
             return 1;
         }
-
-        // Get role ids
-        var member_roles = await member.GetRolesAsync();
-
+        
         // Try for a role
-        foreach (PlanetRole role in DisplayedRoles)
+        foreach (var role in DisplayedRoles)
         {
             if (role.Id == exclude)
                 continue;
@@ -399,7 +403,7 @@
                 continue;
 
             // Member has role
-            if (member_roles.Contains(role))
+            if (member.Roles.Contains(role))
             {
                 return role.Id;
             }
@@ -423,7 +427,7 @@
         }
     }
 
-    public Task OnPlanetClose(Planet planet)
+    public Task OnPlanetDisconnected(Planet planet)
     {
         if (Planet.Id != planet.Id)
             return Task.CompletedTask;

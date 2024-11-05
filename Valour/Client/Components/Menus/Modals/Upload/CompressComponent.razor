@@ -17,7 +17,7 @@
     }
     else
     {
-        @if (Client.Self.SubscriptionType is not null)
+        @if (Client.Me.SubscriptionType is not null)
         {
             <p class="inner">
                 Your image is over the 20MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
@@ -59,7 +59,7 @@
         
         var maxSize = 10240000;
         
-        if (Client.Self.SubscriptionType is not null)
+        if (Client.Me.SubscriptionType is not null)
         {
             maxSize = 20480000;
         }
@@ -86,7 +86,7 @@
                 return;
             }
                             
-            Client.Logger.Log("Compressor", $"New size: {Data.File.Size} / {oldSize}", "cyan");
+            Client.Logger.Log<CompressComponent>($"New size: {Data.File.Size} / {oldSize}", "cyan");
             
             await Data.Input.ShowUploadMenu(Data.File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{Data.File.Name.Replace('.', '_')}.jpg", "image");
             
@@ -96,7 +96,7 @@
         catch (Exception ex)
         {
             _result = new TaskResult(false, "Failed to compress image :(" , ex.Message);
-            await Logger.Log($"Failed to compress image: {ex.Message}", "red");
+            Client.Logger.Log<Upload.CompressComponent>($"Failed to compress image: {ex.Message}", "red");
         }
     }
 

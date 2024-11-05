@@ -30,12 +30,12 @@
     
     protected override async Task OnInitializedAsync(){
         var planet = await Data.Channel.GetPlanetAsync();
-        if (planet.OwnerId == ValourClient.Self.Id)
+        if (planet.OwnerId == ValourClient.Me.Id)
         {
             _canModify = true;
         }
         else {
-            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Data.Channel.PlanetId!.Value);
+            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Me.Id, Data.Channel.PlanetId!.Value);
             _canModify = await Data.Channel.HasPermissionAsync(selfMember, ChannelPermissions.Manage);
         }
         

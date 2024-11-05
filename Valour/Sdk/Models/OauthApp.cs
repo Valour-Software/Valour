@@ -1,18 +1,13 @@
-using Valour.Sdk.Nodes;
-using Valour.Shared.Authorization;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class OauthApp : ClientModel, ISharedOauthApp
+public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
 {
-    #region IPlanetModel implementation
-
     public override string BaseRoute =>
             $"api/oauthapps";
-
-    #endregion
-
+    
     /// <summary>
     /// The secret key for the app
     /// </summary>
@@ -43,9 +38,13 @@ public class OauthApp : ClientModel, ISharedOauthApp
     /// </summary>
     public string RedirectUrl { get; set; }
 
-    public static async Task<OauthApp> FindAsync(long id) =>
-        (await NodeManager.Nodes.First().GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
+    public override OauthApp AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.OauthApps.Put(Id, this);
+    }
 
-    public static async Task<PublicOauthAppData> FindPublicDataAsync(long id) =>
-        (await NodeManager.Nodes.First().GetJsonAsync<PublicOauthAppData>($"api/oauth/app/public/{id}")).Data;
+    public override OauthApp TakeAndRemoveFromCache()
+    {
+        return Client.Cache.OauthApps.TakeAndRemove(Id);
+    }
 }

@@ -194,7 +194,7 @@
                     _matches.AddRange(members);
 
                     var canMentionAll = false;
-                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId.Value);
+                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Me.Id, Channel.PlanetId.Value);
                     if (selfMember is not null)
                     {
                         if (await selfMember.HasPermissionAsync(PlanetPermissions.MentionAll))

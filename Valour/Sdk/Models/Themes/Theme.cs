@@ -1,11 +1,13 @@
-﻿using Valour.Sdk.Client;
+﻿using Microsoft.Extensions.Logging;
+using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Themes;
 
 namespace Valour.Sdk.Models.Themes;
 
-public class Theme : ClientModel, ISharedTheme
+public class Theme : ClientModel<Theme, long>, ISharedTheme
 {
     public override string BaseRoute => "api/themes";
 
@@ -91,7 +93,7 @@ public class Theme : ClientModel, ISharedTheme
         var response = await ValourClient.GetJsonAsync<Theme>($"api/themes/{id}");
         if (!response.Success)
         {
-            await Logger.Log($"Failed to get theme: {response.Message}", "yellow");
+            await Logger<>.Log($"Failed to get theme: {response.Message}", "yellow");
             return null;
         }
 
@@ -108,10 +110,10 @@ public class Theme : ClientModel, ISharedTheme
     
     public static async Task<List<ThemeMeta>> GetMyThemes()
     {
-        var response = await ValourClient.GetJsonAsync<List<ThemeMeta>>("api/themes/self");
+        var response = await ValourClient.GetJsonAsync<List<ThemeMeta>>("api/themes/me");
         if (!response.Success)
         {
-            await Logger.Log($"Failed to get self themes: {response.Message}", "yellow");
+            await Logger<>.Log($"Failed to get self themes: {response.Message}", "yellow");
             return new List<ThemeMeta>();
         }
 
@@ -123,7 +125,7 @@ public class Theme : ClientModel, ISharedTheme
         var response = await ValourClient.GetJsonAsync<ThemeVoteTotals>($"api/themes/{Id}/votes");
         if (!response.Success)
         {
-            await Logger.Log($"Failed to get theme vote totals: {response.Message}", "yellow");
+            await Logger<>.Log($"Failed to get theme vote totals: {response.Message}", "yellow");
             return null;
         }
 
@@ -135,7 +137,7 @@ public class Theme : ClientModel, ISharedTheme
         var response = await ValourClient.GetJsonAsync<ThemeVote>($"api/themes/{Id}/votes/self", true);
         if (!response.Success)
         {
-            await Logger.Log($"Failed to get my theme vote: {response.Message}", "yellow");
+            await Logger<>.Log($"Failed to get my theme vote: {response.Message}", "yellow");
             return null;
         }
 
@@ -144,4 +146,14 @@ public class Theme : ClientModel, ISharedTheme
 
     public string GetBannerUrl(ThemeBannerFormat format) =>
         ISharedTheme.GetBannerUrl(this, format);
+
+    public override Theme AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.Themes.Put(Id, this);
+    }
+
+    public override Theme TakeAndRemoveFromCache()
+    {
+        return Client.Cache.Themes.TakeAndRemove(Id);
+    }
 }

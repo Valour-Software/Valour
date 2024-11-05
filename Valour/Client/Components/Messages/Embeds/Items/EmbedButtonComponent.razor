@@ -84,7 +84,7 @@
 
         if (Message.PlanetId is not null)
         {
-            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.PlanetId.Value);
+            var selfMember = await Message.Planet.FetchMyMemberAsync();
 
             interaction.PlanetId = selfMember.PlanetId;
             interaction.Author_MemberId = Message.AuthorMemberId!.Value;

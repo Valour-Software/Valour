@@ -155,7 +155,7 @@
         _sharedAccountProvider = EcoService.GetSharedAccountQueryEngine(Planet);
         _userAccountProvider = EcoService.GetUserAccountQueryEngine(Planet);
         
-        var self = await Planet.FetchSelfMemberAsync();
+        var self = await Planet.FetchMyMemberAsync();
         _hasCurrencyPermission = self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
 
         Currency = await Planet.FetchCurrencyAsync();
@@ -199,7 +199,7 @@
     {
         var newAccount = new EcoAccount()
         {
-            UserId = Client.Self.Id,
+            UserId = Client.Me.Id,
             AccountType = AccountType.Shared,
             BalanceValue = 0,
             CurrencyId = Currency.Id,

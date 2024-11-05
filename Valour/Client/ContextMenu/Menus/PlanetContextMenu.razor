@@ -13,7 +13,7 @@
     <Icon><i class="bi bi-database-fill"></i></Icon>
 </ContextMenuItem>
 
-@if (ValourClient.Self.Id != Data.Planet.OwnerId)
+@if (ValourClient.Me.Id != Data.Planet.OwnerId)
 {
     <ContextMenuItem OnClick='@OnClickLeavePlanet' Color="red">
         <Label>Leave Planet</Label>

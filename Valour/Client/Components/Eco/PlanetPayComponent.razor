@@ -1,5 +1,6 @@
 @inject ValourClient Client
 @inject EcoService EcoService
+@inject UserService UserService
 
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
@@ -57,7 +58,7 @@ else
             <div class="account-select" @onclick="@(async () => await OnSelectAccount(account))">
                 @if (account.AccountType == AccountType.User)
                 {
-                    <UserInfoComponent User="@Client.Self" />
+                    <UserInfoComponent User="@Client.Me" />
                     <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(account.BalanceValue)</p>
                 }
                 else
@@ -73,7 +74,7 @@ else
         <div class="selected-preview">
             @if (_selectedPlanetAccount.AccountType == AccountType.User)
             {
-                <UserInfoComponent User="@Client.Self" />
+                <UserInfoComponent User="@Client.Me" />
                 <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(_selectedPlanetAccount.BalanceValue)</p>
             }
             else
@@ -191,7 +192,7 @@ else
         Transaction transaction = new()
         {
             PlanetId = _focusedPlanet.Id,
-            UserFromId = Client.Self.Id,
+            UserFromId = Client.Me.Id,
             AccountFromId = _selectedPlanetAccount.Id,
             UserToId = _selectedRecipientAccount.UserId,
             AccountToId = _selectedRecipientAccount.Id,
@@ -312,7 +313,7 @@ else
 
             if (accountData.Data.Account.AccountType == AccountType.User)
             {
-                accountData.User = await User.FindAsync(searchData.Account.UserId);
+                accountData.User = await UserService.FetchUserAsync(searchData.Account.UserId);
             }
             
             _otherPlanetAccounts.Add(accountData);
@@ -335,7 +336,7 @@ else
         var account =new EcoAccount()
         {
             PlanetId = _focusedPlanet.Id,
-            UserId = Client.Self.Id,
+            UserId = Client.Me.Id,
             AccountType = AccountType.User,
             CurrencyId = _planetCurrency.Id,
         };

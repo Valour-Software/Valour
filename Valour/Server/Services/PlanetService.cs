@@ -315,6 +315,7 @@ public class PlanetService
     {
         // Constructing base query
         var baseQuery = _db.PlanetMembers
+            .Include(x => x.User)
             .AsNoTracking()
             .Where(x => x.PlanetId == planetId);
         
@@ -326,7 +327,6 @@ public class PlanetService
             .Select(x => new PlanetMemberData
             {
                 Member = x.ToModel(),
-                User = x.User.ToModel(),
                 RoleIds = x.RoleMembership.OrderBy(rm => rm.Role.Position).Select(rm => rm.RoleId).ToList()
             })
             .ToListAsync();

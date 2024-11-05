@@ -128,7 +128,7 @@
 
         ActiveChannel = channel;
 
-        SelfMember = await channel.Planet.FetchSelfMemberAsync();
+        SelfMember = await channel.Planet.FetchMyMemberAsync();
 
         _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
         
@@ -165,7 +165,7 @@
     {
         var data = new EditUserComponent.ModalParams()
         {
-            User = Client.Self,
+            User = Client.Me,
             StartTopMenu = "General Settings",
             StartSubMenu = "Device Preferences"
         };

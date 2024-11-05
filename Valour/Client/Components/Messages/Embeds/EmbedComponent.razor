@@ -1,4 +1,5 @@
 @implements IDisposable
+@inject MessageService MessageService
 
 @if (embed is null)
 {
@@ -79,16 +80,17 @@
 
 	public void Dispose()
 	{
-		ValourClient.OnPersonalEmbedUpdate -= OnPersonalEmbedUpdate;
-		ValourClient.OnChannelEmbedUpdate -= OnChannelEmbedUpdate;
+		MessageService.PersonalEmbedUpdate -= OnPersonalEmbedUpdate;
+		MessageService.ChannelEmbedUpdate -= OnChannelEmbedUpdate;
+		MessageService.MessageEdited -= OnReceiveMessageEdit;
 	}
 
 	protected override void OnInitialized()
 	{
 		StateHasChanged();
-		ValourClient.OnPersonalEmbedUpdate += OnPersonalEmbedUpdate;
-		ValourClient.OnChannelEmbedUpdate += OnChannelEmbedUpdate;
-		ValourClient.OnMessageEdited += OnReceiveMessageEdit;
+		MessageService.PersonalEmbedUpdate += OnPersonalEmbedUpdate;
+		MessageService.ChannelEmbedUpdate += OnChannelEmbedUpdate;
+		MessageService.MessageEdited += OnReceiveMessageEdit;
 		ItemComponents = new();
 		EmbedRootItemComponents = new();
 		EmbedRowComponents = new();

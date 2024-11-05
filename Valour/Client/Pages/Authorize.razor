@@ -35,7 +35,7 @@
     <div class="popup-box">
         <div class="col-md-12">
             <section>
-                <h3 class="invite-title">@ValourClient.Self.Name,</h3>
+                <h3 class="invite-title">@ValourClient.Me.Name,</h3>
                 <h2 class="invite-title">Do you authorize</h2>
                 <div style="text-align: center">
                     <h3 class="text-info invite-name">@App.Name</h3>
@@ -112,7 +112,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ValourClient.Self is null){
+        if (ValourClient.Me is null){
             isError = true;
             errorString = "Please log in!";
             StateHasChanged();
@@ -149,7 +149,7 @@
                     var model = new AuthorizeModel(){
                     ClientId = client_id,
                     RedirectUri = redirect_uri,
-                    UserId = ValourClient.Self.Id,
+                    UserId = ValourClient.Me.Id,
                     ResponseType = response_type,
                     Scope = scope,
                     State = state

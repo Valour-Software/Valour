@@ -110,13 +110,13 @@ else
 		_isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == _user.Id);
 		_isFriend = ValourClient.Friends.Any(x => x.Id == _user.Id);
 
-		if ((await Data.Member.GetPlanetAsync()).OwnerId == ValourClient.Self.Id)
+		if ((await Data.Member.GetPlanetAsync()).OwnerId == ValourClient.Me.Id)
 		{
 			_canKick = true;
 			_canBan = true;
 		}
 		else {
-			var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Data.Member.PlanetId);
+			var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Me.Id, Data.Member.PlanetId);
 			var primaryRole = await selfMember.GetPrimaryRoleAsync();
 			_canKick = primaryRole.HasPermission(PlanetPermissions.Kick);
 			_canBan = primaryRole.HasPermission(PlanetPermissions.Kick);

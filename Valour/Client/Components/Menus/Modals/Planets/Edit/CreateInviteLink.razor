@@ -44,7 +44,7 @@
         var invite = new PlanetInvite()
         {
             PlanetId = Planet.Id,
-            IssuerId = Client.Self.Id,
+            IssuerId = Client.Me.Id,
             TimeCreated = DateTime.UtcNow,
             TimeExpires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
         };

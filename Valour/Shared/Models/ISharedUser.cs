@@ -12,6 +12,7 @@ namespace Valour.Shared.Models;
 public interface ISharedUser : ISharedModel<long>
 {
     const string BaseRoute = "api/users";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
     
     const long VictorUserId = 20579262493097984;
     

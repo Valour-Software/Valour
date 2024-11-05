@@ -1,6 +1,6 @@
 @inject IJSRuntime JsRuntime
 
-@if (ValourClient.Self is null || ValourClient.Self.Compliance)
+@if (ValourClient.Me is null || ValourClient.Me.Compliance)
 {
     return;
 }
@@ -68,7 +68,7 @@
         }
         
         // Set user compliance to true and close this
-        ValourClient.Self.Compliance = true;
+        ValourClient.Me.Compliance = true;
         StateHasChanged();
     }
 }

@@ -114,33 +114,27 @@ public class User : ClientModel<User, long>, ISharedUser
         get => ISharedUser.GetUserState(this);
         set => ISharedUser.SetUserState(this, value);
     }
-
-    public async Task<List<OauthApp>> GetOauthAppAsync() =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"{BaseRoute}/{Id}/apps")).Data;
-
-    public static async ValueTask<User> FindAsync(long id, bool skipCache = false)
-    {
-        if (!skipCache && Cache.TryGet(id, out var cached))
-            return cached;
-        
-        var user = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
-
-        return user?.Sync();
-    }
     
-    public async Task<TaskResult<UserProfile>> GetProfileAsync() =>
-        await Node.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
-
-    public async Task<TaskResult<List<User>>> GetFriendsAsync()
-        => await Node.GetJsonAsync<List<User>>($"{IdRoute}/friends");
-
-    public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
-        => await Node.GetJsonAsync<UserFriendData>($"{IdRoute}/frienddata");
-
+    public ValueTask<UserProfile> FetchProfileAsync(bool skipCache = false) =>
+        Client.UserService.FetchProfileAsync(Id, skipCache);
+    
+    public Task<UserFriendData> FetchFriendDataAsync() =>
+        Client.FriendService.FetchFriendDataAsync(Id);
+    
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
         ISharedUser.GetAvatarUrl(this, format);
     
     public string GetFailedAvatarUrl() =>
         ISharedUser.GetFailedAvatarUrl(this);
+
+    public override User AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.Users.Put(Id, this);
+    }
+
+    public override User TakeAndRemoveFromCache()
+    {
+        return Client.Cache.Users.TakeAndRemove(Id);
+    }
 }
 

@@ -61,13 +61,13 @@
 
 		var reason = _reason;
 		if (string.IsNullOrWhiteSpace(reason))
-			reason = $"Banned by ${Client.Self.NameAndTag}";
+			reason = $"Banned by ${Client.Me.NameAndTag}";
 		
 		var ban = new PlanetBan()
 		{
 			PlanetId = Data.Member.PlanetId,
 			TargetId = Data.Member.UserId,
-			IssuerId = Client.Self.Id,
+			IssuerId = Client.Me.Id,
 			TimeExpires = expires,
 			TimeCreated = DateTime.UtcNow,
 			Reason = reason

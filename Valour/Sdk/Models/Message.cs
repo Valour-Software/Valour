@@ -20,7 +20,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// The planet (if any) this message belongs to
     /// </summary>
     public long? PlanetId { get; set; }
-    public override long? GetPlanetId() => PlanetId;
+    protected override long? GetPlanetId() => PlanetId;
 
     /// <summary>
     /// The message (if any) this is a reply to
@@ -173,22 +173,25 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 
     public ValueTask<Channel> GetChannelAsync()
     {
-        return Channel.FindAsync(ChannelId);
+        if (PlanetId is null)
+            return Client.ChannelService.FetchChannelAsync(ChannelId);
+        else
+            return Planet.FetchChannelAsync(ChannelId);
     }
 
     /// <summary>
     /// Returns the user for the author of this message
     /// </summary>
-    public async ValueTask<User> GetAuthorUserAsync()
+    public async ValueTask<User> FetchAuthorUserAsync()
     {
-        _authorUserCached ??= await User.FindAsync(AuthorUserId);
+        _authorUserCached ??= await Client.UserService.FetchUserAsync(AuthorUserId);
         return _authorUserCached;
     }
     
     /// <summary>
     /// Returns the planet member for the author of this message (if any)
     /// </summary>
-    public async ValueTask<PlanetMember> GetAuthorMemberAsync()
+    public async ValueTask<PlanetMember> FetchAuthorMemberAsync()
     {
         if (_authorMemberCached is not null)
             return _authorMemberCached;
@@ -197,6 +200,8 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
             return null;
         
         _authorMemberCached = await Planet.FetchMemberAsync(AuthorMemberId.Value);
+        if (_authorMemberCached is not null) // Also set user :)
+            _authorUserCached = _authorMemberCached.User;
         
         return _authorMemberCached;
     }
@@ -207,7 +212,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public async ValueTask<string> GetAuthorNameAsync()
     {
         // Check for member first
-        var member = await GetAuthorMemberAsync();
+        var member = await FetchAuthorMemberAsync();
         if (member is not null)
         {
             // They may not have a nickname!
@@ -219,28 +224,28 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         
         // If we get here, the member name was not found
         // so we fall back on the user (which should always exist)
-        var user = await GetAuthorUserAsync();
+        var user = await FetchAuthorUserAsync();
         return user?.Name ?? "User not found";
     }
 
     public async ValueTask<string> GetAuthorRoleTagAsync()
     {
         // If there's a member, we use the member's planet role
-        var author = await GetAuthorMemberAsync();
+        var author = await FetchAuthorMemberAsync();
         if (author is not null)
         {
-            return (await author.GetPrimaryRoleAsync()).Name ?? "Unknown Role";
+            return author.PrimaryRole.Name ?? "Unknown Role";
         }
         
         // Otherwise, we use their relationship with the user
-        var user = await GetAuthorUserAsync();
-        if (user.Id == ValourClient.Self.Id)
+        var user = await FetchAuthorUserAsync();
+        if (user.Id == Client.Me.Id)
             return "You";
 
         if (user.Bot)
             return "Bot";
 
-        if (ValourClient.FriendFastLookup.Contains(user.Id))
+        if (Client.FriendService.FriendLookup.ContainsKey(user.Id))
             return "Friend";
         
         return "User";
@@ -248,39 +253,39 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 
     public async ValueTask<string> GetAuthorColorAsync()
     {
-        var member = await GetAuthorMemberAsync();
+        var member = await FetchAuthorMemberAsync();
         if (member is not null)
         {
-            return await member.GetRoleColorAsync();
+            return member.GetRoleColor();
         }
         
-        if (ValourClient.FriendFastLookup.Contains(AuthorUserId))
+        if (Client.FriendService.FriendLookup.ContainsKey(AuthorUserId))
             return "#9ffff1";
 
-        return "#ffffff";
+        return "#fff";
     }
 
     public async ValueTask<string> GetAuthorImageUrlAsync()
     {
-        var member = await GetAuthorMemberAsync();
-        var user = await GetAuthorUserAsync();
+        var member = await FetchAuthorMemberAsync();
+        var user = await FetchAuthorUserAsync();
         return AvatarUtility.GetAvatarUrl(user, member, AvatarFormat.Webp128);
     }
     
     public async ValueTask<string> GetAuthorImageUrlAnimatedAsync()
     {   
         // TODO: Tweak when member avatars are implemented
-        var user = await GetAuthorUserAsync();
+        var user = await FetchAuthorUserAsync();
         if (!user.HasAnimatedAvatar)
             return null;
         
-        var member = await GetAuthorMemberAsync();
+        var member = await FetchAuthorMemberAsync();
         return AvatarUtility.GetAvatarUrl(user, member, AvatarFormat.WebpAnimated128);
     }
     
     public async ValueTask<string> GetAuthorImageUrlFallbackAsync()
     {
-        var user = await GetAuthorUserAsync();
+        var user = await FetchAuthorUserAsync();
         return user.GetFailedAvatarUrl();
     }
     
@@ -288,8 +293,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     {
         if (Mentions is null || Mentions.Count == 0)
             return false;
-
-        List<PlanetRole> selfRoles = null;
+        
         PlanetMember selfMember = null;
 
         foreach (var mention in Mentions)
@@ -298,7 +302,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
             {
                 case MentionType.User:
                 {
-                    if (mention.TargetId == ValourClient.Self.Id)
+                    if (mention.TargetId == Client.Me.Id)
                     {
                         return true;
                     }
@@ -312,7 +316,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     
                     if (selfMember is null)
                     {
-                        selfMember = await Planet.FetchSelfMemberAsync();
+                        selfMember = await Planet.FetchMyMemberAsync();
                     }
                     
                     if (mention.TargetId == selfMember.Id)
@@ -325,21 +329,13 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     if (PlanetId is null)
                         continue;
                     
-                    if (selfRoles is null)
+                    if (selfMember is null)
                     {
-                        if (selfMember is null)
-                        {
-                            selfMember = await Planet.FetchSelfMemberAsync();
-                        }
-                        
-                        selfRoles = await selfMember.GetRolesAsync();
+                        selfMember = await Planet.FetchMyMemberAsync();
                     }
                     
-                    foreach (var role in selfRoles)
-                    {
-                        if (mention.TargetId == role.Id)
-                            return true;
-                    }
+                    if (selfMember.Roles.ContainsId(mention.TargetId))
+                        return true;
 
                     break;
                 }
@@ -485,8 +481,8 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// <summary> 
     /// Returns the author user of the message 
     /// </summary> 
-    public async ValueTask<User> GetAuthorUserAsync(bool refresh = false) =>
-        await User.FindAsync(AuthorUserId, refresh);
+    public async ValueTask<User> FetchAuthorUserAsync(bool skipCache = false) =>
+        await Client.UserService.FetchUserAsync(AuthorUserId, skipCache);
 
     public bool IsEmpty()
     {
@@ -561,4 +557,14 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     }
     
     #endregion
+
+    public override Message AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.Messages.Put(Id, this);
+    }
+
+    public override Message TakeAndRemoveFromCache()
+    {
+        return Client.Cache.Messages.TakeAndRemove(Id);
+    }
 }

@@ -87,14 +87,14 @@ public class AuthService : ServiceBase
         // Add auth header to main http client so we never have to do that again
         _client.Http.DefaultRequestHeaders.Add("authorization", Token);
         
-        var response = await _client.PrimaryNode.GetJsonAsync<User>($"api/users/self");
+        var response = await _client.PrimaryNode.GetJsonAsync<User>($"api/users/me");
 
         if (!response.Success)
             return response.WithoutData();
 
-        _client.Self = response.Data;
+        _client.Me = response.Data;
         
-        LoggedIn?.Invoke(_client.Self);
+        LoggedIn?.Invoke(_client.Me);
 
         return new TaskResult(true, "Success");
     }
@@ -104,7 +104,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
     {
-        var result = await _client.PrimaryNode.PostAsync($"api/users/self/compliance/{birthDate.ToString("s")}/{locality}", null);
+        var result = await _client.PrimaryNode.PostAsync($"api/users/me/compliance/{birthDate.ToString("s")}/{locality}", null);
         var taskResult = new TaskResult()
         {
             Success = result.Success,

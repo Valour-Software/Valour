@@ -5,6 +5,7 @@ using Valour.Sdk.Requests;
 using Valour.Sdk.Services;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
@@ -29,6 +30,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     // The lists are updated in realtime which means UI watching the lists do not
     // need to get an updated list. Do not second guess this decision. It is correct.
     // - Spike, 10/05/2024
+
+    public HybridEvent<RoleMembershipEvent> RoleMembershipChanged;
 
     /// <summary>
     /// The channels in this planet
@@ -173,6 +176,34 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     
     public void OnMemberDeleted(PlanetMember member) =>
         Members.Remove(member);
+    
+    public void OnMemberRoleAdded(PlanetRoleMember roleMember)
+    {
+        if (!Members.TryGet(roleMember.MemberId, out var member))
+            return;
+        
+        if (!Roles.TryGet(roleMember.RoleId, out var role))
+            return;
+        
+        member.OnRoleAdded(role);
+        
+        var eventArgs = new RoleMembershipEvent(MemberRoleEventType.Added, role, member);
+        RoleMembershipChanged?.Invoke(eventArgs);
+    }
+    
+    public void OnMemberRoleRemoved(PlanetRoleMember roleMember)
+    {
+        if (!Members.TryGet(roleMember.MemberId, out var member))
+            return;
+        
+        if (!Roles.TryGet(roleMember.RoleId, out var role))
+            return;
+        
+        member.OnRoleRemoved(role);
+        
+        var eventArgs = new RoleMembershipEvent(MemberRoleEventType.Removed, role, member);
+        RoleMembershipChanged?.Invoke(eventArgs);
+    }
     
     #endregion
     
@@ -532,9 +563,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// Returns the member for the current user in this planet (if it exists)
     /// </summary>
-    public ValueTask<PlanetMember> FetchSelfMemberAsync(bool skipCache = false)
+    public ValueTask<PlanetMember> FetchMyMemberAsync(bool skipCache = false)
     {
-        return FetchMemberByUserAsync(Client.Self.Id, skipCache);
+        return FetchMemberByUserAsync(Client.Me.Id, skipCache);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

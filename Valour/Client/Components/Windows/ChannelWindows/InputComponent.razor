@@ -259,7 +259,7 @@
         else
         {
             _selfMember = null;
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(ValourClient.Me.Id, ChatChannelPermissions.PostMessages);
         }
 
         PreviewMessage = BuildNewMessage();
@@ -273,7 +273,7 @@
         
         return new Message()
         {
-            AuthorUserId = ValourClient.Self.Id,
+            AuthorUserId = ValourClient.Me.Id,
             Content = prevContent,
             ChannelId = ChatComponent.Channel.Id,
             AuthorMemberId = _selfMember?.Id,
@@ -403,7 +403,7 @@
             attachmentType = MessageAttachmentType.Audio;
         }
 
-        if (ValourClient.Self.SubscriptionType is not null)
+        if (ValourClient.Me.SubscriptionType is not null)
         {
             maxSize = 20480000;
         }
@@ -468,7 +468,7 @@
             FileName = name,
         };
 
-        var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
+        var plusRoute = ValourClient.Me.SubscriptionType == null ? "" : "/plus";
 
         var modalData = new FileUploadComponent.ModalParams()
         {
@@ -761,7 +761,7 @@
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Self.Id);
+            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Me.Id);
 
         if (lastMessage is null)
         {

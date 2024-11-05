@@ -450,7 +450,7 @@
 
         Id = $"m-{Message.ChannelId}-{Message.Id}";
 
-        User = await Message.GetAuthorUserAsync();
+        User = await Message.FetchAuthorUserAsync();
 
         await BuildMessage(false);
 
@@ -466,7 +466,7 @@
         if (Message.PlanetId is not null)
         {
             
-            _member = await Message.GetAuthorMemberAsync();
+            _member = await Message.FetchAuthorMemberAsync();
             
             // Hook events
             if (_member is not null) // There is a chance they were deleted

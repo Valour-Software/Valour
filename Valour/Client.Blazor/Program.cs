@@ -7,7 +7,6 @@ using Valour.Client.Components.Sidebar.ChannelList;
 using Valour.Client.ContextMenu;
 using Valour.Client.Sounds;
 using Valour.Sdk.Services;
-using TenorService = Valour.Client.Tenor.TenorService;
 
 namespace Valour.Client.Blazor;
 
@@ -34,15 +33,7 @@ public class Program
         };
         
         client.SetHttpClient(httpClient);
-
-        builder.Services.AddSingleton(_ =>
-            httpClient
-        );
-
-        builder.Services.AddHttpClient<TenorService>(tenorClient =>
-        {
-            tenorClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
-        });
+        builder.Services.AddSingleton(httpClient);
         
         // old services TODO!
         builder.Services.AddSingleton<ClientCategoryManager>();
@@ -70,9 +61,6 @@ public class Program
         builder.Services.AddSingleton(client.PermissionService);
         
         var host = builder.Build();
-        
-        var jsRuntime = host.Services.GetRequiredService<IJSRuntime>();
-        
         await host.RunAsync();
     }
 }

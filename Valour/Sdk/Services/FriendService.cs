@@ -1,6 +1,7 @@
 ﻿using System.Web;
 using Valour.Sdk.Client;
 using Valour.Shared;
+using Valour.Shared.Models;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -10,7 +11,7 @@ public class FriendService : ServiceBase
     /// <summary>
     /// Run when there is a friend event
     /// </summary>
-    public HybridEvent<FriendEventData> FriendsUpdated;
+    public HybridEvent<FriendEventData> FriendsChanged;
 
     /// <summary>
     /// The friends of this client
@@ -45,25 +46,21 @@ public class FriendService : ServiceBase
     /// </summary>
     public async Task FetchesFriendsAsync()
     {
-	    var friendResult = await _client.Self.GetFriendDataAsync();
-
-	    if (!friendResult.Success)
+	    var data = await _client.Me.FetchFriendDataAsync();
+	    if (data is null)
 	    {
 		    LogError("Error loading friends.");
-		    LogError(friendResult.Message);
 		    return;
 	    }
-
-	    var data = friendResult.Data;
 	    
 	    FriendRequests.Clear();
 	    FriendsRequested.Clear();
 
 	    foreach (var added in data.Added)
-		    FriendRequests.Add(_cache.Sync(added));
+		    FriendRequests.Add(added);
 
 	    foreach (var addedBy in data.AddedBy)
-		    FriendsRequested.Add(_cache.Sync(addedBy));
+		    FriendsRequested.Add(addedBy);
 
 	    Friends.Clear();
 	    FriendLookup.Clear();
@@ -85,7 +82,7 @@ public class FriendService : ServiceBase
 
 	    Log($"Loaded {Friends.Count} friends.");
 	    
-	    FriendsUpdated?.Invoke(new FriendEventData()
+	    FriendsChanged?.Invoke(new FriendEventData()
 	    {
 		    User = null,
 		    Type = FriendEventType.FetchedAll
@@ -125,7 +122,7 @@ public class FriendService : ServiceBase
             }
         }
         
-        FriendsUpdated?.Invoke(eventData);
+        FriendsChanged?.Invoke(eventData);
     }
 
     /// <summary>
@@ -138,7 +135,7 @@ public class FriendService : ServiceBase
         if (!result.Success)
 	        return result;
         
-        var addedUser = await User.FindAsync(result.Data.FriendId);
+        var addedUser = await _client.UserService.FetchUserAsync(result.Data.FriendId);
 
 		// If we already had a friend request from them,
 		// add them to the friends list
@@ -161,7 +158,7 @@ public class FriendService : ServiceBase
 			Type = FriendEventType.AddedThem
 		};
             
-		FriendsUpdated?.Invoke(eventData);
+		FriendsChanged?.Invoke(eventData);
 		
         return result;
     }
@@ -186,7 +183,7 @@ public class FriendService : ServiceBase
 			Type = FriendEventType.DeclinedThem
 		};
         
-        FriendsUpdated?.Invoke(eventData);
+        FriendsChanged?.Invoke(eventData);
 
 		return result;
 	}
@@ -217,7 +214,7 @@ public class FriendService : ServiceBase
 	        Type = FriendEventType.RemovedThem
         };
         
-        FriendsUpdated?.Invoke(eventData);
+        FriendsChanged?.Invoke(eventData);
         
         return result;
     }
@@ -242,8 +239,42 @@ public class FriendService : ServiceBase
 			Type = FriendEventType.CancelledThem
 		};
 		
-		FriendsUpdated?.Invoke(eventData);
+		FriendsChanged?.Invoke(eventData);
 
 		return result;
+	}
+
+	public async Task<List<User>> GetFriendsAsync(long userId)
+	{
+		var result = await _client.PrimaryNode.GetJsonAsync<List<User>>($"{ISharedUser.GetIdRoute(userId)}/friends");
+
+		for (int i = 0; i < result.Data.Count; i++)
+		{
+			var user = result.Data[i];
+			result.Data[i] = _cache.Sync(user);
+		}
+		
+		return result.Data;
+	}
+
+	public async Task<UserFriendData> FetchFriendDataAsync(long userId)
+	{
+		var result = await _client.PrimaryNode.GetJsonAsync<UserFriendData>($"{ISharedUser.GetIdRoute(userId)}/frienddata");
+		if (!result.Success)
+			return null;
+		
+		for (int i = 0; i < result.Data.Added.Count; i++)
+		{
+			var user = result.Data.Added[i];
+			result.Data.Added[i] = _cache.Sync(user);
+		}
+		
+		for (int i = 0; i < result.Data.AddedBy.Count; i++)
+		{
+			var user = result.Data.AddedBy[i];
+			result.Data.AddedBy[i] = _cache.Sync(user);
+		}
+		
+		return result.Data;
 	}
 }

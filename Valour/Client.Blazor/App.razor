@@ -108,7 +108,7 @@ else
                     var result = await Client.InitializeUser(cookieToken);
 
                     if (result.Success) {
-                        Log("App", $"Auto-logged user {Client.Self.Name}", "magenta");
+                        Log("App", $"Auto-logged user {Client.Me.Name}", "magenta");
                     }
                 }
             }

@@ -34,7 +34,7 @@
 
 	private async Task OnConfirm()
 	{
-		var result = await Client.DeleteSelfAccountAsync(_password);
+		var result = await Client.DeleteMyAccountAsync(_password);
 		if (result.Success)
 		{
 			NavManager.NavigateTo("/", true);

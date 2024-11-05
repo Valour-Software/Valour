@@ -17,9 +17,9 @@ public class ThemeApi
         return Results.Json(themes);
     } 
     
-    [ValourRoute(HttpVerbs.Get, "api/themes/self")]
+    [ValourRoute(HttpVerbs.Get, "api/themes/me")]
     [UserRequired]
-    public static async Task<IResult> GetSelfThemes(
+    public static async Task<IResult> GetMyThemes(
         ThemeService themeService,
         TokenService tokenService)
     {

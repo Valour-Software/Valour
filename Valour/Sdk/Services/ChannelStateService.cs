@@ -53,7 +53,7 @@ public class ChannelStateService : ServiceBase
     
     public async Task LoadChannelStatesAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<ChannelStateData>>($"api/users/self/statedata");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<ChannelStateData>>($"api/users/me/statedata");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load channel states **");

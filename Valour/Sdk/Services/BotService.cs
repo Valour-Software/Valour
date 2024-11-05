@@ -32,7 +32,7 @@ public class BotService : ServiceBase
         // Now that we have our user, we can set up our primary node
         await _client.NodeService.SetupPrimaryNodeAsync();
 
-        Console.WriteLine($"Initialized bot {_client.Self.Name} ({_client.Self.Id})");
+        Console.WriteLine($"Initialized bot {_client.Me.Name} ({_client.Me.Id})");
 
         await JoinAllChannelsAsync();
 
@@ -45,7 +45,7 @@ public class BotService : ServiceBase
     public async Task JoinAllChannelsAsync()
     {
         // Get all joined planets
-        var planets = (await _client.PrimaryNode.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
+        var planets = (await _client.PrimaryNode.GetJsonAsync<List<Planet>>("api/users/me/planets")).Data;
 
         var planetTasks = new List<Task>();
         

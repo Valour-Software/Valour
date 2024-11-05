@@ -1,5 +1,6 @@
 @using System.Web
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
 <h3>Referrals</h3>
 <p class="subtitle">HELP GROW VALOUR</p>
@@ -40,12 +41,13 @@ else
 
 
 @code {
-    private readonly string _link = "https://app.valour.gg/register/referral/" + HttpUtility.UrlEncode(ValourClient.Self.NameAndTag);
+    private string _link;
     private List<ReferralDataModel> _referrals;
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await ValourClient.GetSelfReferralsAsync();
+        _link = "https://app.valour.gg/register/referral/" + HttpUtility.UrlEncode(Client.Me.NameAndTag);
+        var result = await Client.GetMyReferralsAsync();
         _referrals = result.Data;
         StateHasChanged();
     }

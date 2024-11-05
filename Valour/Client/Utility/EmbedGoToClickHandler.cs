@@ -28,7 +28,7 @@ internal static class EmbedGoToClickHandler
 
 			if (message.PlanetId is not null)
 			{
-				var selfMember = await message.Planet.FetchMemberByUserAsync(message.Client.Self.Id);
+				var selfMember = await message.Planet.FetchMemberByUserAsync(message.Client.Me.Id);
 				interaction.PlanetId = selfMember.PlanetId;
 				interaction.Author_MemberId = embedComponent.Message.AuthorMemberId!.Value;
 				interaction.MemberId = selfMember.Id;

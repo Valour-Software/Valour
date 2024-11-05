@@ -1,15 +1,35 @@
 using Valour.Sdk.Client;
 using Valour.Shared;
+using Valour.TenorTwo;
+using Valour.TenorTwo.Models;
 
 namespace Valour.Sdk.Services;
 
 public class TenorService : ServiceBase
 {
     /// <summary>
+    /// The key for Valour using the Tenor API
+    /// </summary>
+    private const string TenorKey = "AIzaSyCpYasE9IZNecc7ZPEjHTpOVssJT1aUC_4";
+
+    /// <summary>
+    /// Client for interacting with the Tenor API
+    /// </summary>
+    public TenorClient Client => _tenor;
+    
+    private readonly HttpClient _httpClient;
+    
+    /// <summary>
     /// The Tenor favorites of this user
     /// </summary>
     public readonly IReadOnlyList<TenorFavorite> TenorFavorites;
     private List<TenorFavorite> _tenorFavorites = new();
+    
+    public static readonly List<MediaFormatType> Formats = new()
+    {
+        MediaFormatType.gif,
+        MediaFormatType.tinygif
+    };
     
     private readonly LogOptions _logOptions = new(
         "PlanetService",
@@ -19,19 +39,26 @@ public class TenorService : ServiceBase
     );
     
     private readonly ValourClient _client;
+    private readonly TenorClient _tenor;
     
-    public TenorService(ValourClient client)
+    public TenorService(HttpClient httpClient, ValourClient client)
     {
         _client = client;
-        
         SetupLogging(client.Logger, _logOptions);
         
+        _httpClient = httpClient;
         TenorFavorites = _tenorFavorites;
+        _tenor = new TenorClient(TenorKey, "valour", http: httpClient);
+    }
+    
+    public HttpClient GetHttpClient()
+    {
+        return _httpClient;
     }
     
     public async Task LoadTenorFavoritesAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/users/self/tenorfavorites");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/users/me/tenorfavorites");
         if (!response.Success)
         {
             LogError("Failed to load Tenor favorites", response);

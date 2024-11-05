@@ -112,7 +112,7 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<TaskResult> FetchJoinedPlanetsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/self/planets");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/me/planets");
         if (!response.Success)
             return response.WithoutData();
 
@@ -353,7 +353,7 @@ public class PlanetService : ServiceBase
     public async Task<TaskResult> LeavePlanetAsync(Planet planet)
     {
         // Get member
-        var member = await planet.FetchSelfMemberAsync();
+        var member = await planet.FetchMyMemberAsync();
         var result = await member.DeleteAsync();
 
         if (result.Success)

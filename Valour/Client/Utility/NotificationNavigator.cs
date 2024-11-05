@@ -50,7 +50,7 @@ public static class NotificationNavigator
                 {
                     StartTopMenu = "General Settings",
                     StartSubMenu = "Friends",
-                    User = client.Self
+                    User = client.Me
                 };
                 
                 ModalInjector.Service.OpenModal<EditUserComponent>(data);

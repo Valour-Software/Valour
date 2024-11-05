@@ -74,7 +74,7 @@
 		StateHasChanged();
 	}
 
-	private async Task OnMemberRoleUpdate(MemberRoleEvent eventData)
+	private async Task OnMemberRoleUpdate(RoleMembershipEvent eventData)
 	{
 		_memberRoles = await Member.GetRolesAsync();
 		StateHasChanged();

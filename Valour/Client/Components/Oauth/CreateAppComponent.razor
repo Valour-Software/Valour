@@ -1,6 +1,8 @@
 @inherits Modal<CreateAppComponent.ModalParams>
+@inject ValourClient Client
+@inject OauthService OauthService
 
-@if (ValourClient.Self is null){
+@if (Client.Me is null){
     <h2>Sign in!</h2>
     return;
 }
@@ -49,11 +51,11 @@
 		{
 			Name = _name,
             ImageUrl = "media/logo/logo-512.png",
-            OwnerId = ValourClient.Self.Id,
+            OwnerId = Client.Me.Id,
             Uses = 0
 		};
 
-		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<long>($"api/oauth/app", newApp);
+		var response = await Client.PrimaryNode.PostAsyncWithResponse<long>($"api/oauth/app", newApp);
         
         if (!response.Success){
             _nameSpan = response.Message;
@@ -67,7 +69,7 @@
 
         ////////////////////////////////
 
-		var app = await OauthApp.FindAsync(appId);
+		var app = await OauthService.FetchAppAsync(appId);
 
 		if (app is null)
 		{

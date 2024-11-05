@@ -162,7 +162,7 @@ else
         var account = new EcoAccount()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
-            UserId = Client.Self.Id,
+            UserId = Client.Me.Id,
             AccountType = AccountType.User,
             CurrencyId = ISharedCurrency.ValourCreditsId,
         };
@@ -190,7 +190,7 @@ else
         Transaction transaction = new()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
-            UserFromId = Client.Self.Id,
+            UserFromId = Client.Me.Id,
             AccountFromId = _globalAccount.Id,
             UserToId = _targetAccountData.UserId,
             AccountToId = _targetAccountData.AccountId,

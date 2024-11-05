@@ -106,7 +106,7 @@
         _roles.Clear();
         _selectedRoles.Clear();
 
-        var selfMember = await Data.Planet.FetchSelfMemberAsync();
+        var selfMember = await Data.Planet.FetchMyMemberAsync();
 
         SelfAuthority = selfMember.Authority;
         foreach (PlanetRole item in Data.Planet.Roles)

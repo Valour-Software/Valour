@@ -34,6 +34,23 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         ISharedPlanetMember.BaseRoute;
     
     /// <summary>
+    /// The user of the member
+    /// </summary>
+    public User User { get; private set; }
+    
+    // User related properties //
+    
+    /// <summary>
+    /// Returns the status of the member
+    /// </summary>
+    public string Status => User?.Status ?? "";
+    
+    /// <summary>
+    /// Returns the name of the member
+    /// </summary>
+    public string Name => string.IsNullOrWhiteSpace(Nickname) ? (User?.Name ?? "User not found") : Nickname;
+    
+    /// <summary>
     /// The id of the planet this belongs to
     /// </summary>
     public long PlanetId { get; set; }
@@ -84,6 +101,9 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     
     public override PlanetMember AddToCacheOrReturnExisting()
     {
+        // Sync user first
+        User = Client.Cache.Sync(User);
+        
         var key = new PlanetMemberKey(UserId, PlanetId);
         Client.Cache.MemberKeyToId[key] = Id;
         
@@ -177,18 +197,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     public async Task SetLocalRoleIds(List<long> ids) =>
         await FetchRoleMembershipAsync(ids);
 
-    /// <summary>
-    /// Returns the user of the member
-    /// </summary>
-    public ValueTask<User> GetUserAsync(bool refresh = false) =>
-        User.FindAsync(UserId, refresh);
-
-    /// <summary>
-    /// Returns the status of the member
-    /// </summary>
-    public async Task<string> GetStatusAsync(bool refresh = false) =>
-        (await GetUserAsync(refresh))?.Status ?? "";
-
 
     /// <summary>
     /// Returns the role color of the member
@@ -200,23 +208,12 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async ValueTask<string> GetAvatarUrlAsync(bool refresh = false)
+    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256)
     {
-        if (!string.IsNullOrWhiteSpace(MemberAvatar))
+        if (!string.IsNullOrWhiteSpace(MemberAvatar)) // TODO: do same thing as user
             return MemberAvatar;
 
-        return (await GetUserAsync(refresh)).GetAvatarUrl();
-    }
-
-    /// <summary>
-    /// Returns the name of the member
-    /// </summary>
-    public async ValueTask<string> GetNameAsync(bool refresh = false)
-    {
-        if (!string.IsNullOrWhiteSpace(Nickname))
-            return Nickname;
-
-        return (await GetUserAsync(refresh))?.Name ?? "User not found";
+        return User.GetAvatarUrl(format);
     }
 }
 
