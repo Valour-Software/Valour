@@ -129,7 +129,8 @@ namespace Valour.Server
                 new DynamicAPI<SubscriptionApi>()             .RegisterRoutes(app),
                 new DynamicAPI<OrderApi>()                    .RegisterRoutes(app),
                 new DynamicAPI<ThemeApi>()                    .RegisterRoutes(app),
-                new DynamicAPI<StaffApi>()                    .RegisterRoutes(app)
+                new DynamicAPI<StaffApi>()                    .RegisterRoutes(app),
+                new DynamicAPI<MessageApi>()                  .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI();
@@ -318,6 +319,7 @@ namespace Valour.Server
             services.AddScoped<OauthAppService>();
             services.AddScoped<PlanetBanService>();
             services.AddScoped<ChannelService>();
+            services.AddScoped<MessageService>();
             services.AddScoped<PlanetInviteService>();
             services.AddScoped<PlanetMemberService>();
             services.AddScoped<PlanetRoleService>();

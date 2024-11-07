@@ -1,4 +1,5 @@
 ﻿@inherits WindowContentComponent<StaffMessageWindow.Props>
+@inject StaffService StaffService
 
 @if (_params is null)
 {
@@ -13,18 +14,18 @@
 
     public class Content: WindowContent<StaffMessageWindow, Props>
     {
-        public override async Task ImportData(string data)
+        public override async Task ImportData(string data, ValourClient client)
         {
             // Exported data is message id
             long messageId = JsonSerializer.Deserialize<long>(data);
-            var message = await StaffTools.GetMessageAsync(messageId);
+            var message = await client.StaffService.GetMessageAsync(messageId);
             Data = new Props()
             {
                 Message = message
             };
         }
         
-        public override string ExportData()
+        public override string ExportData(ValourClient client)
         {
             return JsonSerializer.Serialize(Data.Message.Id);
         }
@@ -37,12 +38,12 @@
     
     public static async Task<WindowContent> GetDefaultContentAsync(StaffMessageWindow.Props data)
     {
-        var avatar = await data.Message.GetAuthorImageUrlAsync();
+        var author = await data.Message.FetchAuthorAsync();
         
         return new Content()
         {
             Title = "Message " + data.Message.Id,
-            Icon = avatar,
+            Icon = author?.GetAvatar() ?? ISharedUser.DefaultAvatar,
             Data = data
         };
     }

@@ -28,7 +28,7 @@ public struct PlanetMemberKey : IEquatable<PlanetMemberKey>
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanetMember
+public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanetMember, IMessageAuthor
 {
     public override string BaseRoute =>
         ISharedPlanetMember.BaseRoute;
@@ -61,7 +61,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// The member's roles
     /// </summary>
-    public readonly SortedReactiveModelStore<PlanetRole, long> Roles = new();
+    public readonly SortedModelList<PlanetRole, long> Roles = new();
     
     /// <summary>
     /// The primary role of the member
@@ -208,12 +208,15 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256)
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
     {
         if (!string.IsNullOrWhiteSpace(MemberAvatar)) // TODO: do same thing as user
             return MemberAvatar;
 
-        return User.GetAvatarUrl(format);
+        return User?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
     }
+    
+    public string GetFailedAvatar() =>
+        User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
 }
 

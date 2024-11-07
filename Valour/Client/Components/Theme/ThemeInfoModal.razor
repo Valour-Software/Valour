@@ -1,4 +1,6 @@
 ﻿@inherits Modal<ThemeInfoModal.ThemeInfoModalParams>
+@inject ValourClient Client
+@inject UserService UserService
 
 <div class="v-bg-dark theme-info">
     <section>
@@ -39,7 +41,7 @@
 
             <div class="buttons-wrapper">
                 <div class="buttons">
-                    @if (Data.ThemeMeta.AuthorId == ValourClient.Me.Id && Data.Editor is not null)
+                    @if (Data.ThemeMeta.AuthorId == Client.Me.Id && Data.Editor is not null)
                     {
                         <button class="btn v-btn" @onclick="@OnClickEditAsync">Edit Theme</button>
                     }
@@ -89,7 +91,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        _authorUser = await User.FindAsync(Data.ThemeMeta.AuthorId);
+        _authorUser = await UserService.FetchUserAsync(Data.ThemeMeta.AuthorId);
         if (_authorUser is not null)
             _authorName = _authorUser.Name;
         
@@ -153,7 +155,7 @@
             if (_myVote.Sentiment)
             {
                 // delete
-                var result = await ClientModel.DeleteAsync(_myVote);
+                var result = await _myVote.DeleteAsync();
                 if (result.Success)
                 {
                     _upvotes--;
@@ -166,7 +168,7 @@
             {
                 _myVote.Sentiment = true;
 
-                var result = await ClientModel.UpdateAsync(_myVote);
+                var result = await _myVote.UpdateAsync();
                 if (result.Success)
                 {
                     _upvotes++;
@@ -185,10 +187,10 @@
             {
                 ThemeId = _theme.Id,
                 Sentiment = true,
-                UserId = ValourClient.Me.Id,
+                UserId = Client.Me.Id,
             };
-            
-            var result = await ClientModel.CreateAsync(vote);
+
+            var result = await vote.CreateAsync();
             if (result.Success)
             {
                 _upvotes++;
@@ -208,7 +210,7 @@
             if (!_myVote.Sentiment)
             {
                 // delete
-                var result = await ClientModel.DeleteAsync(_myVote);
+                var result = await _myVote.DeleteAsync();
                 if (result.Success)
                 {
                     _downvotes--;
@@ -221,7 +223,7 @@
             {
                 _myVote.Sentiment = false;
 
-                var result = await ClientModel.UpdateAsync(_myVote);
+                var result = await _myVote.UpdateAsync();
                 if (result.Success)
                 {
                     _downvotes++;
@@ -238,10 +240,10 @@
             {
                 ThemeId = _theme.Id,
                 Sentiment = false,
-                UserId = ValourClient.Me.Id,
+                UserId = Client.Me.Id,
             };
-            
-            var result = await ClientModel.CreateAsync(vote);
+
+            var result = await vote.CreateAsync();
             if (result.Success)
             {
                 _downvotes++;
@@ -259,7 +261,7 @@
         if (Data.Editor is null)
             return;
 
-        await Data.Editor.OpenEditorWithTheme(_theme);
+        Data.Editor.OpenEditorWithTheme(_theme);
         await CloseAsync();
     }
 

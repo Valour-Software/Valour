@@ -1,4 +1,5 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Services;
@@ -40,5 +41,11 @@ public class PermissionService : ServiceBase
             true)).Data;
         
         return _cache.Sync(permNode);
+    }
+    
+    public async Task<List<PermissionsNode>> FetchPermissionsNodesByRoleAsync(long roleId, Planet planet)
+    {
+        var permissionNodes = (await planet.Node.GetJsonAsync<List<PermissionsNode>>($"{ISharedPlanetRole.GetIdRoute(roleId)}/nodes")).Data;
+        return permissionNodes.SyncAll(_cache);
     }
 }

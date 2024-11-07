@@ -22,6 +22,9 @@ public class NotificationService
     public IReadOnlyList<Notification> UnreadNotifications { get; private set; }
     private List<Notification> _unreadNotifications = new();
     
+    // Needs to be here to be used as virtualized, unfortunately
+    public List<Notification> GetUnreadInternal() => _unreadNotifications;
+    
     /// <summary>
     /// A set from the source of notifications to the notification.
     /// Used for extremely efficient lookups.

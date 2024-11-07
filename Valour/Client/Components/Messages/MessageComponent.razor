@@ -18,15 +18,15 @@
     <div class="left-info">
         @if (!Minimal)
         {
-            @if (User.HasAnimatedAvatar)
+            @if (_user.HasAnimatedAvatar)
             {
                 <style>
-                    .message:hover .author-avatar-@User.Id {
+                    .message:hover .author-avatar-@_user.Id {
                         background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
                     }
                 </style>
             }
-            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@User.Id" @onerror="OnAvatarError"></div>
+            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@_user.Id" @onerror="OnAvatarError"></div>
         }
         <div class="time-container">
             <p class="time" title="@_timeTitle">
@@ -49,13 +49,13 @@
                 </p>
 
                 <div class="dot-badge-holder">
-                    @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                    @if (_user.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                     {
                         <BasicTooltipComponent Title="Stargazer" Placement="top">
                             <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
                         </BasicTooltipComponent>
                     }
-                    @if (User.Id <= 22113735421460480)
+                    @if (_user.Id <= 22113735421460480)
                     {
                         <span class="badge-1k">1k</span>
                     }
@@ -179,12 +179,13 @@
     public bool IsInnerReply { get; set; }
     /* End Set Params */
 
+    private IMessageAuthor _author;
+
     /* Planet Message Only */
     private PlanetMember _member;
     
     /* End Planet Message Only */
-
-    public User User { get; set; }
+    private User _user { get; set; }
 
     public MessageComponent ReplyComponent;
 
@@ -269,7 +270,7 @@
         }
         else
         {
-            return ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+            return ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
         }
     }
 
@@ -307,7 +308,7 @@
         {
             ContextMenuService.Root.OpenMenu<UserContextMenu>(e, new UserContextMenu.UserContextParams()
             {
-                User = User
+                User = _user
             });
         }
     }
@@ -419,12 +420,12 @@
             return;
         }
 
-        _name = await Message.GetAuthorNameAsync();
-        _nameColor = await Message.GetAuthorColorAsync();
-        _nameTag = await Message.GetAuthorRoleTagAsync();
-        _avatarUrl = await Message.GetAuthorImageUrlAsync();
-        _animatedAvatarUrl = await Message.GetAuthorImageUrlAnimatedAsync();
-        _fallbackAvatarUrl = await Message.GetAuthorImageUrlFallbackAsync();
+        _name = GetAuthorName();
+        _nameColor = GetAuthorColor();
+        _nameTag = GetAuthorRoleTag();
+        _avatarUrl = GetAuthorAvatar();
+        _animatedAvatarUrl = GetAuthorAvatarAnimated();
+        _fallbackAvatarUrl = GetAuthorAvatarUrlFallback();
 
         _isBuilt = true;
 
@@ -434,10 +435,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        this.Message = ParamData.Message;
-        this.LastMessage = ParamData.LastMessage;
-        this.Ghost = ParamData.Ghost;
-        this.IsInnerReply = ParamData.IsInnerReply;
+        Message = ParamData.Message;
+        LastMessage = ParamData.LastMessage;
+        Ghost = ParamData.Ghost;
+        IsInnerReply = ParamData.IsInnerReply;
         KeyboardListener.OnKeyDown += OnKeyDown;
         
         if (Message is null)
@@ -450,12 +451,12 @@
 
         Id = $"m-{Message.ChannelId}-{Message.Id}";
 
-        User = await Message.FetchAuthorUserAsync();
+        _user = await Message.FetchAuthorUserAsync();
 
         await BuildMessage(false);
 
-        if (User != null)
-            User.Updated += OnUserUpdated;
+        if (_user != null)
+            _user.Updated += OnUserUpdated;
         
         if (!IsInnerReply && !Ghost)
         {
@@ -475,7 +476,59 @@
                 _member.Updated += OnMemberUpdated;
             }
         }
+
+        _author = _member is not null ? _member : _user;
     }
+    
+    /// <summary>
+    /// Returns the name that should be displayed for the author of this message
+    /// </summary>
+    private string GetAuthorName()
+    {
+        return _member is not null ? _member.Name : 
+            (_user?.Name ?? "User not found");
+    }
+    
+    private string GetAuthorRoleTag()
+    {
+        // Bot always shows Bot
+        if (_user.Bot)
+            return "Bot";
+        
+        // If there's a member, we use the member's planet role
+        if (_member is not null) 
+            return _member.PrimaryRole.Name ?? "Unknown Role";
+
+        if (_user is null) 
+            return string.Empty;
+        
+        // Otherwise, we use their relationship with the user
+        if (_user.Id == Client.Me.Id)
+            return "You";
+
+        return Client.FriendService.FriendLookup.ContainsKey(_user.Id) ? "Friend" : "User";
+    }
+    
+    private string GetAuthorColor()
+    {
+        return _member is not null ? _member.PrimaryRole.Color : 
+            (Client.FriendService.FriendLookup.ContainsKey(_user.Id) ? "#9ffff1" : "#fff");
+    }
+    
+    public string GetAuthorAvatar() =>
+        _author.GetAvatar(AvatarFormat.Webp128);
+    
+    public string GetAuthorAvatarAnimated()
+    {   
+        // TODO: Tweak when member avatars are implemented
+        if (!_user.HasAnimatedAvatar)
+            return null;
+
+        return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+    }
+    
+    public string GetAuthorAvatarUrlFallback() =>
+        _author.GetFailedAvatar();
 
     private async Task<Task> OnKeyDown(KeyboardListener.KeyboardEvent e)
     {
@@ -500,20 +553,25 @@
         return Task.CompletedTask;
     }
 
-    public async Task OnUserUpdated(ModelUpdateEvent<User> eventData)
+    public void OnUserUpdated(ModelUpdateEvent<User> eventData)
     {
         bool render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(User.Name)))
+        if (eventData.PropsChanged.Contains(nameof(_user.Name)))
         {
             render = true;
-            _name = await Message.GetAuthorNameAsync();
+            _name = GetAuthorName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
+        if (eventData.PropsChanged.Contains(nameof(_user.HasCustomAvatar)))
         {
             render = true;
-            _avatarUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = GetAuthorAvatar();
+
+            if (_user.HasAnimatedAvatar)
+            {
+                _animatedAvatarUrl = GetAuthorAvatarAnimated();
+            }
         }
 
         if (render)
@@ -522,20 +580,25 @@
         }
     }
 
-    private async Task OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
+    private void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         var render = false;
         
         if (eventData.PropsChanged.Contains(nameof(_member.Nickname)))
         {
             render = true;
-            _name = await Message.GetAuthorNameAsync();
+            _name = GetAuthorName();
         }
 
         if (eventData.PropsChanged.Contains(nameof(_member.MemberAvatar)))
         {
             render = true;
-            _avatarUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = GetAuthorAvatar();
+            
+            if (_user.HasAnimatedAvatar)
+            {
+                _animatedAvatarUrl = GetAuthorAvatarAnimated();
+            }
         }
 
         if (render)
@@ -545,7 +608,7 @@
     }
     
     // Update for any role changes
-    private void UpdateForRoleChange(ModelStoreEvent<PlanetRole> change)
+    private void UpdateForRoleChange(ModelListChangeEvent<PlanetRole> change)
     {
         // Cosmetic changes
         _nameTag = _member.PrimaryRole.Name;
@@ -603,7 +666,7 @@
     
     private void OnAvatarError()
     {
-        _avatarUrl = AvatarUtility.GetFailedAvatarUrl(User);
+        _avatarUrl = _author.GetFailedAvatar();
         _avatarErrorRender = true;
         ReRender();
     }

@@ -207,24 +207,24 @@ public interface ISharedUser : ISharedModel<long>
         { AvatarFormat.WebpAnimated256, AvatarFormat.Webp256 },
     };
     
-    private const string DefaultPfp = "_content/Valour.Client/media/user-icons/icon-0.png";
+    public const string DefaultAvatar = "_content/Valour.Client/media/user-icons/icon-0.webp";
     
-    public static string GetFailedAvatarUrl(ISharedUser user)
+    public static string GetFailedAvatar(ISharedUser user)
     {
         if (user is null)
-            return DefaultPfp;
+            return DefaultAvatar;
         
         var var = (int)(user.Id % 5);
-        return $"_content/Valour.Client/media/user-icons/icon-{var}.png";
+        return $"_content/Valour.Client/media/user-icons/icon-{var}.webp";
     }
     
-    public static string GetAvatarUrl(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
+    public static string GetAvatar(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
     {
         if (user is null)
-            return DefaultPfp;
+            return DefaultAvatar;
         
         if (!user.HasCustomAvatar)
-            return GetFailedAvatarUrl(user);
+            return GetFailedAvatar(user);
 
         // If an animated avatar is requested, but the user doesn't have one, use the static version
         if (!user.HasAnimatedAvatar)

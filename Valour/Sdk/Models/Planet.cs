@@ -36,22 +36,22 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// The channels in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> Channels { get; } = new();
+    public SortedModelList<Channel, long> Channels { get; } = new();
     
     /// <summary>
     /// The chat channels in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> ChatChannels { get; } = new();
+    public SortedModelList<Channel, long> ChatChannels { get; } = new();
     
     /// <summary>
     /// The voice channels in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> VoiceChannels { get; } = new();
+    public SortedModelList<Channel, long> VoiceChannels { get; } = new();
     
     /// <summary>
     /// The categories in this planet
     /// </summary>
-    public SortedReactiveModelStore<Channel, long> Categories { get; } = new();
+    public SortedModelList<Channel, long> Categories { get; } = new();
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -61,7 +61,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// The roles in this planet
     /// </summary>
-    public SortedReactiveModelStore<PlanetRole, long> Roles { get; } = new();
+    public SortedModelList<PlanetRole, long> Roles { get; } = new();
     
     /// <summary>
     /// The default (everyone) role of this planet
@@ -71,17 +71,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// The members of this planet
     /// </summary>
-    public ReactiveModelStore<PlanetMember, long> Members { get; } = new();
+    public ModelList<PlanetMember, long> Members { get; } = new();
     
     /// <summary>
     /// The invites of this planet
     /// </summary>
-    public ReactiveModelStore<PlanetInvite, string> Invites { get; } = new();
+    public ModelList<PlanetInvite, string> Invites { get; } = new();
     
     /// <summary>
     /// The permission nodes of this planet
     /// </summary>
-    public ReactiveModelStore<PermissionsNode, long> PermissionsNodes { get; } = new();
+    public ModelList<PermissionsNode, long> PermissionsNodes { get; } = new();
 
     /// <summary>
     /// The Id of the owner of this planet

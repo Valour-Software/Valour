@@ -4,7 +4,7 @@
         @Invite.Code
     </td>
     <td>
-        @IssuerName
+        @_issuerName
     </td>
     <td>
         @Invite.TimeCreated.ToLocalTime().ToShortDateString()
@@ -18,12 +18,12 @@
     [Parameter]
     public PlanetInvite Invite { get; set; }
 
-    public string IssuerName { get; set;}
+    private string _issuerName;
 
     protected override async Task OnInitializedAsync()
     {
-        PlanetMember member = await Invite.Planet.FetchMyMemberAsync();
-        IssuerName = await member.GetNameAsync();
+        var member = await Invite.Planet.FetchMyMemberAsync();
+        _issuerName = member.Name;
         StateHasChanged();
     }
 }

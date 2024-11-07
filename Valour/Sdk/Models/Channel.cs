@@ -527,7 +527,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         {
             var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
             if (!others.Any())
-                result =  Client.Me.GetAvatarUrl();
+                result =  Client.Me.GetAvatar();
 
             var other = await User.FindAsync(others.First().UserId);
             if (other is not null)

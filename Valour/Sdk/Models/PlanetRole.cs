@@ -16,13 +16,16 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
     public override string BaseRoute =>
         ISharedPlanetRole.BaseRoute;
-    
+
+    public override string IdRoute => 
+        ISharedPlanetRole.GetIdRoute(Id);
+
     /// <summary>
     /// The id of the planet this belongs to
     /// </summary>
     public long PlanetId { get; set; }
 
-    public override long? GetPlanetId()
+    protected override long? GetPlanetId()
         => PlanetId;
     
     // Coolest role on this damn platform.
@@ -129,34 +132,27 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         Planet.OnRoleUpdated(eventData);
     }
 
+    public override PlanetRole AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.PlanetRoles.Put(Id, this);
+    }
+
+    public override PlanetRole TakeAndRemoveFromCache()
+    {
+        return Client.Cache.PlanetRoles.TakeAndRemove(Id);
+    }
+
     protected override void OnDeleted()
     {
         Planet.OnRoleDeleted(this);
     }
 
+    // TODO: Model store
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>
-    public async Task LoadPermissionNodesAsync()
-    {
-        var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
-        if (nodes is null)
-            return;
-        
-        // Create container if needed
-        if (PermissionsNodes == null)
-            PermissionsNodes = new List<PermissionsNode>();
-        else
-            PermissionsNodes.Clear();
-
-        // Update cache values
-        foreach (var node in nodes)
-        {
-            // Skip event for bulk loading
-            var cached = node.Sync(true);
-            PermissionsNodes.Add(cached);
-        }
-    }
+    public Task LoadPermissionNodesAsync() =>
+        Client.PermissionService.FetchPermissionsNodesByRoleAsync(Id, Planet);
 
     /// <summary>
     /// Returns the permission node for the given channel id

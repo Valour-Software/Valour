@@ -7,37 +7,37 @@ namespace Valour.Sdk.ModelLogic;
 
 public enum ListChangeType
 {
-    Add,
-    Update,
-    Remove,
+    Added,
+    Updated,
+    Removed,
     Set,
-    Clear
+    Cleared
 }
 
-public readonly struct ModelStoreEvent<T>
+public readonly struct ModelListChangeEvent<T>
     where T : class
 {
-    public static readonly ModelStoreEvent<T> Set = new(ListChangeType.Set, default);
-    public static readonly ModelStoreEvent<T> Clear = new(ListChangeType.Clear, default);
+    public static readonly ModelListChangeEvent<T> Set = new(ListChangeType.Set, default);
+    public static readonly ModelListChangeEvent<T> Clear = new(ListChangeType.Cleared, default);
     
     public readonly ListChangeType ChangeType;
-    public readonly T Item;
+    public readonly T Model;
     
-    public ModelStoreEvent(ListChangeType changeType, T item)
+    public ModelListChangeEvent(ListChangeType changeType, T model)
     {
         ChangeType = changeType;
-        Item = item;
+        Model = model;
     }
 }
 
 /// <summary>
 /// Reactive lists are lists that can be observed for changes.
 /// </summary>
-public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
+public class ModelList<TModel, TId> : IEnumerable<TModel>, IDisposable
     where TModel : ClientModel<TModel, TId>
     where TId : IEquatable<TId>
 {
-    public HybridEvent<ModelStoreEvent<TModel>> Changed; // We don't assign because += and -= will do it
+    public HybridEvent<ModelListChangeEvent<TModel>> Changed; // We don't assign because += and -= will do it
     
     protected readonly List<TModel> List;
     protected Dictionary<TId, TModel> IdMap;
@@ -45,7 +45,7 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     
     public int Count => List.Count;
     
-    public ReactiveModelStore(List<TModel> startingList = null)
+    public ModelList(List<TModel> startingList = null)
     {
         List = startingList ?? new List<TModel>();
         IdMap = List.ToDictionary(x => x.Id);
@@ -64,17 +64,17 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         if (!List.Contains(item))
         {
             List.Add(item);
-            changeType = ListChangeType.Add;
+            changeType = ListChangeType.Added;
         }
         else
         {
-            changeType = ListChangeType.Update;
+            changeType = ListChangeType.Updated;
         }
         
         IdMap[item.Id] = item;
         
         if (!skipEvent && Changed is not null)
-            Changed.Invoke(new ModelStoreEvent<TModel>(changeType, item));
+            Changed.Invoke(new ModelListChangeEvent<TModel>(changeType, item));
     }
     
     public virtual void Remove(TModel item, bool skipEvent = false)
@@ -86,7 +86,7 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         IdMap.Remove(item.Id);
         
         if (!skipEvent && Changed is not null)
-            Changed.Invoke(new ModelStoreEvent<TModel>(ListChangeType.Remove, item));
+            Changed.Invoke(new ModelListChangeEvent<TModel>(ListChangeType.Removed, item));
     }
     
     public virtual void Set(List<TModel> items, bool skipEvent = false)
@@ -100,7 +100,7 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         IdMap = List.ToDictionary(x => x.Id);
         
         if (!skipEvent && Changed is not null)
-            Changed.Invoke(ModelStoreEvent<TModel>.Set);
+            Changed.Invoke(ModelListChangeEvent<TModel>.Set);
     }
     
     public virtual void Clear(bool skipEvent = false)
@@ -108,7 +108,7 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         List.Clear();
         IdMap.Clear();
         if (!skipEvent && Changed is not null)
-            Changed.Invoke(ModelStoreEvent<TModel>.Clear);
+            Changed.Invoke(ModelListChangeEvent<TModel>.Clear);
     }
     
     public bool TryGet(TId id, out TModel item)
@@ -140,7 +140,7 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     /// </summary>
     public void NotifySet()
     {
-        Changed?.Invoke(ModelStoreEvent<TModel>.Set);
+        Changed?.Invoke(ModelListChangeEvent<TModel>.Set);
     }
     
     public void Dispose()
@@ -158,11 +158,11 @@ public class ReactiveModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
 /// Reactive lists are lists that can be observed for changes.
 /// This version of the list is ordered, and will automatically sort the list when items are added or updated.
 /// </summary>
-public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, TId>
+public class SortedModelList<TModel, TId> : ModelList<TModel, TId>
     where TModel : ClientModel<TModel, TId>, ISortable
     where TId : IEquatable<TId>
 {
-    public SortedReactiveModelStore(List<TModel> startingList = null) : base(startingList)
+    public SortedModelList(List<TModel> startingList = null) : base(startingList)
     {
     }
 
@@ -198,7 +198,7 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
             index = ~index;
             List.Insert(index, item);
             IdMap[item.Id] = item;
-            changeType = ListChangeType.Add;
+            changeType = ListChangeType.Added;
         }
         else
         {
@@ -211,11 +211,11 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
                 List.Insert(newIndex, item);
             }
 
-            changeType = ListChangeType.Update;
+            changeType = ListChangeType.Updated;
         }
 
         if (!skipEvent && Changed is not null)
-            Changed?.Invoke(new ModelStoreEvent<TModel>(changeType, item));
+            Changed?.Invoke(new ModelListChangeEvent<TModel>(changeType, item));
     }
 
 
@@ -235,7 +235,7 @@ public class SortedReactiveModelStore<TModel, TId> : ReactiveModelStore<TModel, 
         Sort();
         
         if (!skipEvent && Changed is not null)
-            Changed.Invoke(ModelStoreEvent<TModel>.Set);
+            Changed.Invoke(ModelListChangeEvent<TModel>.Set);
     }
 
     public void Sort()

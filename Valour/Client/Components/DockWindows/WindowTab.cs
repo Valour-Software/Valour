@@ -104,12 +104,12 @@ public abstract class WindowContent<TWindow, TData> :
     /// <summary>
     /// Used to export data to a form which can be serialized
     /// </summary>
-    public abstract string ExportData();
+    public abstract string ExportData(ValourClient client);
     
     /// <summary>
     /// Used to import data from a serialized form to the data object
     /// </summary>
-    public abstract Task ImportData(string data);
+    public abstract Task ImportData(string data, ValourClient client);
 }
 
 public class FloatingWindowProps

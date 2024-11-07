@@ -209,7 +209,7 @@
                 _animAvatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.WebpAnimated128);
             }
 
-            _failedAvatarUrl = User.GetFailedAvatarUrl();
+            _failedAvatarUrl = User.GetFailedAvatar();
         }
     }
 
@@ -297,7 +297,7 @@
         }
     }
 
-    private void OnMemberRoleModified(ModelStoreEvent<PlanetRole> eventData)
+    private void OnMemberRoleModified(ModelListChangeEvent<PlanetRole> eventData)
     {
         // We can skip for update because it's the same role
         if (DetermineColorChange())

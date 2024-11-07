@@ -73,7 +73,7 @@
         _member = member;
         _user = null;
         _hidden = false;
-        _user = await member.GetUserAsync();
+        _user = member.User;
         
         _profile =  await _user.FetchProfileAsync();
         if (_profile is null)

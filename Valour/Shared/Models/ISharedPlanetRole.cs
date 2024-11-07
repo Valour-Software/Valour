@@ -6,6 +6,7 @@ namespace Valour.Shared.Models;
 public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 {
     public const string BaseRoute = "api/roles";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
     
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions

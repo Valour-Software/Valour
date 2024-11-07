@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Valour.Sdk.Client;
 
 namespace Valour.Client.Components.DockWindows;
 
@@ -43,21 +44,28 @@ public class WindowLayoutState
 
 public class WindowSaveLoadAdapter
 {
-    public static string SerializeLayout(WindowLayout layout)
+    private ValourClient _client;
+    
+    public WindowSaveLoadAdapter(ValourClient client)
+    {
+        _client = client;
+    }
+    
+    public string SerializeLayout(WindowLayout layout)
     {
         var state = Export(layout);
         var json = JsonSerializer.Serialize(state);
         return json;
     }
     
-    public static async Task<WindowLayout> DeserializeLayout(string json)
+    public async Task<WindowLayout> DeserializeLayout(string json)
     {
         var state = JsonSerializer.Deserialize<WindowLayoutState>(json);
         var layout = await Import(state);
         return layout;
     }
 
-    public static string SerializeFloaters(List<WindowTab> floaters)
+    public string SerializeFloaters(List<WindowTab> floaters)
     {
         if (floaters is null)
         {
@@ -69,7 +77,7 @@ public class WindowSaveLoadAdapter
         return json;
     }
     
-    public static async Task<List<WindowTab>> DeserializeFloaters(string json)
+    public async Task<List<WindowTab>> DeserializeFloaters(string json)
     {
         var tabStates = JsonSerializer.Deserialize<List<WindowTabState>>(json);
         var tabs = new List<WindowTab>();
@@ -83,7 +91,7 @@ public class WindowSaveLoadAdapter
         return tabs;
     }
 
-    public static List<WindowTabState> Export(List<WindowTab> tabs)
+    public List<WindowTabState> Export(List<WindowTab> tabs)
     {
         List<WindowTabState> tabStates = null;
 
@@ -99,7 +107,7 @@ public class WindowSaveLoadAdapter
                 var method = tab.Content.GetType().GetMethod("ExportData");
                 if (method is not null)
                 {
-                    data = (string)method.Invoke(tab.Content, null);
+                    data = (string)method.Invoke(tab.Content, [_client]);
                 }
 
                 var tabState = new WindowTabState
@@ -124,7 +132,7 @@ public class WindowSaveLoadAdapter
         return tabStates;
     }
     
-    public static WindowLayoutState Export(WindowLayout layout)
+    public WindowLayoutState Export(WindowLayout layout)
     {
         if (layout is null)
         {
@@ -155,7 +163,7 @@ public class WindowSaveLoadAdapter
         return state;
     }
     
-    public static async Task<WindowLayout> Import(WindowLayoutState state)
+    public async Task<WindowLayout> Import(WindowLayoutState state)
     {
         if (state is null)
         {
@@ -198,7 +206,7 @@ public class WindowSaveLoadAdapter
         return layout;
     }
     
-    public static async Task<WindowTab> Import(WindowTabState state)
+    public async Task<WindowTab> Import(WindowTabState state)
     {
         if (state is null)
         {
@@ -235,7 +243,7 @@ public class WindowSaveLoadAdapter
             {
                 
                 // Invoke as async method
-                var task = (Task)method.Invoke(content, new object[] { state.ContentState.DataJson });
+                var task = (Task)method.Invoke(content, [state.ContentState.DataJson, _client]);
                 if (task is not null)
                 {
                     await task;

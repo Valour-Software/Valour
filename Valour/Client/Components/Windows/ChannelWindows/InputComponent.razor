@@ -608,7 +608,7 @@
         {
             MessageHolder.AddQueuedMessage(message);
             
-            var result = await message.PostMessageAsync();
+            var result = await message.PostAsync();
 
             if (!result.Success)
             {

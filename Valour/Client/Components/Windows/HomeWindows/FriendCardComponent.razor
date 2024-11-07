@@ -49,9 +49,9 @@
     private int _notificationCount = 0;
 
     protected override void OnInitialized(){
-        _avatarUrl = Friend.GetAvatarUrl(AvatarFormat.Webp256);
-        _animatedAvatarUrl = Friend.GetAvatarUrl(AvatarFormat.WebpAnimated256);
-        _fallbackAvatarUrl = Friend.GetFailedAvatarUrl();
+        _avatarUrl = Friend.GetAvatar(AvatarFormat.Webp256);
+        _animatedAvatarUrl = Friend.GetAvatar(AvatarFormat.WebpAnimated256);
+        _fallbackAvatarUrl = Friend.GetFailedAvatar();
         
         HomeWindowComponent.OnRerenderFriendCards += Refresh;
     }

@@ -6,7 +6,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class User : ClientModel<User, long>, ISharedUser
+public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
 {
     public override string BaseRoute =>
             ISharedUser.BaseRoute;
@@ -121,11 +121,11 @@ public class User : ClientModel<User, long>, ISharedUser
     public Task<UserFriendData> FetchFriendDataAsync() =>
         Client.FriendService.FetchFriendDataAsync(Id);
     
-    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatarUrl(this, format);
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
+        ISharedUser.GetAvatar(this, format);
     
-    public string GetFailedAvatarUrl() =>
-        ISharedUser.GetFailedAvatarUrl(this);
+    public string GetFailedAvatar() =>
+        ISharedUser.GetFailedAvatar(this);
 
     public override User AddToCacheOrReturnExisting()
     {

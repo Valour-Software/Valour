@@ -53,11 +53,31 @@ public class MessageService : ServiceBase
         _client.NodeService.NodeAdded += HookHubEvents;
     }
     
+    public async ValueTask<Message> FetchMessageAsync(long id, bool skipCache = false)
+    {
+        if (!skipCache && _client.Cache.Messages.TryGet(id, out var cached))
+            return cached;
+        
+        var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/message/{id}");
+
+        return _client.Cache.Sync(response.Data);
+    }
+    
+    public async ValueTask<Message> FetchMessageAsync(long id, Planet planet, bool skipCache = false)
+    {
+        if (!skipCache && _client.Cache.Messages.TryGet(id, out var cached))
+            return cached;
+        
+        var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/message/{id}");
+
+        return _client.Cache.Sync(response.Data);
+    }
+    
     /// <summary>
     /// Sends a message
     /// </summary>
-    public async Task<TaskResult> SendMessage(Message message)
-        => await message.PostMessageAsync();
+    public Task<TaskResult<Message>> SendMessage(Message message)
+        => message.PostAsync();
     
     /// <summars>
     /// Ran when a message is recieved

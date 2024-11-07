@@ -156,7 +156,7 @@
 
     protected override void OnInitialized()
     {
-        _pfpUrl = User.GetAvatarUrl(AvatarFormat.Webp256);
+        _pfpUrl = User.GetAvatar(AvatarFormat.Webp256);
         _status = User.Status;
         _statusCode = User.UserStateCode;
         _tag = User.Tag;
@@ -191,7 +191,7 @@
         if (_pfpChangeResult.Success)
         {
             // We slightly modify the url to force a refresh
-            _pfpUrl = User.GetAvatarUrl(AvatarFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
+            _pfpUrl = User.GetAvatar(AvatarFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
         }
         
         StateHasChanged();
