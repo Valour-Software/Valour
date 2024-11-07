@@ -135,20 +135,6 @@ public class ReactionSentimentService
         // range is 0 to 2
         totalSentiment /= 4f;
         // output range is 0.5 to 1.5
-        return Math.Clamp(totalSentiment, 0.5f, 1.5f) + SigmoidApprox(total, 2f);
-    }
-    
-    // x: input value, a: steepness, b: horizontal shift, c: vertical scale.
-    private static float SigmoidApprox(float x, float a = 1f, float b = 0f, float c = 1f)
-    {
-        // Shift and scale x to match the typical sigmoid range
-        x = a * (x - b);
-
-        // Use a fast polynomial approximation for the sigmoid
-        // We use x / (1 + |x|) to approximate the shape of a sigmoid
-        var result = x / (1f + MathF.Abs(x));
-
-        // Scale the result to the vertical range [0, c]
-        return (result + 1f) * (c / 2f); // Map to [0, c] instead of [-c/2, c/2]
+        return Math.Clamp(totalSentiment, 0.5f, 1.5f) + MathF.Log2(total);
     }
 }
