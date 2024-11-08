@@ -6,12 +6,17 @@
     <!-- Pushes messages to bottom -->
     <div style="flex-grow: 1; flex-shrink: 1; height: 0"></div>
     
-    <!-- Actual messages -->
-    <CascadingValue Value="this" IsFixed="true">
-        @MessagesFragment
-    </CascadingValue>
+    <!-- Wrapper for mouse leave (menu) events -->
+    <div>
+        <!-- Actual messages -->
+        <CascadingValue Value="this" IsFixed="true">
+            @MessagesFragment
+        </CascadingValue>
+    </div>
 
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
+    
+    <MessageHoverMenu @ref="@_hoverMenu" />
 </div>
 
 <InputComponent @ref="@InputComponent" MessageHolder="@this" />
@@ -43,6 +48,8 @@
     private string _id;
 
     private bool _canRenderFlag = false;
+
+    private MessageHoverMenu _hoverMenu;
 
     private RenderFragment MessagesFragment => builder =>
     {
@@ -319,6 +326,16 @@
         #endif
 
         _canRenderFlag = false;
+    }
+
+    public void NotifyMessageMouseEnter(MessageComponent message)
+    {
+        
+    }
+    
+    public void OnMouseLeaveMessageArea()
+    {
+        
     }
     
     public async Task OnNodeReconnect(Node node)
