@@ -7,16 +7,15 @@
     <div style="flex-grow: 1; flex-shrink: 1; height: 0"></div>
     
     <!-- Wrapper for mouse leave (menu) events -->
-    <div>
+    <div @onmouseleave="@OnMouseLeaveMessageArea" @ref="@MessageWrapperRef">
         <!-- Actual messages -->
         <CascadingValue Value="this" IsFixed="true">
             @MessagesFragment
         </CascadingValue>
+        <MessageHoverMenu @ref="@_hoverMenu" />
     </div>
 
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
-    
-    <MessageHoverMenu @ref="@_hoverMenu" />
 </div>
 
 <InputComponent @ref="@InputComponent" MessageHolder="@this" />
@@ -50,6 +49,8 @@
     private bool _canRenderFlag = false;
 
     private MessageHoverMenu _hoverMenu;
+    
+    public ElementReference MessageWrapperRef;
 
     private RenderFragment MessagesFragment => builder =>
     {
@@ -328,14 +329,18 @@
         _canRenderFlag = false;
     }
 
-    public void NotifyMessageMouseEnter(MessageComponent message)
+    public async Task NotifyMessageMouseEnter(MessageComponent message)
     {
-        
+        if (_hoverMenu is not null)
+        {
+            await _hoverMenu.SetTargetMessage(message);
+            _hoverMenu.SetVisible(true);
+        }
     }
     
     public void OnMouseLeaveMessageArea()
     {
-        
+        _hoverMenu?.SetVisible(false);
     }
     
     public async Task OnNodeReconnect(Node node)

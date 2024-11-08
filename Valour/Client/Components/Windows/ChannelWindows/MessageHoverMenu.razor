@@ -1,5 +1,23 @@
-<h3>MessageHoverMenu</h3>
+<div style="@Style" class="menu">
+    <h3>MessageHoverMenu</h3>
+</div>
 
 @code {
     
+    private string Style => _visible ? "display: block" : "display: none";
+    
+    private bool _visible = false;
+    private MessageComponent _targetMessage;
+    
+    public async Task SetTargetMessage(MessageComponent targetMessage)
+    {
+        _targetMessage = targetMessage;
+        await BrowserUtils.GetVerticalContainerDistance(targetMessage.OuterRef, targetMessage.Holder.MessageWrapperRef);
+    }
+    
+    public void SetVisible(bool visible)
+    {
+        _visible = visible;
+        StateHasChanged();
+    }
 }

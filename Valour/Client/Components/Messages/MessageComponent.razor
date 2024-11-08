@@ -13,7 +13,9 @@
      tabindex="0"
      @oncontextpress="@OnContextMenu"
      @oncontextpress:stopPropagation="true"
-     @onpointerdown="@OnPointerDown">
+     @onpointerdown="@OnPointerDown"
+     @onmouseenter="@OnMouseEnter"
+     @ref="@OuterRef">
     
     <div class="left-info">
         @if (!Minimal)
@@ -128,6 +130,8 @@
 </div>
 
 @code {
+
+    public ElementReference OuterRef;
 
     private RenderFragment RenderContent => builder =>
     {
@@ -504,6 +508,12 @@
         }
 
         return Task.CompletedTask;
+    }
+
+    private void OnMouseEnter()
+    {
+        if (Ghost) return;
+        Holder?.NotifyMessageMouseEnter(this);
     }
 
     public async Task OnUserUpdated(ModelUpdateEvent eventData)

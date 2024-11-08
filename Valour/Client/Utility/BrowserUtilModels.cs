@@ -11,3 +11,9 @@ public struct ElementPosition
     public float X { get; set; }
     public float Y { get; set; }
 }
+
+public struct VerticalContainerDistance
+{
+    public float TopDistance { get; set; }
+    public float BottomDistance { get; set; }
+}

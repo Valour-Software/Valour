@@ -34,3 +34,23 @@ export const getElementPosition = (element: HTMLElement): { x: number, y: number
     const { left, top } = element.getBoundingClientRect();
     return { x: left, y: top };
 };
+
+export const getVerticalDistancesToContainer 
+    = (element: HTMLElement, container: HTMLElement) => {
+    // Get the bounding rectangle of the element
+    const elementRect = element.getBoundingClientRect();
+
+    // Get the bounding rectangle of the scrollable container
+    const containerRect = container.getBoundingClientRect();
+
+    // Calculate the distance from the top of the element to the top of the visible area
+    const topDistance = elementRect.top - containerRect.top;
+
+    // Calculate the distance from the bottom of the element to the bottom of the visible area
+    const bottomDistance = containerRect.bottom - elementRect.bottom;
+
+    return {
+        topDistance,
+        bottomDistance,
+    };
+}

@@ -62,6 +62,12 @@
         return position;
     }
     
+    public static async Task<VerticalContainerDistance> GetVerticalContainerDistance(ElementReference element, ElementReference container)
+    {
+        var distance = await _jsModule.InvokeAsync<VerticalContainerDistance>("getVerticalDistancesToContainer", element, container);
+        return distance;
+    }
+    
     [JSInvokable("NotifyWindowDimensions")]
     public async Task NotifyWindowDimensions(ElementDimensions dimensions)
     {
