@@ -131,9 +131,8 @@ body {
     flex-grow: 1;
     flex-shrink: 1;
     min-height: 0;
-    
-    padding-right: 0.5rem;
     overflow-y: auto;
+    overflow-x: clip;
 }
 
 .chat-holder * {

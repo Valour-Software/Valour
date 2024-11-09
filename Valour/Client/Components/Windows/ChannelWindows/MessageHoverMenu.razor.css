@@ -1,4 +1,34 @@
 .menu {
     position: absolute;
     right: 0;
+    
+    background-color: var(--main-2);
+    border-radius: 4px;
+    outline: 1px black;
+    height: 24px;
+    
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding-right: 4px;
+    
+    transition: right 0.2s ease-in-out;
+}
+
+.menu:hover {
+    right: 0 !important;
+}
+
+.emoji-menu {
+    position: absolute;
+}
+
+.bi-chevron-left {
+    margin: 0;
+}
+
+.bi-emoji-smile-fill:hover {
+    color: #ffcf4c;
+    cursor: pointer;
 }

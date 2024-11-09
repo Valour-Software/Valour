@@ -62,9 +62,15 @@
         return position;
     }
     
-    public static async Task<VerticalContainerDistance> GetVerticalContainerDistance(ElementReference element, ElementReference container)
+    public static async Task<VerticalContainerDistance> GetVerticalContainerDistanceAsync(ElementReference element, ElementReference container)
     {
         var distance = await _jsModule.InvokeAsync<VerticalContainerDistance>("getVerticalDistancesToContainer", element, container);
+        return distance;
+    }
+    
+    public static async Task<VerticalContainerDistance> GetVisibleVerticalContainerDistanceAsync(ElementReference element, ElementReference container)
+    {
+        var distance = await _jsModule.InvokeAsync<VerticalContainerDistance>("getVisibleVerticalDistancesToContainer", element, container);
         return distance;
     }
     

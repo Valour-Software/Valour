@@ -512,7 +512,7 @@
 
     private void OnMouseEnter()
     {
-        if (Ghost) return;
+        if (Ghost || IsInnerReply) return;
         Holder?.NotifyMessageMouseEnter(this);
     }
 

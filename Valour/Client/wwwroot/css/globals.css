@@ -334,6 +334,13 @@
     margin-top: 12px;
 }
 
+/* Reaction picker */
+.reaction-picker {
+    position: absolute;
+    right: 0;
+    z-index: 9999;
+}
+
 /* Emoji picker */
 .mobile .emoji-mart-wrapper-custom {
     position: relative;

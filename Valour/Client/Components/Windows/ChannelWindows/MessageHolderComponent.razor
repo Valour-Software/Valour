@@ -7,7 +7,7 @@
     <div style="flex-grow: 1; flex-shrink: 1; height: 0"></div>
     
     <!-- Wrapper for mouse leave (menu) events -->
-    <div @onmouseleave="@OnMouseLeaveMessageArea" @ref="@MessageWrapperRef">
+    <div class="messages-wrapper" @onmouseleave="@OnMouseLeaveMessageArea" @ref="@MessageWrapperRef">
         <!-- Actual messages -->
         <CascadingValue Value="this" IsFixed="true">
             @MessagesFragment

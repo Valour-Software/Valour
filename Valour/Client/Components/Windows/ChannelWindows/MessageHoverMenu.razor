@@ -1,23 +1,106 @@
-<div style="@Style" class="menu">
-    <h3>MessageHoverMenu</h3>
+<div @ref="@_menuRef" style="@Style" class="menu">
+    <i class="bi bi-chevron-left"></i>
+    <i id="emoji-button" @onmousedown="@OnClickOpenEmojis" class="bi bi-emoji-smile-fill"></i>
+    <span>Additional</span>
+</div>
+<div class="emoji-menu" style="@EmojiMenuStyle">
+    <EmojiMart @ref="@_emojiMenu" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="reaction-picker"></EmojiMart>
 </div>
 
 @code {
+
+    private string EmojiMenuStyle
+    {
+        get
+        {
+            var style = "right: 0px;";
+            if (_emojisOnTop)
+                style += $"top: {_top - 450}px;";
+            else
+                style += $"top: {_top + 24}px;";
+
+            return style;
+        }
+    }
     
-    private string Style => _visible ? "display: block" : "display: none";
-    
+    private string Style
+    {
+        get
+        {
+            var style = string.Empty;
+            
+            if (!_visible)
+                style += "opacity: 0; pointer-events: none;";
+
+            style += $"top: {_top}px;";
+            style += $"right: {_right}px;";
+            
+            return style;
+        }
+    }
+
+    private bool _locked = false;
     private bool _visible = false;
+    private bool _emojisOnTop = false;
+    private float _top = 0f;
+    private float _right = 0f;
     private MessageComponent _targetMessage;
+    private ElementReference _menuRef;
+    private EmojiMart _emojiMenu;
     
     public async Task SetTargetMessage(MessageComponent targetMessage)
     {
+        if (_locked)
+            return;
+        
         _targetMessage = targetMessage;
-        await BrowserUtils.GetVerticalContainerDistance(targetMessage.OuterRef, targetMessage.Holder.MessageWrapperRef);
+        var distances = await BrowserUtils.GetVerticalContainerDistanceAsync(targetMessage.OuterRef, targetMessage.Holder.MessageWrapperRef);
+        _top = distances.TopDistance;
+
+        var dimensions = await BrowserUtils.GetElementDimensionsAsync(_menuRef);
+        _right = -dimensions.Width + 40;
+        
+        var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(targetMessage.OuterRef, targetMessage.Holder.MessageWrapperRef);
+        
+        if (visibleDistances.BottomDistance < 300)
+        {
+            _emojisOnTop = true;
+        }
+        else
+        {
+            _emojisOnTop = false;
+        }
+        
+        Console.WriteLine(visibleDistances.BottomDistance);
+        
+        StateHasChanged();
     }
     
     public void SetVisible(bool visible)
     {
         _visible = visible;
         StateHasChanged();
+    }
+
+    private void OnClickOpenEmojis()
+    {
+        _locked = true;
+        _emojiMenu.ToggleVisible();
+    }
+    
+    private Task CloseEmojis(OutsidePickerClickEvent e)
+    {
+        if (e.Target == "emoji-button")
+            return Task.CompletedTask;
+
+        _locked = false;
+        _emojiMenu.ToggleVisible();
+
+        return Task.CompletedTask;
+    }
+    
+    private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
+    {
+        Console.WriteLine(e.Native);
     }
 }
