@@ -6,7 +6,7 @@ on:
     
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository | toLower }}
+  IMAGE_NAME: ${{ toLower(github.repository) }}
 
 jobs:
   build:
@@ -100,8 +100,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name | toLower }}-${{ steps.short-sha.outputs.short_sha }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name | toLower }}-latest
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ toLower(github.ref_name) }}-${{ steps.short-sha.outputs.short_sha }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ toLower(github.ref_name) }}-latest
         labels: |
           org.opencontainers.image.source=${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
