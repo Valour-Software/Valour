@@ -13,20 +13,22 @@ jobs:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
-    - uses: benjlevesque/short-sha@v2.2
+
+    - name: Get Short SHA
       id: short-sha
-      with:
-        length: 7
+      run: echo "::set-output name=short_sha::${GITHUB_SHA::7}"
+
     - name: Modify asset versions
       uses: mingjun97/file-regex-replace@v1
       with:
         regex: '\$\(SHORTHASH\)'
-        replacement: '${{ env.SHA }}'
+        replacement: '${{ steps.short-sha.outputs.short_sha }}'
         flags: "g"
         include: '.*'
         exclude: '.^'
         encoding: 'utf8'
         path: '.'
+
     - name: Delete .js files if corresponding .ts files exist
       run: |
         #!/bin/bash
@@ -38,24 +40,32 @@ jobs:
               rm "$jsfile"
           fi
         done
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 9.0.100-rc.1.24452.12 
         include-prerelease: true
+
     - name: Restore workload
       run: dotnet workload restore
+
     - name: Clean
       run: dotnet clean
+
     - name: Restore dependencies
       run: dotnet restore
+
     - name: Clean
       run: dotnet clean
+
     - name: Build
       run: dotnet build --no-restore
+
     - name: Test
       run: dotnet test --no-build --verbosity normal
       continue-on-error: true
+
     - name: Publish Test Results
       if: always()
       uses: actions/upload-artifact@v3
@@ -68,37 +78,30 @@ jobs:
       with:
         PROJECT_FILE_PATH: Valour/Shared/Valour.Shared.csproj
         VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
-        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+        NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
 
     - name: Publish API Nuget Package
       uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
         VERSION_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
-        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+        NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
     
     - name: Log in to the Container registry
-      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      uses: docker/login-action@v2
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          ${{ github.ref_name }}-${{ steps.short-sha.outputs.short_sha }}
-          latest
-
     - name: Build and push Docker image
-      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+      uses: docker/build-push-action@v2
       with:
         context: .
         push: true
         tags: |
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ steps.short-sha.outputs.short_sha }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        labels: ${{ steps.meta.outputs.labels }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-latest
+        labels: |
+          org.opencontainers.image.source=${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
