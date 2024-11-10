@@ -8,7 +8,7 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedMessage : ISharedItem
+public interface ISharedMessage : ISharedModel
 {
     /// <summary>
     /// The planet this message belongs to (if any)

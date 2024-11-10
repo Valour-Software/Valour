@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 namespace Valour.Database;
 
 [Table("planet_bans")]
-public class PlanetBan : Item, ISharedPlanetBan
+public class PlanetBan : Model, ISharedPlanetBan
 {
     
     ///////////////////////////

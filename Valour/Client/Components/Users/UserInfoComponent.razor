@@ -111,7 +111,7 @@
         if (User is not null)
         {
             UserId = User.Id;
-            User.OnUpdated += OnUserUpdate;
+            User.Updated += OnUserUpdate;
         }
         else
         {
@@ -119,14 +119,14 @@
             if (UserId != 0)
             {
                 User = await User.FindAsync(UserId);
-                User.OnUpdated += OnUserUpdate;
+                User.Updated += OnUserUpdate;
             }
         }
 
         if (Member is not null)
         {
             UserId = Member.UserId;
-            Member.OnUpdated += OnMemberUpdate;
+            Member.Updated += OnMemberUpdate;
             Member.OnRoleModified += OnMemberRoleModified;
         }
 
@@ -149,12 +149,12 @@
     {
         if (User is not null)
         {
-            User.OnUpdated -= OnUserUpdate;
+            User.Updated -= OnUserUpdate;
         }
 
         if (Member is not null)
         {
-            Member.OnUpdated -= OnMemberUpdate;
+            Member.Updated -= OnMemberUpdate;
             Member.OnRoleModified -= OnMemberRoleModified;
         }
     }

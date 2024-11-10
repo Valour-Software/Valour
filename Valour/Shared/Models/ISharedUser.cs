@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedUser : ISharedItem
+public interface ISharedUser : ISharedModel
 {
     const long VictorUserId = 20579262493097984;
     

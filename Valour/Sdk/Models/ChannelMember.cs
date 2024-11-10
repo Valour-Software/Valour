@@ -4,7 +4,7 @@ namespace Valour.Sdk.Models;
 /// Channel members represent members of a channel that is not a planet channel
 /// In direct message channels there will only be two members, but in group channels there can be more
 /// </summary>
-public class ChannelMember : LiveModel
+public class ChannelMember : ClientModel
 {
     /// <summary>
     /// Id of the channel this member belongs to

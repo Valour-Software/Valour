@@ -5,7 +5,7 @@ using Valour.Shared.Models.Themes;
 
 namespace Valour.Sdk.Models.Themes;
 
-public class Theme : LiveModel, ISharedTheme
+public class Theme : ClientModel, ISharedTheme
 {
     public override string BaseRoute => "api/themes";
 

@@ -10,7 +10,7 @@ namespace Valour.Shared.Models;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetInvite : ISharedPlanetItem
+public interface ISharedPlanetInvite : ISharedPlanetModel
 {
     /// <summary>
     /// the invite code

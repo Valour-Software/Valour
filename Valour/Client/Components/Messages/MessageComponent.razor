@@ -461,7 +461,7 @@
         await BuildMessage(false);
 
         if (User != null)
-            User.OnUpdated += OnUserUpdated;
+            User.Updated += OnUserUpdated;
         
         if (!IsInnerReply && !Ghost)
         {
@@ -478,7 +478,7 @@
             if (_member is not null) // There is a chance they were deleted
             {
                 _member.OnRoleModified += OnMemberRoleChange;
-                _member.OnUpdated += OnMemberUpdated;
+                _member.Updated += OnMemberUpdated;
             }
         }
     }
@@ -607,7 +607,7 @@
         
         if (_member is not null)
         {
-            _member.OnUpdated -= OnMemberUpdated;
+            _member.Updated -= OnMemberUpdated;
             _member.OnRoleModified -= OnMemberRoleChange;
         }
     }

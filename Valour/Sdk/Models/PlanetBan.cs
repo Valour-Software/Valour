@@ -2,7 +2,7 @@
 
 namespace Valour.Sdk.Models;
 
-public class PlanetBan : LiveModel, ISharedPlanetBan
+public class PlanetBan : ClientModel, ISharedPlanetBan
 {
     #region IPlanetModel implementation
 

@@ -92,7 +92,7 @@
     {
         var oldStatus = User.Status;
         User.Status = _status;
-        _statusChangeResult = await LiveModel.UpdateAsync(User);
+        _statusChangeResult = await ClientModel.UpdateAsync(User);
         
         // Rollback change if it failed
         if (!_statusChangeResult.Success)
@@ -125,7 +125,7 @@
         
         var oldTag = User.Tag;
         User.Tag = _tag;
-        _tagChangeResult = await LiveModel.UpdateAsync(User);
+        _tagChangeResult = await ClientModel.UpdateAsync(User);
         
         // Rollback change if it failed
         if (!_tagChangeResult.Success)
@@ -141,7 +141,7 @@
     {
         var oldStatusCode = User.UserStateCode;
         User.UserStateCode = _statusCode;
-        _statusCodeChangeResult = await LiveModel.UpdateAsync(User);
+        _statusCodeChangeResult = await ClientModel.UpdateAsync(User);
        
         // Rollback change if it failed
         if (!_statusCodeChangeResult.Success)

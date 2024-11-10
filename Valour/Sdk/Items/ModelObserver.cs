@@ -5,7 +5,7 @@ namespace Valour.Sdk.Items
     /// <summary>
     /// The ModelObserver class allows global events to be hooked for entire item types
     /// </summary>
-    public static class ModelObserver<T> where T : LiveModel
+    public static class ModelObserver<T> where T : ClientModel
     {
         /// <summary>
         /// Run when any of this item type is updated

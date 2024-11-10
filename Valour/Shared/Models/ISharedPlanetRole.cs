@@ -3,17 +3,12 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetItem
+public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
 {
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
     bool IsAdmin { get; set; }
-    
-    /// <summary>
-    /// The position of the role: Lower has more authority
-    /// </summary>
-    int Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -54,6 +49,11 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// True if the role can be mentioned by non-admins
     /// </summary>
     bool AnyoneCanMention { get; set; }
+    
+    /// <summary>
+    /// The position of the role: Lower has more authority
+    /// </summary>
+    int Position { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
@@ -67,5 +67,9 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
         => Permission.HasPermission(role.Permissions, perm);
 
+    int ISortableModel.GetSortPosition()
+    {
+        return Position;
+    }
 }
 

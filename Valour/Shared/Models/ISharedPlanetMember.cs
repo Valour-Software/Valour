@@ -10,7 +10,7 @@
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetMember : ISharedPlanetItem
+public interface ISharedPlanetMember : ISharedPlanetModel
 {
     /// <summary>
     /// The user within the planet

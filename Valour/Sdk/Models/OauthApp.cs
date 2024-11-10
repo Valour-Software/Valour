@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class OauthApp : LiveModel, ISharedOauthApp
+public class OauthApp : ClientModel, ISharedOauthApp
 {
     #region IPlanetModel implementation
 

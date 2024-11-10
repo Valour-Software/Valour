@@ -84,7 +84,7 @@
     {
         Data.App.RedirectUrl = _redirect;
 
-        var updateResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(Data.App);
+        var updateResult = await Valour.Sdk.Items.ClientModel.UpdateAsync(Data.App);
 
         Console.WriteLine(updateResult.Message);
 
@@ -105,7 +105,7 @@
             "Confirm",
             "Cancel",
             async () => {
-                var res = await LiveModel.DeleteAsync(Data.App);
+                var res = await ClientModel.DeleteAsync(Data.App);
 
                 if (res.Success)
                     _iconOutput = "Deleted.";

@@ -484,13 +484,13 @@
         // If the id is not set, this is a new role to be created
         if (_role.Id == 0)
         {
-            response = await LiveModel.CreateAsync(_role);
+            response = await ClientModel.CreateAsync(_role);
             creating = true;
         }
         // Otherwise we are editing a prior role
         else
         {
-            response = await LiveModel.UpdateAsync(_role);
+            response = await ClientModel.UpdateAsync(_role);
         }
         
         _result = response;

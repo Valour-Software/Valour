@@ -222,8 +222,8 @@ public class Node
         await Logger.Log("[Item Events]: Hooking events.", "yellow");
 
         // For every single item...
-        foreach (var type in Assembly.GetAssembly(typeof(LiveModel)).GetTypes()
-            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(LiveModel))))
+        foreach (var type in Assembly.GetAssembly(typeof(ClientModel)).GetTypes()
+            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(ClientModel))))
         {
             // Console.WriteLine(type.Name);
 

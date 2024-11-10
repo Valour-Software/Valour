@@ -19,7 +19,7 @@ public interface ISharedPermissionsTarget
 /// <summary>
 /// A permission node is a set of permissions for a specific thing
 /// </summary>
-public interface ISharedPermissionsNode : ISharedPlanetItem
+public interface ISharedPermissionsNode : ISharedPlanetModel
 {
 
     /// <summary>

@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class OauthApp : Item, ISharedOauthApp
+public class OauthApp : ServerModel, ISharedOauthApp
 {
     /// <summary>
     /// The secret key for the app

@@ -212,7 +212,7 @@
         if (firstRender)
         {
             _resizeObserver = new ResizeObserver();
-            _resizeObserver.ResizeEvent.AddHandler(OnWindowResize);
+            _resizeObserver.ResizeEvent += OnWindowResize;
             await _resizeObserver.Initialize(_ref, JsRuntime, 3);
         }
 
@@ -239,9 +239,7 @@
     public async ValueTask DisposeAsync()
     {
         if (_resizeObserver is not null)
-        {
             await _resizeObserver.DisposeAsync();
-        }
     }
 
 }

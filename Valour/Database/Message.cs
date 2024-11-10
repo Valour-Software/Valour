@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 namespace Valour.Database;
 
 [Table("messages")]
-public class Message : Item, ISharedMessage
+public class Message : Model, ISharedMessage
 {
     ///////////////////////////
     // Relational Properties //

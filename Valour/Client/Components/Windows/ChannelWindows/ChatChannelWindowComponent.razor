@@ -91,13 +91,13 @@
             _planet = await Channel.GetPlanetAsync();
             _selfMember = await _planet.GetSelfMemberAsync();
 
-            _planet.OnDeleted += OnPlanetDeleted;
-            _selfMember.OnDeleted += OnSelfMemberDeleted;
+            _planet.Deleted += OnPlanetDeleted;
+            _selfMember.Deleted += OnSelfMemberDeleted;
             
             ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(_selfMember.Id);
         }
         
-        Channel.OnUpdated += OnChatChannelUpdate;
+        Channel.Updated += OnChatChannelUpdate;
         
         ReRender();
         
@@ -221,13 +221,11 @@
         await HandleWindowClose();
         
         if (_planet is not null)
-        {
-            _planet.OnDeleted -= OnPlanetDeleted;
-        }
-
-        if (_selfMember is not null)
-            _selfMember.OnDeleted -= OnSelfMemberDeleted;
+            _planet.Deleted -= OnPlanetDeleted;
         
+        if (_selfMember is not null)
+            _selfMember.Deleted -= OnSelfMemberDeleted;
+
         ValourClient.OnMessageReceived -= OnReceiveMessage;
         _thisRef.Dispose();
     }

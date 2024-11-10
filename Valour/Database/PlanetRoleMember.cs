@@ -4,7 +4,7 @@ using Valour.Shared.Models;
 namespace Valour.Database;
 
 [Table("planet_role_members")]
-public class PlanetRoleMember : Item, ISharedPlanetRoleMember
+public class PlanetRoleMember : Model, ISharedPlanetRoleMember
 {
     ///////////////////////////
     // Relational Properties //
