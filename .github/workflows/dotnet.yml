@@ -6,7 +6,6 @@ on:
     
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ toLower(github.repository) }}
 
 jobs:
   build:
@@ -17,6 +16,13 @@ jobs:
     - name: Get Short SHA
       id: short-sha
       run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+    - name: Set Lowercase Variables
+      id: vars
+      shell: bash
+      run: |
+        echo "IMAGE_NAME=$(echo ${GITHUB_REPOSITORY} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        echo "BRANCH_NAME=$(echo ${GITHUB_REF_NAME} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
     - name: Modify asset versions
       uses: mingjun97/file-regex-replace@v1
@@ -100,8 +106,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ toLower(github.ref_name) }}-${{ steps.short-sha.outputs.short_sha }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ toLower(github.ref_name) }}-latest
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${{ steps.short-sha.outputs.short_sha }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-latest
         labels: |
           org.opencontainers.image.source=${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
