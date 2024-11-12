@@ -68,4 +68,21 @@ public class CacheService
         // Update the existing model with the new data, or broadcast the new item
         return ModelUpdater.UpdateItem<TModel>(model, existing, flags, skipEvent); // Update if already exists
     }
+    
+    /// <summary>
+    /// Removes the model from cache and optionally fires off event for the deletion.
+    /// </summary>
+    public void Delete<TModel>(TModel model, bool skipEvent = false)
+        where TModel : ClientModel<TModel>
+    {
+        if (model is null)
+            return;
+        
+        // Remove from cache
+        model.TakeAndRemoveFromCache();
+        
+        // Broadcast the deletion
+        if (!skipEvent)
+            ModelUpdater.DeleteItem<TModel>(model);
+    }
 }

@@ -42,7 +42,7 @@ public class CoreHub : Hub
     public async Task<TaskResult> Authorize(string token)
     {
         // Authenticate user
-        AuthToken authToken = await _tokenService.GetAsync(token);
+        var authToken = await _tokenService.GetAsync(token);
 
         if (authToken is null)
             return new TaskResult(false, "Failed to authenticate connection.");
@@ -195,6 +195,9 @@ public class CoreHub : Hub
         if (userState)
         {
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+            if (authToken is null)
+                return "pong: not authenticated";
+            
             await _onlineService.UpdateOnlineState(authToken.UserId);
         }
         

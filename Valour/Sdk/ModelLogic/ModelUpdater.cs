@@ -127,9 +127,8 @@ public static class ModelUpdater
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static void DeleteItem<TModel, TId>(TModel model) 
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    public static void DeleteItem<TModel>(TModel model) 
+        where TModel : ClientModel<TModel>
     {
         var cached = model.TakeAndRemoveFromCache();
         if (cached is null)

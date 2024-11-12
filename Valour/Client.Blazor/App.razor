@@ -16,7 +16,7 @@
 @inject IJSRuntime JsRuntime
 @inject ILocalStorageService LocalStorage
 
-<BrowserUtils />
+<BrowserUtils OnReady="@ReadyAsync" />
 
 <UpdateBanner />
 
@@ -63,7 +63,7 @@ else
     }
 
     // Runs when page is initialized
-    private async Task FirstRenderAsync()
+    private async Task ReadyAsync()
     {
         var uriData = await BrowserUtils.GetUriData();
         Logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
@@ -71,7 +71,7 @@ else
         // Set the origin for the client
         // We do this here because while the value is assumed in Program.cs here
         // we have access to the JS runtime to get the actual value
-        Client.SetOrigin(uriData.Origin);
+        Client.SetOrigin(uriData.Origin + "/");
         
         _ = JsRuntime.InvokeAsync<object>(
             "blazorFuncs.registerClient",
@@ -91,7 +91,7 @@ else
     {
         if (firstRender)
         {
-            await FirstRenderAsync();
+            // await FirstRenderAsync();
             
             var isMobile = await JsRuntime.InvokeAsync<bool>("IsMobile");
             var isEmbedded = await JsRuntime.InvokeAsync<bool>("IsEmbedded");

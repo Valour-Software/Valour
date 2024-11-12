@@ -43,12 +43,12 @@ public class LoggingService
     {
         foreach (var logger in Loggers)
         {
-            logger(nameof(T), message);
+            logger(typeof(T).Name, message);
         }
         
         foreach (var logger in ColorLoggers)
         {
-            logger(nameof(T), message, color);
+            logger(typeof(T).Name, message, color);
         }
     }
 }

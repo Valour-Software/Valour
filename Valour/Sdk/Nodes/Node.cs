@@ -89,6 +89,8 @@ public class Node : ServiceBase // each node acts like a service
         await ConnectSignalRHub();
         await AuthenticateSignalR();
         await ConnectToUserChannel();
+        
+        BeginPings();
     }
 
     private async Task ConnectToUserChannel()
@@ -185,8 +187,6 @@ public class Node : ServiceBase // each node acts like a service
         
         // Call event so services can hook into hub events
         _nodeService.NodeAdded?.Invoke(this);
-        
-        BeginPings();
     }
 
     private async Task AuthenticateSignalR()
@@ -203,8 +203,16 @@ public class Node : ServiceBase // each node acts like a service
             if (tries > 0)
                 await Task.Delay(3000);
 
-            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Client.AuthService.Token);
-            authorized = response.Success;
+            try
+            {
+                response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Client.AuthService.Token);
+                authorized = response.Success;
+            }
+            catch (Exception ex)
+            {
+                LogError("Failed to authorize with SignalR.", ex);
+            }
+
             tries++;
         }
 
@@ -216,72 +224,84 @@ public class Node : ServiceBase // each node acts like a service
         Log(response.Message);
     }
 
-    private void HookModelEvents<TModel, TId>(TModel model, TId id)
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    private void HookModelEvents<TModel>(TModel model)
+        where TModel : ClientModel<TModel>
     {
         var typeName = nameof(TModel);
-        HubConnection.On<TModel, int>($"{typeName}-Update", OnModelUpdate<TModel, TId>);
-        HubConnection.On<TModel>($"{typeName}-Delete", OnModelDelete<TModel, TId>);
+        HubConnection.On<TModel, int>($"{typeName}-Update", OnModelUpdate<TModel>);
+        HubConnection.On<TModel>($"{typeName}-Delete", OnModelDelete<TModel>);
     }
 
     /// <summary>
     /// Specific model update event
     /// </summary>
-    private void OnModelUpdate<TModel, TId>(TModel model, int flags)
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    private void OnModelUpdate<TModel>(TModel model, int flags)
+        where TModel : ClientModel<TModel>
     {
         Client.Cache.Sync(model, true, flags);
     }
     
-    private void OnModelDelete<TModel, TId>(TModel model)
-        where TModel : ClientModel<TModel, TId>
-        where TId : IEquatable<TId>
+    private void OnModelDelete<TModel>(TModel model)
+        where TModel : ClientModel<TModel>
     {
-        ModelUpdater.DeleteItem<TModel, TId>(model);
+        Client.Cache.Delete(model);
     }
+    
+    private static bool IsSubclassOfRawGeneric(Type genericBaseType, Type toCheck)
+    {
+        while (toCheck != null && toCheck != typeof(object))
+        {
+            var currentType = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
+            if (currentType == genericBaseType)
+            {
+                return true;
+            }
+            toCheck = toCheck.BaseType;
+        }
+        return false;
+    }
+
 
     public void HookSignalREvents()
     {
         Log("Hooking model events.");
 
         // For every single item...
-        var baseType = typeof(ClientModel<,>);
+        var baseType = typeof(ClientModel<>);
         
-        // Filter types that inherit from the generic ClientModel<>
+        // Get all non-abstract types that inherit from ClientModel<> at any level
         var derivedTypes = Assembly.GetAssembly(baseType)!.GetTypes()
-            .Where(t => 
-                t.BaseType != null && 
-                t.BaseType.IsGenericType && 
-                t.BaseType.GetGenericTypeDefinition() == baseType)
+            .Where(t =>
+                !t.IsAbstract &&                              // Exclude abstract classes
+                IsSubclassOfRawGeneric(baseType, t) &&        // Check inheritance from ClientModel<>
+                t != baseType)                                // Exclude the base class itself
             .ToList();
+        
+        // Get the method info
+        var hookMethodInfo = this.GetType()
+            .GetMethod(nameof(HookModelEvents), BindingFlags.NonPublic | BindingFlags.Instance);
         
         foreach (var type in derivedTypes)
         {
-            var genericArguments = type.BaseType!.GetGenericArguments();
+            try
+            {
+                var modelType = type; // TModel
 
-            var modelType = type; // TModel
-            var idType = genericArguments[1]; // TId
+                // Make the generic method
+                var genericMethod = hookMethodInfo!.MakeGenericMethod(modelType);
 
-            // Get the method info
-            var methodInfo = this.GetType()
-                .GetMethod(nameof(HookModelEvents), BindingFlags.NonPublic | BindingFlags.Instance);
+                // Create an instance of the model
+                var modelInstance = Activator.CreateInstance(modelType);
 
-            // Make the generic method
-            var genericMethod = methodInfo!.MakeGenericMethod(modelType, idType);
+                // Invoke the generic method
+                genericMethod.Invoke(this, [modelInstance]);
 
-            // Create an instance of the model
-            var modelInstance = Activator.CreateInstance(modelType);
-
-            // Get the Id value
-            var idProperty = modelType.GetProperty("Id");
-            var idValue = idProperty!.GetValue(modelInstance);
-
-            // Invoke the generic method
-            genericMethod.Invoke(this, [modelInstance, idValue]);
-            
-            Log($"Registered ClientModel type: {type.Name}");
+                Log($"Registered ClientModel type: {type.Name}");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Failed to hook model type {type.Name}", ex);
+            }
         }
         
         HubConnection.On<Notification>("RelayNotification", Client.NotificationService.OnNotificationReceived);

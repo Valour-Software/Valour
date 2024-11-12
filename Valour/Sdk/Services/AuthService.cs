@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using Valour.Sdk.Client;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -43,23 +45,32 @@ public class AuthService : ServiceBase
     /// <summary>
     /// Gets the Token for the client
     /// </summary>
-    public async Task<TaskResult> FetchToken(string email, string password)
+    public async Task<TaskResult<string>> FetchToken(string email, string password)
     {
         TokenRequest request = new()
         {
             Email = email,
             Password = password
         };
-        
-        var response = await _client.PrimaryNode.PostAsyncWithResponse<AuthToken>($"api/users/token", request);
 
-        if (response.Success)
+        var httpContent = JsonContent.Create(request);
+        var response = await _client.Http.PostAsync($"api/users/token", httpContent);
+        
+        
+        if (response.IsSuccessStatusCode)
         {
-            var token = response.Data.Id;
-            _token = token;
+            var token = await response.Content.ReadFromJsonAsync<AuthToken>();
+            _token = token.Id;
+
+            return TaskResult<string>.FromData(_token);
         }
 
-        return response.WithoutData();
+        return new TaskResult<string>()
+        {
+            Success = false,
+            Message = await response.Content.ReadAsStringAsync(),
+            Code = (int) response.StatusCode
+        };
     }
     
     public void SetToken(string token)
@@ -71,7 +82,7 @@ public class AuthService : ServiceBase
     {
         var tokenResult = await FetchToken(email, password);
         if (!tokenResult.Success)
-            return tokenResult;
+            return tokenResult.WithoutData();
         
         return await LoginAsync();
     }
@@ -87,7 +98,10 @@ public class AuthService : ServiceBase
         // Add auth header to main http client so we never have to do that again
         _client.Http.DefaultRequestHeaders.Add("authorization", Token);
         
-        var response = await _client.PrimaryNode.GetJsonAsync<User>($"api/users/me");
+        if (_client.PrimaryNode is null)
+            await _client.NodeService.SetupPrimaryNodeAsync();
+        
+        var response = await _client.PrimaryNode!.GetJsonAsync<User>($"api/users/me");
 
         if (!response.Success)
             return response.WithoutData();

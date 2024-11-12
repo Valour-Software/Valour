@@ -155,7 +155,7 @@ public class ValourClient
             return userResult;
         
         // Setup primary node
-        await NodeService.SetupPrimaryNodeAsync();
+        // await NodeService.SetupPrimaryNodeAsync(); Already done in LoginAsync
         
         var loadTasks = new List<Task>()
         {

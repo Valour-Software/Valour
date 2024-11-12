@@ -125,7 +125,7 @@
             return;
         }
 
-        var result = await Client.InitializeUser();
+        var result = await Client.InitializeUser(tokenResult.Data);
 
         if (result.Success)
         {
