@@ -306,7 +306,7 @@ public class PlanetApi
 
         var authority = await memberService.GetAuthorityAsync(member);
 
-        List<PlanetRole> newList = new();
+        List<long> newList = new();
 
         // Make sure that there is permission for any changes
         var pos = 0;
@@ -320,7 +320,7 @@ public class PlanetApi
             if (pos != role.Position && role.GetAuthority() >= authority)
                 return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");
 
-            newList.Add(role);
+            newList.Add(role.Id);
 
             pos++;
         }

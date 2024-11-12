@@ -11,7 +11,7 @@
     </pre>
     <div class="btns-wrapper">
         <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
-        <button @onclick="@OnClickCloseAsync" class="v-btn">Close</button>
+        <button @onclick="@OnClickClose" class="v-btn">Close</button>
     </div>
 </section>
 
@@ -21,7 +21,7 @@
         public ITaskResult Result;
     }
 
-    private Task OnClickCloseAsync() => CloseAsync();
+    private void OnClickClose() => Close();
     
     private async Task OnClickCopyAsync()
     {

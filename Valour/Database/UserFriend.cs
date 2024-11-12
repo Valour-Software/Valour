@@ -32,6 +32,11 @@ public class UserFriend : ISharedUserFriend
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    /// <summary>
+    /// The id of the user friend model
+    /// </summary>
+    public long Id { get; set; }
 
     /// <summary>
     /// The id of the user who added the friend

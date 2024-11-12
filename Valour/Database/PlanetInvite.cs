@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -17,9 +19,7 @@ public class PlanetInvite : ISharedPlanetInvite
     // Entity Properties //
     ///////////////////////
     
-    /// <summary>
-    /// The invite code
-    /// </summary>
+    [Key]
     [Column("code")]
     public string Id { get; set; }
     

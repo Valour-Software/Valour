@@ -1,6 +1,7 @@
 ﻿@inherits Modal<ThemeInfoModal.ThemeInfoModalParams>
 @inject ValourClient Client
 @inject UserService UserService
+@inject ThemeService ThemeService
 
 <div class="v-bg-dark theme-info">
     <section>
@@ -43,7 +44,7 @@
                 <div class="buttons">
                     @if (Data.ThemeMeta.AuthorId == Client.Me.Id && Data.Editor is not null)
                     {
-                        <button class="btn v-btn" @onclick="@OnClickEditAsync">Edit Theme</button>
+                        <button class="btn v-btn" @onclick="@OnClickEdit">Edit Theme</button>
                     }
                     @if (Data.ThemeMeta.Id != ThemeComponent.Instance.CurrentTheme.Id)
                     {
@@ -95,7 +96,7 @@
         if (_authorUser is not null)
             _authorName = _authorUser.Name;
         
-        _theme = await Theme.FindAsync(Data.ThemeMeta.Id);
+        _theme = await ThemeService.FetchThemeAsync(Data.ThemeMeta.Id);
         if (_theme is null)
             return;
         
@@ -256,13 +257,13 @@
         StateHasChanged();
     }
 
-    private async Task OnClickEditAsync()
+    private void OnClickEdit()
     {
         if (Data.Editor is null)
             return;
 
         Data.Editor.OpenEditorWithTheme(_theme);
-        await CloseAsync();
+        Close();
     }
 
 }

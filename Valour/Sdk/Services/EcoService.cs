@@ -179,4 +179,28 @@ public class EcoService : ServiceBase
 
         return _cache.Sync(item);
     }
+    
+    /// <summary>
+    /// Returns all accounts the user can send to for a given planet id
+    /// </summary>
+    public async Task<List<EcoAccountSearchResult>> SearchSendableAccountsAsync(long planetId, long accountId, string filter = "")
+    {
+        var node = await _client.NodeService.GetNodeForPlanetAsync(planetId);
+
+        var request = new EcoPlanetAccountSearchRequest()
+        {
+            PlanetId = planetId,
+            AccountId = accountId,
+            Filter = filter
+        };
+        
+        var response = (await node.PostAsyncWithResponse<List<EcoAccountSearchResult>>($"api/eco/accounts/planet/canSend", request)).Data;
+        
+        for (int i = 0; i < response.Count; i++)
+        {
+            response[i].Account = _cache.Sync(response[i].Account);
+        }
+
+        return response;
+    }
 }

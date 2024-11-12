@@ -114,7 +114,7 @@
 
     private async Task OnClickGif(TenorTwo.Models.Media media)
     {
-        await ChannelWindow.MessageHolder.InputComponent.AddTenor(media);
+        ChannelWindow.MessageHolder.InputComponent.AddTenor(media);
         Hide();
         
         // Register share to make Tenor happy

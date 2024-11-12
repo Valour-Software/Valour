@@ -85,13 +85,16 @@ public class PlanetService
     /// </summary>
     public async Task<List<long>> GetRoleIdsAsync(long planetId)
     {
+        /* TODO: this
         var hosted = _hostedPlanetService.Get(planetId);
         if (hosted is not null)
         {
-            
+            if (hosted.Roles is not null)
+                return hosted.Roles.Select(x => x.Id).ToList();
         }
+        */
         
-        await _db.PlanetRoles.AsNoTracking()
+        return await _db.PlanetRoles.AsNoTracking()
             .Where(x => x.PlanetId == planetId)
             .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.Id)
@@ -110,7 +113,7 @@ public class PlanetService
     /// <summary>
     /// Returns the invites ids for a given planet id
     /// </summary>
-    public async Task<List<long>> GetInviteIdsAsync(long planetId) =>
+    public async Task<List<string>> GetInviteIdsAsync(long planetId) =>
         await _db.PlanetInvites.AsNoTracking()
             .Where(x => x.PlanetId == planetId)
             .Select(x => x.Id)
@@ -133,7 +136,16 @@ public class PlanetService
     public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<long> order)
     {
         var planetRoleIds = await GetRoleIdsAsync(planetId); 
-        
+        if (planetRoleIds.Count != order.Count)
+            return new TaskResult(false, "Your order does not contain all the planet roles.");
+
+        var defaultRole = await GetDefaultRole(planetId);
+
+        foreach (var roleId in order)
+        {
+            if (!planetRoleIds.Contains(roleId))
+                return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
+        }
         
         var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
         if (totalRoles != order.Count)
@@ -141,13 +153,6 @@ public class PlanetService
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
-        var defaultRole = distinct.FirstOrDefault(x => x.IsDefault);
-        
-        if (defaultRole is null)
-            return new TaskResult(false, "You must include the default role in the order.");
-        
-        List<PlanetRole> roles = new();
-        
         try
         {
 
@@ -155,48 +160,47 @@ public class PlanetService
             
             uint pos = 0;
 
-            foreach (var role in order)
+            foreach (var roleId in order)
             {
-                if (role.PlanetId != planetId)
-                    return new TaskResult(false, $"Role {role.Id} does not belong to planet {planetId}");
-                
-                var old = await _db.PlanetRoles.FindAsync(role.Id);
-                if (old is null)
-                    return new TaskResult(false, $"Role {role.Id} could not be found");
-                
-                if (role.IsDefault)
+                if (roleId == defaultRole.Id)
                 {
                     continue;
                 }
                 
                 // If position changed, add to list
-                if (old.Position != role.Position)
+                if (planetRoleIds[(int)pos] != roleId)
                 {
-                    changedRoleIds.Add(role.Id);
+                    changedRoleIds.Add(roleId);
                 }
-                    
-                _db.Entry(old).CurrentValues.SetValues(role);
-                _db.PlanetRoles.Update(old);
-                roles.Add(role);
-
+                
+                // Just update position in db
+                Valour.Database.PlanetRole newData = new()
+                {
+                    Id = roleId,
+                    Position = pos
+                };
+                
+                _db.PlanetRoles.Attach(newData);
+                _db.Entry(newData).Property(x => x.Position).IsModified = true;
+                
                 pos++;
             }
             
             // Update default role
             if (pos != defaultRole.Position)
             {
-                var old = await _db.PlanetRoles.FindAsync(defaultRole.Id);
-                if (old is null)
-                    return new TaskResult(false, $"Default role {defaultRole.Id} could not be found");
+                Valour.Database.PlanetRole newData = new()
+                {
+                    Id = defaultRole.Id,
+                    Position = pos
+                };
                 
-                defaultRole.Position = pos;
-                _db.Entry(old).CurrentValues.SetValues(defaultRole);
-                _db.PlanetRoles.Update(old);
+                _db.PlanetRoles.Attach(newData);
+                _db.Entry(newData).Property(x => x.Position).IsModified = true;
+                
+                changedRoleIds.Add(defaultRole.Id);
             }
             
-            roles.Add(defaultRole);
-
-
             await _db.SaveChangesAsync();
             
             // Use saved change list to apply access changes
@@ -214,12 +218,13 @@ public class PlanetService
             await tran.RollbackAsync();
             return new TaskResult(false, "An unexpected error occured while saving the database changes.");
         }
-
-        foreach (var role in roles)
+        
+        _coreHub.NotifyRoleOrderChange(new RoleOrderEvent()
         {
-            _coreHub.NotifyPlanetItemChange(role);
-        }
-
+            PlanetId = planetId,
+            Order = order
+        });
+        
         return TaskResult.SuccessResult;
     }
     

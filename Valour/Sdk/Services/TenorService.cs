@@ -76,7 +76,7 @@ public class TenorService : ServiceBase
     /// </summary>
     public async Task<TaskResult<TenorFavorite>> AddTenorFavorite(TenorFavorite favorite)
     {
-        var result = await TenorFavorite.PostAsync(favorite);
+        var result = await favorite.CreateAsync();
 
         if (result.Success)
             _tenorFavorites.Add(result.Data);
@@ -89,7 +89,7 @@ public class TenorService : ServiceBase
     /// </summary>
     public async Task<TaskResult> RemoveTenorFavorite(TenorFavorite favorite)
     {
-        var result = await TenorFavorite.DeleteAsync(favorite);
+        var result = await favorite.DeleteAsync();
 
         if (result.Success)
             _tenorFavorites.RemoveAll(x => x.Id == favorite.Id);

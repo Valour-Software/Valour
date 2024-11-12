@@ -22,6 +22,7 @@ public class RegisterService
     private readonly ChannelService _channelService;
     private readonly UserFriendService _friendService;
     private readonly UserService _userService;
+    private readonly MessageService _messageService;
 
     private readonly ValourDb _db;
     
@@ -33,7 +34,8 @@ public class RegisterService
         UserFriendService friendService,
         UserService userService,
         ILogger<RegisterService> logger,
-        ValourDb db)
+        ValourDb db, 
+        MessageService messageService)
     {
         _memberService = memberService;
         _channelService = channelService;
@@ -41,6 +43,7 @@ public class RegisterService
         _userService = userService;
         _logger = logger;
         _db = db;
+        _messageService = messageService;
     }
     
     public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx)
@@ -252,7 +255,7 @@ public class RegisterService
             // Send direct message from Victor to user
             var victorDm = await _channelService.GetDirectChatAsync(user.Id, ISharedUser.VictorUserId, true);
 
-            var victorMessage = await _channelService.PostMessageAsync(new Message()
+            var victorMessage = await _messageService.PostMessageAsync(new Message()
             {
                 Content = ValourWelcome,
                 TimeSent = DateTime.UtcNow,

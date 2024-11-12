@@ -62,4 +62,14 @@ public class Notification : ClientModel<Notification, long>, ISharedNotification
     /// The url the user is brought to when the notification is clicked
     /// </summary>
     public string ClickUrl { get; set; }
+
+    public override Notification AddToCacheOrReturnExisting()
+    {
+        return this;
+    }
+
+    public override Notification TakeAndRemoveFromCache()
+    {
+        return this;
+    }
 }

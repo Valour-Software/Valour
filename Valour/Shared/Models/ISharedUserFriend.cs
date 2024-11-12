@@ -16,6 +16,8 @@ public interface ISharedUserFriend : ISharedModel
 {
     const string BaseRoute = "api/userfriends";
     
+    long Id { get; set; }
+    
     /// <summary>
     /// The user who added the friend
     /// </summary>

@@ -64,35 +64,6 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     /// </summary>
     public decimal BalanceValue { get; set; }
 
-    /// <summary>
-    /// Returns all accounts the user can send to for a given planet id
-    /// </summary>
-    public static async Task<List<EcoAccountSearchResult>> GetPlanetAccountsCanSendAsync(long planetId, long accountId, string filter = "")
-    {
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-
-        var request = new EcoPlanetAccountSearchRequest()
-        {
-            PlanetId = planetId,
-            AccountId = accountId,
-            Filter = filter
-        };
-        
-        var response = (await node.PostAsyncWithResponse<List<EcoAccountSearchResult>>($"api/eco/accounts/planet/canSend", request)).Data;
-        
-        if (response is not null)
-        {
-            foreach (var accountData in response)
-            {
-                await accountData.Account.AddToCache(accountData.Account);
-            }
-        }
-
-        return response;
-    }
-
-    
-
     public override EcoAccount AddToCacheOrReturnExisting()
     {
         return Client.Cache.EcoAccounts.Put(Id, this);

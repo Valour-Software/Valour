@@ -73,18 +73,18 @@
 			Reason = reason
 		};
 
-		await ban.CreateAsync();
+		_result = await ban.CreateAsync();
 		
 		if (_result.Success)
 		{
-			await CloseAsync();
+			Close();
 		}
 		
 		StateHasChanged();
 	}
 	
-	private Task OnCancel()
+	private void OnCancel()
 	{
-		return CloseAsync();
+		Close();
 	}
 }

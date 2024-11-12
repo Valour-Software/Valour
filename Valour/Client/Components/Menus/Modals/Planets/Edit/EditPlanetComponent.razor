@@ -107,7 +107,7 @@
 
                 if (result.Success)
                 {
-                    await CloseAsync();
+                    Close();
                 }
             },
             () => Task.CompletedTask

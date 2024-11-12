@@ -13,7 +13,7 @@ public class ThemeApi
         [FromQuery] int skip = 0, 
         [FromQuery] string search = null)
     {
-        var themes = await themeService.GetThemes(page, take, search);
+        var themes = await themeService.GetThemes(skip, take, search);
         return Results.Json(themes);
     } 
     

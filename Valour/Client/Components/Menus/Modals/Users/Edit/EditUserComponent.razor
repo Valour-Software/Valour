@@ -160,6 +160,6 @@
         var floatingProps = ModToolsWindowComponent.GetDefaultFloatingProps();
         await WindowService.TryAddFloatingWindow(content, floatingProps);
 
-        await CloseAsync();
+        Close();
     }
 }

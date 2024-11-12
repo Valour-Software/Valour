@@ -59,6 +59,9 @@ public class Program
         builder.Services.AddSingleton(client.EcoService);
         builder.Services.AddSingleton(client.StaffService);
         builder.Services.AddSingleton(client.PermissionService);
+        builder.Services.AddSingleton(client.OauthService);
+        builder.Services.AddSingleton(client.SafetyService);
+        builder.Services.AddSingleton(client.ThemeService);
         
         var host = builder.Build();
         await host.RunAsync();

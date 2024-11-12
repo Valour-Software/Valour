@@ -97,9 +97,9 @@
 
     uint MyAuthority { get; set; }
     
-    private async Task ClickEscape(MouseEventArgs e)
+    private void ClickEscape(MouseEventArgs e)
     {
-        await ModalRoot.CloseModal(ModalId);
+        ModalRoot.CloseModal(ModalId);
     }
 
     protected override void OnInitialized() {
@@ -300,6 +300,6 @@
         }
 
         // close modal
-        await ModalRoot.CloseModal(ModalId);
+        ModalRoot.CloseModal(ModalId);
     }
 }

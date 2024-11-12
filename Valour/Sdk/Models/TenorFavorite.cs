@@ -20,16 +20,13 @@ public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavor
     /// </summary>
     public long UserId { get; set; }
 
-    /// <summary>
-    /// Tries to add the given Tenor favorite
-    /// </summary>
-    public static async Task<TaskResult<TenorFavorite>> PostAsync(TenorFavorite favorite)
-        => await ValourClient.PrimaryNode.PostAsyncWithResponse<TenorFavorite>(favorite.BaseRoute, favorite);
+    public override TenorFavorite AddToCacheOrReturnExisting()
+    {
+        return this;
+    }
 
-    /// <summary>
-    /// Tries to delete the given Tenor favorite
-    /// </summary>
-    public static async Task<TaskResult> DeleteAsync(TenorFavorite favorite)
-        => await ValourClient.PrimaryNode.DeleteAsync(favorite.IdRoute);
-
+    public override TenorFavorite TakeAndRemoveFromCache()
+    {
+        return this;
+    }
 }

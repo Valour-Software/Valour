@@ -11,7 +11,8 @@ public enum ListChangeType
     Updated,
     Removed,
     Set,
-    Cleared
+    Cleared,
+    Reordered
 }
 
 public readonly struct ModelListChangeEvent<T>
@@ -19,6 +20,7 @@ public readonly struct ModelListChangeEvent<T>
 {
     public static readonly ModelListChangeEvent<T> Set = new(ListChangeType.Set, default);
     public static readonly ModelListChangeEvent<T> Clear = new(ListChangeType.Cleared, default);
+    public static readonly ModelListChangeEvent<T> Reordered = new(ListChangeType.Reordered, default);
     
     public readonly ListChangeType ChangeType;
     public readonly T Model;
@@ -232,14 +234,17 @@ public class SortedModelList<TModel, TId> : ModelList<TModel, TId>
         List.AddRange(items);
         IdMap = List.ToDictionary(x => x.Id);
         
-        Sort();
+        Sort(false);
         
         if (!skipEvent && Changed is not null)
             Changed.Invoke(ModelListChangeEvent<TModel>.Set);
     }
 
-    public void Sort()
+    public void Sort(bool skipEvent = false)
     {
         List.Sort(ISortable.Compare);
+        
+        if (!skipEvent && Changed is not null)
+            Changed.Invoke(ModelListChangeEvent<TModel>.Reordered);
     }
 }

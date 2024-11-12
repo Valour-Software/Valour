@@ -62,7 +62,7 @@
 
     protected override async  Task OnInitializedAsync()
     {
-        _inviteData = await PlanetInvite.GetInviteScreenData(InviteCode);
+        _inviteData = await PlanetService.FetchInviteScreenData(InviteCode);
         
         if (_inviteData is null)
         {

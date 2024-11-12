@@ -11,7 +11,6 @@ public static class PlanetInviteMapper
         {
             Id = invite.Id,
             PlanetId = invite.PlanetId,
-            Code = invite.Code,
             IssuerId = invite.IssuerId,
             TimeCreated = invite.TimeCreated,
             TimeExpires = invite.TimeExpires
@@ -27,7 +26,6 @@ public static class PlanetInviteMapper
         {
             Id = invite.Id,
             PlanetId = invite.PlanetId,
-            Code = invite.Code,
             IssuerId = invite.IssuerId,
             TimeCreated = invite.TimeCreated,
             TimeExpires = invite.TimeExpires

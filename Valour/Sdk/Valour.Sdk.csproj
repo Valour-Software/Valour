@@ -25,9 +25,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.37.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0-rc.1.24452.1" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.2.24474.3" />
+    <PackageReference Include="Markdig" Version="0.38.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.0" />
   </ItemGroup>
 

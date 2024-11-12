@@ -33,11 +33,11 @@
 	{
 		var result = await Data.Member.DeleteAsync();
 		Console.WriteLine(result);
-		await CloseAsync();
+		Close();
 	}
 	
-	private Task OnCancel()
+	private void OnCancel()
 	{
-		return CloseAsync();
+		Close();
 	}
 }

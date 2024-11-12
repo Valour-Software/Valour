@@ -254,9 +254,9 @@ else
         _targetAccountData = await EcoService.SearchGlobalAccountsAsync(_targetName);
     }
     
-    private async Task OnClickReceipt()
+    private void OnClickReceipt()
     {
-        await Input.AddReceipt(_transactionId);
-        await Modal.CloseAsync();
+        Input.AddReceipt(_transactionId);
+        Modal.Close();
     }
 }

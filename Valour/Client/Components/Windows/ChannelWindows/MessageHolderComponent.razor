@@ -273,7 +273,7 @@
         await _jsModule.DisposeAsync();
     }
 
-    public async Task OnDeleteMessage(Message message)
+    public void OnDeleteMessage(Message message)
     {
         if (message.ChannelId != ChatComponent.Channel.Id)
             return;
@@ -290,7 +290,7 @@
             if (lastMessage is not null)
                 nextMessage.SetLast(lastMessage.Message);
             
-            await nextMessage.RefreshMessage();
+            nextMessage.RefreshMessage();
             nextMessage.ReRender();
         }
 

@@ -86,7 +86,7 @@
                         {"MessageComponent", this}
                     };
 
-                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                    <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
                         @if (Ghost)
                         {
                             <div class="attachment-x">x</div>
@@ -277,7 +277,7 @@
 
     private async Task OnEditReceived(ModelUpdateEvent<Message> eventData)
     {
-        await BuildMessage();
+        BuildMessage();
         await CloseEditMode();
     }
 
@@ -330,12 +330,12 @@
         }
     }
 
-    public async Task OnClickAttachment(int id)
+    public void OnClickAttachment(int id)
     {
         if (Ghost)
         {
             var input = ChatComponent.MessageHolder.InputComponent;
-            await input.RemoveAttachment(id);
+            input.RemoveAttachment(id);
         }
     }
 
@@ -377,17 +377,17 @@
         ReRender();
     }
 
-    public async Task SetMessage(Message message)
+    public void SetMessage(Message message)
     {
         Message = message;
-        await BuildMessage();
+        BuildMessage();
 
         ReRender();
     }
 
-    public async Task RefreshMessage()
+    public void RefreshMessage()
     {
-        await BuildMessage();
+        BuildMessage();
         StateHasChanged();
     }
 
@@ -396,7 +396,7 @@
         LastMessage = msg;
     }
 
-    public async Task BuildMessage(bool render = true)
+    public void BuildMessage(bool render = true)
     {
         if (Message == null)
             return;
@@ -405,7 +405,7 @@
         CheckMinimal();
 
         if (!IsInnerReply)
-            _mentioned = await Message.CheckIfMentioned();
+            _mentioned = Message.CheckIfMentioned();
 
         CalculateClass();
         CalculateTime();
@@ -453,7 +453,7 @@
 
         _user = await Message.FetchAuthorUserAsync();
 
-        await BuildMessage(false);
+        BuildMessage(false);
 
         if (_user != null)
             _user.Updated += OnUserUpdated;
@@ -530,9 +530,9 @@
     public string GetAuthorAvatarUrlFallback() =>
         _author.GetFailedAvatar();
 
-    private async Task<Task> OnKeyDown(KeyboardListener.KeyboardEvent e)
+    private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
     {
-        if (e.Key != "Escape") return Task.CompletedTask;
+        if (e.Key != "Escape") return;
         if (Edit) 
         {
             await CloseEditMode(true);
@@ -547,10 +547,8 @@
         if (Ghost)
         {
             var input = ChatComponent.MessageHolder.InputComponent;
-            await input.RemoveAttachment(-1);
+            input.RemoveAttachment(-1);
         }
-
-        return Task.CompletedTask;
     }
 
     public void OnUserUpdated(ModelUpdateEvent<User> eventData)

@@ -5,7 +5,7 @@ namespace Valour.Server.Models;
 /// <summary>
 /// Service model for a planet member
 /// </summary>
-public class PlanetMember : ServerModel, ISharedPlanetMember
+public class PlanetMember : ServerModel<long>, ISharedPlanetMember
 {
     /// <summary>
     /// The user of the member

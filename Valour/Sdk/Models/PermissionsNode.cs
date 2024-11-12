@@ -65,7 +65,7 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     /// </summary>
     public ChannelTypeEnum TargetType { get; set; }
 
-    public override long? GetPlanetId() => PlanetId;
+    protected override long? GetPlanetId() => PlanetId;
 
     /// <summary>
     /// Returns the node code for this permission node
@@ -92,22 +92,21 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     
     public override PermissionsNode AddToCacheOrReturnExisting()
     {
-        var existing = base.AddToCacheOrReturnExisting();
-        
         // Add key to id lookup
         var key = GetCombinedKey();
-        PermissionNodeIdLookup[key] = Id;   
+        Client.Cache.PermNodeKeyToId[key] = Id;
         
-        return existing;
+        return Client.Cache.PermissionsNodes.Put(Id, this);
     }
 
     public override PermissionsNode TakeAndRemoveFromCache()
     {
         // Remove key from id lookup
         var key = GetCombinedKey();
-        PermissionNodeIdLookup.Remove(key);
         
-        return base.TakeAndRemoveFromCache();
+        Client.Cache.PermNodeKeyToId.Remove(key);
+        
+        return Client.Cache.PermissionsNodes.TakeAndRemove(Id);
     }
 }
 

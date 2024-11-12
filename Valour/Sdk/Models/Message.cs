@@ -208,7 +208,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         return _authorMemberCached;
     }
     
-    public async Task<bool> CheckIfMentioned()
+    public bool CheckIfMentioned()
     {
         if (Mentions is null || Mentions.Count == 0)
             return false;
@@ -233,27 +233,17 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     if (PlanetId is null)
                         continue;
                     
-                    if (selfMember is null)
-                    {
-                        selfMember = await Planet.FetchMyMemberAsync();
-                    }
-                    
-                    if (mention.TargetId == selfMember.Id)
+                    if (mention.TargetId == Planet.MyMember?.Id)
                         return true;
                     
                     break;
                 }
                 case MentionType.Role:
                 {
-                    if (PlanetId is null)
+                    if (PlanetId is null || Planet.MyMember is null)
                         continue;
                     
-                    if (selfMember is null)
-                    {
-                        selfMember = await Planet.FetchMyMemberAsync();
-                    }
-                    
-                    if (selfMember.Roles.ContainsId(mention.TargetId))
+                    if (Planet.MyMember.Roles.ContainsId(mention.TargetId))
                         return true;
 
                     break;

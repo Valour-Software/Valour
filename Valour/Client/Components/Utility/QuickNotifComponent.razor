@@ -14,7 +14,7 @@
                 @onmouseenter="@(() => OnMouseEnter(_showing[ii]))"
                 @onmousedown="@((e) => OnMouseDown(e, _showing[ii]))"
             >
-                <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" @onerror="@() => OnImageError(ii)" />
+                <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" @onerror="@(() => OnImageError(ii))" />
             </div>
         </BasicTooltipComponent>
     }

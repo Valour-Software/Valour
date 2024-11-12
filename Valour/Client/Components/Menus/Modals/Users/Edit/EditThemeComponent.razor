@@ -1,5 +1,6 @@
 ﻿@inject IJSRuntime JsRuntime
 @inject ValourClient Client
+@inject ThemeService ThemeService
 
 @using System.Net.Http.Headers
 @using Valour.Shared.Extensions
@@ -262,7 +263,7 @@ else
     private Theme _backupTheme;
     private Theme _editingTheme;
 
-    private PagedReader<ThemeMeta> _popularThemes = Theme.GetAvailableThemes();
+    private PagedReader<ThemeMeta> _popularThemes;
     private int _popularThemeCount = -1;
     
     private List<ThemeMeta> _myThemes;
@@ -276,7 +277,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _myThemes = await Theme.GetMyThemes();
+        _popularThemes = ThemeService.GetAvailableThemeReader();
+        _myThemes = await ThemeService.GetMyThemes();
         
         // Load first page of popular themes
         var res = await _popularThemes.NextPageAsync();

@@ -32,7 +32,7 @@
     }
     
     <div class="btns-wrapper">
-        <button @onclick="@OnClickCloseAsync" class="v-btn">Close</button>
+        <button @onclick="@OnClickClose" class="v-btn">Close</button>
         @if (!_loading)
         {
             <button @onclick="@OnClickCompressAsync" class="v-btn">Compress</button>
@@ -91,7 +91,7 @@
             await Data.Input.ShowUploadMenu(Data.File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{Data.File.Name.Replace('.', '_')}.jpg", "image");
             
             // Everything worked, close the modal
-            await CloseAsync();
+            Close();
         }
         catch (Exception ex)
         {
@@ -100,5 +100,5 @@
         }
     }
 
-    private Task OnClickCloseAsync() => CloseAsync();
+    private void OnClickClose() => Close();
 }

@@ -104,27 +104,30 @@ public class CoreHubService
     
     public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
         await _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("CategoryOrder-Update", eventData);
+    
+    public async void NotifyRoleOrderChange(RoleOrderEvent eventData) =>
+        await _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("RoleOrder-Update", eventData);
 
     public async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
         await _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
 
-    public async void NotifyPlanetItemChange(long planetId, ServerModel serverModel, int flags = 0) =>
-        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{serverModel.GetType().Name}-Update", serverModel, flags);
+    public async void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
+        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{nameof(T)}-Update", model, flags);
     
-    public async void NotifyPlanetItemChange(ISharedPlanetModel model, int flags = 0) =>
-        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{model.GetType().Name}-Update", model, flags);
+    public async void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel =>
+        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{nameof(T)}-Update", model, flags);
 
-    public async void NotifyPlanetItemDelete(ISharedPlanetModel model) =>
-        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{model.GetType().Name}-Delete", model);
+    public async void NotifyPlanetItemDelete<T>(T model) where T : ISharedPlanetModel =>
+        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{nameof(T)}-Delete", model);
     
-    public async void NotifyPlanetItemDelete(long planetId, ServerModel serverModel) =>
-        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{serverModel.GetType().Name}-Delete", serverModel);
+    public async void NotifyPlanetItemDelete<T>(long planetId, T model) =>
+        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{nameof(T)}-Delete", model);
 
     public async void NotifyPlanetChange(Planet item, int flags = 0) =>
-        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Update", item, flags);
+        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Update", item, flags);
 
     public async void NotifyPlanetDelete(Planet item) =>
-        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Delete", item);
+        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Delete", item);
     
     public async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
         await _hub.Clients.Group($"i-{interaction.PlanetId}").SendAsync("InteractionEvent", interaction);

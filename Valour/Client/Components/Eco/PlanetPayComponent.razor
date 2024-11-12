@@ -181,10 +181,10 @@ else
         public User User { get; set; }
     }
 
-    private async Task OnClickReceipt()
+    private void OnClickReceipt()
     {
-        await Input.AddReceipt(_transactionId);
-        await Modal.CloseAsync();
+        Input.AddReceipt(_transactionId);
+        Modal.Close();
     }
 
     private async Task OnClickSend()
@@ -302,7 +302,7 @@ else
 
     private async Task GetSendableAccounts()
     {
-        var otherAccounts = await EcoAccount.GetPlanetAccountsCanSendAsync(_focusedPlanet.Id, _selectedPlanetAccount.Id, _search);
+        var otherAccounts = await EcoService.SearchSendableAccountsAsync(_focusedPlanet.Id, _selectedPlanetAccount.Id, _search);
         _otherPlanetAccounts = new List<AccountSearchData>();
         foreach (var searchData in otherAccounts)
         {

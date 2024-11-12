@@ -25,7 +25,7 @@ public class PlanetService : ServiceBase
     /// Run when a planet is joined
     /// </summary>
     public HybridEvent<Planet> PlanetJoined;
-    
+
     /// <summary>
     /// Run when the joined planets list is updated
     /// </summary>
@@ -40,24 +40,28 @@ public class PlanetService : ServiceBase
     /// The planets this client has joined
     /// </summary>
     public readonly IReadOnlyList<Planet> JoinedPlanets;
+
     private readonly List<Planet> _joinedPlanets = new();
 
     /// <summary>
     /// Currently opened planets
     /// </summary>
     public readonly IReadOnlyList<Planet> ConnectedPlanets;
+
     private readonly List<Planet> _connectedPlanets = new();
 
     /// <summary>
     /// Lookup for opened planets by id
     /// </summary>
     public readonly IReadOnlyDictionary<long, Planet> ConnectedPlanetsLookup;
+
     private readonly Dictionary<long, Planet> _connectedPlanetsLookup = new();
 
     /// <summary>
     /// A set of locks used to prevent planet connections from closing automatically
     /// </summary>
     public readonly IReadOnlyDictionary<string, long> PlanetLocks;
+
     private readonly Dictionary<string, long> _planetLocks = new();
 
     private readonly LogOptions _logOptions = new(
@@ -66,13 +70,13 @@ public class PlanetService : ServiceBase
         "#a3333e",
         "#a39433"
     );
-    
+
     private readonly ValourClient _client;
-    
+
     public PlanetService(ValourClient client)
     {
         _client = client;
-        
+
         // Add victor dummy member
         _client.Cache.PlanetMembers.PutReplace(long.MaxValue, new PlanetMember()
         {
@@ -80,20 +84,21 @@ public class PlanetService : ServiceBase
             Id = long.MaxValue,
             MemberAvatar = "./_content/Valour.Client/media/logo/logo-256.webp"
         });
-        
+
         // Setup readonly collections
         JoinedPlanets = _joinedPlanets;
         ConnectedPlanets = _connectedPlanets;
         PlanetLocks = _planetLocks;
         ConnectedPlanetsLookup = _connectedPlanetsLookup;
-        
+
         // Setup logging
         SetupLogging(client.Logger, _logOptions);
-        
+
         // Setup reconnect logic
         _client.NodeService.NodeReconnected += OnNodeReconnect;
+        _client.NodeService.NodeAdded += HookHubEvents;
     }
-    
+
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
@@ -101,15 +106,32 @@ public class PlanetService : ServiceBase
     {
         if (!skipCache && _client.Cache.Planets.TryGet(id, out var cached))
             return cached;
-        
+
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
-        
+
         // Always also get member of client
         var member = await planet.FetchMemberByUserAsync(_client.Me.Id);
-        
+
         return _client.Cache.Sync(planet);
     }
-    
+
+    /// <summary>
+    /// Returns the invite for the given invite code (id)
+    /// </summary>
+    public async Task<PlanetInvite> FetchInviteAsync(string code, bool skipCache = false)
+    {
+        if (_client.Cache.PlanetInvites.TryGet(code, out var cached))
+            return cached;
+
+        var invite = (await _client.PrimaryNode.GetJsonAsync<PlanetInvite>(ISharedPlanetInvite.GetIdRoute(code))).Data;
+
+        return _client.Cache.Sync(invite);
+    }
+
+    public async Task<InviteScreenModel> FetchInviteScreenData(string code) =>
+        (await _client.PrimaryNode.GetJsonAsync<InviteScreenModel>(
+            $"{ISharedPlanetInvite.BaseRoute}/{code}/screen")).Data;
+
     /// <summary>
     /// Fetches all planets that the user has joined from the server
     /// </summary>
@@ -122,18 +144,18 @@ public class PlanetService : ServiceBase
         var planets = response.Data;
 
         _joinedPlanets.Clear();
-        
+
         // Add to cache
         foreach (var planet in planets)
         {
             _joinedPlanets.Add(_client.Cache.Sync(planet));
         }
-        
+
         JoinedPlanetsUpdated?.Invoke();
-        
+
         return TaskResult.SuccessResult;
     }
-    
+
     /// <summary>
     /// Returns if the given planet is open
     /// </summary>
@@ -149,7 +171,7 @@ public class PlanetService : ServiceBase
         {
             return Task.FromResult(TaskResult.FromFailure("Planet not found"));
         }
-        
+
         return TryOpenPlanetConnection(planet, key);
     }
 
@@ -199,7 +221,7 @@ public class PlanetService : ServiceBase
             LogError(result.Message);
             return result;
         }
-        
+
         Log(result.Message);
 
         // Load roles early for cached speed
@@ -210,7 +232,7 @@ public class PlanetService : ServiceBase
 
         // Load channels
         tasks.Add(planet.FetchChannelsAsync());
-        
+
         // Load permissions nodes
         tasks.Add(planet.FetchPermissionsNodesAsync());
 
@@ -226,7 +248,7 @@ public class PlanetService : ServiceBase
         Log($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
 
         PlanetConnected?.Invoke(planet);
-        
+
         return TaskResult.SuccessResult;
     }
 
@@ -239,7 +261,7 @@ public class PlanetService : ServiceBase
         {
             return Task.FromResult(TaskResult.FromFailure("Planet not found"));
         }
-        
+
         return TryClosePlanetConnection(planet, key, force);
     }
 
@@ -265,7 +287,7 @@ public class PlanetService : ServiceBase
                 }
             }
         }
-        
+
         // Already closed
         if (!ConnectedPlanets.Contains(planet))
             return TaskResult.SuccessResult;
@@ -281,7 +303,7 @@ public class PlanetService : ServiceBase
 
         // Invoke event
         PlanetDisconnected?.Invoke(planet);
-        
+
         return TaskResult.SuccessResult;
     }
 
@@ -292,7 +314,7 @@ public class PlanetService : ServiceBase
     private void AddPlanetLock(string key, long planetId)
     {
         _planetLocks[key] = planetId;
-        
+
         Log($"Planet lock {key} added for {planetId}");
     }
 
@@ -306,14 +328,14 @@ public class PlanetService : ServiceBase
         {
             Log($"Planet lock {key} removed for {planetId}");
             _planetLocks.Remove(key);
-            return _planetLocks.Any(x => x.Value == planetId) ? 
-                ConnectionLockResult.Locked : 
-                ConnectionLockResult.Unlocked;
+            return _planetLocks.Any(x => x.Value == planetId)
+                ? ConnectionLockResult.Locked
+                : ConnectionLockResult.Unlocked;
         }
-        
+
         return ConnectionLockResult.NotFound;
     }
-    
+
     /// <summary>
     /// Adds a planet to the joined planets list and invokes the event.
     /// </summary>
@@ -323,18 +345,18 @@ public class PlanetService : ServiceBase
         PlanetJoined?.Invoke(planet);
         JoinedPlanetsUpdated?.Invoke();
     }
-    
+
     /// <summary>
     /// Removes a planet from the joined planets list and invokes the event.
     /// </summary>
     public void RemoveJoinedPlanet(Planet planet)
     {
         _joinedPlanets.Remove(planet);
-        
+
         PlanetLeft?.Invoke(planet);
         JoinedPlanetsUpdated?.Invoke();
     }
-    
+
     /// <summary>
     /// Attempts to join the given planet
     /// </summary>
@@ -352,7 +374,8 @@ public class PlanetService : ServiceBase
 
     public Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId, string inviteCode)
     {
-        return _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planetId}/join?inviteCode={inviteCode}");
+        return _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>(
+            $"api/planets/{planetId}/join?inviteCode={inviteCode}");
     }
 
     /// <summary>
@@ -375,7 +398,7 @@ public class PlanetService : ServiceBase
         _joinedPlanets.AddRange(planets);
         JoinedPlanetsUpdated?.Invoke();
     }
-    
+
     public async Task<List<Planet>> FetchDiscoverablePlanetsAsync()
     {
         var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/planets/discoverable");
@@ -383,7 +406,7 @@ public class PlanetService : ServiceBase
             return new List<Planet>();
 
         var planets = response.Data;
-        
+
         var result = new List<Planet>();
 
         foreach (var planet in planets)
@@ -391,29 +414,29 @@ public class PlanetService : ServiceBase
 
         return result;
     }
-    
+
     public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
         return await FetchRoleAsync(id, planet, skipCache);
     }
-    
+
     public async ValueTask<PlanetRole> FetchRoleAsync(long id, Planet planet, bool skipCache = false)
     {
         if (!skipCache && _client.Cache.PlanetRoles.TryGet(id, out var cached))
             return cached;
-        
+
         var role = (await planet.Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.BaseRoute}/{id}")).Data;
-        
+
         return _client.Cache.Sync(role);
     }
-    
+
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)
     {
         var planet = await FetchPlanetAsync(planetId);
         return await FetchRoleMembershipCountsAsync(planet);
     }
-    
+
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(Planet planet)
     {
         var response = await planet.Node.GetJsonAsync<Dictionary<long, int>>($"{planet.IdRoute}/roles/counts");
@@ -429,14 +452,16 @@ public class PlanetService : ServiceBase
     public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, Planet planet, bool skipCache = false)
     {
         var key = new PlanetMemberKey(userId, planet.Id);
-        
+
         if (!skipCache && _client.Cache.MemberKeyToId.TryGetValue(key, out var id) &&
             _client.Cache.PlanetMembers.TryGet(id, out var cached))
             return cached;
-        
-        var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
+
+        var member =
+            (await planet.Node.GetJsonAsync<PlanetMember>(
+                $"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
         planet.SetMyMember(_client.Cache.Sync(member));
-        
+
         return _client.Cache.Sync(member);
     }
 
@@ -450,10 +475,18 @@ public class PlanetService : ServiceBase
     {
         if (!skipCache && _client.Cache.PlanetMembers.TryGet(id, out var cached))
             return cached;
-        
+
         var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
-        
+
         return _client.Cache.Sync(member);
+    }
+    
+    private void OnRoleOrderUpdate(RoleOrderEvent e)
+    {
+        if (!_client.Cache.Planets.TryGet(e.PlanetId, out var planet))
+            return;
+
+        planet.NotifyRoleOrderChange(e);
     }
 
     private async Task OnNodeReconnect(Node node)
@@ -464,5 +497,10 @@ public class PlanetService : ServiceBase
             Log($"Rejoined SignalR group for planet {planet.Id}");
         }
     }
-    
+
+    private void HookHubEvents(Node node)
+    {
+        node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", OnRoleOrderUpdate);
+    }
+
 }

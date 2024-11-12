@@ -3,7 +3,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PlanetRole : ServerModel, ISharedPlanetRole
+public class PlanetRole : ServerModel<long>, ISharedPlanetRole
 {
     public static PlanetRole DefaultRole = new PlanetRole()
     {

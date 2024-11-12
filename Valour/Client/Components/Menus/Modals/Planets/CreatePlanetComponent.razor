@@ -91,7 +91,7 @@
 		
 		await Task.Delay(3000);
 		
-		await ModalRoot.CloseModal(ModalId);
+		ModalRoot.CloseModal(ModalId);
 
 		var planet = result.Data;
 		Client.Cache.Sync(planet);

@@ -20,7 +20,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         ISharedPlanet.BaseRoute;
 
     private Node _node;
-    public override Node Node => 
+
+    public override Node Node =>
         _node; // Planets have node known if they are connected
 
     // Cached values
@@ -37,17 +38,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The channels in this planet
     /// </summary>
     public SortedModelList<Channel, long> Channels { get; } = new();
-    
+
     /// <summary>
     /// The chat channels in this planet
     /// </summary>
     public SortedModelList<Channel, long> ChatChannels { get; } = new();
-    
+
     /// <summary>
     /// The voice channels in this planet
     /// </summary>
     public SortedModelList<Channel, long> VoiceChannels { get; } = new();
-    
+
     /// <summary>
     /// The categories in this planet
     /// </summary>
@@ -57,32 +58,32 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The primary (default) chat channel of the planet
     /// </summary>
     public Channel PrimaryChatChannel { get; private set; }
-    
+
     /// <summary>
     /// The roles in this planet
     /// </summary>
     public SortedModelList<PlanetRole, long> Roles { get; } = new();
-    
+
     /// <summary>
     /// The default (everyone) role of this planet
     /// </summary>
     public PlanetRole DefaultRole { get; private set; }
-    
+
     /// <summary>
     /// The members of this planet
     /// </summary>
     public ModelList<PlanetMember, long> Members { get; } = new();
-    
+
     /// <summary>
     /// The invites of this planet
     /// </summary>
     public ModelList<PlanetInvite, string> Invites { get; } = new();
-    
+
     /// <summary>
     /// The permission nodes of this planet
     /// </summary>
     public ModelList<PermissionsNode, long> PermissionsNodes { get; } = new();
-    
+
     /// <summary>
     /// The member for the current user in this planet. Can be null if not a member.
     /// </summary>
@@ -97,7 +98,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The name of this planet
     /// </summary>
     public string Name { get; set; }
-    
+
     /// <summary>
     /// The node this planet belongs to
     /// </summary>
@@ -107,7 +108,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// True if the planet has a custom icon
     /// </summary>
     public bool HasCustomIcon { get; set; }
-    
+
     /// <summary>
     /// True if the planet has an animated icon
     /// </summary>
@@ -127,26 +128,26 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// If this and public are true, a planet will appear on the discovery tab
     /// </summary>
     public bool Discoverable { get; set; }
-    
+
     /// <summary>
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     public bool Nsfw { get; set; }
-    
+
     internal void SetMyMember(PlanetMember member)
     {
         MyMember = member;
     }
 
     #region Child Event Handlers
-    
+
     public void OnChannelUpdated(ModelUpdateEvent<Channel> eventData)
-    { 
+    {
         // We have our own method for this because there are
         // many channel lists to maintain
         UpsertChannel(eventData);
     }
-    
+
     public void OnChannelDeleted(Channel channel)
     {
         Channels?.Remove(channel);
@@ -160,9 +161,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     {
         if (eventData.Model.IsDefault)
             DefaultRole = eventData.Model;
-        
+
         Roles.Upsert(eventData);
-        
+
         // Let members know
         foreach (var member in Members)
         {
@@ -173,7 +174,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public void OnRoleDeleted(PlanetRole role)
     {
         Roles.Remove(role);
-        
+
         // Let members know
         foreach (var member in Members)
         {
@@ -183,48 +184,48 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData) =>
         Members.Upsert(eventData.Model);
-    
+
     public void OnMemberDeleted(PlanetMember member) =>
         Members.Remove(member);
-    
+
     public void OnMemberRoleAdded(PlanetRoleMember roleMember)
     {
         if (!Members.TryGet(roleMember.MemberId, out var member))
             return;
-        
+
         if (!Roles.TryGet(roleMember.RoleId, out var role))
             return;
-        
+
         member.OnRoleAdded(role);
-        
+
         var eventArgs = new RoleMembershipEvent(MemberRoleEventType.Added, role, member);
         RoleMembershipChanged?.Invoke(eventArgs);
     }
-    
+
     public void OnMemberRoleRemoved(PlanetRoleMember roleMember)
     {
         if (!Members.TryGet(roleMember.MemberId, out var member))
             return;
-        
+
         if (!Roles.TryGet(roleMember.RoleId, out var role))
             return;
-        
+
         member.OnRoleRemoved(role);
-        
+
         var eventArgs = new RoleMembershipEvent(MemberRoleEventType.Removed, role, member);
         RoleMembershipChanged?.Invoke(eventArgs);
     }
-    
+
     #endregion
-    
+
     #region Planet Sub-Model CRUD
-    
+
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
     public async ValueTask<PlanetMember> FetchMemberAsync(long id, bool skipCache = false) =>
         await Client.PlanetService.FetchMemberAsync(id, this, skipCache);
-    
+
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
@@ -236,20 +237,20 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public ValueTask<PlanetRole> FetchRoleAsync(long id, bool skipCache = false) =>
         Client.PlanetService.FetchRoleAsync(id, this, skipCache);
-    
+
     /// <summary>
     /// Returns the permissions node for the given key
     /// </summary>
     public ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, bool skipCache = false) =>
         Client.PermissionService.FetchPermissionsNodeAsync(key, this, skipCache);
-    
+
     /// <summary>
     /// Returns the channel for the given id
     /// </summary>
     public ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false) =>
         Client.ChannelService.FetchChannelAsync(id, skipCache);
-    
-    
+
+
     /// <summary>
     /// Returns the eco account for the given id
     /// </summary>
@@ -261,32 +262,32 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public ValueTask<Currency> FetchCurrencyAsync() =>
         Client.EcoService.FetchCurrencyByPlanetAsync(this);
-    
+
     /// <summary>
     /// Returns a reader for the planet's shared eco accounts
     /// </summary>
     public PagedModelReader<EcoAccount> GetSharedEcoAccountsReader(int pageSize = 50) =>
         Client.EcoService.GetSharedAccountPagedReader(this, pageSize);
-    
+
     /// <summary>
     /// Used to create channels. Allows specifying permissions nodes.
     /// </summary>
     public Task<TaskResult<Channel>> CreateChannelWithDetails(CreateChannelRequest request) =>
         Client.ChannelService.CreatePlanetChannelAsync(this, request);
-    
+
     #endregion
-    
+
     public void SetNode(Node node)
     {
         _node = node;
     }
-    
+
 
     protected override void OnDeleted()
     {
-        
+
     }
-    
+
     public void Dispose()
     {
         Channels.Dispose();
@@ -342,28 +343,28 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     private void FastUpsertChannel(Channel channel)
     {
         Channels.UpsertNoSort(channel, true);
-        
+
         switch (channel.ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-            { 
+            {
                 ChatChannels.UpsertNoSort(channel, true);
-                
+
                 if (channel.IsDefault)
                     PrimaryChatChannel = channel;
-                
+
                 break;
             }
             case ChannelTypeEnum.PlanetCategory:
             {
                 Categories.UpsertNoSort(channel, true);
-                
+
                 break;
             }
             case ChannelTypeEnum.PlanetVoice:
             {
                 VoiceChannels.UpsertNoSort(channel, true);
-                
+
                 break;
             }
             default:
@@ -379,16 +380,16 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     private void UpsertChannel(ModelUpdateEvent<Channel> eventData)
     {
         Channels.Upsert(eventData);
-        
+
         switch (eventData.Model.ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
             {
                 ChatChannels.Upsert(eventData);
-                
+
                 if (eventData.Model.IsDefault)
                     PrimaryChatChannel = eventData.Model;
-                
+
                 break;
             }
             case ChannelTypeEnum.PlanetCategory:
@@ -405,9 +406,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
                 Console.WriteLine("[!!!] Planet returned unknown or non-planet channel type!");
                 break;
         }
-        
+
     }
-    
+
     /// <summary>
     /// Applies the given channels to the planet, inserting and sorting
     /// them where necessary. Clears any existing channels. Only use this
@@ -422,9 +423,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             // Use fast upsert (no sort) because we will sort at the end
             FastUpsertChannel(channel);
         }
-        
+
         SortChannels();
-        
+
         NotifyChannelsSet();
     }
 
@@ -437,7 +438,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         var newData = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels")).Data;
         if (newData is null)
             return;
-        
+
         ApplyChannels(newData);
     }
 
@@ -447,37 +448,37 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public async Task FetchMemberDataAsync()
     {
         Console.WriteLine("Loading members");
-        
+
         PlanetMemberInfo currentResult;
         List<PlanetMemberData> allResults = new();
-        
+
         // First result to get total count
         currentResult = (await Node.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page=0")).Data;
-        
+
         if (currentResult is null)
             return;
-        
+
         Members.Clear(true);
-        
+
         var totalCount = currentResult.TotalCount;
         allResults.AddRange(currentResult.Members);
-        
+
         // If there are more results to get...
         if (totalCount > 100)
         {
             // Calculate number of pages left to get
             var pagesLeft = (int) Math.Ceiling((float) totalCount / 100) - 1;
-            
+
             // Create tasks to get the rest of the data
             var tasks = new List<Task<TaskResult<PlanetMemberInfo>>>();
             for (var i = 1; i <= pagesLeft; i++)
             {
                 tasks.Add(Node.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page={i}"));
             }
-            
+
             // Wait for all tasks to complete
             await Task.WhenAll(tasks);
-            
+
             // Add all results to the list
             foreach (var task in tasks)
             {
@@ -499,7 +500,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             Client.Cache.Sync(info.User, true);
             Members.Upsert(cachedMember, true);
         }
-        
+
         Members.NotifySet();
     }
 
@@ -511,19 +512,19 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         var permissionsNodes = (await Node.GetJsonAsync<List<PermissionsNode>>(
             ISharedPermissionsNode.GetAllRoute(Id)
         )).Data;
-        
+
         PermissionsNodes.Clear(true);
-        
+
         foreach (var permNode in permissionsNodes)
         {
             // Add or update in cache
             var cached = Client.Cache.Sync(permNode, true);
             PermissionsNodes.Upsert(cached, true);
         }
-        
+
         PermissionsNodes.NotifySet();
     }
-    
+
     /// <summary>
     /// Loads the planet's invites from the server
     /// </summary>
@@ -533,7 +534,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         if (invites is null)
             return;
-        
+
         Invites.Clear(true);
 
         foreach (var invite in invites)
@@ -541,10 +542,10 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             var cached = Client.Cache.Sync(invite, true);
             Invites.Upsert(cached, true);
         }
-        
+
         Invites.NotifySet();
     }
-    
+
     /// <summary>
     /// Loads the roles of a planet from the server
     /// </summary>
@@ -554,7 +555,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         if (roles is null)
             return;
-        
+
         Roles.Clear();
 
         foreach (var role in roles)
@@ -563,13 +564,32 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             var cached = Client.Cache.Sync(role, true);
             Roles.UpsertNoSort(cached, true);
         }
+
+        Roles.Sort();
+
+        Roles.NotifySet();
+    }
+
+    public void NotifyRoleOrderChange(RoleOrderEvent e)
+    {
+        for (int i = 0; i < e.Order.Count; i++)
+        {
+            if (Roles.TryGet(e.Order[i], out var role))
+            {
+                role.Position = (uint)i;
+            }
+        }
         
         Roles.Sort();
         
-        Roles.NotifySet();
+        // Resort members
+        foreach (var member in Members)
+        {
+            member.Roles.Sort();
+        }
     }
-    
-    public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
+
+public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
         await Node.PostAsync($"{IdRoute}/planetChannels/order", model);
 
     public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>

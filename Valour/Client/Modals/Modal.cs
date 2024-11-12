@@ -13,8 +13,8 @@ public class Modal<T> : ComponentBase
     [Parameter]
     public T Data { get; set; }
 
-    public virtual async Task CloseAsync()
+    public virtual void Close()
     {
-        await ModalRoot.CloseModal(ModalId);
+        ModalRoot.CloseModal(ModalId);
     }
 }

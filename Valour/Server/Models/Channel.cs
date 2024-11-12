@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class Channel : ServerModel, ISharedChannel
+public class Channel : ServerModel<long>, ISharedChannel
 {
     /////////////////////////////////
     // Shared between all channels //
