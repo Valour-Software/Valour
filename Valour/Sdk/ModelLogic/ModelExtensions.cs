@@ -11,7 +11,7 @@ public static class ModelExtensions
     public static List<T> SyncAll<T>(this List<T> list, CacheService cache)
         where T : ClientModel<T>
     {
-        if (list is null)
+        if (list is null || list.Count == 0)
             return null;
         
         for (int i = 0; i < list.Count; i++)

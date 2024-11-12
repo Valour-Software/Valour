@@ -1,5 +1,7 @@
 ﻿@inject ContextMenuService ContextMenuService
 @implements IDisposable
+@inject ValourClient Client
+@inject UserService UserService
 
 @* Placeholder *@
 @if (User is null)
@@ -105,7 +107,7 @@
         // use the UserId to still function
         if (User is null && Member is not null)
         {
-            User = await User.FindAsync(Member.UserId);
+            User = await UserService.FetchUserAsync(Member.UserId);
         }
         
         if (User is not null)
@@ -118,7 +120,7 @@
             // Id given, but no user supplied
             if (UserId != 0)
             {
-                User = await User.FindAsync(UserId);
+                User = await UserService.FetchUserAsync(UserId);
                 User.Updated += OnUserUpdate;
             }
         }
@@ -194,23 +196,8 @@
 
     private void CalculateAvatar()
     {
-        if (User is null && Member is null)
-        {   
-            _avatarUrl = "./_content/Valour.Client/media/logo/logo-128.webp";
-            return;
-        }
-
-        _avatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.Webp128);
-        
-        if (User is not null)
-        {
-            if (User.HasAnimatedAvatar)
-            {
-                _animAvatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.WebpAnimated128);
-            }
-
-            _failedAvatarUrl = User.GetFailedAvatar();
-        }
+        _avatarUrl = Member?.GetAvatar() ?? User?.GetAvatar() ?? ISharedUser.DefaultAvatar;
+        _failedAvatarUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
     }
 
     private void CalculateStatus()

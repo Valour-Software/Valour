@@ -1,7 +1,8 @@
 @page "/authorize"
 
-@inject NavigationManager navManager
-@inject IJSRuntime JS
+@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject OauthService OauthService
 
 @if (finishedAuth)
 {
@@ -35,7 +36,7 @@
     <div class="popup-box">
         <div class="col-md-12">
             <section>
-                <h3 class="invite-title">@ValourClient.Me.Name,</h3>
+                <h3 class="invite-title">@Client.Me.Name,</h3>
                 <h2 class="invite-title">Do you authorize</h2>
                 <div style="text-align: center">
                     <h3 class="text-info invite-name">@App.Name</h3>
@@ -112,7 +113,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ValourClient.Me is null){
+        if (Client.Me is null){
             isError = true;
             errorString = "Please log in!";
             StateHasChanged();
@@ -129,7 +130,7 @@
 
         response_type = response_type.ToLower();
 
-        App = await OauthApp.FindPublicDataAsync(client_id);
+        App = await OauthService.FetchAppPublicDataAsync(client_id);
 
         if (App is null){
             isError = true;
@@ -146,16 +147,16 @@
         switch (response_type){
             case "code": {
 
-                    var model = new AuthorizeModel(){
+                var model = new AuthorizeModel(){
                     ClientId = client_id,
                     RedirectUri = redirect_uri,
-                    UserId = ValourClient.Me.Id,
+                    UserId = Client.Me.Id,
                     ResponseType = response_type,
                     Scope = scope,
                     State = state
                 };
 
-                var res = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"api/oauth/authorize", model);
+                var res = await Client.PrimaryNode.PostAsyncWithResponse<string>($"api/oauth/authorize", model);
 
                 if (!res.Success)
                 {
@@ -165,7 +166,7 @@
                     return;
                 }
 
-                await JS.InvokeAsync<object>("open", res.Data, "_blank");
+                await JsRuntime.InvokeAsync<object>("open", res.Data, "_blank");
 
                 finishedAuth = true;
 

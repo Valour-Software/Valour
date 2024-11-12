@@ -98,6 +98,11 @@ public class AuthService : ServiceBase
 
         return new TaskResult(true, "Success");
     }
+
+    public Task<TaskResult> RegisterAsync(RegisterUserRequest request)
+    {
+        return _client.PrimaryNode.PostAsync("api/users/register", request);
+    }
     
     /// <summary>
     /// Sets the compliance data for the current user

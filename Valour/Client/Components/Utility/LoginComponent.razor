@@ -2,6 +2,9 @@
 @inject NavigationManager NavManager
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject AuthService AuthService
+
 @using Microsoft.AspNetCore.WebUtilities
 <div class="page">
     <div class="login-background">
@@ -102,13 +105,12 @@
         _passwordSpan = "";
         _emailSpan = "";
 
-        var tokenResult = await ValourClient.GetToken(_email, _password);
+        var tokenResult = await AuthService.FetchToken(_email, _password);
 
         if (!tokenResult.Success)
         {
-            Console.WriteLine("Failed to request user token. Code: " + tokenResult.Code);
-            Console.WriteLine(tokenResult.Data);
-
+            Client.Logger.Log<LoginComponent>($"Failed to request user token. Code: {tokenResult.Code}", "salmon");
+            
             if (tokenResult.Code == 429)
             {
                 _passwordSpan = "Too many requests. Please try again later.";
@@ -123,12 +125,12 @@
             return;
         }
 
-        var result = await ValourClient.InitializeUser(tokenResult.Data.Id);
+        var result = await Client.InitializeUser();
 
         if (result.Success)
         {
             _resultSpan = result.Message;
-            await JsRuntime.SetCookieAsync("token", tokenResult.Data.Id);
+            await JsRuntime.SetCookieAsync("token", AuthService.Token);
 
             if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
             {

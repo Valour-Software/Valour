@@ -155,8 +155,7 @@
         _sharedAccountProvider = EcoService.GetSharedAccountQueryEngine(Planet);
         _userAccountProvider = EcoService.GetUserAccountQueryEngine(Planet);
         
-        var self = await Planet.FetchMyMemberAsync();
-        _hasCurrencyPermission = self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
+        _hasCurrencyPermission = Planet.MyMember.HasPermission(PlanetPermissions.ManageCurrency);
 
         Currency = await Planet.FetchCurrencyAsync();
 

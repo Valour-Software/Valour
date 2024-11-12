@@ -1,6 +1,7 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using Valour.Sdk.Nodes
+@inject ValourClient Client
 
 <div @key="@_id" Id="@_id" class="chat-holder mt-auto">
     <!-- Pushes messages to bottom -->
@@ -103,9 +104,9 @@
         RenderedMessages = new List<MessageComponent>();
         DisplayedMessages = new List<Message>();
         QueuedMessages = new List<Message>();
-
-        ValourClient.OnMessageDeleted += OnDeleteMessage;
-        ValourClient.OnNodeReconnect += OnNodeReconnect;
+        
+        ChatComponent.Channel.MessageDeleted += OnDeleteMessage;
+        Client.NodeService.NodeReconnected += OnNodeReconnect;
 
         _thisRef = DotNetObjectReference.Create(this);
     }
@@ -113,17 +114,6 @@
     public async Task LoadRecentMessages(int count)
     {
         var messages = await ChatComponent.Channel.GetLastMessagesAsync(64);
-        
-        // Add to cache
-        foreach (var msg in messages)
-        {
-            await ModelCache<,>.Put(msg.Id, msg);
-            if (msg.ReplyTo is not null)
-            {
-                await ModelCache<,>.Put(msg.ReplyTo.Id, msg.ReplyTo);
-            }
-        }
-
         await AddMessages(messages, true, true);
     }
 
@@ -277,7 +267,9 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        ValourClient.OnMessageDeleted -= OnDeleteMessage;
+        ChatComponent.Channel.MessageDeleted -= OnDeleteMessage;
+        ChatComponent.Channel.Client.NodeService.NodeReconnected -= OnNodeReconnect;
+        
         await _jsModule.DisposeAsync();
     }
 
@@ -321,11 +313,9 @@
         _canRenderFlag = false;
     }
     
-    public async Task OnNodeReconnect(Node node)
+    public void OnNodeReconnect(Node node)
     {
-        await Logger.Log($"Chat window {ChatComponent.Channel.Name} reloading due to node reconnect. Node: {node.Name}", "yellow");
-        
-        
+        Client.Logger.Log<MessageHolderComponent>($"Chat window {ChatComponent.Channel.Name} reloading due to node reconnect. Node: {node.Name}", "yellow");
     }
 
     protected override bool ShouldRender() => _canRenderFlag;
@@ -377,17 +367,7 @@
 
         if (messages is null || !messages.Any())
             return;
-
-        foreach (var msg in messages)
-        {
-            await msg.AddToCache(msg);
-            var reply = msg.ReplyTo;
-            if (reply is not null)
-            {
-                await reply.AddToCache(reply);
-            }
-        }
-
+        
         await UpdateScrollPosition(); // This saves the scroll position
 
         InsertMessages(0, messages);

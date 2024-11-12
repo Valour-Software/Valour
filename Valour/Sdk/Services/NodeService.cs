@@ -98,6 +98,28 @@ public class NodeService : ServiceBase
         return node;
     }
 
+    /// <summary>
+    /// Returns the node with the given name, and sets the location of a planet
+    /// Used for healing node locations after bad requests
+    /// </summary>
+    public async Task<Node> GetNodeAndSetPlanetLocation(string name, long? planetId)
+    {
+        if (name is null)
+            return null;
+        
+        var node = await GetByName(name);
+
+        if (planetId is not null)
+        {
+            _planetToNodeName[planetId.Value] = name;
+
+            if (_client.Cache.Planets.TryGet(planetId.Value, out var planet))
+                planet.SetNode(node);
+        }
+
+        return node;
+    }
+
     public void RegisterNode(Node node)
     {
         _nameToNode[node.Name] = node;

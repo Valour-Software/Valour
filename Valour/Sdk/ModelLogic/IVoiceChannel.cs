@@ -1,5 +1,5 @@
 ﻿namespace Valour.Sdk.ModelLogic;
 
-public interface IVoiceChannel : IClientChannel
+public interface IVoiceChannel
 {
 }

@@ -1,5 +1,10 @@
 ﻿@inherits WindowContentComponent<Channel>
+@inject ValourClient Client
+@inject MessageService MessageService
+@inject ChannelStateService ChannelStateService
 
+@using System.Threading.Channels
+@using Channel = Valour.Sdk.Models.Channel
 @implements IAsyncDisposable
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
@@ -18,15 +23,15 @@
 
     public class Content : WindowContent<ChatChannelWindowComponent, Channel>
     {
-        public override async Task ImportData(string data)
+        public override async Task ImportData(string data, ValourClient client)
         {
             // Exported data is channel id
             long channelId = JsonSerializer.Deserialize<long>(data);
-            var channel = await Channel.FindAsync(channelId);
+            var channel = await client.ChannelService.FetchChannelAsync(channelId);
             Data = channel;
         }
 
-        public override string ExportData()
+        public override string ExportData(ValourClient clientc)
         {
             if (Data is null)
                 return null;
@@ -50,10 +55,6 @@
 
     public PermissionsNode ChannelPermissions { get; set; }
     
-    /* Planet Only */
-    private Planet _planet;
-    private PlanetMember _selfMember;
-    
     public Channel Channel;
 
     private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
@@ -69,8 +70,9 @@
 
         Channel = Data;
         
-        ValourClient.OnMessageReceived += OnReceiveMessage;
-        ValourClient.OnMessageEdited += OnReceiveMessageEdit;
+        Channel.MessageReceived += OnReceiveMessage;
+        Channel.MessageEdited += OnReceiveMessageEdit;
+        
         WindowCtx.Tab.OnStartFloating += OnStartFloating;
         
         return Task.CompletedTask;
@@ -88,13 +90,9 @@
         // Planet stuff
         if (Channel.PlanetId is not null)
         {
-            _planet = await Channel.GetPlanetAsync();
-            _selfMember = await _planet.FetchMyMemberAsync();
-
-            _planet.Deleted += OnPlanetDeleted;
-            _selfMember.Deleted += OnSelfMemberDeleted;
-            
-            ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(_selfMember.Id);
+            Channel.Planet.Deleted += OnPlanetDeleted;
+            Channel.Planet.MyMember.Deleted += OnSelfMemberDeleted;
+            ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(Channel.Planet.MyMember.Id);
         }
         
         Channel.Updated += OnChatChannelUpdate;
@@ -103,13 +101,7 @@
         
         MessageHolder.Clear();
         await MessageHolder.LoadRecentMessages(64);
-
-        await ValourClient.HandleUpdateUserChannelState(new UserChannelState
-        {
-            ChannelId = Channel.Id,
-            UserId = ValourClient.Me.Id,
-            LastViewedTime = DateTime.UtcNow
-        });
+        await Channel.UpdateUserState(DateTime.UtcNow);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -132,10 +124,9 @@
         await MessageHolder.InputComponent.OnStopEdit(cancel);
     }
     
-    public Task OnChatChannelUpdate(ModelUpdateEvent eventData)
+    public void OnChatChannelUpdate(ModelUpdateEvent<Channel> eventData)
     {
         ReRender();
-        return Task.CompletedTask;
     }
 
     public virtual async Task OnReceiveMessage(Message message)
@@ -144,7 +135,7 @@
         if (message.ChannelId != Channel.Id)
             return;
         
-        ValourClient.SetChannelLastViewedState(Channel.Id, message.TimeSent);
+        ChannelStateService.SetChannelLastViewedState(Channel.Id, message.TimeSent);
         
         await MessageHolder.AddMessage(message);
         MessageHolder.InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
@@ -219,14 +210,17 @@
     public async ValueTask DisposeAsync()
     {
         await HandleWindowClose();
-        
-        if (_planet is not null)
-            _planet.Deleted -= OnPlanetDeleted;
-        
-        if (_selfMember is not null)
-            _selfMember.Deleted -= OnSelfMemberDeleted;
 
-        ValourClient.OnMessageReceived -= OnReceiveMessage;
+        if (Channel.PlanetId is not null)
+        {
+            Channel.Planet.Deleted -= OnPlanetDeleted;
+            
+            if (Channel.Planet.MyMember is not null)
+                Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
+        }
+        
+        Channel.MessageReceived -= OnReceiveMessage;
+        
         _thisRef.Dispose();
     }
 

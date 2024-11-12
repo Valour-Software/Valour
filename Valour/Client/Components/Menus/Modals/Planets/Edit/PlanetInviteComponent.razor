@@ -20,10 +20,9 @@
 
     private string _issuerName;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var member = await Invite.Planet.FetchMyMemberAsync();
-        _issuerName = member.Name;
+        _issuerName = Invite.Planet.MyMember.Name;
         StateHasChanged();
     }
 }

@@ -66,10 +66,10 @@
 
         if (Role is not null)
         {
-            var selfMember = await Channel.Planet.FetchMyMemberAsync();
-            if (selfMember is not null)
+            var myMember = Channel.Planet.MyMember;
+            if (myMember is not null)
             {
-                IsTarget = selfMember.Roles.Any(r => r.Id == Role.Id);
+                IsTarget = myMember.Roles.Any(r => r.Id == Role.Id);
             }
         }
 

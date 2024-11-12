@@ -40,7 +40,7 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    @if (role.GetAuthority() == SelfAuthority)
+                                    @if (role.GetAuthority() == MyAuthority)
                                     {
                                         <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@_selectedRoles[role]" disabled>
                                         <span class="slider round" cursor: not-allowed;></span>
@@ -95,28 +95,26 @@
     List<PlanetRole> _roles = new();
     bool _isPrivate = false;
 
-    uint SelfAuthority { get; set; }
+    uint MyAuthority { get; set; }
     
     private async Task ClickEscape(MouseEventArgs e)
     {
         await ModalRoot.CloseModal(ModalId);
     }
 
-    protected override async Task OnInitializedAsync() {
+    protected override void OnInitialized() {
         _roles.Clear();
         _selectedRoles.Clear();
-
-        var selfMember = await Data.Planet.FetchMyMemberAsync();
-
-        SelfAuthority = selfMember.Authority;
+        
+        MyAuthority = Data.Planet.MyMember.Authority;
         foreach (PlanetRole item in Data.Planet.Roles)
         {
-            if (item.GetAuthority() > SelfAuthority)
+            if (item.GetAuthority() > MyAuthority)
                 continue;
 
             _roles.Add(item);
 
-            if (item.GetAuthority() == SelfAuthority)
+            if (item.GetAuthority() == MyAuthority)
                 _selectedRoles.Add(item, true);
             else
                 _selectedRoles.Add(item, false);

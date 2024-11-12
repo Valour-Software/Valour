@@ -24,7 +24,8 @@
         background-color: var(--main-1)">
 
     @{
-        int options = 0; 
+        int options = 0;
+        var myAuthority = Target.Planet.MyMember.Authority;
     }
 
     @foreach (var role in Target.Planet.Roles)
@@ -33,7 +34,7 @@
 
         var authority = role.GetAuthority();
 
-        if (authority >= _selfAuthority)
+        if (authority >= myAuthority)
             continue;
 
         options++;
@@ -160,11 +161,9 @@
     public Channel Target { get; set; }
 
     private PlanetRole _selfPrimaryRole;
-    private PlanetMember _selfMember;
     private PlanetRole _lastRole;
     private PlanetRole _selectedRole;
     
-    private int _selfAuthority;
     private bool _changed = false;
     private bool _loading = true;
 
@@ -266,18 +265,17 @@
 
         _selectedRole = Target.Planet.Roles[0];
 
-        // Get self membership
-        _selfMember = await Target.Planet.FetchMyMemberAsync();
+        var myMember = Target.Planet.MyMember;
 
         var j = 1;
-        while (_selectedRole.GetAuthority() >= _selfAuthority && j < Target.Planet.Roles.Count)
+        while (_selectedRole.GetAuthority() >= myMember.Authority && j < Target.Planet.Roles.Count)
         {
             _selectedRole = Target.Planet.Roles[j];
             j += 1;
         }
         
-        _hasTargetManagePerm = await Target.HasPermissionAsync(_selfMember, ChannelPermissions.Manage);
-        _hasTargetPermissionPerm = await Target.HasPermissionAsync(_selfMember, ChannelPermissions.ManagePermissions);
+        _hasTargetManagePerm = await Target.HasPermissionAsync(myMember, ChannelPermissions.Manage);
+        _hasTargetPermissionPerm = await Target.HasPermissionAsync(myMember, ChannelPermissions.ManagePermissions);
 
         _loading = false;
 

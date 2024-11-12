@@ -1,5 +1,5 @@
 ﻿<BasicTooltipComponent Title="@User.Name">
-    <img alt="@User.Name is watching" id="watching-icon-@User.Name" class="watching-icon" src='@_pfpUrl' @onerror="OnIconError" />
+    <img alt="@User.Name is watching" id="watching-icon-@User.Name" class="watching-icon" src='@_avatar' @onerror="@OnIconError" />
 </BasicTooltipComponent>
 
 @code {
@@ -7,16 +7,16 @@
     [Parameter]
     public User User { get; set; }
 
-    private string _pfpUrl;
+    private string _avatar;
 
     protected override void OnInitialized()
     {
-        _pfpUrl = AvatarUtility.GetAvatarUrl(User);
+        _avatar = User.GetAvatar();
     }
 
     private void OnIconError()
     {
-        _pfpUrl = AvatarUtility.GetFailedAvatarUrl(User);
+        _avatar = User.GetFailedAvatar();
         StateHasChanged();
     }
 }

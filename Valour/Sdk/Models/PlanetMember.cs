@@ -152,10 +152,10 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// Returns if the member has the given permission
     /// </summary>
-    public async Task<bool> HasPermissionAsync(Channel channel, Permission permission) =>
+    public async Task<bool> HasPermission(Channel channel, Permission permission) =>
         await channel.HasPermissionAsync(UserId, permission);
 
-    public bool HasPermissionAsync(PlanetPermission permission)
+    public bool HasPermission(PlanetPermission permission)
     {
         if (Planet is null)
             return false;

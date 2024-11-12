@@ -1,5 +1,7 @@
+@inject ValourClient Client
+
 <div class="self-info">
-    <UserInfoComponent User="ValourClient.Me" />
+    <UserInfoComponent User="@Client.Me" />
     <button id="user-edit-button" class="settings-button" aria-label="User settings button"
             @onkeydown="@(e => { if (e.Key == "Enter") OnClickUserSettings(); })"
             @onclick="@OnClickUserSettings">
@@ -14,7 +16,7 @@
     {
         var data = new EditUserComponent.ModalParams()
         {
-            User = ValourClient.Me
+            User = Client.Me
         };
         
         ModalRoot.OpenModal<EditUserComponent>(data);

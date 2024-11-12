@@ -1,6 +1,7 @@
 @using System.Text
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
+@inject PlanetService PlanetService
 
 <div id="flipper-discover-@Planet.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-discover-@Planet.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-discover-@Planet.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle"
@@ -132,10 +133,10 @@
     private async Task OnClick()
     {
         // Attempt to join planet
-        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
+        _ = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
             $"Joining {Planet.Name}",
             "...",
-            ValourClient.JoinPlanetAsync(Planet),
+            PlanetService.JoinPlanetAsync(Planet),
             "Joined successfully!"
         ));
     }

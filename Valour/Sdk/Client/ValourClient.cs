@@ -140,9 +140,10 @@ public class ValourClient
     /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
-    public async Task<TaskResult> InitializeUser(string token)
+    public async Task<TaskResult> InitializeUser(string token = null)
     {
-        AuthService.SetToken(token);
+        if (token is not null)
+            AuthService.SetToken(token);
         
         // Login to Valour
         var userResult = await AuthService.LoginAsync();

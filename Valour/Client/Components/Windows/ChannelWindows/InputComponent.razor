@@ -1,5 +1,7 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
+@inject ValourClient Client
+
 @using System.Net.Http.Headers
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
@@ -158,8 +160,6 @@
     /// Allows this component to render when true
     /// </summary>
     public bool CanRenderFlag { get; set; }
-    
-    private PlanetMember _selfMember { get; set; }
 
     private DateTime _lastTypingUpdateSent = DateTime.MinValue;
 
@@ -250,16 +250,14 @@
 
     public virtual async Task SetupNewChannelAsync()
     {
-        var planet = await ChatComponent.Channel.GetPlanetAsync();
+        var planet = ChatComponent.Channel.Planet;
         if (planet is not null)
         {
-            _selfMember = await planet.GetSelfMemberAsync();
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
         }
         else
         {
-            _selfMember = null;
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(ValourClient.Me.Id, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(Client.Me.Id, ChatChannelPermissions.PostMessages);
         }
 
         PreviewMessage = BuildNewMessage();
@@ -273,10 +271,10 @@
         
         return new Message()
         {
-            AuthorUserId = ValourClient.Me.Id,
+            AuthorUserId = Client.Me.Id,
             Content = prevContent,
             ChannelId = ChatComponent.Channel.Id,
-            AuthorMemberId = _selfMember?.Id,
+            AuthorMemberId = ChatComponent.Channel.Planet?.MyMember.Id,
             TimeSent = DateTime.UtcNow,
             ReplyToId = null,
             PlanetId = ChatComponent.Channel.PlanetId,
@@ -403,7 +401,7 @@
             attachmentType = MessageAttachmentType.Audio;
         }
 
-        if (ValourClient.Me.SubscriptionType is not null)
+        if (Client.Me.SubscriptionType is not null)
         {
             maxSize = 20480000;
         }
@@ -468,7 +466,7 @@
             FileName = name,
         };
 
-        var plusRoute = ValourClient.Me.SubscriptionType == null ? "" : "/plus";
+        var plusRoute = Client.Me.SubscriptionType == null ? "" : "/plus";
 
         var modalData = new FileUploadComponent.ModalParams()
         {
@@ -476,7 +474,7 @@
             Attachment = newAttachment,
             OnConfirm = async () => 
             {
-                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
+                var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
 
                 if (result.Success)
                 {
@@ -633,12 +631,12 @@
             PreviewMessageComponent.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
-            _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
+            _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
         }
         // Editing message
         else
         {
-            var result = await message.EditMessageAsync();
+            var result = await message.UpdateAsync();
             if (!result.Success)
             {
                 Message errorMsg = new()
@@ -761,7 +759,7 @@
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Me.Id);
+            .LastOrDefault(m => m.Message.AuthorUserId == Client.Me.Id);
 
         if (lastMessage is null)
         {

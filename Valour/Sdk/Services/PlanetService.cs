@@ -29,7 +29,7 @@ public class PlanetService : ServiceBase
     /// <summary>
     /// Run when the joined planets list is updated
     /// </summary>
-    public HybridEvent JoinedPlanetsUpdate;
+    public HybridEvent JoinedPlanetsUpdated;
 
     /// <summary>
     /// Run when a planet is left
@@ -104,6 +104,9 @@ public class PlanetService : ServiceBase
         
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
         
+        // Always also get member of client
+        var member = await planet.FetchMemberByUserAsync(_client.Me.Id);
+        
         return _client.Cache.Sync(planet);
     }
     
@@ -126,7 +129,7 @@ public class PlanetService : ServiceBase
             _joinedPlanets.Add(_client.Cache.Sync(planet));
         }
         
-        JoinedPlanetsUpdate?.Invoke();
+        JoinedPlanetsUpdated?.Invoke();
         
         return TaskResult.SuccessResult;
     }
@@ -318,7 +321,7 @@ public class PlanetService : ServiceBase
     {
         _joinedPlanets.Add(planet);
         PlanetJoined?.Invoke(planet);
-        JoinedPlanetsUpdate?.Invoke();
+        JoinedPlanetsUpdated?.Invoke();
     }
     
     /// <summary>
@@ -329,7 +332,7 @@ public class PlanetService : ServiceBase
         _joinedPlanets.Remove(planet);
         
         PlanetLeft?.Invoke(planet);
-        JoinedPlanetsUpdate?.Invoke();
+        JoinedPlanetsUpdated?.Invoke();
     }
     
     /// <summary>
@@ -347,14 +350,18 @@ public class PlanetService : ServiceBase
         return result;
     }
 
+    public Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId, string inviteCode)
+    {
+        return _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planetId}/join?inviteCode={inviteCode}");
+    }
+
     /// <summary>
     /// Attempts to leave the given planet
     /// </summary>
     public async Task<TaskResult> LeavePlanetAsync(Planet planet)
     {
         // Get member
-        var member = await planet.FetchMyMemberAsync();
-        var result = await member.DeleteAsync();
+        var result = await planet.MyMember.DeleteAsync();
 
         if (result.Success)
             RemoveJoinedPlanet(planet);
@@ -366,7 +373,7 @@ public class PlanetService : ServiceBase
     {
         _joinedPlanets.Clear();
         _joinedPlanets.AddRange(planets);
-        JoinedPlanetsUpdate?.Invoke();
+        JoinedPlanetsUpdated?.Invoke();
     }
     
     public async Task<List<Planet>> FetchDiscoverablePlanetsAsync()
@@ -428,7 +435,8 @@ public class PlanetService : ServiceBase
             return cached;
         
         var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
-
+        planet.SetMyMember(_client.Cache.Sync(member));
+        
         return _client.Cache.Sync(member);
     }
 

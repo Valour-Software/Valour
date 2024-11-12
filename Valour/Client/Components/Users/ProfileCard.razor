@@ -1,80 +1,84 @@
+@inject ValourClient Client
+@inject FriendService FriendService
+@inject ChannelService ChannelService
+
 <div id="@Id" class="card-wrapper" style="@CssStyle">
-        <TiltCard ShineCssStyle="border-radius: 20px">
-            <div class="card-glow" style="background-color: @Profile.GlowColor">
-            </div>
-            <div
-                @onclick:stopPropagation="true"
-                class="profile-card">
-                <span class="card-bg" style="@CardBackground"></span>
-                <div class="inner-card">
-                    @if (!string.IsNullOrWhiteSpace(Profile.BackgroundImage))
-                    {
-                        <div class="inner-bg" style="@BackgroundImage;background-repeat: no-repeat;background-size: cover;filter: brightness(0.4);"></div>
-                    }
-                    <div class="top-section">
-                        <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
-                        <div class="online-bubble @_statusClass"></div>
-                        <div class="names">
-                            <p class="nickname">@_name</p>
-                            <p class="name-and-tag" style="@CustomText">@_nameAndTag</p>
-                            <div class="status-bubble">
-                                <div class="arrow"></div>
-                                <p class="status-text">"@(_status)"</p>
-                            </div>
-                        </div>
-                    </div>
-                    @if (User.UserStateCode == 1 && (DateTime.Now - User.TimeLastActive).TotalSeconds > 0)
-                    {
-                        <div class="last-active">
-                            Last online @_lastOnline ago
-                        </div>
-                    }
-                    @if (User.Id != ValourClient.Me.Id)
-                    {
-                        <div class="bottom-btns">
-                            
-                            @{
-                                var friendBtnColor = "#ffffff55";
-                                var messageBtnColor = "#ffffff55";
-                                
-                                if (!string.IsNullOrWhiteSpace(Profile.SecondaryColor))
-                                {
-                                    messageBtnColor = Profile.SecondaryColor + "55";
-                                }
-                                
-                                if (!string.IsNullOrWhiteSpace(Profile.TertiaryColor))
-                                {
-                                    friendBtnColor = Profile.TertiaryColor + "55";
-                                }
-                            }
-                            
-                            <button class="v-btn large" style="background-color: @messageBtnColor;" @onclick="OnClickMessage"><i class="bi bi-envelope-fill"></i> Message</button>
-                            @if (_isFriend)
-                            {
-                                <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Remove Friend</button>
-                            }
-                            else if (_isFriendRequested)
-                            {
-                                <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Cancel Request</button>
-                            }
-                            else
-                            {
-                                <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickAddFriend"><i class="bi bi-person-heart"></i> Add Friend</button>
-                            }
-                        </div>
-                    }
-                    <p class="headline" style="@CustomText">@Profile.Headline</p>
-                    <div class="mid-section">
-                        <b class="card-subtitle" style="@CustomText">Bio</b>
-                        <hr/>
-                        <div class="mid-inner">
-                            <p class="body-text" style="@CustomText">@Profile.Bio</p>
+    <TiltCard ShineCssStyle="border-radius: 20px">
+        <div class="card-glow" style="background-color: @Profile.GlowColor">
+        </div>
+        <div
+            @onclick:stopPropagation="true"
+            class="profile-card">
+            <span class="card-bg" style="@CardBackground"></span>
+            <div class="inner-card">
+                @if (!string.IsNullOrWhiteSpace(Profile.BackgroundImage))
+                {
+                    <div class="inner-bg" style="@BackgroundImage;background-repeat: no-repeat;background-size: cover;filter: brightness(0.4);"></div>
+                }
+                <div class="top-section">
+                    <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
+                    <div class="online-bubble @_statusClass"></div>
+                    <div class="names">
+                        <p class="nickname">@_name</p>
+                        <p class="name-and-tag" style="@CustomText">@_nameAndTag</p>
+                        <div class="status-bubble">
+                            <div class="arrow"></div>
+                            <p class="status-text">"@(_status)"</p>
                         </div>
                     </div>
                 </div>
+                @if (User.UserStateCode == 1 && (DateTime.Now - User.TimeLastActive).TotalSeconds > 0)
+                {
+                    <div class="last-active">
+                        Last online @_lastOnline ago
+                    </div>
+                }
+                @if (User.Id != Client.Me.Id)
+                {
+                    <div class="bottom-btns">
+                        
+                        @{
+                            var friendBtnColor = "#ffffff55";
+                            var messageBtnColor = "#ffffff55";
+                            
+                            if (!string.IsNullOrWhiteSpace(Profile.SecondaryColor))
+                            {
+                                messageBtnColor = Profile.SecondaryColor + "55";
+                            }
+                            
+                            if (!string.IsNullOrWhiteSpace(Profile.TertiaryColor))
+                            {
+                                friendBtnColor = Profile.TertiaryColor + "55";
+                            }
+                        }
+                        
+                        <button class="v-btn large" style="background-color: @messageBtnColor;" @onclick="OnClickMessage"><i class="bi bi-envelope-fill"></i> Message</button>
+                        @if (_isFriend)
+                        {
+                            <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Remove Friend</button>
+                        }
+                        else if (_isFriendRequested)
+                        {
+                            <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Cancel Request</button>
+                        }
+                        else
+                        {
+                            <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickAddFriend"><i class="bi bi-person-heart"></i> Add Friend</button>
+                        }
+                    </div>
+                }
+                <p class="headline" style="@CustomText">@Profile.Headline</p>
+                <div class="mid-section">
+                    <b class="card-subtitle" style="@CustomText">Bio</b>
+                    <hr/>
+                    <div class="mid-inner">
+                        <p class="body-text" style="@CustomText">@Profile.Bio</p>
+                    </div>
+                </div>
             </div>
-        </TiltCard>
-    </div>
+        </div>
+    </TiltCard>
+</div>
 
 @code {
     
@@ -90,7 +94,7 @@
     [Parameter]
     public string CssStyle { get; set; }
 
-    public string CustomText
+    private string CustomText
     {
         get
         {
@@ -103,7 +107,7 @@
         }
     }
 
-    public string BackgroundImage
+    private string BackgroundImage
     {
         get
         {
@@ -117,7 +121,7 @@
         }
     }
 
-    public string CardBackground
+    private string CardBackground
     {
         get
         {
@@ -147,8 +151,8 @@
 
     public Task LoadDetailsAsync()
     {
-        _isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
-        _isFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
+        _isFriendRequested = FriendService.FriendsRequested.Any(x => x.Id == User.Id);
+        _isFriend = FriendService.Friends.Any(x => x.Id == User.Id);
 
         _name = User.Name;
         _nameAndTag = User.NameAndTag;
@@ -173,12 +177,12 @@
         }
         else
         {
-            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalSeconds). ToString();
+            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalSeconds).ToString();
             if (_lastOnline == "1") _lastOnline += " second";
             else _lastOnline += " seconds";
         }
 
-        _pfpUrl = AvatarUtility.GetAvatarUrl(User, Member);
+        _pfpUrl = Member?.GetAvatar() ?? User?.GetAvatar() ?? ISharedUser.DefaultAvatar;
         
         StateHasChanged();
         return Task.CompletedTask;
@@ -186,17 +190,17 @@
 
     private void OnPfpError()
     {
-        _pfpUrl = AvatarUtility.GetFailedAvatarUrl(User);
+        _pfpUrl = User.GetFailedAvatar();
         StateHasChanged();
     }
     
-    public async Task OnClickAddFriend()
+    private async Task OnClickAddFriend()
     {
-        var result = await ValourClient.AddFriendAsync(User.NameAndTag);
+        var result = await FriendService.AddFriendAsync(User.NameAndTag);
 
         if (!result.Success)
         {
-            await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+            Client.Logger.Log<ProfileCard>($"Failed to add friend:\n{result.Message}", "orange");
             return;
         }
 
@@ -204,13 +208,13 @@
         StateHasChanged();
     }
 
-    public async Task OnClickRemoveFriend()
+    private async Task OnClickRemoveFriend()
     {
-        var result = await ValourClient.RemoveFriendAsync(User.NameAndTag);
+        var result = await FriendService.RemoveFriendAsync(User.NameAndTag);
 
         if (!result.Success)
         {
-            await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+            Client.Logger.Log<ProfileCard>($"Failed to remove friend:\n{result.Message}", "orange");
             return;
         }
 
@@ -219,9 +223,9 @@
         StateHasChanged();
     }
     
-    public async Task OnClickMessage()
+    private async Task OnClickMessage()
     {
-        var channel = await Channel.GetDirectChannelAsync(User.Id, true);
+        var channel = await ChannelService.FetchDmChannelAsync(User.Id, true);
         var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }

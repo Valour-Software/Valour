@@ -53,8 +53,6 @@
 
     public static CallComponent Instance { get; private set; }
     
-    private PlanetMember SelfMember { get; set; }
-    
     private string _lastActiveSpeakerId = null;
     
     private string _error = null;
@@ -127,10 +125,8 @@
         }
 
         ActiveChannel = channel;
-
-        SelfMember = await channel.Planet.FetchMyMemberAsync();
-
-        _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
+        
+        _clientId = Guid.NewGuid().ToString() + ":" + channel.Planet.MyMember.Id.ToString();
         
         await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id, null, DevicePreferences.MicrophoneDeviceId);
         

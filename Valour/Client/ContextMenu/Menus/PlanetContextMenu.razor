@@ -1,21 +1,23 @@
 ﻿@inherits ContextMenu<PlanetContextMenu.PlanetContextParams>
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject PlanetService PlanetService
 
 @if (_canEdit)
 {
-    <ContextMenuItem OnClick='@OnClickEdit'>
+    <ContextMenuItem OnClickAsync='@OnClickEdit'>
         <Label>Edit</Label>
         <Icon><i class="bi bi-pen-fill"></i></Icon>
     </ContextMenuItem>
 }
-<ContextMenuItem OnClick='@OnClickCopyId'>
+<ContextMenuItem OnClickAsync='@OnClickCopyId'>
     <Label>Copy ID</Label>
     <Icon><i class="bi bi-database-fill"></i></Icon>
 </ContextMenuItem>
 
-@if (ValourClient.Me.Id != Data.Planet.OwnerId)
+@if (Client.Me.Id != Data.Planet.OwnerId)
 {
-    <ContextMenuItem OnClick='@OnClickLeavePlanet' Color="red">
+    <ContextMenuItem OnClickAsync='@OnClickLeavePlanet' Color="red">
         <Label>Leave Planet</Label>
         <Icon><i class="bi bi-box-arrow-left"></i></Icon>
     </ContextMenuItem>
@@ -33,18 +35,9 @@
 
     private static bool _canEdit;
     
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var selfMember = await ValourClient.GetSelfMember(Data.Planet.Id);
-        if (selfMember is null)
-        {
-            _canEdit = false;
-        }
-        else
-        {
-            _canEdit = await selfMember.HasPermissionAsync(PlanetPermissions.Manage);
-        }
-        
+        _canEdit = Data.Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
         StateHasChanged();
     }
 
@@ -80,7 +73,7 @@
                  var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
                     $"Leaving {Data.Planet.Name}",
                     "Removing membership...",
-                    ValourClient.LeavePlanetAsync(Data.Planet),
+                    PlanetService.LeavePlanetAsync(Data.Planet),
                     "Left planet successfully!"
                  ));
                  

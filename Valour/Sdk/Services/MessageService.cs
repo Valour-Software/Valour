@@ -79,7 +79,7 @@ public class MessageService : ServiceBase
     public Task<TaskResult<Message>> SendMessage(Message message)
         => message.PostAsync();
     
-    /// <summars>
+    /// <summary>
     /// Ran when a message is recieved
     /// </summary>
     private void OnPlanetMessageReceived(Message message)
@@ -93,6 +93,11 @@ public class MessageService : ServiceBase
         var cached = _cache.Sync(message);
 
         MessageReceived?.Invoke(cached);
+        
+        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        {
+            channel.NotifyMessageReceived(message);
+        }
     }
     
     /// <summary>
@@ -109,6 +114,11 @@ public class MessageService : ServiceBase
         var cached = _cache.Sync(message);
         
         MessageEdited?.Invoke(cached);
+        
+        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        {
+            channel.NotifyMessageEdited(message);
+        }
     }
     
     /// <summary>
@@ -126,6 +136,11 @@ public class MessageService : ServiceBase
         var cached = _cache.Sync(message);
         
         MessageReceived?.Invoke(cached);
+        
+        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        {
+            channel.NotifyMessageReceived(message);
+        }
     }
     
     /// <summary>
@@ -142,11 +157,21 @@ public class MessageService : ServiceBase
         var cached = _cache.Sync(message);
         
         MessageEdited?.Invoke(cached);
+        
+        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        {
+            channel.NotifyMessageEdited(message);
+        }
     }
 
     private void OnMessageDeleted(Message message)
     {
         MessageDeleted?.Invoke(message);
+        
+        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        {
+            channel.NotifyMessageDeleted(message);
+        }
     }
     
     private void OnPersonalEmbedUpdate(PersonalEmbedUpdate update)

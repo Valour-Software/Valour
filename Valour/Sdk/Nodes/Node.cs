@@ -397,6 +397,24 @@ public class Node : ServiceBase // each node acts like a service
     
     #region HTTP Helpers
 
+    private (string node, long? planetId) ReadMisdirectInfo(string info)
+    {
+        if (string.IsNullOrEmpty(info))
+            return (null, null);
+        
+        var parts = info.Split(':');
+        return (parts[0], parts.Length > 1 ? long.Parse(parts[1]) : null);
+    }
+
+    private async Task<Node> HandleMisdirect(HttpResponseMessage response, string method, string uri)
+    {
+        var info = ReadMisdirectInfo(await response.Content.ReadAsStringAsync());
+        LogError($"Wrong node! {method} {uri} - {Name} is not the correct node for this request. Forwarding to {info}.");
+                
+        // Load the correct node
+        return await Client.NodeService.GetNodeAndSetPlanetLocation(info.node, info.planetId);
+    }
+
     /// <summary>
     /// Gets a JSON resource from the given URI and deserializes it.
     /// </summary>
@@ -426,14 +444,11 @@ public class Node : ServiceBase // each node acts like a service
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
-                var nodeName = await response.Content.ReadAsStringAsync();
-                LogError($"Wrong node! GET {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                var correctNode = await HandleMisdirect(response, "GET", uri);
+                if (correctNode is not null)
+                    return await correctNode.GetJsonAsync<T>(uri, allow404, retries + 1);
                 
-                // Load the correct node
-                var node = await Client.NodeService.GetByName(nodeName);
-                
-                // Forward the request
-                return await node.GetJsonAsync<T>(uri, allow404, retries + 1);
+                return TaskResult<T>.FromFailure("Failed to find correct node.");
             }
 
             // Log and return error message
@@ -476,14 +491,11 @@ public class Node : ServiceBase // each node acts like a service
             // Wrong node! it returned the correct node name so we can actually forward this.
             if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
             {
-                var nodeName = await response.Content.ReadAsStringAsync();
-                LogError($"Wrong node! GET {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+                var correctNode = await HandleMisdirect(response, "GET", uri);
+                if (correctNode is not null)
+                    return await correctNode.GetAsync(uri, allow404, retries + 1);
                 
-                // Load the correct node
-                var node = await Client.NodeService.GetByName(nodeName);
-                
-                // Forward the request
-                return await node.GetAsync(uri, allow404, retries + 1);
+                return TaskResult<string>.FromFailure("Failed to find correct node.");
             }
 
             LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
@@ -519,14 +531,11 @@ public async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object cont
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! PUT {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "PUT", uri);
+            if (correctNode is not null)
+                return await correctNode.PutAsyncWithResponse<T>(uri, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.PutAsyncWithResponse<T>(uri, content, retries + 1);
+            return TaskResult<T>.FromFailure("Failed to find correct node.");
         }
 
         var msg = await response.Content.ReadAsStringAsync();
@@ -564,14 +573,11 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object con
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "POST", uri);
+            if (correctNode is not null)
+                return await correctNode.PostAsyncWithResponse<T>(uri, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.PostAsyncWithResponse<T>(uri, content, retries + 1);
+            return TaskResult<T>.FromFailure("Failed to find correct node.");
         }
 
         var msg = await response.Content.ReadAsStringAsync();
@@ -607,14 +613,11 @@ public async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, int retrie
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "POST", uri);
+            if (correctNode is not null)
+                return await correctNode.PostAsyncWithResponse<T>(uri, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.PostAsyncWithResponse<T>(uri, retries + 1);
+            return TaskResult<T>.FromFailure("Failed to find correct node.");
         }
 
         var msg = await response.Content.ReadAsStringAsync();
@@ -653,14 +656,11 @@ public async Task<TaskResult> PutAsync(string uri, string content, int retries =
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! PUT {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "PUT", uri);
+            if (correctNode is not null)
+                return await correctNode.PutAsync(uri, content, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.PutAsync(uri, content, retries + 1);
+            return TaskResult.FromFailure("Failed to find correct node.");
         }
 
         LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
@@ -698,17 +698,14 @@ public async Task<TaskResult> PostAsync(string uri, string content, int retries 
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "POST", uri);
+            if (correctNode is not null)
+                return await correctNode.PostAsync(uri, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.PostAsync(uri, content, retries + 1);
+            return TaskResult.FromFailure("Failed to find correct node.");
         }
 
-        LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+        LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
         return TaskResult.FromFailure(msg, (int)response.StatusCode);
     }
     catch (HttpRequestException ex)
@@ -743,17 +740,14 @@ public async Task<TaskResult> PostAsync<T>(string uri, T content, int retries = 
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! POST {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "POST", uri);
+            if (correctNode is not null)
+                return await correctNode.PostAsync<T>(uri, content, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.PostAsync(uri, content, retries + 1);
+            return TaskResult.FromFailure("Failed to find correct node.");
         }
 
-        LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+        LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
         return TaskResult.FromFailure(msg, (int)response.StatusCode);
     }
     catch (HttpRequestException ex)
@@ -785,14 +779,11 @@ public async Task<TaskResult> DeleteAsync(string uri, int retries = 0)
         // Wrong node! it returned the correct node name so we can actually forward this.
         if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
         {
-            var nodeName = await response.Content.ReadAsStringAsync();
-            LogError($"Wrong node! DELETE {uri} - {Name} is not the correct node for this request. Forwarding to {nodeName}.");
+            var correctNode = await HandleMisdirect(response, "DELETE", uri);
+            if (correctNode is not null)
+                return await correctNode.DeleteAsync(uri, retries + 1);
                 
-            // Load the correct node
-            var node = await Client.NodeService.GetByName(nodeName);
-                
-            // Forward the request
-            return await node.DeleteAsync(uri, retries + 1);
+            return TaskResult.FromFailure("Failed to find correct node.");
         }
 
         LogError($"{response.StatusCode} - DELETE {uri}: \n{msg}");

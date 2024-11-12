@@ -82,6 +82,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The permission nodes of this planet
     /// </summary>
     public ModelList<PermissionsNode, long> PermissionsNodes { get; } = new();
+    
+    /// <summary>
+    /// The member for the current user in this planet. Can be null if not a member.
+    /// </summary>
+    public PlanetMember MyMember { get; private set; }
 
     /// <summary>
     /// The Id of the owner of this planet
@@ -127,6 +132,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     public bool Nsfw { get; set; }
+    
+    internal void SetMyMember(PlanetMember member)
+    {
+        MyMember = member;
+    }
 
     #region Child Event Handlers
     
@@ -557,15 +567,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Roles.Sort();
         
         Roles.NotifySet();
-    }
-
-    
-    /// <summary>
-    /// Returns the member for the current user in this planet (if it exists)
-    /// </summary>
-    public ValueTask<PlanetMember> FetchMyMemberAsync(bool skipCache = false)
-    {
-        return FetchMemberByUserAsync(Client.Me.Id, skipCache);
     }
     
     public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>

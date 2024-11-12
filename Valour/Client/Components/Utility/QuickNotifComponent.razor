@@ -1,5 +1,6 @@
 ﻿@implements IDisposable
 @inject NavigationManager NavManager
+@inject NotificationService NotificationService
 
 <div class="quick-notif">
     @for (int i = 0; i < _showing.Count; i++)
@@ -13,7 +14,7 @@
                 @onmouseenter="@(() => OnMouseEnter(_showing[ii]))"
                 @onmousedown="@((e) => OnMouseDown(e, _showing[ii]))"
             >
-                <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" />
+                <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" @onerror="@() => OnImageError(ii)" />
             </div>
         </BasicTooltipComponent>
     }
@@ -21,24 +22,33 @@
 
 @code {
     
+    const string FailedImageUrl = "_content/Valour.Client/media/logo/logo-128.webp";
+    
     private class QuickNotif
     {
         public Notification Notification { get; set; }
         public bool Animating { get; set; }
+        public string ImageUrl { get; set; }
     }
     
     private List<QuickNotif> _showing = new List<QuickNotif>();
 
     protected override void OnInitialized()
     {
-        ValourClient.OnNotificationReceived += NotificationHandler;
-        ValourClient.OnNotificationsCleared += NotificationsClearedHandler;
+        NotificationService.NotificationReceived += NotificationHandler;
+        NotificationService.NotificationsCleared += NotificationsClearedHandler;
+    }
+
+    private void OnImageError(int index)
+    {
+        _showing[index].ImageUrl = FailedImageUrl;
+        StateHasChanged();
     }
 
     void IDisposable.Dispose()
     {
-        ValourClient.OnNotificationReceived -= NotificationHandler;
-        ValourClient.OnNotificationsCleared -= NotificationsClearedHandler;
+        NotificationService.NotificationReceived -= NotificationHandler;
+        NotificationService.NotificationsCleared -= NotificationsClearedHandler;
     }
     
     private Task NotificationsClearedHandler()
@@ -58,7 +68,8 @@
             _showing.Add(new QuickNotif()
             {
                 Notification = notification,
-                Animating = true
+                Animating = true,
+                ImageUrl = notification.ImageUrl ?? FailedImageUrl
             });
             render = true;
         }
@@ -88,7 +99,7 @@
     {
         if (e.Button == 2)
         {
-            await ValourClient.MarkNotificationRead(notif.Notification, true);
+            await NotificationService.MarkNotificationRead(notif.Notification, true);
         }
         else if (e.Button == 0)
         {

@@ -1,8 +1,11 @@
 @inherits ContextMenu<MemberContextMenu.MemberContextParams>
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject FriendService FriendService
+@inject ChannelService ChannelService
 
 
-<ContextMenuItem OnClick="@OnClickMessage">
+<ContextMenuItem OnClickAsync="@OnClickMessage">
 	<Label>Message</Label>
 	<Icon>
 		<i class="bi bi-chat-dots-fill"></i>
@@ -11,31 +14,31 @@
 
 @if (_isFriend)
 {
-	<ContextMenuItem OnClick="@OnClickRemoveFriend">
+	<ContextMenuItem OnClickAsync="@OnClickRemoveFriend">
 		<Label>Remove Friend</Label>
 		<Icon>-<i class="bi bi-person-fill"></i></Icon>
 	</ContextMenuItem>
 }
 else if (_isFriendRequested)
 {
-	<ContextMenuItem OnClick="@OnClickRemoveFriend">Cancel Request</ContextMenuItem>
+	<ContextMenuItem OnClickAsync="@OnClickRemoveFriend">Cancel Request</ContextMenuItem>
 }
 else
 {
-	<ContextMenuItem OnClick="@OnClickAddFriend">
+	<ContextMenuItem OnClickAsync="@OnClickAddFriend">
 		<Label>Add Friend</Label>
 		<Icon>+<i class="bi bi-person-fill"></i></Icon>
 	</ContextMenuItem>
 }
 @if (_canKick)
 {
-	<ContextMenuItem OnClick="@OnClickKick" Color="red">
+	<ContextMenuItem OnClickAsync="@OnClickKick" Color="red">
 		<Label>Kick</Label>
 		<Icon><i class="bi bi-shield-fill-exclamation"></i></Icon>
 	</ContextMenuItem>
 }
 @if (_canBan) {
-	<ContextMenuItem OnClick="@OnClickBan" Color="red">
+	<ContextMenuItem OnClickAsync="@OnClickBan" Color="red">
 		<Label>Ban</Label>
 		<Icon><i class="bi bi-hammer"></i></Icon>
 	</ContextMenuItem>
@@ -52,10 +55,10 @@ else
 	<Label>Copy</Label>
 	<Icon><i class="bi bi-caret-right-fill"></i></Icon>
 	<Content>
-		<ContextMenuItem OnClick="@OnClickCopyNickname">Nickname</ContextMenuItem>
-        <ContextMenuItem OnClick="@OnClickCopyUsername">Username</ContextMenuItem>
-        <ContextMenuItem OnClick="@OnClickCopyMemberId">Member Id</ContextMenuItem>
-        <ContextMenuItem OnClick="@OnClickCopyUserId">User Id</ContextMenuItem>
+		<ContextMenuItem OnClickAsync="@OnClickCopyNickname">Nickname</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyUsername">Username</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyMemberId">Member Id</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyUserId">User Id</ContextMenuItem>
 	</Content>
 </ContextSubMenu>
 
@@ -69,7 +72,6 @@ else
 	[CascadingParameter]
 	public ModalRoot ModalRoot { get; set; }
 
-	private User _user;
 	private bool _canKick;
 	private bool _canBan;
 	private bool _isFriend;
@@ -77,11 +79,11 @@ else
 
 	private async Task OnClickAddFriend()
 	{
-		var result = await ValourClient.AddFriendAsync(_user.NameAndTag);
+		var result = await FriendService.AddFriendAsync(Data.Member.User.NameAndTag);
 
 		if (!result.Success)
 		{
-			await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+			Client.Logger.Log<MemberContextMenu>($"Failed to add friend:\n{result.Message}", "orange");
 			return;
 		}
 
@@ -91,11 +93,11 @@ else
 
 	private async Task OnClickRemoveFriend()
 	{
-		var result = await ValourClient.RemoveFriendAsync(_user.NameAndTag);
+		var result = await FriendService.RemoveFriendAsync(Data.Member.User.NameAndTag);
 
 		if (!result.Success)
 		{
-			await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+			Client.Logger.Log<MemberContextMenu>($"Failed to remove friend:\n{result.Message}", "orange");
 			return;
 		}
 
@@ -104,41 +106,30 @@ else
 		StateHasChanged();
 	}
 
-	protected override async Task OnInitializedAsync()
+	protected override void OnInitialized()
 	{
-		_user = await Data.Member.GetUserAsync();
-		_isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == _user.Id);
-		_isFriend = ValourClient.Friends.Any(x => x.Id == _user.Id);
+		_isFriendRequested = FriendService.FriendsRequested.Any(x => x.Id == Data.Member.UserId);
+		_isFriend = FriendService.Friends.Any(x => x.Id == Data.Member.UserId);
 
-		if ((await Data.Member.GetPlanetAsync()).OwnerId == ValourClient.Me.Id)
-		{
-			_canKick = true;
-			_canBan = true;
-		}
-		else {
-			var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Me.Id, Data.Member.PlanetId);
-			var primaryRole = await selfMember.GetPrimaryRoleAsync();
-			_canKick = primaryRole.HasPermission(PlanetPermissions.Kick);
-			_canBan = primaryRole.HasPermission(PlanetPermissions.Kick);
-		}
+		_canKick = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Kick);
+		_canBan = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Ban);
 	}
 
 	private async Task OnClickMessage()
 	{
 		await CloseAsync();
 		
-		var channel = await Channel.GetDirectChannelAsync(_user.Id, true);
+		var channel = await ChannelService.FetchDmChannelAsync(Data.Member.UserId, true);
 		var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
 		await WindowService.OpenWindowAtFocused(newWindowContent);
 	}
 
 	private async Task OnClickCopyNickname(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", await Data.Member.GetNameAsync());
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Name);
 	}
 
 	private async Task OnClickCopyUsername(){
-		var user = await Data.Member.GetUserAsync();
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", user.NameAndTag);
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.User.NameAndTag);
 	}
 
 	private async Task OnClickCopyMemberId(){
@@ -146,8 +137,7 @@ else
 	}
 
 	private async Task OnClickCopyUserId(){
-		var user = await Data.Member.GetUserAsync();
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
+		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.UserId);
 	}
 
 	private async Task OnClickKick()

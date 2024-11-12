@@ -117,6 +117,6 @@ public class User : ISharedUser
     public string SubscriptionType { get; set; }
     
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatarUrl(this, format);
+        ISharedUser.GetAvatar(this, format);
 }
 

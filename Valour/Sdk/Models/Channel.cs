@@ -42,7 +42,7 @@ public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
     }
 }
 
-public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, ISharedChannel
+public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 {
     /// <summary>
     /// Run when a channel sends a watching update
@@ -53,6 +53,21 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
     /// Run when a channel sends a currently typing update
     /// </summary>
     public HybridEvent<ChannelTypingUpdate> TypingUpdated;
+    
+    /// <summary>
+    /// Run when a message is received in this channel
+    /// </summary>
+    public HybridEvent<Message> MessageReceived;
+    
+    /// <summary>
+    /// Run when a message is edited in this channel
+    /// </summary>
+    public HybridEvent<Message> MessageEdited;
+    
+    /// <summary>
+    /// Run when a message is deleted in this channel
+    /// </summary>
+    public HybridEvent<Message> MessageDeleted;
     
     // Cached values
     // Will only be used for planet channels
@@ -484,6 +499,8 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             return new List<Message>();
         }
 
+        result.Data.SyncAll(Client.Cache);
+
         return result.Data;
     }
 
@@ -529,9 +546,9 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             if (!others.Any())
                 result =  Client.Me.GetAvatar();
 
-            var other = await User.FindAsync(others.First().UserId);
+            var other = await Client.UserService.FetchUserAsync(others.First().UserId);
             if (other is not null)
-                result = other.GetAvatarUrl();
+                result = other.GetAvatar();
         }
 
         return result;
@@ -552,7 +569,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         var i = 0;
         foreach (var other in others)
         {
-            var user = await User.FindAsync(other.UserId);
+            var user = await Client.UserService.FetchUserAsync(other.UserId);
             
             sb.Append(user.Name);
             if (i < others.Count - 1)
@@ -566,10 +583,10 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         return sb.ToString();
     }
 
-    public async Task<TaskResult> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
+    public async Task<TaskResult<Message>> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
     {
         if (!IsChatChannel)
-            return new TaskResult(false, "Cannot send messages to non-chat channels.");
+            return new TaskResult<Message>(false, "Cannot send messages to non-chat channels.");
         
         var msg = new Message()
         {
@@ -582,8 +599,7 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
         
         if (PlanetId is not null)
         {
-            var member = await Planet.FetchMyMemberAsync();
-            msg.AuthorMemberId = member.Id;
+            msg.AuthorMemberId = Planet.MyMember.Id;
         }
         
         if (mentions is not null)
@@ -623,6 +639,30 @@ public class Channel : ClientPlanetModel<Channel, long>, IClientChannel, IShared
             default:
                 break;
         }
+    }
+
+    public void NotifyMessageReceived(Message message)
+    {
+        if (message.ChannelId != Id)
+            return;
+        
+        MessageReceived?.Invoke(message);
+    }
+    
+    public void NotifyMessageEdited(Message message)
+    {
+        if (message.ChannelId != Id)
+            return;
+        
+        MessageEdited?.Invoke(message);
+    }
+    
+    public void NotifyMessageDeleted(Message message)
+    {
+        if (message.ChannelId != Id)
+            return;
+        
+        MessageDeleted?.Invoke(message);
     }
 
     public int Compare(Channel x, Channel y)
