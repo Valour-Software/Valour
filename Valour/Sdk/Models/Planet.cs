@@ -439,7 +439,23 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         if (newData is null)
             return;
 
+        newData.SyncAll(Client.Cache);
+
         ApplyChannels(newData);
+    }
+    
+    public async Task FetchPrimaryChatChannelAsync()
+    {
+        var channel = (await Node.GetJsonAsync<Channel>($"{IdRoute}/primaryChatChannel")).Data;
+        if (channel is null)
+            return;
+        
+        channel = Client.Cache.Sync(channel);
+
+        PrimaryChatChannel = channel;
+        
+        Channels.Upsert(channel);
+        ChatChannels.Upsert(channel);
     }
 
     /// <summary>

@@ -1,8 +1,10 @@
+@using System.Numerics
 @using System.Text
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
 @inject NotificationService NotificationService
 @inject ChannelStateService ChannelStateService
+@inject PlanetService PlanetService
 
 <div id="flipper-planet-@Planet.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-@Planet.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-planet-@Planet.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle"
@@ -171,6 +173,8 @@
     
     private async Task OnClick()
     {
+        // Open planet
+        await Planet.FetchPrimaryChatChannelAsync(); // have to preload channel
         var channel = Planet.PrimaryChatChannel;
         if (channel is null)
         {

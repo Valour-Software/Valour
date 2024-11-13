@@ -268,6 +268,10 @@ public class PlanetService
             .Select(x => x.ToModel())
             .ToListAsync();
     
+    public async Task<Channel> GetPrimaryChatChannelAsync(long planetId) =>
+        (await _db.Channels.FirstOrDefaultAsync(x => 
+            x.PlanetId == planetId && x.IsDefault && x.ChannelType == ChannelTypeEnum.PlanetChat)).ToModel();
+    
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
     /// </summary>

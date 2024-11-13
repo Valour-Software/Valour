@@ -44,6 +44,7 @@ public class Program
         // new services
         builder.Services.AddSingleton(client);
         builder.Services.AddSingleton(client.Logger);
+        builder.Services.AddSingleton(client.UserService);
         builder.Services.AddSingleton(client.Cache);
         builder.Services.AddSingleton(client.BotService);
         builder.Services.AddSingleton(client.AuthService);

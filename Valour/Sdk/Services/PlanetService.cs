@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -108,6 +109,10 @@ public class PlanetService : ServiceBase
             return cached;
 
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
+        
+        // Get node for planet
+        var node = await _client.NodeService.GetNodeForPlanetAsync(id);
+        planet.SetNode(node);
 
         // Always also get member of client
         var member = await planet.FetchMemberByUserAsync(_client.Me.Id);
@@ -405,14 +410,9 @@ public class PlanetService : ServiceBase
         if (!response.Success)
             return new List<Planet>();
 
-        var planets = response.Data;
-
-        var result = new List<Planet>();
-
-        foreach (var planet in planets)
-            result.Add(_client.Cache.Sync(planet));
-
-        return result;
+        response.Data.SyncAll(_client.Cache);
+        
+        return response.Data;
     }
 
     public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)

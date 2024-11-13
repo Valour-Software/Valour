@@ -28,6 +28,7 @@
             // Exported data is channel id
             long channelId = JsonSerializer.Deserialize<long>(data);
             var channel = await client.ChannelService.FetchChannelAsync(channelId);
+            
             Data = channel;
         }
 
@@ -69,6 +70,8 @@
         Console.WriteLine("Initializing channel window component.");
 
         Channel = Data;
+        
+        Console.WriteLine("FETCHED:  " + Data.Name);
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;

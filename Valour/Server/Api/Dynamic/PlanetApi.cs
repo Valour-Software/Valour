@@ -152,6 +152,23 @@ public class PlanetApi
 
         return Results.Json(allowedChannels);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/primary")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetPrimaryChannelRouteAsync(
+        long id,
+        PlanetService planetService,
+        PlanetMemberService memberService)
+    {
+        // Get current member for planet
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var channel = await planetService.GetPrimaryChannelAsync(id);
+
+        return Results.Json(channel);
+    }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/chat")]
     [UserRequired(UserPermissionsEnum.Membership)]

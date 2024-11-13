@@ -158,12 +158,14 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
     protected override void OnUpdated(ModelUpdateEvent<Channel> eventData)
     {
-        Planet.OnChannelUpdated(eventData);
+        if (PlanetId is not null)
+            Planet.OnChannelUpdated(eventData);
     }
     
     protected override void OnDeleted()
     {
-        Planet.OnChannelDeleted(this);
+        if (PlanetId is not null)
+            Planet.OnChannelDeleted(this);
     }
     
     public override Channel AddToCacheOrReturnExisting()
