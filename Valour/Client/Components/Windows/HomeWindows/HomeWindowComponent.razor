@@ -112,13 +112,13 @@
 
     <h6 class="mt-4 text-center icons-title">Discover a New Planet!</h6>
     <div class="icon-container">
-        @foreach (Planet planet in Discoverables)
+        @foreach (PlanetSummary info in Discoverables)
         {
             // Skip already joined planets
-            if (PlanetService.JoinedPlanets.Any(x => x.Id == planet.Id))
+            if (PlanetService.JoinedPlanets.Any(x => x.Id == info.PlanetId))
                 continue;
 
-            <PlanetDiscoverableComponent @key='"discovery-" + planet.Id' Planet="planet" WindowCtx="WindowCtx"></PlanetDiscoverableComponent>
+            <PlanetDiscoverableComponent @key='"discovery-" + info.PlanetId' PlanetInfo="@info" WindowCtx="WindowCtx"></PlanetDiscoverableComponent>
         }
     </div>
 
@@ -136,7 +136,7 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    public List<Planet> Discoverables { get; set; } = new List<Planet>();
+    public List<PlanetSummary> Discoverables { get; set; } = new ();
 
     public event Func<Task> OnRerenderFriendCards;
 

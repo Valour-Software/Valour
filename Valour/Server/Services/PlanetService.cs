@@ -119,16 +119,42 @@ public class PlanetService
             .Select(x => x.Id)
             .ToListAsync();
 
+    
+    private DateTime _lastDiscoverableUpdate = DateTime.MinValue;
+    private List<PlanetSummary> _cachedDiscoverables;
+
+    public async Task<List<PlanetSummary>> GetDiscoverablesFromDb()
+    {
+        return await _db.Planets.AsNoTracking()
+            .Where(x => x.Discoverable && x.Public
+                                       && (!x.Nsfw)) // do not allow weirdos in discovery
+            .Select(x => new PlanetSummary()
+            {
+                PlanetId = x.Id,
+                Name = x.Name,
+                Description = x.Description,
+                HasCustomIcon = x.HasCustomIcon,
+                HasAnimatedIcon = x.HasAnimatedIcon,
+                MemberCount = x.Members.Count()
+            })
+            .OrderByDescending(x => x.MemberCount)
+            .Take(30)
+            .ToListAsync();
+    }
+    
     /// <summary>
     /// Returns discoverable planets
     /// </summary>
-    public async Task<List<Planet>> GetDiscoverablesAsync() =>
-        await _db.Planets.AsNoTracking()
-                         .Where(x => x.Discoverable && x.Public 
-                                                    && (!x.Nsfw)) // do not allow weirdos in discovery
-                         .OrderByDescending(x => x.Members.Count())
-                         .Select(x => x.ToModel())       
-                         .ToListAsync();
+    public async Task<List<PlanetSummary>> GetDiscoverablesAsync()
+    {
+        if (_lastDiscoverableUpdate.AddMinutes(5) < DateTime.UtcNow || _cachedDiscoverables is null)
+        {
+            _cachedDiscoverables = await GetDiscoverablesFromDb();
+            _lastDiscoverableUpdate = DateTime.UtcNow;
+        }
+        
+        return _cachedDiscoverables;
+    }
 
     /// <summary>
     /// Sets the order of planet roles to the order in which role ids are provided

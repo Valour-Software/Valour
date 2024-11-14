@@ -118,6 +118,10 @@ public class ValourClient
     public void SetOrigin(string origin)
     {
         BaseAddress = origin;
+        _httpClient = new HttpClient()
+        {
+            BaseAddress = new Uri(BaseAddress)
+        };
     }
 
     /// <summary>
@@ -131,7 +135,10 @@ public class ValourClient
     /// <summary>
     /// Sets the HTTP client
     /// </summary>
-    public void SetHttpClient(HttpClient client) => _httpClient = client;
+    public void SetHttpClient(HttpClient client)
+    {
+        _httpClient = client;
+    }
 
     public void SetupHttpClient()
     {

@@ -17,7 +17,7 @@ public static class RateLimitDefs
                 options.QueueLimit = 2;
             });
             
-            _.OnRejected = (ctx, token) =>
+            _.OnRejected = (OnRejectedContext ctx, CancellationToken token) =>
             {
                 ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 Console.WriteLine("Rate limit exceeded for " + ctx.HttpContext.Connection.RemoteIpAddress + " on " + ctx.HttpContext.Request.Path);

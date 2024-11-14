@@ -120,5 +120,25 @@ public interface ISharedPlanet : ISharedModel<long>
         string formatStr = IconFormatMap[format];
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}";
     }
+    
+    public static string GetIconUrl(PlanetSummary planet, IconFormat format)
+    {
+        if (!planet.HasCustomIcon)
+        {
+            return PlanetIconSvgGenerator.GetPlanetIconColor(planet.PlanetId);                        
+        }
+
+        // If an animated icon is requested, but the planet doesn't have one, use the static version
+        if (!planet.HasAnimatedIcon)
+        {
+            if (AnimatedFormats.Contains(format))
+            {
+                format = AnimatedToStaticBackup[format];
+            }
+        }
+        
+        string formatStr = IconFormatMap[format];
+        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}";
+    }
 }
 

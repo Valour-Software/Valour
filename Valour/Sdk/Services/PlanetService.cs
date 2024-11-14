@@ -362,6 +362,12 @@ public class PlanetService : ServiceBase
         JoinedPlanetsUpdated?.Invoke();
     }
 
+    public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId)
+    {
+        var planet = await FetchPlanetAsync(planetId);
+        return await JoinPlanetAsync(planet);
+    }
+
     /// <summary>
     /// Attempts to join the given planet
     /// </summary>
@@ -404,13 +410,11 @@ public class PlanetService : ServiceBase
         JoinedPlanetsUpdated?.Invoke();
     }
 
-    public async Task<List<Planet>> FetchDiscoverablePlanetsAsync()
+    public async Task<List<PlanetSummary>> FetchDiscoverablePlanetsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/planets/discoverable");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<PlanetSummary>>($"api/planets/discoverable");
         if (!response.Success)
-            return new List<Planet>();
-
-        response.Data.SyncAll(_client.Cache);
+            return new List<PlanetSummary>();
         
         return response.Data;
     }
