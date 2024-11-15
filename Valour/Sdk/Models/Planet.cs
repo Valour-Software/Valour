@@ -300,6 +300,16 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         PermissionsNodes.Dispose();
     }
 
+    public async Task EnsureReadyAsync()
+    {
+        if (_node is null)
+            _node = await Client.NodeService.GetNodeForPlanetAsync(Id);
+        
+        // Always also get member of client
+        if (MyMember is null)
+            MyMember = await FetchMemberByUserAsync(Client.Me.Id);
+    }
+
     public override Planet AddToCacheOrReturnExisting()
     {
         Client.NodeService.SetKnownByPlanet(Id, NodeName);
@@ -444,11 +454,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         ApplyChannels(newData);
     }
     
-    public async Task FetchPrimaryChatChannelAsync()
+    public async Task<Channel> FetchPrimaryChatChannelAsync()
     {
-        var channel = (await Node.GetJsonAsync<Channel>($"{IdRoute}/primaryChatChannel")).Data;
+        var channel = (await Node.GetJsonAsync<Channel>($"{IdRoute}/channels/primary")).Data;
         if (channel is null)
-            return;
+            return null;
         
         channel = Client.Cache.Sync(channel);
 
@@ -456,6 +466,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         
         Channels.Upsert(channel);
         ChatChannels.Upsert(channel);
+        
+        return channel;
     }
 
     /// <summary>
@@ -506,15 +518,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         foreach (var info in allResults)
         {
-            // Set role id data manually
-            await info.Member.SetLocalRoleIds(info.RoleIds);
-
             // Set in cache
             // Skip event for bulk loading
             var cachedMember = Client.Cache.Sync(info.Member, true);
-            // info.Member.User = info.User; TODO: Always send user with member data
-            Client.Cache.Sync(info.User, true);
             Members.Upsert(cachedMember, true);
+            
+            // Set role id data manually
+            await cachedMember.SetLocalRoleIds(info.RoleIds);
         }
 
         Members.NotifySet();

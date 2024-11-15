@@ -1,15 +1,20 @@
 ﻿namespace Valour.Shared.Models;
 
 /// <summary>
-/// PlanetSummaries are used to give the client a summary of a planet that has likely
-/// not yet been joined.
+/// This information is used to give the client a summary of a planet that has
+/// not yet been loaded.
 /// </summary>
-public class PlanetSummary
+public class PlanetListInfo
 {
     public long PlanetId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
     public bool HasCustomIcon { get; set; }
     public bool HasAnimatedIcon { get; set; }
+    public bool Nsfw { get; set; }
     public int MemberCount { get; set; }
+    
+    // planet unread/read state
+    public bool HasUnread { get; set; }
+    public int UnreadNotificationCount { get; set; }
 }

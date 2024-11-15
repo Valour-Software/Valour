@@ -352,7 +352,7 @@ public class UserApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
 
-        var planets = await userService.GetPlanetsUserIn(userId);
+        var planets = await userService.GetJoinedPlanetInfo(userId);
 
         return Results.Json(planets);
     }
@@ -365,7 +365,7 @@ public class UserApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
 
-        var planets = (await userService.GetPlanetsUserIn(userId)).Select(x => x.Id).ToList();
+        var planets = (await userService.GetJoinedPlanetInfo(userId)).Select(x => x.Id).ToList();
 
         return Results.Json(planets);
     }

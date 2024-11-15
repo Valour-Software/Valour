@@ -173,10 +173,9 @@
     
     private async Task OnClick()
     {
-        // Open planet
-        await Planet.FetchPrimaryChatChannelAsync(); // have to preload channel
-        var channel = Planet.PrimaryChatChannel;
-        if (channel is null)
+        var newWindowContent = await ChatChannelWindowComponent.GetContentForPlanetPrimaryChannel(Planet);
+        
+        if (newWindowContent is null)
         {
             // Show failure toast
             await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
@@ -184,12 +183,11 @@
                 "",
                 Task.Run(() =>
                 {
-                    return new TaskResult(false, "You can't access any channels.");
+                    return new TaskResult(false, "Error accessing this planet.");
                 })));
             return;
         }
-
-        var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+        
         await WindowCtx.Tab.SetContent(newWindowContent);
 
         StateHasChanged();

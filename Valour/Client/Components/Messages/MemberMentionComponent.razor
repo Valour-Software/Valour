@@ -62,7 +62,7 @@
     {
         if (Channel.PlanetId is not null)
         {
-            _member = await Channel.Planet.FetchMemberByUserAsync(Mention.TargetId);
+            _member = await Channel.Planet.FetchMemberAsync(Mention.TargetId);
         }
         
         _roleColor = (_member is not null) ? _member.GetRoleColor() : "#fff";

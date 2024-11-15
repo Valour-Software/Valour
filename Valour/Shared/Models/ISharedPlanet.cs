@@ -121,7 +121,7 @@ public interface ISharedPlanet : ISharedModel<long>
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}";
     }
     
-    public static string GetIconUrl(PlanetSummary planet, IconFormat format)
+    public static string GetIconUrl(PlanetListInfo planet, IconFormat format)
     {
         if (!planet.HasCustomIcon)
         {

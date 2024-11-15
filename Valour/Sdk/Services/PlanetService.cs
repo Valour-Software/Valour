@@ -109,13 +109,8 @@ public class PlanetService : ServiceBase
             return cached;
 
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
-        
-        // Get node for planet
-        var node = await _client.NodeService.GetNodeForPlanetAsync(id);
-        planet.SetNode(node);
 
-        // Always also get member of client
-        var member = await planet.FetchMemberByUserAsync(_client.Me.Id);
+        await planet.EnsureReadyAsync();
 
         return _client.Cache.Sync(planet);
     }
@@ -150,10 +145,12 @@ public class PlanetService : ServiceBase
 
         _joinedPlanets.Clear();
 
+        planets.SyncAll(_client.Cache);
+
         // Add to cache
         foreach (var planet in planets)
         {
-            _joinedPlanets.Add(_client.Cache.Sync(planet));
+            _joinedPlanets.Add(planet);
         }
 
         JoinedPlanetsUpdated?.Invoke();
@@ -410,11 +407,11 @@ public class PlanetService : ServiceBase
         JoinedPlanetsUpdated?.Invoke();
     }
 
-    public async Task<List<PlanetSummary>> FetchDiscoverablePlanetsAsync()
+    public async Task<List<PlanetListInfo>> FetchDiscoverablePlanetsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<PlanetSummary>>($"api/planets/discoverable");
+        var response = await _client.PrimaryNode.GetJsonAsync<List<PlanetListInfo>>($"api/planets/discoverable");
         if (!response.Success)
-            return new List<PlanetSummary>();
+            return new List<PlanetListInfo>();
         
         return response.Data;
     }
@@ -464,7 +461,6 @@ public class PlanetService : ServiceBase
         var member =
             (await planet.Node.GetJsonAsync<PlanetMember>(
                 $"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
-        planet.SetMyMember(_client.Cache.Sync(member));
 
         return _client.Cache.Sync(member);
     }

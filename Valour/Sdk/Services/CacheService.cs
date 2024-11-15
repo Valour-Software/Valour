@@ -61,6 +61,8 @@ public class CacheService
         
         // Let the model know what client it is associated with
         model.SetClient(_client);
+
+        model.SyncSubModels(skipEvent, flags);
         
         // Add to cache or get the existing cached instance
         var existing = model.AddToCacheOrReturnExisting();

@@ -121,14 +121,14 @@ public class PlanetService
 
     
     private DateTime _lastDiscoverableUpdate = DateTime.MinValue;
-    private List<PlanetSummary> _cachedDiscoverables;
+    private List<PlanetListInfo> _cachedDiscoverables;
 
-    public async Task<List<PlanetSummary>> GetDiscoverablesFromDb()
+    public async Task<List<PlanetListInfo>> GetDiscoverablesFromDb()
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public
                                        && (!x.Nsfw)) // do not allow weirdos in discovery
-            .Select(x => new PlanetSummary()
+            .Select(x => new PlanetListInfo()
             {
                 PlanetId = x.Id,
                 Name = x.Name,
@@ -145,7 +145,7 @@ public class PlanetService
     /// <summary>
     /// Returns discoverable planets
     /// </summary>
-    public async Task<List<PlanetSummary>> GetDiscoverablesAsync()
+    public async Task<List<PlanetListInfo>> GetDiscoverablesAsync()
     {
         if (_lastDiscoverableUpdate.AddMinutes(5) < DateTime.UtcNow || _cachedDiscoverables is null)
         {

@@ -73,6 +73,8 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// Returns and removes this item from the cache.
     /// </summary>
     public abstract TSelf TakeAndRemoveFromCache();
+    
+    public virtual void SyncSubModels(bool skipEvent = false, int flags = 0) { }
 
     /// <summary>
     /// Safely invokes the updated event

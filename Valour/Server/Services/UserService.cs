@@ -148,7 +148,7 @@ public class UserService
         return new TaskResult<UserProfile>(true, "Profile updated", updated);
     }
     
-    public async Task<List<Planet>> GetPlanetsUserIn(long userId)
+    public async Task<List<Planet>> GetJoinedPlanetInfo(long userId)
     {
         var planets = await _db.PlanetMembers
             .Where(x => x.UserId == userId)

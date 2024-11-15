@@ -29,6 +29,13 @@
             long channelId = JsonSerializer.Deserialize<long>(data);
             var channel = await client.ChannelService.FetchChannelAsync(channelId);
             
+            if (channel.PlanetId is not null)
+            {
+                // Make sure planet is loaded for channel
+                var planet = await channel.Client.PlanetService.FetchPlanetAsync(channel.PlanetId!.Value);
+                await planet.EnsureReadyAsync();
+            }
+            
             Data = channel;
         }
 
@@ -40,9 +47,33 @@
             return JsonSerializer.Serialize(Data.Id);
         }
     }
+
+    public static async Task<Content> GetContentForPlanetPrimaryChannel(Planet planet)
+    {
+        // Ensure planet node is ready
+        await planet.EnsureReadyAsync();
+        
+        // get primary channel
+        var channel = await planet.FetchPrimaryChatChannelAsync();
+        
+        return new()
+        {
+            Icon = await channel.GetIconAsync(),
+            Title = await channel.GetTitleAsync(),
+            PlanetId = planet.Id,
+            Data = channel
+        };
+    }
     
     public static async Task<Content> GetDefaultContent(Channel channel)
     {
+        if (channel.PlanetId is not null)
+        {
+            // Make sure planet is loaded for channel
+            var planet = await channel.Client.PlanetService.FetchPlanetAsync(channel.PlanetId!.Value);
+            await planet.EnsureReadyAsync();
+        }
+
         return new()
         {
             Icon = await channel.GetIconAsync(),
@@ -51,6 +82,8 @@
             Data = channel
         };
     }
+
+    private bool _loading = true;
     
     public MessageHolderComponent MessageHolder { get; set; }
 
@@ -70,8 +103,6 @@
         Console.WriteLine("Initializing channel window component.");
 
         Channel = Data;
-        
-        Console.WriteLine("FETCHED:  " + Data.Name);
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;
@@ -100,11 +131,13 @@
         
         Channel.Updated += OnChatChannelUpdate;
         
-        ReRender();
-        
         MessageHolder.Clear();
         await MessageHolder.LoadRecentMessages(64);
         await Channel.UpdateUserState(DateTime.UtcNow);
+        
+        _loading = false;
+        
+        ReRender();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -434,4 +434,9 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     {
         return Client.Cache.Messages.TakeAndRemove(Id);
     }
+    
+    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
+    {
+        ReplyTo = Client.Cache.Sync(ReplyTo);
+    }
 }

@@ -117,7 +117,12 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
 
         Client.Cache.PlanetMembers.Remove(Id);
         return this;
-    }   
+    }
+
+    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
+    {
+        User = Client.Cache.Sync(User, skipEvent, flags);
+    }
 
     public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {

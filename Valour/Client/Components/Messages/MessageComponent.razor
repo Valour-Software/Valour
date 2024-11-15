@@ -447,13 +447,14 @@
             return;
         }
         
+        // This prevents client sync issues from breaking the message
+        Message.SetClient(Client);
+        
         await base.OnInitializedAsync();
 
         Id = $"m-{Message.ChannelId}-{Message.Id}";
 
         _user = await Message.FetchAuthorUserAsync();
-
-        BuildMessage(false);
 
         if (_user != null)
             _user.Updated += OnUserUpdated;
@@ -478,6 +479,8 @@
         }
 
         _author = _member is not null ? _member : _user;
+        
+        BuildMessage(false);
     }
     
     /// <summary>
