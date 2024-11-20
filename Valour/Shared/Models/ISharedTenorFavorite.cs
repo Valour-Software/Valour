@@ -3,13 +3,10 @@ namespace Valour.Shared.Models;
 /// <summary>
 /// A Tenor favorite is a Tenor gif saved by a user
 /// </summary>
-public interface ISharedTenorFavorite
+public interface ISharedTenorFavorite : ISharedModel<long>
 {
-    /// <summary>
-    /// The Id of this favorite
-    /// </summary>
-    long Id { get; set; }
-
+    const string BaseRoute = "api/tenorfavorites";
+    
     /// <summary>
     /// The Tenor Id of this favorite
     /// </summary>

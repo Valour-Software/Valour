@@ -1,19 +1,23 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
 namespace Valour.Shared.Models;
 
-public interface ISharedUser : ISharedItem
+public interface ISharedUser : ISharedModel<long>
 {
+    const string BaseRoute = "api/users";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    
     const long VictorUserId = 20579262493097984;
     
     const int FLAGS_TIME_UPDATE = 0x01;
+    
     const string TagChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     
     /// <summary>
@@ -203,24 +207,24 @@ public interface ISharedUser : ISharedItem
         { AvatarFormat.WebpAnimated256, AvatarFormat.Webp256 },
     };
     
-    private const string DefaultPfp = "_content/Valour.Client/media/user-icons/icon-0.png";
+    public const string DefaultAvatar = "_content/Valour.Client/media/user-icons/icon-0.webp";
     
-    public static string GetFailedAvatarUrl(ISharedUser user)
+    public static string GetFailedAvatar(ISharedUser user)
     {
         if (user is null)
-            return DefaultPfp;
+            return DefaultAvatar;
         
         var var = (int)(user.Id % 5);
-        return $"_content/Valour.Client/media/user-icons/icon-{var}.png";
+        return $"_content/Valour.Client/media/user-icons/icon-{var}.webp";
     }
     
-    public static string GetAvatarUrl(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
+    public static string GetAvatar(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
     {
         if (user is null)
-            return DefaultPfp;
+            return DefaultAvatar;
         
         if (!user.HasCustomAvatar)
-            return GetFailedAvatarUrl(user);
+            return GetFailedAvatar(user);
 
         // If an animated avatar is requested, but the user doesn't have one, use the static version
         if (!user.HasAnimatedAvatar)

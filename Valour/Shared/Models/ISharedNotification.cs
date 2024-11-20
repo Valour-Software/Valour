@@ -1,5 +1,7 @@
 ﻿namespace Valour.Shared.Models;
 
+
+// TODO: Stop trying to be fancy and just use strings
 public enum NotificationSource
 {
     // Chat
@@ -21,7 +23,7 @@ public enum NotificationSource
     TradeDeclined =          0x2000,
 }
 
-public interface ISharedNotification
+public interface ISharedNotification : ISharedModel<long>
 {
     /// <summary>
     /// The id of the notification

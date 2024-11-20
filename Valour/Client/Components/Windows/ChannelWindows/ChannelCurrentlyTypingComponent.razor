@@ -1,5 +1,8 @@
 ﻿@using Valour.Shared.Channels
 @implements IDisposable
+@inject ValourClient Client
+@inject ChannelService ChannelService
+@inject UserService UserService
 
 <div class="currentlytyping-container">
     @if (DisplayData.Count > 0)
@@ -67,7 +70,7 @@
     {
         await base.OnInitializedAsync();
         DisplayData = new();
-        ValourClient.OnChannelCurrentlyTypingUpdate += OnCurrentlyTypingUpdate;
+        Channel.TypingUpdated += OnCurrentlyTypingUpdate;
         _timer = new Timer(OnUpdateTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(3));
     }
 
@@ -117,7 +120,7 @@
 
     void IDisposable.Dispose()
     {
-        ValourClient.OnChannelCurrentlyTypingUpdate -= OnCurrentlyTypingUpdate;
+        Channel.TypingUpdated -= OnCurrentlyTypingUpdate;
         _timer?.Dispose();
     }
 
@@ -125,7 +128,7 @@
     {
         DisplayData.Clear();
         
-        var userIds = _typingUpdates.Keys.Where(x => x != ValourClient.Self.Id).ToList();
+        var userIds = _typingUpdates.Keys.Where(x => x != Client.Me.Id).ToList();
         
         // Take first four where the userid does not equal our userid
         // if you want to test currently typing by yourself then remove the Where(..) below and the line for TotalCount
@@ -134,17 +137,17 @@
         {
             if (Channel.PlanetId is not null)
             {
-                var member = await PlanetMember.FindAsyncByUser(userId, Channel.PlanetId.Value);
-                DisplayData.Add((await member.GetRoleColorAsync(), (await member.GetUserAsync()).Name));
+                var member = await Channel.Planet.FetchMemberByUserAsync(userId);
+                DisplayData.Add((member.GetRoleColor(), member.Name));
             }
             else
             {
-                var user = await User.FindAsync(userId);
+                var user = await UserService.FetchUserAsync(userId);
                 DisplayData.Add(("#ffffff", user.Name));
             }
         }
         
-        TotalCount = userIds.Count(x => x != ValourClient.Self.Id);
+        TotalCount = userIds.Count(x => x != Client.Me.Id);
         
         StateHasChanged();
     }

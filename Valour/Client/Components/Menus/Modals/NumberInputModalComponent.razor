@@ -58,7 +58,7 @@
 		if (Data.ConfirmEvent is not null)
 			await Data.ConfirmEvent.Invoke(_value);
 
-		await CloseAsync();
+		Close();
 	}
 
 	private async Task OnCancel()
@@ -66,6 +66,6 @@
 		if (Data.CancelEvent is not null)
 			await Data.CancelEvent.Invoke();
 
-		await CloseAsync();
+		Close();
 	}
 }

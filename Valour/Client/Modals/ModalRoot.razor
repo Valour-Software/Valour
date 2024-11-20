@@ -98,14 +98,14 @@
         StateHasChanged();
     }
 
-    public async Task CloseModal(string id)
+    public void CloseModal(string id)
     {
         var modal = _openModals.FirstOrDefault(x => x.Id == id);
 
         if (modal is null)
             return;
 
-        await modal.FadeRef.FadeOut();
+        _ = modal.FadeRef.FadeOut();
     }
     
     public async Task CloseTopModal()

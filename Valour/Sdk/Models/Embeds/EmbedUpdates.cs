@@ -2,8 +2,8 @@
 
 namespace Valour.Sdk.Models.Messages.Embeds;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2022 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2022 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */

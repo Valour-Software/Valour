@@ -11,11 +11,11 @@ namespace Valour.Server.Services;
 
 public class ThemeService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<ThemeService> _logger;
     private readonly StylesheetParser _parser = new();
 
-    public ThemeService(ValourDB db, ILogger<ThemeService> logger)
+    public ThemeService(ValourDb db, ILogger<ThemeService> logger)
     {
         _db = db;
         _logger = logger;
@@ -32,12 +32,15 @@ public class ThemeService
     /// <summary>
     /// Returns a list of theme meta info, with optional search and pagination.
     /// </summary>
-    /// <param name="amount">The number of themes to return in the page</param>
-    /// <param name="page">The page to return</param>
+    /// <param name="take">The number of themes to return in the page</param>
+    /// <param name="skip">The number of themes to skip over</param>
     /// <param name="search">Search query</param>
     /// <returns>A list of theme meta info</returns>
-    public async Task<PagedResponse<ThemeMeta>> GetThemes(int amount = 20, int page = 0, string search = null)
+    public async Task<QueryResponse<ThemeMeta>> GetThemes(int skip = 0, int take = 20, string search = null)
     {
+        if (take > 50)
+            take = 50;
+        
         var baseQuery = _db.Themes
             .AsNoTracking()
             .Where(x => x.Published);
@@ -57,8 +60,8 @@ public class ThemeService
                             x.ThemeVotes.Count(v => !v.Sentiment)
             })
             .OrderByDescending(x => x.VoteCount)
-            .Skip(amount * page)
-            .Take(amount);
+            .Skip(skip)
+            .Take(take);
         
         var count = await mainQuery.CountAsync();
         
@@ -74,7 +77,7 @@ public class ThemeService
             PastelCyan = x.Theme.PastelCyan
         }).ToListAsync();
         
-        return new PagedResponse<ThemeMeta>()
+        return new QueryResponse<ThemeMeta>()
         {
             Items = data,
             TotalCount = count
@@ -105,7 +108,7 @@ public class ThemeService
         {
             if (theme.CustomCss.Contains('[') || theme.CustomCss.Contains(']'))
             {
-                return TaskResult.FromError(
+                return TaskResult.FromFailure(
                     "CSS contains disallowed characters []. Attribute selectors are not allowed in custom CSS for security reasons.");
             }
 
@@ -134,24 +137,24 @@ public class ThemeService
 
         if (!colorsValid)
         {
-            return TaskResult.FromError("One or more color codes are invalid.");
+            return TaskResult.FromFailure("One or more color codes are invalid.");
         }
 
         if (string.IsNullOrWhiteSpace(theme.Name))
         {
-            return TaskResult.FromError("Theme name is required.");
+            return TaskResult.FromFailure("Theme name is required.");
         }
 
         if (theme.Name.Length > 50)
         {
-            return TaskResult.FromError("Theme name is too long.");
+            return TaskResult.FromFailure("Theme name is too long.");
         }
 
         if (!string.IsNullOrWhiteSpace(theme.Description))
         {
             if (theme.Description.Length > 500)
             {
-                return TaskResult.FromError("Theme description is too long. Limit 500 characters.");
+                return TaskResult.FromFailure("Theme description is too long. Limit 500 characters.");
             }
         }
 
@@ -167,7 +170,7 @@ public class ThemeService
     {
         var old = await _db.Themes.FindAsync(updated.Id);
         if (old is null)
-            return TaskResult<Theme>.FromError("Theme not found");
+            return TaskResult<Theme>.FromFailure("Theme not found");
 
         var validation = await ValidateTheme(updated);
         if (!validation.Success)
@@ -175,13 +178,13 @@ public class ThemeService
 
         if (updated.AuthorId != old.AuthorId)
         {
-            return TaskResult<Theme>.FromError("Cannot change author of theme.");
+            return TaskResult<Theme>.FromFailure("Cannot change author of theme.");
         }
 
         if (updated.HasCustomBanner != old.HasCustomBanner ||
             updated.HasAnimatedBanner != old.HasAnimatedBanner)
         {
-            return TaskResult<Theme>.FromError("Cannot change custom banner status of theme. Use separate endpoint.");
+            return TaskResult<Theme>.FromFailure("Cannot change custom banner status of theme. Use separate endpoint.");
         }
 
         var trans = await _db.Database.BeginTransactionAsync();
@@ -199,7 +202,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             _logger.LogError("Failed to update theme", e);
-            return TaskResult<Theme>.FromError("An error occured updating theme in the database.");
+            return TaskResult<Theme>.FromFailure("An error occured updating theme in the database.");
         }
     }
 
@@ -217,7 +220,7 @@ public class ThemeService
         
         if (themeCount >= 20)
         {
-            return TaskResult<Theme>.FromError("You have reached the maximum number of created themes.");
+            return TaskResult<Theme>.FromFailure("You have reached the maximum number of created themes.");
         }
         
         using var transaction = await _db.Database.BeginTransactionAsync();
@@ -233,7 +236,7 @@ public class ThemeService
 
             if (!await _db.Users.AnyAsync(x => x.Id == theme.AuthorId))
             {
-                return TaskResult<Theme>.FromError("Author does not exist.");
+                return TaskResult<Theme>.FromFailure("Author does not exist.");
             }
 
             var dbTheme = theme.ToDatabase();
@@ -250,7 +253,7 @@ public class ThemeService
         {
             await transaction.RollbackAsync();
             _logger.LogError("Failed to create theme", e);
-            return TaskResult<Theme>.FromError("An error occured saving theme to the database.");
+            return TaskResult<Theme>.FromFailure("An error occured saving theme to the database.");
         }
     }
 
@@ -263,7 +266,7 @@ public class ThemeService
     {
         var existing = await _db.Themes.FindAsync(id);
         if (existing is null)
-            return TaskResult.FromError("Theme not found");
+            return TaskResult.FromFailure("Theme not found");
 
         var trans = await _db.Database.BeginTransactionAsync();
 
@@ -279,7 +282,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             _logger.LogError("Failed to delete theme", e);
-            return TaskResult.FromError("An error occured removing theme from the database.");
+            return TaskResult.FromFailure("An error occured removing theme from the database.");
         }
     }
 
@@ -301,7 +304,7 @@ public class ThemeService
             if (existing is not null)
             {
                 if (existing.Sentiment == vote.Sentiment)
-                    return TaskResult<ThemeVote>.FromError("Vote already exists");
+                    return TaskResult<ThemeVote>.FromFailure("Vote already exists");
 
                 // Logic for updating an existing vote
                 existing.Sentiment = vote.Sentiment;
@@ -316,10 +319,10 @@ public class ThemeService
             }
 
             if (!await _db.Users.AnyAsync(x => x.Id == vote.UserId))
-                return TaskResult<ThemeVote>.FromError("User does not exist");
+                return TaskResult<ThemeVote>.FromFailure("User does not exist");
 
             if (!await _db.Themes.AnyAsync(x => x.Id == vote.ThemeId))
-                return TaskResult<ThemeVote>.FromError("Theme does not exist");
+                return TaskResult<ThemeVote>.FromFailure("Theme does not exist");
 
             var dbVote = vote.ToDatabase();
             dbVote.Id = IdManager.Generate();
@@ -335,7 +338,7 @@ public class ThemeService
         {
             await trans.RollbackAsync();
             _logger.LogError("Failed to create theme vote", e);
-            return TaskResult<ThemeVote>.FromError("An error occured saving vote to the database.");
+            return TaskResult<ThemeVote>.FromFailure("An error occured saving vote to the database.");
         }
     }
 
@@ -349,7 +352,7 @@ public class ThemeService
         var existing = await _db.ThemeVotes.FindAsync(id);
 
         if (existing is null)
-            return TaskResult.FromError("Vote not found");
+            return TaskResult.FromFailure("Vote not found");
 
         var trans = await _db.Database.BeginTransactionAsync();
         
@@ -367,7 +370,7 @@ public class ThemeService
             await trans.RollbackAsync();
             
             _logger.LogError("Failed to delete theme vote", e);
-            return TaskResult.FromError("An error occured removing vote from the database.");
+            return TaskResult.FromFailure("An error occured removing vote from the database.");
         }
     }
 

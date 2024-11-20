@@ -15,7 +15,7 @@ public enum ChannelTypeEnum
     GroupVoice = 6,
 }
 
-public class SharedChannelNames
+public static class SharedChannelNames
 {
     public static readonly string[] ChannelTypeNames = new string[]
     {
@@ -29,8 +29,11 @@ public class SharedChannelNames
     };
 }
 
-public interface ISharedChannel : ISharedItem
+public interface ISharedChannel : ISharedModel<long>, ISortable
 {
+    public const string BaseRoute = "api/channels";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    
     public static string GetTypeName(ChannelTypeEnum type)
     {
         var i = (int)type;
@@ -85,9 +88,25 @@ public interface ISharedChannel : ISharedItem
     /// </summary>
     DateTime LastUpdateTime { get; set; }
     
-    /////////////////////////////
-    // Only on planet channels //
-    /////////////////////////////
+    /// <summary>
+    /// The position of the channel. Works as the following:
+    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
+    /// Each 8 bits is a category, with the first category being the top level
+    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
+    /// [00000011]-[00000010]-[00000001]-[00000000]
+    /// This does limit the depth of categories to 4, and the highest position
+    /// to 254 (since 000 means no position)
+    /// </summary>
+    public uint RawPosition { get; set; }
+    
+    uint ISortable.GetSortPosition()
+    {
+        return RawPosition;
+    }
+
+    /////////////////////////////////////
+    // Only applies to planet channels //
+    /////////////////////////////////////
     
     /// <summary>
     /// The id of the planet this channel belongs to, if any
@@ -100,17 +119,12 @@ public interface ISharedChannel : ISharedItem
     long? ParentId { get; set; }
     
     /// <summary>
-    /// The position of the channel in the channel list
-    /// </summary>
-    int? Position { get; set; }
-    
-    /// <summary>
     /// If this channel inherits permissions from its parent
     /// </summary>
-    bool? InheritsPerms { get; set; }
+    bool InheritsPerms { get; set; }
     
     /// <summary>
     /// If this channel is the default channel
     /// </summary>
-    bool? IsDefault { get; set; }
+    bool IsDefault { get; set; }
 }

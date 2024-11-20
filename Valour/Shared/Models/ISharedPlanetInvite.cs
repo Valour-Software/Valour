@@ -1,7 +1,7 @@
 namespace Valour.Shared.Models;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -10,13 +10,11 @@ namespace Valour.Shared.Models;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetInvite : ISharedPlanetItem
+public interface ISharedPlanetInvite : ISharedPlanetModel<string>
 {
-    /// <summary>
-    /// the invite code
-    /// </summary>
-    string Code { get; set; }
-
+    public const string BaseRoute = "api/invites";
+    public static string GetIdRoute(string id) => $"{BaseRoute}/{id}";
+    
     /// <summary>
     /// The user that created the invite
     /// </summary>

@@ -1,5 +1,6 @@
 ﻿@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
+@inject ChannelService ChannelService
 
 <div 
     class="@GetCssClass()" 
@@ -33,7 +34,7 @@
                 {
                     <ChannelListItem @key="@channel.Id"
                                      PlanetComponent="@this"
-                                     AllChannels="@AllChannels"
+                                     AllChannels="@Planet.Channels"
                                      Channel="@channel"
                                      IsTopLevel="@true" />
                 }
@@ -49,23 +50,20 @@
     public bool Open { get; set; } = true;
 
     public List<Channel> TopChannels;
-    public List<Channel> AllChannels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
-        AllChannels = new List<Channel>();
         TopChannels = new List<Channel>();
 
         // Handle list change
-        ModelObserver<Channel>.OnAnyUpdated += OnChannelUpdate;
+        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
 
         // Handle Deletions
-        ModelObserver<Channel>.OnAnyDeleted += OnChannelDelete;
+        ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
-        ValourClient.OnCategoryOrderUpdate += OnOrderUpdate;
+        ChannelService.CategoryReordered += OnOrderUpdate;
         
-        await GetAllChannels();
         GetTopLevelItems();
     }
 
@@ -128,8 +126,8 @@
     {
         TopChannels.Sort((x, y) =>
         {
-            var a = x.Position.GetValueOrDefault();
-            var b = y.Position.GetValueOrDefault();
+            var a = x.RawPosition;
+            var b = y.RawPosition;
             return a.CompareTo(b);
         });
     }
@@ -149,22 +147,17 @@
     private void GetTopLevelItems()
     {
         TopChannels.Clear();
-        foreach (var item in AllChannels)
+        foreach (var channel in Planet.Channels)
         {
-            if (item.ParentId is null)
+            if (channel.ParentId is null)
             {
-                TopChannels.Add(item);
+                TopChannels.Add(channel);
             }
         }
 
         SortTopItems();
             
         Console.WriteLine($"Found {TopChannels.Count} top level channels and categories");
-    }
-
-    private async Task GetAllChannels()
-    {
-        AllChannels = await Planet.GetAllChannelsAsync();
     }
     
     private async Task OnClickPlanetInfo()

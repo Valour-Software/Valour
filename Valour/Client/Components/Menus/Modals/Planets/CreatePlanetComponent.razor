@@ -1,4 +1,6 @@
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject PlanetService PlanetService
 
 <section class="v-bg-dark" style="padding: 2em; border-radius: 1em">
 	<h2>Create a Planet</h2>
@@ -70,14 +72,13 @@
 			Name = _name,
 			Description = _desc
 		};
-		
-		var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planets", newPlanet);
-		_result = result;
 
-		StateHasChanged();
+		var result = await newPlanet.CreateAsync();
+		_result = result;
 		
 		if (!_result.Success)
 		{
+			StateHasChanged();
 			return;
 		}
 
@@ -90,15 +91,14 @@
 		
 		await Task.Delay(3000);
 		
-		await ModalRoot.CloseModal(ModalId);
+		ModalRoot.CloseModal(ModalId);
 
 		var planet = result.Data;
-		
-		await ValourCache.Put(planet.Id, planet);
+		Client.Cache.Sync(planet);
+		PlanetService.AddJoinedPlanet(planet);
 
-		await ValourClient.AddJoinedPlanetAsync(planet);
-		
-		var mainChannel = await planet.GetPrimaryChannelAsync();
+		await planet.FetchChannelsAsync();
+		var mainChannel = planet.PrimaryChatChannel;
 
 		await Data.Window.Layout.AddTab(await ChatChannelWindowComponent.GetDefaultContent(mainChannel));
 	}

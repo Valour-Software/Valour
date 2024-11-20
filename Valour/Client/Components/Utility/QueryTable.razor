@@ -1,4 +1,6 @@
+@using Valour.Sdk.Nodes
 @typeparam TModel
+@inject ValourClient Client
 
 @if (Columns is null)
 {
@@ -35,21 +37,24 @@
 </table>
 <div class="table-footer">
     <div class="button-row">
-        @if (!_reader.IsFirstPage())
+        @if (!_reader.IsFirstPage)
         {
             <button class="v-btn primary" @onclick="@LoadPreviousPageAsync">Previous</button>
         }
         
-        @if (!_reader.IsLastPage())
+        @if (!_reader.IsLastPage)
         {
             <button class="v-btn primary" @onclick="@LoadNextPageAsync">Next</button>
         }
     </div>
-    <span>Showing items @((_reader.GetCurrentPageIndex() - 1) * PageSize)-@(Math.Min(_reader.GetCurrentPageIndex() * PageSize, _reader.GetTotalCount())) of @_reader.GetTotalCount() </span>
+    <span>Showing items @((_reader.CurrentPageIndex - 1) * PageSize)-@(Math.Min(_reader.CurrentPageIndex * PageSize, _reader.TotalCount)) of @_reader.TotalCount </span>
 </div>
 
 
 @code {
+    
+    [Parameter]
+    public Node Node { get; set; } 
     
     [Parameter]
     public int PageSize { get; set; } = 50;
@@ -77,8 +82,11 @@
         {
             throw new ArgumentNullException(nameof(Model));
         }
+
+        if (Node is null)
+            Node = Client.PrimaryNode;
         
-        _reader = new PagedReader<TModel>(Model.GetApiUrl(), PageSize);
+        _reader = new PagedReader<TModel>(Node, Model.GetApiUrl(), PageSize);
 
         await Requery();
     }

@@ -32,3 +32,16 @@
     font-size: 20px;
     margin-right: 10px;
 }
+
+.loading-wrapper {
+    background-color: var(--main-1);
+    padding: 0;
+    border-radius: 100%;
+    width: 30%;
+    aspect-ratio: 1;
+}
+
+.loading-spinner {
+    width: 100%;
+    height: 100%;
+}

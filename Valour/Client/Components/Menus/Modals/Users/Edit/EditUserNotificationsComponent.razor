@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
 <h3>Notification Settings</h3>
 
@@ -8,7 +9,7 @@
     </div>
     <div type="button" style="float:right">
         <label class="switch">
-            <input type="checkbox" @onclick="OnNotifClick" checked="@notif_enabled" disabled="@notif_blocked">
+            <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled" disabled="@_notificationsBlocked">
             <span class="slider round"></span>
         </label>
     </div>
@@ -19,45 +20,44 @@
 
 @code {
 
-    public string notif_state = "null";
-    public bool notif_enabled = false;
-    public bool notif_blocked = false;
+    public string NotificationState = "null";
+    private bool _notificationsEnabled = false;
+    private bool _notificationsBlocked = false;
 
-    public Notifications.NotificationSubscription Subscription = null;
+    private Notifications.NotificationSubscription _subscription = null;
 
     protected override async Task OnInitializedAsync()
     {
-        var notif_enabled = await JS.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
+        _notificationsEnabled = await JsRuntime.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
+        _subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription", false);
 
-        Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription", false);
-
-        if (Subscription != null)
+        if (_subscription != null)
         {
-            notif_enabled = true;
+            _notificationsEnabled = true;
         }
 
-        Console.WriteLine(Subscription);
+        // Client.Logger.Log<EditUserNotificationsComponent>(_subscription., "cyan");
 
         StateHasChanged();
     }
 
-    public async Task OnNotifClick()
+    private async Task OnNotificationsClick()
     {
-        if (notif_enabled)
+        if (_notificationsEnabled)
         {
-            var sub = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.removeSubscription");
-            notif_enabled = false;
+            var sub = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.removeSubscription");
+            _notificationsEnabled = false;
 
-            await ValourClient.PrimaryNode.PostAsync("api/notification/unsubscribe", sub);
+            await Client.PrimaryNode.PostAsync("api/notification/unsubscribe", sub);
         }
         else
         {
-            Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+            _subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
 
-            if (Subscription != null)
+            if (_subscription != null)
             {
-                notif_enabled = true;
-                await ValourClient.PrimaryNode.PostAsync($"api/notification/subscribe", Subscription);
+                _notificationsEnabled = true;
+                await Client.PrimaryNode.PostAsync($"api/notification/subscribe", _subscription);
             }
         }
 

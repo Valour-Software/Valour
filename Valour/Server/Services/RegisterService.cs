@@ -14,7 +14,7 @@ public class RegisterService
     private const string ValourWelcome = "## Welcome to Valour!\nI'm *Victor*, the Valour mascot. I'm here to help you get started. " +
                                          "If you have any questions, feel free to ask me. I may not be fast to respond (I am run by humans!) " +
                                          "You can also ask other users, or check out the Valour Central planet for more information." +
-                                         " Some basics: \n- Valour communities are named Planets! You can join or create planets for your interests. " +
+                                         " Some basics: \n- Valour communities are named HostedPlanets! You can join or create planets for your interests. " +
                                          "\n- You can also add friends and direct message them. " +
                                          "\n- Valour (desktop) supports opening multiple windows with controls on the top right of each window. ";
     
@@ -22,8 +22,9 @@ public class RegisterService
     private readonly ChannelService _channelService;
     private readonly UserFriendService _friendService;
     private readonly UserService _userService;
+    private readonly MessageService _messageService;
 
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     
     private readonly ILogger<RegisterService> _logger;
     
@@ -33,7 +34,8 @@ public class RegisterService
         UserFriendService friendService,
         UserService userService,
         ILogger<RegisterService> logger,
-        ValourDB db)
+        ValourDb db, 
+        MessageService messageService)
     {
         _memberService = memberService;
         _channelService = channelService;
@@ -41,6 +43,7 @@ public class RegisterService
         _userService = userService;
         _logger = logger;
         _db = db;
+        _messageService = messageService;
     }
     
     public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx)
@@ -252,7 +255,7 @@ public class RegisterService
             // Send direct message from Victor to user
             var victorDm = await _channelService.GetDirectChatAsync(user.Id, ISharedUser.VictorUserId, true);
 
-            var victorMessage = await _channelService.PostMessageAsync(new Message()
+            var victorMessage = await _messageService.PostMessageAsync(new Message()
             {
                 Content = ValourWelcome,
                 TimeSent = DateTime.UtcNow,

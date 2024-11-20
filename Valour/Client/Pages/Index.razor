@@ -1,12 +1,15 @@
 ﻿@page "/"
 @page "/planetchannels/{StartPlanetId:long}/{StartChannelId:long}/{StartMessageId:long}"
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
+@using Valour.Sdk.Services
 
+@inject ValourClient Client
+@inject AuthService AuthService
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavigationManager
 
 <!-- Check login status -->
-@if (!ValourClient.IsLoggedIn)
+@if (!Client.IsLoggedIn)
 {
 	<LoginComponent FromVerified="false"></LoginComponent>
 	return;
@@ -17,46 +20,42 @@
 <ProfilePopup />
 
 <div class="mobile-holder @MobileClass @EmbeddedClass">
-	<BrowserUtils>
-		<ToastContainer>
-			<!-- Modal management -->
-			<ModalRoot>
-				<ContextMenuRoot>
+	<ToastContainer>
+		<!-- Modal management -->
+		<ModalRoot>
+			<ContextMenuRoot>
 
-					<ModalInjector/>
+				<ModalInjector/>
 
-					<body class="mainrow">
-					<Sidebar></Sidebar>
-					<div class="channel-and-topbar" id="mainwindow">
-						<div class="topbar">
-							@if (DeviceInfo.IsMobile)
-							{
-								<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
-							}
-							<QuickNotifComponent></QuickNotifComponent>
-							@if (DeviceInfo.IsMobile)
-							{
-								<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
-							}
-						</div>
-
-						<CallComponent/>
-
-						<!-- It's so nice when it's hidden away, just like my fears -->
-						<WindowDockComponent StartData="@_startData" />
+				<body class="mainrow">
+				<Sidebar></Sidebar>
+				<div class="channel-and-topbar" id="mainwindow">
+					<div class="topbar">
+						@if (DeviceInfo.IsMobile)
+						{
+							<i class="bi bi-list sidebar-toggle" @onclick="Sidebar.ToggleMobileSidebar"></i>
+						}
+						<QuickNotifComponent />
+						@if (DeviceInfo.IsMobile)
+						{
+							<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
+						}
 					</div>
-					@if (!DeviceInfo.IsMobile)
-					{
-						<Sidebar Flip="@true"></Sidebar>
-					}
 
-					</body>
+					<CallComponent/>
 
-					<DockFloaters/>
-				</ContextMenuRoot>
-			</ModalRoot>
-		</ToastContainer>
-	</BrowserUtils>
+					<!-- It's so nice when it's hidden away, just like my fears -->
+					<WindowDockComponent StartData="@_startData" />
+				</div>
+				@if (!DeviceInfo.IsMobile)
+				{
+					<Sidebar Flip="@true"></Sidebar>
+				}
+
+				</body>
+			</ContextMenuRoot>
+		</ModalRoot>
+	</ToastContainer>
 </div>
 
 
@@ -100,13 +99,12 @@
 		await base.OnInitializedAsync();
 
 		WindowService.OnFocusedPlanetChanged += OnPlanetChange;
-		ValourClient.OnLogin += OnLoginAsync;
+		AuthService.LoggedIn += OnLoginAsync;
 	}
 
-	private Task OnLoginAsync()
+	private void OnLoginAsync(User user)
 	{
 		StateHasChanged();
-		return Task.CompletedTask;
 	}
 
 	public void Dispose()
@@ -141,13 +139,6 @@
 	private async Task OnClickHome()
 	{
 		await WindowService.OpenWindowAtFocused(HomeWindowComponent.DefaultContent);
-	}
-
-	[JSInvokable("OnRefocus")]
-	public static async Task OnRefocus()
-	{
-		Console.WriteLine("Detected refocus event.");
-		await ValourClient.HandleRefocus();
 	}
 
 	public void ForceRefresh()

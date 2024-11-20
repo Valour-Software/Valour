@@ -16,7 +16,7 @@
 @using System.Collections.Concurrent
 @using Microsoft.JSInterop
 @using Valour.Sdk.Client
-@using Valour.Sdk.Items
+@using Valour.Sdk.ModelLogic;
 @using Valour.Sdk.Models
 @using Valour.Sdk.Models.Economy
 @using Valour.Sdk.Models.Messages
@@ -24,10 +24,9 @@
 @using Valour.Sdk.Models.Messages.Embeds.Items
 @using Valour.Sdk.Models.Messages.Embeds.Styles.Basic
 @using Valour.Sdk.Models.Messages.Embeds.Styles.Flex
-@using Valour.Shared.Models.Staff
-@using Valour.Sdk.Requests
 @using Valour.Sdk.Models.Themes
-@using Valour.Sdk.Utility
+@using Valour.Sdk.Requests
+@using Valour.Sdk.Services
 @using Valour.Client 
 @using Valour.Client.Device
 @using Valour.Client.Sounds
@@ -64,6 +63,7 @@
 @using Valour.Client.Components.Theme
 @using Valour.Client.Components.Users
 @using Valour.Client.Components.Utility
+@using Valour.Client.Components.Utility.DragList
 @using Valour.Client.Components.Windows
 @using Valour.Client.Components.Windows.HomeWindows
 @using Valour.Client.Components.Windows.PlanetInfo
@@ -76,11 +76,10 @@
 @using Valour.Client.Categories
 @using Valour.Client.Modals
 @using Valour.Client.Notifications
-@using Valour.Client.Providers
-@using Valour.Client.Tenor
 @using Valour.Client.Toast
 @using Valour.Client.Voice
 @using Valour.Shared
 @using Valour.Shared.Authorization
 @using Valour.Shared.Models
 @using Valour.Shared.Models.Economy
+@using Valour.Shared.Models.Staff

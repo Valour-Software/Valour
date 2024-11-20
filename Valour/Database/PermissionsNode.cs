@@ -1,16 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
 [Table("permissions_nodes")]
-public class PermissionsNode : Item, ISharedPermissionsNode
+public class PermissionsNode : ISharedPermissionsNode
 {
     ///////////////////////////
     // Relational Properties //
@@ -28,6 +29,10 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     [Column("planet_id")]
     public long PlanetId { get; set; }

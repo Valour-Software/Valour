@@ -3,7 +3,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PlanetRole : Item, ISharedPlanetRole
+public class PlanetRole : ServerModel<long>, ISharedPlanetRole
 {
     public static PlanetRole DefaultRole = new PlanetRole()
     {
@@ -19,7 +19,7 @@ public class PlanetRole : Item, ISharedPlanetRole
         VoicePermissions = VoiceChannelPermissions.Default,
         AnyoneCanMention = false,
     };
-    
+
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
@@ -33,7 +33,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public int Position { get; set; }
+    public uint Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -72,7 +72,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     
     public bool AnyoneCanMention { get; set; }
 
-    public int GetAuthority() =>
+    public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public bool HasPermission(PlanetPermission perm) =>

@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PlanetRoleMember : Item, ISharedPlanetRoleMember
+public class PlanetRoleMember : ServerModel<long>, ISharedPlanetRoleMember
 {
     /// <summary>
     /// The planet id this role member belongs to

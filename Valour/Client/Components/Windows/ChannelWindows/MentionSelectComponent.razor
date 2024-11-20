@@ -12,16 +12,16 @@
                 switch (match.Item)
                 {
                     case PlanetRole role:
-                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)"></MentionSelectRoleComponent>
+                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" />
                         break;
                     case PlanetMember member:
-                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)"></MentionSelectMemberComponent>
+                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)" />
                         break;
                     case User user:
-                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)"></MentionSelectUserComponent>
+                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" />
                         break;
                     case Channel channel:
-                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)"></MentionSelectChannelComponent>
+                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" />
                         break;
                 }
 
@@ -60,7 +60,7 @@
 
     private Planet _planet;
 
-    private List<Channel> _chatChannels;
+    private IReadOnlyList<Channel> _chatChannels;
     private List<PlanetMember> _members;
     private List<PlanetRole> _roles;
     private List<User> _users;
@@ -69,11 +69,11 @@
     {
         _matches = new();
 
-        ModelObserver<PlanetMember>.OnAnyUpdated += HandlePlanetMemberUpdated;
+        ModelObserver<PlanetMember>.AnyUpdated += HandlePlanetMemberUpdated;
 
     }
 
-    public async Task HandlePlanetMemberUpdated(ModelUpdateEvent<PlanetMember> updatedMember)
+    private void HandlePlanetMemberUpdated(ModelUpdateEvent<PlanetMember> updatedMember)
     {
         var newMember = updatedMember.Model;
 
@@ -98,14 +98,7 @@
         if (value)
         {
             // On made visible, fetch all needed data
-            if (Channel.PlanetId is not null)
-            {
-                _planet = await Channel.GetPlanetAsync();
-                _members = await _planet.GetMembersAsync();
-                _chatChannels = await _planet.GetChatChannelsAsync();
-                _roles = await _planet.GetRolesAsync();
-            }
-            else
+            if (Channel.PlanetId is null)
             {
                 _users = await Channel.GetChannelMemberUsersAsync();
             }
@@ -125,9 +118,9 @@
             case PlanetMember member:
                 {
                     var tag = $"«@m-{member.Id}» ";
-                    var text = "@" + await member.GetNameAsync();
+                    var text = "@" + member.Name;
                     var classList = "mention";
-                    var styleList = $"color: {await member.GetRoleColorAsync()}";
+                    var styleList = $"color: {member.GetRoleColor()}";
                     await InputComponent.InjectElementAsync(tag, text, classList, styleList);
                     break;
                 }
@@ -194,10 +187,10 @@
                     _matches.AddRange(members);
 
                     var canMentionAll = false;
-                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId.Value);
-                    if (selfMember is not null)
+                    var myMember = Channel.Planet.MyMember;
+                    if (myMember is not null)
                     {
-                        if (await selfMember.HasPermissionAsync(PlanetPermissions.MentionAll))
+                        if (myMember.HasPermission(PlanetPermissions.MentionAll))
                         {
                             canMentionAll = true;
                         }

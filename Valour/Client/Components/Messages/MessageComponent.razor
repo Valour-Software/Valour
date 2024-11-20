@@ -1,5 +1,5 @@
 ﻿@using global::Markdig.Blazor
-@inject IJSRuntime JsRuntime
+@inject ValourClient Client
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
@@ -20,15 +20,15 @@
     <div class="left-info">
         @if (!Minimal)
         {
-            @if (User.HasAnimatedAvatar)
+            @if (_user.HasAnimatedAvatar)
             {
                 <style>
-                    .message:hover .author-pfp-@User.Id {
+                    .message:hover .author-avatar-@_user.Id {
                         background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
                     }
                 </style>
             }
-            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-pfp author-pfp-@User.Id" @onerror="OnPfpError"></div>
+            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@_user.Id" @onerror="OnAvatarError"></div>
         }
         <div class="time-container">
             <p class="time" title="@_timeTitle">
@@ -51,15 +51,15 @@
                 </p>
 
                 <div class="dot-badge-holder">
-                    @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                    @if (_user.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                     {
                         <BasicTooltipComponent Title="Stargazer" Placement="top">
                             <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
                         </BasicTooltipComponent>
                     }
-                    @if (User.Id <= 22113735421460480)
+                    @if (_user.Id <= 22113735421460480)
                     {
-                        <span style="font-weight: bold; font-size: 8px; margin-left: 2px; color: var(--v-purple)">1k</span>
+                        <span class="badge-1k">1k</span>
                     }
                 </div>
 
@@ -88,7 +88,7 @@
                         {"MessageComponent", this}
                     };
 
-                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                    <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
                         @if (Ghost)
                         {
                             <div class="attachment-x">x</div>
@@ -183,12 +183,13 @@
     public bool IsInnerReply { get; set; }
     /* End Set Params */
 
+    private IMessageAuthor _author;
+
     /* Planet Message Only */
     private PlanetMember _member;
     
     /* End Planet Message Only */
-
-    public User User { get; set; }
+    private User _user { get; set; }
 
     public MessageComponent ReplyComponent;
 
@@ -273,16 +274,14 @@
         }
         else
         {
-            return ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+            return ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
         }
     }
 
 
-    private async Task OnEditReceived(ModelUpdateEvent eventData)
+    private async Task OnEditReceived(ModelUpdateEvent<Message> eventData)
     {
-        // Console.WriteLine("EDIT RECEIVED");
-        // Console.WriteLine(JsonSerializer.Serialize(eventData));
-        await BuildMessage();
+        BuildMessage();
         await CloseEditMode();
     }
 
@@ -313,7 +312,7 @@
         {
             ContextMenuService.Root.OpenMenu<UserContextMenu>(e, new UserContextMenu.UserContextParams()
             {
-                User = User
+                User = _user
             });
         }
     }
@@ -335,12 +334,12 @@
         }
     }
 
-    public async Task OnClickAttachment(int id)
+    public void OnClickAttachment(int id)
     {
         if (Ghost)
         {
             var input = ChatComponent.MessageHolder.InputComponent;
-            await input.RemoveAttachment(id);
+            input.RemoveAttachment(id);
         }
     }
 
@@ -349,16 +348,12 @@
         if (firstRender)
         {
             // Clear notification if one exists for this message
-            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(Message.Id, out var notification);
+            var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(Message.Id, out var notification);
             if (found && notification.TimeRead is null)
             {
-                await ValourClient.MarkNotificationRead(notification, true);
+                await Client.NotificationService.MarkNotificationRead(notification, true);
             }
         }
-        
-        // #if DEBUG
-        // Console.WriteLine("Rendered message " + MessageData.Message.Id);
-        // #endif
     }
 
     public async Task OpenEditMode()
@@ -386,17 +381,17 @@
         ReRender();
     }
 
-    public async Task SetMessage(Message message)
+    public void SetMessage(Message message)
     {
         Message = message;
-        await BuildMessage();
+        BuildMessage();
 
         ReRender();
     }
 
-    public async Task RefreshMessage()
+    public void RefreshMessage()
     {
-        await BuildMessage();
+        BuildMessage();
         StateHasChanged();
     }
 
@@ -405,7 +400,7 @@
         LastMessage = msg;
     }
 
-    public async Task BuildMessage(bool render = true)
+    public void BuildMessage(bool render = true)
     {
         if (Message == null)
             return;
@@ -414,7 +409,7 @@
         CheckMinimal();
 
         if (!IsInnerReply)
-            _mentioned = await Message.CheckIfMentioned();
+            _mentioned = Message.CheckIfMentioned();
 
         CalculateClass();
         CalculateTime();
@@ -429,12 +424,12 @@
             return;
         }
 
-        _name = await Message.GetAuthorNameAsync();
-        _nameColor = await Message.GetAuthorColorAsync();
-        _nameTag = await Message.GetAuthorRoleTagAsync();
-        _avatarUrl = await Message.GetAuthorImageUrlAsync();
-        _animatedAvatarUrl = await Message.GetAuthorImageUrlAnimatedAsync();
-        _fallbackAvatarUrl = await Message.GetAuthorImageUrlFallbackAsync();
+        _name = GetAuthorName();
+        _nameColor = GetAuthorColor();
+        _nameTag = GetAuthorRoleTag();
+        _avatarUrl = GetAuthorAvatar();
+        _animatedAvatarUrl = GetAuthorAvatarAnimated();
+        _fallbackAvatarUrl = GetAuthorAvatarUrlFallback();
 
         _isBuilt = true;
 
@@ -444,28 +439,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        this.Message = ParamData.Message;
-        this.LastMessage = ParamData.LastMessage;
-        this.Ghost = ParamData.Ghost;
-        this.IsInnerReply = ParamData.IsInnerReply;
+        Message = ParamData.Message;
+        LastMessage = ParamData.LastMessage;
+        Ghost = ParamData.Ghost;
+        IsInnerReply = ParamData.IsInnerReply;
         KeyboardListener.OnKeyDown += OnKeyDown;
         
         if (Message is null)
         {
-            await Logger.Log("[!!!] MessageData is null", "red");
+            Client.Logger.Log("Message", "MessageData is null", "red");
             return;
         }
+        
+        // This prevents client sync issues from breaking the message
+        Message.SetClient(Client);
         
         await base.OnInitializedAsync();
 
         Id = $"m-{Message.ChannelId}-{Message.Id}";
 
-        User = await Message.GetAuthorUserAsync();
+        _user = await Message.FetchAuthorUserAsync();
 
-        await BuildMessage(false);
-
-        if (User != null)
-            User.OnUpdated += OnUserUpdated;
+        if (_user != null)
+            _user.Updated += OnUserUpdated;
         
         if (!IsInnerReply && !Ghost)
         {
@@ -476,20 +472,74 @@
         if (Message.PlanetId is not null)
         {
             
-            _member = await Message.GetAuthorMemberAsync();
+            _member = await Message.FetchAuthorMemberAsync();
             
             // Hook events
             if (_member is not null) // There is a chance they were deleted
             {
-                _member.OnRoleModified += OnMemberRoleChange;
-                _member.OnUpdated += OnMemberUpdated;
+                _member.Roles.Changed += UpdateForRoleChange;
+                _member.Updated += OnMemberUpdated;
             }
         }
-    }
 
-    private async Task<Task> OnKeyDown(KeyboardListener.KeyboardEvent e)
+        _author = _member is not null ? _member : _user;
+        
+        BuildMessage(false);
+    }
+    
+    /// <summary>
+    /// Returns the name that should be displayed for the author of this message
+    /// </summary>
+    private string GetAuthorName()
     {
-        if (e.Key != "Escape") return Task.CompletedTask;
+        return _member is not null ? _member.Name : 
+            (_user?.Name ?? "User not found");
+    }
+    
+    private string GetAuthorRoleTag()
+    {
+        // Bot always shows Bot
+        if (_user.Bot)
+            return "Bot";
+        
+        // If there's a member, we use the member's planet role
+        if (_member is not null) 
+            return _member.PrimaryRole.Name ?? "Unknown Role";
+
+        if (_user is null) 
+            return string.Empty;
+        
+        // Otherwise, we use their relationship with the user
+        if (_user.Id == Client.Me.Id)
+            return "You";
+
+        return Client.FriendService.FriendLookup.ContainsKey(_user.Id) ? "Friend" : "User";
+    }
+    
+    private string GetAuthorColor()
+    {
+        return _member is not null ? _member.PrimaryRole.Color : 
+            (Client.FriendService.FriendLookup.ContainsKey(_user.Id) ? "#9ffff1" : "#fff");
+    }
+    
+    public string GetAuthorAvatar() =>
+        _author.GetAvatar(AvatarFormat.Webp128);
+    
+    public string GetAuthorAvatarAnimated()
+    {   
+        // TODO: Tweak when member avatars are implemented
+        if (!_user.HasAnimatedAvatar)
+            return null;
+
+        return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+    }
+    
+    public string GetAuthorAvatarUrlFallback() =>
+        _author.GetFailedAvatar();
+
+    private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key != "Escape") return;
         if (Edit) 
         {
             await CloseEditMode(true);
@@ -504,10 +554,8 @@
         if (Ghost)
         {
             var input = ChatComponent.MessageHolder.InputComponent;
-            await input.RemoveAttachment(-1);
+            input.RemoveAttachment(-1);
         }
-
-        return Task.CompletedTask;
     }
 
     private void OnMouseEnter()
@@ -516,20 +564,25 @@
         Holder?.NotifyMessageMouseEnter(this);
     }
 
-    public async Task OnUserUpdated(ModelUpdateEvent eventData)
+    public void OnUserUpdated(ModelUpdateEvent<User> eventData)
     {
         bool render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(User.Name)))
+        if (eventData.PropsChanged.Contains(nameof(_user.Name)))
         {
             render = true;
-            _name = await Message.GetAuthorNameAsync();
+            _name = GetAuthorName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
+        if (eventData.PropsChanged.Contains(nameof(_user.HasCustomAvatar)))
         {
             render = true;
-            _avatarUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = GetAuthorAvatar();
+
+            if (_user.HasAnimatedAvatar)
+            {
+                _animatedAvatarUrl = GetAuthorAvatarAnimated();
+            }
         }
 
         if (render)
@@ -537,27 +590,26 @@
             ReRender();
         }
     }
-    
-    /* Planet Member Only */
-    private async Task OnMemberRoleChange(MemberRoleEvent roleEvent)
-    {
-        await UpdateForRoleChange();
-    }
 
-    private async Task OnMemberUpdated(ModelUpdateEvent eventData)
+    private void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         var render = false;
         
         if (eventData.PropsChanged.Contains(nameof(_member.Nickname)))
         {
             render = true;
-            _name = await Message.GetAuthorNameAsync();
+            _name = GetAuthorName();
         }
 
         if (eventData.PropsChanged.Contains(nameof(_member.MemberAvatar)))
         {
             render = true;
-            _avatarUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = GetAuthorAvatar();
+            
+            if (_user.HasAnimatedAvatar)
+            {
+                _animatedAvatarUrl = GetAuthorAvatarAnimated();
+            }
         }
 
         if (render)
@@ -567,13 +619,11 @@
     }
     
     // Update for any role changes
-    private async Task UpdateForRoleChange()
+    private void UpdateForRoleChange(ModelListChangeEvent<PlanetRole> change)
     {
-        var newPrimaryRole = await _member.GetPrimaryRoleAsync();
-
-    // Cosmetic changes
-        _nameTag = newPrimaryRole.Name;
-        _nameColor = newPrimaryRole.Color;
+        // Cosmetic changes
+        _nameTag = _member.PrimaryRole.Name;
+        _nameColor = _member.PrimaryRole.Color;
         
         ReRender();
     }
@@ -617,18 +667,18 @@
         
         if (_member is not null)
         {
-            _member.OnUpdated -= OnMemberUpdated;
-            _member.OnRoleModified -= OnMemberRoleChange;
+            _member.Updated -= OnMemberUpdated;
+            _member.Roles.Changed -= UpdateForRoleChange;
         }
     }
 
     // Always allow a re-render when the pfp fails to load
-    private bool _pfpErrorRender = false;
+    private bool _avatarErrorRender = false;
     
-    private void OnPfpError()
+    private void OnAvatarError()
     {
-        _avatarUrl = AvatarUtility.GetFailedPfpUrl(User);
-        _pfpErrorRender = true;
+        _avatarUrl = _author.GetFailedAvatar();
+        _avatarErrorRender = true;
         ReRender();
     }
 
@@ -637,9 +687,9 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        if (_pfpErrorRender)
+        if (_avatarErrorRender)
         {
-            _pfpErrorRender = false;
+            _avatarErrorRender = false;
             return true;
         }
 

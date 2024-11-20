@@ -64,54 +64,6 @@ function IsEmbedded() {
     return embedded;
 }
 
-
-// Set the name of the hidden property and the change event for visibility
-let hidden, visibilityChange;
-if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
-    hidden = "hidden";
-    visibilityChange = "visibilitychange";
-} else if (typeof document.msHidden !== "undefined") {
-    hidden = "msHidden";
-    visibilityChange = "msvisibilitychange";
-} else if (typeof document.webkitHidden !== "undefined") {
-    hidden = "webkitHidden";
-    visibilityChange = "webkitvisibilitychange";
-}
-
-let lastRefocus = null;
-
-// Visbility change handler
-if (document.addEventListener) {
-    document.addEventListener(visibilityChange, function () {
-        console.log('Visibility change event detected.')
-        if (document[hidden]) {
-            // page is hidden
-        } else {
-            if (lastRefocus && (new Date() - lastRefocus) < 1000) {
-                console.log('Ignoring visibility change event, too soon.');
-                return;
-            }
-            
-            DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
-            
-            lastRefocus = new Date();
-        }
-    });
-}
-
-window.addEventListener('onfocus', () => {
-    console.log('Window focus event detected.')
-    
-    if (lastRefocus && (new Date() - lastRefocus) < 1000) {
-        console.log('Ignoring focus change event, too soon.');
-        return;
-    }
-    
-    DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
-    
-    lastRefocus = new Date();
-})
-
 // Web lock
 // The idea here is to *force* the tab to stay active
 
@@ -151,6 +103,10 @@ function SetDate() {
     if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
 }
 
+// TODO: Cleanup SW stuff
+// const registerClient = async () => {
+// }
+
 window.blazorFuncs = {
     registerClient: function (caller) {
         window['updateAvailable']
@@ -163,6 +119,10 @@ window.blazorFuncs = {
                 }
             });
     }
+};
+
+window.getBrowserOrigin = function() {
+    return window.location.origin;
 };
 
 

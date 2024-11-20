@@ -209,13 +209,13 @@
         <p class="help-text">Keep in mind the highest role a user has is the color they will appear as. Drag roles to reorder them</p>
 
         <div class="role-list-div-help-text">
-            <p class="help-text" style="display: inline-block;margin-bottom: 10px;">Roles: @_roles.Count</p>
+            <p class="help-text" style="display: inline-block;margin-bottom: 10px;">Roles: @Planet.Roles.Count</p>
 
             <p class="help-text members-text">Members</p>
         </div>
 
         <div class="roles-list">
-            @foreach (PlanetRole role in _roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
+            @foreach (PlanetRole role in Planet.Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
             {
                 // For magic lambda
                 var roleX = role;
@@ -250,9 +250,7 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    private List<PlanetRole> _roles = new();
-
-    private Dictionary<long, int> _roleMemberCounts = new();
+    private Dictionary<long, int> _roleMemberCounts;
 
     // Stuff for role creation //
 
@@ -292,8 +290,11 @@
         StateHasChanged();
     }
 
-    private async Task OnRoleDrop(PlanetRole droppedOn){
+    private async Task OnRoleDrop(PlanetRole droppedOn)
+    {
 
+        var _roles = Planet.Roles.ToList();
+        
         var droppedOnIndex = _roles.IndexOf(droppedOn);
         
         // Cannot move default role
@@ -324,32 +325,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _roles = await Planet.GetRolesAsync();
-
-        await UpdateRoleMemberCount();
-
-        ModelObserver<PlanetRole>.OnAnyUpdated += OnRolesUpdate;
-        ModelObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
-
-        ModelObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdate;
-        ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDelete;
-    }
-
-    private async Task UpdateRoleMemberCount()
-    {
-        var members = await Planet.GetMembersAsync();
-        foreach (var role in _roles)
-        {
-            _roleMemberCounts[role.Id] = 0;
-        }
-        foreach (var member in members)
-        {
-            var memberRoles = await member.GetRolesAsync();
-            foreach(var role in memberRoles)
-            {
-                _roleMemberCounts[role.Id] += 1;
-            }
-        }
+        _roleMemberCounts = await Planet.FetchRoleMembershipCountsAsync();
+        Planet.Roles.Changed += OnRolesChanged;
     }
 
     private void GoBack() 
@@ -367,23 +344,9 @@
         StateHasChanged();
     }
 
-    private async Task OnMemberRoleUpdate(ModelUpdateEvent<PlanetRoleMember> eventData)
+    private void OnRolesChanged(ModelListChangeEvent<PlanetRole> eventData)
     {
-        var roleMember = eventData.Model;
-        if (roleMember.PlanetId == Planet.Id)
-        {
-            await UpdateRoleMemberCount();
-            StateHasChanged();
-        }
-    }
-    
-    private async Task OnMemberRoleDelete(PlanetRoleMember roleMember)
-    {
-        if (roleMember.PlanetId == Planet.Id)
-        {
-            await UpdateRoleMemberCount();
-            StateHasChanged();
-        }
+        StateHasChanged();
     }
 
     private void OnClickEdit(PlanetRole editRole)
@@ -479,66 +442,20 @@
 
         TaskResult<PlanetRole> response;
 
-        bool creating = false;
-
         // If the id is not set, this is a new role to be created
         if (_role.Id == 0)
         {
-            response = await LiveModel.CreateAsync(_role);
-            creating = true;
+            response = await _role.CreateAsync();
         }
         // Otherwise we are editing a prior role
         else
         {
-            response = await LiveModel.UpdateAsync(_role);
+            response = await _role.UpdateAsync();
         }
         
         _result = response;
-        
-        if (response.Success)
-        {
-
-            // get new role
-            _role = await PlanetRole.FindAsync(response.Data.Id, Planet.Id);
-
-            // If creating, send back to role list afterwards
-            if (creating)
-            {
-                _editMode = false;
-                _roles.Add(_role);
-                _roleMemberCounts[_role.Id] = 0;
-            }
-        }
-
-        StateHasChanged();
-
         _editMode = false;
-    }
-
-    private async Task OnRoleDeletion(PlanetRole role)
-    {
-        _roles = await Planet.GetRolesAsync();
-    }
-
-    // Handle role list changes that may occur while open
-    private async Task OnRolesUpdate(ModelUpdateEvent<PlanetRole> eventData)
-    {
-        var role = eventData.Model;
-        var oldRole = _roles.FirstOrDefault(x => x.Id == role.Id);
-
-        if (oldRole == null)
-        {
-            _roles = await Planet.GetRolesAsync();
-            StateHasChanged();
-            return;
-        }
-
-        var index = _roles.IndexOf(oldRole);
-
-    // Set to new role
-        _roles[index] = role;
-
+        
         StateHasChanged();
     }
-
 }

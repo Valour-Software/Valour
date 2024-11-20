@@ -1,5 +1,6 @@
 @inherits ContextMenu<ChannelContextMenu.ChannelContextParams>
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
 @if (_canModify)
 {
@@ -11,10 +12,10 @@
     }
     
     // All channels have these options
-    <ContextMenuItem OnClick="@EditChannelListItem">Edit</ContextMenuItem>
-    <ContextMenuItem OnClick="@DeleteChannelListItem">Delete</ContextMenuItem>
+    <ContextMenuItem OnClickAsync="@EditChannelListItem">Edit</ContextMenuItem>
+    <ContextMenuItem OnClickAsync="@DeleteChannelListItem">Delete</ContextMenuItem>
 }
-<ContextMenuItem OnClick="@OnClickCopyId">Copy Id</ContextMenuItem>
+<ContextMenuItem OnClickAsync="@OnClickCopyId">Copy Id</ContextMenuItem>
 
 @code {
 
@@ -29,14 +30,12 @@
     private bool _canModify;
     
     protected override async Task OnInitializedAsync(){
-        var planet = await Data.Channel.GetPlanetAsync();
-        if (planet.OwnerId == ValourClient.Self.Id)
+        if (Data.Channel.Planet.OwnerId == Client.Me.Id)
         {
             _canModify = true;
         }
         else {
-            var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Data.Channel.PlanetId!.Value);
-            _canModify = await Data.Channel.HasPermissionAsync(selfMember, ChannelPermissions.Manage);
+            _canModify = await Data.Channel.HasPermissionAsync(Data.Channel.Planet.MyMember, ChannelPermissions.Manage);
         }
         
         StateHasChanged();
@@ -46,26 +45,25 @@
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Channel.Id);
     }
 
-    private async Task OpenCreateChannel(){
-        await OpenCreate(ChannelTypeEnum.PlanetChat);
+    private void OpenCreateChannel(){
+        OpenCreate(ChannelTypeEnum.PlanetChat);
     }
 
-    private async Task OpenCreateVoiceChannel()
+    private void OpenCreateVoiceChannel()
     {
-        await OpenCreate(ChannelTypeEnum.PlanetVoice);
+        OpenCreate(ChannelTypeEnum.PlanetVoice);
     }
     
-    private async Task OpenCreateCategory()
+    private void OpenCreateCategory()
     {
-        await OpenCreate(ChannelTypeEnum.PlanetCategory);
+        OpenCreate(ChannelTypeEnum.PlanetCategory);
     }
 
-    private async Task OpenCreate(ChannelTypeEnum type)
+    private void OpenCreate(ChannelTypeEnum type)
     {
-        var planet = await Data.Channel.GetPlanetAsync();
         var data = new CreateChannelComponent.ModalParams()
         {
-            Planet = planet,
+            Planet = Data.Channel.Planet,
             ChannelType = type
         };
         
@@ -81,11 +79,8 @@
         await CloseAsync();
         
         if (Data.Channel.ChannelType == ChannelTypeEnum.PlanetCategory){
-            var planet = await Data.Channel.GetPlanetAsync();
-            var channels = await planet.GetAllChannelsAsync();
-
             // Ensure category has no children if we are deleting it
-            if (channels.Any(x => x.ParentId == Data.Channel.Id)){
+            if (Data.Channel.Planet.Channels.Any(x => x.ParentId == Data.Channel.Id)){
 
                 var data = new InfoModalComponent.ModalParams(
                     "You can't delete this!",
@@ -110,8 +105,9 @@
              "Cancel", 
              async () =>
              {
+                 // TODO: Progress toast
                  Console.WriteLine("Confirmed channel model deletion.");
-                 var result = await LiveModel.DeleteAsync(Data.Channel);
+                 _ = await Data.Channel.DeleteAsync();
              },
              () =>
              {

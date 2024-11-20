@@ -58,6 +58,13 @@
     padding-left: 48px;
 }
 
+.message .badge-1k {
+    font-weight: bold; 
+    font-size: 8px; 
+    margin-left: 2px; 
+    color: var(--v-purple);
+}
+
 .message .hasreply {
     width: initial;
     overflow-y: hidden;
@@ -112,7 +119,7 @@
     margin-top: 41px;
 }
 
-.message .author-pfp {
+.message .author-avatar {
     background-position: center;
     background-size: cover;
     
@@ -122,7 +129,7 @@
     min-height: 38px;
     max-width: 38px;
     max-height: 38px;
-    border-radius: 50%;
+    border-radius: 8px;
     margin-top: 8px;
     margin-left: 4px;
     margin-right: 4px;
@@ -205,7 +212,7 @@
 
 
 
-.message:hover .left-info .author-pfp {
+.message:hover .left-info .author-avatar {
     width: 30px;
     height: 30px;
     min-width: 30px;
@@ -248,7 +255,7 @@
     font-size: 11px;
 }
 
-.reply .author-pfp {
+.reply .author-avatar {
     width: 30px;
     height: 30px;
     max-width: 30px;
@@ -264,7 +271,7 @@
     cursor: pointer;
 }
 
-.message:hover .reply .author-pfp {
+.message:hover .reply .author-avatar {
     margin-left: 4px;
 }
 

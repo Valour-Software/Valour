@@ -1,6 +1,8 @@
 @inherits Modal<EditAppComponent.ModalParams>
 @using System.Net.Http.Headers
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject OauthService OauthService
 
 <div class="modal-bg" style="text-align: center;">
     <h5>Editing</h5>
@@ -84,7 +86,7 @@
     {
         Data.App.RedirectUrl = _redirect;
 
-        var updateResult = await Valour.Sdk.Items.LiveModel.UpdateAsync(Data.App);
+        var updateResult = await Data.App.UpdateAsync();
 
         Console.WriteLine(updateResult.Message);
 
@@ -104,8 +106,9 @@
             "This cannot be undone!",
             "Confirm",
             "Cancel",
-            async () => {
-                var res = await LiveModel.DeleteAsync(Data.App);
+            async () =>
+            {
+                var res = await Data.App.DeleteAsync();
 
                 if (res.Success)
                     _iconOutput = "Deleted.";

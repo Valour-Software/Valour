@@ -1,6 +1,6 @@
 ﻿namespace Valour.Shared.Models;
 
-public interface ISharedPlanetBan : ISharedPlanetItem
+public interface ISharedPlanetBan : ISharedPlanetModel<long>
 {
     /// <summary>
     /// The user that was banned

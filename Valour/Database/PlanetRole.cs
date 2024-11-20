@@ -1,11 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_roles")]
-public class PlanetRole : Item, ISharedPlanetRole
+public class PlanetRole : ISharedPlanetRole
 {
     ///////////////////////////
     // Relational Properties //
@@ -20,6 +21,10 @@ public class PlanetRole : Item, ISharedPlanetRole
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
@@ -37,7 +42,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     [Column("position")]
-    public int Position { get; set; }
+    public uint Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -88,7 +93,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     [Column("anyone_can_mention")]
     public bool AnyoneCanMention { get; set; }
 
-    public int GetAuthority() =>
+    public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public bool HasPermission(PlanetPermission perm) =>

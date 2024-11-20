@@ -2,24 +2,22 @@
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
-using Valour.Sdk.Client;
-using Valour.Sdk.Nodes;
-using Valour.Sdk.Utility;
+using Valour.Sdk.ModelLogic;
 
 namespace Valour.Sdk.Models;
 
-public class Message : LiveModel, ISharedMessage
+public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 {
     public override string BaseRoute =>
-        $"api/channels/{ChannelId}/messages";
+        $"api/messages";
     
-    #region Database fields
     
     /// <summary>
     /// The planet (if any) this message belongs to
     /// </summary>
     public long? PlanetId { get; set; }
-    
+    protected override long? GetPlanetId() => PlanetId;
+
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
@@ -74,8 +72,14 @@ public class Message : LiveModel, ISharedMessage
     /// The time when the message was edited, or null if it was not
     /// </summary>
     public DateTime? EditedTime { get; set; }
-    
-    #endregion
+
+    public async ValueTask<IMessageAuthor> FetchAuthorAsync()
+    {
+        if (AuthorMemberId is not null)
+            return await FetchAuthorMemberAsync();
+        
+        return await FetchAuthorUserAsync();
+    }
 
     private string _renderKey;
 
@@ -158,7 +162,7 @@ public class Message : LiveModel, ISharedMessage
     /// <summary>
     /// Returns the message this was a reply to (if any)
     /// </summary>
-    public async ValueTask<Message> GetReplyMessageAsync()
+    public async ValueTask<Message> FetchReplyMessageAsync()
     {
         if (ReplyTo is not null)
             return ReplyTo;
@@ -166,125 +170,49 @@ public class Message : LiveModel, ISharedMessage
         if (ReplyToId is null)
             return null;
         
-        return await FindAsync(ReplyToId.Value, ChannelId);
+        return await Client.MessageService.FetchMessageAsync(ReplyToId.Value, Planet);
     }
 
-    public ValueTask<Channel> GetChannelAsync()
+    public ValueTask<Channel> FetchChannelAsync()
     {
-        return Channel.FindAsync(ChannelId);
+        if (PlanetId is null)
+            return Client.ChannelService.FetchChannelAsync(ChannelId);
+        else
+            return Planet.FetchChannelAsync(ChannelId);
     }
 
     /// <summary>
     /// Returns the user for the author of this message
     /// </summary>
-    public async ValueTask<User> GetAuthorUserAsync()
+    public async ValueTask<User> FetchAuthorUserAsync(bool skipCache = false)
     {
-        _authorUserCached ??= await User.FindAsync(AuthorUserId);
+        _authorUserCached ??= await Client.UserService.FetchUserAsync(AuthorUserId, skipCache);
         return _authorUserCached;
     }
     
     /// <summary>
     /// Returns the planet member for the author of this message (if any)
     /// </summary>
-    public async ValueTask<PlanetMember> GetAuthorMemberAsync()
+    public async ValueTask<PlanetMember> FetchAuthorMemberAsync(bool skipCache = false)
     {
-        if (AuthorMemberId is not null && PlanetId is not null)
-        {
-            _authorMemberCached ??= await PlanetMember.FindAsync(AuthorMemberId.Value, PlanetId.Value);
-        }
+        if (_authorMemberCached is not null)
+            return _authorMemberCached;
 
-        return _authorMemberCached;
-    }
-
-    /// <summary>
-    /// Returns the name that should be displayed for the author of this message
-    /// </summary>
-    public async ValueTask<string> GetAuthorNameAsync()
-    {
-        // Check for member first
-        var member = await GetAuthorMemberAsync();
-        if (member is not null)
-        {
-            // They may not have a nickname!
-            if (member.Nickname is not null)
-            {
-                return member.Nickname;
-            }
-        }
-        
-        // If we get here, the member name was not found
-        // so we fall back on the user (which should always exist)
-        var user = await GetAuthorUserAsync();
-        return user?.Name ?? "User not found";
-    }
-
-    public async ValueTask<string> GetAuthorRoleTagAsync()
-    {
-        // If there's a member, we use the member's planet role
-        var author = await GetAuthorMemberAsync();
-        if (author is not null)
-        {
-            return (await author.GetPrimaryRoleAsync()).Name ?? "Unknown Role";
-        }
-        
-        // Otherwise, we use their relationship with the user
-        var user = await GetAuthorUserAsync();
-        if (user.Id == ValourClient.Self.Id)
-            return "You";
-
-        if (user.Bot)
-            return "Bot";
-
-        if (ValourClient.FriendFastLookup.Contains(user.Id))
-            return "Friend";
-        
-        return "User";
-    }
-
-    public async ValueTask<string> GetAuthorColorAsync()
-    {
-        var member = await GetAuthorMemberAsync();
-        if (member is not null)
-        {
-            return await member.GetRoleColorAsync();
-        }
-        
-        if (ValourClient.FriendFastLookup.Contains(AuthorUserId))
-            return "#9ffff1";
-
-        return "#ffffff";
-    }
-
-    public async ValueTask<string> GetAuthorImageUrlAsync()
-    {
-        var member = await GetAuthorMemberAsync();
-        var user = await GetAuthorUserAsync();
-        return AvatarUtility.GetAvatarUrl(user, member, AvatarFormat.Webp128);
-    }
-    
-    public async ValueTask<string> GetAuthorImageUrlAnimatedAsync()
-    {   
-        // TODO: Tweak when member avatars are implemented
-        var user = await GetAuthorUserAsync();
-        if (!user.HasAnimatedAvatar)
+        if (AuthorMemberId is null)
             return null;
         
-        var member = await GetAuthorMemberAsync();
-        return AvatarUtility.GetAvatarUrl(user, member, AvatarFormat.WebpAnimated128);
+        _authorMemberCached = await Planet.FetchMemberAsync(AuthorMemberId.Value, skipCache);
+        if (_authorMemberCached is not null) // Also set user :)
+            _authorUserCached = _authorMemberCached.User;
+        
+        return _authorMemberCached;
     }
     
-    public async ValueTask<string> GetAuthorImageUrlFallbackAsync()
-    {
-        var user = await GetAuthorUserAsync();
-        return user.GetFailedAvatarUrl();
-    }
-    
-    public async Task<bool> CheckIfMentioned()
+    public bool CheckIfMentioned()
     {
         if (Mentions is null || Mentions.Count == 0)
             return false;
-
-        List<PlanetRole> selfRoles = null;
+        
         PlanetMember selfMember = null;
 
         foreach (var mention in Mentions)
@@ -293,7 +221,7 @@ public class Message : LiveModel, ISharedMessage
             {
                 case MentionType.User:
                 {
-                    if (mention.TargetId == ValourClient.Self.Id)
+                    if (mention.TargetId == Client.Me.Id)
                     {
                         return true;
                     }
@@ -305,36 +233,18 @@ public class Message : LiveModel, ISharedMessage
                     if (PlanetId is null)
                         continue;
                     
-                    if (selfMember is null)
-                    {
-                        selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
-                    }
-                    
-                    if (mention.TargetId == selfMember.Id)
+                    if (mention.TargetId == Planet.MyMember?.Id)
                         return true;
                     
                     break;
                 }
                 case MentionType.Role:
                 {
-                    if (PlanetId is null)
+                    if (PlanetId is null || Planet.MyMember is null)
                         continue;
                     
-                    if (selfRoles is null)
-                    {
-                        if (selfMember is null)
-                        {
-                            selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
-                        }
-                        
-                        selfRoles = await selfMember.GetRolesAsync();
-                    }
-                    
-                    foreach (var role in selfRoles)
-                    {
-                        if (mention.TargetId == role.Id)
-                            return true;
-                    }
+                    if (Planet.MyMember.Roles.ContainsId(mention.TargetId))
+                        return true;
 
                     break;
                 }
@@ -476,20 +386,23 @@ public class Message : LiveModel, ISharedMessage
     {
         _embedParsed = val;
     }
-
-    /// <summary> 
-    /// Returns the author user of the message 
-    /// </summary> 
-    public async ValueTask<User> GetAuthorUserAsync(bool refresh = false) =>
-        await User.FindAsync(AuthorUserId, refresh);
-
+    
     public bool IsEmpty()
     {
-        return string.IsNullOrWhiteSpace(Content) && 
-               string.IsNullOrWhiteSpace(EmbedData) &&
-               string.IsNullOrWhiteSpace(AttachmentsData) && 
-               (_attachments is null || _attachments.Count == 0) && 
-               ReplyToId is null;
+        // early returns are faster than checking all conditions
+        if (!string.IsNullOrEmpty(Content))
+            return false;
+        
+        if (!string.IsNullOrWhiteSpace(EmbedData))
+            return false;
+        
+        if (!string.IsNullOrWhiteSpace(AttachmentsData))
+            return false;
+        
+        if (_attachments is not null && _attachments.Count > 0)
+            return false;
+        
+        return ReplyToId is null;
     }
     
     public void Clear()
@@ -508,52 +421,22 @@ public class Message : LiveModel, ISharedMessage
         _embedParsed = false;
     }
     
-    
-    #region Route implementations
-    
-    public static async ValueTask<Message> FindAsync(long id, long channelId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<Message>(id);
-            if (cached is not null)
-                return cached;
-        }
-        var response = await ValourClient.PrimaryNode.GetJsonAsync<Message>($"api/channels/{channelId}/message/{id}");
-        var item = response.Data;
+    // Alias for CreateAsync
+    public Task<TaskResult<Message>> PostAsync() => 
+        CreateAsync();
 
-        if (item is not null)
-        {
-            await item.AddToCache(item);
-        }
+    public override Message AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.Messages.Put(Id, this);
+    }
 
-        return item;
-    }
-    
-    public Task<TaskResult> DeleteAsync() =>
-        Node.DeleteAsync($"api/channels/{ChannelId}/messages/{Id}");
-    
-    public async Task<TaskResult> PostMessageAsync()
+    public override Message TakeAndRemoveFromCache()
     {
-        var node = ValourClient.PrimaryNode;
-        if (PlanetId is not null)
-        {
-            node = await NodeManager.GetNodeForPlanetAsync(PlanetId.Value);
-        }
-        
-        return await node.PostAsync($"api/channels/{ChannelId}/messages", this);
+        return Client.Cache.Messages.TakeAndRemove(Id);
     }
     
-    public async Task<TaskResult> EditMessageAsync()
+    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
     {
-        var node = ValourClient.PrimaryNode;
-        if (PlanetId is not null)
-        {
-            node = await NodeManager.GetNodeForPlanetAsync(PlanetId.Value);
-        }
-        
-        return await node.PutAsync($"api/channels/{ChannelId}/messages/{Id}", this);
+        ReplyTo = Client.Cache.Sync(ReplyTo);
     }
-    
-    #endregion
 }

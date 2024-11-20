@@ -1,12 +1,7 @@
 namespace Valour.Shared.Models;
 
-public interface ISharedUserProfile
+public interface ISharedUserProfile : ISharedModel<long>
 {
-    /// <summary>
-    /// The user the profile belongs to
-    /// </summary>
-    long Id { get; set; }
-    
     /// <summary>
     /// The 'headline' is the short top text in the profile
     /// </summary>

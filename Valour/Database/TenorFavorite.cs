@@ -7,14 +7,14 @@ namespace Valour.Database;
 /// Represents a favorite gif or media from Tenor
 /// </summary>
 [Table("tenor_favorites")]
-public class TenorFavorite : Item, ISharedTenorFavorite
+public class TenorFavorite : ISharedTenorFavorite
 {
     ///////////////////////
     // Entity Properties //
     ///////////////////////
     
     [Column("id")]
-    public new long Id { get; set; }
+    public long Id { get; set; }
 
     [Column("user_id")]
     public long UserId { get; set; }

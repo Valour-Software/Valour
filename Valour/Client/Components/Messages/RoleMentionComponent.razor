@@ -60,17 +60,16 @@
     {
         if (Channel.PlanetId is not null)
         {
-            Role = await PlanetRole.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+            Role = await Channel.Planet.FetchRoleAsync(Mention.TargetId);
         }
         RoleColor = Role is null ? "#fff" : Role.Color;
 
         if (Role is not null)
         {
-            var selfMember = await PlanetMember.FindAsync(ValourClient.Self.Id, Role.PlanetId);
-            if (selfMember is not null)
+            var myMember = Channel.Planet.MyMember;
+            if (myMember is not null)
             {
-                var selfRoles = await selfMember.GetRolesAsync();
-                IsTarget = selfRoles.Any(r => r.Id == Role.Id);
+                IsTarget = myMember.Roles.Any(r => r.Id == Role.Id);
             }
         }
 

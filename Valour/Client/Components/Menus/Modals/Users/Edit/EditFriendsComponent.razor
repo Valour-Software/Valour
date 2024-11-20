@@ -1,4 +1,5 @@
 @implements IDisposable
+@inject ValourClient Client
 
 <div class="col-md-12 modal-bg">
 	<section>
@@ -11,9 +12,9 @@
 
 		<h5>Added you</h5>
 		<div class="inner-scroll-box">
-			@foreach (var addedMe in ValourClient.FriendRequests)
+			@foreach (var addedMe in Client.FriendService.FriendRequests)
 			{
-				<div class="request-row">
+				<div class="request-row" @key="@addedMe.Id">
 					<UserInfoComponent User="@addedMe" />
 
 					<div class="action-row" role="group" aria-label="Friend Accept or Deny">
@@ -27,9 +28,9 @@
 
 		<h5 style="margin-top: 20px">You added</h5>
 		<div class="inner-scroll-box">
-			@foreach (var added in ValourClient.FriendsRequested)
+			@foreach (var added in Client.FriendService.FriendsRequested)
 			{
-				<div class="request-row">
+				<div class="request-row" @key="@added.Id">
 					<UserInfoComponent User="@added" />
 
 					<div class="action-row" role="group" aria-label="Friend Accept or Deny">
@@ -81,12 +82,12 @@
 
 	protected override void OnInitialized()
 	{
-		ValourClient.OnFriendEvent += FriendEventHandler;
+		Client.FriendService.FriendsChanged += FriendEventHandler;
 	}
 	
 	void IDisposable.Dispose()
 	{
-		ValourClient.OnFriendEvent -= FriendEventHandler;
+		Client.FriendService.FriendsChanged -= FriendEventHandler;
 	}
 
 	private Task FriendEventHandler(FriendEventData eventData)
@@ -104,7 +105,7 @@
 			return;
 		}
 
-		var response = await ValourClient.AddFriendAsync(_name);
+		var response = await Client.FriendService.AddFriendAsync(_name);
 
 		if (!response.Success)
 		{
@@ -120,7 +121,7 @@
 	{
 		_addedYouError = "";
 
-		var result = await ValourClient.AddFriendAsync(user.NameAndTag);
+		var result = await Client.FriendService.AddFriendAsync(user.NameAndTag);
 		if (!result.Success){
 			_addedYouError = result.Message;
 		}
@@ -132,7 +133,7 @@
 	{
 		_addedYouError = "";
 
-		var result = await ValourClient.DeclineFriendAsync(user.NameAndTag);
+		var result = await Client.FriendService.DeclineFriendAsync(user.NameAndTag);
 		if (!result.Success)
 		{
 			_addedYouError = result.Message;
@@ -145,7 +146,7 @@
 	{
 		_addedError = "";
 
-		var result = await ValourClient.CancelFriendAsync(user.NameAndTag);
+		var result = await Client.FriendService.CancelFriendAsync(user.NameAndTag);
 		if (!result.Success)
 		{
 			_addedError = result.Message;

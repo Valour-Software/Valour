@@ -3,6 +3,10 @@
 @inject ChannelListManager ListManager
 @inject ClientCategoryManager CategoryManager
 @inject ContextMenuService ContextMenuService
+@inject ValourClient Client
+@inject ChannelService ChannelService
+@inject NotificationService NotificationService
+@inject ChannelStateService ChannelStateService
 
 <div
     class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
@@ -125,7 +129,7 @@
     public ChannelListItem ParentComponent { get; set; }
     
     [Parameter]
-    public List<Channel> AllChannels { get; set; }
+    public SortedModelList<Channel,long> AllChannels { get; set; }
     
     [Parameter]
     public Channel Channel { get; set; }
@@ -163,16 +167,16 @@
     
     protected override void OnInitialized()
     {
-        ModelObserver<Channel>.OnAnyUpdated += OnChannelUpdate;
-        ModelObserver<Channel>.OnAnyDeleted += OnChannelDeletion;
+        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
+        ModelObserver<Channel>.AnyDeleted += OnChannelDeletion;
 
-        ValourClient.OnChannelOpen += OnChannelOpenedChange;
-        ValourClient.OnChannelClose += OnChannelOpenedChange;
-        ValourClient.OnCategoryOrderUpdate += OnCategoryOrderUpdate;
+        ChannelService.ChannelConnected += OnChannelConnectionChange;
+        ChannelService.ChannelDisconnected += OnChannelConnectionChange;
+        ChannelService.CategoryReordered += OnCategoryOrderUpdate;
 
-        ValourClient.OnNotificationReceived += OnNotification;
-        ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
-        ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
+        NotificationService.NotificationReceived += OnNotification;
+        ChannelStateService.ChannelStateUpdated += OnChannelStateUpdate;
+        ChannelStateService.UserChannelStateUpdated += OnUserChannelStateUpdate;
 
         Planet = PlanetComponent.Planet;
 
@@ -204,8 +208,8 @@
     {
         _children.Sort((x, y) =>
         {
-            var a = x.Position.GetValueOrDefault();
-            var b = y.Position.GetValueOrDefault();
+            var a = x.RawPosition;
+            var b = y.RawPosition;
             return a.CompareTo(b);
         });
     }
@@ -237,12 +241,12 @@
     
     private void DetermineUnread()
     {
-        IsUnread = ValourClient.GetChannelUnreadState(Channel.Id);
+        IsUnread = ChannelStateService.GetChannelUnreadState(Channel.Id);
     }
 
     private void DetermineNotifications()
     {
-        _notificationCount = ValourClient.GetChannelNotifications(Channel.Id);
+        _notificationCount = NotificationService.GetChannelNotifications(Channel.Id);
     }
     
     // Get local index
@@ -372,7 +376,7 @@
         return Task.CompletedTask;
     }
     
-    private Task OnChannelOpenedChange(Channel channel)
+    private Task OnChannelConnectionChange(Channel channel)
     {
         if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
             return Task.CompletedTask;
@@ -509,11 +513,15 @@
     
     public void Dispose()
     {
-        ModelObserver<Channel>.OnAnyUpdated -= OnChannelUpdate;
-
-        ValourClient.OnChannelOpen -= OnChannelOpenedChange;
-        ValourClient.OnChannelClose -= OnChannelOpenedChange;
-        ValourClient.OnUserChannelStateUpdate -= OnUserChannelStateUpdate;
-        ValourClient.OnChannelStateUpdate -= OnChannelStateUpdate;
+        ModelObserver<Channel>.AnyUpdated -= OnChannelUpdate;
+        ModelObserver<Channel>.AnyDeleted -= OnChannelDeletion;
+        
+        NotificationService.NotificationReceived -= OnNotification;
+        ChannelStateService.ChannelStateUpdated -= OnChannelStateUpdate;
+        ChannelStateService.UserChannelStateUpdated -= OnUserChannelStateUpdate;
+        
+        ChannelService.ChannelConnected -= OnChannelConnectionChange;
+        ChannelService.ChannelDisconnected -= OnChannelConnectionChange;
+        ChannelService.CategoryReordered -= OnCategoryOrderUpdate;
     }
 }

@@ -29,7 +29,7 @@ public class NodeStateWorker : IHostedService, IDisposable
         // Migrate to new access system
         
         /*
-        var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
         var accessService = scope.ServiceProvider.GetRequiredService<ChannelAccessService>();
         
         Console.WriteLine("Migrating to channel access system...");

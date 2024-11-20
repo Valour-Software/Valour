@@ -6,7 +6,7 @@ namespace Valour.Server.Services;
 
 public class PermissionsNodeService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly PlanetMemberService _memberService;
@@ -14,7 +14,7 @@ public class PermissionsNodeService
     private readonly ChannelAccessService _accessService;
 
     public PermissionsNodeService(
-        ValourDB db,
+        ValourDb db,
         CoreHubService coreHub,
         TokenService tokenService,
         PlanetMemberService memberService,

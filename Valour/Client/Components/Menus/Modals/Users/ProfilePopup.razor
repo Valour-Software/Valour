@@ -53,11 +53,7 @@
         _member = null;
         _user = user;
         
-        var profileResponse = await _user.GetProfileAsync();
-        if (!profileResponse.Success)
-            return;
-        
-        _profile = profileResponse.Data;
+        _profile = await _user.FetchProfileAsync();
         
         _hidden = false;
 
@@ -77,13 +73,11 @@
         _member = member;
         _user = null;
         _hidden = false;
-        _user = await member.GetUserAsync();
+        _user = member.User;
         
-        var profileResponse = await _user.GetProfileAsync();
-        if (!profileResponse.Success)
+        _profile =  await _user.FetchProfileAsync();
+        if (_profile is null)
             return;
-        
-        _profile = profileResponse.Data;
 
         _needsPositioning = true;
 

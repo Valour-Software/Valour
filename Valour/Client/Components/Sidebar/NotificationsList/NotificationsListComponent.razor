@@ -1,5 +1,6 @@
 ﻿@implements IDisposable
 @inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
 
 <div class="notifications-container">
     <p class="subtitle mb-2">Notifications</p>
@@ -7,7 +8,7 @@
     <!-- This wrapper flips the order. Why? Because we sent the notifications in reverse order. Why? -->
     <!-- Because adding new items to the end of a list is a lot faster than inserting to the start. -->
     <div class="item-wrapper">
-        <Virtualize TItem="Notification" Items="ValourClient.UnreadNotifications">
+        <Virtualize TItem="Notification" Items="@NotificationService.GetUnreadInternal()">
             <NotificationCard @key="@context.Id" Notification="@context"/>
         </Virtualize>
     </div>
@@ -20,30 +21,28 @@
     
     protected override void OnInitialized()
     {
-        ValourClient.OnNotificationReceived += HandleNotificationReceived;
-        ValourClient.OnNotificationsCleared += HandleNotificationsCleared;
+        NotificationService.NotificationReceived += HandleNotificationReceived;
+        NotificationService.NotificationsCleared += HandleNotificationsCleared;
     }
 
     void IDisposable.Dispose()
     {
-        ValourClient.OnNotificationReceived -= HandleNotificationReceived;
-        ValourClient.OnNotificationsCleared -= HandleNotificationsCleared;
+        NotificationService.NotificationReceived -= HandleNotificationReceived;
+        NotificationService.NotificationsCleared -= HandleNotificationsCleared;
     }
     
     private async Task OnClickClearNotifications()
     {
-        await ValourClient.ClearNotificationsAsync();
+        await NotificationService.ClearNotificationsAsync();
     }
 
-    private Task HandleNotificationReceived(Notification notification)
+    private void HandleNotificationReceived(Notification notification)
     {
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
-    private Task HandleNotificationsCleared()
+    private void HandleNotificationsCleared()
     {
         StateHasChanged();
-        return Task.CompletedTask;
     }
 }

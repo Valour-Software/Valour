@@ -1,26 +1,29 @@
 ﻿@inherits ContextMenu<UserContextMenu.UserContextParams>
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject FriendService FriendService
+@inject ChannelService ChannelService
 
-<ContextMenuItem OnClick="@OnClickMessage">
+<ContextMenuItem OnClickAsync="@OnClickMessage">
 	<Label>Message</Label>
 	<Icon><i class="bi bi-chat-dots-fill"></i></Icon>
 </ContextMenuItem>
 @if (_isFriend)
 {
-	<ContextMenuItem OnClick="@OnClickRemoveFriend">
+	<ContextMenuItem OnClickAsync="@OnClickRemoveFriend">
 		<Label>Remove Friend</Label>
 		<Icon>-<i class="bi bi-person-fill"></i></Icon>
 	</ContextMenuItem>
 }
 else if (_isFriendRequested)
 {
-	<ContextMenuItem OnClick="@OnClickRemoveFriend">
+	<ContextMenuItem OnClickAsync="@OnClickRemoveFriend">
 		Cancel Request
 	</ContextMenuItem>
 }
 else
 {
-	<ContextMenuItem OnClick="@OnClickAddFriend">
+	<ContextMenuItem OnClickAsync="@OnClickAddFriend">
 		<Label>
 			Add Friend
 		</Label>
@@ -32,8 +35,8 @@ else
 	<Label>Copy</Label>
 	<Icon><i class="bi bi-caret-right-fill"></i></Icon>
 	<Content>
-		<ContextMenuItem OnClick="@OnClickCopyUsername">Username</ContextMenuItem>
-		<ContextMenuItem OnClick="@OnClickCopyUserId">User Id</ContextMenuItem>
+		<ContextMenuItem OnClickAsync="@OnClickCopyUsername">Username</ContextMenuItem>
+		<ContextMenuItem OnClickAsync="@OnClickCopyUserId">User Id</ContextMenuItem>
 	</Content>
 </ContextSubMenu>
 
@@ -46,8 +49,8 @@ else
 
 	protected override void OnInitialized()
 	{
-		_isFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == Data.User.Id);
-		_isFriend = ValourClient.Friends.Any(x => x.Id == Data.User.Id);
+		_isFriendRequested = FriendService.FriendsRequested.Any(x => x.Id == Data.User.Id);
+		_isFriend = FriendService.Friends.Any(x => x.Id == Data.User.Id);
 	}
 
 	private bool _isFriend;
@@ -55,11 +58,11 @@ else
 
 	private async Task OnClickAddFriend()
 	{
-		var result = await ValourClient.AddFriendAsync(Data.User.NameAndTag);
+		var result = await FriendService.AddFriendAsync(Data.User.NameAndTag);
 
 		if (!result.Success)
 		{
-			await Logger.Log($"Failed to add friend:\n{result.Message}", "orange");
+			Client.Logger.Log<UserContextMenu>($"Failed to add friend:\n{result.Message}", "orange");
 			return;
 		}
 
@@ -69,11 +72,11 @@ else
 
 	private async Task OnClickRemoveFriend()
 	{
-		var result = await ValourClient.RemoveFriendAsync(Data.User.NameAndTag);
+		var result = await FriendService.RemoveFriendAsync(Data.User.NameAndTag);
 
 		if (!result.Success)
 		{
-			await Logger.Log($"Failed to remove friend:\n{result.Message}", "orange");
+			Client.Logger.Log<UserContextMenu>($"Failed to remove friend:\n{result.Message}", "orange");
 			return;
 		}
 
@@ -92,7 +95,7 @@ else
 	
 	private async Task OnClickMessage()
 	{
-		var channel = await Channel.GetDirectChannelAsync(Data.User.Id, true);
+		var channel = await ChannelService.FetchDmChannelAsync(Data.User.Id, true);
 		var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
 		await WindowService.OpenWindowAtFocused(newWindowContent);
 	}

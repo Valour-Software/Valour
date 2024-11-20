@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_role_members")]
-public class PlanetRoleMember : Item, ISharedPlanetRoleMember
+public class PlanetRoleMember : ISharedPlanetRoleMember
 {
     ///////////////////////////
     // Relational Properties //
@@ -26,6 +27,10 @@ public class PlanetRoleMember : Item, ISharedPlanetRoleMember
     // Entity Properties //
     ///////////////////////
 
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
+    
     [Column("planet_id")]
     public long PlanetId { get; set; }
 

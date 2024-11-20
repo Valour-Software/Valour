@@ -1,5 +1,7 @@
 ﻿@using Valour.Shared.Channels
 @implements IDisposable
+@inject ValourClient Client
+@inject UserService UserService
 
 <SmoothDraggable StartX="20" StartY="40" FromRight="true">
     <div class="watching-container">
@@ -33,7 +35,7 @@
 @code {
 
     [Parameter]
-    public IChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
     [Parameter]
     public ChatChannelWindowComponent ParentComponent { get; set; }
@@ -52,7 +54,7 @@
     {
         await base.OnInitializedAsync();
         DisplayData = new();
-        ValourClient.OnChannelWatchingUpdate += OnWatchingUpdate;
+        Channel.WatchingUpdated += OnWatchingUpdate;
     }
 
     private void Clear()
@@ -64,7 +66,7 @@
 
     void IDisposable.Dispose()
     {
-        ValourClient.OnChannelWatchingUpdate -= OnWatchingUpdate;
+        Channel.WatchingUpdated -= OnWatchingUpdate;
     }
 
     /// <summary>
@@ -81,7 +83,7 @@
         // Take first ten
         foreach (var userId in update.UserIds.Take(10))
         {
-            var user = await User.FindAsync(userId);
+            var user = await UserService.FetchUserAsync(userId);
             if (user is not null)
             {
                 DisplayData.Add(user);

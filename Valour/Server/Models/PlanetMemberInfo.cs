@@ -13,6 +13,5 @@ public class PlanetMemberData
 {
     public PlanetMember Member { get; set; }
     public List<long> RoleIds { get; set; }
-    public User User { get; set; }
 }
 

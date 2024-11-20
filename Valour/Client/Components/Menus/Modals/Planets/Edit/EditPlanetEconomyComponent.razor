@@ -1,3 +1,6 @@
+@inject ValourClient Client
+@inject EcoService EcoService
+
 <div class="title-container">
     <h3>Economy</h3>
     <img alt="Icon of a bank" class="icon" src="_content/Valour.Client/media/eco-icon.svg"/>
@@ -59,7 +62,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <Virtualize @ref="_planetVirtualize" TItem="EcoAccount" ItemsProvider="@_planetAccountProvider.GetItemsAsync" OverscanCount="20">
+                        <Virtualize @ref="_planetVirtualize" TItem="EcoAccount" ItemsProvider="@_sharedAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
                             <tr @key="@context.Id">
                                 <td><input class="v-input" @bind="@context.Name"/></td>
                                 <td>@Currency.Format(@context.BalanceValue)</td>
@@ -100,7 +103,7 @@
                     </thead>
                     <tbody>
                     
-                    <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetItemsAsync" OverscanCount="20">
+                    <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
                         <tr @key="@context.Account.Id">
                             <td><UserInfoComponent Member="@context.Member"/></td>
                             <td>@Currency.Format(@context.Account.BalanceValue)</td>
@@ -144,18 +147,17 @@
     private string _accountError = null;
     private string _accountInfo = null;
 
-    private ModelListProvider<EcoAccount> _planetAccountProvider;
-    private EconomyMemberProvider _userAccountProvider;
+    private ModelQueryEngine<EcoAccount> _sharedAccountProvider;
+    private ModelQueryEngine<EcoAccountPlanetMember> _userAccountProvider;
 
     protected override async Task OnInitializedAsync()
     {
-        _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Planet.Id}/planet", Planet.Id);
-        _userAccountProvider = new EconomyMemberProvider($"api/eco/accounts/planet/{Planet.Id}/member", Planet.Id);
+        _sharedAccountProvider = EcoService.GetSharedAccountQueryEngine(Planet);
+        _userAccountProvider = EcoService.GetUserAccountQueryEngine(Planet);
         
-        var self = await ValourClient.GetSelfMember(Planet);
-        _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
+        _hasCurrencyPermission = Planet.MyMember.HasPermission(PlanetPermissions.ManageCurrency);
 
-        Currency = await Currency.FindByPlanetAsync(Planet.Id);
+        Currency = await Planet.FetchCurrencyAsync();
 
         _loading = false;
     }
@@ -176,11 +178,11 @@
         // New currency
         if (Currency.Id == 0)
         {
-            result = await LiveModel.CreateAsync(Currency);
+            result = await Currency.CreateAsync();
         }
         else
         {
-            result = await LiveModel.UpdateAsync(Currency);
+            result = await Currency.UpdateAsync();
         }
 
         if (!result.Success)
@@ -196,15 +198,15 @@
     {
         var newAccount = new EcoAccount()
         {
-            UserId = ValourClient.Self.Id,
-            AccountType = AccountType.Planet,
+            UserId = Client.Me.Id,
+            AccountType = AccountType.Shared,
             BalanceValue = 0,
             CurrencyId = Currency.Id,
             Name = string.Empty,
             PlanetId = Currency.PlanetId,
         };
 
-        var result = await LiveModel.CreateAsync(newAccount);
+        var result = await newAccount.CreateAsync();
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -218,7 +220,7 @@
 
     private async Task OnClickSaveAccount(EcoAccount account)
     {
-        var result = await LiveModel.UpdateAsync(account);
+        var result = await account.UpdateAsync();
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -233,7 +235,7 @@
     
     private async Task OnClickDeleteAccount(EcoAccount account)
     {
-        var result = await LiveModel.DeleteAsync(account);
+        var result = await account.DeleteAsync();
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -277,7 +279,7 @@
             UserToId = account.UserId,
         };
 
-        var result = await Transaction.SendTransactionAsync(issueTrans);
+        var result = await EcoService.SendTransactionAsync(issueTrans);
                 
         if (!result.Success)
         {

@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Valour.Shared.Utilities;
 
 namespace Valour.Client.Utility;
 
 public class ResizeObserver : IAsyncDisposable
 {
-    public readonly HybridEvent<ElementDimensions> ResizeEvent = new();
+    public HybridEvent<ElementDimensions> ResizeEvent;
     
     private ElementReference _element;
     private IJSRuntime _runtime;
@@ -33,14 +34,17 @@ public class ResizeObserver : IAsyncDisposable
         _dotnetRef.Dispose();
         await _service.DisposeAsync();
         await _jsModule.DisposeAsync();
-        ResizeEvent.Dispose();
+        
+        if (ResizeEvent is not null)
+            ResizeEvent.Dispose();
         
         GC.SuppressFinalize(this);
     }
     
     [JSInvokable("NotifyResize")]
-    public async Task NotifyResize(ElementDimensions dimensions)
+    public void NotifyResize(ElementDimensions dimensions)
     {
-        await ResizeEvent.Invoke(dimensions);
+        if (ResizeEvent is not null)
+            ResizeEvent.Invoke(dimensions);
     }
 }

@@ -1,3 +1,7 @@
+@inject ValourClient Client
+@inject EcoService EcoService
+@inject UserService UserService
+
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
     <p style="color: red; text-align: center; margin-top: 1em">@_majorError</p>
@@ -54,7 +58,7 @@ else
             <div class="account-select" @onclick="@(async () => await OnSelectAccount(account))">
                 @if (account.AccountType == AccountType.User)
                 {
-                    <UserInfoComponent User="@ValourClient.Self" />
+                    <UserInfoComponent User="@Client.Me" />
                     <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(account.BalanceValue)</p>
                 }
                 else
@@ -70,7 +74,7 @@ else
         <div class="selected-preview">
             @if (_selectedPlanetAccount.AccountType == AccountType.User)
             {
-                <UserInfoComponent User="@ValourClient.Self" />
+                <UserInfoComponent User="@Client.Me" />
                 <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(_selectedPlanetAccount.BalanceValue)</p>
             }
             else
@@ -177,10 +181,10 @@ else
         public User User { get; set; }
     }
 
-    private async Task OnClickReceipt()
+    private void OnClickReceipt()
     {
-        await Input.AddReceipt(_transactionId);
-        await Modal.CloseAsync();
+        Input.AddReceipt(_transactionId);
+        Modal.Close();
     }
 
     private async Task OnClickSend()
@@ -188,7 +192,7 @@ else
         Transaction transaction = new()
         {
             PlanetId = _focusedPlanet.Id,
-            UserFromId = ValourClient.Self.Id,
+            UserFromId = Client.Me.Id,
             AccountFromId = _selectedPlanetAccount.Id,
             UserToId = _selectedRecipientAccount.UserId,
             AccountToId = _selectedRecipientAccount.Id,
@@ -197,7 +201,7 @@ else
             Description = "Sent via Valour App",
         };
         
-        var result = await Transaction.SendTransactionAsync(transaction);
+        var result = await EcoService.SendTransactionAsync(transaction);
         if (!result.Success)
         {
             _errorSpan = result.Message;
@@ -246,11 +250,11 @@ else
         // Get planet that was focused when the modal was loaded
         _focusedPlanet = WindowService.FocusedPlanet;
 
-        _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
+        _planetCurrency = await EcoService.FetchCurrencyByPlanetAsync(_focusedPlanet.Id);
         if (_planetCurrency is null)
             return;
         
-        var accResult = await ValourClient.GetEcoAccountsAsync();
+        var accResult = await EcoService.FetchSelfEcoAccountsAsync();
         if (!accResult.Success)
         {
             _majorError = accResult.Message;
@@ -298,7 +302,7 @@ else
 
     private async Task GetSendableAccounts()
     {
-        var otherAccounts = await EcoAccount.GetPlanetAccountsCanSendAsync(_focusedPlanet.Id, _selectedPlanetAccount.Id, _search);
+        var otherAccounts = await EcoService.SearchSendableAccountsAsync(_focusedPlanet.Id, _selectedPlanetAccount.Id, _search);
         _otherPlanetAccounts = new List<AccountSearchData>();
         foreach (var searchData in otherAccounts)
         {
@@ -309,7 +313,7 @@ else
 
             if (accountData.Data.Account.AccountType == AccountType.User)
             {
-                accountData.User = await User.FindAsync(searchData.Account.UserId);
+                accountData.User = await UserService.FetchUserAsync(searchData.Account.UserId);
             }
             
             _otherPlanetAccounts.Add(accountData);
@@ -329,13 +333,15 @@ else
     {
         _errorSpan = null;
         
-        var result = await LiveModel.CreateAsync(new EcoAccount()
+        var account =new EcoAccount()
         {
             PlanetId = _focusedPlanet.Id,
-            UserId = ValourClient.Self.Id,
+            UserId = Client.Me.Id,
             AccountType = AccountType.User,
             CurrencyId = _planetCurrency.Id,
-        });
+        };
+
+        var result = await account.CreateAsync();
         
         if (!result.Success)
         {

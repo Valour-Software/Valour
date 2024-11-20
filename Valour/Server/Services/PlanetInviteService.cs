@@ -5,12 +5,12 @@ namespace Valour.Server.Services;
 
 public class PlanetInviteService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<PlanetInviteService> _logger;
     private readonly CoreHubService _coreHub;
 
     public PlanetInviteService(
-        ValourDB db,
+        ValourDb db,
         ILogger<PlanetInviteService> logger,
         CoreHubService coreHub)
     {
@@ -23,20 +23,19 @@ public class PlanetInviteService
         (await _db.PlanetInvites.FindAsync(id)).ToModel();
 
     public async Task<PlanetInvite> GetAsync(string code) =>
-        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code))
+        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Id == code))
         .ToModel();
 
     public async Task<PlanetInvite> GetAsync(string code, long planetId) => 
-        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code 
+        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Id == code 
                                                                  && x.PlanetId == planetId))
         .ToModel();
     
     public async Task<TaskResult<PlanetInvite>> CreateAsync(PlanetInvite invite, PlanetMember issuer)
     {
-        invite.Id = IdManager.Generate();
+        invite.Id = await GenerateCodeAsync();
         invite.IssuerId = issuer.UserId;
         invite.TimeCreated = DateTime.UtcNow;
-        invite.Code = await GenerateCodeAsync();
 
         try
         {
@@ -59,7 +58,7 @@ public class PlanetInviteService
         var old = await _db.PlanetInvites.FindAsync(updatedInvite.Id);
         if (old is null) return new(false, $"PlanetInvite not found");
 
-        if (updatedInvite.Code != old.Code)
+        if (updatedInvite.Id != old.Id)
             return new(false, "You cannot change the code.");
         if (updatedInvite.IssuerId != old.IssuerId)
             return new(false, "You cannot change who issued.");
@@ -113,7 +112,7 @@ public class PlanetInviteService
         do
         {
             code = new string(Enumerable.Repeat(inviteChars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-            exists = await _db.PlanetInvites.AnyAsync(x => x.Code == code);
+            exists = await _db.PlanetInvites.AnyAsync(x => x.Id == code);
         }
         while (exists);
         return code;

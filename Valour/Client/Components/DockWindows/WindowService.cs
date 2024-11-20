@@ -33,7 +33,7 @@ public static class WindowService
         
         if (tab.Content.PlanetId is not null)
         {
-            FocusedPlanet = await Planet.FindAsync(tab.Content.PlanetId.Value);
+            FocusedPlanet = await MainDock.Client.PlanetService.FetchPlanetAsync(tab.Content.PlanetId.Value);
             
             if (OnFocusedPlanetChanged is not null)
                 await OnFocusedPlanetChanged.Invoke(FocusedPlanet);

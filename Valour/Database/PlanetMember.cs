@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
@@ -8,7 +9,7 @@ namespace Valour.Database;
 /// Database model for a planet member
 /// </summary>
 [Table("planet_members")]
-public class PlanetMember : Item, ISharedPlanetMember
+public class PlanetMember : ISharedPlanetMember
 {
     ///////////////////////////
     // Relational Properties //
@@ -32,6 +33,10 @@ public class PlanetMember : Item, ISharedPlanetMember
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     [Column("user_id")]
     public long UserId { get; set; }

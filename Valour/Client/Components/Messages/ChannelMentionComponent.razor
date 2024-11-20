@@ -1,4 +1,6 @@
-﻿<div class="channel-mention" @onclick="@OnClicked">
+﻿@inject ChannelService ChannelService
+
+<div class="channel-mention" @onclick="@OnClicked">
     @if (_targetChannel == null)
     {
         <div>#NotFound!</div>
@@ -46,7 +48,7 @@
     {
         if (Channel.PlanetId is not null)
         {
-            _targetChannel = await Channel.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+            _targetChannel = await Channel.Planet.FetchChannelAsync(Mention.TargetId);
         }
         StateHasChanged();
     }

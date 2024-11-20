@@ -1,5 +1,7 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
+@inject ValourClient Client
+
 @using System.Net.Http.Headers
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
@@ -158,8 +160,6 @@
     /// Allows this component to render when true
     /// </summary>
     public bool CanRenderFlag { get; set; }
-    
-    private PlanetMember _selfMember { get; set; }
 
     private DateTime _lastTypingUpdateSent = DateTime.MinValue;
 
@@ -250,16 +250,14 @@
 
     public virtual async Task SetupNewChannelAsync()
     {
-        var planet = await ChatComponent.Channel.GetPlanetAsync();
+        var planet = ChatComponent.Channel.Planet;
         if (planet is not null)
         {
-            _selfMember = await planet.GetSelfMemberAsync();
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
         }
         else
         {
-            _selfMember = null;
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(Client.Me.Id, ChatChannelPermissions.PostMessages);
         }
 
         PreviewMessage = BuildNewMessage();
@@ -273,10 +271,10 @@
         
         return new Message()
         {
-            AuthorUserId = ValourClient.Self.Id,
+            AuthorUserId = Client.Me.Id,
             Content = prevContent,
             ChannelId = ChatComponent.Channel.Id,
-            AuthorMemberId = _selfMember?.Id,
+            AuthorMemberId = ChatComponent.Channel.Planet?.MyMember.Id,
             TimeSent = DateTime.UtcNow,
             ReplyToId = null,
             PlanetId = ChatComponent.Channel.PlanetId,
@@ -316,11 +314,11 @@
         if (PreviewMessage?.Content is not null)
         {
             await SetInputContent(PreviewMessage.Content);
-            await RefreshPreviewMessage();
+            RefreshPreviewMessage();
         }
         else {
             await SetInputContent("");
-            await RefreshPreviewMessage();
+            RefreshPreviewMessage();
         }
     }
 
@@ -335,7 +333,7 @@
         EditingMessageComponent = component;
         PreviewMessage = message;
         EditingOriginalText = PreviewMessage.Content;
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(message.Content, message.Content.Split(' ').LastOrDefault());
 
@@ -358,7 +356,7 @@
         // Clear preview
         EditingMessageComponent = null;
         PreviewMessage = BuildNewMessage();
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
 
         // Clear input
         await OnChatboxUpdate(null, "");
@@ -403,7 +401,7 @@
             attachmentType = MessageAttachmentType.Audio;
         }
 
-        if (ValourClient.Self.SubscriptionType is not null)
+        if (Client.Me.SubscriptionType is not null)
         {
             maxSize = 20480000;
         }
@@ -468,7 +466,7 @@
             FileName = name,
         };
 
-        var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
+        var plusRoute = Client.Me.SubscriptionType == null ? "" : "/plus";
 
         var modalData = new FileUploadComponent.ModalParams()
         {
@@ -476,12 +474,12 @@
             Attachment = newAttachment,
             OnConfirm = async () => 
             {
-                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
+                var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
 
                 if (result.Success)
                 {
                     newAttachment.Location = result.Data;
-                    await AddMessageAttachment(newAttachment);
+                    AddMessageAttachment(newAttachment);
                 }
                 else
                 {
@@ -493,7 +491,7 @@
         ModalRoot.OpenModal<FileUploadComponent>(modalData);
     }
 
-    public async Task RemoveAttachment(int id)
+    public void RemoveAttachment(int id)
     {
         var attachments = PreviewMessage.Attachments;
         if (attachments is null)
@@ -509,27 +507,27 @@
 
         PreviewMessage.SetAttachments(attachments);
 
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
         Refresh();
     }
 
     #endregion
 
-    public async Task AddReceipt(string transactionId)
+    public void AddReceipt(string transactionId)
     {
         var attachment = new MessageAttachment(MessageAttachmentType.ValourReceipt)
         {
             Location = $"https://app.valour.gg/api/eco/transactions/{transactionId}",
         };
 
-        await AddMessageAttachment(attachment);
+        AddMessageAttachment(attachment);
     }
     
-    public async Task AddTenor(Media media)
+    public void AddTenor(Media media)
     {
         var format = media.GetFormat(MediaFormatType.gif);
 
-        await AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
+        AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
         {
             Location = format.Url,
             MimeType = "image/gif",
@@ -562,7 +560,7 @@
         Refresh();
     }
 
-    public async Task AddMessageAttachment(MessageAttachment attachment)
+    public void AddMessageAttachment(MessageAttachment attachment)
     {
         var attachments = PreviewMessage.Attachments;
         attachments ??= new List<MessageAttachment>();
@@ -570,16 +568,16 @@
         attachments.Add(attachment);
         PreviewMessage.SetAttachments(attachments);
 
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
         Refresh();
     }
 
-    public async Task RefreshPreviewMessage()
+    public void RefreshPreviewMessage()
     {
         //PreviewMessage.Content = string.Empty;
         PreviewMessage.TimeSent = DateTime.UtcNow;
         PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
     public async Task SetReplyMessage(Message message)
@@ -587,7 +585,7 @@
         PreviewMessageComponent.Message.ReplyTo = message;
         PreviewMessage.ReplyToId = message?.Id;
 
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
         Refresh();
 
         await FocusInputAsync();
@@ -608,7 +606,7 @@
         {
             MessageHolder.AddQueuedMessage(message);
             
-            var result = await message.PostMessageAsync();
+            var result = await message.PostAsync();
 
             if (!result.Success)
             {
@@ -633,12 +631,12 @@
             PreviewMessageComponent.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
-            _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
+            _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
         }
         // Editing message
         else
         {
-            var result = await message.EditMessageAsync();
+            var result = await message.UpdateAsync();
             if (!result.Success)
             {
                 Message errorMsg = new()
@@ -655,7 +653,7 @@
             else
             {
                 PreviewMessage = BuildNewMessage();
-                await PreviewMessageComponent.SetMessage(PreviewMessage);
+                PreviewMessageComponent.SetMessage(PreviewMessage);
             }
         }
     }
@@ -720,11 +718,11 @@
 
         _retainedInputCache[ChatComponent.Channel.Id] = input;
         PreviewMessage.Content = input;
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
 
         if (EditingMessageComponent is not null)
         {
-            await EditingMessageComponent.BuildMessage();
+            EditingMessageComponent.BuildMessage();
         }
 
         await MessageHolder.ScrollToBottom();
@@ -761,7 +759,7 @@
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Self.Id);
+            .LastOrDefault(m => m.Message.AuthorUserId == Client.Me.Id);
 
         if (lastMessage is null)
         {
@@ -802,7 +800,7 @@
 
         // New message for preview
         PreviewMessage = BuildNewMessage();
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(null, "");
 

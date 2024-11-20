@@ -1,3 +1,5 @@
+@inject StaffService StaffService
+
 <input class="form-control mt-2 mb-2" placeholder="Search name..." @onchange="@HandleNameSearch" />
 
 <QueryTable 
@@ -72,7 +74,7 @@
             Title = "Disabling User",
             SuccessMessage = "User has been disabled",
             Message = "Waiting for result...",
-            ProgressTask = StaffTools.SetUserDisabledAsync(userId, true)
+            ProgressTask = StaffService.SetUserDisabledAsync(userId, true)
         };
         
         var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
@@ -90,7 +92,7 @@
             Title = "Enabling User",
             SuccessMessage = "User has been enabled",
             Message = "Waiting for result...",
-            ProgressTask = StaffTools.SetUserDisabledAsync(userId, false)
+            ProgressTask = StaffService.SetUserDisabledAsync(userId, false)
         };
         
         var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
@@ -116,7 +118,7 @@
                     Title = "Deleting User",
                     SuccessMessage = "User has been deleted",
                     Message = "Waiting for result...",
-                    ProgressTask = StaffTools.DeleteUserAsync(user.Id)
+                    ProgressTask = StaffService.DeleteUserAsync(user.Id)
                 };
         
                 var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);

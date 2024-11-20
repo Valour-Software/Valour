@@ -1,8 +1,9 @@
-﻿using Valour.Shared.Models;
+﻿using Valour.Sdk.ModelLogic;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Notification : LiveModel, ISharedNotification
+public class Notification : ClientModel<Notification, long>, ISharedNotification
 {
     /// <summary>
     /// The user the notification was sent to
@@ -61,4 +62,14 @@ public class Notification : LiveModel, ISharedNotification
     /// The url the user is brought to when the notification is clicked
     /// </summary>
     public string ClickUrl { get; set; }
+
+    public override Notification AddToCacheOrReturnExisting()
+    {
+        return this;
+    }
+
+    public override Notification TakeAndRemoveFromCache()
+    {
+        return this;
+    }
 }

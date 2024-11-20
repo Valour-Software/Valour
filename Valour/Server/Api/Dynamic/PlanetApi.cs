@@ -152,6 +152,23 @@ public class PlanetApi
 
         return Results.Json(allowedChannels);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/primary")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetPrimaryChannelRouteAsync(
+        long id,
+        PlanetService planetService,
+        PlanetMemberService memberService)
+    {
+        // Get current member for planet
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var channel = await planetService.GetPrimaryChannelAsync(id);
+
+        return Results.Json(channel);
+    }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/chat")]
     [UserRequired(UserPermissionsEnum.Membership)]
@@ -272,6 +289,21 @@ public class PlanetApi
         
         return Results.Json(roleIds);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles/counts")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetRoleCountsRouteAsync(
+        long id, 
+        PlanetMemberService memberService,
+        PlanetService planetService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var counts = await planetService.GetRoleMembershipCountsAsync(id);
+        return Results.Json(counts);
+    }
 
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
@@ -291,7 +323,7 @@ public class PlanetApi
 
         var authority = await memberService.GetAuthorityAsync(member);
 
-        List<PlanetRole> newList = new();
+        List<long> newList = new();
 
         // Make sure that there is permission for any changes
         var pos = 0;
@@ -305,7 +337,7 @@ public class PlanetApi
             if (pos != role.Position && role.GetAuthority() >= authority)
                 return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");
 
-            newList.Add(role);
+            newList.Add(role.Id);
 
             pos++;
         }

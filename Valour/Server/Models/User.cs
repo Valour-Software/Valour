@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class User : Item, ISharedUser
+public class User : ServerModel<long>, ISharedUser
 {
     /// <summary>
     /// True if the user has a custom profile picture
@@ -104,5 +104,5 @@ public class User : Item, ISharedUser
     }
     
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatarUrl(this, format);
+        ISharedUser.GetAvatar(this, format);
 }
