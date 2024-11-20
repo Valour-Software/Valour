@@ -367,7 +367,7 @@
     private long DetermineDisplayRoleId(PlanetMember member, long exclude = long.MaxValue)
     {
         // Don't list at all if this is true
-        if (member.User.LastActiveSpan.TotalDays > 7)
+        if (member is null || member.User is null || member.User.LastActiveSpan.TotalDays > 7)
             return -1;
 
         // Throw directly into offline group

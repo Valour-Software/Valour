@@ -17,9 +17,10 @@
                     Message = PreviewMessage,
                     Ghost = true,
                     LastMessage = MessageHolder.GetLastMessage(),
+                    Holder = MessageHolder
                 };
 
-                <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
+                <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" Params="@messageParams"></MessageComponent>
             }
         }
     </div>
@@ -303,7 +304,7 @@
 
             await OnAfterJsSetupAsync();
 
-            PreviewMessageComponent.Holder = MessageHolder;
+            PreviewMessageComponent.Params.Holder = MessageHolder;
         }
 
         CanRenderFlag = false;
@@ -350,7 +351,7 @@
         {
             // Return to original
             //EditingMessageComponent.MessageData.Clear();
-            EditingMessageComponent.Message.Content = EditingOriginalText;
+            EditingMessageComponent.Params.Message.Content = EditingOriginalText;
         }
 
         // Clear preview
@@ -582,7 +583,7 @@
 
     public async Task SetReplyMessage(Message message)
     {
-        PreviewMessageComponent.Message.ReplyTo = message;
+        PreviewMessageComponent.Params.Message.ReplyTo = message;
         PreviewMessage.ReplyToId = message?.Id;
 
         RefreshPreviewMessage();
@@ -594,7 +595,7 @@
     public Task RemoveReply()
     {
         PreviewMessage.ReplyToId = null;
-        PreviewMessageComponent.Message.ReplyTo = null;
+        PreviewMessageComponent.Params.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
         return Task.CompletedTask;
     }
@@ -628,7 +629,7 @@
                 MessageHolder.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.Message.ReplyTo = null;
+            PreviewMessageComponent.Params.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
             _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
@@ -759,7 +760,7 @@
         
         // Get last message where author is the current user
         var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Message.AuthorUserId == Client.Me.Id);
+            .LastOrDefault(m => m.Params.Message.AuthorUserId == Client.Me.Id);
 
         if (lastMessage is null)
         {

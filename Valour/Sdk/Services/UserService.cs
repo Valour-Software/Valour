@@ -23,6 +23,11 @@ public class UserService : ServiceBase
     
     public async ValueTask<User> FetchUserAsync(long id, bool skipCache = false)
     {
+        if (id == ISharedUser.VictorUserId)
+        {
+            return User.Victor;
+        }
+        
         if (!skipCache && _client.Cache.Users.TryGet(id, out var cached))
             return cached;
         

@@ -3,39 +3,39 @@
 @inject IJSRuntime JS
 @inherits BaseEmbedItemComponent
 
-<div style="@(AdditionalDivStyle + item.GetStyle())">
+<div style="@(AdditionalDivStyle + MediaItem.GetStyle())">
 	@{
 		var par = new Dictionary<string, object>(){ 
-            { "Attachment", item.Attachment },
-			{ "MessageComponent", messageComponent }
+            { "Attachment", MediaItem.Attachment },
+			{ "MessageComponent", MessageComponent }
         };
 
-		if (item.Styles.Any(x => x.StyleType == StyleType.Width || x.StyleType == StyleType.Height))
+		if (MediaItem.Styles.Any(x => x.StyleType == StyleType.Width || x.StyleType == StyleType.Height))
 		{
-			par.Add("CustomStyle", item.GetStyle());
-			if (item.Attachment.Type == MessageAttachmentType.Image)
+			par.Add("CustomStyle", MediaItem.GetStyle());
+			if (MediaItem.Attachment.Type == MessageAttachmentType.Image)
 			{
 				par.Add("Clickable", false);
 			}
 		}
 
         <div class="attachment-wrapper">
-            <DynamicComponent Type="item.Attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+            <DynamicComponent Type="MediaItem.Attachment.GetComponentType()" Parameters="par"></DynamicComponent>
         </div>
 	}
 </div>
 
 @code {
-	public EmbedMediaItem item { get; set; }
+	public EmbedMediaItem MediaItem { get; set; }
 
 	[CascadingParameter]
-	public MessageComponent messageComponent { get; set; }
+	public MessageComponent MessageComponent { get; set; }
 
 	public string AdditionalDivStyle
 	{
 		get
 		{
-			if (item.ClickTarget is not null)
+			if (MediaItem.ClickTarget is not null)
 				return "cursor: pointer;";
 			return "";
 		}
@@ -43,24 +43,24 @@
 
 	protected override void OnInitialized()
 	{
-		item = (EmbedMediaItem)_item;
-		if (item.Id is not null)
-			embedComponent.ItemComponents[item.Id] = this;
+		MediaItem = (EmbedMediaItem)_item;
+		if (MediaItem.Id is not null)
+			embedComponent.ItemComponents[MediaItem.Id] = this;
 		embedComponent.RefreshItemComponents += Refresh;
 	}
 
 	public void Dispose()
     {
         embedComponent.RefreshItemComponents -= Refresh;
-		if (item.Id is not null)
-            embedComponent.ItemComponents.Remove(item.Id, out var _);
+		if (MediaItem.Id is not null)
+            embedComponent.ItemComponents.Remove(MediaItem.Id, out var _);
     }
 
 	public override void Refresh()
 	{
-		item = (EmbedMediaItem)_item;
-		if (item.Id is not null)
-			embedComponent.ItemComponents[item.Id] = this;
+		MediaItem = (EmbedMediaItem)_item;
+		if (MediaItem.Id is not null)
+			embedComponent.ItemComponents[MediaItem.Id] = this;
 		StateHasChanged();
 	}
 }

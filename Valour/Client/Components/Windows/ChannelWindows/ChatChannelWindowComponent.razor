@@ -152,7 +152,7 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-        await MessageHolder.InputComponent.OnBeginEdit(message, message.Message);
+        await MessageHolder.InputComponent.OnBeginEdit(message, message.Params.Message);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -187,12 +187,14 @@
 
         foreach (var messageComponent in MessageHolder.RenderedMessages)
         {
-            if (messageComponent.Message.Id == message.Id)
+            if (messageComponent.Params.Message.Id == message.Id)
             {
-                messageComponent.Message.EditedTime = DateTime.UtcNow;
-                messageComponent.Message.Content = message.Content;
-                messageComponent.Message.AttachmentsData = message.AttachmentsData;
-                messageComponent.Message.MentionsData = message.MentionsData;
+                var msg = messageComponent.Params.Message;
+                
+                msg.EditedTime = DateTime.UtcNow;
+                msg.Content = message.Content;
+                msg.AttachmentsData = message.AttachmentsData;
+                msg.MentionsData = message.MentionsData;
 
                 if (messageComponent.Edit)
                 {

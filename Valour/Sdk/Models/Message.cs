@@ -80,14 +80,6 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         
         return await FetchAuthorUserAsync();
     }
-
-    private string _renderKey;
-
-    public string RenderKey
-    {
-        get => _renderKey ??= Guid.NewGuid().ToString();
-        set => _renderKey = value;
-    }
     
     /// <summary>
     /// If we are replying to a message, this is the message we are replying to
@@ -259,7 +251,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// <summary>
     /// The mentions within this message
     /// </summary>
-    public List<Mention> Mentions
+    public List<Mention>? Mentions
     {
         get
         {
@@ -283,7 +275,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
             _mentions = new();
     }
 
-    public Embed Embed
+    public Embed? Embed
     {
         get
         {
@@ -322,7 +314,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         }
     }
 
-    public List<MessageAttachment> Attachments
+    public List<MessageAttachment>? Attachments
     {
         get
         {

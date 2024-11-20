@@ -3,7 +3,7 @@
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
-@if (Message == null || Message.IsEmpty() || !_isBuilt)
+@if (_message == null || _message.IsEmpty() || !_isBuilt)
 {
     return;
 }
@@ -67,19 +67,18 @@
             </div>
         }
 
-        @if (Message.ReplyTo is not null && !IsInnerReply)
+        @if (_message.ReplyTo is not null && !_isInnerReply)
         {
             @RenderReply
         }
 
         <div class="content">
-
-            @if (Message.Attachments != null)
+            @if (_message.Attachments != null)
             {
-                @for (var i = 0; i < Message.Attachments.Count; i++)
+                @for (var i = 0; i < _message.Attachments.Count; i++)
                 {
                     var id = i;
-                    var attachment = Message.Attachments[id];
+                    var attachment = _message.Attachments[id];
                     var par = new Dictionary<string, object>()
                     {
                         {"Attachment", attachment},
@@ -87,7 +86,7 @@
                     };
 
                     <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
-                        @if (Ghost)
+                        @if (_ghost)
                         {
                             <div class="attachment-x">x</div>
                         }
@@ -96,10 +95,10 @@
                 }
             }
 
-            @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
+            @if (_message.Embed != null && _message.Embed.Pages.Count > 0)
             {
-                <EmbedComponent Message="@Message" MessageComponent="@this"></EmbedComponent>
-                @if (Message.EditedTime != null)
+                <EmbedComponent Message="@_message" MessageComponent="@this"></EmbedComponent>
+                @if (_message.EditedTime != null)
                 {
                     <p class="edited-flag"> (Edited)</p>
                 }
@@ -113,7 +112,7 @@
                     <p class="edit-flag">(Editing)</p>
                 }
 
-                @if (Message.EditedTime != null)
+                @if (_message.EditedTime != null)
                 {
                     <p class="edited-flag"> (Edited)</p>
                 }
@@ -121,7 +120,7 @@
         </div>
     </div>
 
-    @if (IsInnerReply)
+    @if (_isInnerReply)
     {
         <div class="reply-x">x</div>
     }
@@ -131,13 +130,13 @@
 
     private RenderFragment RenderContent => builder =>
     {
-        if (string.IsNullOrWhiteSpace(Message.Content))
+        if (string.IsNullOrWhiteSpace(_message.Content))
             return;
         
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
         Markdown.RenderToFragment(
-            Message.Content, 
+            _message.Content, 
             builder, 
             MarkdownManager.Pipeline, 
             MarkdownManager.Renderer);
@@ -148,35 +147,29 @@
     {
         var messageParams = new MessageHolderComponent.MessageComponentParams()
         {
-            Message = Message.ReplyTo,
+            Message = _message.ReplyTo,
             LastMessage = null,
-            Ghost = Ghost,
-            IsInnerReply = true
+            Ghost = _ghost,
+            IsInnerReply = true,
+            Holder = _holder
         };
 
         builder.OpenComponent<MessageComponent>(0);
-        builder.AddAttribute(0, "ParamData", messageParams);
-        builder.SetKey($"r-{Message.Id}-{Message.ReplyTo.Id}");
+        builder.AddAttribute(0, "Params", messageParams);
+        builder.SetKey($"r-{_message.Id}-{_message.ReplyTo!.Id}");
         builder.CloseComponent();
     };
 
-    [CascadingParameter]
-    public MessageHolderComponent Holder { get; set; }
-
-    [CascadingParameter]
-    public WindowTab Window { get; set; }
-    
-    [CascadingParameter]
-    public ChatChannelWindowComponent ChatComponent { get; set; }
-
     /* Set Params */
     [Parameter]
-    public MessageHolderComponent.MessageComponentParams ParamData { get; set; }
+    public MessageHolderComponent.MessageComponentParams Params { get; set; }
 
-    public Message Message { get; set; }
-    public Message LastMessage { get; set; }
-    public bool Ghost { get; set; }
-    public bool IsInnerReply { get; set; }
+    private ChatChannelWindowComponent _channelWindow;
+    private MessageHolderComponent _holder;
+    private Message _message;
+    private Message _lastMessage;
+    private bool _ghost;
+    private bool _isInnerReply;
     /* End Set Params */
 
     private IMessageAuthor _author;
@@ -185,7 +178,7 @@
     private PlanetMember _member;
     
     /* End Planet Message Only */
-    private User _user { get; set; }
+    private User _user;
 
     public MessageComponent ReplyComponent;
 
@@ -225,13 +218,13 @@
         if (Edit)
             newClass += " edit";
 
-        if (IsInnerReply)
+        if (_isInnerReply)
             newClass += " reply";
 
-        if (Ghost)
+        if (_ghost)
             newClass += " ghost";
 
-        if (Message.ReplyTo is not null)
+        if (_message.ReplyTo is not null)
             newClass += " hasreply";
 
         _class = newClass;
@@ -239,8 +232,8 @@
 
     private void CalculateTime()
     {
-        var hoursAgo = (DateTime.UtcNow - Message.TimeSent).TotalHours;
-        var localTime = Message.TimeSent.ToLocalTime();
+        var hoursAgo = (DateTime.UtcNow - _message.TimeSent).TotalHours;
+        var localTime = _message.TimeSent.ToLocalTime();
 
         if (hoursAgo >= 24)
         {
@@ -266,11 +259,11 @@
     {
         if (_member is not null)
         {
-            return ProfilePopup.Instance.OpenAsync(_member, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+            return ProfilePopup.Instance.OpenAsync(_member, (int)e.ClientX, (int)e.ClientY);
         }
         else
         {
-            return ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+            return ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY);
         }
     }
 
@@ -286,9 +279,9 @@
         ContextMenuService.Root.OpenMenu<MessageContextMenu>(e,
             new MessageContextMenu.MessageContextParams()
             {
-                Message = Message,
+                Message = _message,
                 MessageComponent = this,
-                WindowComponent = ChatComponent
+                WindowComponent = _channelWindow
             }
         );
     }
@@ -315,26 +308,26 @@
 
     public async Task OnPointerDown()
     {
-        if (Ghost)
+        if (_ghost)
         {
-            if (IsInnerReply)
+            if (_isInnerReply)
             {
                 Console.WriteLine("Removing replyto");
-                var input = ChatComponent.MessageHolder.InputComponent;
+                var input = _channelWindow.MessageHolder.InputComponent;
                 await input.RemoveReply();
             }
         }
         else
         {
-            await Window.NotifyFocused();
+            await _channelWindow.WindowCtx.NotifyFocused();
         }
     }
 
     public void OnClickAttachment(int id)
     {
-        if (Ghost)
+        if (_ghost)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = _channelWindow.MessageHolder.InputComponent;
             input.RemoveAttachment(id);
         }
     }
@@ -344,7 +337,7 @@
         if (firstRender)
         {
             // Clear notification if one exists for this message
-            var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(Message.Id, out var notification);
+            var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(_message.Id, out var notification);
             if (found && notification.TimeRead is null)
             {
                 await Client.NotificationService.MarkNotificationRead(notification, true);
@@ -360,7 +353,7 @@
 
         ReRender();
 
-        await ChatComponent.OpenEditMode(this);
+        await _channelWindow.OpenEditMode(this);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -372,14 +365,14 @@
 
         CalculateClass();
 
-        await ChatComponent.CloseEditMode(cancel);
+        await _channelWindow.CloseEditMode(cancel);
 
         ReRender();
     }
 
     public void SetMessage(Message message)
     {
-        Message = message;
+        _message = message;
         BuildMessage();
 
         ReRender();
@@ -393,19 +386,19 @@
 
     public void SetLast(Message msg)
     {
-        LastMessage = msg;
+        _lastMessage = msg;
     }
 
     public void BuildMessage(bool render = true)
     {
-        if (Message == null)
+        if (_message == null)
             return;
 
         // Check if we are a minimal message
         CheckMinimal();
 
-        if (!IsInnerReply)
-            _mentioned = Message.CheckIfMentioned();
+        if (!_isInnerReply)
+            _mentioned = _message.CheckIfMentioned();
 
         CalculateClass();
         CalculateTime();
@@ -435,40 +428,43 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Message = ParamData.Message;
-        LastMessage = ParamData.LastMessage;
-        Ghost = ParamData.Ghost;
-        IsInnerReply = ParamData.IsInnerReply;
+        _message = Params.Message;
+        _lastMessage = Params.LastMessage;
+        _ghost = Params.Ghost;
+        _isInnerReply = Params.IsInnerReply;
+        _holder = Params.Holder;
+        _channelWindow = _holder.ChatComponent;
+        
         KeyboardListener.OnKeyDown += OnKeyDown;
         
-        if (Message is null)
+        if (_message is null)
         {
             Client.Logger.Log("Message", "MessageData is null", "red");
             return;
         }
         
         // This prevents client sync issues from breaking the message
-        Message.SetClient(Client);
+        _message.SetClient(Client);
         
         await base.OnInitializedAsync();
 
-        Id = $"m-{Message.ChannelId}-{Message.Id}";
+        Id = $"m-{_message.ChannelId}-{_message.Id}";
 
-        _user = await Message.FetchAuthorUserAsync();
+        _user = await _message.FetchAuthorUserAsync();
 
         if (_user != null)
             _user.Updated += OnUserUpdated;
         
-        if (!IsInnerReply && !Ghost)
+        if (!_isInnerReply && !_ghost)
         {
-            Holder.AddRenderedMessage(this);
+            _holder.AddRenderedMessage(this);
         }
 
         // Planet message logic
-        if (Message.PlanetId is not null)
+        if (_message.PlanetId is not null)
         {
             
-            _member = await Message.FetchAuthorMemberAsync();
+            _member = await _message.FetchAuthorMemberAsync();
             
             // Hook events
             if (_member is not null) // There is a chance they were deleted
@@ -478,7 +474,7 @@
             }
         }
 
-        _author = _member is not null ? _member : _user;
+        _author = _member is not null ? _member : (_user ?? User.NotFound);
         
         BuildMessage(false);
     }
@@ -488,34 +484,30 @@
     /// </summary>
     private string GetAuthorName()
     {
-        return _member is not null ? _member.Name : 
-            (_user?.Name ?? "User not found");
+        return _member is not null ? _member.Name : _user.Name;
     }
     
     private string GetAuthorRoleTag()
     {
+        // If there's a member, we use the member's planet role
+        if (_member is not null) 
+            return _member.PrimaryRole?.Name ?? "Unknown Role";
+        
         // Bot always shows Bot
         if (_user.Bot)
             return "Bot";
-        
-        // If there's a member, we use the member's planet role
-        if (_member is not null) 
-            return _member.PrimaryRole.Name ?? "Unknown Role";
-
-        if (_user is null) 
-            return string.Empty;
         
         // Otherwise, we use their relationship with the user
         if (_user.Id == Client.Me.Id)
             return "You";
 
-        return Client.FriendService.FriendLookup.ContainsKey(_user.Id) ? "Friend" : "User";
+        return Client.FriendService.FriendLookup.ContainsKey(Params.Message.AuthorUserId) ? "Friend" : "User";
     }
     
     private string GetAuthorColor()
     {
-        return _member is not null ? _member.PrimaryRole.Color : 
-            (Client.FriendService.FriendLookup.ContainsKey(_user.Id) ? "#9ffff1" : "#fff");
+        return _member is not null ? (_member.PrimaryRole?.Color ?? "#fff") :
+            (Client.FriendService.FriendLookup.ContainsKey(Params.Message.AuthorUserId) ? "#9ffff1" : "#fff");
     }
     
     public string GetAuthorAvatar() =>
@@ -541,15 +533,15 @@
             await CloseEditMode(true);
         }
  
-        if (IsInnerReply)
+        if (_isInnerReply)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = _channelWindow.MessageHolder.InputComponent;
             await input.RemoveReply(); 
         }
         
-        if (Ghost)
+        if (_ghost)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = _channelWindow.MessageHolder.InputComponent;
             input.RemoveAttachment(-1);
         }
     }
@@ -620,14 +612,14 @@
 
     public void CheckMinimal()
     {
-        if (LastMessage != null && Message != null)
+        if (_lastMessage != null && _message != null)
         {
-            if (Message.ReplyTo is not null)
+            if (_message.ReplyTo is not null)
             {
                 Minimal = false;
                 return;
             }
-            if (LastMessage.AuthorUserId == Message.AuthorUserId)
+            if (_lastMessage.AuthorUserId == _message.AuthorUserId)
             {
                 Minimal = true;
                 return;
@@ -639,7 +631,7 @@
 
     public void ReRender()
     {
-        if (Ghost && IsInnerReply) return;
+        if (_ghost && _isInnerReply) return;
 
         ShouldRenderValue = true;
         
@@ -650,9 +642,9 @@
 
     void IDisposable.Dispose()
     {
-        if (Holder != null)
+        if (_holder != null)
         {
-            Holder.RemoveRenderedMessage(this);
+            _holder.RemoveRenderedMessage(this);
         }
         
         if (_member is not null)
@@ -683,7 +675,7 @@
             return true;
         }
 
-        if (Ghost && IsInnerReply) return false;
+        if (_ghost && _isInnerReply) return false;
 
         return ShouldRenderValue;
     }

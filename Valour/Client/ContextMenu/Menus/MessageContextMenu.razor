@@ -101,7 +101,7 @@
         // Close the context menu
         await CloseAsync();
         
-        var input = Data.MessageComponent.Holder.ChatComponent.MessageHolder.InputComponent;
+        var input = Data.MessageComponent.Params.Holder.ChatComponent.MessageHolder.InputComponent;
         await input.SetReplyMessage(Data.Message);
     }
 
@@ -129,9 +129,9 @@
             Report = new Report()
             {
                 ReportingUserId = Client.Me.Id,
-                MessageId = Data.MessageComponent.Message.Id,
-                ChannelId = Data.MessageComponent.Message.ChannelId,
-                PlanetId = Data.MessageComponent.Message.PlanetId
+                MessageId = Data.MessageComponent.Params.Message.Id,
+                ChannelId = Data.MessageComponent.Params.Message.ChannelId,
+                PlanetId = Data.MessageComponent.Params.Message.PlanetId
             }
         };
         

@@ -1,7 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
-using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -12,13 +10,25 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
             ISharedUser.BaseRoute;
 
     [JsonIgnore]
-    public static User Victor = new User()
+    public static readonly User Victor = new User()
     {
         Bot = true,
         UserStateCode = 4,
         Name = "Victor",
+        Tag = "VALOUR",
         ValourStaff = true,
         Id = long.MaxValue
+    };
+    
+    [JsonIgnore]
+    public static readonly User NotFound = new User()
+    {
+        Bot = true,
+        UserStateCode = 4,
+        Name = "User Not Found",
+        Tag = "0000",
+        ValourStaff = false,
+        Id = long.MaxValue - 1
     };
     
     /// <summary>
@@ -39,12 +49,12 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// <summary>
     /// The name of this user
     /// </summary>
-    public string Name { get; set; }
+    public required string Name { get; set; }
     
     /// <summary>
     /// The tag (discriminator) of this user
     /// </summary>
-    public string Tag { get; set; }
+    public required string Tag { get; set; }
 
     /// <summary>
     /// True if the user is a bot
@@ -67,7 +77,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// The user's currently set status - this could represent how they feel, their disdain for the political climate
     /// of the modern world, their love for their mother's cooking, or their hate for lazy programmers.
     /// </summary>
-    public string Status { get; set; }
+    public string? Status { get; set; }
 
     /// <summary>
     /// The integer representation of the current user state
@@ -94,7 +104,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// If not null, the type of UserSubscription the user currently
     /// is subscribed to
     /// </summary>
-    public string SubscriptionType { get; set; }
+    public string? SubscriptionType { get; set; }
     
     /// <summary>
     /// The subscription the user currently has

@@ -17,9 +17,10 @@
 
 <InputComponent @ref="@InputComponent" MessageHolder="@this" />
 
-@code {
+  @code {
     public class MessageComponentParams
     {
+        public MessageHolderComponent Holder;
         public Message Message;
         public Message LastMessage;
         public bool IsInnerReply;
@@ -57,6 +58,7 @@
             {
                 var messageParams = new MessageComponentParams()
                 {
+                    Holder = this,
                     Message = message,
                     IsInnerReply = false,
                     LastMessage = lastMessage,
@@ -64,8 +66,8 @@
                 };
 
                 builder.OpenComponent<MessageComponent>(0);
-                builder.AddAttribute(1, "ParamData", messageParams);
-                builder.SetKey(message.RenderKey);
+                builder.AddAttribute(1, "Params", messageParams);
+                builder.SetKey(message.Id);
                 builder.CloseComponent();
 
                 lastMessage = message;
@@ -87,8 +89,8 @@
                 };
 
                 builder.OpenComponent<MessageComponent>(0);
-                builder.AddAttribute(1, "ParamData", messageParams);
-                builder.SetKey($"q-{message.RenderKey}");
+                builder.AddAttribute(1, "Params", messageParams);
+                builder.SetKey($"q-{message.Id}");
                 builder.CloseComponent();
 
                 lastMessage = message;
@@ -281,14 +283,14 @@
         DisplayedMessages.RemoveAll(x => x.Id == message.Id);
         QueuedMessages.RemoveAll(x => x.Id == message.Id);
 
-        var nextMessage = RenderedMessages.FirstOrDefault(x => x.Message.Id > message.Id);
+        var nextMessage = RenderedMessages.FirstOrDefault(x => x.Params.Message.Id > message.Id);
         if (nextMessage != null){
             var lastMessage = RenderedMessages
-                .OrderByDescending(x => x.Message.Id)
-                .FirstOrDefault(x => x.Message.Id < message.Id);
+                .OrderByDescending(x => x.Params.Message.Id)
+                .FirstOrDefault(x => x.Params.Message.Id < message.Id);
             
             if (lastMessage is not null)
-                nextMessage.SetLast(lastMessage.Message);
+                nextMessage.SetLast(lastMessage.Params.Message);
             
             nextMessage.RefreshMessage();
             nextMessage.ReRender();
