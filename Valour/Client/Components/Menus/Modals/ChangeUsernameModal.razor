@@ -3,7 +3,7 @@
 <div class="col-md-12">
     <section class="modal-bg">
         <h3>Change your username</h3>
-        <h5>Stargazers can change their usernames once a week!</h5>
+        <h5>@_changeUsernameMessage</h5>
 		
         <div class="form-group mt-2">
             <label class="m-2">New Username</label>
@@ -17,17 +17,20 @@
         
         <br />
         <div @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel</div>
-        <div @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</div>
+        @if (!_canChangeUsername)
+        {
+            <div @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</div>
+        }
     </section>
 </div>
 
 @code {
     public class Params {}
-    // TODO: Implement
     private string _changeUsernameMessage;
+    private bool _canChangeUsername = false;
 
-    private string _password = "";
     private string _newUsername = "";
+    private string _password = "";
 
     private ITaskResult _result;
 
@@ -37,9 +40,66 @@
         await CloseAsync();
     }
 
-    private void OnConfirm()
+    private async Task OnConfirm()
     {
-        // TODO: Implement
-        return;
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            ProgressTask = ValourClient.UpdateUsernameAsync(_newUsername, _password),
+            Title = "Changing Username",
+            Message = "Updating...",
+            SuccessMessage = "Username updated!",
+        };
+        
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+        if (result.Success)
+        {
+            await CloseAsync();
+        }
+        else
+        {
+            _result = result;
+            StateHasChanged();   
+        }
+    }
+
+    private void SetChangeUsernameMessage()
+    {
+        var user = ValourClient.Self;
+        double daysSinceLastChange = 0;
+        if (user.NameChangeTime is not null)
+        {
+            daysSinceLastChange = (DateTime.UtcNow - user.NameChangeTime.Value).TotalDays;
+        }
+        
+        if (user.Subscription is null)
+        {
+            if (daysSinceLastChange > 30)
+            {
+                var daysLeft = 30 - daysSinceLastChange;
+                _changeUsernameMessage = $"You can change your username again in {daysLeft.ToString("F0")} {(daysLeft > 1 ? "days" : "day")}.\nStargazers can change their username every 7 days!";
+            }
+            else
+            {
+                _canChangeUsername = true;
+            }
+        }
+        else
+        {
+            if (daysSinceLastChange < 7)
+            {
+                var daysLeft = 7 - daysSinceLastChange;
+                _changeUsernameMessage = $"You can change your username again in {daysLeft.ToString("F0")} {(daysLeft > 1 ? "days" : "day")}.";
+            }
+            else
+            {
+                _canChangeUsername = true;
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        SetChangeUsernameMessage();
     }
 }
