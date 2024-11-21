@@ -605,11 +605,41 @@ public class UserService
         return TaskResult.SuccessResult;
     }
 
+    /// <summary>
+    /// Updates the user's username, and changes their tag if they are not a Stargazer.
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="newUsername"></param>
+    /// <returns>TaskResult(success, message)</returns>
     public async Task<TaskResult> ChangeUsernameAsync(long userId, string newUsername)
     {
         var user = await _db.Users.FindAsync(userId);
+        // Verify user exists
         if (user is null)
             return new TaskResult(false, "User not found.");
+        // Verify new username is ACTUALLY NEW
+        if (user.Name == newUsername)
+            return new TaskResult(false, "New username matches your existing username.");
+        // If user is a Stargazer, verify the new username/tag combo is unique
+        if (user.SubscriptionType is not null)
+        {
+            if (await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == user.Tag))
+                return new TaskResult(false, "Username and tag already taken, please change the username or your tag and try again.");
+        }
+        // If user is NOT a Stargazer, assign new tag and verify it is unique with the new username
+        if (user.SubscriptionType is null)
+        {
+            var loop = true;
+            while (loop)
+            {
+                var tag = await GetUniqueTag(newUsername);
+                if (!await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == tag))
+                {
+                    user.Tag = tag;
+                    loop = false;
+                }
+            }
+        }
 
         user.PriorName = user.Name;
         user.Name = newUsername;
