@@ -155,7 +155,7 @@ else
     {
         _errorSpan = null;
         
-        var result = await LiveModel.CreateAsync(new EcoAccount()
+        var result = await ClientModel.CreateAsync(new EcoAccount()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
             UserId = ValourClient.Self.Id,

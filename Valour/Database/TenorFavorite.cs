@@ -7,7 +7,7 @@ namespace Valour.Database;
 /// Represents a favorite gif or media from Tenor
 /// </summary>
 [Table("tenor_favorites")]
-public class TenorFavorite : Item, ISharedTenorFavorite
+public class TenorFavorite : Model, ISharedTenorFavorite
 {
     ///////////////////////
     // Entity Properties //

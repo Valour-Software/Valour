@@ -10,7 +10,7 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetInvite : LiveModel, IPlanetModel, ISharedPlanetInvite
+public class PlanetInvite : ClientModel, IPlanetModel, ISharedPlanetInvite
 {
     #region IPlanetModel implementation
 

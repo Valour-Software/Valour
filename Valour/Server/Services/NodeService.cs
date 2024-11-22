@@ -17,7 +17,8 @@ public class NodeService
     public readonly string Name;
     public readonly string Location;
     public readonly string Version;
-    public HashSet<long> Planets { get; }
+    
+    private HashSet<long> _hostedPlanets;
     
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
@@ -44,15 +45,15 @@ public class NodeService
         Location = config.Location;
         Version = typeof(Valour.Shared.Models.ISharedUser).Assembly.GetName().Version.ToString();
 
-        Planets = new();
+        _hostedPlanets = new();
     }
 
     /// <summary>
     /// Returns if the given planet is hosted on this node
     /// </summary>
-    public async Task<bool> IsPlanetHostedLocally(long planetId)
+    public async Task<bool> IsHostingPlanet(long planetId)
     {
-        if (Planets.Contains((planetId)))
+        if (_hostedPlanets.Contains((planetId)))
             return true;
 
         return await GetPlanetNodeAsync(planetId) == Name;
@@ -95,7 +96,7 @@ public class NodeService
     /// </summary>
     public async Task<string> GetPlanetNodeAsync(long planetId)
     {
-        if (Planets.Contains(planetId))
+        if (_hostedPlanets.Contains(planetId))
             return Name; // We are hosting the planet (this is a local request)
         
         var key = $"planet:{planetId}";
@@ -110,7 +111,7 @@ public class NodeService
             if (NodeConfig.Instance.LogInfo)
                 _logger.LogInformation("Resuming hosting of {PlanetId}", planetId);
             
-            Planets.Add(planetId);
+            _hostedPlanets.Add(planetId);
         }
         
         if (NodeConfig.Instance.LogInfo)
@@ -205,7 +206,7 @@ public class NodeService
         if (NodeConfig.Instance.LogInfo)
             _logger.LogInformation("Taking ownership of planet {PlanetId}", planetId);
         
-        Planets.Add(planetId);
+        _hostedPlanets.Add(planetId);
         var key = $"planet:{planetId}";
         await _nodeRecords.StringSetAsync(key, Name);
     }

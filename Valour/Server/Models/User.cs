@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class User : Item, ISharedUser
+public class User : ServerModel, ISharedUser
 {
     /// <summary>
     /// True if the user has a custom profile picture

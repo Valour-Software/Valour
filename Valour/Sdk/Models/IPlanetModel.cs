@@ -2,7 +2,7 @@
 
 namespace Valour.Sdk.Models
 {
-    public interface IPlanetModel : ISharedItem
+    public interface IPlanetModel : ISharedModel
     {
         public long PlanetId { get; set; }
 

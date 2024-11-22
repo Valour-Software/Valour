@@ -176,11 +176,11 @@
         // New currency
         if (Currency.Id == 0)
         {
-            result = await LiveModel.CreateAsync(Currency);
+            result = await ClientModel.CreateAsync(Currency);
         }
         else
         {
-            result = await LiveModel.UpdateAsync(Currency);
+            result = await ClientModel.UpdateAsync(Currency);
         }
 
         if (!result.Success)
@@ -204,7 +204,7 @@
             PlanetId = Currency.PlanetId,
         };
 
-        var result = await LiveModel.CreateAsync(newAccount);
+        var result = await ClientModel.CreateAsync(newAccount);
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -218,7 +218,7 @@
 
     private async Task OnClickSaveAccount(EcoAccount account)
     {
-        var result = await LiveModel.UpdateAsync(account);
+        var result = await ClientModel.UpdateAsync(account);
         if (!result.Success)
         {
             _accountError = result.Message;
@@ -233,7 +233,7 @@
     
     private async Task OnClickDeleteAccount(EcoAccount account)
     {
-        var result = await LiveModel.DeleteAsync(account);
+        var result = await ClientModel.DeleteAsync(account);
         if (!result.Success)
         {
             _accountError = result.Message;

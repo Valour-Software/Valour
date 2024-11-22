@@ -125,7 +125,7 @@
     public ChannelListItem ParentComponent { get; set; }
     
     [Parameter]
-    public List<Channel> AllChannels { get; set; }
+    public IReadOnlyList<Channel> AllChannels { get; set; }
     
     [Parameter]
     public Channel Channel { get; set; }
@@ -204,8 +204,8 @@
     {
         _children.Sort((x, y) =>
         {
-            var a = x.Position.GetValueOrDefault();
-            var b = y.Position.GetValueOrDefault();
+            var a = x.Position;
+            var b = y.Position;
             return a.CompareTo(b);
         });
     }

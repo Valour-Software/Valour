@@ -17,7 +17,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0-rc.1.24452.1" />
     <PackageReference Include="Microsoft.AspNetCore.RateLimiting" Version="7.0.0-rc.2.22476.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0-rc.1.24451.1" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.1.24452.1" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.0-rc.2.24474.3" />
     <PackageReference Include="Npgsql" Version="8.0.4" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0-rc.1" />
     <PackageReference Include="SendGrid" Version="9.29.3" />

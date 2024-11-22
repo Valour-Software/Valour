@@ -11,7 +11,7 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
+public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
 {
     #region IPlanetModel implementation
 
@@ -71,13 +71,13 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
         return member;
     }
     
-    public override async Task OnUpdate(ModelUpdateEvent eventData)
+    protected override async Task OnUpdated(ModelUpdateEvent eventData)
     {
         var planet = await GetPlanetAsync();
         await planet.NotifyMemberUpdateAsync(this, eventData);
     }
 
-    public override async Task OnDelete()
+    protected override async Task OnDeleted()
     {
         var planet = await GetPlanetAsync();
         await planet.NotifyMemberDeleteAsync(this);

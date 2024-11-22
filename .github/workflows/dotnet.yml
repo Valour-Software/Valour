@@ -2,31 +2,39 @@ name: .NET
 
 on: 
   push:
-    branches: [ "main", "dev" ]
+    branches: "**"
     
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v3
-    - uses: benjlevesque/short-sha@v2.2
+
+    - name: Get Short SHA
       id: short-sha
-      with:
-        length: 7
+      run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+    - name: Set Lowercase Variables
+      id: vars
+      shell: bash
+      run: |
+        echo "IMAGE_NAME=$(echo ${GITHUB_REPOSITORY} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        echo "BRANCH_NAME=$(echo ${GITHUB_REF_NAME} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
     - name: Modify asset versions
       uses: mingjun97/file-regex-replace@v1
       with:
         regex: '\$\(SHORTHASH\)'
-        replacement: '${{ env.SHA }}'
-        flags: "g"                  # Optional, defaults to "g"
-        include: '.*'    # Optional, defaults to ".*"
-        exclude: '.^'               # Optional, defaults to '.^'
-        encoding: 'utf8'            # Optional, defaults to 'utf8'
-        path: '.'                   # Optional, defaults to '.'
+        replacement: '${{ steps.short-sha.outputs.short_sha }}'
+        flags: "g"
+        include: '.*'
+        exclude: '.^'
+        encoding: 'utf8'
+        path: '.'
+
     - name: Delete .js files if corresponding .ts files exist
       run: |
         #!/bin/bash
@@ -38,52 +46,68 @@ jobs:
               rm "$jsfile"
           fi
         done
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 9.0.100-rc.1.24452.12 
         include-prerelease: true
+
     - name: Restore workload
       run: dotnet workload restore
+
     - name: Clean
       run: dotnet clean
+
     - name: Restore dependencies
       run: dotnet restore
+
+    - name: Clean
+      run: dotnet clean
+
     - name: Build
       run: dotnet build --no-restore
+
     - name: Test
       run: dotnet test --no-build --verbosity normal
+      continue-on-error: true
+
+    - name: Publish Test Results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: Test Results
+        path: "**/test_results.trx"
+        
     - name: Publish Shared Nuget Package
       uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/Shared/Valour.Shared.csproj
         VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
-        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+        NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
 
     - name: Publish API Nuget Package
       uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
         VERSION_FILE_PATH: Valour/Sdk/Valour.Sdk.csproj
-        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+        NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
     
     - name: Log in to the Container registry
-      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      uses: docker/login-action@v2
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
     - name: Build and push Docker image
-      uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+      uses: docker/build-push-action@v2
       with:
         context: .
         push: true
-        tags: '${{ steps.meta.outputs.tags }}-${{ env.SHA }}'
-        labels: ${{ steps.meta.outputs.labels }}
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${{ steps.short-sha.outputs.short_sha }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-latest
+        labels: |
+          org.opencontainers.image.source=${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}

@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class TenorFavorite : Item, ISharedTenorFavorite
+public class TenorFavorite : ServerModel, ISharedTenorFavorite
 {
     public new long Id { get; set; }
     

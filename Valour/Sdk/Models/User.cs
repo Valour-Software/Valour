@@ -5,7 +5,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class User : LiveModel, ISharedUser
+public class User : ClientModel, ISharedUser
 {
     #region IPlanetModel implementation
 

@@ -102,7 +102,7 @@
             async () =>
             {
                 Console.WriteLine("Confirmed planet deletion.");
-                var result = await LiveModel.DeleteAsync(Data.Planet);
+                var result = await ClientModel.DeleteAsync(Data.Planet);
 
                 if (result.Success)
                 {

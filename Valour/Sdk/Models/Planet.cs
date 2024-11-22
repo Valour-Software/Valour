@@ -11,17 +11,50 @@ namespace Valour.Sdk.Models;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : LiveModel, ISharedPlanet
+public class Planet : ClientModel, ISharedPlanet
 {
     public override string BaseRoute =>
             $"api/planets";
 
     // Cached values
 
-    private PlanetModelObserver<Channel> AllChannels { get; set; }
-    private PlanetModelObserver<Channel> ChatChannels { get; set; }
-    private PlanetModelObserver<Channel> VoiceChannels { get; set; }
-    private PlanetModelObserver<Channel> Categories { get; set; }
+    // A note to future Spike:
+    // These are created at construction because they can be referred to and will *never* have their
+    // reference change. The lists are updated in realtime which means UI watching the lists do not
+    // need to get an updated list. Do not second guess this decision. It is correct.
+    // - Spike, 10/05/2024
+
+    /// <summary>
+    /// The channels in this planet
+    /// </summary>
+    public IReadOnlyList<Channel> Channels { get; private set; }
+    
+    /// <summary>
+    /// The chat channels in this planet
+    /// </summary>
+    public IReadOnlyList<Channel> ChatChannels { get; private set; }
+    
+    /// <summary>
+    /// The voice channels in this planet
+    /// </summary>
+    public IReadOnlyList<Channel> VoiceChannels { get; private set; }
+    
+    /// <summary>
+    /// The categories in this planet
+    /// </summary>
+    public IReadOnlyList<Channel> Categories { get; private set; }
+    
+    // Internal channel lists
+    private List<Channel> _channels;
+    private List<Channel> _chatChannels;
+    private List<Channel> _voiceChannels;
+    private List<Channel> _categories;
+
+    /// <summary>
+    /// The primary (default) chat channel of the planet
+    /// </summary>
+    public Channel PrimaryChatChannel { get; set; }
+    
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
     private List<PlanetInvite> Invites { get; set; }
@@ -72,16 +105,15 @@ public class Planet : LiveModel, ISharedPlanet
     /// </summary>
     public bool Nsfw { get; set; }
 
-    public Planet()
-    {
-        // Setup self-observing collections
-        AllChannels = new(this);
-        ChatChannels = new(this);
-        VoiceChannels = new(this);
-        Categories = new(this);
-    }
-
     #region Child Event Handlers
+    
+    public void NotifyChannelUpdate(Channel channel, ModelUpdateEvent eventData)
+    {
+        if (_channels is null || channel.PlanetId != Id)
+            return;
+        
+        InsertChannelIntoLists(channel);
+    }
     
     
     public Task NotifyRoleUpdateAsync(PlanetRole role, ModelUpdateEvent eventData)
@@ -162,12 +194,10 @@ public class Planet : LiveModel, ISharedPlanet
     /// <summary>
     /// Returns the primary channel of the planet
     /// </summary>
-    public async ValueTask<Channel> GetPrimaryChannelAsync(bool refresh = false)
+    public Channel GetPrimaryChannel()
     {
-        if (!ChatChannels.Initialized || refresh)
-            await LoadChannelsAsync();
-        
-        return ChatChannels.FirstOrDefault(x => x.IsDefault == true);
+        var primary = _chatChannels.FirstOrDefault(x => x.IsDefault == true);
+        return primary ?? _chatChannels.FirstOrDefault();
     }
 
     public async ValueTask<PlanetRole> GetDefaultRoleAsync(bool refresh = false)
@@ -178,83 +208,140 @@ public class Planet : LiveModel, ISharedPlanet
         return Roles?.FirstOrDefault(x => x.IsDefault);
     }
     
-    public async ValueTask<List<Channel>> GetAllChannelsAsync(bool refresh = false)
+    private void ClearChannels()
     {
-        if (!AllChannels.Initialized || refresh)
-            await LoadChannelsAsync();
+        if (_channels is null)
+        {
+            _channels = new();
+            Channels = _channels;
+        }
+        else
+        {
+            _channels.Clear();
+        }
 
-        return AllChannels.GetContents();
-    }
-
-    /// <summary>
-    /// Returns the categories of this planet
-    /// </summary>
-    public async ValueTask<List<Channel>> GetCategoriesAsync(bool refresh = false)
-    {
-        if (!Categories.Initialized || refresh)
-            await LoadChannelsAsync();
-
-        return Categories.GetContents();
-    }
-
-    /// <summary>
-    /// Returns the channels of a planet
-    /// </summary>
-    public async ValueTask<List<Channel>> GetChatChannelsAsync(bool refresh = false)
-    {
-        if (!ChatChannels.Initialized || refresh)
-            await LoadChannelsAsync();
-
-        return ChatChannels.GetContents();
-    }
-
-    /// <summary>
-    /// Requests and caches channels from the server
-    /// </summary>
-    public async Task LoadChannelsAsync()
-    {
-        var channels = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels")).Data;
-        if (channels is null)
-            return;
+        if (_chatChannels is null)
+        {
+            _chatChannels = new();
+            ChatChannels = _chatChannels;
+        }
+        else
+        {
+            _chatChannels.Clear();
+        }
         
-        List<Channel> chatChannels = new();
-        List<Channel> voiceChannels = new();
-        List<Channel> categories = new();
+        if (_voiceChannels is null)
+        {
+            _voiceChannels = new();
+            VoiceChannels = _voiceChannels;
+        }
+        else
+        {
+            _voiceChannels.Clear();
+        }
+        
+        if (_categories is null)
+        {
+            _categories = new();
+            Categories = _categories;
+        }
+        else
+        {
+            _categories.Clear();
+        }
+    }
+
+    public void SortChannels()
+    {
+        _channels.Sort(ISortableModel.Compare);
+        _chatChannels.Sort(ISortableModel.Compare);
+        _voiceChannels.Sort(ISortableModel.Compare);
+        _categories.Sort(ISortableModel.Compare);
+    }
+
+    /// <summary>
+    /// Inserts a channel into the planet's channel lists.
+    /// If sort is true, the lists will be sorted after insertion.
+    /// </summary>
+    private void InsertChannelIntoLists(Channel channel, bool sort = true)
+    {
+        // We already have this channel inserted
+        if (_channels.Contains(channel))
+            return;
+
+        
+        _channels.Add(channel);
+        if (sort)
+            _channels.Sort(ISortableModel.Compare);
+        
+        // Note: We don't need to check if the channel is already in these lists
+        // because channels are always added to the main list. If it's not there,
+        // it's not in any of the other lists.
+        
+        switch (channel.ChannelType)
+        {
+            case ChannelTypeEnum.PlanetChat:
+            {
+                _chatChannels.Add(channel);
+                if (sort)
+                    _chatChannels.Sort(ISortableModel.Compare);
+                
+                if (channel.IsDefault)
+                    PrimaryChatChannel = channel;
+                
+                break;
+            }
+            case ChannelTypeEnum.PlanetCategory:
+            {
+                _categories.Add(channel);
+                if (sort)
+                    _categories.Sort(ISortableModel.Compare);
+                
+                break;
+            }
+            case ChannelTypeEnum.PlanetVoice:
+            {
+                _voiceChannels.Add(channel);
+                if (sort)
+                    _voiceChannels.Sort(ISortableModel.Compare);
+                
+                break;
+            }
+            default:
+                Console.WriteLine("[!!!] Planet returned unknown or non-planet channel type!");
+                break;
+        }
+    }
+    
+    /// <summary>
+    /// Applies the given channels to the planet, inserting and sorting
+    /// them where necessary. Clears any existing channels. Only use this
+    /// if you know what you're doing.
+    /// </summary>
+    public void ApplyChannels(List<Channel> channels)
+    {
+        ClearChannels();
 
         foreach (var channel in channels)
         {
-            switch (channel.ChannelType)
-            {
-                case ChannelTypeEnum.PlanetChat:
-                    chatChannels.Add(channel);
-                    break;
-                case ChannelTypeEnum.PlanetCategory:
-                    categories.Add(channel);
-                    break;
-                case ChannelTypeEnum.PlanetVoice:
-                    voiceChannels.Add(channel);
-                    break;
-                default:
-                    Console.WriteLine("[!!!] Planet returned unknown or non-planet channel type!");
-                    break;
-            }
+            // Sort is false because we will sort at the end
+            InsertChannelIntoLists(channel, false);
         }
-
-        await AllChannels.Initialize(channels);
-        await ChatChannels.Initialize(chatChannels);
-        await Categories.Initialize(categories);
-        await VoiceChannels.Initialize(voiceChannels);
+        
+        SortChannels();
     }
 
     /// <summary>
-    /// Returns the voice channels of a planet
+    /// Requests an updated list of channels from the server.
+    /// Generally should not be necessary if using SignalR data feeds.
     /// </summary>
-    public async ValueTask<List<Channel>> GetVoiceChannelsAsync(bool refresh = false)
+    public async Task FetchChannelsAsync()
     {
-        if (!VoiceChannels.Initialized || refresh)
-            await LoadChannelsAsync();
-
-        return VoiceChannels.GetContents();
+        var newData = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels")).Data;
+        if (newData is null)
+            return;
+        
+        ApplyChannels(newData);
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ public class ModelUpdateEvent
     public int? Flags { get; set; }
 }
 
-public class ModelUpdateEvent<T> where T : ISharedItem
+public class ModelUpdateEvent<T> where T : ISharedModel
 {
     /// <summary>
     /// The new or updated item
