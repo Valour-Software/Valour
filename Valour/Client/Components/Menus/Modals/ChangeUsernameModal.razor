@@ -17,7 +17,7 @@
         
         <br />
         <div @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel</div>
-        @if (!_canChangeUsername)
+        @if (_canChangeUsername)
         {
             <div @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</div>
         }
@@ -73,7 +73,7 @@
         
         if (user.Subscription is null)
         {
-            if (daysSinceLastChange > 30)
+            if (daysSinceLastChange < 30)
             {
                 var daysLeft = 30 - daysSinceLastChange;
                 _changeUsernameMessage = $"You can change your username again in {daysLeft.ToString("F0")} {(daysLeft > 1 ? "days" : "day")}.\nStargazers can change their username every 7 days!";
