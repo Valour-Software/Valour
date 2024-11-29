@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.ModelLogic.Exceptions;
+﻿using System.Text.Json.Serialization;
+using Valour.Sdk.ModelLogic.Exceptions;
 using Valour.Sdk.Nodes;
 
 namespace Valour.Sdk.ModelLogic;
@@ -16,6 +17,7 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
     /// If for some reason planet is null, it will be fetched from the cache.
     /// If it is not in cache, you should have loaded the planet first.
     /// </summary>
+    [JsonIgnore]
     public Planet Planet
     {
         get
@@ -36,6 +38,7 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
         }
     }
 
+    [JsonIgnore]
     public override Node Node
     {
         get

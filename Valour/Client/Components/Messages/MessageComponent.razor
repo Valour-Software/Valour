@@ -10,6 +10,7 @@
 
 <div id="@Id"
      class="@_class"
+     style="@_style"
      tabindex="0"
      @oncontextpress="@OnContextMenu"
      @oncontextpress:stopPropagation="true"
@@ -148,7 +149,8 @@
             _message.Content, 
             builder, 
             MarkdownManager.Pipeline, 
-            MarkdownManager.Renderer);
+            MarkdownManager.Renderer,
+            this);
         builder.CloseElement();
     };
     
@@ -211,9 +213,10 @@
     private bool _isBuilt = false;
 
     private string _class = "message";
+    private string _style = string.Empty;
     
 
-    private void CalculateClass()
+    private void CalculateClassAndStyles()
     {
         var newClass = "message";
 
@@ -227,7 +230,14 @@
             newClass += " edit";
 
         if (_isInnerReply)
+        {
             newClass += " reply";
+
+            if (_member is not null)
+            {
+                _style = $"border-left-color: {_nameColor}85";
+            }
+        }
 
         if (_ghost)
             newClass += " ghost";
@@ -357,7 +367,7 @@
     {
         Edit = true;
 
-        CalculateClass();
+        CalculateClassAndStyles();
 
         ReRender();
 
@@ -371,7 +381,7 @@
 
         Edit = false;
 
-        CalculateClass();
+        CalculateClassAndStyles();
 
         await _chat.CloseEditMode(cancel);
 
@@ -407,12 +417,12 @@
 
         if (!_isInnerReply)
             _mentioned = _message.CheckIfMentioned();
-
-        CalculateClass();
+        
         CalculateTime();
 
         if (Minimal)
         {
+            CalculateClassAndStyles();
             _isBuilt = true;
 
             if (render)
@@ -427,6 +437,7 @@
         _avatarUrl = GetAuthorAvatar();
         _animatedAvatarUrl = GetAuthorAvatarAnimated();
         _fallbackAvatarUrl = GetAuthorAvatarUrlFallback();
+        CalculateClassAndStyles();
 
         _isBuilt = true;
 

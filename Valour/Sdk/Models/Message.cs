@@ -380,7 +380,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public bool IsEmpty()
     {
         // early returns are faster than checking all conditions
-        if (!string.IsNullOrEmpty(Content))
+        if (!string.IsNullOrWhiteSpace(Content))
             return false;
         
         if (!string.IsNullOrWhiteSpace(EmbedData))

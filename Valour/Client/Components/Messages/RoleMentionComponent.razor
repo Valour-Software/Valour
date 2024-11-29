@@ -26,8 +26,8 @@
         }
     }
     
-    [CascadingParameter]
-    public Channel Channel { get; set; }
+    [Parameter]
+    public object RenderContext { get; set; }
     
     [Parameter]
     public Mention Mention { get; set; }
@@ -58,20 +58,33 @@
 
     public async Task Build()
     {
-        if (Channel.PlanetId is not null)
+        switch (RenderContext)
         {
-            Role = await Channel.Planet.FetchRoleAsync(Mention.TargetId);
-        }
-        RoleColor = Role is null ? "#fff" : Role.Color;
+            case MessageComponent messageComponent:
+                var channel = messageComponent.ParamData.ChatComponent.Channel;
 
-        if (Role is not null)
-        {
-            var myMember = Channel.Planet.MyMember;
-            if (myMember is not null)
-            {
-                IsTarget = myMember.Roles.Any(r => r.Id == Role.Id);
-            }
+                if (channel.PlanetId is not null)
+                {
+                    Role = await channel.Planet.FetchRoleAsync(Mention.TargetId);
+                }
+                
+                if (Role is not null)
+                {
+                    var myMember = channel.Planet.MyMember;
+                    if (myMember is not null)
+                    {
+                        IsTarget = myMember.Roles.Any(r => r.Id == Role.Id);
+                    }
+                }
+                
+                break;
+            default:
+                Console.WriteLine("Invalid RenderContext for RoleMentionComponent");
+                break;
         }
+        
+        
+        RoleColor = Role is null ? "#fff" : Role.Color;
 
         StateHasChanged();
     }

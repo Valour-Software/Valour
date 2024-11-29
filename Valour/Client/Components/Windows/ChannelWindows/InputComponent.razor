@@ -573,9 +573,14 @@
     public void RefreshPreviewMessage()
     {
         //PreviewMessage.Content = string.Empty;
-        PreviewMessage.TimeSent = DateTime.UtcNow;
-        PreviewMessageComponent.SetLast(ChatComponent.GetLastMessage());
-        PreviewMessageComponent.SetMessage(PreviewMessage);
+        if (PreviewMessage is not null)
+            PreviewMessage.TimeSent = DateTime.UtcNow;
+
+        if (PreviewMessageComponent is not null)
+        {
+            PreviewMessageComponent.SetLast(ChatComponent.GetLastMessage());
+            PreviewMessageComponent.SetMessage(PreviewMessage);
+        }
     }
 
     public async Task SetReplyMessage(Message message)

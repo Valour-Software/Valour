@@ -13,11 +13,8 @@
 
 @code {
     
-    [CascadingParameter]
-    public Channel Channel { get; set; }
-    
-    [CascadingParameter]
-    public WindowTab Window { get; set; }
+    [Parameter]
+    public object RenderContext { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -46,10 +43,18 @@
 
     public async Task Build()
     {
-        if (Channel.PlanetId is not null)
+        switch (RenderContext)
         {
-            _targetChannel = await Channel.Planet.FetchChannelAsync(Mention.TargetId);
+            case MessageComponent messageComponent:
+                var channel = messageComponent.ParamData.ChatComponent.Channel;
+                _targetChannel = await channel.Planet.FetchChannelAsync(Mention.TargetId);
+                break;
+            default:
+                Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");
+                break;    
         }
+        
+        
         StateHasChanged();
     }
 
@@ -57,13 +62,21 @@
     {
         var windowContent = await ChatWindowComponent.GetDefaultContent(_targetChannel);
         
-        if (Window is not null)
+        switch (RenderContext)
         {
-            await Window.AddSiblingTab(windowContent);
-        }
-        else
-        {
-            await WindowService.TryAddFloatingWindow(windowContent);
+            case MessageComponent messageComponent:
+                if (messageComponent.ParamData.ChatComponent is not null)
+                {
+                    await messageComponent.ParamData.ChatComponent.WindowCtx.Tab.AddSiblingTab(windowContent);
+                }
+                else
+                {
+                    await WindowService.TryAddFloatingWindow(windowContent);
+                }
+                break;
+            default:
+                Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");
+                break;    
         }
     }
 }

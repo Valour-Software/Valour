@@ -98,6 +98,8 @@
             await SetupNewChannelAsync();
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
             _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, MessageWrapperEl);
+
+            await ScrollToBottom(true);
         }
         
         await base.OnAfterRenderAsync(firstRender);

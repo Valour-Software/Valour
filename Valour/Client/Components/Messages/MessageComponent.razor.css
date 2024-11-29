@@ -23,7 +23,6 @@
 }
 
 .message .content-holder {
-    width: 95%;
     display: inline-block;
     margin-left: 3px;
     margin-top: 2px;
@@ -39,7 +38,6 @@
 }
 
 .message .content {
-    width: 100%;
     font-family: Ubuntu;
     font-style: normal;
     font-weight: 300;
@@ -73,9 +71,8 @@
 .message .reply {
     border-top: 0;
     border-left: 3px rgba(255, 255, 255, 0.2) solid;
-    background-color: rgba(255, 255, 255, 0.04);
-    border-bottom-right-radius: 8px;
-    border-top-right-radius: 8px;
+    background-color: var(--main-2);
+    border-radius: 8px;
     margin-top: 5px;
     margin-bottom: 5px;
     width: fit-content;
@@ -164,6 +161,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    padding-right: 6px;
 }
 
 .message .left-info {

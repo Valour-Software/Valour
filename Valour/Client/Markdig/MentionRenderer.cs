@@ -24,16 +24,19 @@ public class MentionRenderer : BlazorObjectRenderer<MentionInline>
             case MentionType.PlanetMember:
                 renderer.OpenComponent<MemberMentionComponent>()
                     .AddComponentParam("Mention", obj.Mention)
+                    .AddComponentParam("RenderContext", renderer.RenderContext)
                     .CloseComponent();
                 break;
             case MentionType.Role:
                 renderer.OpenComponent<RoleMentionComponent>()
                     .AddComponentParam("Mention", obj.Mention)
+                    .AddComponentParam("RenderContext", renderer.RenderContext)
                     .CloseComponent();
                 break;
             case MentionType.Channel:
                 renderer.OpenComponent<ChannelMentionComponent>()
                     .AddComponentParam("Mention", obj.Mention)
+                    .AddComponentParam("RenderContext", renderer.RenderContext)
                     .CloseComponent();
                 break;
         }

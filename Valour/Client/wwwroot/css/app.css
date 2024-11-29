@@ -738,6 +738,7 @@ blockquote {
     font-weight: 500;
     background-color: rgba(255, 255, 255, 0.1);
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .mention.target {

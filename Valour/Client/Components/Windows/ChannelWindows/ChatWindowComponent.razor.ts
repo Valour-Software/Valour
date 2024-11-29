@@ -2,7 +2,7 @@
 
 type Channel = {
     dotnet: DotnetObject;
-    messageHolderEl: HTMLElement;
+    messageWrapperEl: HTMLElement;
     oldScrollHeight: number;
     oldScrollTop: number;
     lastTopLoadPos: number;
@@ -22,9 +22,10 @@ type Channel = {
 };
 
 export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Channel{
+    
     const channel: Channel = {
         dotnet: dotnet,
-        messageHolderEl: messageWrapperEl,
+        messageWrapperEl: messageWrapperEl,
         oldScrollHeight: 0,
         oldScrollTop: 0,
         lastTopLoadPos: 0,
@@ -32,16 +33,16 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         scrollUpTimer: Date.now(),
         
         updateScrollPosition(){
-            this.oldScrollHeight = this.messageHolderEl.scrollHeight;
-            this.oldScrollTop = this.messageHolderEl.scrollTop;
+            this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
+            this.oldScrollTop = this.messageWrapperEl.scrollTop;
         },
         
         scaleScrollPosition(){
-            this.messageHolderEl.scrollTop = this.oldScrollTop + (this.messageHolderEl.scrollHeight - this.oldScrollHeight);
+            this.messageWrapperEl.scrollTop = this.oldScrollTop + (this.messageWrapperEl.scrollHeight - this.oldScrollHeight);
         },
         
         isAtBottom(){
-            return (this.messageHolderEl.scrollHeight - (this.messageHolderEl.scrollTop + this.messageHolderEl.getBoundingClientRect().height)) < 200;
+            return (this.messageWrapperEl.scrollHeight - (this.messageWrapperEl.scrollTop + this.messageWrapperEl.getBoundingClientRect().height)) < 200;
         },
         
         checkBottomSticky(){
@@ -50,40 +51,46 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         
         scrollToBottom(force){
             if (force || this.stickToBottom){
-                this.messageHolderEl.scrollTop = this.messageHolderEl.scrollHeight;
+                this.messageWrapperEl.scrollTop = this.messageWrapperEl.scrollHeight;
                 this.stickToBottom = true;
             }
         },
         
         scrollToBottomAnimated(){
-            this.messageHolderEl.scrollTo({
-                top: this.messageHolderEl.scrollHeight,
+            this.messageWrapperEl.scrollTo({
+                top: this.messageWrapperEl.scrollHeight,
                 behavior: 'smooth' // For smooth scrolling; use 'auto' for instant scroll
             });
         },
         
-        handleChatWindowScroll(e: MouseEvent) {
+        async handleChatWindowScroll(e: MouseEvent) {
+            // NOTE: 'this' is the message wrapper
+            
+            const channel: Channel = this['context'];
+            
             // Scrollbar is visible
-            if (this.messageHolderEl.scrollHeight > this.messageHolderEl.clientHeight) {
+            if (this.scrollHeight > this.clientHeight) {
                 // User has reached top of scroll
-                if (this.messageHolderEl.scrollTop < 2000 && this.scrollUpTimer < (Date.now() - 500)) {
-                    this.scrollUpTimer = Date.now();
-                    this.dotnet.invokeMethodAsync('OnScrollTopInvoke');
+                if (this.scrollTop < 2000 && channel.scrollUpTimer < (Date.now() - 500)) {
+                    channel.scrollUpTimer = Date.now();
+                    await channel.dotnet.invokeMethodAsync('OnScrollTopInvoke');
                 }
             }
 
-            this.checkBottomSticky();
+            channel.checkBottomSticky();
         },
         
         hookEvents(){
-            this.messageHolderEl.addEventListener('scroll', this.handleChatWindowScroll);
+            this.messageWrapperEl.addEventListener('scroll', this.handleChatWindowScroll);
         },
         
         cleanup(){
-            this.messageHolderEl.removeEventListener('scroll', this.handleChatWindowScroll);
+            this.messageWrapperEl.removeEventListener('scroll', this.handleChatWindowScroll);
         }
     };
-    
+
+    messageWrapperEl['context'] = channel;
+
     channel.hookEvents();
     
     return channel;

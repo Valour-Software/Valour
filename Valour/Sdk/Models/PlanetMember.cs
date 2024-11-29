@@ -36,7 +36,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// The user of the member
     /// </summary>
-    public User User { get; private set; }
+    public User User { get; set; }
     
     // User related properties //
     
