@@ -54,7 +54,7 @@
     public class MessageContextParams
     {
         public Message Message;
-        public ChatChannelWindowComponent WindowComponent;
+        public ChatWindowComponent WindowComponent;
         public MessageComponent MessageComponent;
     }
 
@@ -101,7 +101,7 @@
         // Close the context menu
         await CloseAsync();
         
-        var input = Data.MessageComponent.Params.Holder.ChatComponent.MessageHolder.InputComponent;
+        var input = Data.MessageComponent.ParamData.ChatComponent.InputComponent;
         await input.SetReplyMessage(Data.Message);
     }
 
@@ -129,9 +129,9 @@
             Report = new Report()
             {
                 ReportingUserId = Client.Me.Id,
-                MessageId = Data.MessageComponent.Params.Message.Id,
-                ChannelId = Data.MessageComponent.Params.Message.ChannelId,
-                PlanetId = Data.MessageComponent.Params.Message.PlanetId
+                MessageId = Data.MessageComponent.ParamData.Message.Id,
+                ChannelId = Data.MessageComponent.ParamData.Message.ChannelId,
+                PlanetId = Data.MessageComponent.ParamData.Message.PlanetId
             }
         };
         

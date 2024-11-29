@@ -226,7 +226,7 @@
     private async Task OnClickMessage()
     {
         var channel = await ChannelService.FetchDmChannelAsync(User.Id, true);
-        var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+        var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 }

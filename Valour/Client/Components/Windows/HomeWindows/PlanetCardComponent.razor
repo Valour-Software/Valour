@@ -173,7 +173,7 @@
     
     private async Task OnClick()
     {
-        var newWindowContent = await ChatChannelWindowComponent.GetContentForPlanetPrimaryChannel(Planet);
+        var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(Planet);
         
         if (newWindowContent is null)
         {

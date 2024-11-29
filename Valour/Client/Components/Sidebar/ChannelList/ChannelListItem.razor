@@ -221,7 +221,7 @@
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
         {
-            var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(Channel);
+            var newWindowContent = await ChatWindowComponent.GetDefaultContent(Channel);
             
             // Replace current window with new one
             await WindowService.FocusedTab.SetContent(newWindowContent);

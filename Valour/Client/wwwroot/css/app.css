@@ -124,22 +124,6 @@ body {
     width: 100%;
 }
 
-.chat-holder {
-    display: flex;
-    flex-direction: column;
-    
-    flex-grow: 1;
-    flex-shrink: 1;
-    min-height: 0;
-    
-    padding-right: 0.5rem;
-    overflow-y: auto;
-}
-
-.chat-holder * {
-    overflow-anchor: none;
-}
-
 .topbar {
     display: flex;
     height: 45px;

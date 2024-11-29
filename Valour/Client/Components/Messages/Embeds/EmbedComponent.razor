@@ -46,10 +46,7 @@
 
 
 @code {
-
-	[CascadingParameter]
-	public MessageHolderComponent Holder { get; set; }
-
+	
 	[Parameter]
 	public Message Message { get; set; }
 
@@ -152,7 +149,6 @@
 			ProcessingEmbedUpdate = true;
 			UpdateItems();
 			ProcessingEmbedUpdate = false;
-			await Holder.ScrollToBottom();
 		}
 	}
 
@@ -182,7 +178,6 @@
 					ProcessingEmbedUpdate = true;
 					UpdateItems();
 					ProcessingEmbedUpdate = false;
-					await Holder.ScrollToBottom();
 					foreach (var page in embed.Pages) {
 						foreach (var item in page.GetAllItems()) {
 							if (item.Id is not null) {

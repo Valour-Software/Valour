@@ -7,10 +7,10 @@
     return;
 }
 
-<MessageComponent Params="@_params" />
+<MessageComponent ParamData="@_params" />
 
 @code {
-    private MessageHolderComponent.MessageComponentParams _params;
+    private MessageComponent.Params _params;
 
     public class Content: WindowContent<StaffMessageWindow, Props>
     {
@@ -64,7 +64,7 @@
     
     protected override void OnInitialized()
     {
-        _params = new MessageHolderComponent.MessageComponentParams
+        _params = new MessageComponent.Params
         {
             Message = Data.Message
         };

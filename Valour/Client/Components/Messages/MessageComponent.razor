@@ -127,6 +127,15 @@
 </div>
 
 @code {
+    
+    public class Params
+    {
+        public ChatWindowComponent ChatComponent;
+        public Message Message;
+        public Message LastMessage;
+        public bool IsInnerReply;
+        public bool Ghost;
+    }
 
     private RenderFragment RenderContent => builder =>
     {
@@ -145,27 +154,26 @@
     
     private RenderFragment RenderReply => builder =>
     {
-        var messageParams = new MessageHolderComponent.MessageComponentParams()
+        var messageParams = new Params()
         {
             Message = _message.ReplyTo,
             LastMessage = null,
             Ghost = _ghost,
             IsInnerReply = true,
-            Holder = _holder
+            ChatComponent = _chat
         };
 
         builder.OpenComponent<MessageComponent>(0);
-        builder.AddAttribute(0, "Params", messageParams);
+        builder.AddAttribute(0, "ParamData", messageParams);
         builder.SetKey($"r-{_message.Id}-{_message.ReplyTo!.Id}");
         builder.CloseComponent();
     };
 
     /* Set Params */
     [Parameter]
-    public MessageHolderComponent.MessageComponentParams Params { get; set; }
+    public Params ParamData { get; set; }
 
-    private ChatChannelWindowComponent _channelWindow;
-    private MessageHolderComponent _holder;
+    private ChatWindowComponent _chat;
     private Message _message;
     private Message _lastMessage;
     private bool _ghost;
@@ -281,7 +289,7 @@
             {
                 Message = _message,
                 MessageComponent = this,
-                WindowComponent = _channelWindow
+                WindowComponent = _chat
             }
         );
     }
@@ -313,13 +321,13 @@
             if (_isInnerReply)
             {
                 Console.WriteLine("Removing replyto");
-                var input = _channelWindow.MessageHolder.InputComponent;
+                var input = _chat.InputComponent;
                 await input.RemoveReply();
             }
         }
         else
         {
-            await _channelWindow.WindowCtx.NotifyFocused();
+            await _chat.WindowCtx.NotifyFocused();
         }
     }
 
@@ -327,7 +335,7 @@
     {
         if (_ghost)
         {
-            var input = _channelWindow.MessageHolder.InputComponent;
+            var input = _chat.InputComponent;
             input.RemoveAttachment(id);
         }
     }
@@ -353,7 +361,7 @@
 
         ReRender();
 
-        await _channelWindow.OpenEditMode(this);
+        await _chat.OpenEditMode(this);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -365,7 +373,7 @@
 
         CalculateClass();
 
-        await _channelWindow.CloseEditMode(cancel);
+        await _chat.CloseEditMode(cancel);
 
         ReRender();
     }
@@ -428,12 +436,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _message = Params.Message;
-        _lastMessage = Params.LastMessage;
-        _ghost = Params.Ghost;
-        _isInnerReply = Params.IsInnerReply;
-        _holder = Params.Holder;
-        _channelWindow = _holder.ChatComponent;
+        _message = ParamData.Message;
+        _lastMessage = ParamData.LastMessage;
+        _ghost = ParamData.Ghost;
+        _isInnerReply = ParamData.IsInnerReply;
+        _chat = ParamData.ChatComponent;
         
         KeyboardListener.KeyDown += OnKeyDown;
         
@@ -457,7 +464,7 @@
         
         if (!_isInnerReply && !_ghost)
         {
-            _holder.AddRenderedMessage(this);
+            _chat.AddRenderedMessage(this);
         }
 
         // Planet message logic
@@ -501,13 +508,13 @@
         if (_user.Id == Client.Me.Id)
             return "You";
 
-        return Client.FriendService.FriendLookup.ContainsKey(Params.Message.AuthorUserId) ? "Friend" : "User";
+        return Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "Friend" : "User";
     }
     
     private string GetAuthorColor()
     {
         return _member is not null ? (_member.PrimaryRole?.Color ?? "#fff") :
-            (Client.FriendService.FriendLookup.ContainsKey(Params.Message.AuthorUserId) ? "#9ffff1" : "#fff");
+            (Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "#9ffff1" : "#fff");
     }
     
     public string GetAuthorAvatar() =>
@@ -535,13 +542,13 @@
  
         if (_isInnerReply)
         {
-            var input = _channelWindow.MessageHolder.InputComponent;
+            var input = _chat.InputComponent;
             await input.RemoveReply(); 
         }
         
         if (_ghost)
         {
-            var input = _channelWindow.MessageHolder.InputComponent;
+            var input = _chat.InputComponent;
             input.RemoveAttachment(-1);
         }
     }
@@ -642,9 +649,9 @@
 
     void IDisposable.Dispose()
     {
-        if (_holder != null)
+        if (_chat != null)
         {
-            _holder.RemoveRenderedMessage(this);
+            _chat.RemoveRenderedMessage(this);
         }
         
         if (_member is not null)

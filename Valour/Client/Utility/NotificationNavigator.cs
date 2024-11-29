@@ -27,7 +27,7 @@ public static class NotificationNavigator
                 if (channel is null)
                     break;
 
-                var content = await ChatChannelWindowComponent.GetDefaultContent(channel);
+                var content = await ChatWindowComponent.GetDefaultContent(channel);
                 await WindowService.OpenWindowAtFocused(content);
 
                 break;
@@ -39,7 +39,7 @@ public static class NotificationNavigator
                 if (channel is null)
                     break;
                 
-                var content = await ChatChannelWindowComponent.GetDefaultContent(channel);
+                var content = await ChatWindowComponent.GetDefaultContent(channel);
                 await WindowService.OpenWindowAtFocused(content);
                 
                 break;

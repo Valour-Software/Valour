@@ -12,15 +12,15 @@
         @{
             if (PreviewMessage is not null  && !PreviewMessage.IsEmpty())
             {
-                var messageParams = new MessageHolderComponent.MessageComponentParams()
+                var messageParams = new MessageComponent.Params()
                 {
                     Message = PreviewMessage,
                     Ghost = true,
-                    LastMessage = MessageHolder.GetLastMessage(),
-                    Holder = MessageHolder
+                    LastMessage = ChatComponent.GetLastMessage(),
+                    ChatComponent = ChatComponent
                 };
 
-                <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" Params="@messageParams"></MessageComponent>
+                <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
             }
         }
     </div>
@@ -46,10 +46,10 @@
     <div style="position: relative">
         <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
     </div>
-    <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
+    <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
 
-    <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
+    <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
             <InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             
@@ -88,16 +88,10 @@
 @code {
 
     [Parameter]
-    public ChatChannelWindowComponent ChatComponent { get; set; }
+    public ChatWindowComponent ChatComponent { get; set; }
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
-    
-    /// <summary>
-    /// A reference to the container for message rendering
-    /// </summary>
-    [Parameter]
-    public MessageHolderComponent MessageHolder { get; set; }
     
     /* End Planet Stuff */
 
@@ -172,6 +166,11 @@
 
     private EmojiMart _emojis;
 
+    private async Task OnClickTextbox()
+    {
+        await ChatComponent.ScrollToBottomAnimated();
+    }
+    
     private void ToggleEmojis()
     {
         _emojis.ToggleVisible();
@@ -303,8 +302,6 @@
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();
-
-            PreviewMessageComponent.Params.Holder = MessageHolder;
         }
 
         CanRenderFlag = false;
@@ -351,7 +348,7 @@
         {
             // Return to original
             //EditingMessageComponent.MessageData.Clear();
-            EditingMessageComponent.Params.Message.Content = EditingOriginalText;
+            EditingMessageComponent.ParamData.Message.Content = EditingOriginalText;
         }
 
         // Clear preview
@@ -577,13 +574,13 @@
     {
         //PreviewMessage.Content = string.Empty;
         PreviewMessage.TimeSent = DateTime.UtcNow;
-        PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
+        PreviewMessageComponent.SetLast(ChatComponent.GetLastMessage());
         PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
     public async Task SetReplyMessage(Message message)
     {
-        PreviewMessageComponent.Params.Message.ReplyTo = message;
+        PreviewMessageComponent.ParamData.Message.ReplyTo = message;
         PreviewMessage.ReplyToId = message?.Id;
 
         RefreshPreviewMessage();
@@ -595,7 +592,7 @@
     public Task RemoveReply()
     {
         PreviewMessage.ReplyToId = null;
-        PreviewMessageComponent.Params.Message.ReplyTo = null;
+        PreviewMessageComponent.ParamData.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
         return Task.CompletedTask;
     }
@@ -605,13 +602,13 @@
         // New message
         if (message.Id == 0)
         {
-            MessageHolder.AddQueuedMessage(message);
+            ChatComponent.AddQueuedMessage(message);
             
             var result = await message.PostAsync();
 
             if (!result.Success)
             {
-                MessageHolder.RemoveQueuedMessage(message.Fingerprint);
+                ChatComponent.RemoveQueuedMessage(message.Fingerprint);
 
                 Message errorMsg = new()
                 {
@@ -621,15 +618,15 @@
                     Id = long.MaxValue
                 };
 
-                MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(errorMsg);
+                ChatComponent.RemoveErrorMessage();
+                await ChatComponent.AddMessage(errorMsg);
             }
             else
             {
-                MessageHolder.RemoveErrorMessage();
+                ChatComponent.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.Params.Message.ReplyTo = null;
+            PreviewMessageComponent.ParamData.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
             _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
@@ -648,8 +645,8 @@
                     Id = 0 
                 };
 
-                MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(errorMsg);
+                ChatComponent.RemoveErrorMessage();
+                await ChatComponent.AddMessage(errorMsg);
             }
             else
             {
@@ -726,7 +723,7 @@
             EditingMessageComponent.BuildMessage();
         }
 
-        await MessageHolder.ScrollToBottom();
+        await ChatComponent.ScrollToBottom();
 
         if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
         {
@@ -759,8 +756,8 @@
         }
         
         // Get last message where author is the current user
-        var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Params.Message.AuthorUserId == Client.Me.Id);
+        var lastMessage = ChatComponent.RenderedMessages
+            .LastOrDefault(m => m.ParamData.Message.AuthorUserId == Client.Me.Id);
 
         if (lastMessage is null)
         {

@@ -55,7 +55,7 @@
 
     public async Task OnClicked()
     {
-        var windowContent = await ChatChannelWindowComponent.GetDefaultContent(_targetChannel);
+        var windowContent = await ChatWindowComponent.GetDefaultContent(_targetChannel);
         
         if (Window is not null)
         {

@@ -104,7 +104,7 @@
         // is being sent, but this is fine for now
         var channel = await ChannelService.FetchDmChannelAsync(Friend.Id, create: true);
 
-        var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+        var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
         await WindowCtx.Tab.AddSiblingTab(newWindowContent);
 
         Console.WriteLine($"Switching window {WindowCtx.Id} to direct chat channel {channel.Id}");

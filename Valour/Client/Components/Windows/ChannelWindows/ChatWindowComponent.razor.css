@@ -1,0 +1,27 @@
+.chat-holder {
+    display: flex;
+    flex-direction: column;
+
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+
+    padding-right: 0.5rem;
+    overflow-y: auto;
+}
+
+.chat-holder * {
+    overflow-anchor: none;
+}
+
+.chat-holder .pusher {
+    flex-grow: 1; 
+    flex-shrink: 1; 
+    height: 0
+}
+
+.anchor {
+    overflow-anchor: auto; 
+    height: 1px; 
+    margin-top: -1px;
+}

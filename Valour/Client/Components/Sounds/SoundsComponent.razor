@@ -31,7 +31,7 @@
             if (notification.Source == NotificationSource.DirectReply)
             {
                 foreach (var window in WindowService.GlobalTabs.Select(x => x.Content)
-                             .OfType<WindowContent<ChatChannelWindowComponent, Channel>>())
+                             .OfType<WindowContent<ChatWindowComponent, Channel>>())
                 {
                     if (window.Data.Id == notification.ChannelId)
                     {

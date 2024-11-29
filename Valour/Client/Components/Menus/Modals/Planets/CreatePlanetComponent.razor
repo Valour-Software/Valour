@@ -100,7 +100,7 @@
 		await planet.FetchChannelsAsync();
 		var mainChannel = planet.PrimaryChatChannel;
 
-		await Data.Window.Layout.AddTab(await ChatChannelWindowComponent.GetDefaultContent(mainChannel));
+		await Data.Window.Layout.AddTab(await ChatWindowComponent.GetDefaultContent(mainChannel));
 	}
 
 }

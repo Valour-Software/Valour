@@ -16,7 +16,7 @@ public static class WindowService
     public static WindowDockComponent MainDock { get; private set; }
     
     public static List<WindowTab> GlobalTabs { get; private set; } = new();
-    public static List<ChatChannelWindowComponent> GlobalChatTabs { get; private set; } = new();
+    public static List<ChatWindowComponent> GlobalChatTabs { get; private set; } = new();
     
     public static WindowTab FocusedTab { get; private set; }
     
@@ -73,7 +73,7 @@ public static class WindowService
             GlobalTabs.AddRange(dock.Tabs);
             
             var chatTabs = dock.Tabs.Select(x => x.Content.ComponentBase)
-                .OfType<ChatChannelWindowComponent>().ToList();
+                .OfType<ChatWindowComponent>().ToList();
             
             GlobalChatTabs.AddRange(chatTabs);
         }

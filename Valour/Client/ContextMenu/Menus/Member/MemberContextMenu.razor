@@ -120,7 +120,7 @@ else
 		await CloseAsync();
 		
 		var channel = await ChannelService.FetchDmChannelAsync(Data.Member.UserId, true);
-		var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+		var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
 		await WindowService.OpenWindowAtFocused(newWindowContent);
 	}
 
