@@ -156,6 +156,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public bool IsDefault { get; set; }
 
+    /// <summary>
+    /// Used to limit typing updates
+    /// </summary>
+    private DateTime _lastTypingUpdateSend = DateTime.UtcNow;
+
     protected override void OnUpdated(ModelUpdateEvent<Channel> eventData)
     {
         if (PlanetId is not null)
@@ -221,11 +226,19 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public async Task SendIsTyping()
     {
+        // Limit spam
+        if (_lastTypingUpdateSend.Subtract(DateTime.UtcNow).TotalSeconds < 5)
+        {
+            return;
+        }
+        
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return;
 
         if (Node is null) // Need to make strategy for DMs in the future
             return;
+
+        _lastTypingUpdateSend = DateTime.UtcNow;
         
         await Node.PostAsync($"{IdRoute}/typing", null);
     }

@@ -704,8 +704,8 @@ public async Task<TaskResult> PostAsync(string uri, string content, int retries 
         LogError($"Failed 3 retries - POST {uri}");
         return TaskResult.FromFailure("Failed after 3 retries.");
     }
-    
-    var stringContent = new StringContent(content);
+
+    var stringContent = content is null ? null : new StringContent(content);
 
     try
     {

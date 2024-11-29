@@ -10,7 +10,7 @@
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
         @{
-            if (PreviewMessage is not null)
+            if (PreviewMessage is not null  && !PreviewMessage.IsEmpty())
             {
                 var messageParams = new MessageHolderComponent.MessageComponentParams()
                 {
@@ -51,7 +51,7 @@
 
     <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
         <div class="textbox" @ref="_dropZoneElement">
-            <InputFile id="@("upload-core-" + ChatComponent.WindowCtx.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             
             <div class="textbox-wrapper">
                 <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.WindowCtx.Id').focus()" autofocus>
@@ -87,7 +87,7 @@
 
 @code {
 
-    [CascadingParameter]
+    [Parameter]
     public ChatChannelWindowComponent ChatComponent { get; set; }
 
     [CascadingParameter]
@@ -146,11 +146,15 @@
     /// Dotnet object reference for use in Javascript
     /// </summary>
     private DotNetObjectReference<InputComponent> _thisRef;
-
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
+
+    /// <summary>
+    /// Js context for the input
+    /// </summary>
+    private IJSInProcessObjectReference _jsCtx;
 
     /// <summary>
     /// If the current user is able to post messages using this input
@@ -181,14 +185,6 @@
         _emojis.ToggleVisible();
 
         return Task.CompletedTask;
-    }
-    
-    /// <summary>
-    /// Run when the component is initialized
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        await SetupNewChannelAsync();
     }
 
     protected override bool ShouldRender()
@@ -237,7 +233,7 @@
 
     private async Task OnClickUploadAsync()
     {
-        await _jsModule.InvokeVoidAsync("OpenUploadFile", ChatComponent.WindowCtx.Id);
+        await _jsCtx.InvokeVoidAsync("openUploadFile", _inputFileRef);
     }
 
     private static Dictionary<long, string> _retainedInputCache = new();
@@ -246,10 +242,14 @@
     {
         _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
         _thisRef.Dispose();
+
+        await _jsCtx.InvokeVoidAsync("cleanup");
+        
         await _jsModule.DisposeAsync();
+        await _jsCtx.DisposeAsync();
     }
 
-    public virtual async Task SetupNewChannelAsync()
+    protected override async Task OnInitializedAsync()
     {
         var planet = ChatComponent.Channel.Planet;
         if (planet is not null)
@@ -266,7 +266,7 @@
         Refresh();
     }
 
-    public virtual Message BuildNewMessage()
+    public Message BuildNewMessage()
     {
         _retainedInputCache.TryGetValue(ChatComponent.Channel.Id, out var prevContent);
         
@@ -288,9 +288,9 @@
         await InjectEmojiAsync(e.Id, e.Native, e.Unified, e.Shortcodes);
     }
 
-    public async Task SetInputContent(string content)
+    public ValueTask SetInputContent(string content)
     {
-        await _jsModule.InvokeVoidAsync("setInputContent", ChatComponent.WindowCtx.Id, content);
+        return _jsCtx.InvokeVoidAsync("setInputContent", content ?? string.Empty);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -298,8 +298,8 @@
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=2");
-            await SetupJsAsync();
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
+            _jsCtx = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, InnerInputRef);
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();
@@ -663,35 +663,29 @@
     // JS Interop Zone //
     /////////////////////
 
-    // C# -> JS
-    private ValueTask SetupJsAsync()
-    {
-        return _jsModule.InvokeVoidAsync("setup", ChatComponent.WindowCtx.Id, _thisRef);
-    }
-
     public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
-        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("injectElement", text, coverText, classList, styleList);
     }
     
     public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes)
     {
-        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes);
     }
 
     public async Task OnSubmitClick()
     {
-        await _jsModule.InvokeVoidAsync("submitMessage", ChatComponent.WindowCtx.Id, true);
+        await _jsCtx.InvokeVoidAsync("submitMessage", true);
     }
 
     private ValueTask SelectEnd()
     {
-        return _jsModule.InvokeVoidAsync("selectEnd", ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("moveCursorToEnd");
     }
     
     private ValueTask FocusInputAsync()
     {
-        return _jsModule.InvokeVoidAsync("focusInput", ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("focus");
     }
 
     // JS -> C#
@@ -718,6 +712,12 @@
         }
 
         _retainedInputCache[ChatComponent.Channel.Id] = input;
+
+        if (PreviewMessage is null)
+        {
+            PreviewMessage = BuildNewMessage();
+        }
+        
         PreviewMessage.Content = input;
         RefreshPreviewMessage();
 

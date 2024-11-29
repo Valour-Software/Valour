@@ -1,12 +1,13 @@
 ﻿using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Sdk.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Client.Components.DockWindows;
 
 public static class WindowService
 {
-    public static event Func<WindowTab, Task> OnFocusedTabChanged;
-    public static event Func<Planet, Task> OnFocusedPlanetChanged;
+    public static HybridEvent<WindowTab> FocusedTabChanged;
+    public static HybridEvent<Planet> FocusedPlanetChanged;
     
     public static event Action<WindowTab> OnTabDragging;
     public static WindowTab DraggingTab { get; set; }
@@ -28,15 +29,15 @@ public static class WindowService
         
         FocusedTab = tab;
         
-        if (OnFocusedTabChanged is not null)
-            await OnFocusedTabChanged.Invoke(tab);
+        if (FocusedTabChanged is not null)
+            FocusedTabChanged.Invoke(tab);
         
         if (tab.Content.PlanetId is not null)
         {
             FocusedPlanet = await MainDock.Client.PlanetService.FetchPlanetAsync(tab.Content.PlanetId.Value);
             
-            if (OnFocusedPlanetChanged is not null)
-                await OnFocusedPlanetChanged.Invoke(FocusedPlanet);
+            if (FocusedPlanetChanged is not null)
+                FocusedPlanetChanged.Invoke(FocusedPlanet);
         }
     }
     

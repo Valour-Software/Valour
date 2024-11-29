@@ -77,7 +77,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// The user's currently set status - this could represent how they feel, their disdain for the political climate
     /// of the modern world, their love for their mother's cooking, or their hate for lazy programmers.
     /// </summary>
-    public string? Status { get; set; }
+    public string Status { get; set; }
 
     /// <summary>
     /// The integer representation of the current user state
@@ -104,7 +104,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// If not null, the type of UserSubscription the user currently
     /// is subscribed to
     /// </summary>
-    public string? SubscriptionType { get; set; }
+    public string SubscriptionType { get; set; }
     
     /// <summary>
     /// The subscription the user currently has

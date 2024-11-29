@@ -204,8 +204,6 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     {
         if (Mentions is null || Mentions.Count == 0)
             return false;
-        
-        PlanetMember selfMember = null;
 
         foreach (var mention in Mentions)
         {
@@ -251,7 +249,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// <summary>
     /// The mentions within this message
     /// </summary>
-    public List<Mention>? Mentions
+    public List<Mention> Mentions
     {
         get
         {
@@ -275,7 +273,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
             _mentions = new();
     }
 
-    public Embed? Embed
+    public Embed Embed
     {
         get
         {
@@ -314,7 +312,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         }
     }
 
-    public List<MessageAttachment>? Attachments
+    public List<MessageAttachment> Attachments
     {
         get
         {

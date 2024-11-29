@@ -142,13 +142,13 @@
         _displayedRoleMembers.Add(1, new());
 
         // Events
-        WindowService.OnFocusedPlanetChanged += OnPlanetChange;
+        WindowService.FocusedPlanetChanged += OnPlanetChange;
         PlanetService.PlanetDisconnected += OnPlanetDisconnected;
         
         // Reload every 30s
         _reloadTimer = new Timer(Reload, null, 0, 1000 * 30);
 
-        await OnPlanetChange(WindowService.FocusedPlanet);
+        OnPlanetChange(WindowService.FocusedPlanet);
     }
 
     private void Reload(object state)
@@ -425,7 +425,7 @@
         StateHasChanged();
     }
 
-    public async Task OnPlanetChange(Planet planet)
+    public void OnPlanetChange(Planet planet)
     {
         //var t = Task.Run(async () =>
         //{

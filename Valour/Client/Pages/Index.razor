@@ -98,7 +98,7 @@
 
 		await base.OnInitializedAsync();
 
-		WindowService.OnFocusedPlanetChanged += OnPlanetChange;
+		WindowService.FocusedPlanetChanged += OnPlanetChange;
 		AuthService.LoggedIn += OnLoginAsync;
 	}
 
@@ -109,7 +109,7 @@
 
 	public void Dispose()
 	{
-		WindowService.OnFocusedPlanetChanged -= OnPlanetChange;
+		WindowService.FocusedPlanetChanged -= OnPlanetChange;
 	}
 
 	protected override async void OnAfterRender(bool firstRender)

@@ -26,11 +26,6 @@ public enum NotificationSource
 public interface ISharedNotification : ISharedModel<long>
 {
     /// <summary>
-    /// The id of the notification
-    /// </summary>
-    long Id { get; set; }
-    
-    /// <summary>
     /// The user the notification was sent to
     /// </summary>
     long UserId { get; set; }

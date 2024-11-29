@@ -146,7 +146,10 @@ public class NodeService : ServiceBase
 
             // We failed to find the planet in a node
             if (!response.Success)
+            {
+                LogError($"Failed to find node for planet {planetId}: {response.Message}");
                 return null;
+            }
 
             // If we succeeded, wrap the response in a node object
             name = response.Data.Trim();

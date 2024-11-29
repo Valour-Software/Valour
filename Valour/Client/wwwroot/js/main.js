@@ -26,6 +26,9 @@ if (embedded) {
     mobile = true;
 }
 
+window["mobile"] = mobile;
+window["embedded"] = embedded;
+
 function GetIsEmbedded() {
     return embedded;
 }

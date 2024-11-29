@@ -82,9 +82,9 @@ else
         _ = RequestNotificationSubscriptionAsync();
     }
 
-    private async Task OnBrowserReady()
+    private Task OnBrowserReady()
     {
-        
+        return Task.CompletedTask;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

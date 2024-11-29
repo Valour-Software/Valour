@@ -15,7 +15,7 @@
     <div id="anchor" style="overflow-anchor: auto; height: 1px; margin-top: -1px;"></div>
 </div>
 
-<InputComponent @ref="@InputComponent" MessageHolder="@this" />
+<InputComponent @ref="@InputComponent" ChatComponent="@ChatComponent" MessageHolder="@this" />
 
   @code {
     public class MessageComponentParams
@@ -27,7 +27,7 @@
         public bool Ghost;
     }
 
-    [CascadingParameter]
+    [Parameter]
     public ChatChannelWindowComponent ChatComponent { get; set; }
     
     public InputComponent InputComponent { get; set; }

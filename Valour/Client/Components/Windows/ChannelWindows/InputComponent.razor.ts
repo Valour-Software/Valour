@@ -3,71 +3,380 @@
 type InputContext = {
     dotnet: DotnetObject;
     inputEl: HTMLInputElement;
+    
+    // Helper functions
+    caretMoveHandler: (offset?: number) => Promise<void>;
+    getCurrentWord: (off: number) => string;
+    getCursorPos: () => number;
+    
+    // Interop functions
+    setInputContent: (content: string) => void;
+    focus: () => void;
+    submitMessage: (keepOpen?: boolean) => Promise<void>;
+    moveCursorToEnd: () => void;
+    injectElement: (text: string, coverText: string, classList: string, styleList: string) => void;
+    injectEmoji: (text: string, native: string, unified: string, shortcodes: string) => Promise<void>;
+    openUploadFile: (uploadEl: HTMLElement) => void;
+    
+    // Event handlers
+    pasteHandler: (e: ClipboardEvent) => void;
+    keyDownHandler: (e: KeyboardEvent) => void;
+    inputHandler: (e: InputEvent) => void;
+    clickHandler: () => void;
+    
     hookEvents: () => void;
+    cleanup: () => void;
     
     // State tracking
     currentWord: string;
     currentIndex: number;
+    lastSelection: Selection | null;
 };
 
-export const init = (dotnet: DotnetObject, inputEl: HTMLInputElement): InputContext => {
+export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputContext {
     const ctx: InputContext = {
+        ////////////////
+        // Properties //
+        ////////////////
+        
         dotnet,
         inputEl,
         currentWord: '',
         currentIndex: 0,
-        hookEvents: () => hookEvents(ctx),
+        lastSelection: null,
+        
+        //////////////////////
+        // Helper Functions //
+        //////////////////////
+
+        getCursorPos() {
+            if (window.getSelection) {
+                const sel = window.getSelection();
+                if (sel.getRangeAt && sel.rangeCount) {
+                    const range = sel.getRangeAt(0);
+                    return range.startOffset;
+                }
+            }
+
+            return 0;
+        },
+
+        getCurrentWord(offset: number): string {
+            let range = window.getSelection().getRangeAt(0);
+
+            // If it's a 'wide' selection (multiple characters)
+            if (!range.collapsed){
+                return '';
+            }
+
+            let text = '';
+
+            if (range.endContainer.lastChild != null) {
+                text = range.endContainer.lastChild.textContent.substring(0, range.startOffset - offset);
+            }
+            else {
+                text = range.startContainer.textContent.substring(0, range.startOffset - offset);
+            }
+
+            return text.split(/\s+/g).pop();
+        },
+
+        async caretMoveHandler(offset = 0) {
+            this.currentWord = this.getCurrentWord(offset);
+            this.currentIndex = this.getCursorPos();
+            await this.dotnet.invokeMethodAsync('OnCaretUpdate', this.currentWord ?? '');
+            if (document.activeElement !== this.inputEl) {
+                this.lastSelection = window.getSelection();
+            }
+        },
+        
+        ///////////////////////
+        // Interop Functions //
+        ///////////////////////
+
+        openUploadFile(uploadEl: HTMLElement){
+            uploadEl.click();
+        },
+
+        focus() {
+            setTimeout(function() {
+                this.inputEl.focus();
+            }, 0);
+        },
+        
+        setInputContent(content: string) {
+            this.inputEl.innerText = content;
+        },
+        
+        async submitMessage(keepOpen = false) {
+            if (keepOpen) {
+                this.focus();
+            }
+
+            this.inputEl.innerHTML = '';
+
+            // Handle submission of message
+            await this.dotnet.invokeMethodAsync('OnChatboxSubmit');
+            await this.dotnet.invokeMethodAsync('OnCaretUpdate', '');
+        },
+
+        moveCursorToEnd() {
+            const range = document.createRange();
+            const selection = window.getSelection();
+
+            range.selectNodeContents(this.inputEl); // Select the entire content of the element
+            range.collapse(false); // Collapse the range to the end
+
+            selection?.removeAllRanges(); // Clear any existing selections
+            selection?.addRange(range); // Add the new range
+
+            this.focus(); // Focus the element
+        },
+
+        injectElement(
+            text: string,
+            coverText: string,
+            classList: string,
+            styleList: string
+        ): void {
+            // Ensure the input element is focused
+            if (document.activeElement !== this.inputEl) {
+                this.focus();
+            }
+            
+            // If selection not available, try to focus the input element
+            if (!window.getSelection) {
+                this.focus();
+            }
+        
+            // Get the current selection and range
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+        
+                // Get the current word
+                this.currentWord = this.getCurrentWord();
+        
+                // Adjust the range to select the current word
+                const wordLength = this.currentWord.length;
+                const startOffset = range.endOffset - wordLength;
+                range.setStart(range.endContainer, startOffset);
+        
+                // Delete the current word
+                range.deleteContents();
+        
+                // Create the new content
+                const node = document.createTextNode(text);
+                const cont = document.createElement('p');
+                cont.appendChild(node);
+        
+                // Add classes
+                const classes = classList ? classList.split(' ') : [];
+                classes.push('input-magic');
+                cont.classList.add(...classes);
+        
+                // Set styles
+                if (styleList) {
+                    cont.setAttribute('style', styleList);
+                }
+        
+                // Make the container non-editable
+                cont.contentEditable = 'false';
+        
+                // Set data-before attribute (if needed)
+                cont.setAttribute('data-before', coverText);
+        
+                // Insert the new content at the caret position
+                range.insertNode(cont);
+        
+                // Move the caret after the inserted content
+                range.setStartAfter(cont);
+                range.collapse(true);
+        
+                // Update the selection
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } else {
+                console.error("No selection available");
+            }
+            
+            this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(this.inputEl) ?? '', '');
+        },
+
+        async injectEmoji(
+            text: string,
+            native: string,
+            unified: string,
+            shortcodes: string
+        ): Promise<void> {
+            
+            let sel: Selection = null;
+            
+            // If the input isn't focused
+            if (document.activeElement !== this.inputEl ||
+                !window.getSelection()) {
+                
+                // If there is a last selection, use it
+                if (this.lastSelection) {
+                    sel = this.lastSelection;
+                } else { // Otherwise, select end
+                    this.inputEl.focus();
+                    // Ensure end is elected
+                    this.moveCursorToEnd();
+                    
+                    sel = window.getSelection();
+                }
+            }
+
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+
+                // Delete any selected content
+                range.deleteContents();
+
+                // Create the emoji image element
+                const img = document.createElement('img');
+                img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
+                img.setAttribute('data-text', native);
+                img.alt = native;
+                img.classList.add('emoji');
+                img.style.width = '1em';
+
+                // Insert the emoji image at the caret position
+                range.insertNode(img);
+
+                // Move the caret after the inserted image
+                range.setStartAfter(img);
+                range.collapse(true);
+
+                // Update the selection
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } else {
+                console.error("No selection available");
+            }
+            
+            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(this.inputEl) ?? '', '');
+        },
+        
+        ////////////
+        // Events //
+        ////////////
+
+        // Handles keys being pressed when the input is selected
+        async keyDownHandler(e: KeyboardEvent) {
+            this.currentWord = this.getCurrentWord(0);
+            this.currentIndex = this.getCursorPos();
+    
+            switch (e.code){
+                // Down arrow
+                case "ArrowDown":
+                case "ArrowUp": {
+                    // Prevent up and down arrow from moving caret while
+                    // the mention menu is open; instead send an event to
+                    // the mention menu
+                    if (isMentionWord(ctx.currentWord)) {
+                        e.preventDefault();
+                        await ctx.dotnet.invokeMethodAsync('MoveMentionSelect', e.code === "ArrowDown" ? 1 : -1);
+                    }
+                    else {
+                        await this.caretMoveHandler();
+                    }
+    
+                    break;
+                }
+                // Left and right arrows
+                case "ArrowLeft":
+                case "ArrowRight":
+                    await this.caretMoveHandler(e.code === "ArrowLeft" ? -1 : 1);
+                    break;
+                // Enter
+                case "Enter": {
+                    // If shift key is down, do not submit on enter
+                    if (e.shiftKey) {
+                        break;
+                    }
+    
+                    // If the mention menu is open this sends off an event to select it rather
+                    // than submitting the message!
+                    if (isMentionWord(this.currentWord)) {
+                        e.preventDefault();
+                        await ctx.dotnet.invokeMethodAsync('MentionSubmit');
+                    }
+                    else {
+    
+                        // Mobile uses submit button
+                        if (window["mobile"] && !window["embedded"]) {
+                            break;
+                        }
+    
+                        // prevent default behavior
+                        e.preventDefault();
+                        await this.submitMessage();
+                    }
+    
+                    break;
+                }
+                // Tab
+                case "Tab": {
+                    // If the mention menu is open this sends off an event to select it rather
+                    // than adding a tab!
+                    if (isMentionWord(this.currentWord)) {
+                        e.preventDefault();
+                        await this.dotnet.invokeMethodAsync('MentionSubmit');
+                    }
+                    
+                    break;
+                }
+                // Escape
+                case "Escape": {
+                    await this.dotnet.invokeMethodAsync('OnEscape');
+                    break;
+                }
+            }
+        },
+        
+        // Handles input being input into the input (not confusing at all)
+        async inputHandler(e: InputEvent) {
+            this.currentWord = this.getCurrentWord(0);
+            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(inputEl), ctx.currentWord ?? '');
+        },
+
+        // Handles content being pasted into the input
+        pasteHandler(e: ClipboardEvent) {
+            e.preventDefault();
+
+            // Get plain text representation
+            let text = e.clipboardData.getData('text/plain');
+
+            // We need to put the pasted text in a span to keep the newlines
+            insertTextAtCursor(text);
+
+            this.currentWord = this.getCurrentWord(0);
+        },
+        
+        clickHandler() {
+            this.caretMoveHandler();
+        },
+        
+        // Hooks events to the input element
+        hookEvents() {
+            this.inputEl.addEventListener('keydown', (e: KeyboardEvent) => this.keyDownHandler(e));
+            this.inputEl.addEventListener('click', (e: MouseEvent) => this.clickHandler());
+            this.inputEl.addEventListener('paste', (e: ClipboardEvent) => this.pasteHandler(e));
+            this.inputEl.addEventListener('input', (e: InputEvent) => this.inputHandler(ctx, e));
+        },
+        
+        // Frees events and resources
+        cleanup: () => {
+            
+        }
     }
     
     // Hook events before returning reference
     ctx.hookEvents();
     
     return ctx;
-};
-
-const hookEvents = (ctx: InputContext) => {
-    ctx.inputEl.addEventListener('keydown', (e) => inputKeyDownHandler(e, input));
-    ctx.inputEl.addEventListener('click', () => inputCaretMoveHandler(input));
-    ctx.inputEl.addEventListener('paste', (e) => inputPasteHandler(e, input));
-    ctx.inputEl.addEventListener('input', (e: InputEvent) => inputHandler(ctx, e));
-};
-
-// Handles input being input into the input (not confusing at all)
-const inputHandler = async (ctx: InputContext , e: InputEvent) => {
-    ctx.currentWord = getCurrentWord(0);
-    await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', getInputText(ctx), ctx.currentWord ?? '');
-}
-
-// Returns the word at the current caret position, offset by the given amount
-const getCurrentWord = (charOffset: number): string => {
-    const selection = window.getSelection();
-
-    // Ensure there is a valid selection range
-    if (!selection || selection.rangeCount === 0) return '';
-
-    const range = selection.getRangeAt(0);
-
-    // If selection spans multiple characters, return empty string
-    if (!range.collapsed) return '';
-
-    const container = range.endContainer;
-
-    // Ensure the container is a text node
-    if (container.nodeType !== Node.TEXT_NODE) return '';
-
-    const textContent = container.textContent || '';
-
-    // Calculate the effective range to extract the substring
-    const endOffset = Math.max(0, range.startOffset - charOffset);
-
-    // Use regex to find the last word efficiently
-    const match = textContent.slice(0, endOffset).match(/\b\w+$/);
-
-    return match ? match[0] : '';
-};
-
-const getInputText = (ctx: InputContext): string => {
-    return getElementText(ctx.inputEl);
 };
 
 const blockLevelElements = new Set([
@@ -77,7 +386,29 @@ const blockLevelElements = new Set([
 
 const excludedElements = new Set(['script', 'style']);
 
-const getElementText = (el: Node): string => {
+function insertTextAtCursor(text: string) {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    // Get the current range
+    const range = selection.getRangeAt(0);
+
+    // Create a span element to wrap the text
+    const span = document.createElement("span");
+    span.textContent = text.replace(/\n/g, "\n"); // Replace newlines if necessary
+
+    // Insert the span element at the current cursor position
+    range.deleteContents(); // Remove any selected text
+    range.insertNode(span);
+
+    // Move the cursor after the inserted content
+    range.setStartAfter(span);
+    range.setEndAfter(span);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+function getElementText(el: Node): string {
     let text = '';
 
     switch (el.nodeType) {
@@ -121,4 +452,9 @@ const getElementText = (el: Node): string => {
     }
 
     return text;
-};
+}
+
+function isMentionWord(word: string) {
+    if (word == null || word.length == 0) return false;
+    return (word[0] == '@' || word[0] == '#');
+}

@@ -59,35 +59,11 @@
     private List<MentionMatch> _matches;
 
     private Planet _planet;
-
-    private IReadOnlyList<Channel> _chatChannels;
-    private List<PlanetMember> _members;
-    private List<PlanetRole> _roles;
     private List<User> _users;
 
     protected override void OnInitialized()
     {
         _matches = new();
-
-        ModelObserver<PlanetMember>.AnyUpdated += HandlePlanetMemberUpdated;
-
-    }
-
-    private void HandlePlanetMemberUpdated(ModelUpdateEvent<PlanetMember> updatedMember)
-    {
-        var newMember = updatedMember.Model;
-
-        var existingMember = _members.FirstOrDefault(m => m.Id == newMember.Id);
-        if (existingMember != null)
-        {
-            return;
-        }
-        else
-        {
-            _members.Add(newMember);
-        }
-
-        StateHasChanged();
     }
 
 
@@ -178,7 +154,7 @@
                 else
                 {
                     // Get members which may match
-                    var members = _members.Where(x => x.Nickname.ToLower().Contains(Text))
+                    var members = _planet.Members.Where(x => x.Nickname.ToLower().Contains(Text))
                                      .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
                                      .ThenBy(x => x.Nickname.Length)
                                      .Take(10)
@@ -196,7 +172,7 @@
                         }
                     }
 
-                    var roleQuery = _roles.Where(x => x.Name.ToLower().Contains(Text));
+                    var roleQuery = _planet.Roles.Where(x => x.Name.ToLower().Contains(Text));
                     if (!canMentionAll)
                         roleQuery = roleQuery.Where(x => x.AnyoneCanMention);
 
@@ -220,7 +196,7 @@
         }
         else if (Mode == '#')
         {
-            _matches.AddRange(_chatChannels.Where(x => x.Name.ToLower().Contains(Text))
+            _matches.AddRange(_planet.ChatChannels.Where(x => x.Name.ToLower().Contains(Text))
                              .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                              .ThenBy(x => x.Name.Length)
                              .Take(10)

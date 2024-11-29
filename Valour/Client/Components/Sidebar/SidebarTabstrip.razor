@@ -81,13 +81,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        WindowService.OnFocusedPlanetChanged += OnPlanetFocused;
+        WindowService.FocusedPlanetChanged += OnPlanetFocused;
         await LoadStoredLayout(null);
     }
     
     void IDisposable.Dispose()
     {
-        WindowService.OnFocusedPlanetChanged -= OnPlanetFocused;
+        WindowService.FocusedPlanetChanged -= OnPlanetFocused;
     }
 
     private async Task LoadStoredLayout(Planet planet)

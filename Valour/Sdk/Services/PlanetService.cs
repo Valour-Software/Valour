@@ -186,6 +186,9 @@ public class PlanetService : ServiceBase
         if (planet is null)
             return TaskResult.FromFailure("Planet is null");
 
+        // Make sure planet is ready (should be, but just in case)
+        await planet.EnsureReadyAsync();
+        
         if (PlanetLocks.ContainsKey(key))
         {
             _planetLocks[key] = planet.Id;

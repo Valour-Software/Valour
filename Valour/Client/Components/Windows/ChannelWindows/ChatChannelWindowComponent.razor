@@ -13,7 +13,7 @@
         <CascadingValue Value="this" IsFixed="true">
             <ChannelWatchingComponent ParentComponent="this" Channel="Channel" />
             <CascadingValue Value="@ChannelPermissions">
-                <MessageHolderComponent @ref="MessageHolder" @key="@($"mh-{WindowCtx.Id}")" />
+                <MessageHolderComponent ChatComponent="@this" @ref="MessageHolder" @key="@($"mh-{WindowCtx.Id}")" />
             </CascadingValue>
         </CascadingValue>
     </CascadingValue>
@@ -21,22 +21,27 @@
 
 @code {
 
+    public class StateData
+    {
+        public long? PlanetId { get; set; }
+        public long ChannelId { get; set; }
+    }
+
     public class Content : WindowContent<ChatChannelWindowComponent, Channel>
     {
         public override async Task ImportData(string data, ValourClient client)
         {
-            // Exported data is channel id
-            long channelId = JsonSerializer.Deserialize<long>(data);
-            var channel = await client.ChannelService.FetchChannelAsync(channelId);
-            
-            if (channel.PlanetId is not null)
+            var imported = JsonSerializer.Deserialize<StateData>(data);
+
+            if (imported.PlanetId is not null)
             {
-                // Make sure planet is loaded for channel
-                var planet = await channel.Client.PlanetService.FetchPlanetAsync(channel.PlanetId!.Value);
-                await planet.EnsureReadyAsync();
+                var planet = await client.PlanetService.FetchPlanetAsync(imported.PlanetId!.Value);
+                Data = await planet.FetchChannelAsync(imported.ChannelId);
             }
-            
-            Data = channel;
+            else
+            {
+                Data = await client.ChannelService.FetchChannelAsync(imported.ChannelId);
+            }
         }
 
         public override string ExportData(ValourClient clientc)
@@ -44,7 +49,13 @@
             if (Data is null)
                 return null;
             
-            return JsonSerializer.Serialize(Data.Id);
+            var export = new StateData
+            {
+                PlanetId = Data.PlanetId,
+                ChannelId = Data.Id
+            };
+            
+            return JsonSerializer.Serialize(export);
         }
     }
 

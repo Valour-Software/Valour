@@ -32,7 +32,7 @@
     protected override void OnInitialized()
     {
         Instance = this;
-        KeyboardListener.OnKeyDown += OnKeyDown;
+        KeyboardListener.KeyDown += OnKeyDown;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
