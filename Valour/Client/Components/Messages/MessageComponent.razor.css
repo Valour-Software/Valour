@@ -12,13 +12,13 @@
 .message {
     width: 100%;
     max-width: 100%;
-    padding-bottom: 0px;
+    padding-bottom: 0;
     padding-left: 4px;
     position: relative;
 }
 
 .message.minimal {
-    margin-bottom: 0px;
+    margin-bottom: 0;
     min-height: auto;
 }
 
@@ -28,7 +28,7 @@
     margin-top: 2px;
     margin-bottom: 2px;
     vertical-align: top;
-    padding-left: 52px;
+    padding-left: 48px;
     max-width: 100%;
 }
 
@@ -38,11 +38,11 @@
 }
 
 .message .content {
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: 300;
-    font-size: 16px;
-    line-height: 23px;
+    font-size: 15px;
+    line-height: 22px;
     color: #FFFFFF;
     margin: 0px;
     word-break: break-all;
@@ -52,7 +52,7 @@
 
 .message.minimal .content {
     margin-bottom: 0px;
-    padding-left: 48px;
+    padding-left: 44px;
 }
 
 .message .badge-1k {
@@ -126,7 +126,7 @@
     max-width: 38px;
     max-height: 38px;
     border-radius: 8px;
-    margin-top: 8px;
+    margin-top: 3px;
     margin-left: 4px;
     margin-right: 4px;
 }
@@ -134,14 +134,15 @@
 .message .name-role-holder {
     display: flex;
     max-width: 100%;
+    align-items: center;
+    margin-bottom: 2px;
 }
 
 .message .author-name {
     display: inline-block;
     font-family: Ubuntu, sans-serif;
     font-style: normal;
-    font-size: 16px;
-    line-height: 25px;
+    font-size: 15px;
     margin: 0;
     vertical-align: top;
     cursor: pointer;
@@ -155,13 +156,12 @@
     color: #ffffff;
     opacity: 0.3;
     font-style: italic;
-    line-height: 25px;
-    display: inline-block;
-    margin: 0px;
+    margin: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
     padding-right: 6px;
+    font-size: 13px;
 }
 
 .message .left-info {

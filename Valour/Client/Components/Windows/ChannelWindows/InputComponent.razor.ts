@@ -30,7 +30,7 @@ type InputContext = {
     // State tracking
     currentWord: string;
     currentIndex: number;
-    lastSelection: Selection | null;
+    lastRange: Range | null;
 };
 
 export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputContext {
@@ -43,7 +43,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
         inputEl,
         currentWord: '',
         currentIndex: 0,
-        lastSelection: null,
+        lastRange: null,
         
         //////////////////////
         // Helper Functions //
@@ -83,7 +83,11 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
             this.currentIndex = this.getCursorPos();
             await this.dotnet.invokeMethodAsync('OnCaretUpdate', this.currentWord ?? '');
             if (document.activeElement !== this.inputEl) {
-                this.lastSelection = window.getSelection();
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    // Clone the range to save the caret position
+                    this.lastRange = sel.getRangeAt(0).cloneRange();
+                }
             }
         },
         
@@ -225,53 +229,55 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
             unified: string,
             shortcodes: string
         ): Promise<void> {
-            
-            let sel: Selection = null
-            
-            // If the input isn't focused
-            if (document.activeElement !== this.inputEl || !window.getSelection()) {
-                
-                // If there is a last selection, use it
-                if (this.lastSelection) {
-                    sel = this.lastSelection;
-                } else { // Otherwise, select end
+
+            let sel = window.getSelection();
+            let range: Range;
+
+            // Check if the input is focused and the selection is within the input
+            if (!this.inputEl.contains(sel?.anchorNode)) {
+                if (this.lastRange) {
+                    // Restore the saved caret position
+                    sel.removeAllRanges();
+                    range = this.lastRange.cloneRange();
+                    sel.addRange(range);
+                } else {
+                    // If no saved range, move cursor to the end
                     this.inputEl.focus();
-                    // Ensure end is elected
                     this.moveCursorToEnd();
-                    
                     sel = window.getSelection();
+                    range = sel.getRangeAt(0);
                 }
             } else {
-                sel = window.getSelection();
+                // Use the current selection
+                if (sel && sel.rangeCount > 0) {
+                    range = sel.getRangeAt(0);
+                } else {
+                    console.error("No selection available");
+                    return;
+                }
             }
 
-            if (sel && sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
+            // Delete any selected content
+            range.deleteContents();
 
-                // Delete any selected content
-                range.deleteContents();
+            // Create the emoji image element
+            const img = document.createElement('img');
+            img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
+            img.setAttribute('data-text', native);
+            img.alt = native;
+            img.classList.add('emoji');
+            img.style.width = '1em';
 
-                // Create the emoji image element
-                const img = document.createElement('img');
-                img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
-                img.setAttribute('data-text', native);
-                img.alt = native;
-                img.classList.add('emoji');
-                img.style.width = '1em';
+            // Insert the emoji image at the caret position
+            range.insertNode(img);
 
-                // Insert the emoji image at the caret position
-                range.insertNode(img);
+            // Move the caret after the inserted image
+            range.setStartAfter(img);
+            range.collapse(true);
 
-                // Move the caret after the inserted image
-                range.setStartAfter(img);
-                range.collapse(true);
-
-                // Update the selection
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } else {
-                console.error("No selection available");
-            }
+            // Update the selection
+            sel.removeAllRanges();
+            sel.addRange(range);
             
             await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(this.inputEl) ?? '', '');
         },
