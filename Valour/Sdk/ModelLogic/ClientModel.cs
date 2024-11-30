@@ -25,11 +25,13 @@ public abstract class ClientModel
     /// <summary>
     /// The Valour Client this model belongs to
     /// </summary>
+    [JsonIgnore]
     public ValourClient Client { get; private set; }
 
     /// <summary>
     /// The node this model belongs to
     /// </summary>
+    [JsonIgnore]
     public virtual Node Node => Client?.PrimaryNode;
 
     /// <summary>

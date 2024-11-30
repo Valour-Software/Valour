@@ -27,14 +27,11 @@ export function init(dotnet, inputEl) {
             if (!range.collapsed) {
                 return '';
             }
-            let text = '';
-            if (range.endContainer.lastChild != null) {
-                text = range.endContainer.lastChild.textContent.substring(0, range.startOffset - offset);
+            const target = range.endContainer ?? range.startContainer ?? range.endContainer.lastChild ?? range.startContainer.lastChild;
+            if (target) {
+                return target.textContent.substring(0, range.startOffset - offset).split(/\s+/g).pop();
             }
-            else {
-                text = range.startContainer.textContent.substring(0, range.startOffset - offset);
-            }
-            return text.split(/\s+/g).pop();
+            return '';
         },
         async caretMoveHandler(offset = 0) {
             this.currentWord = this.getCurrentWord(offset);
@@ -76,30 +73,47 @@ export function init(dotnet, inputEl) {
             selection?.addRange(range); // Add the new range
             this.focus(); // Focus the element
         },
-        injectElement(text, coverText, classList, styleList) {
+        injectElement(text, coverText, classList, styleList, deleteCurrentWord = true) {
             // Ensure the input element is focused
             if (document.activeElement !== this.inputEl) {
-                this.focus();
-            }
-            // If selection not available, try to focus the input element
-            if (!window.getSelection) {
                 this.focus();
             }
             // Get the current selection and range
             const sel = window.getSelection();
             if (sel && sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
-                // Get the current word
-                this.currentWord = this.getCurrentWord();
-                // Adjust the range to select the current word
+                const caretRange = sel.getRangeAt(0);
+                // Ensure that the endContainer is a Text node
+                let endContainer = caretRange.endContainer;
+                let endOffset = caretRange.endOffset;
+                if (endContainer.nodeType !== Node.TEXT_NODE) {
+                    // Find a Text node within endContainer or its descendants
+                    const textNodeData = this.findTextNodeAndOffset(endContainer, endOffset);
+                    if (textNodeData) {
+                        endContainer = textNodeData.node;
+                        endOffset = textNodeData.offset;
+                    }
+                    else {
+                        console.error('No text node found at caret position');
+                        return;
+                    }
+                }
+                // Use your existing getCurrentWord function
+                this.currentWord = this.getCurrentWord(0);
+                // Create a new range for the current word
+                const range = document.createRange();
                 const wordLength = this.currentWord.length;
-                const startOffset = range.endOffset - wordLength;
-                range.setStart(range.endContainer, startOffset);
+                const startOffset = endOffset - wordLength;
+                range.setStart(endContainer, startOffset);
+                range.setEnd(endContainer, endOffset);
                 // Delete the current word
-                range.deleteContents();
+                if (deleteCurrentWord) {
+                    range.deleteContents();
+                    // After deleting, the caret may have moved, adjust endOffset
+                    endOffset = startOffset;
+                }
                 // Create the new content
                 const node = document.createTextNode(text);
-                const cont = document.createElement('p');
+                const cont = document.createElement('span'); // Use 'span' instead of 'p' for inline elements
                 cont.appendChild(node);
                 // Add classes
                 const classes = classList ? classList.split(' ') : [];
@@ -130,8 +144,7 @@ export function init(dotnet, inputEl) {
         async injectEmoji(text, native, unified, shortcodes) {
             let sel = null;
             // If the input isn't focused
-            if (document.activeElement !== this.inputEl ||
-                !window.getSelection()) {
+            if (document.activeElement !== this.inputEl || !window.getSelection()) {
                 // If there is a last selection, use it
                 if (this.lastSelection) {
                     sel = this.lastSelection;
@@ -142,6 +155,9 @@ export function init(dotnet, inputEl) {
                     this.moveCursorToEnd();
                     sel = window.getSelection();
                 }
+            }
+            else {
+                sel = window.getSelection();
             }
             if (sel && sel.rangeCount > 0) {
                 const range = sel.getRangeAt(0);
@@ -333,5 +349,39 @@ function isMentionWord(word) {
     if (word == null || word.length == 0)
         return false;
     return (word[0] == '@' || word[0] == '#');
+}
+function findTextNodeAndOffset(node, offset) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return { node: node, offset };
+    }
+    // If the node has child nodes, attempt to find a text node among them
+    if (node.childNodes.length > 0) {
+        let childNode = null;
+        if (offset < node.childNodes.length) {
+            childNode = node.childNodes[offset];
+        }
+        else if (node.childNodes.length > 0) {
+            childNode = node.childNodes[node.childNodes.length - 1];
+            offset = childNode.textContent ? childNode.textContent.length : 0;
+        }
+        if (childNode) {
+            return this.findTextNodeAndOffset(childNode, offset);
+        }
+    }
+    // If the node has siblings, try to find a text node among them
+    let sibling = node.previousSibling;
+    while (sibling) {
+        if (sibling.nodeType === Node.TEXT_NODE) {
+            const textLength = sibling.textContent ? sibling.textContent.length : 0;
+            return { node: sibling, offset: textLength };
+        }
+        sibling = sibling.previousSibling;
+    }
+    // If all else fails, traverse up to the parent node
+    if (node.parentNode) {
+        return this.findTextNodeAndOffset(node.parentNode, offset);
+    }
+    // No text node found
+    return null;
 }
 //# sourceMappingURL=InputComponent.razor.js.map
