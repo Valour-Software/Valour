@@ -1,5 +1,6 @@
 ﻿@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
+@inject ChannelService ChannelService
 
 <div 
     class="@GetCssClass()" 
@@ -50,18 +51,18 @@
 
     public List<Channel> TopChannels;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         // Initialize collections
         TopChannels = new List<Channel>();
 
         // Handle list change
-        ModelObserver<Channel>.OnAnyUpdated += OnChannelUpdate;
+        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
 
         // Handle Deletions
-        ModelObserver<Channel>.OnAnyDeleted += OnChannelDelete;
+        ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
-        ValourClient.OnCategoryOrderUpdate += OnOrderUpdate;
+        ChannelService.CategoryReordered += OnOrderUpdate;
         
         GetTopLevelItems();
     }
@@ -125,8 +126,8 @@
     {
         TopChannels.Sort((x, y) =>
         {
-            var a = x.Position;
-            var b = y.Position;
+            var a = x.RawPosition;
+            var b = y.RawPosition;
             return a.CompareTo(b);
         });
     }

@@ -1,5 +1,7 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
+@inject ValourClient Client
+
 @using System.Net.Http.Headers
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
@@ -8,13 +10,14 @@
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
         @{
-            if (PreviewMessage is not null)
+            if (PreviewMessage is not null  && !PreviewMessage.IsEmpty())
             {
-                var messageParams = new MessageHolderComponent.MessageComponentParams()
+                var messageParams = new MessageComponent.Params()
                 {
                     Message = PreviewMessage,
                     Ghost = true,
-                    LastMessage = MessageHolder.GetLastMessage(),
+                    LastMessage = ChatComponent.GetLastMessage(),
+                    ChatComponent = ChatComponent
                 };
 
                 <MessageComponent @key="@($"{ChatComponent.WindowCtx.Id}-preview-message")" @ref="@PreviewMessageComponent" ParamData="@messageParams"></MessageComponent>
@@ -43,12 +46,12 @@
     <div style="position: relative">
         <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
     </div>
-    <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
+    <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
 
-    <div class="textbox-holder" @onclick="@MessageHolder.ScrollToBottomAnimated">
+    <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
-            <InputFile id="@("upload-core-" + ChatComponent.WindowCtx.Id)" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             
             <div class="textbox-wrapper">
                 <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.WindowCtx.Id').focus()" autofocus>
@@ -84,17 +87,11 @@
 
 @code {
 
-    [CascadingParameter]
-    public ChatChannelWindowComponent ChatComponent { get; set; }
+    [Parameter]
+    public ChatWindowComponent ChatComponent { get; set; }
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
-    
-    /// <summary>
-    /// A reference to the container for message rendering
-    /// </summary>
-    [Parameter]
-    public MessageHolderComponent MessageHolder { get; set; }
     
     /* End Planet Stuff */
 
@@ -143,11 +140,15 @@
     /// Dotnet object reference for use in Javascript
     /// </summary>
     private DotNetObjectReference<InputComponent> _thisRef;
-
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
+
+    /// <summary>
+    /// Js context for the input
+    /// </summary>
+    private IJSInProcessObjectReference _jsCtx;
 
     /// <summary>
     /// If the current user is able to post messages using this input
@@ -158,8 +159,6 @@
     /// Allows this component to render when true
     /// </summary>
     public bool CanRenderFlag { get; set; }
-    
-    private PlanetMember _selfMember { get; set; }
 
     private DateTime _lastTypingUpdateSent = DateTime.MinValue;
 
@@ -167,6 +166,11 @@
 
     private EmojiMart _emojis;
 
+    private async Task OnClickTextbox()
+    {
+        await ChatComponent.ScrollToBottomAnimated();
+    }
+    
     private void ToggleEmojis()
     {
         _emojis.ToggleVisible();
@@ -180,14 +184,6 @@
         _emojis.ToggleVisible();
 
         return Task.CompletedTask;
-    }
-    
-    /// <summary>
-    /// Run when the component is initialized
-    /// </summary>
-    protected override async Task OnInitializedAsync()
-    {
-        await SetupNewChannelAsync();
     }
 
     protected override bool ShouldRender()
@@ -236,7 +232,7 @@
 
     private async Task OnClickUploadAsync()
     {
-        await _jsModule.InvokeVoidAsync("OpenUploadFile", ChatComponent.WindowCtx.Id);
+        await _jsCtx.InvokeVoidAsync("openUploadFile", _inputFileRef);
     }
 
     private static Dictionary<long, string> _retainedInputCache = new();
@@ -245,21 +241,23 @@
     {
         _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
         _thisRef.Dispose();
+
+        await _jsCtx.InvokeVoidAsync("cleanup");
+        
         await _jsModule.DisposeAsync();
+        await _jsCtx.DisposeAsync();
     }
 
-    public virtual async Task SetupNewChannelAsync()
+    protected override async Task OnInitializedAsync()
     {
-        var planet = await ChatComponent.Channel.GetPlanetAsync();
+        var planet = ChatComponent.Channel.Planet;
         if (planet is not null)
         {
-            _selfMember = await planet.GetSelfMemberAsync();
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(_selfMember, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
         }
         else
         {
-            _selfMember = null;
-            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(ValourClient.Self.Id, ChatChannelPermissions.PostMessages);
+            CanUserPost = await ChatComponent.Channel.HasPermissionAsync(Client.Me.Id, ChatChannelPermissions.PostMessages);
         }
 
         PreviewMessage = BuildNewMessage();
@@ -267,16 +265,16 @@
         Refresh();
     }
 
-    public virtual Message BuildNewMessage()
+    public Message BuildNewMessage()
     {
         _retainedInputCache.TryGetValue(ChatComponent.Channel.Id, out var prevContent);
         
         return new Message()
         {
-            AuthorUserId = ValourClient.Self.Id,
+            AuthorUserId = Client.Me.Id,
             Content = prevContent,
             ChannelId = ChatComponent.Channel.Id,
-            AuthorMemberId = _selfMember?.Id,
+            AuthorMemberId = ChatComponent.Channel.Planet?.MyMember.Id,
             TimeSent = DateTime.UtcNow,
             ReplyToId = null,
             PlanetId = ChatComponent.Channel.PlanetId,
@@ -289,9 +287,9 @@
         await InjectEmojiAsync(e.Id, e.Native, e.Unified, e.Shortcodes);
     }
 
-    public async Task SetInputContent(string content)
+    public ValueTask SetInputContent(string content)
     {
-        await _jsModule.InvokeVoidAsync("setInputContent", ChatComponent.WindowCtx.Id, content);
+        return _jsCtx.InvokeVoidAsync("setInputContent", content ?? string.Empty);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -299,13 +297,11 @@
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=2");
-            await SetupJsAsync();
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
+            _jsCtx = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, InnerInputRef);
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();
-
-            PreviewMessageComponent.Holder = MessageHolder;
         }
 
         CanRenderFlag = false;
@@ -316,11 +312,11 @@
         if (PreviewMessage?.Content is not null)
         {
             await SetInputContent(PreviewMessage.Content);
-            await RefreshPreviewMessage();
+            RefreshPreviewMessage();
         }
         else {
             await SetInputContent("");
-            await RefreshPreviewMessage();
+            RefreshPreviewMessage();
         }
     }
 
@@ -335,7 +331,7 @@
         EditingMessageComponent = component;
         PreviewMessage = message;
         EditingOriginalText = PreviewMessage.Content;
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(message.Content, message.Content.Split(' ').LastOrDefault());
 
@@ -352,13 +348,13 @@
         {
             // Return to original
             //EditingMessageComponent.MessageData.Clear();
-            EditingMessageComponent.Message.Content = EditingOriginalText;
+            EditingMessageComponent.ParamData.Message.Content = EditingOriginalText;
         }
 
         // Clear preview
         EditingMessageComponent = null;
         PreviewMessage = BuildNewMessage();
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
 
         // Clear input
         await OnChatboxUpdate(null, "");
@@ -403,7 +399,7 @@
             attachmentType = MessageAttachmentType.Audio;
         }
 
-        if (ValourClient.Self.SubscriptionType is not null)
+        if (Client.Me.SubscriptionType is not null)
         {
             maxSize = 20480000;
         }
@@ -468,7 +464,7 @@
             FileName = name,
         };
 
-        var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
+        var plusRoute = Client.Me.SubscriptionType == null ? "" : "/plus";
 
         var modalData = new FileUploadComponent.ModalParams()
         {
@@ -476,12 +472,12 @@
             Attachment = newAttachment,
             OnConfirm = async () => 
             {
-                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
+                var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
 
                 if (result.Success)
                 {
                     newAttachment.Location = result.Data;
-                    await AddMessageAttachment(newAttachment);
+                    AddMessageAttachment(newAttachment);
                 }
                 else
                 {
@@ -493,7 +489,7 @@
         ModalRoot.OpenModal<FileUploadComponent>(modalData);
     }
 
-    public async Task RemoveAttachment(int id)
+    public void RemoveAttachment(int id)
     {
         var attachments = PreviewMessage.Attachments;
         if (attachments is null)
@@ -509,27 +505,27 @@
 
         PreviewMessage.SetAttachments(attachments);
 
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
         Refresh();
     }
 
     #endregion
 
-    public async Task AddReceipt(string transactionId)
+    public void AddReceipt(string transactionId)
     {
         var attachment = new MessageAttachment(MessageAttachmentType.ValourReceipt)
         {
             Location = $"https://app.valour.gg/api/eco/transactions/{transactionId}",
         };
 
-        await AddMessageAttachment(attachment);
+        AddMessageAttachment(attachment);
     }
     
-    public async Task AddTenor(Media media)
+    public void AddTenor(Media media)
     {
         var format = media.GetFormat(MediaFormatType.gif);
 
-        await AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
+        AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
         {
             Location = format.Url,
             MimeType = "image/gif",
@@ -562,7 +558,7 @@
         Refresh();
     }
 
-    public async Task AddMessageAttachment(MessageAttachment attachment)
+    public void AddMessageAttachment(MessageAttachment attachment)
     {
         var attachments = PreviewMessage.Attachments;
         attachments ??= new List<MessageAttachment>();
@@ -570,24 +566,29 @@
         attachments.Add(attachment);
         PreviewMessage.SetAttachments(attachments);
 
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
         Refresh();
     }
 
-    public async Task RefreshPreviewMessage()
+    public void RefreshPreviewMessage()
     {
         //PreviewMessage.Content = string.Empty;
-        PreviewMessage.TimeSent = DateTime.UtcNow;
-        PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        if (PreviewMessage is not null)
+            PreviewMessage.TimeSent = DateTime.UtcNow;
+
+        if (PreviewMessageComponent is not null)
+        {
+            PreviewMessageComponent.SetLast(ChatComponent.GetLastMessage());
+            PreviewMessageComponent.SetMessage(PreviewMessage);
+        }
     }
 
     public async Task SetReplyMessage(Message message)
     {
-        PreviewMessageComponent.Message.ReplyTo = message;
+        PreviewMessageComponent.ParamData.Message.ReplyTo = message;
         PreviewMessage.ReplyToId = message?.Id;
 
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
         Refresh();
 
         await FocusInputAsync();
@@ -596,7 +597,7 @@
     public Task RemoveReply()
     {
         PreviewMessage.ReplyToId = null;
-        PreviewMessageComponent.Message.ReplyTo = null;
+        PreviewMessageComponent.ParamData.Message.ReplyTo = null;
         PreviewMessageComponent.ReRender();
         return Task.CompletedTask;
     }
@@ -606,13 +607,13 @@
         // New message
         if (message.Id == 0)
         {
-            MessageHolder.AddQueuedMessage(message);
+            ChatComponent.AddQueuedMessage(message);
             
-            var result = await message.PostMessageAsync();
+            var result = await message.PostAsync();
 
             if (!result.Success)
             {
-                MessageHolder.RemoveQueuedMessage(message.Fingerprint);
+                ChatComponent.RemoveQueuedMessage(message.Fingerprint);
 
                 Message errorMsg = new()
                 {
@@ -622,23 +623,23 @@
                     Id = long.MaxValue
                 };
 
-                MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(errorMsg);
+                ChatComponent.RemoveErrorMessage();
+                await ChatComponent.AddMessage(errorMsg);
             }
             else
             {
-                MessageHolder.RemoveErrorMessage();
+                ChatComponent.RemoveErrorMessage();
             }
             
-            PreviewMessageComponent.Message.ReplyTo = null;
+            PreviewMessageComponent.ParamData.Message.ReplyTo = null;
             PreviewMessage.Clear();
             PreviewMessageComponent.ReRender();
-            _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
+            _retainedInputCache.Remove(ChatComponent.Channel.Id, out _);
         }
         // Editing message
         else
         {
-            var result = await message.EditMessageAsync();
+            var result = await message.UpdateAsync();
             if (!result.Success)
             {
                 Message errorMsg = new()
@@ -649,13 +650,13 @@
                     Id = 0 
                 };
 
-                MessageHolder.RemoveErrorMessage();
-                await MessageHolder.AddMessage(errorMsg);
+                ChatComponent.RemoveErrorMessage();
+                await ChatComponent.AddMessage(errorMsg);
             }
             else
             {
                 PreviewMessage = BuildNewMessage();
-                await PreviewMessageComponent.SetMessage(PreviewMessage);
+                PreviewMessageComponent.SetMessage(PreviewMessage);
             }
         }
     }
@@ -664,35 +665,29 @@
     // JS Interop Zone //
     /////////////////////
 
-    // C# -> JS
-    private ValueTask SetupJsAsync()
-    {
-        return _jsModule.InvokeVoidAsync("setup", ChatComponent.WindowCtx.Id, _thisRef);
-    }
-
     public ValueTask InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
-        return _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("injectElement", text, coverText, classList, styleList);
     }
     
     public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes)
     {
-        return _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes);
     }
 
     public async Task OnSubmitClick()
     {
-        await _jsModule.InvokeVoidAsync("submitMessage", ChatComponent.WindowCtx.Id, true);
+        await _jsCtx.InvokeVoidAsync("submitMessage", true);
     }
 
     private ValueTask SelectEnd()
     {
-        return _jsModule.InvokeVoidAsync("selectEnd", ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("moveCursorToEnd");
     }
     
     private ValueTask FocusInputAsync()
     {
-        return _jsModule.InvokeVoidAsync("focusInput", ChatComponent.WindowCtx.Id);
+        return _jsCtx.InvokeVoidAsync("focus");
     }
 
     // JS -> C#
@@ -719,15 +714,21 @@
         }
 
         _retainedInputCache[ChatComponent.Channel.Id] = input;
+
+        if (PreviewMessage is null)
+        {
+            PreviewMessage = BuildNewMessage();
+        }
+        
         PreviewMessage.Content = input;
-        await RefreshPreviewMessage();
+        RefreshPreviewMessage();
 
         if (EditingMessageComponent is not null)
         {
-            await EditingMessageComponent.BuildMessage();
+            EditingMessageComponent.BuildMessage();
         }
 
-        await MessageHolder.ScrollToBottom();
+        await ChatComponent.ScrollToBottom();
 
         if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
         {
@@ -760,8 +761,8 @@
         }
         
         // Get last message where author is the current user
-        var lastMessage = MessageHolder.RenderedMessages
-            .LastOrDefault(m => m.Message.AuthorUserId == ValourClient.Self.Id);
+        var lastMessage = ChatComponent.RenderedMessages
+            .LastOrDefault(m => m.ParamData.Message.AuthorUserId == Client.Me.Id);
 
         if (lastMessage is null)
         {
@@ -802,7 +803,7 @@
 
         // New message for preview
         PreviewMessage = BuildNewMessage();
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(null, "");
 

@@ -5,14 +5,14 @@ namespace Valour.Server.Services;
 
 public class PlanetBanService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly PlanetMemberService _memberService;
     private readonly ILogger<PlanetBanService> _logger;
 
     public PlanetBanService(
-        ValourDB db,
+        ValourDb db,
         CoreHubService coreHub,
         TokenService tokenService,
         PlanetMemberService memberService,

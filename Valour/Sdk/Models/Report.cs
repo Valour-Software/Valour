@@ -50,10 +50,4 @@ public class Report : ISharedReport
     /// If the report has been reviewed by a moderator
     /// </summary>
     public bool Reviewed { get; set; }
-    
-    public static async Task<TaskResult> PostReportAsync(Report report)
-    {
-        var response = await ValourClient.PrimaryNode.PostAsync("api/reports", report);
-        return response;
-    }
 }

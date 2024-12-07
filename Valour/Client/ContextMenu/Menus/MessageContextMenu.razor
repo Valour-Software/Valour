@@ -1,14 +1,15 @@
 @inherits ContextMenu<MessageContextMenu.MessageContextParams>
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
-<ContextMenuItem OnClick="@OnClickReply">
+<ContextMenuItem OnClickAsync="@OnClickReply">
     <Label>Reply</Label>
     <Icon><i class="bi bi-reply-fill"></i></Icon>
 </ContextMenuItem>
 
-@if (Data.Message.AuthorUserId == ValourClient.Self.Id)
+@if (Data.Message.AuthorUserId == Client.Me.Id)
 {
-    <ContextMenuItem OnClick="@OnClickEdit">
+    <ContextMenuItem OnClickAsync="@OnClickEdit">
         <Label>Edit</Label>
         <Icon><i class="bi bi-pen-fill"></i></Icon>
     </ContextMenuItem>
@@ -29,20 +30,20 @@
     <Label>Copy</Label>
     <Icon><i class="bi bi-caret-right-fill"></i></Icon>
     <Content>
-        <ContextMenuItem OnClick="@OnClickCopyText">Text</ContextMenuItem>
-        <ContextMenuItem OnClick="@OnClickCopyId">Message Id</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyId">Message Id</ContextMenuItem>
     </Content>
 </ContextSubMenu>
 
 @if (_deletePermission == PermissionState.True)
 {
-    <ContextMenuItem OnClick="@OnClickDelete" Color="red">
+    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
         <Label>Delete</Label>
         <Icon><i class="bi bi-trash-fill"></i></Icon>
     </ContextMenuItem>
 }
 
-<ContextMenuItem OnClick="@OnClickReport" Color="red">
+<ContextMenuItem OnClickAsync="@OnClickReport" Color="red">
     <Label>Report</Label>
     <Icon><i class="bi bi-flag-fill"></i></Icon>
 </ContextMenuItem>
@@ -53,7 +54,7 @@
     public class MessageContextParams
     {
         public Message Message;
-        public ChatChannelWindowComponent WindowComponent;
+        public ChatWindowComponent WindowComponent;
         public MessageComponent MessageComponent;
     }
 
@@ -68,7 +69,7 @@
     {
         if (Data.Message.PlanetId is not null)
         {
-            _authorMember = await Data.Message.GetAuthorMemberAsync();
+            _authorMember = await Data.Message.FetchAuthorMemberAsync();
             _memberContextData = new()
             {
                 Member = _authorMember,
@@ -79,7 +80,7 @@
             _authorMember = null;
         }
 
-        if (Data.Message.AuthorUserId == ValourClient.Self.Id)
+        if (Data.Message.AuthorUserId == Client.Me.Id)
         {
             _deletePermission = PermissionState.True;
         }
@@ -100,7 +101,7 @@
         // Close the context menu
         await CloseAsync();
         
-        var input = Data.MessageComponent.Holder.ChatComponent.MessageHolder.InputComponent;
+        var input = Data.MessageComponent.ParamData.ChatComponent.InputComponent;
         await input.SetReplyMessage(Data.Message);
     }
 
@@ -127,10 +128,10 @@
         {
             Report = new Report()
             {
-                ReportingUserId = ValourClient.Self.Id,
-                MessageId = Data.MessageComponent.Message.Id,
-                ChannelId = Data.MessageComponent.Message.ChannelId,
-                PlanetId = Data.MessageComponent.Message.PlanetId
+                ReportingUserId = Client.Me.Id,
+                MessageId = Data.MessageComponent.ParamData.Message.Id,
+                ChannelId = Data.MessageComponent.ParamData.Message.ChannelId,
+                PlanetId = Data.MessageComponent.ParamData.Message.PlanetId
             }
         };
         

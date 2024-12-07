@@ -2,6 +2,6 @@
 
 public enum AccountType
 {
-    Planet = 0,
+    Shared = 0,
     User = 1,
 }

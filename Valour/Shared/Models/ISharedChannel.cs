@@ -15,7 +15,7 @@ public enum ChannelTypeEnum
     GroupVoice = 6,
 }
 
-public class SharedChannelNames
+public static class SharedChannelNames
 {
     public static readonly string[] ChannelTypeNames = new string[]
     {
@@ -29,8 +29,11 @@ public class SharedChannelNames
     };
 }
 
-public interface ISharedChannel : ISharedModel, ISortableModel
+public interface ISharedChannel : ISharedModel<long>, ISortable
 {
+    public const string BaseRoute = "api/channels";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    
     public static string GetTypeName(ChannelTypeEnum type)
     {
         var i = (int)type;
@@ -94,59 +97,11 @@ public interface ISharedChannel : ISharedModel, ISortableModel
     /// This does limit the depth of categories to 4, and the highest position
     /// to 254 (since 000 means no position)
     /// </summary>
-    int Position { get; set; }
+    public uint RawPosition { get; set; }
     
-    /// <summary>
-    /// The depth, or how many categories deep the channel is
-    /// </summary>
-    int Depth { get; }
-    
-    /// <summary>
-    /// The position of the channel within its parent
-    /// </summary>
-    int LocalPosition { get; }
-
-    public static int GetDepth(ISharedChannel channel)
+    uint ISortable.GetSortPosition()
     {
-        // Check if the third and fourth bytes (depth 3 and 4) are present
-        if ((channel.Position & 0x0000FFFF) == 0)
-        {
-            // If they are not, we must be in the first or second layer
-            if ((channel.Position & 0x00FF0000) == 0)
-            {
-                // If the second byte is also zero, it's in the first layer (top level)
-                return 1;
-            }
-            // Otherwise, it's in the second layer
-            return 2;
-        }
-        else
-        {
-            // Check the lowest byte first (fourth layer)
-            if ((channel.Position & 0x000000FF) == 0)
-            {
-                // If the fourth byte is zero, it's in the third layer
-                return 3;
-            }
-            
-            // If none of the previous checks matched, it’s in the fourth layer
-            return 4;
-        }   
-    }
-
-    public static int GetLocalPosition(ISharedChannel channel)
-    {
-        var depth = GetDepth(channel);
-        // use depth to determine amount to shift
-        var shift = 8 * (4 - depth);
-        var shifted = channel.Position >> shift;
-        // now clear the higher bits
-        return shifted & 0xFF;
-    }
-
-    int ISortableModel.GetSortPosition()
-    {
-        return Position;
+        return RawPosition;
     }
 
     /////////////////////////////////////

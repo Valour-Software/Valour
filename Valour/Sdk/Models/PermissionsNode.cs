@@ -1,17 +1,40 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : ClientModel, ISharedPermissionsNode
+public readonly struct PermissionsNodeKey : IEquatable<PermissionsNodeKey>
 {
+    public readonly long TargetId;
+    public readonly long RoleId;
+    public readonly ChannelTypeEnum TargetType;
+    
+    public PermissionsNodeKey(long targetId, long roleId, ChannelTypeEnum targetType)
+    {
+        TargetId = targetId;
+        RoleId = roleId;
+        TargetType = targetType;
+    }
+    
+    public bool Equals(PermissionsNodeKey other)
+    {
+        return TargetId == other.TargetId && RoleId == other.RoleId && TargetType == other.TargetType;
+    }
+}
+
+public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, ISharedPermissionsNode
+{
+    public override string IdRoute => ISharedPermissionsNode.GetIdRoute(this);
+    public override string BaseRoute => ISharedPermissionsNode.BaseRoute;
+    
     /// <summary>
     /// The planet this node belongs to
     /// </summary>
@@ -42,6 +65,8 @@ public class PermissionsNode : ClientModel, ISharedPermissionsNode
     /// </summary>
     public ChannelTypeEnum TargetType { get; set; }
 
+    protected override long? GetPlanetId() => PlanetId;
+
     /// <summary>
     /// Returns the node code for this permission node
     /// </summary>
@@ -59,61 +84,29 @@ public class PermissionsNode : ClientModel, ISharedPermissionsNode
     /// </summary>
     public void SetPermission(Permission perm, PermissionState state) =>
         ISharedPermissionsNode.SetPermission(this, perm, state);
-
+    
     /// <summary>
-    /// Returns the chat channel permissions node for the given channel and role
+    /// Returns a key used for caching nodes via several properties
     /// </summary>
-    public static ValueTask<PermissionsNode> FindAsync(Channel channel, PlanetRole role, ChannelTypeEnum targetType) =>
-        FindAsync(channel.Id, role.Id, targetType);
-
-    public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
-
-    public override string BaseRoute => $"api/permissionsnodes";
-
-
-    /// <summary>
-    /// Returns the chat channel permissions node for the given ids
-    /// </summary>
-    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, ChannelTypeEnum type, bool refresh = false)
+    public PermissionsNodeKey GetCombinedKey() => new(TargetId, RoleId, TargetType);
+    
+    public override PermissionsNode AddToCacheOrReturnExisting()
     {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<PermissionsNode>((targetId, (roleId, type)));
-            if (cached is not null)
-                return cached;
-        }
-
-        var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/permissionsnodes/{type}/{targetId}/{roleId}", true)).Data;
-
-        if (permNode is not null)
-            await permNode.AddToCache(permNode);
-
-        return permNode;
+        // Add key to id lookup
+        var key = GetCombinedKey();
+        Client.Cache.PermNodeKeyToId[key] = Id;
+        
+        return Client.Cache.PermissionsNodes.Put(Id, this);
     }
 
-    public override async Task AddToCache<T>(T item, bool skipEvent = false)
+    public override PermissionsNode TakeAndRemoveFromCache()
     {
-        await ValourCache.Put(Id, this, skipEvent);
-        await ValourCache.Put((TargetId, (RoleId, TargetType)), this, true); // Skip duplicate event
-    }
-
-    public static async Task<List<PermissionsNode>> GetAllForPlanetAsync(long planetId)
-    {
-        var nodes = (await ValourClient.PrimaryNode.GetJsonAsync<List<PermissionsNode>>($"api/permissionsnodes/all/{planetId}")).Data;
-
-        var results = new List<PermissionsNode>();
+        // Remove key from id lookup
+        var key = GetCombinedKey();
         
-        foreach (var node in nodes)
-        {
-            // Add or update in cache
-            await node.AddToCache(node);
-            
-            // Put cached node in results
-            results.Add(ValourCache.Get<PermissionsNode>(node.Id));
-        }
+        Client.Cache.PermNodeKeyToId.Remove(key);
         
-        // Return results
-        return results;
+        return Client.Cache.PermissionsNodes.TakeAndRemove(Id);
     }
 }
 

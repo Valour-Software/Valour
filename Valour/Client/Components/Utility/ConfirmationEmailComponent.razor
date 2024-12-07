@@ -1,23 +1,24 @@
 ﻿@inject HttpClient Http
-@inject NavigationManager navManager
-@inject ILocalStorageService storage
+@inject NavigationManager NavManager
+@inject ILocalStorageService LocalStorage
+@inject ValourClient Client
 
 <section>
     <h4>Please check your email!</h4>
     <h5>You can close this once you have clicked the link in the email</h5>
 
-    @if (@responseResult.Success)
+    @if (_responseResult.Success)
     {
-        <span id="agreed-span" class="text-info">@responseResult.Message</span>
+        <span id="agreed-span" class="text-info">@_responseResult.Message</span>
 
     }
     else
     {
-        <span id="agreed-span" class="text-danger">@responseResult.Message</span>
+        <span id="agreed-span" class="text-danger">@_responseResult.Message</span>
     }
 
     <div class="form-group mt-4">
-        <button class="btn v-btn primary mt-2" @onclick="OnClickResend" disabled="@queuedMail">Resend Email</button>
+        <button class="btn v-btn primary mt-2" @onclick="OnClickResend" disabled="@_queuedMail">Resend Email</button>
     </div>
 </section>
 
@@ -27,33 +28,33 @@
     [Parameter]
     public RegisterUserRequest RegisterRequest { get; set; }
 
-    public DateTime time = DateTime.Now;
-    public bool queuedMail = false;
+    private DateTime _time = DateTime.Now;
+    private bool _queuedMail = false;
 
     // Spans
-    TaskResult responseResult;
+    private TaskResult _responseResult;
 
     private async Task OnClickResend(MouseEventArgs e)
     {
-        queuedMail = true;
+        _queuedMail = true;
 
         using PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
 
-        for (int i = (DateTime.Now - time).Seconds; i < RateLimitSeconds + 1 && await periodicTimer.WaitForNextTickAsync(); i++)
+        for (int i = (DateTime.Now - _time).Seconds; i < RateLimitSeconds + 1 && await periodicTimer.WaitForNextTickAsync(); i++)
         {
-            responseResult = new(true, $"Sending another email in {RateLimitSeconds - i} seconds!");
+            _responseResult = new(true, $"Sending another email in {RateLimitSeconds - i} seconds!");
             StateHasChanged();
         }
         
-        responseResult = await ValourClient.PrimaryNode.PostAsync("api/users/resendemail", RegisterRequest);
+        _responseResult = await Client.PrimaryNode.PostAsync("api/users/resendemail", RegisterRequest);
 
-        time = DateTime.Now;
+        _time = DateTime.Now;
 
         StateHasChanged();
 
         await Task.Delay(4000);
 
-        queuedMail = false;
-        responseResult = new TaskResult(true, "");
+        _queuedMail = false;
+        _responseResult = new TaskResult(true, "");
     }
 }

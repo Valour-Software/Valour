@@ -1,10 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("oauth_apps")]
-public class OauthApp : Model, ISharedOauthApp
+public class OauthApp : ISharedOauthApp
 {
     ///////////////////////////
     // Relational Properties //
@@ -16,6 +17,10 @@ public class OauthApp : Model, ISharedOauthApp
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
 
     /// <summary>
     /// The secret key for the app

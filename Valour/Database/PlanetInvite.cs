@@ -1,10 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_invites")]
-public class PlanetInvite : Model, ISharedPlanetInvite
+public class PlanetInvite : ISharedPlanetInvite
 {
     ///////////////////////////
     // Relational Properties //
@@ -16,16 +18,14 @@ public class PlanetInvite : Model, ISharedPlanetInvite
     ///////////////////////
     // Entity Properties //
     ///////////////////////
-
+    
+    [Key]
+    [Column("code")]
+    public string Id { get; set; }
+    
     [Column("planet_id")]
     public long PlanetId { get; set; }
     
-    /// <summary>
-    /// The invite code
-    /// </summary>
-    [Column("code")]
-    public string Code { get; set; }
-
     /// <summary>
     /// The user that created the invite
     /// </summary>

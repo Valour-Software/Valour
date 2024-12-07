@@ -163,7 +163,7 @@ public class EcoApi
     // Returns all planet accounts of the planet
     [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/planet")]
     [UserRequired]
-    public static async Task<IResult> GetPlanetPlanetAccountsAsync(
+    public static async Task<IResult> GetPlanetSharedAccountsAsync(
         long planetId, 
         EcoService ecoService,
         PlanetMemberService memberService,
@@ -180,7 +180,7 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetPlanetAccountsAsync(planetId);
+        var accounts = await ecoService.GetPlanetSharedAccountsAsync(planetId, skip, take);
         return Results.Json(accounts);
     }
     

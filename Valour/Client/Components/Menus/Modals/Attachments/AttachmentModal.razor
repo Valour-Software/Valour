@@ -39,9 +39,9 @@
         public MessageAttachment Attachment;
     }
     
-    private Task OnClickClose()
+    private void OnClickClose()
     {
-        return CloseAsync();
+        Close();
     }
     
     private async Task OnClickCopyLink()

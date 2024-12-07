@@ -1,6 +1,3 @@
-using Valour.Sdk.Client;
-using Valour.Sdk.Nodes;
-using Valour.Shared;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Sdk.Models.Economy;
@@ -23,7 +20,6 @@ public class Transaction : ISharedTransaction
     /// The planet the transaction belongs to
     /// </summary>
     public long PlanetId { get; set; }
-
 
     /// <summary>
     /// The id of the owner of the sending account
@@ -75,22 +71,4 @@ public class Transaction : ISharedTransaction
     /// If this transaction was forced by an Eco Admin, this is the id of the user who forced it.
     /// </summary>
     public long? ForcedBy { get; set; }
-    
-    public static async ValueTask<Transaction> FindAsync(string id)
-    {
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Transaction>($"api/eco/transactions/{id}")).Data;
-        return item;
-    }
-
-    public static async ValueTask<TaskResult<Transaction>> SendTransactionAsync(Transaction trans)
-    {
-        var node = await NodeManager.GetNodeForPlanetAsync(trans.PlanetId);
-        return await node.PostAsyncWithResponse<Transaction>("api/eco/transactions", trans);
-    } 
-    
-    public static async ValueTask<EcoReceipt> GetReceiptAsync(string id)
-    {
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<EcoReceipt>($"api/eco/transactions/{id}/receipt")).Data;
-        return item;
-    }
 }

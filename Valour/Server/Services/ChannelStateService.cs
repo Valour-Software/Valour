@@ -6,12 +6,12 @@ namespace Valour.Server.Services;
 
 public class ChannelStateService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<ChannelStateService> _logger;
 
     private static ConcurrentDictionary<long, ChannelState> _channelStateCache = new();
 
-    public ChannelStateService(ValourDB db, ILogger<ChannelStateService> logger)
+    public ChannelStateService(ValourDb db, ILogger<ChannelStateService> logger)
     {
         _db = db;
         _logger = logger;

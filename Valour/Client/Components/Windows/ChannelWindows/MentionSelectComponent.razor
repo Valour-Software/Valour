@@ -12,16 +12,16 @@
                 switch (match.Item)
                 {
                     case PlanetRole role:
-                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)"></MentionSelectRoleComponent>
+                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" />
                         break;
                     case PlanetMember member:
-                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)"></MentionSelectMemberComponent>
+                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)" />
                         break;
                     case User user:
-                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)"></MentionSelectUserComponent>
+                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" />
                         break;
                     case Channel channel:
-                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)"></MentionSelectChannelComponent>
+                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" />
                         break;
                 }
 
@@ -32,15 +32,9 @@
 }
 
 @code {
-
-    [CascadingParameter]
-    public Channel Channel { get; set; }
-
-    [CascadingParameter]
-    public ChatChannelWindowComponent ChannelComponent { get; set; }
-
+    
     [Parameter]
-    public InputComponent InputComponent { get; set; }
+    public ChatWindowComponent ChannelComponent { get; set; }
 
     public bool Visible { get; set; }
 
@@ -57,37 +51,12 @@
     }
 
     private List<MentionMatch> _matches;
-
-    private Planet _planet;
-
-    private IReadOnlyList<Channel> _chatChannels;
-    private List<PlanetMember> _members;
-    private List<PlanetRole> _roles;
+    
     private List<User> _users;
 
     protected override void OnInitialized()
     {
         _matches = new();
-
-        ModelObserver<PlanetMember>.OnAnyUpdated += HandlePlanetMemberUpdated;
-
-    }
-
-    public async Task HandlePlanetMemberUpdated(ModelUpdateEvent<PlanetMember> updatedMember)
-    {
-        var newMember = updatedMember.Model;
-
-        var existingMember = _members.FirstOrDefault(m => m.Id == newMember.Id);
-        if (existingMember != null)
-        {
-            return;
-        }
-        else
-        {
-            _members.Add(newMember);
-        }
-
-        StateHasChanged();
     }
 
 
@@ -98,16 +67,9 @@
         if (value)
         {
             // On made visible, fetch all needed data
-            if (Channel.PlanetId is not null)
+            if (ChannelComponent.Channel.PlanetId is null)
             {
-                _planet = await Channel.GetPlanetAsync();
-                _members = await _planet.GetMembersAsync();
-                _chatChannels = _planet.ChatChannels;
-                _roles = await _planet.GetRolesAsync();
-            }
-            else
-            {
-                _users = await Channel.GetChannelMemberUsersAsync();
+                _users = await ChannelComponent.Channel.GetChannelMemberUsersAsync();
             }
 
             // Set mode
@@ -125,10 +87,10 @@
             case PlanetMember member:
                 {
                     var tag = $"«@m-{member.Id}» ";
-                    var text = "@" + await member.GetNameAsync();
+                    var text = "@" + member.Name;
                     var classList = "mention";
-                    var styleList = $"color: {await member.GetRoleColorAsync()}";
-                    await InputComponent.InjectElementAsync(tag, text, classList, styleList);
+                    var styleList = $"color: {member.GetRoleColor()}";
+                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classList, styleList);
                     break;
                 }
             case User user:
@@ -138,7 +100,7 @@
                     var classList = "mention";
                     var styleList = $"color: white";
 
-                    await InputComponent.InjectElementAsync(tag, text, classList, styleList);
+                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classList, styleList);
                     break;
                 }
             case PlanetRole role:
@@ -148,7 +110,7 @@
                     var classList = "mention";
                     var styleList = $"color: {role.Color}";
 
-                    await InputComponent.InjectElementAsync(tag, text, classList, styleList);
+                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classList, styleList);
                     break;
                 }
             case Channel channel:
@@ -157,7 +119,7 @@
                     var text = "#" + channel.Name;
                     var classlist = "channel-mention";
 
-                    await InputComponent.InjectElementAsync(tag, text, classlist, "");
+                    await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classlist, "");
                     break;
                 }
         }
@@ -175,7 +137,7 @@
 
         if (Mode == '@')
         {
-            if (Channel.PlanetId is not null)
+            if (ChannelComponent.Channel.PlanetId is not null)
             {
                 if (string.IsNullOrEmpty(Text))
                 {
@@ -185,7 +147,7 @@
                 else
                 {
                     // Get members which may match
-                    var members = _members.Where(x => x.Nickname.ToLower().Contains(Text))
+                    var members = ChannelComponent.Channel.Planet.Members.Where(x => x.Nickname.ToLower().Contains(Text))
                                      .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
                                      .ThenBy(x => x.Nickname.Length)
                                      .Take(10)
@@ -194,16 +156,16 @@
                     _matches.AddRange(members);
 
                     var canMentionAll = false;
-                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId.Value);
-                    if (selfMember is not null)
+                    var myMember = ChannelComponent.Channel.Planet.MyMember;
+                    if (myMember is not null)
                     {
-                        if (await selfMember.HasPermissionAsync(PlanetPermissions.MentionAll))
+                        if (myMember.HasPermission(PlanetPermissions.MentionAll))
                         {
                             canMentionAll = true;
                         }
                     }
 
-                    var roleQuery = _roles.Where(x => x.Name.ToLower().Contains(Text));
+                    var roleQuery = ChannelComponent.Channel.Planet.Roles.Where(x => x.Name.ToLower().Contains(Text));
                     if (!canMentionAll)
                         roleQuery = roleQuery.Where(x => x.AnyoneCanMention);
 
@@ -227,7 +189,7 @@
         }
         else if (Mode == '#')
         {
-            _matches.AddRange(_chatChannels.Where(x => x.Name.ToLower().Contains(Text))
+            _matches.AddRange(ChannelComponent.Channel.Planet.ChatChannels.Where(x => x.Name.ToLower().Contains(Text))
                              .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                              .ThenBy(x => x.Name.Length)
                              .Take(10)

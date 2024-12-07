@@ -1,21 +1,23 @@
-﻿<div class="@Class" style="color: @Role_Color" @onclick="ShowProfileAsync">
-    @if (Member == null)
+﻿@inject ValourClient Client
+
+<div class="@Class" style="color: @_roleColor" @onclick="ShowProfileAsync">
+    @if (_member == null)
     {
         <div>@@NotFound</div>
     }
     else
     {
-        <div>@@@Member.Nickname</div>
+        <div>@@@_member.Nickname</div>
     }
 </div>
 
 @code {
 
-    public string Class
+    private string Class
     {
         get
         {
-            if (Member == null || Member.UserId != ValourClient.Self.Id)
+            if (_member == null || _member.UserId != Client.Me.Id)
             {
                 return "mention";
             }
@@ -26,26 +28,26 @@
         }
     }
 
-    [CascadingParameter]
-    public Channel Channel { get; set; }
+    [Parameter]
+    public object RenderContext { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
 
-    public PlanetMember Member { get; set; }
+    private PlanetMember _member;
 
-    public string Role_Color = "#ffffff";
+    private string _roleColor = "#fff";
 
-    protected async override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         await Build();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Member != null)
+        if (_member != null)
         {
-            if (Mention.TargetId != Member.Id)
+            if (Mention.TargetId != _member.Id)
             {
                 await Build();
             }
@@ -56,30 +58,35 @@
         }
     }
 
-    public async Task Build()
+    private async Task Build()
     {
-        if (Channel.PlanetId is not null)
-        {
-            Member = await PlanetMember.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
-        }
+        // TODO: Handle case when message does not have ChatComponent, such as staff message viewer
         
-        if (Member != null)
+        switch (RenderContext)
         {
-            Role_Color = await Member.GetRoleColorAsync();
+            case MessageComponent messageComponent:
+                var channel = messageComponent.ParamData.ChatComponent.Channel;
+
+                if (channel.PlanetId != null)
+                {
+                    _member = await channel.Planet.FetchMemberAsync(Mention.TargetId);
+                }
+                break;
+            default:
+                Console.WriteLine("Invalid RenderContext for MemberMentionComponent");
+                break;
         }
-        else
-        {
-            Role_Color = "#ffffff";
-        }
+
+        _roleColor = (_member is not null) ? _member.GetRoleColor() : "#fff";
 
         StateHasChanged();
     }
     
     private async Task ShowProfileAsync(MouseEventArgs e)
     {
-        if (Member is null)
+        if (_member is null)
             return;
 
-        await ProfilePopup.Instance.OpenAsync(Member, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        await ProfilePopup.Instance.OpenAsync(_member, (int)e.ClientX, (int)e.ClientY, "bottomRight");
     }
 }

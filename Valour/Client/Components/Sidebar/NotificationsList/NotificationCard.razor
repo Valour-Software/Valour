@@ -1,3 +1,5 @@
+@inject NotificationService NotificationService
+
 <div class="notification" @key="@Notification.Id">
     <div class="title-bar">
         <img alt="Notification icon" class="image" src="@_imageUrl" @onerror="@OnImageError" />
@@ -39,7 +41,7 @@
     
     private async Task OnClickClear()
     {
-        await ValourClient.MarkNotificationRead(Notification, true);
+        await NotificationService.MarkNotificationRead(Notification, true);
     }
 
     private void OnImageError()

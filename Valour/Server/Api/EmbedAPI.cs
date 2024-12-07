@@ -16,7 +16,7 @@ public class EmbedAPI : BaseAPI
         app.MapPost("api/embed/planetchannelupdate", PlanetChannelUpdate);
     }
 
-    private static async Task<IResult> PlanetChannelUpdate(HttpContext ctx, ValourDB db, CoreHubService hubService, UserService userService, PlanetMemberService memberService, [FromHeader] string authorization)
+    private static async Task<IResult> PlanetChannelUpdate(HttpContext ctx, ValourDb db, CoreHubService hubService, UserService userService, PlanetMemberService memberService, [FromHeader] string authorization)
     {
         var ceu = await JsonSerializer.DeserializeAsync<ChannelEmbedUpdate>(ctx.Request.Body);
 
@@ -84,7 +84,7 @@ public class EmbedAPI : BaseAPI
         return Results.Ok("Sent Channel Embed Update");
     }
 
-    private static async Task<IResult> PlanetPersonalUpdate(HttpContext ctx, ValourDB db, UserService userService, CoreHubService hubService, PlanetMemberService memberService, [FromHeader] string authorization)
+    private static async Task<IResult> PlanetPersonalUpdate(HttpContext ctx, ValourDb db, UserService userService, CoreHubService hubService, PlanetMemberService memberService, [FromHeader] string authorization)
     {
         var peu = await JsonSerializer.DeserializeAsync<PersonalEmbedUpdate>(ctx.Request.Body);
 
@@ -174,7 +174,7 @@ public class EmbedAPI : BaseAPI
         return Results.Ok("Sent Personal Embed Update");
     }
 
-    private static async Task Interaction(HttpContext ctx, ValourDB db, UserService userService, CoreHubService hubService, PlanetMemberService memberService, [FromHeader] string authorization)
+    private static async Task Interaction(HttpContext ctx, ValourDb db, UserService userService, CoreHubService hubService, PlanetMemberService memberService, [FromHeader] string authorization)
     {
         EmbedInteractionEvent e = await JsonSerializer.DeserializeAsync<EmbedInteractionEvent>(ctx.Request.Body);
 

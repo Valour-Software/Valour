@@ -6,10 +6,10 @@ namespace Valour.Server.Services;
 
 public class SubscriptionService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<SubscriptionService> _logger;
     
-    public SubscriptionService(ValourDB db, ILogger<SubscriptionService> logger)
+    public SubscriptionService(ValourDb db, ILogger<SubscriptionService> logger)
     {
         _db = db;
         _logger = logger;

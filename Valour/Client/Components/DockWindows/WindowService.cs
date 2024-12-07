@@ -1,12 +1,13 @@
 ﻿using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Sdk.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Client.Components.DockWindows;
 
 public static class WindowService
 {
-    public static event Func<WindowTab, Task> OnFocusedTabChanged;
-    public static event Func<Planet, Task> OnFocusedPlanetChanged;
+    public static HybridEvent<WindowTab> FocusedTabChanged;
+    public static HybridEvent<Planet> FocusedPlanetChanged;
     
     public static event Action<WindowTab> OnTabDragging;
     public static WindowTab DraggingTab { get; set; }
@@ -15,7 +16,7 @@ public static class WindowService
     public static WindowDockComponent MainDock { get; private set; }
     
     public static List<WindowTab> GlobalTabs { get; private set; } = new();
-    public static List<ChatChannelWindowComponent> GlobalChatTabs { get; private set; } = new();
+    public static List<ChatWindowComponent> GlobalChatTabs { get; private set; } = new();
     
     public static WindowTab FocusedTab { get; private set; }
     
@@ -28,15 +29,15 @@ public static class WindowService
         
         FocusedTab = tab;
         
-        if (OnFocusedTabChanged is not null)
-            await OnFocusedTabChanged.Invoke(tab);
+        if (FocusedTabChanged is not null)
+            FocusedTabChanged.Invoke(tab);
         
         if (tab.Content.PlanetId is not null)
         {
-            FocusedPlanet = await Planet.FindAsync(tab.Content.PlanetId.Value);
+            FocusedPlanet = await MainDock.Client.PlanetService.FetchPlanetAsync(tab.Content.PlanetId.Value);
             
-            if (OnFocusedPlanetChanged is not null)
-                await OnFocusedPlanetChanged.Invoke(FocusedPlanet);
+            if (FocusedPlanetChanged is not null)
+                FocusedPlanetChanged.Invoke(FocusedPlanet);
         }
     }
     
@@ -72,7 +73,7 @@ public static class WindowService
             GlobalTabs.AddRange(dock.Tabs);
             
             var chatTabs = dock.Tabs.Select(x => x.Content.ComponentBase)
-                .OfType<ChatChannelWindowComponent>().ToList();
+                .OfType<ChatWindowComponent>().ToList();
             
             GlobalChatTabs.AddRange(chatTabs);
         }

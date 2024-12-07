@@ -9,7 +9,7 @@ public class HostedPlanetService
     /// A cache that holds planets hosted by this node. Nodes keep their hosted
     /// planets in-memory to reduce database load.
     /// </summary>
-    private readonly ModelCache<HostedPlanet> _hostedPlanets = new();
+    private readonly ModelCache<HostedPlanet, long> _hostedPlanets = new();
     
     private readonly HashSet<long> _hostedPlanetIds = new();
     
@@ -19,14 +19,14 @@ public class HostedPlanetService
         return planet;
     }
     
-    public async Task Add(Planet planet)
+    public void Add(Planet planet)
     {
         var hosted = new HostedPlanet(planet);
         _hostedPlanets.Add(hosted);
         _hostedPlanetIds.Add(planet.Id);
     }
     
-    public async Task Remove(long id)
+    public void Remove(long id)
     {
         _hostedPlanets.Remove(id);
         _hostedPlanetIds.Remove(id);

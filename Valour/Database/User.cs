@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("users")]
-public class User : Model, ISharedUser
+public class User : ISharedUser
 {
     ///////////////////////////
     // Relational Properties //
@@ -15,6 +16,10 @@ public class User : Model, ISharedUser
 
     [InverseProperty("User")]
     public virtual ICollection<PlanetMember> Membership { get; set; }
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     /// <summary>
     /// True if the user has a custom profile picture
@@ -110,8 +115,20 @@ public class User : Model, ISharedUser
     /// </summary>
     [Column("subscription_type")]
     public string SubscriptionType { get; set; }
-    
+
+    /// <summary>
+    /// The user's prior username, if they have changed it before.
+    /// </summary>
+    [Column("prior_name")]
+    public string PriorName { get; set; }
+
+    /// <summary>
+    /// The date and time the user last changed their username.
+    /// </summary>
+    [Column("name_change_time")]
+    public DateTime? NameChangeTime { get; set; }
+
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatarUrl(this, format);
+        ISharedUser.GetAvatar(this, format);
 }
 

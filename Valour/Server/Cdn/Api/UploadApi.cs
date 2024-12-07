@@ -126,7 +126,7 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(20480000)]
-    private static async Task<IResult> ImageRoutePlus(HttpContext ctx, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ImageRoutePlus(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
@@ -138,7 +138,7 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ImageRouteNonPlus(HttpContext ctx, ValourDB  db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ImageRouteNonPlus(HttpContext ctx, ValourDb  db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         return await ImageRoute(ctx, db, authToken, authorization);
@@ -146,7 +146,7 @@ public class UploadApi
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDB db, Models.AuthToken authToken, string authorization)
+    private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDb db, Models.AuthToken authToken, string authorization)
     {
         if (authToken is null) return ValourResult.InvalidToken();
 
@@ -184,7 +184,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> AvatarImageRoute(
         HttpContext ctx, 
-        ValourDB valourDb, 
+        ValourDb valourDb, 
         CoreHubService hubService, 
         TokenService tokenService)
     {
@@ -233,7 +233,7 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ThemeBannerRoute(HttpContext ctx, ValourDB db, TokenService tokenService, long themeId)
+    private static async Task<IResult> ThemeBannerRoute(HttpContext ctx, ValourDb db, TokenService tokenService, long themeId)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -283,7 +283,7 @@ public class UploadApi
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -327,7 +327,7 @@ public class UploadApi
     [RequestSizeLimit(10240000)]
     private static async Task<IResult> PlanetImageRoute(
         HttpContext ctx, 
-        ValourDB valourDb,
+        ValourDb valourDb,
         CoreHubService hubService, 
         TokenService tokenService, 
         PlanetService planetService,
@@ -386,7 +386,7 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB db, TokenService tokenService, long appId, [FromHeader] string authorization)
+    private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDb db, TokenService tokenService, long appId, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -541,7 +541,7 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(20480000)]
-    private static async Task<IResult> FileRoutePlus(HttpContext ctx, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> FileRoutePlus(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
@@ -553,13 +553,13 @@ public class UploadApi
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> FileRouteNonPlus(HttpContext ctx, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> FileRouteNonPlus(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         return await FileRoute(ctx, db, authToken, authorization);
     }
     
-    private static async Task<IResult> FileRoute(HttpContext ctx, ValourDB db, Models.AuthToken authToken, string authorization)
+    private static async Task<IResult> FileRoute(HttpContext ctx, ValourDb db, Models.AuthToken authToken, string authorization)
     {
         if (authToken is null) return ValourResult.InvalidToken();
 

@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class Message : ServerModel, ISharedMessage
+public class Message : ServerModel<long>, ISharedMessage
 {
     public Message ReplyTo { get; set; }
 

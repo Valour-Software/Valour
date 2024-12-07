@@ -1,4 +1,6 @@
-﻿<div class="channel-mention" @onclick="@OnClicked">
+﻿@inject ChannelService ChannelService
+
+<div class="channel-mention" @onclick="@OnClicked">
     @if (_targetChannel == null)
     {
         <div>#NotFound!</div>
@@ -11,11 +13,8 @@
 
 @code {
     
-    [CascadingParameter]
-    public Channel Channel { get; set; }
-    
-    [CascadingParameter]
-    public WindowTab Window { get; set; }
+    [Parameter]
+    public object RenderContext { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -44,24 +43,40 @@
 
     public async Task Build()
     {
-        if (Channel.PlanetId is not null)
+        switch (RenderContext)
         {
-            _targetChannel = await Channel.FindAsync(Mention.TargetId, Channel.PlanetId.Value);
+            case MessageComponent messageComponent:
+                var channel = messageComponent.ParamData.ChatComponent.Channel;
+                _targetChannel = await channel.Planet.FetchChannelAsync(Mention.TargetId);
+                break;
+            default:
+                Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");
+                break;    
         }
+        
+        
         StateHasChanged();
     }
 
     public async Task OnClicked()
     {
-        var windowContent = await ChatChannelWindowComponent.GetDefaultContent(_targetChannel);
+        var windowContent = await ChatWindowComponent.GetDefaultContent(_targetChannel);
         
-        if (Window is not null)
+        switch (RenderContext)
         {
-            await Window.AddSiblingTab(windowContent);
-        }
-        else
-        {
-            await WindowService.TryAddFloatingWindow(windowContent);
+            case MessageComponent messageComponent:
+                if (messageComponent.ParamData.ChatComponent is not null)
+                {
+                    await messageComponent.ParamData.ChatComponent.WindowCtx.Tab.AddSiblingTab(windowContent);
+                }
+                else
+                {
+                    await WindowService.TryAddFloatingWindow(windowContent);
+                }
+                break;
+            default:
+                Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");
+                break;    
         }
     }
 }

@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("messages")]
-public class Message : Model, ISharedMessage
+public class Message : ISharedMessage
 {
     ///////////////////////////
     // Relational Properties //
@@ -28,6 +29,10 @@ public class Message : Model, ISharedMessage
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     [Column("planet_id")]
     public long? PlanetId { get; set; }

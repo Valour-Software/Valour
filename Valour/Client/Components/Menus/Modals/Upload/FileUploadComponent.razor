@@ -89,11 +89,11 @@
             await OnClickConfirm();
     }
 
-    public Task OnClickCancel() => CloseAsync();
+    public void OnClickCancel() => Close();
 
     public async Task OnClickConfirm(){
         await Data.OnConfirm.Invoke();
-        await CloseAsync();
+        Close();
     }
 
     public void Dispose()

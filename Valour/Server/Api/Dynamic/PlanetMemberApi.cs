@@ -6,9 +6,9 @@ namespace Valour.Server.Api.Dynamic;
 public class PlanetMemberApi
 {
      // Helpful route to return the member for the authorizing user
-    [ValourRoute(HttpVerbs.Get, "api/members/self/{planetId}")]
+    [ValourRoute(HttpVerbs.Get, "api/members/me/{planetId}")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetSelfRouteAsync(
+    public static async Task<IResult> GetMyMemberRouteAsync(
         long planetId, 
         PlanetMemberService memberService)
     {

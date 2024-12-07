@@ -11,15 +11,15 @@
 
     public class Content : WindowContent<PlanetInfoWindowComponent, Planet>
     {
-        public override async Task ImportData(string data)
+        public override async Task ImportData(string data, ValourClient client)
         {
             // Exported data is planet id
             long planetId = JsonSerializer.Deserialize<long>(data);
-            var planet = await Planet.FindAsync(planetId);
+            var planet = await client.PlanetService.FetchPlanetAsync(planetId);
             Data = planet;
         }
 
-        public override string ExportData()
+        public override string ExportData(ValourClient client)
         {
             var json = JsonSerializer.Serialize(Data.Id);
             return json;

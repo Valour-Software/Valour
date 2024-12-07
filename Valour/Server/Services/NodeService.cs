@@ -56,7 +56,7 @@ public class NodeService
         if (_hostedPlanets.Contains((planetId)))
             return true;
 
-        return await GetPlanetNodeAsync(planetId) == Name;
+        return await GetNodeNameForPlanetAsync(planetId) == Name;
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ public class NodeService
     /// <summary>
     /// Returns the node for the given planet id
     /// </summary>
-    public async Task<string> GetPlanetNodeAsync(long planetId)
+    public async Task<string> GetNodeNameForPlanetAsync(long planetId)
     {
         if (_hostedPlanets.Contains(planetId))
             return Name; // We are hosting the planet (this is a local request)
@@ -136,7 +136,7 @@ public class NodeService
     public async Task<string> RequestPlanetNodeAsync(long planetId)
     {
         // Check if planet is already hosted
-        var location = await GetPlanetNodeAsync(planetId);
+        var location = await GetNodeNameForPlanetAsync(planetId);
         if (location is not null)
             return location;
         
@@ -164,7 +164,7 @@ public class NodeService
             await Task.Delay(200 * tryNum);
             
             // Check if planet is hosted
-            node = await GetPlanetNodeAsync(planetId);
+            node = await GetNodeNameForPlanetAsync(planetId);
 
             tryNum++;
         }
@@ -183,7 +183,7 @@ public class NodeService
             Task.Run(async () =>
             {
                 // Check if someone else already is hosting
-                var currentHost = await GetPlanetNodeAsync(planetId);
+                var currentHost = await GetNodeNameForPlanetAsync(planetId);
                 if (currentHost is not null)
                     return;
                 

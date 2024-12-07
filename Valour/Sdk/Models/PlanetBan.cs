@@ -1,14 +1,11 @@
-﻿using Valour.Shared.Models;
+﻿using Valour.Sdk.ModelLogic;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class PlanetBan : ClientModel, ISharedPlanetBan
+public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
 {
-    #region IPlanetModel implementation
-
     public override string BaseRoute => "api/bans";
-
-    #endregion
 
     /// <summary>
     /// The user that banned the user
@@ -19,7 +16,8 @@ public class PlanetBan : ClientModel, ISharedPlanetBan
     /// The planet this ban belongs to
     /// </summary>
     public long PlanetId { get; set; }
-
+    protected override long? GetPlanetId() => PlanetId;
+    
     /// <summary>
     /// The userId of the target that was banned
     /// </summary>
@@ -44,4 +42,14 @@ public class PlanetBan : ClientModel, ISharedPlanetBan
     /// True if the ban never expires
     /// </summary>
     public bool Permanent => TimeExpires == null;
+
+    public override PlanetBan AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.PlanetBans.Put(Id, this);
+    }
+
+    public override PlanetBan TakeAndRemoveFromCache()
+    {
+        return Client.Cache.PlanetBans.TakeAndRemove(Id);
+    }
 }

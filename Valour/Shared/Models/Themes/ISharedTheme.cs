@@ -8,7 +8,7 @@ public interface ISharedTheme : ISharedThemeMeta
     public string FontAltColor { get; set; }
     public string LinkColor { get; set; }
     
-    public string MainColor1 { get; set; }
+    // public string MainColor1 { get; set; }
     public string MainColor2 { get; set; }
     public string MainColor3 { get; set; }
     public string MainColor4 { get; set; }
@@ -20,7 +20,7 @@ public interface ISharedTheme : ISharedThemeMeta
     public string VibrantBlue { get; set; }
     public string VibrantCyan { get; set; }
     
-    public string PastelCyan { get; set; }
+    // public string PastelCyan { get; set; }
     public string PastelCyanPurple { get; set; }
     public string PastelPurple { get; set; }
     public string PastelRed { get; set; }

@@ -4,11 +4,11 @@ namespace Valour.Server.Services;
 
 public class OauthAppService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<OauthAppService> _logger;
 
     public OauthAppService(
-        ValourDB db,
+        ValourDb db,
         ILogger<OauthAppService> logger)
     {
         _db = db;

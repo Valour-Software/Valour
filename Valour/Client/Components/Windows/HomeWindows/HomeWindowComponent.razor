@@ -1,9 +1,13 @@
 ﻿@inherits WindowContentComponentBase
+@inject ValourClient Client
+@inject PlanetService PlanetService
+@inject FriendService FriendService
+@inject ChannelStateService ChannelStateService
 
 <div class="inner-window @_mobileTag">
     <h6 class="mt-4 text-center icons-title">Your Planets</h6>
     <div class="icon-container">
-        @foreach (Planet planet in ValourClient.JoinedPlanets)
+        @foreach (Planet planet in PlanetService.JoinedPlanets)
         {
             <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' WindowCtx='WindowCtx' HomeWindowComponent="this"></PlanetCardComponent>
         }
@@ -48,7 +52,7 @@
     <h6 class="mt-4 text-center icons-title">Your Friends</h6>
     <div class="icon-container">
 
-        @foreach (var friend in ValourClient.Friends)
+        @foreach (var friend in FriendService.Friends)
         {
             <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" WindowCtx="WindowCtx" HomeWindowComponent="this" />
         }
@@ -56,10 +60,10 @@
         <div id="flipper-friend-add-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-add-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-friend-add-@WindowCtx.Id', 240)" @onclick="OnClickAddFriend">
             <div class="outer-circle">
                 <div class="text-hide-circle" />
-                @if (ValourClient.FriendRequests.Count > 0)
+                @if (FriendService.FriendRequests.Count > 0)
                 {
                     <div class="noti friends">
-                        @ValourClient.FriendRequests.Count
+                        @FriendService.FriendRequests.Count
                     </div>
                 }
                 <svg class="icon create" style="border-radius: 0; transform: scale(0.7)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
@@ -108,13 +112,13 @@
 
     <h6 class="mt-4 text-center icons-title">Discover a New Planet!</h6>
     <div class="icon-container">
-        @foreach (Planet planet in Discoverables)
+        @foreach (PlanetListInfo info in Discoverables)
         {
             // Skip already joined planets
-            if (ValourClient.JoinedPlanets.Any(x => x.Id == planet.Id))
+            if (PlanetService.JoinedPlanets.Any(x => x.Id == info.PlanetId))
                 continue;
 
-            <PlanetDiscoverableComponent @key='"discovery-" + planet.Id' Planet="planet" WindowCtx="WindowCtx"></PlanetDiscoverableComponent>
+            <PlanetDiscoverableComponent @key='"discovery-" + info.PlanetId' PlanetInfo="@info" WindowCtx="WindowCtx"></PlanetDiscoverableComponent>
         }
     </div>
 
@@ -132,7 +136,7 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    public List<Planet> Discoverables { get; set; } = new List<Planet>();
+    public List<PlanetListInfo> Discoverables { get; set; } = new ();
 
     public event Func<Task> OnRerenderFriendCards;
 
@@ -142,13 +146,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
-        ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
-        ValourClient.OnFriendEvent += FriendEventHandler;
+        PlanetService.JoinedPlanetsUpdated += OnJoinedPlanetsUpdate;
+        FriendService.FriendsChanged += OnFriendsListUpdate;
 
-        Discoverables = await ValourClient.GetDiscoverablePlanetsAsync();
+        Discoverables = await PlanetService.FetchDiscoverablePlanetsAsync();
 
-        await ValourClient.LoadChannelStatesAsync();
+        await ChannelStateService.LoadChannelStatesAsync();
 
         if (OnRerenderFriendCards is not null)
             await OnRerenderFriendCards.Invoke();
@@ -195,22 +198,20 @@
         {
             StartTopMenu = "General Settings",
             StartSubMenu = "Friends",
-            User = ValourClient.Self
+            User = Client.Me
         };
         
         ModalRoot.OpenModal<EditUserComponent>(data);
     }
     
-    private Task FriendEventHandler(FriendEventData eventData)
+    private void FriendEventHandler(FriendEventData eventData)
     {
         ReRender();
-        return Task.CompletedTask;
     }
 
-    private Task OnFriendsListUpdate()
+    private void OnFriendsListUpdate(FriendEventData e)
     {
         ReRender();
-        return Task.CompletedTask;
     }
     
 }

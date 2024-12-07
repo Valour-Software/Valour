@@ -1,6 +1,10 @@
+@using System.Numerics
 @using System.Text
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
+@inject NotificationService NotificationService
+@inject ChannelStateService ChannelStateService
+@inject PlanetService PlanetService
 
 <div id="flipper-planet-@Planet.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-@Planet.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-planet-@Planet.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle"
@@ -86,7 +90,7 @@
         }
 
         HomeWindowComponent.OnRerenderPlanetCards += Refresh;
-        ValourClient.OnNotificationReceived += OnNotification;
+        NotificationService.NotificationReceived += OnNotification;
     }
     
     private void OnContextPress(ContextPressEventArgs e)
@@ -99,16 +103,14 @@
         );
     }
 
-    private Task OnNotification(Notification notification)
+    private void OnNotification(Notification notification)
     {
         if (notification.PlanetId != Planet.Id)
-            return Task.CompletedTask;
+            return;
         
         // Unread
-        _notificationCount = ValourClient.GetPlanetNotifications(Planet.Id);
+        _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
         StateHasChanged();
-
-        return Task.CompletedTask;
     }
     
     public string GetCommunityShortCode(string communityName)
@@ -162,8 +164,8 @@
 
     private Task Refresh()
     {
-        _isUnread = ValourClient.GetPlanetUnreadState(Planet.Id);
-        _notificationCount = ValourClient.GetPlanetNotifications(Planet.Id);
+        _isUnread = ChannelStateService.GetPlanetUnreadState(Planet.Id);
+        _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
         StateHasChanged();
 
         return Task.CompletedTask;
@@ -171,8 +173,9 @@
     
     private async Task OnClick()
     {
-        var channel = Planet.GetPrimaryChannel();
-        if (channel is null)
+        var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(Planet);
+        
+        if (newWindowContent is null)
         {
             // Show failure toast
             await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
@@ -180,12 +183,11 @@
                 "",
                 Task.Run(() =>
                 {
-                    return new TaskResult(false, "You can't access any channels.");
+                    return new TaskResult(false, "Error accessing this planet.");
                 })));
             return;
         }
-
-        var newWindowContent = await ChatChannelWindowComponent.GetDefaultContent(channel);
+        
         await WindowCtx.Tab.SetContent(newWindowContent);
 
         StateHasChanged();

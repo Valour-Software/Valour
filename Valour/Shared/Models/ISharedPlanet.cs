@@ -1,5 +1,5 @@
-﻿/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+﻿/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -8,8 +8,10 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanet : ISharedModel
+public interface ISharedPlanet : ISharedModel<long>
 {
+    const string BaseRoute = "api/planets";
+    
     /// <summary>
     /// The Id of Valour Central, used for some platform-wide features
     /// </summary>
@@ -117,6 +119,26 @@ public interface ISharedPlanet : ISharedModel
         
         string formatStr = IconFormatMap[format];
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}";
+    }
+    
+    public static string GetIconUrl(PlanetListInfo planet, IconFormat format)
+    {
+        if (!planet.HasCustomIcon)
+        {
+            return PlanetIconSvgGenerator.GetPlanetIconColor(planet.PlanetId);                        
+        }
+
+        // If an animated icon is requested, but the planet doesn't have one, use the static version
+        if (!planet.HasAnimatedIcon)
+        {
+            if (AnimatedFormats.Contains(format))
+            {
+                format = AnimatedToStaticBackup[format];
+            }
+        }
+        
+        string formatStr = IconFormatMap[format];
+        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}";
     }
 }
 

@@ -2,7 +2,7 @@
 @inherits AttachmentComponent
 
 <div class="image-attachment-wrapper" style="@GetWrapperStyle()" @onclick="OnClick">
-    <img class="attached-image" style="@GetImageStyle()" alt="@Attachment.FileName" src="@Attachment.Location" />
+    <img class="attached-image" style="@GetImageStyle()" alt="@Attachment.FileName" src="@_location" @onerror="@OnImageError" />
 </div>
 
 @code {
@@ -39,8 +39,12 @@
     [Parameter]
     public string CustomStyle { get; set; }
 
+    private string _location;
+
     protected override void OnInitialized()
     {
+        _location = Attachment.Location;
+        
         var width = Attachment.Width;
         var height = Attachment.Height;
 
@@ -81,5 +85,16 @@
         };
         
         ModalRoot.OpenModal<AttachmentModal>(modalParams);
+    }
+    
+    private void OnImageError()
+    {
+        _location = "_content/Valour.Client/media/image-not-found.webp";
+        
+        var size = Attachment.Height > 400 ? 400 : Attachment.Height;
+        
+        _width = size;
+        _height = size;
+        StateHasChanged();
     }
 }

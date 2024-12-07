@@ -12,7 +12,7 @@ namespace Valour.Server.Cdn.Api
         /// <summary>
         /// The Proxy route proxies the page that corresponds with the given hash.
         /// </summary>
-        private static async Task<IResult> ProxyRoute(HttpContext context, HttpClient client, ValourDB db, string url)
+        private static async Task<IResult> ProxyRoute(HttpContext context, HttpClient client, ValourDb db, string url)
         {
             if (string.IsNullOrEmpty(url))
                 return Results.BadRequest("Missing url parameter");

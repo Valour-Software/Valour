@@ -2,13 +2,11 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public abstract class ServerModel : ISharedModel, IHasId
+public abstract class ServerModel<TId> : ISharedModel<TId>
 {
     /// <summary>
     /// The id of this item
     /// </summary>
-    public long Id { get; set; }
-
-    object IHasId.Id => Id;
+    public TId Id { get; set; }
 }
 
