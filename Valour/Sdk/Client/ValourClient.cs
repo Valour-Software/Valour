@@ -189,6 +189,12 @@ public class ValourClient
         var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };
         return await PrimaryNode.PostAsync("api/users/me/password", model);
     }
+
+    public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password)
+    {
+        var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password };
+        return await PrimaryNode.PostAsync("api/users/me/username", model);
+    }
     
     // Sad zone
     public async Task<TaskResult> DeleteMyAccountAsync(string password)

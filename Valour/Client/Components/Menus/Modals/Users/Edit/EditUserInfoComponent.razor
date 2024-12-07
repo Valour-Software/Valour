@@ -63,6 +63,7 @@
 <div class="btn-row">
     <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
     <button class="btn v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
+    <button class="btn v-btn secondary" onclick="@OnClickChangeUsername">Change Username</button>
 </div> 
 <br/>
 <br/>
@@ -71,12 +72,12 @@
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
-    
+
     [Parameter] 
     public User User { get; set; }
-    
+
     private UserInfoComponent _infoPreview;
-    
+
     private string _tag;
     private ITaskResult _tagChangeResult;
 
@@ -88,11 +89,12 @@
 
     private int _statusCode;
     private ITaskResult _statusCodeChangeResult;
-    
+
     private async Task OnStatusApply()
     {
         var oldStatus = User.Status;
         User.Status = _status;
+
         _statusChangeResult = await User.UpdateAsync();
         
         // Rollback change if it failed
@@ -104,7 +106,7 @@
         StateHasChanged();
         _infoPreview.UpdateAll();
     }
-    
+
     private async Task OnTagApply()
     {
         if (_tag.Length != 4)
@@ -123,17 +125,18 @@
                 return;
             }
         }
-        
+
         var oldTag = User.Tag;
         User.Tag = _tag;
+
         _tagChangeResult = await User.UpdateAsync();
-        
+
         // Rollback change if it failed
         if (!_tagChangeResult.Success)
         {
             User.Tag = oldTag;
         }
-        
+
         StateHasChanged();
         _infoPreview.UpdateAll();
     }
@@ -142,8 +145,9 @@
     {
         var oldStatusCode = User.UserStateCode;
         User.UserStateCode = _statusCode;
+
         _statusCodeChangeResult = await User.UpdateAsync();
-       
+        
         // Rollback change if it failed
         if (!_statusCodeChangeResult.Success)
         {
@@ -171,7 +175,7 @@
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        
+
         // 10mb limit
         if (file.Size > 10240000)
         {
@@ -179,21 +183,22 @@
             StateHasChanged();
             return;
         }
-        
+
         var streamContent = new StreamContent(file.OpenReadStream(10240000));
         var content = new MultipartFormDataContent();
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
         content.Add(streamContent, file.Name, file.Name);
-        
+
         var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/profile", content);
+
         _pfpChangeResult = result;
-        
+
         if (_pfpChangeResult.Success)
         {
             // We slightly modify the url to force a refresh
             _pfpUrl = User.GetAvatar(AvatarFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
         }
-        
+
         StateHasChanged();
         _infoPreview.UpdateAll();
     }
@@ -202,9 +207,14 @@
     {
         ModalRoot.OpenModal<DeleteAccountModal>();
     }
-    
+
     private void OnClickChangePassword()
     {
         ModalRoot.OpenModal<ChangePasswordModal>();
+    }
+
+    private void OnClickChangeUsername()
+    {
+        ModalRoot.OpenModal<ChangeUsernameModal>();
     }
 }

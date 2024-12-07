@@ -21,6 +21,10 @@
                     <div class="names">
                         <p class="nickname">@_name</p>
                         <p class="name-and-tag" style="@CustomText">@_nameAndTag</p>
+                        @if (User.PriorName is not null)
+                        {
+                            <p class="name-and-tag">Formerly: @User.PriorName</p>
+                        }
                         <div class="status-bubble">
                             <div class="arrow"></div>
                             <p class="status-text">"@(_status)"</p>

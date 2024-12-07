@@ -78,7 +78,17 @@ public class User : ServerModel<long>, ISharedUser
     /// is subscribed to
     /// </summary>
     public string SubscriptionType { get; set; }
-    
+
+    /// <summary>
+    /// The user's prior username, if they have changed it before.
+    /// </summary>
+    public string PriorName { get; set; }
+
+    /// <summary>
+    /// The date and time the user last changed their username.
+    /// </summary>
+    public DateTime? NameChangeTime { get; set; }
+
     /// <summary>
     /// The subscription the user currently has
     /// </summary>
