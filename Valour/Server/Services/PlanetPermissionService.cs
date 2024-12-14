@@ -1,3 +1,8 @@
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using Valour.Shared.Authorization;
+using Valour.Shared.Models;
+
 namespace Valour.Server.Services;
 
 // A note to those looking:
@@ -21,10 +26,174 @@ namespace Valour.Server.Services;
 
 // - Spike, 2024
 
+public static class PermissionCache<TPermissionType>
+    where TPermissionType : ChannelPermission
+{
+    private static readonly ConcurrentDictionary<long, long> _cache = new();
+
+    public static long? GetChannelPermission(long key)
+    {
+        return _cache.TryGetValue(key, out var permission) ? permission : null;
+    }
+
+    public static void SetChannelPermission(long key, long permission)
+    {
+        _cache[key] = permission;
+    }
+}
+
+public struct MinimalRoleInfo
+{
+    public bool IsAdmin { get; set; }
+    public long Id { get; set; }
+}
+
 /// <summary>
 /// Provides methods for checking and enforcing permissions in planets
 /// </summary>
 public class PlanetPermissionService
 {
-    private readonly PlanetRoleService _roleService;
+    private const long Seed = unchecked((long)0xcbf29ce484222325); // Use unchecked to safely cast the ulong seed to long
+    private const long MagicNumber = unchecked((long)0x9e3779b97f4a7c15);
+    
+    private readonly ValourDB _db;
+    
+    public PlanetPermissionService(ValourDB db)
+    {
+        _db = db;
+    }
+    
+    public async ValueTask<long> GetChannelPermissionsAsync<TPermissionType>(PlanetMember member, long channelId)
+        where TPermissionType : ChannelPermission
+    {
+        // Planet owners have full control
+        if (member.IsPlanetOwner)
+        {
+            return Permission.FULL_CONTROL;
+        }
+        
+        // Try to get cached permissions
+        var cachedPermissions = GetCachedChannelPermissionsAsync<TPermissionType>(member, channelId);
+        if (cachedPermissions != null)
+        {
+            return cachedPermissions.Value;
+        }
+        
+        // Handle channel inheritance
+        // Ok so using the new channel system we can actually do a really cool trick here
+        
+        
+        // Pull the member's minimal role info from the database
+        var minRoles = await _db.PlanetRoleMembers.AsNoTracking()
+            .Include(x => x.Role)
+            .OrderBy(x => x.Role.Position)
+            .Select(x =>
+                new MinimalRoleInfo() {
+                    IsAdmin = x.Role.IsAdmin,
+                    Id = x.Role.Id
+                })
+            .ToListAsync();
+        
+        if (minRoles.Any(x => x.IsAdmin))
+        {
+            // Cache the permissions
+            var roleKey = GenerateRoleComboKey(minRoles);
+            var channelKey = GetRoleChannelComboKey(roleKey, channelId);
+            PermissionCache<TPermissionType>.SetChannelPermission(channelKey, Permission.FULL_CONTROL);
+            
+            return Permission.FULL_CONTROL;
+        }
+
+        var targetType = ISharedPermissionsNode.GetChannelTypeEnum<TPermissionType>();
+
+        var targetRoleIds = new long[minRoles.Count];
+        for (int i = 0; i < minRoles.Count; i++)
+        {
+            targetRoleIds[i] = minRoles[i].Id;
+        }
+        
+        // Use role ids to pull permissions nodes
+        var permNodes = await _db.PermissionsNodes.AsNoTracking()
+            .Where(x =>
+                x.TargetType == targetType &&
+                x.TargetId == channelId &&
+                targetRoleIds.Contains(x.RoleId))
+            .ToListAsync();
+        
+        // Calculate the permissions
+        long permissions = 0;
+    }
+
+    public long? GetCachedChannelPermissionsAsync<TPermissionType>(PlanetMember member, long channelId)
+        where TPermissionType : ChannelPermission
+    {
+        return GetCachedChannelPermissionsAsync<TPermissionType>(member.RoleHashKey, channelId);
+    }
+    
+    public long? GetCachedChannelPermissionsAsync<TPermissionType>(long roleKey, long channelId)
+        where TPermissionType : ChannelPermission
+    {
+        // Get the combined key for the role ids and the channel id
+        var channelKey = GetRoleChannelComboKey(roleKey, channelId);
+        return PermissionCache<TPermissionType>.GetChannelPermission(channelKey);
+    }
+
+    // A simple mix function that combines the previous hash with the next to create a new unique hash
+    private long MixHash(long currentHash, long roleId)
+    {
+        // XOR mixing for a simple and fast hash
+        return currentHash ^ ((roleId + MagicNumber) + (currentHash << 6) + (currentHash >> 2));
+    }
+    
+    /// <summary>
+    /// Returns a combined key for a given set of role IDs and a channel ID.
+    /// </summary>
+    private long GetRoleChannelComboKey(long rolesKey, long channelId)
+    {
+        // Step 1: Get hash for the channel ID
+        var hash = MixHash(Seed, channelId);
+        
+        // Step 2: Mix the role combo key with the channel ID
+        hash = MixHash(rolesKey, hash);
+        
+        // Step 3: Return the final hash value representing the combination of roles and channels
+        return hash;
+    }
+
+    /// <summary>
+    /// Returns the combined hash key for the given role ids. Unique for any combination of roles.
+    /// You MUST provide a sorted list of role IDs.
+    /// </summary>
+    public long GenerateRoleComboKey(long[] sortedRoleIds)
+    {
+        var hash = Seed; // Initial value (seed value)
+
+        foreach (long roleId in sortedRoleIds)
+        {
+            // Step 1: Mix the current hash with the role ID sequentially
+            hash = MixHash(hash, roleId);
+        }
+
+        // Step 2: Return the final hash value representing the combination of roles
+        return hash;
+    }
+    
+    /// <summary>
+    /// Returns the combined hash key for the given roles. Unique for any combination of roles.
+    /// You MUST provide a sorted list of roles.
+    /// </summary>
+    public long GenerateRoleComboKey(List<MinimalRoleInfo> sortedRoles)
+    {
+        var hash = Seed; // Initial value (seed value)
+
+        foreach (var role in sortedRoles)
+        {
+            // Step 1: Mix the current hash with the role ID sequentially
+            hash = MixHash(hash, role.Id);
+        }
+
+        // Step 2: Return the final hash value representing the combination of roles
+        return hash;
+    }
+    
 }

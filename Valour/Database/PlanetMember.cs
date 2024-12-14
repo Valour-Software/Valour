@@ -47,5 +47,11 @@ public class PlanetMember : Model, ISharedPlanetMember
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
+    
+    [Column("role_hash_key")]
+    public long RoleHashKey { get; set; }
+    
+    [Column("is_planet_owner")]
+    public bool IsPlanetOwner { get; set; }
 }
 

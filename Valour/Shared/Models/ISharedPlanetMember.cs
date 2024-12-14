@@ -27,6 +27,16 @@ public interface ISharedPlanetMember : ISharedPlanetModel
     /// </summary>
     string MemberAvatar { get; set; }
     
+    /// <summary>
+    /// The key representing the roles the user has within the planet
+    /// </summary>
+    long RoleHashKey { get; set; }
+    
+    /// <summary>
+    /// True if the user is the owner of the planet
+    /// </summary>
+    bool IsPlanetOwner { get; set; }
+    
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {
         // Ensure nickname is valid

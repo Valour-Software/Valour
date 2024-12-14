@@ -26,4 +26,14 @@ public class PlanetMember : ServerModel, ISharedPlanetMember
     /// The in-planet profile picture of the member
     /// </summary>
     public string MemberAvatar { get; set; }
+    
+    /// <summary>
+    /// The key representing the roles the user has within the planet
+    /// </summary>
+    public long RoleHashKey { get; set; }
+    
+    /// <summary>
+    /// True if the user is the owner of the planet
+    /// </summary>
+    public bool IsPlanetOwner { get; set; }
 }
