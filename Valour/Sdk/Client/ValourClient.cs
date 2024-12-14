@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Web;
+using Valour.Sdk.Models.Crypto;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
@@ -10,6 +11,7 @@ using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Extensions;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Crypto;
 
 namespace Valour.Sdk.Client;
 
@@ -2236,6 +2238,33 @@ public static class ValourClient
     }
 
 #endregion
+
+    // These will be moved into a service when dev is merged in with the new services
+    public static async Task<TaskResult<UserCryptoWallet>> AddWalletAsync(string pubKey, string type)
+    {
+        return await PrimaryNode.PostAsyncWithResponse<UserCryptoWallet>("api/crypto/me/wallets", new AddWalletRequest()
+        {
+            WalletPubKey = pubKey,
+            WalletType = type
+        });
+    }
+    
+    public static async Task<TaskResult<long>> RefreshWalletBalanceAsync(long id)
+    {
+        var response = await PrimaryNode.PostAsyncWithResponse<long>($"api/crypto/me/wallets/{id}/refresh");
+        return response;
+    }
+    
+    public static async Task<TaskResult<List<UserCryptoWallet>>> GetWalletsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<UserCryptoWallet>>("api/crypto/me/wallets");
+        return response;
+    }
+    
+    public static async Task<TaskResult> RemoveWalletAsync(long id)
+    {
+        return await PrimaryNode.DeleteAsync($"api/crypto/me/wallets/{id}");
+    }
 
     public static async Task<TaskResult> UpdatePasswordAsync(string oldPassword, string newPassword) {
         var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };

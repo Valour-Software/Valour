@@ -136,11 +136,23 @@
         
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
-        Markdown.RenderToFragment(
-            Message.Content, 
-            builder, 
-            MarkdownManager.Pipeline, 
-            MarkdownManager.Renderer);
+
+        try
+        {
+            Markdown.RenderToFragment(
+                Message.Content,
+                builder,
+                MarkdownManager.Pipeline,
+                MarkdownManager.Renderer);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            builder.OpenElement(2, "p");
+            builder.AddContent(3, Message.Content);
+            builder.CloseElement();
+        }
+
         builder.CloseElement();
     };
     
