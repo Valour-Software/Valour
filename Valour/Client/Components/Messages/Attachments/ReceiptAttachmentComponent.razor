@@ -1,4 +1,6 @@
 @inherits AttachmentComponent
+@inject EcoService EcoService
+@inject UserService UserService
 
 @if (_error)
 {
@@ -91,15 +93,15 @@
     {
         var id = Attachment.Location.Split('/').Last();
 
-        _receipt = await Transaction.GetReceiptAsync(id);
+        _receipt = await EcoService.FetchReceiptAsync(id);
         if (_receipt is null)
         {
             _error = true;
             return;
         }
 
-        _userFrom = await User.FindAsync(_receipt.UserFromId);
-        _userTo = await User.FindAsync(_receipt.UserToId);
+        _userFrom = await UserService.FetchUserAsync(_receipt.UserFromId);
+        _userTo = await UserService.FetchUserAsync(_receipt.UserToId);
 
         _loading = false;
     }

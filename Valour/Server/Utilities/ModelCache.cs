@@ -1,3 +1,4 @@
+using System.Collections;
 using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
@@ -8,13 +9,13 @@ namespace Valour.Server.Utilities;
 /// caching collections of models that are frequently accessed and updated.
 /// It performs no allocations and protects the internal store.
 /// </summary>
-public class ModelCache<T> where T : IHasId
+public class ModelCache<T, TId> where T : ISharedModel<TId>
 {
     public IReadOnlyList<T> Values { get; private set; }
-    public IReadOnlyDictionary<object, T> Lookup { get; private set; }
+    public IReadOnlyDictionary<TId, T> Lookup { get; private set; }
     
     private List<T> _cache;
-    private Dictionary<object, T> _lookup;
+    private Dictionary<TId, T> _lookup;
     
     public ModelCache()
     {
@@ -22,15 +23,15 @@ public class ModelCache<T> where T : IHasId
         _lookup = new();
     }
     
-    public ModelCache(List<T> initial)
+    public ModelCache(IEnumerable<T> initial)
     {
-        _cache = initial;
+        _cache = initial.ToList();
         _lookup = _cache.ToDictionary(x => x.Id);
     }
     
-    public void Reset(List<T> initial)
+    public void Reset(IEnumerable<T> initial)
     {
-        _cache = initial;
+        _cache = initial.ToList();
         _lookup = _cache.ToDictionary(x => x.Id);
     }
     
@@ -40,7 +41,7 @@ public class ModelCache<T> where T : IHasId
         _lookup.Add(item.Id, item);
     }
     
-    public void Remove(long id)
+    public void Remove(TId id)
     {
         if (_lookup.TryGetValue(id, out var item))
         {
@@ -61,20 +62,20 @@ public class ModelCache<T> where T : IHasId
         }
     }
     
-    public T Get(long id)
+    public T Get(TId id)
     {
         _lookup.TryGetValue(id, out var item);
         return item;
     }
 }
 
-public class SortedModelCache<T> where T : ISortableModel, IHasId
+public class SortedModelCache<T, TId> where T : ISortable, ISharedModel<TId>
 {
     public IReadOnlyList<T> Values { get; private set; }
-    public IReadOnlyDictionary<object, T> Lookup { get; private set; }
+    public IReadOnlyDictionary<TId, T> Lookup { get; private set; }
     
     private List<T> _cache;
-    private Dictionary<object, T> _lookup;
+    private Dictionary<TId, T> _lookup;
     
     public SortedModelCache()
     {
@@ -82,31 +83,36 @@ public class SortedModelCache<T> where T : ISortableModel, IHasId
         _lookup = new();
     }
     
-    public SortedModelCache(List<T> initial)
+    public SortedModelCache(IEnumerable<T> initial)
     {
-        _cache = initial;
+        _cache = initial.ToList();
         _lookup = _cache.ToDictionary(x => x.Id);
         
         if (_cache.Count > 0)
         {
-            _cache.Sort(ISortableModel.Compare);
+            _cache.Sort(ISortable.Compare);
         }
     }
     
-    public void Reset(List<T> initial)
+    public void Reset(IEnumerable<T> initial)
     {
-        _cache = initial;
+        _cache = initial.ToList();
         _lookup = _cache.ToDictionary(x => x.Id);
+        
+        if (_cache.Count > 0)
+        {
+            _cache.Sort(ISortable.Compare);
+        }
     }
     
     public void Add(T item)
     {
         _cache.Add(item);
         _lookup.Add(item.Id, item);
-        _cache.Sort(ISortableModel.Compare);
+        _cache.Sort(ISortable.Compare);
     }
     
-    public void Remove(long id)
+    public void Remove(TId id)
     {
         if (_lookup.TryGetValue(id, out var item))
         {
@@ -119,22 +125,23 @@ public class SortedModelCache<T> where T : ISortableModel, IHasId
     {
         if (_lookup.TryGetValue(updated.Id, out var old))
         {
+            var oldPos = old.GetSortPosition();
             updated.CopyAllTo(old);
             
             // check if the position has changed
-            if (old.GetSortPosition() != updated.GetSortPosition())
+            if (oldPos != updated.GetSortPosition())
             {
-                _cache.Sort(ISortableModel.Compare);
+                _cache.Sort(ISortable.Compare);
             }
         }
         else
         {
             Add(updated);
-            _cache.Sort(ISortableModel.Compare);
+            _cache.Sort(ISortable.Compare);
         }
     }
     
-    public T Get(long id)
+    public T Get(TId id)
     {
         _lookup.TryGetValue(id, out var item);
         return item;

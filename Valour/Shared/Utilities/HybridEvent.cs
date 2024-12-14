@@ -158,10 +158,10 @@ public class HybridEvent<TEventData> : IDisposable
     }
 
     // Invoke both sync and async handlers
-    public async Task Invoke(TEventData data)
+    public void Invoke(TEventData data)
     {
         InvokeSyncHandlers(data);  // Call synchronous handlers first
-        await InvokeAsyncHandlers(data);  // Then call asynchronous handlers
+        _ = InvokeAsyncHandlers(data);  // Then call asynchronous handlers
     }
 
     // Enable += and -= operators for adding/removing handlers
@@ -376,10 +376,10 @@ public class HybridEvent : IDisposable
     }
 
     // Invoke both sync and async handlers
-    public async Task Invoke()
-    {
-        InvokeSyncHandlers();  // Call synchronous handlers first
-        await InvokeAsyncHandlers();  // Then call asynchronous handlers
+    public void Invoke()
+    { 
+        _ = Task.Run(InvokeSyncHandlers);  // Call synchronous handlers first
+        _ = InvokeAsyncHandlers();  // Then call asynchronous handlers
     }
 
     // Enable += and -= operators for adding/removing handlers

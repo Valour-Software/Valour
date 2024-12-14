@@ -1,5 +1,4 @@
-using Valour.Sdk.Client;
-using Valour.Sdk.Nodes;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Sdk.Models.Economy;
@@ -7,14 +6,15 @@ namespace Valour.Sdk.Models.Economy;
 /// <summary>
 /// Currencies represent one *type* of cash, declared by a community.
 /// </summary>
-public class Currency : ClientModel, ISharedCurrency
+public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
 {
-    public override string BaseRoute => "api/eco/currencies";
+    public override string BaseRoute => ISharedCurrency.BaseRoute;
 
     /// <summary>
     /// The planet this currency belongs to
     /// </summary>
     public long PlanetId { get; set; }
+    protected override long? GetPlanetId() => PlanetId;
 
     /// <summary>
     /// The name of this currency (ie dollar)
@@ -51,32 +51,13 @@ public class Currency : ClientModel, ISharedCurrency
         return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
     }
 
-    public static async ValueTask<Currency> FindAsync(long id, long planetId, bool refresh = false)
+    public override Currency AddToCacheOrReturnExisting()
     {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<Currency>(id);
-            if (cached != null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
+        return Client.Cache.Currencies.Put(Id, this);
     }
-    
-    public static async ValueTask<Currency> FindByPlanetAsync(long planetId)
+
+    public override Currency TakeAndRemoveFromCache()
     {
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planetId}", true)).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
+        return Client.Cache.Currencies.TakeAndRemove(Id);
     }
 }

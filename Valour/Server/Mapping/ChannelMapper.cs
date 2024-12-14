@@ -16,7 +16,7 @@ public static class ChannelMapper
             LastUpdateTime = channel.LastUpdateTime,
             PlanetId = channel.PlanetId,
             ParentId = channel.ParentId,
-            Position = channel.Position,
+            RawPosition = channel.RawPosition,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
             
@@ -38,7 +38,7 @@ public static class ChannelMapper
             LastUpdateTime = channel.LastUpdateTime,
             PlanetId = channel.PlanetId,
             ParentId = channel.ParentId,
-            Position = channel.Position,
+            RawPosition = channel.RawPosition,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
             

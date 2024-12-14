@@ -1,14 +1,11 @@
-﻿<div class="@("item " + Selected_Class)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
-    <img class="icon" style="@Pfp_Style" src="@Pfp_Url" @onerror="OnPfpError" />
-    <p class="title noselect" style="color:@Role_Color">@Member.Nickname</p>
+﻿<div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
+    <img alt="avatar" class="icon" src="@_avatar" @onerror="OnAvatarError" />
+    <p class="title noselect" style="color:@_roleColor">@Member.Nickname</p>
 </div>
 
 @code {
-    public string Pfp_Url = "_content/Valour.Client/icon-512.png";
-
-    public string Pfp_Style = "";
-
-    public string Role_Color = "#ffffff";
+    private string _avatar = "_content/Valour.Client/icon-512.png";
+    private string _roleColor = "#ffffff";
 
     [Parameter]
     public int Index { get; set; }
@@ -22,7 +19,7 @@
     [Parameter]
     public bool Selected { get; set; }
 
-    public string Selected_Class
+    private string SelectedClass
     {
         get
         {
@@ -33,35 +30,23 @@
         }
     }
 
-    public async Task OnClickAsync()
+    private async Task OnClickAsync()
     {
         Parent.Selected = Index;
         await Parent.Submit();
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        string pfp = await Member.GetAvatarUrlAsync();
-
-        if (!string.IsNullOrWhiteSpace(pfp))
-        {
-            Pfp_Url = pfp;
-        }
-
-        Role_Color = await Member.GetRoleColorAsync();
+        _avatar = Member.GetAvatar();
+        _roleColor = Member.GetRoleColor();
 
         StateHasChanged();
     }
 
-    protected Task OnPfpError()
+    private void OnAvatarError()
     {
-        Pfp_Url = "_content/Valour.Client/icon-512.png";
-
-        int r = Random.Shared.Next(24) * 15;
-
-        Pfp_Style = $"filter: hue-rotate({r}deg) saturate(2);";
-
+        _avatar = Member.GetFailedAvatar();
         StateHasChanged();
-        return Task.CompletedTask;
     }
 }

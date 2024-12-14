@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PlanetBan : ServerModel, ISharedPlanetBan
+public class PlanetBan : ServerModel<long>, ISharedPlanetBan
 {
     /// <summary>
     /// The id of the planet this ban is for

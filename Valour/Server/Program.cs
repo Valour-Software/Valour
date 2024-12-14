@@ -20,6 +20,7 @@ using WebPush;
 using Valour.Database.Config;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Server.Api.Dynamic;
+using Valour.Server.Hubs;
 
 namespace Valour.Server
 {
@@ -129,7 +130,8 @@ namespace Valour.Server
                 new DynamicAPI<SubscriptionApi>()             .RegisterRoutes(app),
                 new DynamicAPI<OrderApi>()                    .RegisterRoutes(app),
                 new DynamicAPI<ThemeApi>()                    .RegisterRoutes(app),
-                new DynamicAPI<StaffApi>()                    .RegisterRoutes(app)
+                new DynamicAPI<StaffApi>()                    .RegisterRoutes(app),
+                new DynamicAPI<MessageApi>()                  .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI();
@@ -153,7 +155,7 @@ namespace Valour.Server
 
             int c = 0;
 
-            using (ValourDB db = new ValourDB(ValourDB.DbOptions)){
+            using (ValourDb db = new ValourDb(ValourDb.DbOptions)){
                 foreach (var user in db.Users){
                     if (!db.PlanetMembers.Any(x => x.PlanetId == 735703679107072 &&
                          user.Id == x.UserId)){
@@ -180,7 +182,7 @@ namespace Valour.Server
 
             // Run
 
-            //using (ValourDB db = new(ValourDB.DbOptions))
+            //using (ValourDb db = new(ValourDb.DbOptions))
             //{
             //    foreach (User user in await db.Users.ToListAsync())
             //    {
@@ -279,9 +281,9 @@ namespace Valour.Server
                 options.MultipartBodyLengthLimit = 20480000;
             });
 
-            services.AddDbContext<ValourDB>(options =>
+            services.AddDbContext<ValourDb>(options =>
             {
-                options.UseNpgsql(ValourDB.ConnectionString);
+                options.UseNpgsql(ValourDb.ConnectionString);
             });
             
             services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
@@ -318,6 +320,7 @@ namespace Valour.Server
             services.AddScoped<OauthAppService>();
             services.AddScoped<PlanetBanService>();
             services.AddScoped<ChannelService>();
+            services.AddScoped<MessageService>();
             services.AddScoped<PlanetInviteService>();
             services.AddScoped<PlanetMemberService>();
             services.AddScoped<PlanetRoleService>();

@@ -6,7 +6,7 @@ namespace Valour.Server.Services;
 
 public class UserFriendService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly UserService _userService;
     private readonly NotificationService _notificationService;
     private readonly CoreHubService _coreHub;
@@ -14,7 +14,7 @@ public class UserFriendService
     private readonly ILogger<UserFriendService> _logger;
 
     public UserFriendService(
-        ValourDB db,
+        ValourDb db,
         UserService userService,
         NotificationService notificationService,
         CoreHubService coreHub,

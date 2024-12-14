@@ -3,8 +3,11 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
+public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 {
+    public const string BaseRoute = "api/roles";
+    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
@@ -53,21 +56,21 @@ public interface ISharedPlanetRole : ISharedPlanetModel, ISortableModel
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    int Position { get; set; }
+    uint Position { get; set; }
 
-    public int GetAuthority() =>
+    public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
     
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
-    public static int GetAuthority(ISharedPlanetRole role) =>
-        int.MaxValue - role.Position - 1; // Subtract one so owner can have higher
+    public static uint GetAuthority(ISharedPlanetRole role) =>
+        uint.MaxValue - role.Position - 1; // Subtract one so owner can have higher
     
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
         => Permission.HasPermission(role.Permissions, perm);
 
-    int ISortableModel.GetSortPosition()
+    uint ISortable.GetSortPosition()
     {
         return Position;
     }

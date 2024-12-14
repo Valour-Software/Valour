@@ -5,15 +5,15 @@ using Valour.Database.Config;
 using Valour.Database.Economy;
 using Valour.Database.Themes;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
 namespace Valour.Database.Context;
 
-public class ValourDB : DbContext
+public class ValourDb : DbContext
 {
     public static readonly string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
 
@@ -244,7 +244,7 @@ public class ValourDB : DbContext
     public DbSet<Theme> Themes { get; set; }
     public DbSet<ThemeVote> ThemeVotes { get; set; }
 
-    public ValourDB(DbContextOptions options)
+    public ValourDb(DbContextOptions options)
     {
 
     }

@@ -1,3 +1,5 @@
+@inject StaffService StaffService
+
 <QueryTable
     TModel="Report"
     Columns="@_columns"
@@ -50,7 +52,7 @@
     public async Task OpenMessageWindow(long messageId)
     {
         
-        var message = await StaffTools.GetMessageAsync(messageId);
+        var message = await StaffService.GetMessageAsync(messageId);
         if (message is null)
         {
             var task = Task.Run(() =>

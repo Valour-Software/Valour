@@ -43,7 +43,7 @@ public class PlanetRoleApi
             return ValourResult.NotPlanetMember();
 
         if (role.Position == -1) {
-            role.Position = (await planetService.GetRoleIdsAsync(role.PlanetId)).Count;
+            role.Position = (uint)(await planetService.GetRoleIdsAsync(role.PlanetId)).Count;
         }
 
         if (role.IsDefault)

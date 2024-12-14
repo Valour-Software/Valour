@@ -15,14 +15,14 @@ public class NotificationService
     private static VapidDetails _vapidDetails;
     private static WebPushClient _webPush;
     
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly UserService _userService;
     private readonly CoreHubService _coreHub;
     private readonly NodeService _nodeService;
     private readonly IServiceScopeFactory _scopeFactory;
     
     public NotificationService(
-        ValourDB db, 
+        ValourDb db, 
         UserService userService, 
         CoreHubService coreHub,
         NodeService nodeService,
@@ -138,7 +138,7 @@ public class NotificationService
         );
     }
     
-    public async Task AddBatchedNotificationAsync(Notification notification, ValourDB db)
+    public async Task AddBatchedNotificationAsync(Notification notification, ValourDb db)
     {
         // Create id for notification
         notification.Id = IdManager.Generate();
@@ -165,7 +165,7 @@ public class NotificationService
         Task.Run(async () =>
         {
             await using var scope = _scopeFactory.CreateAsyncScope();
-            await using var db = scope.ServiceProvider.GetService<ValourDB>();
+            await using var db = scope.ServiceProvider.GetService<ValourDb>();
         
             var notifications = await db.PlanetRoleMembers.Where(x => x.RoleId == roleId).Select(x => new Notification()
             {
@@ -194,7 +194,7 @@ public class NotificationService
         return Task.CompletedTask;
     }
 
-    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDB db = null)
+    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDb db = null)
     {
         var adb = db ?? _db;
         

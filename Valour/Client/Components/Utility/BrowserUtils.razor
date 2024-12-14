@@ -1,20 +1,21 @@
+@using Valour.Sdk.Services
+@using Valour.Shared.Utilities
+@inject ValourClient Client
 @implements IAsyncDisposable
+@inject LoggingService Logger
+@inject NodeService NodeService
 @inject IJSRuntime JsRuntime
 
-<CascadingValue Value="@this" IsFixed="true">
-    @ChildContent
-</CascadingValue>
-
 @code {
-    [Parameter]
-    public RenderFragment ChildContent { get; set; }
-    
     private static DotNetObjectReference<BrowserUtils> _dotnetRef;
     private static  IJSInProcessObjectReference _jsModule;
     
     public static event Func<ElementDimensions, Task> OnWindowResize;
     public static ElementDimensions WindowDimensions { get; private set; }
 
+    [Parameter]
+    public Func<Task> OnReady { get; set; }
+    
     protected override void OnInitialized()
     {
         _dotnetRef = DotNetObjectReference.Create(this);
@@ -25,10 +26,14 @@
         if (firstRender)
         {
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/BrowserUtils.razor.js");
-            await Logger.Log("Loaded DomWindowData component.", "cyan");
+            // can't use client logger because the client doesn't exist yet!
+            Logger.Log("BUtils", "Loaded DomWindowData component.", "cyan");
             WindowDimensions = await GetWindowDimensions();
-            await Logger.Log("Starting window dimensions: " + WindowDimensions.Width + "x" + WindowDimensions.Height, "cyan");
+            Logger.Log("BUtils", "Starting window dimensions: " + WindowDimensions.Width + "x" + WindowDimensions.Height, "cyan");
             await _jsModule.InvokeVoidAsync("init", _dotnetRef);
+            
+            if (OnReady is not null)
+                await OnReady.Invoke();
         }
     }
     
@@ -62,12 +67,25 @@
         return position;
     }
     
+    public static async Task<WindowUri> GetUriData()
+    {
+        var uriData = await _jsModule.InvokeAsync<WindowUri>("getWindowUri");
+        return uriData;
+    }
+    
     [JSInvokable("NotifyWindowDimensions")]
     public async Task NotifyWindowDimensions(ElementDimensions dimensions)
     {
         WindowDimensions = dimensions;
         if (OnWindowResize is not null)
             await OnWindowResize.Invoke(dimensions);
+    }
+    
+    [JSInvokable("OnRefocus")]
+    public void OnRefocus()
+    {
+        Logger.Log("BUtils", "Detected refocus event.", "cyan");
+        NodeService.CheckConnections();
     }
 
     public async ValueTask DisposeAsync()

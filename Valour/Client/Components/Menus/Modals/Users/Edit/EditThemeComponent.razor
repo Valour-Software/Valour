@@ -1,7 +1,10 @@
 ﻿@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject ThemeService ThemeService
 
 @using System.Net.Http.Headers
 @using Valour.Shared.Extensions
+
 @* Editing page *@
 @if (_editingTheme is not null)
 {
@@ -178,7 +181,7 @@
     <br />
     
     <div class="button-row">
-        <button class="btn v-btn large danger" @onclick="@CancelEditAsync">Cancel Changes</button>
+        <button class="btn v-btn large danger" @onclick="@CancelEdit">Cancel Changes</button>
         <button class="btn v-btn large tertiary" @onclick="@ConfirmChangesAsync">Confirm Changes</button>
     </div>
     
@@ -203,7 +206,7 @@ else
     <div class="theme-container create">
         <div class="inner">
             <h5>Create a Theme!</h5>
-            <button class="btn v-btn primary inline" @onclick="@EnterEditorNewThemeAsync">Enter Editor</button>
+            <button class="btn v-btn primary inline" @onclick="@EnterEditorNewTheme">Enter Editor</button>
         </div>
     </div>
     
@@ -258,9 +261,9 @@ else
     private VerticalExpander<ThemeCard> _expander;
     
     private Theme _backupTheme;
-    public Theme _editingTheme;
+    private Theme _editingTheme;
 
-    private PagedReader<ThemeMeta> _popularThemes = Theme.GetAvailableThemes();
+    private PagedReader<ThemeMeta> _popularThemes;
     private int _popularThemeCount = -1;
     
     private List<ThemeMeta> _myThemes;
@@ -274,8 +277,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _myThemes = await Theme.GetMyThemes();
-        _popularThemeCount = _popularThemes.GetTotalCount();
+        _popularThemes = ThemeService.GetAvailableThemeReader();
+        _myThemes = await ThemeService.GetMyThemes();
+        
+        // Load first page of popular themes
+        var res = await _popularThemes.NextPageAsync();
+        _popularThemeCount = res.TotalCount;
+        
         StateHasChanged();
     }
 
@@ -296,7 +304,7 @@ else
 
     private async Task OnSearchChangeAsync(ChangeEventArgs e)
     {
-        await Logger.Log($"New search: {e.Value}", "cyan");
+        Client.Logger.Log<EditThemeComponent>($"New search: {e.Value}", "cyan");
         
         _popularThemes.SetParameter("search", e.Value?.ToString());
         if (_expander is not null)
@@ -308,10 +316,10 @@ else
         StateHasChanged();
     }
     
-    private async Task OnCssChange()
+    private void OnCssChange()
     {
         ThemeComponent.Instance.Refresh();
-        await Logger.Log("Custom CSS updated.", "cyan");
+        Client.Logger.Log<EditThemeComponent>("Custom CSS updated.", "cyan");
     }
     
     private void SetPublished(bool published)
@@ -350,7 +358,7 @@ else
         });
     }
 
-    public async Task OpenEditorWithThemeAsync(Theme theme)
+    public void OpenEditorWithTheme(Theme theme)
     {
         _backupTheme = ThemeComponent.Instance.CurrentTheme;
         _editingTheme = theme;
@@ -358,12 +366,12 @@ else
         ThemeComponent.Instance.CurrentTheme = theme;
         ThemeComponent.Instance.Refresh();
         
-        await Logger.Log($"Entering editor for theme: {theme.Name}", "cyan");
+        Client.Logger.Log<EditThemeComponent>($"Entering editor for theme: {theme.Name}", "cyan");
         
         StateHasChanged();
     }
 
-    private async Task EnterEditorNewThemeAsync()
+    private void EnterEditorNewTheme()
     {
         _backupTheme = ThemeComponent.Instance.CurrentTheme;
         
@@ -375,15 +383,15 @@ else
         
         ThemeComponent.Instance.CurrentTheme = _editingTheme;
         
-        await Logger.Log("Entering editor for new theme.", "cyan");
+        Client.Logger.Log<EditThemeComponent>("Entering editor for new theme.", "cyan");
         
         StateHasChanged();
     }
     
-    private async Task CancelEditAsync()
+    private void CancelEdit()
     {
         _editingTheme = null;
-        await Logger.Log("Cancelled theme editing.", "cyan");
+        Client.Logger.Log<EditThemeComponent>("Cancelled theme editing.", "cyan");
         
         ThemeComponent.Instance.CurrentTheme = _backupTheme;
         
@@ -406,7 +414,7 @@ else
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(_uploadedImage.ContentType);
         content.Add(streamContent, _uploadedImage.Name, _uploadedImage.Name);
         
-        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
+        var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
         if (!result.Success)
         {
             Console.WriteLine("Failed to upload banner: " + result.Message);
@@ -423,17 +431,17 @@ else
         if (_editingTheme.Id == 0)
         {
             // New theme
-            _editingResult = await ClientModel.CreateAsync(_editingTheme);
+            _editingResult = await _editingTheme.CreateAsync();
         }
         else
         {
             // Existing theme
-            _editingResult = await ClientModel.UpdateAsync(_editingTheme);
+            _editingResult = await _editingTheme.UpdateAsync();
         }
 
         if (!_editingResult.Value.Success)
         {
-            await Logger.Log($"Failed to save theme: {_editingResult.Value.Message}", "red");
+            Client.Logger.Log<EditThemeComponent>($"Failed to save theme: {_editingResult.Value.Message}", "red");
         }
         else
         {

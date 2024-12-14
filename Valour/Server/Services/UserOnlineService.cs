@@ -6,10 +6,10 @@ public class UserOnlineService
 {
     private static readonly ConcurrentDictionary<long, DateTime?> UserTimeCache = new();
 
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly CoreHubService _hubService;
 
-    public UserOnlineService(CoreHubService hubService, ValourDB db)
+    public UserOnlineService(CoreHubService hubService, ValourDb db)
     {
         _hubService = hubService;
         _db = db;

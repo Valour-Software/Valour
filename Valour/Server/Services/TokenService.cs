@@ -6,7 +6,7 @@ public class TokenService
 {
     private static readonly ConcurrentDictionary<string, AuthToken> QuickCache = new();
     
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly IHttpContextAccessor _contextAccessor;
 
     /// <summary>
@@ -14,7 +14,7 @@ public class TokenService
     /// </summary>
     private AuthToken _currentToken;
     
-    public TokenService(ValourDB db, IHttpContextAccessor contextAccessor)
+    public TokenService(ValourDb db, IHttpContextAccessor contextAccessor)
     {
         _db = db;
         _contextAccessor = contextAccessor;

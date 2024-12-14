@@ -44,8 +44,8 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planet = await Planet.FindAsync(PlanetId.Value);
-            await ValourClient.ClosePlanetConnection(planet, Id);
+            var planetService = Tab.Layout.DockComponent.Client.PlanetService;
+            await planetService.TryClosePlanetConnection(PlanetId.Value, Tab.Id);
         }
     }
     
@@ -53,8 +53,8 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planet = await Planet.FindAsync(PlanetId.Value);
-            await ValourClient.OpenPlanetConnection(planet, Id);
+            var planetService = Tab.Layout.DockComponent.Client.PlanetService;
+            await planetService.TryOpenPlanetConnection(PlanetId.Value, Id);
         }
     }
     
@@ -104,12 +104,12 @@ public abstract class WindowContent<TWindow, TData> :
     /// <summary>
     /// Used to export data to a form which can be serialized
     /// </summary>
-    public abstract string ExportData();
+    public abstract string ExportData(ValourClient client);
     
     /// <summary>
     /// Used to import data from a serialized form to the data object
     /// </summary>
-    public abstract Task ImportData(string data);
+    public abstract Task ImportData(string data, ValourClient client);
 }
 
 public class FloatingWindowProps
@@ -255,8 +255,8 @@ public class WindowTab
     {
         if (Content?.PlanetId is not null)
         {
-            var planet = await Planet.FindAsync(Content.PlanetId.Value);
-            await ValourClient.OpenPlanetConnection(planet, Id);
+            var planetService = Layout.DockComponent.Client.PlanetService;
+            await planetService.TryOpenPlanetConnection(Content.PlanetId.Value, Id);
         }
     }
     

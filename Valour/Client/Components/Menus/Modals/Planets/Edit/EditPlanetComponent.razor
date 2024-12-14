@@ -1,5 +1,6 @@
 ﻿@inherits Modal<EditPlanetComponent.ModalParams>
 @implements IDisposable
+@inject ValourClient Client
 
 @if (Data.Planet is null)
 {
@@ -102,11 +103,11 @@
             async () =>
             {
                 Console.WriteLine("Confirmed planet deletion.");
-                var result = await ClientModel.DeleteAsync(Data.Planet);
+                var result = await Data.Planet.DeleteAsync();
 
                 if (result.Success)
                 {
-                    await CloseAsync();
+                    Close();
                 }
             },
             () => Task.CompletedTask

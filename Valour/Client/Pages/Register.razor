@@ -4,7 +4,7 @@
 @page "/Register/referral/{Referral}"
 
 @inject IJSRuntime JsRuntime
-@inject NavigationManager NavManager
+@inject AuthService AuthService
 
 <body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
     <div class="popup-box">
@@ -178,7 +178,7 @@
             Source = Source,
         };
 
-        var result = await ValourClient.PostAsync("api/users/register", _regRequest);
+        var result = await AuthService.RegisterAsync(_regRequest);
 
         if (!result.Success)
         {

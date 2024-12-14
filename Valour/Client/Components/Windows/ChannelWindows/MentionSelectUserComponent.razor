@@ -41,7 +41,7 @@
 
     protected override Task OnInitializedAsync()
     {
-        string pfp = User.GetAvatarUrl(AvatarFormat.Webp64);
+        string pfp = User.GetAvatar(AvatarFormat.Webp64);
 
         if (!string.IsNullOrWhiteSpace(pfp))
         {
@@ -56,7 +56,7 @@
 
     protected Task OnPfpError()
     {
-        Pfp_Url = User.GetFailedAvatarUrl();
+        Pfp_Url = User.GetFailedAvatar();
         StateHasChanged();
         return Task.CompletedTask;
     }

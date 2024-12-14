@@ -25,17 +25,17 @@
             public long PlanetId { get; set; }
         }
         
-        public override async Task ImportData(string data)
+        public override async Task ImportData(string data, ValourClient client)
         {
             var saved = JsonSerializer.Deserialize<SaveData>(data);
             Data = new ModToolsWindowData()
             {
                 Staff = saved.Staff,
-                Planet = await Planet.FindAsync(saved.PlanetId)
+                Planet = await client.PlanetService.FetchPlanetAsync(saved.PlanetId)
             };
         }
 
-        public override string ExportData()
+        public override string ExportData(ValourClient client)
         {
             var json = JsonSerializer.Serialize(new SaveData()
             {

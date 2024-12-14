@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class Channel : ServerModel, ISharedChannel
+public class Channel : ServerModel<long>, ISharedChannel
 {
     /////////////////////////////////
     // Shared between all channels //
@@ -44,6 +44,9 @@ public class Channel : ServerModel, ISharedChannel
     /// </summary>
     public long? ParentId { get; set; }
     
+    // Backing store for RawPosition
+    private uint _rawPosition;
+    
     /// <summary>
     /// The position of the channel. Works as the following:
     /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
@@ -53,17 +56,18 @@ public class Channel : ServerModel, ISharedChannel
     /// This does limit the depth of categories to 4, and the highest position
     /// to 254 (since 000 means no position)
     /// </summary>
-    public int Position { get; set; }
-    
-    /// <summary>
-    /// The depth, or how many categories deep the channel is
-    /// </summary>
-    public int Depth => ISharedChannel.GetDepth(this);
+    public uint RawPosition
+    {
+        get => _rawPosition;
+        set
+        {
+            _rawPosition = value;
+            Position = new ChannelPosition(value);
+        }
+    }
 
-    /// <summary>
-    /// The position of the channel within its parent
-    /// </summary>
-    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
+    [JsonIgnore]
+    public ChannelPosition Position { get; protected set; }
     
     /// <summary>
     /// If this channel inherits permissions from its parent

@@ -1,39 +1,78 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
-/*  Valour - A free and secure chat client
-*  Copyright (C) 2021 Vooper Media LLC
+public struct PlanetMemberKey : IEquatable<PlanetMemberKey>
+{
+    private readonly long _userId;
+    private readonly long _planetId;
+    
+    public PlanetMemberKey(long userId, long planetId)
+    {
+        _userId = userId;
+        _planetId = planetId;
+    }
+    
+    public bool Equals(PlanetMemberKey other) =>
+        _userId == other._userId && _planetId == other._planetId;
+}
+
+/*  Valour (TM) - A free and secure chat client
+*  Copyright (C) 2024 Valour Software LLC
 *  This program is subject to the GNU Affero General Public license
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
+public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanetMember, IMessageAuthor
 {
-    #region IPlanetModel implementation
-
+    public override string BaseRoute =>
+        ISharedPlanetMember.BaseRoute;
+    
+    /// <summary>
+    /// The user of the member
+    /// </summary>
+    public User User { get; set; }
+    
+    // User related properties //
+    
+    /// <summary>
+    /// Returns the status of the member
+    /// </summary>
+    public string Status => User?.Status ?? "";
+    
+    /// <summary>
+    /// Returns the name of the member
+    /// </summary>
+    public string Name => string.IsNullOrWhiteSpace(Nickname) ? (User?.Name ?? "User not found") : Nickname;
+    
+    /// <summary>
+    /// The id of the planet this belongs to
+    /// </summary>
     public long PlanetId { get; set; }
 
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetModel.GetPlanetAsync(this, refresh);
-
-    public override string BaseRoute =>
-            $"api/members";
-
-    #endregion
+    protected override long? GetPlanetId()
+        => PlanetId;
 
     /// <summary>
-    /// Runs if a role is added, removed, or updated
+    /// The member's roles
     /// </summary>
-    public event Func<MemberRoleEvent, Task> OnRoleModified;
-
+    public readonly SortedModelList<PlanetRole, long> Roles = new();
+    
     /// <summary>
-    /// Cached roles
+    /// The primary role of the member
     /// </summary>
-    private List<PlanetRole> _roles;
+    public PlanetRole PrimaryRole => Roles.FirstOrDefault();
+    
+    /// <summary>
+    /// The authority of the member
+    /// </summary>
+    public uint Authority =>
+        Planet.OwnerId == UserId ? uint.MaxValue : PrimaryRole?.GetAuthority() ?? 0;
 
     /// <summary>
     /// The user within the planet
@@ -49,288 +88,140 @@ public class PlanetMember : ClientModel, IPlanetModel, ISharedPlanetMember
     /// The pfp to be used within the planet
     /// </summary>
     public string MemberAvatar { get; set; }
-
-    /// <summary>
-    /// Returns the member for the given id
-    /// </summary>
-    public static async ValueTask<PlanetMember> FindAsync(long id, long planetId, bool refresh = false)
+    
+    protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<PlanetMember>(id);
-            if (cached is not null)
-                return cached;
-        }
+        Planet?.OnMemberUpdated(eventData);
+    }
 
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/{id}")).Data;
-
-        if (member is not null)
-            await member.AddToCache(member);
-
-        return member;
+    protected override void OnDeleted()
+    {
+        Planet?.OnMemberDeleted(this);
     }
     
-    protected override async Task OnUpdated(ModelUpdateEvent eventData)
+    public override PlanetMember AddToCacheOrReturnExisting()
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyMemberUpdateAsync(this, eventData);
-    }
-
-    protected override async Task OnDeleted()
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyMemberDeleteAsync(this);
-    }
-
-    public override async Task AddToCache<T>(T item, bool skipEvent = false)
-    {
-        await ValourCache.Put(Id, this, skipEvent);
-        await ValourCache.Put((PlanetId, UserId), this, true); // Skip event because we already called it above
-    }
-
-    /// <summary>
-    /// Returns the member for the given id
-    /// </summary>
-    public static async ValueTask<PlanetMember> FindAsyncByUser(long userId, long planetId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<PlanetMember>((planetId, userId));
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/byuser/{planetId}/{userId}", true)).Data;
-
-        if (member is not null)
-        {
-            await ValourCache.Put(member.Id, member);
-            await ValourCache.Put((planetId, userId), member);
-        }
-
-        return member;
-    }
-
-    public async Task NotifyRoleEventAsync(MemberRoleEvent eventData)
-    {
-        // If roles aren't even loaded, the update will be there
-        // when we actually bother to grab them. Do nothing.
-        if (_roles is null)
-            return;
-
-        var role = eventData.Role;
-        var existing = _roles.FirstOrDefault(x => x.Id == role.Id);
-
-        switch (eventData.Type)
-        {
-            case MemberRoleEventType.Added:
-            {
-                // No need to add if it already exists
-                if (existing is not null)
-                    return;
-                
-                // Add and sort
-                _roles.Add(role);
-                _roles.Sort((a, b) => a.Position.CompareTo(b.Position));
-
-                break;
-            }
-            case MemberRoleEventType.Removed:
-            {
-                // No need to remove if it doesn't exist
-                if (existing is null)
-                    return;
-                
-                // Remove (sort not needed for removing)
-                _roles.Remove(existing);
-
-                break;
-            }
-            case MemberRoleEventType.Updated:
-            {
-                // If it's updated and we don't have it, return.
-                // This should not happen.
-                if (existing is null)
-                    return;
-
-                break;
-            }
-        }
-
-        if (OnRoleModified is not null)
-            await OnRoleModified.Invoke(eventData);
-    }
-    
-    
-    /// <summary>
-    /// Returns the primary role of this member
-    /// </summary>
-    public async ValueTask<PlanetRole> GetPrimaryRoleAsync(bool refresh = false)
-    {
-        if (_roles is null || refresh)
-        {
-            await LoadRolesAsync();
-        }
-
-        if (_roles is null || _roles.Count == 0)
-        {
-            return null;
-        }
+        // Sync user first
+        User = Client.Cache.Sync(User);
         
-        return _roles[0];
+        var key = new PlanetMemberKey(UserId, PlanetId);
+        Client.Cache.MemberKeyToId[key] = Id;
+        
+        return Client.Cache.PlanetMembers.Put(Id, this);
+    }
+
+    public override PlanetMember TakeAndRemoveFromCache()
+    {
+        var key = new PlanetMemberKey(UserId, PlanetId);
+        Client.Cache.MemberKeyToId.Remove(key);
+
+        Client.Cache.PlanetMembers.Remove(Id);
+        return this;
+    }
+
+    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
+    {
+        User = Client.Cache.Sync(User, skipEvent, flags);
+    }
+
+    public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
+    {
+        // If we have the role, update it
+        Roles.Update(eventData);
+    }
+
+    public void OnRoleDeleted(PlanetRole role)
+    {
+        Roles.Remove(role);
+    }
+    
+    public void OnRoleAdded(PlanetRole role)
+    {
+        Roles.Upsert(role);
+    }
+    
+    public void OnRoleRemoved(PlanetRole role)
+    {
+        Roles.Remove(role);
     }
 
     /// <summary>
     /// Returns the role that is visually displayed for this member
     /// </summary>
-    public async ValueTask<PlanetRole> GetDisplayedRoleAsync(bool refresh = false)
+    public PlanetRole GetDisplayedRoleAsync(bool refresh = false)
     {
-        if (_roles is null || refresh)
-        {
-            await LoadRolesAsync();
-        }
-
-        // Null if no roles
-        if ((_roles?.Count ?? 0) == 0)
-            return null;
-        
         // Return first role that has the display role, or the last (default)
-        return _roles.FirstOrDefault(x => x.HasPermission(PlanetPermissions.DisplayRole)) 
-               ?? _roles.LastOrDefault();
+        return Roles.FirstOrDefault(x => x.HasPermission(PlanetPermissions.DisplayRole));
     }
-
-    /// <summary>
-    /// Returns the roles of this member
-    /// </summary>
-    public async ValueTask<List<PlanetRole>> GetRolesAsync(bool refresh = false)
-    {
-        if (_roles is null || refresh)
-        {
-            await LoadRolesAsync();
-        }
-
-        return _roles;
-    }
-
-    /// <summary>
-    /// Returns if the member has the given role
-    /// </summary>
-    public async ValueTask<bool> HasRoleAsync(long id, bool refresh = false)
-    {
-        if (_roles is null || refresh)
-        {
-            await LoadRolesAsync();
-        }
-        
-        if (_roles is null || _roles.Count == 0)
-        {
-            return false;
-        }
-
-        return _roles.Any(x => x.Id == id);
-    }
-
-    /// <summary>
-    /// Returns if the member has the given role
-    /// </summary>
-    public ValueTask<bool> HasRoleAsync(PlanetRole role, bool refresh = false) =>
-        HasRoleAsync(role.Id, refresh);
-
-    /// <summary>
-    /// Returns the authority of the member
-    /// </summary>
-    public async Task<int> GetAuthorityAsync() =>
-        (await Node.GetJsonAsync<int>($"{IdRoute}/authority")).Data;
 
     /// <summary>
     /// Returns if the member has the given permission
     /// </summary>
-    public async Task<bool> HasPermissionAsync(Channel channel, Permission permission) =>
+    public async Task<bool> HasPermission(Channel channel, Permission permission) =>
         await channel.HasPermissionAsync(UserId, permission);
 
-    public async Task<bool> HasPermissionAsync(PlanetPermission permission)
+    public bool HasPermission(PlanetPermission permission)
     {
-        var planet = await GetPlanetAsync();
-        if (planet.OwnerId == UserId)
+        if (Planet is null)
+            return false;
+        
+        if (Planet.OwnerId == UserId)
             return true;
 
-        var topRole = await GetPrimaryRoleAsync();
-        return topRole.HasPermission(permission);
+        return PrimaryRole.HasPermission(permission);
     }
 
     /// <summary>
-    /// Loads all role Ids from the server
+    /// Loads the member's role Ids from the server and loads associated roles into the Roles collection
     /// </summary>
-    public async Task LoadRolesAsync(List<long> roleIds = null)
+    public async Task FetchRoleMembershipAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
             roleIds = (await Node.GetJsonAsync<List<long>>($"{IdRoute}/roles")).Data;
-
-        if (_roles is null)
-            _roles = new List<PlanetRole>();
-        else
-            _roles.Clear();
-
+        
+        Roles.Clear(true);
+        
         foreach (var id in roleIds)
         {
-            var role = await PlanetRole.FindAsync(id, PlanetId);
-
+            var role = await Planet.FetchRoleAsync(id);
             if (role is not null)
-                _roles.Add(role);
+            {
+                Roles.UpsertNoSort(role);
+            }
         }
-
-        _roles.Sort((a, b) => a.Position.CompareTo(b.Position));
+        
+        Roles.Sort();
+        Roles.NotifySet();
     }
 
     /// <summary>
     /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
     /// It will NOT change anything on the server.
     /// </summary>
+    // TODO: this is weird, going to improve this
     public async Task SetLocalRoleIds(List<long> ids) =>
-        await LoadRolesAsync(ids);
-
-    /// <summary>
-    /// Returns the user of the member
-    /// </summary>
-    public ValueTask<User> GetUserAsync(bool refresh = false) =>
-        User.FindAsync(UserId, refresh);
-
-    /// <summary>
-    /// Returns the status of the member
-    /// </summary>
-    public async Task<string> GetStatusAsync(bool refresh = false) =>
-        (await GetUserAsync(refresh))?.Status ?? "";
+        await FetchRoleMembershipAsync(ids);
 
 
     /// <summary>
     /// Returns the role color of the member
     /// </summary>
-    public async Task<string> GetRoleColorAsync(bool refresh = false) =>
-        (await GetPrimaryRoleAsync(refresh))?.Color ?? "#ffffff";
+    public string GetRoleColor() =>
+        PrimaryRole?.Color ?? "#ffffff";
 
 
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async ValueTask<string> GetAvatarUrlAsync(bool refresh = false)
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
     {
-        if (!string.IsNullOrWhiteSpace(MemberAvatar))
+        if (!string.IsNullOrWhiteSpace(MemberAvatar)) // TODO: do same thing as user
             return MemberAvatar;
 
-        return (await GetUserAsync(refresh)).GetAvatarUrl();
+        return User?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
     }
-
-    /// <summary>
-    /// Returns the name of the member
-    /// </summary>
-    public async ValueTask<string> GetNameAsync(bool refresh = false)
-    {
-        if (!string.IsNullOrWhiteSpace(Nickname))
-            return Nickname;
-
-        return (await GetUserAsync(refresh))?.Name ?? "User not found";
-    }
+    
+    public string GetFailedAvatar() =>
+        User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
 }
 

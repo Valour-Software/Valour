@@ -1,4 +1,5 @@
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
 <h4 class="title">Subscriptions</h4>
 <h5 class="subtitle">SUPPORT VALOUR AND GET PERKS!</h5>
@@ -99,7 +100,7 @@
                                 STARGAZER
                             </p>
                             <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
-                                @(ValourClient.Self.SubscriptionType == "STARGAZER" ? "You Have This!" : "400VC / mo")
+                                @(Client.Me.SubscriptionType == "STARGAZER" ? "You Have This!" : "400VC / mo")
                             </p>
                         </div>
                         <p class="sub-card-desc">
@@ -235,8 +236,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
-        _activeSub = await ValourClient.GetActiveSubscriptionAsync();
+        _globalAccount = await Client.EcoService.GetSelfGlobalAccountAsync();
+        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
     }
 
     public async Task SetSelected(UserSubscriptionType type)
@@ -244,7 +245,7 @@
         _selected = type;
         _dueNow = type.Price;
 
-        _dueNow = await ValourClient.GetSubscriptionPriceAsync(type.Name);
+        _dueNow = await Client.SubscriptionService.GetSubscriptionPriceAsync(type.Name);
         
         StateHasChanged();
     }
@@ -255,7 +256,7 @@
         {
             _dotNetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Modals/Users/Edit/EditSubscriptionsComponent.razor.js");
-            await _jsModule.InvokeVoidAsync("setupPaypal", _dotNetRef, ValourClient.BaseAddress, _paypalElementId, ValourClient.Token, ValourClient.PrimaryNode.Name);
+            await _jsModule.InvokeVoidAsync("setupPaypal", _dotNetRef, Client.BaseAddress, _paypalElementId, Client.AuthService.Token, Client.PrimaryNode.Name);
         }
 
         if (_flagInitPaypal)
@@ -269,7 +270,7 @@
     {
         _errorSpan = null;
 
-        var result = await ValourClient.SubscribeAsync(type.Name);
+        var result = await Client.SubscriptionService.SubscribeAsync(type.Name);
         if (!result.Success)
         {
             _errorSpan = result.Message;
@@ -278,11 +279,11 @@
         }
         
         // after success
-        ValourClient.Self.SubscriptionType = type.Name;
+        Client.Me.SubscriptionType = type.Name;
 
         await _jsModule.InvokeVoidAsync("init");
 
-        _activeSub = await ValourClient.GetActiveSubscriptionAsync();
+        _activeSub = await Client.SubscriptionService.GetActiveSubscriptionAsync();
         StateHasChanged();
     }
 
@@ -290,7 +291,7 @@
     {
         _errorSpan = null;
         
-        var result = await ValourClient.UnsubscribeAsync();
+        var result = await Client.SubscriptionService.UnsubscribeAsync();
         if (!result.Success)
         {
             _errorSpan = result.Message;

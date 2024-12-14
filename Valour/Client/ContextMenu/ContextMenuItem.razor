@@ -27,16 +27,21 @@
     public RenderFragment ChildContent { get; set; }
     
     [Parameter]
-    public Func<Task> OnClick { get; set; }
+    public Action OnClick { get; set; }
+    
+    [Parameter]
+    public Func<Task> OnClickAsync { get; set; }
     
     [Parameter]
     public string Color { get; set; } = "#fff";
     
     private Task OnClicked()
     {
-        if (OnClick is not null)
-            return OnClick.Invoke();
-
+        OnClick?.Invoke();
+        
+        if (OnClickAsync is not null)
+            return OnClickAsync.Invoke();
+        
         return Task.CompletedTask;
     }
 } 

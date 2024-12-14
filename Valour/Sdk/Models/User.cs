@@ -1,27 +1,34 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Sdk.Client;
-using Valour.Shared;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class User : ClientModel, ISharedUser
+public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
 {
-    #region IPlanetModel implementation
-
     public override string BaseRoute =>
-            $"api/users";
-
-    #endregion
+            ISharedUser.BaseRoute;
 
     [JsonIgnore]
-    public static User Victor = new User()
+    public static readonly User Victor = new User()
     {
         Bot = true,
         UserStateCode = 4,
         Name = "Victor",
+        Tag = "VALOUR",
         ValourStaff = true,
         Id = long.MaxValue
+    };
+    
+    [JsonIgnore]
+    public static readonly User NotFound = new User()
+    {
+        Bot = true,
+        UserStateCode = 4,
+        Name = "User Not Found",
+        Tag = "0000",
+        ValourStaff = false,
+        Id = long.MaxValue - 1
     };
     
     /// <summary>
@@ -42,12 +49,12 @@ public class User : ClientModel, ISharedUser
     /// <summary>
     /// The name of this user
     /// </summary>
-    public string Name { get; set; }
+    public required string Name { get; set; }
     
     /// <summary>
     /// The tag (discriminator) of this user
     /// </summary>
-    public string Tag { get; set; }
+    public required string Tag { get; set; }
 
     /// <summary>
     /// True if the user is a bot
@@ -100,6 +107,16 @@ public class User : ClientModel, ISharedUser
     public string SubscriptionType { get; set; }
     
     /// <summary>
+    /// The user's prior username, if they have changed it before.
+    /// </summary>
+    public string PriorName { get; set; }
+
+    /// <summary>
+    /// The date and time the user last changed their username.
+    /// </summary>
+    public DateTime? NameChangeTime { get; set; }
+    
+    /// <summary>
     /// The subscription the user currently has
     /// </summary>
     [JsonIgnore]
@@ -117,42 +134,27 @@ public class User : ClientModel, ISharedUser
         get => ISharedUser.GetUserState(this);
         set => ISharedUser.SetUserState(this, value);
     }
+    
+    public ValueTask<UserProfile> FetchProfileAsync(bool skipCache = false) =>
+        Client.UserService.FetchProfileAsync(Id, skipCache);
+    
+    public Task<UserFriendData> FetchFriendDataAsync() =>
+        Client.FriendService.FetchFriendDataAsync(Id);
+    
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
+        ISharedUser.GetAvatar(this, format);
+    
+    public string GetFailedAvatar() =>
+        ISharedUser.GetFailedAvatar(this);
 
-    public async Task<List<OauthApp>> GetOauthAppAsync() =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"api/users/{Id}/apps")).Data;
-
-    public static async ValueTask<User> FindAsync(long id, bool force_refresh = false)
+    public override User AddToCacheOrReturnExisting()
     {
-        if (!force_refresh)
-        {
-            var cached = ValourCache.Get<User>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"api/users/{id}")).Data;
-
-        if (item is not null)
-        {
-            await ValourCache.Put(id, item);
-        }
-
-        return item;
+        return Client.Cache.Users.Put(Id, this);
     }
-    
-    public async Task<TaskResult<UserProfile>> GetProfileAsync() =>
-        await ValourClient.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
 
-    public async Task<TaskResult<List<User>>> GetFriendsAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/users/{Id}/friends");
-
-    public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/users/{Id}/frienddata");
-
-    public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
-        ISharedUser.GetAvatarUrl(this, format);
-    
-    public string GetFailedAvatarUrl() =>
-        ISharedUser.GetFailedAvatarUrl(this);
+    public override User TakeAndRemoveFromCache()
+    {
+        return Client.Cache.Users.TakeAndRemove(Id);
+    }
 }
 

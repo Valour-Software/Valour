@@ -6,10 +6,10 @@ namespace Valour.Server.Services;
 
 public class StaffService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly UserService _userService;
     
-    public StaffService(ValourDB db, UserService userService)
+    public StaffService(ValourDb db, UserService userService)
     {
         _db = db;
         _userService = userService;
@@ -19,9 +19,14 @@ public class StaffService
     public async Task<List<Report>> GetReportsAsync() =>
         await _db.Reports.Select(x => x.ToModel()).ToListAsync();
     
-    public async Task<PagedResponse<Report>> QueryReportsAsync(ReportQueryModel model, int amount, int page)
+    public async Task<QueryResponse<Report>> QueryReportsAsync(ReportQueryModel model, int skip = 0, int take = 50)
     {
-        var query = _db.Reports.AsQueryable();
+        if (take > 100)
+            take = 100;
+        
+        var query = _db.Reports
+            .AsQueryable()
+            .AsNoTracking();
 
         if (model.Filter is not null)
         {
@@ -39,10 +44,15 @@ public class StaffService
             query = query.OrderByDescending(x => x.TimeCreated);
         }
         
-        var reports = await query.Skip(amount * page).Take(amount).Select(x => x.ToModel()).ToListAsync();
+        var reports = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+        
         var total = await query.CountAsync();
         
-        return new PagedResponse<Report>()
+        return new QueryResponse<Report>()
         {
             Items = reports,
             TotalCount = total
@@ -53,7 +63,7 @@ public class StaffService
     {
         var report = await _db.Reports.FindAsync(reportId);
         if (report is null)
-            return TaskResult.FromError("Report not found");
+            return TaskResult.FromFailure("Report not found");
         
         report.Reviewed = value;
         
@@ -66,7 +76,7 @@ public class StaffService
     {
         var user = await _db.Users.FindAsync(userId);
         if (user is null)
-            return TaskResult.FromError("Account not found", errorCode: 404);
+            return TaskResult.FromFailure("Account not found", errorCode: 404);
         
         user.Disabled = value;
         
@@ -89,11 +99,11 @@ public class StaffService
         {
             var result = await _userService.HardDelete(user.ToModel());
             if (!result.Success)
-                return TaskResult.FromError(result.Message);
+                return TaskResult.FromFailure(result.Message);
         }
         catch (Exception e)
         {
-            return TaskResult.FromError(e.Message);
+            return TaskResult.FromFailure(e.Message);
         }
         
         return TaskResult.SuccessResult;

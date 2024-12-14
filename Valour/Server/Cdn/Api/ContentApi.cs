@@ -18,7 +18,7 @@ public class ContentApi : Controller
         app.MapGet("/content/migratePlanets", MigratePlanetsRoute);
     }
     
-    private static async Task<IResult> MigrateRoute(TokenService tokenService, CdnMemoryCache cache, ValourDB db)
+    private static async Task<IResult> MigrateRoute(TokenService tokenService, CdnMemoryCache cache, ValourDb db)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         if (token is null)
@@ -98,7 +98,7 @@ public class ContentApi : Controller
         return Results.Ok();
     }
     
-    private static async Task<IResult> MigratePlanetsRoute(TokenService tokenService, CdnMemoryCache cache, ValourDB db)
+    private static async Task<IResult> MigratePlanetsRoute(TokenService tokenService, CdnMemoryCache cache, ValourDb db)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         if (token is null)
@@ -178,7 +178,7 @@ public class ContentApi : Controller
         return Results.Ok();
     }
 
-    private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDB db,
+    private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDb db,
          ContentCategory category, string hash, ulong userId)
     {
         if (string.IsNullOrWhiteSpace(hash))

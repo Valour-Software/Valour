@@ -1,7 +1,8 @@
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
-
+@inject ValourClient Client
 @inject TenorService TenorService
+
 @using Valour.TenorTwo.Models
 @using Valour.TenorTwo.Responses
 
@@ -19,7 +20,7 @@
 
                     var addGif = result;
                     <div @key="@("cell-" + result.Id)" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
-                        @if (ValourClient.TenorFavorites.Any(x => x.TenorId == result.Id))
+                        @if (TenorService.TenorFavorites.Any(x => x.TenorId == result.Id))
                         {
                             <h3 class="favorite" @onclick="() => OnClickUnfavorite(addGif)" @onclick:stopPropagation="true">❤️</h3>
                         }
@@ -52,7 +53,7 @@
 
 @code {
     [Parameter]
-    public ChatChannelWindowComponent ChannelWindow { get; set; }
+    public ChatWindowComponent ChannelWindow { get; set; }
     
     /// <summary>
     /// Module for calling Javascript functions
@@ -89,31 +90,31 @@
 
     private async Task OnClickFavorite(TenorTwo.Models.Media media)
     {
-        TenorFavorite favorite = new TenorFavorite()
+        var favorite = new TenorFavorite()
         {
-            UserId = ValourClient.Self.Id,
+            UserId = Client.Me.Id,
             TenorId = media.Id
         };
 
-        await ValourClient.AddTenorFavorite(favorite);
+        await TenorService.AddTenorFavorite(favorite);
         
         Refresh();
     }
 
     private async Task OnClickUnfavorite(TenorTwo.Models.Media media)
     {
-        var favorite = ValourClient.TenorFavorites.FirstOrDefault(x => x.TenorId == media.Id);
+        var favorite = TenorService.TenorFavorites.FirstOrDefault(x => x.TenorId == media.Id);
         if (favorite is null)
             return;
         
-        await ValourClient.RemoveTenorFavorite(favorite);
+        await TenorService.RemoveTenorFavorite(favorite);
         
         Refresh();
     }
 
     private async Task OnClickGif(TenorTwo.Models.Media media)
     {
-        await ChannelWindow.MessageHolder.InputComponent.AddTenor(media);
+        ChannelWindow.InputComponent.AddTenor(media);
         Hide();
         
         // Register share to make Tenor happy
@@ -147,7 +148,7 @@
 
         if (_searchTerm == ":favorites:")
             SearchResults = await TenorService.Client
-                .Posts(ValourClient.TenorFavorites.Select(x => x.TenorId).ToArray(), 100, formatFilter: TenorService.Formats);
+                .Posts(TenorService.TenorFavorites.Select(x => x.TenorId).ToArray(), 100, formatFilter: TenorService.Formats);
         else
             SearchResults = await TenorService.Client.Search(_searchTerm, 50, formatFilter: TenorService.Formats);
         

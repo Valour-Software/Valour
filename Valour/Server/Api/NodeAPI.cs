@@ -40,11 +40,11 @@ namespace Valour.Server.API
                 return ValourResult.Ok(await service.RequestPlanetNodeAsync(id));
             });
 
-            app.MapGet("api/nodestats", (ValourDB db) => {
+            app.MapGet("api/nodestats", (ValourDb db) => {
                 return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);
             });
 
-            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeService service, HostedPlanetService hostedService, ValourDB db) => {
+            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeService service, HostedPlanetService hostedService, ValourDb db) => {
 
                 var hostedPlanetIds = hostedService.GetHostedPlanetIds();
                 

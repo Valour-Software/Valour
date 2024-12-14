@@ -30,7 +30,7 @@ public class OauthAPI : BaseAPI
     public static ConcurrentDictionary<string, AuthorizeModel> OauthReqCache = new();
 
     public static async Task<object> Authorize(
-        ValourDB db, HttpContext context,
+        ValourDb db, HttpContext context,
         TokenService tokenService,
         [FromBody] AuthorizeModel model,
         [FromHeader] string authorization)
@@ -56,7 +56,7 @@ public class OauthAPI : BaseAPI
     }
 
     public static async Task<IResult> Token(
-        ValourDB db,
+        ValourDb db,
         long client_id,
         string client_secret,
         string grant_type,
@@ -103,7 +103,7 @@ public class OauthAPI : BaseAPI
 
     }
 
-    public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, TokenService tokenService, [FromHeader] string authorization)
+    public static async Task DeleteApp(HttpContext context, ValourDb db, ulong app_id, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
 
@@ -125,7 +125,7 @@ public class OauthAPI : BaseAPI
         await db.SaveChangesAsync();
     }
 
-    public static async Task GetApps(HttpContext context, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
+    public static async Task GetApps(HttpContext context, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
 
@@ -150,7 +150,7 @@ public class OauthAPI : BaseAPI
         await context.Response.WriteAsJsonAsync(apps);
     }
 
-    public static async Task<IResult> GetApp(HttpContext context, ValourDB db, TokenService tokenService, long app_id,
+    public static async Task<IResult> GetApp(HttpContext context, ValourDb db, TokenService tokenService, long app_id,
     [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
@@ -168,7 +168,7 @@ public class OauthAPI : BaseAPI
         return Results.Json(app);
     }
 
-    public static async Task<IResult> GetAppPublic(HttpContext context, ValourDB db, TokenService tokenService, long app_id,
+    public static async Task<IResult> GetAppPublic(HttpContext context, ValourDb db, TokenService tokenService, long app_id,
     [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
@@ -190,7 +190,7 @@ public class OauthAPI : BaseAPI
         return Results.Json(publicData);
     }
 
-    public static async Task<IResult> CreateApp(HttpContext context, ValourDB db, TokenService tokenService, [FromBody] OauthApp app, [FromHeader] string authorization)
+    public static async Task<IResult> CreateApp(HttpContext context, ValourDb db, TokenService tokenService, [FromBody] OauthApp app, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null)

@@ -1,4 +1,5 @@
 ﻿@inject ChannelListManager ListManager
+@inject PlanetService PlanetService
 
 
 <div 
@@ -6,7 +7,7 @@
     ondragover="event.preventDefault();"
     @ondragenter="@OnDragEnter"
     style="padding-bottom:80px">
-    @foreach (var planet in ValourClient.OpenPlanets)
+    @foreach (var planet in PlanetService.ConnectedPlanets)
     {
         <PlanetListComponent Planet="planet" @key='planet.Id'></PlanetListComponent>
     }
@@ -34,8 +35,8 @@
     {
         // TODO: Fix this
         //WindowService.OnActivePlanetChange += OnPlanetChange;
-        ValourClient.OnPlanetOpen += OnPlanetOpen;
-        ValourClient.OnPlanetClose += OnPlanetClose;
+        PlanetService.PlanetConnected += OnPlanetConnected;
+        PlanetService.PlanetDisconnected += OnPlanetDisconnected;
     }
 
     private void OnDragEnter()
@@ -43,7 +44,7 @@
         ListManager.OnDragEnterItem(0);
     }
 
-    private Task OnPlanetOpen(Planet planet)
+    private void OnPlanetConnected(Planet planet)
     {
         if (planet is not null)
             Console.WriteLine("Rebuilding channel list due to planet open: " + planet.Name);
@@ -51,11 +52,9 @@
             Console.WriteLine("Rebuilding channel list due to planet open: null");
 
         Refresh();
-
-        return Task.CompletedTask;
     }
 
-   private Task OnPlanetClose(Planet planet)
+   private void OnPlanetDisconnected(Planet planet)
     {
         if (planet is not null)
             Console.WriteLine("Rebuilding channel list due to planet close: " + planet.Name);
@@ -63,8 +62,6 @@
             Console.WriteLine("Rebuilding channel list due to planet close: null");
 
         Refresh();
-       
-       return Task.CompletedTask;
     }
 
     private Task OnPlanetChange(Planet planet)
