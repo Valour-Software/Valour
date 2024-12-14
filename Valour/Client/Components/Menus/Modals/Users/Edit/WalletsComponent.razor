@@ -1,0 +1,117 @@
+﻿@inject IJSRuntime JsRuntime
+@using Valour.Sdk.Models.Crypto
+
+<div class="title-container">
+    <h3>Your Linked Wallets <i class="bi bi-wallet-fill"></i></h3>
+    <p class="subtitle">Add, view, and remove linked wallets</p>
+</div>
+
+<br/>
+
+@if (Wallets is not null)
+{
+    <div class="wallets-container">
+        @foreach (var wallet in Wallets)
+        {
+            <div class="wallet">
+                <div class="wallet-icon">
+                    <img alt="Token icon" src="./content/Valour.Client/media/logo/logo-256.png"/>
+                </div>
+                <div class="wallet-info">
+                    <p class="wallet-address">@wallet.WalletPublicKey</p>
+                </div>
+                <div class="wallet-actions">
+                    <button class="btn v-btn round-right" @onclick="() => RemoveWallet(wallet)">Remove</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (_error is not null)
+{
+    <h5 style="color: red">@_error</h5>
+}
+
+@code {
+    
+    /// <summary>
+    /// Module for loading js
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+    
+    /// <summary>
+    /// Service for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsService;
+    
+    /// <summary>
+    /// Dotnet object reference for use in Javascript
+    /// </summary>
+    private DotNetObjectReference<WalletsComponent> _thisRef;
+    
+    public List<UserCryptoWallet> Wallets { get; set; }
+
+    private string _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var walletsResponse = await ValourClient.GetWalletsAsync();
+        
+        if (walletsResponse.Success)
+        {
+            Wallets = walletsResponse.Data;
+        }
+        else
+        {
+            _error = walletsResponse.Message;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _thisRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Upload/TenorMenuComponent.razor.js");
+            _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef);
+        }
+    }
+
+    public async Task RemoveWallet(UserCryptoWallet wallet)
+    {
+        var result = await ValourClient.RemoveWalletAsync(wallet.Id);
+        if (result.Success)
+        {
+            Wallets.Remove(wallet);
+        }
+    }
+    
+    public async Task RefreshWalletBalance(UserCryptoWallet wallet)
+    {
+        var result = await ValourClient.RefreshWalletBalanceAsync(wallet.Id);
+        if (result.Success)
+        {
+            wallet.LastVlrcBalance = result.Data;
+        }
+        
+        StateHasChanged();
+    }
+    
+    [JSInvokable]
+    public async Task JsAddWallet(string publicKey, string type)
+    {
+        var result = await ValourClient.AddWalletAsync(publicKey, type);
+        
+        if (result.Success)
+        {
+            Wallets.Add(result.Data);
+        }
+        else
+        {
+            _error = result.Message;
+        }
+        
+        StateHasChanged();
+    }
+}

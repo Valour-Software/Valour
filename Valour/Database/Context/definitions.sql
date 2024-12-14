@@ -490,5 +490,22 @@ CREATE TABLE IF NOT EXISTS member_channel_access (
     CONSTRAINT fk_member FOREIGN KEY(member_id) REFERENCES planet_members(id),
 );
 
+create table if not exists user_crypto_wallets
+(
+    id                bigint                not null
+        constraint user_crypto_wallet_pk
+            primary key,
+    wallet_public     varchar(44)           not null,
+    last_vlrc_balance bigint,
+    airdrop_rec       boolean default false not null,
+    airdrop_verif_id  text
+        constraint user_crypto_wallet_pk_2
+            unique,
+    user_id           integer
+        constraint user_crypto_wallet_user_fk
+            references public.users,
+    wallet_type       varchar(16)           not null
+);
+
 COMMIT;
 

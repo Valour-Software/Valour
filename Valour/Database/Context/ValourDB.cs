@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Valour.Database.Config;
+using Valour.Database.Crypto;
 using Valour.Database.Economy;
 using Valour.Database.Themes;
 
@@ -77,7 +78,8 @@ public class ValourDB : DbContext
         modelBuilder.Entity<PermissionCheckResult>().HasNoKey();
         modelBuilder.Entity<UpdateAccessResult>().HasNoKey();
         modelBuilder.Entity<UpdateAccessRowCountResult>().HasNoKey();
-
+        
+        UserCryptoWallet.SetupDbModel(modelBuilder);
     }
 
     // These are the database sets we can access
@@ -229,6 +231,9 @@ public class ValourDB : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Currency> Currencies { get; set; }
     public DbSet<EcoAccount> EcoAccounts { get; set; }
+    
+    // new crypto system
+    public DbSet<UserCryptoWallet> UserCryptoWallets { get; set; }
     
     ////////////////
     // CDN System //

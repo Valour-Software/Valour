@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Valour.Database.Crypto;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -12,6 +13,9 @@ public class User : Model, ISharedUser
     
     [InverseProperty("User")]
     public virtual UserPrivateInfo Email { get; set; }
+    
+    [InverseProperty("User")]
+    public virtual ICollection<UserCryptoWallet> CryptoWallets { get; set; }
 
     [InverseProperty("User")]
     public virtual ICollection<PlanetMember> Membership { get; set; }
