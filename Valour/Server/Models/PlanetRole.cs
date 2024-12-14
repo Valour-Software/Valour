@@ -19,6 +19,11 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
         VoicePermissions = VoiceChannelPermissions.Default,
         AnyoneCanMention = false,
     };
+    
+    /// <summary>
+    /// True if this is the owner role, the highest authority in the planet
+    /// </summary>
+    public bool IsOwner { get; set; }
 
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions

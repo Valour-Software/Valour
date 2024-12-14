@@ -92,7 +92,7 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     /// The position of the channel. Works as the following:
     /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
     /// Each 8 bits is a category, with the first category being the top level
-    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
+    /// So for example, the following would be a channel in the first position locally, the second position in its parent, and the third position in its grandparent
     /// [00000011]-[00000010]-[00000001]-[00000000]
     /// This does limit the depth of categories to 4, and the highest position
     /// to 254 (since 000 means no position)

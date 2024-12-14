@@ -46,7 +46,7 @@ public struct ChannelPosition
     // Static Methods //
     ////////////////////
     
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetDepth(ISharedChannel channel) => GetDepth(channel.RawPosition);
 
     public static uint GetDepth(uint position)

@@ -9,6 +9,11 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
     
     /// <summary>
+    /// True if this is the owner role, the highest authority in the planet
+    /// </summary>
+    bool IsOwner { get; set; }
+    
+    /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
     bool IsAdmin { get; set; }
@@ -64,11 +69,18 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
-    public static uint GetAuthority(ISharedPlanetRole role) =>
-        uint.MaxValue - role.Position - 1; // Subtract one so owner can have higher
-    
+    public static uint GetAuthority(ISharedPlanetRole role)
+    {
+        return uint.MaxValue - role.Position;
+    }
+
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
-        => Permission.HasPermission(role.Permissions, perm);
+    {
+        if (role.IsOwner || role.IsAdmin)
+            return true;
+        
+        return Permission.HasPermission(role.Permissions, perm);
+    }
 
     uint ISortable.GetSortPosition()
     {

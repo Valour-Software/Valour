@@ -56,14 +56,17 @@ public class PlanetPermissionService
     private const long Seed = unchecked((long)0xcbf29ce484222325); // Use unchecked to safely cast the ulong seed to long
     private const long MagicNumber = unchecked((long)0x9e3779b97f4a7c15);
     
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     
-    public PlanetPermissionService(ValourDB db)
+    public PlanetPermissionService(ValourDb db)
     {
         _db = db;
     }
     
-    public async ValueTask<long> GetChannelPermissionsAsync<TPermissionType>(PlanetMember member, long channelId)
+    public async ValueTask<long> GetChannelPermissionsAsync<TPermissionType>(
+        ISharedPlanetMember member, 
+        ISharedChannel channel
+    )
         where TPermissionType : ChannelPermission
     {
         // Planet owners have full control
@@ -73,15 +76,25 @@ public class PlanetPermissionService
         }
         
         // Try to get cached permissions
-        var cachedPermissions = GetCachedChannelPermissionsAsync<TPermissionType>(member, channelId);
+        var cachedPermissions = GetCachedChannelPermissionsAsync<TPermissionType>(member.RoleHashKey, channel.Id);
         if (cachedPermissions != null)
         {
             return cachedPermissions.Value;
         }
         
         // Handle channel inheritance
-        // Ok so using the new channel system we can actually do a really cool trick here
-        
+        // TODO: use magic logic via new channel position system
+        while (channel.InheritsPerms && channel.ParentId is not null)
+        {
+            var parent = await _db.Channels.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == channel.ParentId);
+
+            if (parent is null)
+                break;
+            
+            // Switch to parent scope
+            channel = parent;
+        }
         
         // Pull the member's minimal role info from the database
         var minRoles = await _db.PlanetRoleMembers.AsNoTracking()
@@ -93,12 +106,13 @@ public class PlanetPermissionService
                     Id = x.Role.Id
                 })
             .ToListAsync();
+
+        var roleKey = GenerateRoleComboKey(minRoles);
+        var channelKey = GetRoleChannelComboKey(roleKey, channel.Id);
         
         if (minRoles.Any(x => x.IsAdmin))
         {
             // Cache the permissions
-            var roleKey = GenerateRoleComboKey(minRoles);
-            var channelKey = GetRoleChannelComboKey(roleKey, channelId);
             PermissionCache<TPermissionType>.SetChannelPermission(channelKey, Permission.FULL_CONTROL);
             
             return Permission.FULL_CONTROL;
@@ -116,18 +130,33 @@ public class PlanetPermissionService
         var permNodes = await _db.PermissionsNodes.AsNoTracking()
             .Where(x =>
                 x.TargetType == targetType &&
-                x.TargetId == channelId &&
+                x.TargetId == channel.Id &&
                 targetRoleIds.Contains(x.RoleId))
+            // We want the role order to be from weakest to strongest
+            .OrderByDescending(x => x.Role.Position)
             .ToListAsync();
-        
-        // Calculate the permissions
-        long permissions = 0;
-    }
 
-    public long? GetCachedChannelPermissionsAsync<TPermissionType>(PlanetMember member, long channelId)
-        where TPermissionType : ChannelPermission
-    {
-        return GetCachedChannelPermissionsAsync<TPermissionType>(member.RoleHashKey, channelId);
+        if (permNodes.Count == 0)
+        {
+            // Something is wrong
+            throw new Exception("No permissions nodes found for permission check!");
+        }
+        
+        long permissions = 0; // Start with no permissions
+
+        // Assuming permNodes is ordered from weakest to strongest:
+        foreach (var node in permNodes)
+        {
+            // Clear the bits that this node's mask controls
+            permissions &= ~node.Mask;
+
+            // Set the bits according to the node's code
+            permissions |= (node.Code & node.Mask);
+        }
+        
+        // Cache the permissions
+        PermissionCache<TPermissionType>.SetChannelPermission(channelKey, permissions);
+        return permissions;
     }
     
     public long? GetCachedChannelPermissionsAsync<TPermissionType>(long roleKey, long channelId)

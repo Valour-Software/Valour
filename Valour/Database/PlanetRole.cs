@@ -26,6 +26,10 @@ public class PlanetRole : ISharedPlanetRole
     [Column("id")]
     public long Id { get; set; }
     
+    
+    [Column("is_owner")]
+    public bool IsOwner { get; set; }
+    
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>

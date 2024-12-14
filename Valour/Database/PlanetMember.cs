@@ -55,8 +55,5 @@ public class PlanetMember : ISharedPlanetMember
     
     [Column("role_hash_key")]
     public long RoleHashKey { get; set; }
-    
-    [Column("is_planet_owner")]
-    public bool IsPlanetOwner { get; set; }
 }
 

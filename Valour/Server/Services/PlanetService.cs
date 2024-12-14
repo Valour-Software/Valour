@@ -159,89 +159,59 @@ public class PlanetService
     /// <summary>
     /// Sets the order of planet roles to the order in which role ids are provided
     /// </summary>
-    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<long> order)
+    public async Task<TaskResult> SetRoleOrderAsync(long planetId, long[] orderIn)
     {
-        var planetRoleIds = await GetRoleIdsAsync(planetId); 
-        if (planetRoleIds.Count != order.Count)
-            return new TaskResult(false, "Your order does not contain all the planet roles.");
-
-        var defaultRole = await GetDefaultRole(planetId);
-
-        foreach (var roleId in order)
-        {
-            if (!planetRoleIds.Contains(roleId))
-                return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
-        }
+        var planetRoles = await _db.PlanetRoles.Where(x => x.PlanetId == planetId).ToArrayAsync(); 
         
-        var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
-        if (totalRoles != order.Count)
-            return new TaskResult(false, "Your order does not contain all the planet roles.");
-
+        var order = new List<long>(orderIn.Length);
+        
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
         {
 
-            List<long> changedRoleIds = new();
-            
-            uint pos = 0;
+            var newPosition = 0;
+            foreach (var roleId in orderIn)
+            {
+                if (!order.Contains(roleId))
+                {
+                    var existingRole = planetRoles.FirstOrDefault(x => x.Id == roleId);
+                    if (existingRole is null)
+                        return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
 
-            foreach (var roleId in order)
-            {
-                if (roleId == defaultRole.Id)
-                {
-                    continue;
+                    if (existingRole.IsOwner && newPosition != 0)
+                        return new TaskResult(false, "Owner role must be first in order.");
+
+                    if (existingRole.IsDefault && newPosition != orderIn.Length - 1)
+                        return new TaskResult(false, "Default role must be last in order.");
+
+                    order.Add(roleId);
+
+                    if (existingRole.Position != newPosition)
+                    {
+                        existingRole.Position = (uint)newPosition;
+                        _db.PlanetRoles.Update(existingRole);
+                    }
                 }
-                
-                // If position changed, add to list
-                if (planetRoleIds[(int)pos] != roleId)
+                else
                 {
-                    changedRoleIds.Add(roleId);
+                    return new TaskResult(false, "Role order contains duplicate role ids.");
                 }
-                
-                // Just update position in db
-                Valour.Database.PlanetRole newData = new()
-                {
-                    Id = roleId,
-                    Position = pos
-                };
-                
-                _db.PlanetRoles.Attach(newData);
-                _db.Entry(newData).Property(x => x.Position).IsModified = true;
-                
-                pos++;
-            }
-            
-            // Update default role
-            if (pos != defaultRole.Position)
-            {
-                Valour.Database.PlanetRole newData = new()
-                {
-                    Id = defaultRole.Id,
-                    Position = pos
-                };
-                
-                _db.PlanetRoles.Attach(newData);
-                _db.Entry(newData).Property(x => x.Position).IsModified = true;
-                
-                changedRoleIds.Add(defaultRole.Id);
-            }
-            
-            await _db.SaveChangesAsync();
-            
-            // Use saved change list to apply access changes
-            foreach (var roleId in changedRoleIds)
-            {
-                await _accessService.UpdateAllChannelAccessForMembersInRole(roleId);
+
+                newPosition++;
             }
 
-            await _db.SaveChangesAsync();
+            // Ensure all the roles are included in the order
+            if (order.Count != planetRoles.Length)
+                return new TaskResult(false, "Your order does not contain all the planet roles.");
             
+            await _db.SaveChangesAsync();
             await tran.CommitAsync();
-        }
-        catch (Exception)
+        } 
+        catch (Exception e)
         {
             await tran.RollbackAsync();
+            _logger.LogError("Error setting role order: {Error}", e.Message);
             return new TaskResult(false, "An unexpected error occured while saving the database changes.");
         }
         

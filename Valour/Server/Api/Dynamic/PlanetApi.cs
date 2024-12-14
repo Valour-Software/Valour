@@ -333,6 +333,11 @@ public class PlanetApi
             if (role is null)
                 return ValourResult.BadRequest("One or more of the given roles does not exist.");
 
+            if (pos != 0 && role.Position == 0)
+            {
+                return ValourResult.Forbid("The owner role cannot be moved.");
+            }
+            
             // Only need to check permission if the position is being changed
             if (pos != role.Position && role.GetAuthority() >= authority)
                 return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");

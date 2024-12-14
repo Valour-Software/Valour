@@ -571,6 +571,9 @@ public class PlanetMemberService
         if (role is null)
             return new TaskResult<PlanetRoleMember>(false, "Role is null.");
         
+        if (role.IsOwner)
+            return new TaskResult<PlanetRoleMember>(false, "Cannot add owner role to member.");
+        
         if (member.PlanetId != role.PlanetId)
             return new TaskResult<PlanetRoleMember>(false, "Role and member are not in the same planet.");
 
@@ -613,14 +616,16 @@ public class PlanetMemberService
     
     public async Task<TaskResult> RemoveRoleAsync(long memberId, long roleId)
     {
-        var roleMember = await _db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
+        var roleMember = await _db.PlanetRoleMembers.Include(x => x.Role).FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
         
         if (roleMember is null)
             return new TaskResult(false, "Member does not have this role.");
-
-        var isDefaultRole = await _db.PlanetRoles.AnyAsync(x => x.Id == roleMember.RoleId && x.IsDefault);
-        if (isDefaultRole)
+        
+        if (roleMember.Role.IsDefault)
             return new TaskResult(false, "Cannot remove the default role from members.");
+        
+        if (roleMember.Role.IsOwner)
+            return new TaskResult(false, "Cannot remove the owner role.");
         
         await using var trans = await _db.Database.BeginTransactionAsync();
         
