@@ -1,149 +1,288 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
-namespace Valour.Server.Utilities;
-
-/// <summary>
-/// The ModelCache is used for
-/// caching collections of models that are frequently accessed and updated.
-/// It performs no allocations and protects the internal store.
-/// </summary>
-public class ModelCache<T, TId> where T : ISharedModel<TId>
+namespace Valour.Server.Utilities
 {
-    public IReadOnlyList<T> Values { get; private set; }
-    public IReadOnlyDictionary<TId, T> Lookup { get; private set; }
-    
-    private List<T> _cache;
-    private Dictionary<TId, T> _lookup;
-    
-    public ModelCache()
+    public class ServerModelCache<TModel, TId> : IEnumerable<TModel>
+        where TModel : ServerModel<TId>
+        where TId : IEquatable<TId>
     {
-        _cache = new();
-        _lookup = new();
-    }
-    
-    public ModelCache(IEnumerable<T> initial)
-    {
-        _cache = initial.ToList();
-        _lookup = _cache.ToDictionary(x => x.Id);
-    }
-    
-    public void Reset(IEnumerable<T> initial)
-    {
-        _cache = initial.ToList();
-        _lookup = _cache.ToDictionary(x => x.Id);
-    }
-    
-    public void Add(T item)
-    {
-        _cache.Add(item);
-        _lookup.Add(item.Id, item);
-    }
-    
-    public void Remove(TId id)
-    {
-        if (_lookup.TryGetValue(id, out var item))
-        {
-            _cache.Remove(item);
-            _lookup.Remove(id);
-        }
-    }
-    
-    public void Update(T updated)
-    {
-        if (_lookup.TryGetValue(updated.Id, out var old))
-        {
-            updated.CopyAllTo(old);
-        }
-        else
-        {
-            Add(updated);
-        }
-    }
-    
-    public T Get(TId id)
-    {
-        _lookup.TryGetValue(id, out var item);
-        return item;
-    }
-}
+        protected readonly List<TModel> List;
+        protected Dictionary<TId, TModel> IdMap;
+        public IReadOnlyList<TModel> Values;
 
-public class SortedModelCache<T, TId> where T : ISortable, ISharedModel<TId>
-{
-    public IReadOnlyList<T> Values { get; private set; }
-    public IReadOnlyDictionary<TId, T> Lookup { get; private set; }
-    
-    private List<T> _cache;
-    private Dictionary<TId, T> _lookup;
-    
-    public SortedModelCache()
-    {
-        _cache = new();
-        _lookup = new();
-    }
-    
-    public SortedModelCache(IEnumerable<T> initial)
-    {
-        _cache = initial.ToList();
-        _lookup = _cache.ToDictionary(x => x.Id);
-        
-        if (_cache.Count > 0)
+        protected readonly object _sync = new object();
+
+        public int Count
         {
-            _cache.Sort(ISortable.Compare);
-        }
-    }
-    
-    public void Reset(IEnumerable<T> initial)
-    {
-        _cache = initial.ToList();
-        _lookup = _cache.ToDictionary(x => x.Id);
-        
-        if (_cache.Count > 0)
-        {
-            _cache.Sort(ISortable.Compare);
-        }
-    }
-    
-    public void Add(T item)
-    {
-        _cache.Add(item);
-        _lookup.Add(item.Id, item);
-        _cache.Sort(ISortable.Compare);
-    }
-    
-    public void Remove(TId id)
-    {
-        if (_lookup.TryGetValue(id, out var item))
-        {
-            _cache.Remove(item);
-            _lookup.Remove(id);
-        }
-    }
-    
-    public void Update(T updated)
-    {
-        if (_lookup.TryGetValue(updated.Id, out var old))
-        {
-            var oldPos = old.GetSortPosition();
-            updated.CopyAllTo(old);
-            
-            // check if the position has changed
-            if (oldPos != updated.GetSortPosition())
+            get
             {
-                _cache.Sort(ISortable.Compare);
+                lock (_sync)
+                {
+                    return List.Count;
+                }
             }
         }
-        else
+        
+        public Dictionary<TId, TModel>.KeyCollection Ids
         {
-            Add(updated);
-            _cache.Sort(ISortable.Compare);
+            get
+            {
+                lock (_sync)
+                {
+                    return IdMap.Keys;
+                }
+            }
+        }
+
+        public ServerModelCache(List<TModel> startingList = null)
+        {
+            // Initialize the structures inside a lock as well
+            lock (_sync)
+            {
+                List = startingList ?? new List<TModel>();
+                IdMap = List.ToDictionary(x => x.Id);
+                Values = List;
+            }
+        }
+
+        // Make iterable
+        public TModel this[int index]
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return List[index];
+                }
+            }
+        }
+
+        public IEnumerator<TModel> GetEnumerator()
+        {
+            lock (_sync)
+            {
+                // Return a snapshot to avoid enumerating while modified
+                return List.ToList().GetEnumerator();
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public virtual TModel Upsert(TModel model)
+        {
+            lock (_sync)
+            {
+                if (IdMap.TryGetValue(model.Id, out var cached))
+                {
+                    // Copy values and return
+                    model.CopyAllTo(cached);
+                    return cached; // Now updated
+                }
+                else
+                {
+                    // Add and return
+                    List.Add(model);
+                    IdMap.Add(model.Id, model);
+                    return model;
+                }
+            }
+        }
+
+        public virtual void UpsertRange(List<TModel> models)
+        {
+            lock (_sync)
+            {
+                foreach (var model in models)
+                {
+                    if (IdMap.TryGetValue(model.Id, out var cached))
+                    {
+                        model.CopyAllTo(cached);
+                    }
+                    else
+                    {
+                        List.Add(model);
+                        IdMap.Add(model.Id, model);
+                    }
+                }
+            }
+        }
+
+        public virtual void Remove(TModel item)
+        {
+            lock (_sync)
+            {
+                if (IdMap.Remove(item.Id))
+                {
+                    List.Remove(item);
+                }
+            }
+        }
+        
+        public virtual void Remove(TId id)
+        {
+            lock (_sync)
+            {
+                if (IdMap.TryGetValue(id, out var item))
+                {
+                    IdMap.Remove(id);
+                    List.Remove(item);
+                }
+            }
+        }
+
+        public virtual void Set(List<TModel> items)
+        {
+            lock (_sync)
+            {
+                // We clear rather than replace the list to ensure that the reference is maintained
+                // Because the reference may be used across the application.
+                List.Clear();
+                IdMap.Clear();
+
+                List.AddRange(items);
+                IdMap = List.ToDictionary(x => x.Id);
+            }
+        }
+
+        public virtual void Clear(bool skipEvent = false)
+        {
+            lock (_sync)
+            {
+                List.Clear();
+                IdMap.Clear();
+            }
+        }
+
+        public bool TryGet(TId id, out TModel item)
+        {
+            lock (_sync)
+            {
+                return IdMap.TryGetValue(id, out item);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(TModel item)
+        {
+            lock (_sync)
+            {
+                return IdMap.ContainsKey(item.Id); // This is faster than List.Contains
+            }
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(TId id)
+        {
+            lock (_sync)
+            {
+                return IdMap.ContainsKey(id); // This is faster than List.Contains
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Sort(Comparison<TModel> comparison)
+        {
+            lock (_sync)
+            {
+                List.Sort(comparison);
+            }
         }
     }
-    
-    public T Get(TId id)
+
+    public class SortedServerModelCache<TModel, TId> : ServerModelCache<TModel, TId>
+        where TModel : ServerModel<TId>, ISortable
+        where TId : IEquatable<TId>
     {
-        _lookup.TryGetValue(id, out var item);
-        return item;
+        public override TModel Upsert(TModel model)
+        {
+            lock (_sync)
+            {
+                if (IdMap.TryGetValue(model.Id, out var cached))
+                {
+                    // Check if position changed
+                    var oldPosition = cached.GetSortPosition();
+                    var newPosition = model.GetSortPosition();
+
+                    if (oldPosition != newPosition)
+                    {
+                        // Locate old index
+                        var cachedIndex = List.BinarySearch(cached, ISortable.Comparer);
+                        if (cachedIndex >= 0)
+                        {
+                            List.RemoveAt(cachedIndex);
+                        }
+
+                        // Copy values
+                        model.CopyAllTo(cached);
+
+                        // Find new list position
+                        var newIndex = List.BinarySearch(cached, ISortable.Comparer);
+                        List.Insert(newIndex < 0 ? ~newIndex : newIndex, cached);
+                    }
+                    else
+                    {
+                        // Copy values
+                        model.CopyAllTo(cached);
+                    }
+
+                    return cached; // Now updated
+                }
+                else
+                {
+                    // Add and return
+                    List.Add(model);
+                    IdMap.Add(model.Id, model);
+
+                    // Insert in sorted order, if necessary, or sort after insertion
+                    // Since we just added it at the end, we need to put it in the correct place
+                    var lastIndex = List.Count - 1;
+                    var insertedItem = List[lastIndex];
+                    List.RemoveAt(lastIndex);
+
+                    var newIndex = List.BinarySearch(insertedItem, ISortable.Comparer);
+                    List.Insert(newIndex < 0 ? ~newIndex : newIndex, insertedItem);
+
+                    return insertedItem;
+                }
+            }
+        }
+
+        public override void Set(List<TModel> items)
+        {
+            lock (_sync)
+            {
+                base.Set(items);
+                List.Sort(ISortable.Comparer);
+            }
+        }
+
+        public override void UpsertRange(List<TModel> models)
+        {
+            lock (_sync)
+            {
+                // base upsert does not sort
+                foreach (var model in models)
+                {
+                    if (IdMap.TryGetValue(model.Id, out var cached))
+                    {
+                        model.CopyAllTo(cached);
+                    }
+                    else
+                    {
+                        List.Add(model);
+                        IdMap.Add(model.Id, model);
+                    }
+                }
+
+                // sort after all models are added rather than after each one
+                List.Sort(ISortable.Comparer);
+            }
+        }
     }
 }

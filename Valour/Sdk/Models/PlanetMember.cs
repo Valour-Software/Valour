@@ -89,6 +89,11 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public string MemberAvatar { get; set; }
     
+    /// <summary>
+    /// The key representing the roles the user has within the planet
+    /// </summary>
+    public long RoleHashKey { get; set; }
+    
     protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         Planet?.OnMemberUpdated(eventData);

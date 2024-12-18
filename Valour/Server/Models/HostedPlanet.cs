@@ -8,11 +8,11 @@ namespace Valour.Server.Models;
 /// The HostedPlanet class is used for caching planet information on the server
 /// for planets which are directly hosted by that node
 /// </summary>
-public class HostedPlanet : ISharedModel<long>
+public class HostedPlanet : ServerModel<long>
 {
     public Planet Planet { get; private set; }
-
-    public SortedModelCache<PlanetRole, long> Roles;
+    public SortedServerModelCache<Channel, long> Channels = new();
+    public SortedServerModelCache<PlanetRole, long> Roles = new();
     
     public long Id
     {

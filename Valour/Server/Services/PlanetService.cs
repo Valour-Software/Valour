@@ -442,10 +442,29 @@ public class PlanetService
                 IsDefault = true,
                 AnyoneCanMention = false,
             };
+            
+            // Create the owner role
+            var ownerRole = new Valour.Database.PlanetRole()
+            {
+                Planet = planet,
+                Id = IdManager.Generate(),
+                Position = 0,
+                Color = "#bf06fd",
+                Name = "Owner",
+                Permissions = Permission.FULL_CONTROL,
+                ChatPermissions = Permission.FULL_CONTROL,
+                CategoryPermissions = Permission.FULL_CONTROL,
+                VoicePermissions = Permission.FULL_CONTROL,
+                IsAdmin = true,
+                AnyoneCanMention = true,
+                Bold = true,
+                IsDefault = false,
+            };
 
             planet.Roles = new List<Valour.Database.PlanetRole>()
             {
-                defaultRole
+                defaultRole,
+                ownerRole
             };
 
             // Create owner member
@@ -464,7 +483,7 @@ public class PlanetService
             };
 
             // Create owner role membership
-            var roleMember = new Valour.Database.PlanetRoleMember()
+            var defaultRoleMember = new Valour.Database.PlanetRoleMember()
             {
                 Planet = planet,
                 Member = member,
@@ -473,10 +492,21 @@ public class PlanetService
                 Id = IdManager.Generate(),
                 UserId = user.Id,
             };
+            
+            var ownerRoleMember = new Valour.Database.PlanetRoleMember()
+            {
+                Planet = planet,
+                Member = member,
+                Role = ownerRole,
+
+                Id = IdManager.Generate(),
+                UserId = user.Id,
+            };
 
             planet.RoleMembers = new List<PlanetRoleMember>()
             {
-                roleMember,
+                defaultRoleMember,
+                ownerRoleMember
             };
 
             _db.Planets.Add(planet);

@@ -18,20 +18,21 @@ public class NodeService
     public readonly string Location;
     public readonly string Version;
     
-    private HashSet<long> _hostedPlanets;
-    
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
     private readonly ISubscriber _redisChannel;
     private readonly IConnectionMultiplexer _redis;
     private readonly IHubContext<CoreHub> _hub;
     
+    private readonly HostedPlanetService _hostedPlanetService;
+    
 
     private readonly string _nodeAliveKey = $"alive:{NodeConfig.Instance.Name}";
 
-    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger, IHubContext<CoreHub> hub)
+    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger, IHubContext<CoreHub> hub, HostedPlanetService hostedPlanetService)
     {
         _hub = hub;
+        _hostedPlanetService = hostedPlanetService;
         _logger = logger;
         _redis = redis;
         _nodeRecords = redis.GetDatabase(RedisDbTypes.Cluster);
@@ -44,19 +45,6 @@ public class NodeService
         Name = config.Name;
         Location = config.Location;
         Version = typeof(Valour.Shared.Models.ISharedUser).Assembly.GetName().Version.ToString();
-
-        _hostedPlanets = new();
-    }
-
-    /// <summary>
-    /// Returns if the given planet is hosted on this node
-    /// </summary>
-    public async Task<bool> IsHostingPlanet(long planetId)
-    {
-        if (_hostedPlanets.Contains((planetId)))
-            return true;
-
-        return await GetNodeNameForPlanetAsync(planetId) == Name;
     }
 
     /// <summary>
@@ -96,7 +84,7 @@ public class NodeService
     /// </summary>
     public async Task<string> GetNodeNameForPlanetAsync(long planetId)
     {
-        if (_hostedPlanets.Contains(planetId))
+        if (_hostedPlanetService.IsHosted(planetId))
             return Name; // We are hosting the planet (this is a local request)
         
         var key = $"planet:{planetId}";
