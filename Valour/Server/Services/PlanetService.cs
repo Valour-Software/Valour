@@ -12,22 +12,20 @@ public class PlanetService
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetService> _logger;
-    private readonly ChannelAccessService _accessService;
     private readonly NodeService _nodeService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly PlanetPermissionService _permissionService;
     
     public PlanetService(
         ValourDb db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
-        ChannelAccessService accessService,
         NodeService nodeService,
         HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
-        _accessService = accessService;
         _nodeService = nodeService;
         _hostedPlanetService = hostedPlanetService;
     }
@@ -179,7 +177,7 @@ public class PlanetService
                     if (existingRole is null)
                         return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
 
-                    if (existingRole.IsOwner && newPosition != 0)
+                    if (existingRole.Position == 0 && newPosition != 0)
                         return new TaskResult(false, "Owner role must be first in order.");
 
                     if (existingRole.IsDefault && newPosition != orderIn.Length - 1)
@@ -267,49 +265,23 @@ public class PlanetService
     public async Task<Channel> GetPrimaryChatChannelAsync(long planetId) =>
         (await _db.Channels.FirstOrDefaultAsync(x => 
             x.PlanetId == planetId && x.IsDefault && x.ChannelType == ChannelTypeEnum.PlanetChat)).ToModel();
+
+    /// <summary>
+    /// Returns the channels for the given planet that the given member can access
+    /// </summary>
+    public async Task<List<Channel>> GetMemberChannelsAsync(PlanetMember member) =>
+      await _permissionService.GetChannelAccessAsync(member);
     
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
     /// </summary>
-    public async Task<List<Channel>> GetMemberChannelsAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
-    
-    /// <summary>
-    /// Returns the chat channels for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberChatChannelsAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId &&
-                x.Channel.ChannelType == ChannelTypeEnum.PlanetChat)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
+    public async Task<List<Channel>> GetMemberChannelsAsync(long memberId)
+    {
+        var rolesKey = await _db.PlanetMembers.Select(x => new { x.Id, x.RoleHashKey })
+            .FirstOrDefaultAsync(x => x.Id == memberId);
 
-    /// <summary>
-    /// Returns the categories for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberCategoriesAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId &&
-                x.Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
-    
-    /// <summary>
-    /// Returns the voice channels for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberVoiceChannelsAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId &&
-                x.Channel.ChannelType == ChannelTypeEnum.PlanetVoice)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
+        return await _permissionService.GetChannelAccessAsync(rolesKey.RoleHashKey);
+    }
     
     #endregion
 
@@ -466,6 +438,9 @@ public class PlanetService
                 defaultRole,
                 ownerRole
             };
+            
+            // Create role combo key (ids go up over time so we order them accordingly)
+            var rolesKey = _permissionService.GenerateRoleComboKey([defaultRole.Id, ownerRole.Id]);
 
             // Create owner member
             var member = new Valour.Database.PlanetMember()
@@ -474,7 +449,8 @@ public class PlanetService
                 
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
-                UserId = user.Id
+                UserId = user.Id,
+                RoleHashKey = rolesKey
             };
 
             planet.Members = new List<Valour.Database.PlanetMember>()
@@ -511,9 +487,6 @@ public class PlanetService
 
             _db.Planets.Add(planet);
             await _db.SaveChangesAsync();
-
-            // Ensure new owner has access to new channels
-            await _accessService.UpdateAllChannelAccessMember(member.Id);
             
             await tran.CommitAsync();
         }

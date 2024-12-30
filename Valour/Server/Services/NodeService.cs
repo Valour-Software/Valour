@@ -98,8 +98,8 @@ public class NodeService
         {
             if (NodeConfig.Instance.LogInfo)
                 _logger.LogInformation("Resuming hosting of {PlanetId}", planetId);
-            
-            _hostedPlanets.Add(planetId);
+
+            await _hostedPlanetService.BeginHosting(planetId);
         }
         
         if (NodeConfig.Instance.LogInfo)
@@ -193,10 +193,12 @@ public class NodeService
     {
         if (NodeConfig.Instance.LogInfo)
             _logger.LogInformation("Taking ownership of planet {PlanetId}", planetId);
-        
-        _hostedPlanets.Add(planetId);
+
         var key = $"planet:{planetId}";
         await _nodeRecords.StringSetAsync(key, Name);
+        
+        // Begin hosting the planet
+        await _hostedPlanetService.BeginHosting(planetId);
     }
     
     /// <summary>

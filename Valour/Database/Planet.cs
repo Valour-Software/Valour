@@ -25,6 +25,8 @@ public class Planet : ISharedPlanet
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
+    
+    public virtual ICollection<Message> Messages { get; set; }
 
     ///////////////////////
     // Entity Properties //

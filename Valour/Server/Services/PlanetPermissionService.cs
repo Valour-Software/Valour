@@ -27,40 +27,6 @@ namespace Valour.Server.Services;
 
 // - Spike, 2024
 
-// TODO: The caching of these could be saved to redis with sets. I'm not sure that the size of the caches will ever necessitate this, though.
-
-public static class ChannelPermissionCache<TPermissionType>
-    where TPermissionType : ChannelPermission
-{
-    private static readonly ConcurrentDictionary<long, long> _cache = new();
-
-    public static long? GetChannelPermission(long key)
-    {
-        return _cache.GetValueOrDefault(key);
-    }
-
-    public static void SetChannelPermission(long key, long permission)
-    {
-        _cache[key] = permission;
-    }
-}
-
-public static class ChannelAccessCache
-{
-    // Map from role key to channel ids they can access
-    private static readonly ConcurrentDictionary<long, List<Channel>> _cache = new();
-
-    public static List<Channel> GetChannelAccess(long roleKey)
-    {
-        return _cache.GetValueOrDefault(roleKey);
-    }
-
-    public static void SetChannelAccess(long roleKey, List<Channel> access)
-    {
-        _cache[roleKey] = access;
-    }
-}
-
 public struct MinimalRoleInfo
 {
     public bool IsAdmin { get; set; }
@@ -115,40 +81,61 @@ public class PlanetPermissionService
         
         return roleCombos;
     }
+
+    /// <summary>
+    /// Updates access and permissions for all combinations with the given role
+    /// </summary>
+    public async Task HandleRoleChange(PlanetRole role)
+    {
+        var hostedPlanet = _hostedPlanetService.GetRequired(role.PlanetId);
+        
+        // Get all combinations in use that contain this role
+        var roleCombos = await _db.PlanetMembers
+            .Where(x => x.RoleMembership.Any(y => y.RoleId == role.Id))
+            .Select(x => x.RoleHashKey)
+            .Distinct()
+            .ToArrayAsync();
+        
+        // Clear all cached channel accesses and permissions for these role combos
+        foreach (var roleKey in roleCombos)
+        {
+            hostedPlanet.PermissionCache.ClearCacheForCombo(roleKey);
+        }
+    }
     
     /// <summary>
     /// Returns a list of channels the member has access to
     /// </summary> 
-    public ValueTask<List<Channel>> GetChannelAccessAsync(PlanetMember member) =>
-        GetChannelAccessAsync(member.RoleHashKey);
-
-    /// <summary>
-    /// Returns a list of channels the specific combination of roles has access to
-    /// </summary>
-    public async ValueTask<List<Channel>> GetChannelAccessAsync(long roleKey)
+    public async ValueTask<List<Channel>> GetChannelAccessAsync(PlanetMember member)
     {
-        var cached = ChannelAccessCache.GetChannelAccess(roleKey);
+        var hostedPlanet = _hostedPlanetService.GetRequired(member.PlanetId);
+        
+        var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleHashKey);
         if (cached is not null)
             return cached;
         
         // If not cached, generate the channel access
-        var access = await GenerateChannelAccessAsync(roleKey);
+        var access = await GenerateChannelAccessAsync(member);
+        hostedPlanet.PermissionCache.SetChannelAccess(member.RoleHashKey, access);
+        
         return access;
     }
 
-    private async Task<List<Channel>> GenerateChannelAccessAsync(long roleKey)
+    private async Task<List<Channel>> GenerateChannelAccessAsync(PlanetMember member)
     {
-        // Pull the first member with this role key's roles
-        var member = await _db.PlanetMembers
-            .Include(x => x.RoleMembership)
-            .FirstOrDefaultAsync(x => x.RoleHashKey == roleKey);
-
+        // The member acts as representative for the role combination
+        
         var hostedPlanet = _hostedPlanetService.GetRequired(member.PlanetId);
+
+        var roleMembership = await _db.PlanetRoleMembers
+            .Where(x => x.MemberId == member.Id)
+            .Select(x => x.RoleId)
+            .ToListAsync();
         
         var roles = new List<PlanetRole>();
-        foreach (var rm in member.RoleMembership)
+        foreach (var roleId in roleMembership)
         {
-            if (!hostedPlanet.Roles.TryGet(rm.RoleId, out var role))
+            if (!hostedPlanet.Roles.TryGet(roleId, out var role))
             {
                 // This should never happen
                 throw new Exception("Role not found in hosted planet roles!");  
@@ -175,17 +162,17 @@ public class PlanetPermissionService
             switch (channel.ChannelType)
             {
                 case ChannelTypeEnum.PlanetChat:
-                    perms = await GetChannelPermissionsAsync<ChatChannelPermission>(roleKey, roles, channel, hostedPlanet);
+                    perms = await GetChannelPermissionsAsync<ChatChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
                     break;
                 case ChannelTypeEnum.PlanetCategory:
-                    perms = await GetChannelPermissionsAsync<CategoryPermission>(roleKey, roles, channel, hostedPlanet);
+                    perms = await GetChannelPermissionsAsync<CategoryPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
                     break;
                 case ChannelTypeEnum.PlanetVoice:
-                    perms = await GetChannelPermissionsAsync<VoiceChannelPermission>(roleKey, roles, channel, hostedPlanet);
+                    perms = await GetChannelPermissionsAsync<VoiceChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
                     break;
                 default:
                     throw new Exception("Invalid channel type!");
-            }
+            } 
             
             // Check if the role has access to the channel
             if (Permission.HasPermission(perms.Value, ChannelPermissions.View))
@@ -195,7 +182,7 @@ public class PlanetPermissionService
         }
         
         // Cache
-        ChannelAccessCache.SetChannelAccess(roleKey, access);
+        hostedPlanet.PermissionCache.SetChannelAccess(member.RoleHashKey, access);
         
         return access;
     }
@@ -216,34 +203,20 @@ public class PlanetPermissionService
         }
         
         // Handle channel inheritance
-        // TODO: use magic logic via new channel position system
         while (channel.InheritsPerms && channel.ParentId is not null)
         {
-            var parent = await _db.Channels.AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == channel.ParentId);
-
+            hostedPlanet.Channels.TryGet(channel.ParentId.Value, out var parent);
             if (parent is null)
                 break;
             
             // Switch to parent scope
             channel = parent;
         }
-        
-        // Pull the member's minimal role info from the database
-        var minRoles = await _db.PlanetRoleMembers.AsNoTracking()
-            .Include(x => x.Role)
-            .OrderBy(x => x.Role.Position)
-            .Select(x =>
-                new MinimalRoleInfo() {
-                    IsAdmin = x.Role.IsAdmin,
-                    Id = x.Role.Id
-                })
-            .ToListAsync();
 
         var channelKey = GetRoleChannelComboKey(roleKey, channel.Id);
         
         // Note for future self: The Owner role has IsAdmin, so this also checks for owner
-        if (minRoles.Any(x => x.IsAdmin))
+        if (roles.Any(x => x.IsAdmin))
         {
             // Cache the permissions
             ChannelPermissionCache<TPermissionType>.SetChannelPermission(channelKey, Permission.FULL_CONTROL);
@@ -253,10 +226,10 @@ public class PlanetPermissionService
 
         var targetType = ISharedPermissionsNode.GetChannelTypeEnum<TPermissionType>();
 
-        var targetRoleIds = new long[minRoles.Count];
-        for (int i = 0; i < minRoles.Count; i++)
+        var targetRoleIds = new long[roles.Count];
+        for (int i = 0; i < roles.Count; i++)
         {
-            targetRoleIds[i] = minRoles[i].Id;
+            targetRoleIds[i] = roles[i].Id;
         }
         
         // Use role ids to pull permissions nodes
@@ -289,10 +262,11 @@ public class PlanetPermissionService
         
         // Cache the permissions
         ChannelPermissionCache<TPermissionType>.SetChannelPermission(channelKey, permissions);
+        
         return permissions;
     }
     
-    public long? GetCachedChannelPermissionsAsync<TPermissionType>(long roleKey, long channelId)
+    public long?  GetCachedChannelPermissionsAsync<TPermissionType>(long roleKey, long channelId)
         where TPermissionType : ChannelPermission
     {
         // Get the combined key for the role ids and the channel id
@@ -322,6 +296,18 @@ public class PlanetPermissionService
         return hash;
     }
 
+    public long GenerateRoleComboKey(IEnumerable<PlanetRole> roles)
+    {
+        var hash = Seed;
+        
+        foreach (var role in roles.OrderBy(x => x.Id))
+        {
+            hash = MixHash(hash, role.Id);
+        }
+        
+        return hash;
+    }
+
     /// <summary>
     /// Returns the combined hash key for the given role ids. Unique for any combination of roles.
     /// You MUST provide a sorted list of role IDs.
@@ -339,23 +325,4 @@ public class PlanetPermissionService
         // Step 2: Return the final hash value representing the combination of roles
         return hash;
     }
-    
-    /// <summary>
-    /// Returns the combined hash key for the given roles. Unique for any combination of roles.
-    /// You MUST provide a sorted list of roles.
-    /// </summary>
-    public long GenerateRoleComboKey(List<MinimalRoleInfo> sortedRoles)
-    {
-        var hash = Seed; // Initial value (seed value)
-
-        foreach (var role in sortedRoles)
-        {
-            // Step 1: Mix the current hash with the role ID sequentially
-            hash = MixHash(hash, role.Id);
-        }
-
-        // Step 2: Return the final hash value representing the combination of roles
-        return hash;
-    }
-    
 }

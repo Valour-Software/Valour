@@ -13,6 +13,8 @@ public class HostedPlanet : ServerModel<long>
     public Planet Planet { get; private set; }
     public SortedServerModelCache<Channel, long> Channels = new();
     public SortedServerModelCache<PlanetRole, long> Roles = new();
+
+    public PlanetPermissionsCache PermissionCache = new();
     
     public long Id
     {
