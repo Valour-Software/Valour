@@ -18,7 +18,38 @@ public class ChannelApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
-        var channel = await channelService.GetAsync(id);
+        var channel = await channelService.GetPlanetChannelAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound<Channel>();
+
+        if (!await channelService.IsMemberAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+        
+        if (channel.ChannelType == ChannelTypeEnum.DirectChat)
+        {
+            if (!token.HasScope(UserPermissions.DirectMessages))
+            {
+                return ValourResult.Forbid("Token lacks permission to post messages in direct chat channels");
+            }
+        }
+        
+        return Results.Json(channel);
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}")]
+    [UserRequired]
+    public static async Task<IResult> GetPlanetChannelRouteAsync(
+        long planetId,
+        long channelId,
+        HostedPlanetService hostedPlanetService,
+        ChannelService channelService,
+        TokenService tokenService)
+    {
+        var hostedPlanet = hostedPlanetService.GetPlanet()
+        
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        var channel = await channelService.GetPlanetChannelAsync(id);
         if (channel is null)
             return ValourResult.NotFound<Channel>();
 
@@ -47,7 +78,7 @@ public class ChannelApi
         if (updated.Id != id)
             return ValourResult.BadRequest("Channel id in body does not match channel id in route");
         
-        var old = await channelService.GetAsync(id);
+        var old = await channelService.GetPlanetChannelAsync(id);
         if (old is null)
             return ValourResult.NotFound<Channel>();
 
@@ -82,7 +113,7 @@ public class ChannelApi
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetAsync(id);
+        var channel = await channelService.GetPlanetChannelAsync(id);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -141,7 +172,7 @@ public class ChannelApi
         // Check permission for the category we are inserting into
         if (channel.ParentId is not null)
         {
-            var parent = await channelService.GetAsync(channel.ParentId.Value);
+            var parent = await channelService.GetPlanetChannelAsync(channel.ParentId.Value);
             if (parent is null || parent.ChannelType != ChannelTypeEnum.PlanetCategory)
             {
                 return ValourResult.BadRequest("Invalid parent id");
@@ -215,7 +246,7 @@ public class ChannelApi
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetAsync(channelId);
+        var channel = await channelService.GetPlanetChannelAsync(channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -237,7 +268,7 @@ public class ChannelApi
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetAsync(channelId);
+        var channel = await channelService.GetPlanetChannelAsync(channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -279,7 +310,7 @@ public class ChannelApi
         var token = await tokenService.GetCurrentTokenAsync();
         
         // Get the channel
-        var channel = await channelService.GetAsync(id);
+        var channel = await channelService.GetPlanetChannelAsync(id);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -304,7 +335,7 @@ public class ChannelApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
-        var channel = await channelService.GetAsync(id);
+        var channel = await channelService.GetPlanetChannelAsync(id);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
         
@@ -332,7 +363,7 @@ public class ChannelApi
             return Results.BadRequest("Maximum count is 64.");
         
         var token = await tokenService.GetCurrentTokenAsync();
-        var channel = await channelService.GetAsync(channelId);
+        var channel = await channelService.GetPlanetChannelAsync(channelId);
         
         if (!await channelService.IsMemberAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");

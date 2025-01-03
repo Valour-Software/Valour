@@ -1,6 +1,7 @@
+#nullable enable
+
 using Valour.Server.Utilities;
 using Valour.Shared.Extensions;
-using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
@@ -10,11 +11,14 @@ namespace Valour.Server.Models;
 /// </summary>
 public class HostedPlanet : ServerModel<long>
 {
-    public Planet Planet { get; private set; }
-    public SortedServerModelCache<Channel, long> Channels = new();
-    public SortedServerModelCache<PlanetRole, long> Roles = new();
-
+    private SortedServerModelList<Channel, long> _channels = new();
+    private SortedServerModelList<PlanetRole, long> _roles = new();
     public PlanetPermissionsCache PermissionCache = new();
+    
+    // Planet lock
+    private readonly Lock _lock = new();
+    
+    public Planet Planet { get; }
     
     public long Id
     {
@@ -29,6 +33,35 @@ public class HostedPlanet : ServerModel<long>
     
     public void Update(Planet updated)
     {
-        Planet.CopyAllTo(updated);
+        lock (_lock)
+        {
+            Planet.CopyAllTo(updated);
+        }
+    }
+    
+    public Channel? GetChannel(long id)
+        => _channels.Get(id);
+    
+    public PlanetRole? GetRole(long id)
+        => _roles.Get(id);
+    
+    public void SetChannels(List<Channel> channels)
+    {
+        _channels.Set(channels);
+    }
+    
+    public void SetRoles(List<PlanetRole> roles)
+    {
+        _roles.Set(roles);
+    }
+    
+    public void UpsertChannel(Channel channel)
+    {
+        _channels.Upsert(channel);
+    }
+    
+    public void UpsertRole(PlanetRole role)
+    {
+        _roles.Upsert(role);
     }
 }

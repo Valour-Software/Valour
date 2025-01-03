@@ -1,13 +1,8 @@
-﻿using System.Text.Json;
-using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Sdk.Models.Messages.Embeds.Items;
-using Valour.Server.Cdn;
+﻿#nullable enable
+
 using Valour.Server.Database;
-using Valour.Server.Utilities;
-using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -18,40 +13,39 @@ public class ChannelService
     private readonly PlanetMemberService _memberService;
     private readonly ILogger<ChannelService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly ChannelAccessService _accessService;
+    private readonly PlanetPermissionService _planetPermissionService;
+    private readonly HostedPlanetService _hostedPlanetService;
 
     public ChannelService(
         ValourDb db,
-        HttpClient http,
         PlanetMemberService memberService,
         CoreHubService coreHubService,
         ILogger<ChannelService> logger,
-        PlanetRoleService planetRoleService,
-        NotificationService notificationService,
-        NodeService nodeService,
-        ChannelAccessService accessService,
-        ChannelStateService stateService)
+        PlanetPermissionService planetPermissionService, 
+        HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _memberService = memberService;
         _logger = logger;
         _coreHub = coreHubService;
-        _accessService = accessService;
+        _planetPermissionService = planetPermissionService;
+        _hostedPlanetService = hostedPlanetService;
     }
-    
+
     /// <summary>
     /// Returns the channel with the given id
     /// </summary>
-    public async ValueTask<Channel> GetAsync(long id) =>
-        (await _db.Channels.FindAsync(id)).ToModel();
-    
-    public Task<bool> ExistsAsync(long id) =>
-        _db.Channels.AnyAsync(x => x.Id == id);
+    public async ValueTask<Channel?> GetPlanetChannelAsync(long planetId, long channelId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        var channel = hostedPlanet.GetChannel(channelId);
+        return channel;
+    }
 
     /// <summary>
     /// Given two user ids, returns the direct chat channel between them
     /// </summary>
-    public async ValueTask<Channel> GetDirectChatAsync(long userOneId, long userTwoId, bool create = true)
+    public async ValueTask<Channel?> GetDirectChatAsync(long userOneId, long userTwoId, bool create = true)
     {
         var channel = await _db.Channels
             .AsNoTracking()
@@ -72,21 +66,20 @@ public class ChannelService
                 Id = newId,
 
                 // Build the members
-                Members = new List<Valour.Database.ChannelMember>()
-                {
-                    new Valour.Database.ChannelMember()
+                Members = [
+                    new()
                     {
                         Id = IdManager.Generate(),
                         ChannelId = newId,
                         UserId = userOneId
                     },
-                    new Valour.Database.ChannelMember()
+                    new()
                     {
                         Id = IdManager.Generate(),
                         ChannelId = newId,
                         UserId = userTwoId
                     }
-                },
+                ],
 
                 Name = "Direct Chat",
                 Description = "A private discussion",
@@ -131,6 +124,12 @@ public class ChannelService
         var dbChannel = await _db.Channels.FindAsync(id);
         if (dbChannel is null)
             return TaskResult.FromFailure( "Channel not found.");
+
+        HostedPlanet? hostedPlanet = null;
+        if (dbChannel.PlanetId is not null)
+        {
+            hostedPlanet = await _hostedPlanetService.GetRequiredAsync(dbChannel.PlanetId.Value);
+        } 
         
         if (dbChannel.IsDefault == true)
             return TaskResult.FromFailure("You cannot delete the default channel.");
@@ -138,6 +137,12 @@ public class ChannelService
         dbChannel.IsDeleted = true;
         _db.Channels.Update(dbChannel);
         await _db.SaveChangesAsync();
+        
+        // Remove from hosted planet
+        if (hostedPlanet is not null)
+        {
+            hostedPlanet.RemoveChannel(dbChannel.Id);
+        }
         
         var model = dbChannel.ToModel();
 
@@ -413,7 +418,7 @@ public class ChannelService
     /// Returns if the given user id is a member of the given channel id
     /// </summary>
     public async ValueTask<bool> IsMemberAsync(long channelId, long userId)
-        => await IsMemberAsync(await GetAsync(channelId), userId);
+        => await IsMemberAsync(await GetPlanetChannelAsync(channelId), userId);
     
     /// <summary>
     /// Returns if the given user id is a member of the given channel

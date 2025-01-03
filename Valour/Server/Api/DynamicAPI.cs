@@ -86,6 +86,9 @@ public class DynamicAPI<T> where T : class
                         var rateLimitAttr = (RateLimitAttribute)attr;
                         builder.RequireRateLimiting(rateLimitAttr.PolicyName);
                     }
+                    
+                    // Add wrong node exception handling
+                    builder.AddEndpointFilter<NotHostedExceptionFilter>();
                 }
             }
         }

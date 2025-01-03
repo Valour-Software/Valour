@@ -23,7 +23,7 @@ public class UserService
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
 
 
     /// <summary>
@@ -36,13 +36,13 @@ public class UserService
         TokenService tokenService,
         ILogger<UserService> logger,
         CoreHubService coreHub,
-        NodeService nodeService)
+        NodeLifecycleService nodeLifecycleService)
     {
         _db = db;
         _tokenService = tokenService;
         _logger = logger;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
     }
 
     public Task<int> GetUserCountAsync()
@@ -158,7 +158,7 @@ public class UserService
 
         foreach (var planet in planets)
         {
-            planet.NodeName = await _nodeService.GetNodeNameForPlanetAsync(planet.Id);
+            planet.NodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(planet.Id);
         }
 
         return planets;

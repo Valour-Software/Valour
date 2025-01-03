@@ -5,72 +5,38 @@
 /// </summary>
 public class NodeStateWorker : IHostedService, IDisposable
 {
-    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<NodeStateWorker> _logger;
-    private NodeService _longNodeService; // This can ONLY be used for redis operations. Database-dependent
-                                                   // operations will cause scoping issues
-    
+    private NodeLifecycleService _nodeLifecycleService;
     
     // Timer for executing timed tasks
     private Timer _timer;
     
-    public NodeStateWorker(ILogger<NodeStateWorker> logger,
-        IServiceProvider serviceProvider)
+    public NodeStateWorker(
+        ILogger<NodeStateWorker> logger,
+        NodeLifecycleService nodeLifecycleService)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
+        _nodeLifecycleService = nodeLifecycleService;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
-        _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
-        
-        // Migrate to new access system
-        
-        /*
-        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-        var accessService = scope.ServiceProvider.GetRequiredService<ChannelAccessService>();
-        
-        Console.WriteLine("Migrating to channel access system...");
-
-        int c = 0;
-
-        var allBaseRoles = await db.PlanetRoles.Where(x => x.Position == int.MaxValue).Select(x => x.Id).ToListAsync();
-        
-        foreach (var id in allBaseRoles)
-        {
-            await accessService.UpdateAllChannelAccessForMembersInRole(id);
-            
-            if (c % 20 == 0)
-                Console.WriteLine($"Done {c} / {allBaseRoles.Count}");
-            
-            c++;
-        }
-
-        Console.WriteLine("Finished migrate");
-        
-        */
-        
-        
-        await _longNodeService.AnnounceNode();
+        await _nodeLifecycleService.StartAsync();
         
         _timer = new Timer(UpdateNodeState, null, TimeSpan.Zero,
             TimeSpan.FromSeconds(30));
     }
     
-    private async void UpdateNodeState(object state)
+    private void UpdateNodeState(object state)
     {
-        _logger.LogInformation("Updating Node State.");
-        await _longNodeService.UpdateNodeAliveAsync();
+        _logger.LogInformation("Updating node state");
+        _ = _nodeLifecycleService.UpdateNodeAliveAsync();
     }
     
     public Task StopAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Node State Worker is Stopping.");
-
+        _logger.LogInformation("Node State Worker is Stopping");
         _timer?.Change(Timeout.Infinite, 0);
-
         return Task.CompletedTask;
     }
         

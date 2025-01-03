@@ -305,11 +305,10 @@ namespace Valour.Server
             services.AddRazorPages();
 
             services.AddSingleton<CdnMemoryCache>();
+            services.AddSingleton<ModelCacheService>();
             services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
             services.AddSingleton<HostedPlanetService>();
-            
-            services.AddScoped<ChannelAccessService>();
             
             services.AddScoped<UserOnlineService>();
             services.AddScoped<CoreHubService>();
@@ -339,7 +338,7 @@ namespace Valour.Server
             services.AddScoped<ThemeService>();
             services.AddScoped<StaffService>();
             
-            services.AddSingleton<NodeService>();
+            services.AddSingleton<NodeLifecycleService>();
 
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();

@@ -4,35 +4,52 @@ using Valour.Server.Utilities;
 
 namespace Valour.Server.Services;
 
+public struct HostedPlanetResult
+{
+    public HostedPlanet HostedPlanet;
+    public string CorrectNode;
+
+    // If found, return the planet
+    public HostedPlanetResult(HostedPlanet hostedPlanet)
+    {
+        this.HostedPlanet = hostedPlanet;
+        this.CorrectNode = null;
+    }
+    
+    // If not found, return the correct node
+    public HostedPlanetResult(string correctNode)
+    {
+        this.HostedPlanet = null;
+        this.CorrectNode = correctNode;
+    }
+}
+
 public class HostedPlanetService
 {
     private readonly ValourDb _db;
+    private readonly NodeLifecycleService _nodeLifecycleService;
+    private readonly ModelCacheService _cache;
     
-    public HostedPlanetService(ValourDb db)
+    public HostedPlanetService(ValourDb db, NodeLifecycleService nodeLifecycleService, ModelCacheService cache)
     {
         _db = db;
+        _nodeLifecycleService = nodeLifecycleService;
+        _cache = cache;
     }
     
-    /// <summary>
-    /// A cache that holds planets hosted by this node. Nodes keep their hosted
-    /// planets in-memory to reduce database load.
-    /// </summary>
-    private readonly ServerModelCache<HostedPlanet, long> _hostedPlanets = new();
-
     public async Task<HostedPlanet> BeginHosting(long planetId)
     {
         // If we're already hosting this planet, do nothing
-        if (_hostedPlanets.TryGet(planetId, out var hosted))
-        {
-            return hosted;
-        }
+        var cached = _cache.HostedPlanets.Get(planetId);
+        if (cached is not null)
+            return cached;
         
         var planet = (await _db.Planets.FindAsync(planetId)).ToModel();
         if (planet == null)
             return null;
         
-        hosted = new HostedPlanet(planet);
-        _hostedPlanets.Upsert(hosted);
+        var hostedPlanet = new HostedPlanet(planet);
+        _cache.HostedPlanets.Set(hostedPlanet);
 
         // Load data that should be cached
         var channels = await _db.Channels
@@ -40,47 +57,69 @@ public class HostedPlanetService
             .Select(c => c.ToModel())
             .ToListAsync();
         
-        hosted.Channels.Set(channels);
+        hostedPlanet.SetChannels(channels);
         
         var roles = await _db.PlanetRoles
             .Where(r => r.PlanetId == planetId)
             .Select(r => r.ToModel())
             .ToListAsync();
         
-        hosted.Roles.Set(roles);
+        hostedPlanet.SetRoles(roles);
 
-        return hosted;
+        return hostedPlanet;
     }
     
-    public HostedPlanet Get(long id)
+    /// <summary>
+    /// Returns the hosted planet if it is hosted on this node, or the correct node if it is not.
+    /// </summary>
+    public async ValueTask<HostedPlanetResult> TryGetAsync(long id)
     {
-        _hostedPlanets.TryGet(id, out var planet);
-        return planet;
-    }
-    
-    public HostedPlanet GetRequired(long id)
-    {
-        if (_hostedPlanets.TryGet(id, out var planet))
+        var hostedPlanet = _cache.HostedPlanets.Get(id);
+        if (hostedPlanet is not null)
+            return new HostedPlanetResult(hostedPlanet);
+
+        // Determine if the planet is hosted elsewhere
+        var nodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(id);
+        
+        // If it's here, we should be hosting it
+        if (nodeName == _nodeLifecycleService.Name)
         {
-            return planet;
+            return new HostedPlanetResult(await BeginHosting(id));
+        }
+        
+        // Return where it should be hosted
+        return new HostedPlanetResult(nodeName);
+    }
+    
+    /// <summary>
+    /// Returns the given hosted planet if hosted on this node.
+    /// Otherwise, throws an exception which will be automatically handled by the API
+    /// to redirect to the correct node. See: <see cref="NotHostedExceptionFilter"/>
+    /// </summary>
+    public async Task<HostedPlanet> GetRequiredAsync(long id)
+    {
+        var result = await TryGetAsync(id);
+        if (result.HostedPlanet is not null)
+        {
+            return result.HostedPlanet;
         }
 
-        throw new PlanetNotHostedException(id);
+        throw new PlanetNotHostedException(id, result.CorrectNode);
     }
     
     public void Remove(long id)
     {
-        _hostedPlanets.Remove(id);
+        _cache.HostedPlanets.Remove(id);
     }
     
     public bool IsHosted(long id)
     {
-        return _hostedPlanets.Contains(id);
+        return _cache.HostedPlanets.ContainsKey(id);
     }
     
-    public IEnumerable<long> GetHostedPlanetIds()
+    public long[] GetHostedIds()
     {
-        return _hostedPlanets.Ids;
+        return _cache.HostedPlanets.Ids;
     }
     
 }

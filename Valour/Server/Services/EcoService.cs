@@ -15,7 +15,7 @@ public class EcoService
     private readonly ValourDb _db;
     private readonly ILogger<EcoService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly NotificationService _notificationService;
 
     /// <summary>
@@ -27,13 +27,13 @@ public class EcoService
         ValourDb db, 
         ILogger<EcoService> logger, 
         CoreHubService coreHub, 
-        NodeService nodeService, 
+        NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _notificationService = notificationService;
     }
 
@@ -613,7 +613,7 @@ public class EcoService
 
         if (isGlobal)
         {
-            await _coreHub.RelayTransaction(transaction, _nodeService);
+            await _coreHub.RelayTransaction(transaction, _nodeLifecycleService);
         }
         else
         {

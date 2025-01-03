@@ -14,7 +14,7 @@ public class MessageService
 {
     private readonly ILogger<MessageService> _logger;
     private readonly ValourDb _db;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ChannelService _channelService;
     private readonly NotificationService _notificationService;
     private readonly ChannelStateService _stateService;
@@ -24,7 +24,7 @@ public class MessageService
     public MessageService(
         ILogger<MessageService> logger,
         ValourDb db, 
-        NodeService nodeService, 
+        NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService, 
         ChannelStateService stateService,
         IHttpClientFactory http, 
@@ -33,7 +33,7 @@ public class MessageService
     {
         _logger = logger;
         _db = db;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _notificationService = notificationService;
         _stateService = stateService;
         _http = http.CreateClient();
@@ -71,7 +71,7 @@ public class MessageService
         // Handle node planet ownership
         if (message.PlanetId is not null)
         {
-            if (!await _nodeService.IsHostingPlanet(message.PlanetId.Value))
+            if (!await _nodeLifecycleService.IsHostingPlanet(message.PlanetId.Value))
             {
                 return TaskResult<Message>.FromFailure("Planet belongs to another node.");
             }
@@ -253,7 +253,7 @@ public class MessageService
                 await _db.Messages.AddAsync(message.ToDatabase());
                 await _db.SaveChangesAsync();
 
-                await _coreHubService.RelayDirectMessage(message, _nodeService, channelMembers);
+                await _coreHubService.RelayDirectMessage(message, _nodeLifecycleService, channelMembers);
             }
             else
             {
@@ -401,7 +401,7 @@ public class MessageService
                 .Select(x => x.UserId)
                 .ToListAsync();
             
-            await _coreHubService.RelayDirectMessageEdit(updated, _nodeService, channelUserIds);
+            await _coreHubService.RelayDirectMessageEdit(updated, _nodeLifecycleService, channelUserIds);
         }
 
         return TaskResult<Message>.FromData(updated);
@@ -459,7 +459,7 @@ public class MessageService
     
     public async Task<List<Message>> GetChannelMessagesAsync(long channelId, int count = 50, long index = long.MaxValue)
     {
-        var channel = await _channelService.GetAsync(channelId);
+        var channel = await _channelService.GetPlanetChannelAsync(channelId);
         if (channel is null)
             return null;
         

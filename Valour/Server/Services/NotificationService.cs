@@ -18,20 +18,20 @@ public class NotificationService
     private readonly ValourDb _db;
     private readonly UserService _userService;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly IServiceScopeFactory _scopeFactory;
     
     public NotificationService(
         ValourDb db, 
         UserService userService, 
         CoreHubService coreHub,
-        NodeService nodeService,
+        NodeLifecycleService nodeLifecycleService,
         IServiceScopeFactory scopeFactory)
     {
         _db = db;
         _userService = userService;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _scopeFactory = scopeFactory;
         
         if (_vapidDetails is null)
@@ -68,7 +68,7 @@ public class NotificationService
             return new TaskResult(false, "Error saving changes to database");
         }
 
-        _coreHub.RelayNotificationReadChange(notification.ToModel(), _nodeService);
+        _coreHub.RelayNotificationReadChange(notification.ToModel(), _nodeLifecycleService);
         
         return TaskResult.SuccessResult;
     }
@@ -87,7 +87,7 @@ public class NotificationService
             return new TaskResult(false, "Error saving changes to database");
         }
         
-        _coreHub.RelayNotificationsCleared(userId, _nodeService);
+        _coreHub.RelayNotificationsCleared(userId, _nodeLifecycleService);
 
         return new TaskResult(true, $"Cleared {changes} notifications");
     }
@@ -126,7 +126,7 @@ public class NotificationService
         await _db.SaveChangesAsync();
 
         // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notification, _nodeService);
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
         
         // Send actual push notification to devices
         await SendPushNotificationAsync(
@@ -146,7 +146,7 @@ public class NotificationService
         notification.TimeSent = DateTime.UtcNow;
 
         // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notification, _nodeService);
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
         
         // Send actual push notification to devices
         await SendPushNotificationAsync(

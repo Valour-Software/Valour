@@ -66,40 +66,40 @@ public class CoreHubService
         await group.SendAsync("RelayEdit", message);
     }
 
-    public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeService nodeService)
+    public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeService.RelayUserEventAsync(targetId, NodeService.NodeEventType.Friend, eventData);
+        await nodeLifecycleService.RelayUserEventAsync(targetId, NodeLifecycleService.NodeEventType.Friend, eventData);
     }
 
-    public async Task RelayDirectMessage(Message message, NodeService nodeService, List<long> userIds)
+    public async Task RelayDirectMessage(Message message, NodeLifecycleService nodeLifecycleService, List<long> userIds)
     {
         foreach (var userId in userIds)
         {
-            await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.DirectMessage, message);
+            await nodeLifecycleService.RelayUserEventAsync(userId, NodeLifecycleService.NodeEventType.DirectMessage, message);
         }
     }
     
-    public async Task RelayDirectMessageEdit(Message message, NodeService nodeService, List<long> userIds)
+    public async Task RelayDirectMessageEdit(Message message, NodeLifecycleService nodeLifecycleService, List<long> userIds)
     {
         foreach (var userId in userIds)
         {
-            await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.DirectMessageEdit, message);
+            await nodeLifecycleService.RelayUserEventAsync(userId, NodeLifecycleService.NodeEventType.DirectMessageEdit, message);
         }
     }
 
-    public async void RelayNotification(Notification notif, NodeService nodeService)
+    public async void RelayNotification(Notification notif, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
+        await nodeLifecycleService.RelayUserEventAsync(notif.UserId, NodeLifecycleService.NodeEventType.Notification, notif);
     }
     
-    public async void RelayNotificationReadChange(Notification notif, NodeService nodeService)
+    public async void RelayNotificationReadChange(Notification notif, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
+        await nodeLifecycleService.RelayUserEventAsync(notif.UserId, NodeLifecycleService.NodeEventType.Notification, notif);
     }
     
-    public async void RelayNotificationsCleared(long userId, NodeService nodeService)
+    public async void RelayNotificationsCleared(long userId, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeService.RelayUserEventAsync(userId, NodeService.NodeEventType.NotificationsCleared, userId);
+        await nodeLifecycleService.RelayUserEventAsync(userId, NodeLifecycleService.NodeEventType.NotificationsCleared, userId);
     }
     
     public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
@@ -217,10 +217,10 @@ public class CoreHubService
         await _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
     }
 
-    public async Task RelayTransaction(Transaction transaction, NodeService nodeService)
+    public async Task RelayTransaction(Transaction transaction, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeService.RelayUserEventAsync(transaction.UserFromId, NodeService.NodeEventType.Transaction, transaction);
-        await nodeService.RelayUserEventAsync(transaction.UserToId, NodeService.NodeEventType.Transaction, transaction);
+        await nodeLifecycleService.RelayUserEventAsync(transaction.UserFromId, NodeLifecycleService.NodeEventType.Transaction, transaction);
+        await nodeLifecycleService.RelayUserEventAsync(transaction.UserToId, NodeLifecycleService.NodeEventType.Transaction, transaction);
     }
 
     public async void NotifyCurrencyChange(Currency item, int flags = 0) =>

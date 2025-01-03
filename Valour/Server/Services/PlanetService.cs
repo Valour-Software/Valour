@@ -12,7 +12,7 @@ public class PlanetService
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetService> _logger;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly PlanetPermissionService _permissionService;
     
@@ -20,13 +20,13 @@ public class PlanetService
         ValourDb db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
-        NodeService nodeService,
+        NodeLifecycleService nodeLifecycleService,
         HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _hostedPlanetService = hostedPlanetService;
     }
     
@@ -49,7 +49,7 @@ public class PlanetService
         var planet = (await _db.Planets.FindAsync(id)).ToModel();
         
         // ensure that node name is set
-        var node = await _nodeService.GetNodeNameForPlanetAsync(id);
+        var node = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(id);
         planet.NodeName = node;
 
         return planet;
