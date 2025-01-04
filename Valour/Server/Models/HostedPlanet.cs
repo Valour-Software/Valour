@@ -64,4 +64,14 @@ public class HostedPlanet : ServerModel<long>
     {
         _roles.Upsert(role);
     }
+    
+    public void RemoveChannel(Channel channel)
+    {
+        _channels.Remove(channel);
+    }
+    
+    public void RemoveRole(PlanetRole role)
+    {
+        _roles.Remove(role);
+    }
 }
