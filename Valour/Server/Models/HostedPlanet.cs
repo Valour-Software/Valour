@@ -55,9 +55,17 @@ public class HostedPlanet : ServerModel<long>
         _roles.Set(roles);
     }
     
-    public void UpsertChannel(Channel channel)
+    public void UpsertChannel(Channel updated)
     {
-        _channels.Upsert(channel);
+        // Get existing channel
+        var existing = _channels.Get(updated.Id);
+
+        if (existing.InheritsPerms != updated.InheritsPerms)
+        {
+            // TODO: Update for channel
+        }
+        
+        _channels.Upsert(updated);
     }
     
     public void UpsertRole(PlanetRole role)

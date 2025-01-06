@@ -169,9 +169,13 @@ public class ChannelService
             }
         }
         
+        HostedPlanet? hostedPlanet = null;
+
         // Only planet channels have permission nodes
         if (channel.PlanetId is not null)
         {
+            hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
+            
             // Handle bundled permissions
             if (nodes is not null && nodes.Count > 0)
             {
@@ -221,9 +225,6 @@ public class ChannelService
                 await _db.PermissionsNodes.AddRangeAsync(nodes.Select(x => x.ToDatabase()));
                 await _db.SaveChangesAsync();
             }
-            
-            // Add access
-            await _accessService.UpdateAllChannelAccessForChannel(channel.Id);
 
             await tran.CommitAsync();
         }
@@ -234,8 +235,11 @@ public class ChannelService
             return TaskResult<Channel>.FromFailure("Failed to create channel");
         }
 
-        if (channel.PlanetId is not null)
-            _coreHub.NotifyPlanetItemChange(channel.PlanetId.Value, channel);
+        if (hostedPlanet is not null)
+        {
+            hostedPlanet.UpsertChannel(channel);
+            _coreHub.NotifyPlanetItemChange(channel.PlanetId!.Value, channel);
+        }
 
         return TaskResult<Channel>.FromData(channel);
     }
@@ -275,27 +279,18 @@ public class ChannelService
         if (!baseValid.Success)
             return TaskResult<Channel>.FromFailure(baseValid.Message);
 
+        HostedPlanet? hostedPlanet = null;
+        if (updated.PlanetId is not null)
+        {
+            hostedPlanet = await _hostedPlanetService.GetRequiredAsync(updated.PlanetId.Value);
+        }
+
         var trans = await _db.Database.BeginTransactionAsync();
         
         // Update
         try
         {
-            var updateAccess = false;
-            
-            // Permission inheritance is being changed
-            if (old.InheritsPerms != updated.InheritsPerms)
-            {
-                updateAccess = true;
-            }
-            
             _db.Entry(old).CurrentValues.SetValues(updated);
-            await _db.SaveChangesAsync();
-
-            if (updateAccess)
-            {
-                await _accessService.UpdateAllChannelAccessForChannel(updated.Id);
-            }
-
             await _db.SaveChangesAsync();
 
             await trans.CommitAsync();
@@ -307,9 +302,10 @@ public class ChannelService
             return new(false, e.Message);
         }
 
-        if (updated.PlanetId is not null)
+        if (hostedPlanet is not null)
         {
-            _coreHub.NotifyPlanetItemChange(updated.PlanetId.Value, updated);
+            hostedPlanet.UpsertChannel(updated);
+            _coreHub.NotifyPlanetItemChange(updated.PlanetId!.Value, updated);
         }
 
         // Response
