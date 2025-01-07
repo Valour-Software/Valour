@@ -63,18 +63,23 @@ public class PlanetPermissionsCache
     /// <summary>
     /// Cache for permissions in channels by role combination
     /// </summary>
-    private readonly ChannelPermissionCache[] _permissionCachesByType = new ChannelPermissionCache[3];
+    private readonly ChannelPermissionCache[] _channelPermissionCachesByType = new ChannelPermissionCache[3];
     
     /// <summary>
     /// Cache for authority by role combination
     /// </summary>
     private readonly ConcurrentDictionary<long, uint?> _authorityCache = new();
     
+    /// <summary>
+    /// Cache for planet level permissions by role combination
+    /// </summary>
+    private readonly ConcurrentDictionary<long, long?> _planetPermissionsCache = new();
+    
     public PlanetPermissionsCache()
     {
-        for (int i = 0; i < _permissionCachesByType.Length; i++)
+        for (int i = 0; i < _channelPermissionCachesByType.Length; i++)
         {
-            _permissionCachesByType[i] = new ChannelPermissionCache();
+            _channelPermissionCachesByType[i] = new ChannelPermissionCache();
         }
     }
     
@@ -83,11 +88,11 @@ public class PlanetPermissionsCache
         switch (type)
         {
             case ChannelTypeEnum.PlanetChat:
-                return _permissionCachesByType[0];
+                return _channelPermissionCachesByType[0];
             case ChannelTypeEnum.PlanetCategory:
-                return _permissionCachesByType[1];
+                return _channelPermissionCachesByType[1];
             case ChannelTypeEnum.PlanetVoice:
-                return _permissionCachesByType[2];
+                return _channelPermissionCachesByType[2];
             default:
                 throw new ArgumentOutOfRangeException(nameof(type));
         }
@@ -129,8 +134,10 @@ public class PlanetPermissionsCache
     public void ClearCacheForCombo(long roleKey)
     {
         _accessCache.TryRemove(roleKey, out _);
+        _authorityCache.TryRemove(roleKey, out _);
+        _planetPermissionsCache.TryRemove(roleKey, out _);
         
-        foreach (var cache in _permissionCachesByType)
+        foreach (var cache in _channelPermissionCachesByType)
         {
             cache.ClearCacheForCombo(roleKey);
         }
@@ -138,7 +145,7 @@ public class PlanetPermissionsCache
         
     public void Clear()
     {
-        foreach (var cache in _permissionCachesByType)
+        foreach (var cache in _channelPermissionCachesByType)
         {
             cache.Clear();
         }
@@ -154,5 +161,15 @@ public class PlanetPermissionsCache
     public uint? GetAuthority(long roleKey)
     {
         return _authorityCache.GetValueOrDefault(roleKey);
+    }
+    
+    public long? GetPlanetPermissions(long roleKey)
+    {
+        return _planetPermissionsCache.GetValueOrDefault(roleKey);
+    }
+    
+    public void SetPlanetPermissions(long roleKey, long permissions)
+    {
+        _planetPermissionsCache[roleKey] = permissions;
     }
 }

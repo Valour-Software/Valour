@@ -196,29 +196,14 @@ public class PlanetMemberService
         {
             return true;
         }
-        
-        var planet = await _db.Planets.FindAsync(member.PlanetId);
 
-        // This should never happen, but we will still check
-        if (planet is null)
-            return false;
-        
-        // Owner has all permissions
-        if (member.UserId == planet.OwnerId)
-            return true;
-
-        return await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .AnyAsync(x => x.Role.IsAdmin || // Admins have all permissions
-                      (x.Role.Permissions & permission.Value) != 0); // Otherwise, at least one role must have the planet permission granted
+        return await _permissionService.HasPlanetPermissionAsync(member, permission);
     }
 
     /// <summary>
     /// Returns if the member has the given channel permission
     /// </summary>
-    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, Channel target, Permission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, Channel target, ChannelPermission permission)
     {
         if (target is null)
             return false;
@@ -228,9 +213,8 @@ public class PlanetMemberService
         {
             return true;
         }
-        
-        
-        
+
+        return await _permissionService.HasChannelPermissionAsync(member, target, permission);
     }
     
     /// <summary>

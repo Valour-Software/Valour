@@ -54,6 +54,12 @@ public class PlanetPermissionService
         _hostedPlanetService = hostedPlanetService;
     }
     
+    public async ValueTask<bool> HasPlanetPermissionAsync(PlanetMember member, PlanetPermission permission)
+    {
+        var permissions = await GetPlanetPermissionsAsync(member);
+        return Permission.HasPermission(permissions, permission);
+    }
+    
     /// <summary>
     /// Returns all the distinct role combination keys that exist on the planet.
     /// This only returns combinations that are in use.
@@ -113,7 +119,6 @@ public class PlanetPermissionService
     public async ValueTask<bool> HasChannelAccessAsync(PlanetMember member, long channelId)
     {
         var access = await GetChannelAccessAsync(member);
-        
         return access.Contains(channelId);
     }
 
@@ -168,7 +173,12 @@ public class PlanetPermissionService
             .Select(x => x.RoleId)
             .ToListAsync();
         
+        var allChannels = hostedPlanet.GetChannels();
+        
         var roles = RoleListPool.Get();
+
+        var isAdmin = false;
+        
         foreach (var roleId in roleMembership)
         {
             var role = hostedPlanet.GetRole(roleId);
@@ -178,13 +188,31 @@ public class PlanetPermissionService
                 throw new Exception("Role not found in hosted planet roles!");  
             }
             
+            // If admin, they can access all channels
+            if (role.IsAdmin)
+            {
+                isAdmin = true;
+                break;
+            }
+            
             roles.Add(role);
+        }
+        
+        if (isAdmin)
+        {
+            // Cache
+            var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleHashKey, allChannels);
+            
+            // cleanup
+            RoleListPool.Return(roles);
+            hostedPlanet.RecycleChannelList(allChannels);
+            
+            return adminResult;
         }
         
         roles.Sort(ISortable.Comparer);
 
         var access = hostedPlanet.PermissionCache.GetEmptyAccessList();
-        var allChannels = hostedPlanet.GetChannels();
         
         foreach (var channel in allChannels)
         {
@@ -200,13 +228,13 @@ public class PlanetPermissionService
             switch (channel.ChannelType)
             {
                 case ChannelTypeEnum.PlanetChat:
-                    perms = await GetChannelPermissionsAsync<ChatChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
+                    perms = await GenerateChannelPermissionsAsync<ChatChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
                     break;
                 case ChannelTypeEnum.PlanetCategory:
-                    perms = await GetChannelPermissionsAsync<CategoryPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
+                    perms = await GenerateChannelPermissionsAsync<CategoryPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
                     break;
                 case ChannelTypeEnum.PlanetVoice:
-                    perms = await GetChannelPermissionsAsync<VoiceChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
+                    perms = await GenerateChannelPermissionsAsync<VoiceChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
                     break;
                 default:
                     throw new Exception("Invalid channel type!");
@@ -229,8 +257,102 @@ public class PlanetPermissionService
         
         return result;
     }
+
+    private async ValueTask<long> GetPlanetPermissionsAsync(PlanetMember member)
+    {
+        // The member acts as representative for the role combination
+        
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        
+        // try to get cached
+        var cached = hostedPlanet.PermissionCache.GetPlanetPermissions(member.RoleHashKey);
+        if (cached is not null)
+            return cached.Value;
+        
+        var roleMembership = await _db.PlanetRoleMembers
+            .Where(x => x.MemberId == member.Id)
+            .Select(x => x.RoleId)
+            .ToListAsync();
+        
+        long permissions = 0;
+        
+        // Easy to calculate: OR together all permissions.
+        // Unlike channel permissions, planet permissions can only be additive.
+        foreach (var roleId in roleMembership)
+        {
+            var role = hostedPlanet.GetRole(roleId);
+            if (role is null)
+            {
+                // This should never happen
+                throw new Exception("Role not found in hosted planet roles!");  
+            }
+            
+            // If admin, they can access all channels
+            if (role.IsAdmin)
+            {
+                permissions = Permission.FULL_CONTROL;
+                break;
+            }
+            
+            permissions |= role.Permissions;
+        }
+        
+        // Cache
+        hostedPlanet.PermissionCache.SetPlanetPermissions(member.RoleHashKey, permissions);
+        
+        return permissions;
+    }
     
-    private async ValueTask<long> GetChannelPermissionsAsync<TPermissionType>(
+    public async ValueTask<bool> HasChannelPermissionAsync(PlanetMember member, Channel channel, ChannelPermission permission)
+    {
+        var permissions = await GetChannelPermissionsAsync(member, channel, permission);
+        return Permission.HasPermission(permissions, permission);
+    }
+
+    public async ValueTask<long> GetChannelPermissionsAsync(PlanetMember member, Channel channel, ChannelPermission permission)
+    {
+        var channelKey = GetRoleChannelComboKey(member.RoleHashKey, channel.Id);
+        
+        // Check if cached
+        var hosted = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        var cache = hosted.PermissionCache.GetChannelCache(channel.ChannelType);
+        var cachedPermissions = cache.GetChannelPermission(channelKey);
+        
+        if (cachedPermissions is not null)
+            return cachedPermissions.Value;
+        
+        // If not cached, generate the permissions
+        var roleMembership = await _db.PlanetRoleMembers
+            .Where(x => x.MemberId == member.Id)
+            .Select(x => x.RoleId)
+            .ToListAsync();
+        
+        var roles = RoleListPool.Get();
+
+        foreach (var roleId in roleMembership)
+        {
+            var role = hosted.GetRole(roleId);
+            if (role is null)
+            {
+                // This should never happen
+                throw new Exception("Role not found in hosted planet roles!");  
+            }
+            
+            roles.Add(role);
+        }
+        
+        var permissions = await GenerateChannelPermissionsAsync<ChannelPermission>(member.RoleHashKey, roles, channel, hosted);
+        
+        // Recycle
+        RoleListPool.Return(roles);
+        
+        // Cache
+        cache.Set(member.RoleHashKey, channelKey, permissions);
+        
+        return permissions;
+    }
+    
+    private async ValueTask<long> GenerateChannelPermissionsAsync<TPermissionType>(
         long roleKey,
         List<PlanetRole> roles, 
         Channel channel,
