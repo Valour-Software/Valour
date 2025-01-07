@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.Extensions.ObjectPool;
+using Valour.Server.Utilities;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
@@ -50,15 +52,23 @@ public class ChannelPermissionCache
 
 public class PlanetPermissionsCache
 {
+    public static readonly ObjectPool<List<Channel>> AccessListPool = 
+        new DefaultObjectPool<List<Channel>>(new ListPooledObjectPolicy<Channel>());
+    
     /// <summary>
     /// Cache for what role combinations can access channels
     /// </summary>
-    private readonly ConcurrentDictionary<long, List<Channel>> _accessCache = new();
+    private readonly ConcurrentDictionary<long, SortedServerModelList<Channel, long>> _accessCache = new();
     
     /// <summary>
     /// Cache for permissions in channels by role combination
     /// </summary>
     private readonly ChannelPermissionCache[] _permissionCachesByType = new ChannelPermissionCache[3];
+    
+    /// <summary>
+    /// Cache for authority by role combination
+    /// </summary>
+    private readonly ConcurrentDictionary<long, uint?> _authorityCache = new();
     
     public PlanetPermissionsCache()
     {
@@ -83,14 +93,37 @@ public class PlanetPermissionsCache
         }
     }
     
-    public List<Channel> GetChannelAccess(long roleKey)
+    public SortedServerModelList<Channel, long> GetChannelAccess(long roleKey)
     {
         return _accessCache.GetValueOrDefault(roleKey);
     }
-
-    public void SetChannelAccess(long roleKey, List<Channel> access)
+    
+    public List<Channel> GetEmptyAccessList()
     {
-        _accessCache[roleKey] = access;
+        return AccessListPool.Get();
+    }
+
+    public SortedServerModelList<Channel, long> SetChannelAccess(long roleKey, List<Channel> access)
+    {
+        SortedServerModelList<Channel, long> result = null;
+        
+        if (_accessCache.TryGetValue(roleKey, out var existing))
+        {
+            existing.Set(access);
+            result = existing;
+        }
+        else
+        {
+            var newAccess = new SortedServerModelList<Channel, long>();
+            newAccess.Set(access);
+            _accessCache[roleKey] = newAccess;
+            result = newAccess;
+        }
+        
+        // Put back into pool
+        AccessListPool.Return(access);
+        
+        return result;
     }
     
     public void ClearCacheForCombo(long roleKey)
@@ -111,5 +144,15 @@ public class PlanetPermissionsCache
         }
         
         _accessCache.Clear();
+    }
+    
+    public void SetAuthority(long roleKey, uint authority)
+    {
+        _authorityCache[roleKey] = authority;
+    }
+    
+    public uint? GetAuthority(long roleKey)
+    {
+        return _authorityCache.GetValueOrDefault(roleKey);
     }
 }

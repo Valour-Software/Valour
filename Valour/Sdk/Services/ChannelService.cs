@@ -98,18 +98,18 @@ public class ChannelService : ServiceBase
         return _cache.Sync(channel);
     }
 
-    public async ValueTask<Channel> FetchChannelAsync(long id, long planetId, bool skipCache = false)
+    public async ValueTask<Channel> FetchPlanetChannelAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await _client.PlanetService.FetchPlanetAsync(planetId, skipCache);
-        return await FetchChannelAsync(id, planet, skipCache);
+        return await FetchPlanetChannelAsync(id, planet, skipCache);
     }
     
-    public async ValueTask<Channel> FetchChannelAsync(long id, Planet planet, bool skipCache = false)
+    public async ValueTask<Channel> FetchPlanetChannelAsync(long id, Planet planet, bool skipCache = false)
     {
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
+        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(planet.Id, id))).Data;
 
         return _cache.Sync(channel);
     }

@@ -31,8 +31,10 @@ public static class SharedChannelNames
 
 public interface ISharedChannel : ISharedModel<long>, ISortable
 {
-    public const string BaseRoute = "api/channels";
-    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    public const string DirectBaseRoute = "api/channels/direct";
+    public static string GetDirectIdRoute(long id) => $"{DirectBaseRoute}/{id}";
+    public static string GetPlanetBaseRoute(long planetId) => $"{ISharedPlanet.BaseRoute}/{planetId}/channels";
+    public static string GetIdRoute(long planetId, long id) => $"{GetPlanetBaseRoute(planetId)}/channels/{id}";
     
     public static string GetTypeName(ChannelTypeEnum type)
     {

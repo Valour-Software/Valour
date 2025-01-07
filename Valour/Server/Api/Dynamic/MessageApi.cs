@@ -28,7 +28,7 @@ public class MessageApi
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
         
-        if (!await channelService.IsMemberAsync(channel, userId))
+        if (!await channelService.HasAccessAsync(channel, userId))
             return ValourResult.Forbid("You are not a member of this channel");
 
         if (channel.ChannelType == ChannelTypeEnum.DirectChat)
@@ -206,7 +206,7 @@ public class MessageApi
             return ValourResult.NotFound<Message>();
         
         var channel = await channelService.GetPlanetChannelAsync(message.ChannelId);
-        if (!await channelService.IsMemberAsync(channel, token.UserId))
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
         
         if (message.PlanetId is null)

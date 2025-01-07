@@ -409,27 +409,37 @@ public class ChannelService
     /// </summary>
     public async Task<bool> IsLastCategory(long categoryId) =>
         await _db.Channels.CountAsync(x => x.PlanetId == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
-
-    /// <summary>
-    /// Returns if the given user id is a member of the given channel id
-    /// </summary>
-    public async ValueTask<bool> IsMemberAsync(long channelId, long userId)
-        => await IsMemberAsync(await GetPlanetChannelAsync(channelId), userId);
+    
     
     /// <summary>
-    /// Returns if the given user id is a member of the given channel
+    /// Returns if the given user id has access to the given channel
     /// </summary>
-    public async Task<bool> IsMemberAsync(Channel channel, long userId)
+    public async Task<bool> HasAccessAsync(Channel channel, long userId)
     {
         // Direct messages access
         if (channel.PlanetId is null)
         {
             return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
         }
-        // Planet channel access
         else
         {
-            return await _db.MemberChannelAccess.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
+            var planetMember = await _memberService.GetByUserAsync(userId, channel.PlanetId.Value);
+            if (planetMember is null)
+                return false;
+            
+            return await _planetPermissionService.HasChannelAccessAsync(planetMember, channel.Id);
+        }
+    }
+    
+    public async Task<bool> HasAccessAsync(Channel channel, PlanetMember member)
+    {
+        if (channel.PlanetId is null)
+        {
+            return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == member.UserId);
+        }
+        else
+        {
+            return await _planetPermissionService.HasChannelAccessAsync(member, channel.Id);
         }
     }
     

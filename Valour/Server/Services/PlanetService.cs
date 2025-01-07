@@ -41,42 +41,27 @@ public class PlanetService
     /// </summary>
     public async Task<Planet> GetAsync(long id)
     {
-        var hosted = _hostedPlanetService.Get(id);
-        if (hosted is not null)
-            return hosted.Planet;
-        
-        // get planet from db
-        var planet = (await _db.Planets.FindAsync(id)).ToModel();
-        
-        // ensure that node name is set
-        var node = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(id);
-        planet.NodeName = node;
-
-        return planet;
+        var hosted = await _hostedPlanetService.GetRequiredAsync(id);
+        return hosted.Planet;
     }
-
-    /// <summary>
-    /// Returns the primary channel for the given planet
-    /// </summary>
-    public async Task<Channel> GetPrimaryChannelAsync(long planetId) =>
-        (await _db.Channels.FirstOrDefaultAsync(x => 
-            x.PlanetId == planetId && x.IsDefault)).ToModel();
 
     /// <summary>
     /// Returns the default role for the given planet
     /// </summary>
-    public async Task<PlanetRole> GetDefaultRole(long planetId) =>
-        (await _db.PlanetRoles.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.IsDefault)).ToModel();
+    public async Task<PlanetRole> GetDefaultRole(long planetId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hostedPlanet.GetDefaultRole();
+    }
 
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
-        await _db.PlanetRoles.AsNoTracking()
-            .Where(x => x.PlanetId == planetId)
-            .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
-            .Select(x => x.ToModel())
-            .ToListAsync();
+    public async Task<List<PlanetRole>> GetRolesAsync(long planetId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hostedPlanet.GetRoles();
+    }
 
     /// <summary>
     /// Returns the roles for the given planet id
@@ -221,50 +206,12 @@ public class PlanetService
         
         return TaskResult.SuccessResult;
     }
-    
-    #region Channel Retrieval
 
-    /// <summary>
-    /// Returns the channels for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllChannelsAsync(long planetId) =>
-        await _db.Channels.Where(x => x.PlanetId == planetId)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-    
-    /// <summary>
-    /// Returns the chat channels for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllChatChannelsAsync(long planetId) =>
-        await _db.Channels.Where(x => 
-                x.PlanetId == planetId &&
-                x.ChannelType == ChannelTypeEnum.PlanetChat)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-
-    /// <summary>
-    /// Returns the categories for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllCategoriesAsync(long planetId) =>
-        await _db.Channels.Where(x => 
-                x.PlanetId == planetId &&
-                x.ChannelType == ChannelTypeEnum.PlanetCategory)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-    
-    /// <summary>
-    /// Returns the voice channels for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllVoiceChannelsAsync(long planetId) =>
-        await _db.Channels.Where(x => 
-                x.PlanetId == planetId &&
-                x.ChannelType == ChannelTypeEnum.PlanetVoice)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-    
-    public async Task<Channel> GetPrimaryChatChannelAsync(long planetId) =>
-        (await _db.Channels.FirstOrDefaultAsync(x => 
-            x.PlanetId == planetId && x.IsDefault && x.ChannelType == ChannelTypeEnum.PlanetChat)).ToModel();
+    public async ValueTask<Channel> GetPrimaryChannelAsync(long planetId)
+    {
+        var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hosted.GetDefaultChannel();
+    }
 
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
@@ -272,19 +219,6 @@ public class PlanetService
     public async Task<List<Channel>> GetMemberChannelsAsync(PlanetMember member) =>
       await _permissionService.GetChannelAccessAsync(member);
     
-    /// <summary>
-    /// Returns the channels for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberChannelsAsync(long memberId)
-    {
-        var rolesKey = await _db.PlanetMembers.Select(x => new { x.Id, x.RoleHashKey })
-            .FirstOrDefaultAsync(x => x.Id == memberId);
-
-        return await _permissionService.GetChannelAccessAsync(rolesKey.RoleHashKey);
-    }
-    
-    #endregion
-
     /// <summary>
     /// Returns member info for the given planet, paged by the page index
     /// </summary>

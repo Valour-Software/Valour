@@ -48,23 +48,21 @@ public class HostedPlanetService
         if (planet == null)
             return null;
         
-        var hostedPlanet = new HostedPlanet(planet);
-        _cache.HostedPlanets.Set(hostedPlanet);
-
         // Load data that should be cached
         var channels = await _db.Channels
             .Where(c => c.PlanetId == planetId)
             .Select(c => c.ToModel())
             .ToListAsync();
         
-        hostedPlanet.SetChannels(channels);
         
         var roles = await _db.PlanetRoles
             .Where(r => r.PlanetId == planetId)
             .Select(r => r.ToModel())
             .ToListAsync();
         
-        hostedPlanet.SetRoles(roles);
+        var hostedPlanet = new HostedPlanet(planet, channels, roles);
+        _cache.HostedPlanets.Set(hostedPlanet);
+        
 
         return hostedPlanet;
     }
@@ -96,7 +94,7 @@ public class HostedPlanetService
     /// Otherwise, throws an exception which will be automatically handled by the API
     /// to redirect to the correct node. See: <see cref="NotHostedExceptionFilter"/>
     /// </summary>
-    public async Task<HostedPlanet> GetRequiredAsync(long id)
+    public async ValueTask<HostedPlanet> GetRequiredAsync(long id)
     {
         var result = await TryGetAsync(id);
         if (result.HostedPlanet is not null)

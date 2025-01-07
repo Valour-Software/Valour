@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.ObjectPool;
 using Valour.Shared.Extensions;
 using Valour.Shared.Models;
 
@@ -12,17 +13,22 @@ namespace Valour.Server.Utilities
         where TModel : ServerModel<TId>
         where TId : IEquatable<TId>
     {
+        // Pools for list and dictionary creation
+        public static readonly ObjectPool<List<TModel>> ListPool = 
+            new DefaultObjectPool<List<TModel>>(new ListPooledObjectPolicy<TModel>());
+        public static readonly ObjectPool<Dictionary<TId, TModel>> IdMapPool = 
+            new DefaultObjectPool<Dictionary<TId, TModel>>(new DictionaryPooledObjectPolicy<TId, TModel>());
+        
         protected readonly List<TModel> List;
         protected Dictionary<TId, TModel> IdMap;
-        public IReadOnlyList<TModel> Values;
 
-        protected readonly object _sync = new object();
+        protected readonly object Lock = new object();
 
         public int Count
         {
             get
             {
-                lock (_sync)
+                lock (Lock)
                 {
                     return List.Count;
                 }
@@ -33,7 +39,7 @@ namespace Valour.Server.Utilities
         {
             get
             {
-                lock (_sync)
+                lock (Lock)
                 {
                     return IdMap.Keys;
                 }
@@ -43,11 +49,10 @@ namespace Valour.Server.Utilities
         public ServerModelList(List<TModel> startingList = null)
         {
             // Initialize the structures inside a lock as well
-            lock (_sync)
+            lock (Lock)
             {
                 List = startingList ?? new List<TModel>();
                 IdMap = List.ToDictionary(x => x.Id);
-                Values = List;
             }
         }
 
@@ -56,7 +61,7 @@ namespace Valour.Server.Utilities
         {
             get
             {
-                lock (_sync)
+                lock (Lock)
                 {
                     return List[index];
                 }
@@ -65,7 +70,7 @@ namespace Valour.Server.Utilities
 
         public IEnumerator<TModel> GetEnumerator()
         {
-            lock (_sync)
+            lock (Lock)
             {
                 // Return a snapshot to avoid enumerating while modified
                 return List.ToList().GetEnumerator();
@@ -73,10 +78,32 @@ namespace Valour.Server.Utilities
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        
+        /// <summary>
+        /// Remember to return the list after use!
+        /// </summary>
+        public List<TModel> CloneAsList()
+        {
+            lock (Lock)
+            {
+                return List.ToList();
+            }
+        }
+        
+        /// <summary>
+        /// Remember to return the dictionary after use!
+        /// </summary>
+        public Dictionary<TId, TModel> CloneAsDictionary()
+        {
+            lock (Lock)
+            {
+                return new Dictionary<TId, TModel>(IdMap);
+            }
+        }
 
         public virtual TModel Upsert(TModel model)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 if (IdMap.TryGetValue(model.Id, out var cached))
                 {
@@ -93,10 +120,20 @@ namespace Valour.Server.Utilities
                 }
             }
         }
+        
+        public void ReturnList(List<TModel> list)
+        {
+            ListPool.Return(list);
+        }
+        
+        public void ReturnIdMap(Dictionary<TId, TModel> idMap)
+        {
+            IdMapPool.Return(idMap);
+        }
 
         public virtual void UpsertRange(List<TModel> models)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 foreach (var model in models)
                 {
@@ -115,7 +152,7 @@ namespace Valour.Server.Utilities
 
         public virtual void Remove(TModel item)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 if (IdMap.Remove(item.Id))
                 {
@@ -126,7 +163,7 @@ namespace Valour.Server.Utilities
         
         public virtual void Remove(TId id)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 if (IdMap.TryGetValue(id, out var item))
                 {
@@ -138,7 +175,7 @@ namespace Valour.Server.Utilities
 
         public virtual void Set(List<TModel> items)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 // We clear rather than replace the list to ensure that the reference is maintained
                 // Because the reference may be used across the application.
@@ -152,7 +189,7 @@ namespace Valour.Server.Utilities
 
         public virtual void Clear(bool skipEvent = false)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 List.Clear();
                 IdMap.Clear();
@@ -161,7 +198,7 @@ namespace Valour.Server.Utilities
 
         public bool TryGet(TId id, out TModel item)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 return IdMap.TryGetValue(id, out item);
             }
@@ -169,7 +206,7 @@ namespace Valour.Server.Utilities
 
         public TModel Get(TId id)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 IdMap.TryGetValue(id, out var model);
                 return model;
@@ -179,7 +216,7 @@ namespace Valour.Server.Utilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(TModel item)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 return IdMap.ContainsKey(item.Id); // This is faster than List.Contains
             }
@@ -188,7 +225,7 @@ namespace Valour.Server.Utilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(TId id)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 return IdMap.ContainsKey(id); // This is faster than List.Contains
             }
@@ -197,7 +234,7 @@ namespace Valour.Server.Utilities
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Sort(Comparison<TModel> comparison)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 List.Sort(comparison);
             }
@@ -210,7 +247,7 @@ namespace Valour.Server.Utilities
     {
         public override TModel Upsert(TModel model)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 if (IdMap.TryGetValue(model.Id, out var cached))
                 {
@@ -264,7 +301,7 @@ namespace Valour.Server.Utilities
 
         public override void Set(List<TModel> items)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 base.Set(items);
                 List.Sort(ISortable.Comparer);
@@ -273,7 +310,7 @@ namespace Valour.Server.Utilities
 
         public override void UpsertRange(List<TModel> models)
         {
-            lock (_sync)
+            lock (Lock)
             {
                 // base upsert does not sort
                 foreach (var model in models)
