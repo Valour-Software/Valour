@@ -276,6 +276,10 @@ public class PlanetMemberService
         var defaultRoleId = await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id && x.IsDefault)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
+        
+        // Give role hash for just default role
+        var roleHashKey = _permissionService.GenerateRoleComboKey([defaultRoleId]);
+        member.RoleHashKey = roleHashKey;
 
         // Add to default planet role
         var roleMember = new Valour.Database.PlanetRoleMember()
@@ -284,7 +288,7 @@ public class PlanetMemberService
             PlanetId = planet.Id,
             UserId = user.Id,
             RoleId = defaultRoleId,
-            MemberId = member.Id
+            MemberId = member.Id,
         };
         
         IDbContextTransaction trans = null;
@@ -391,7 +395,7 @@ public class PlanetMemberService
         if (role is null)
             return new TaskResult<PlanetRoleMember>(false, "Role is null.");
         
-        if (role.IsOwner)
+        if (role.Position == 0)
             return new TaskResult<PlanetRoleMember>(false, "Cannot add owner role to member.");
         
         if (member.PlanetId != role.PlanetId)
@@ -416,7 +420,7 @@ public class PlanetMemberService
             await _db.PlanetRoleMembers.AddAsync(newRoleMember);
             await _db.SaveChangesAsync();
 
-            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _permissionService.UpdateMemberRoleHashAsync(memberId);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();
@@ -444,7 +448,7 @@ public class PlanetMemberService
         if (roleMember.Role.IsDefault)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
-        if (roleMember.Role.IsOwner)
+        if (roleMember.Role.Position == 0)
             return new TaskResult(false, "Cannot remove the owner role.");
         
         await using var trans = await _db.Database.BeginTransactionAsync();
@@ -454,7 +458,7 @@ public class PlanetMemberService
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
             
-            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _permissionService.UpdateMemberRoleHashAsync(memberId);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();
@@ -494,11 +498,9 @@ public class PlanetMemberService
             _db.PlanetRoleMembers.RemoveRange(roles);
             
             dbMember.IsDeleted = true;
+            dbMember.RoleHashKey = 0;
 
             await _db.SaveChangesAsync();
-            
-            // Remove channel access
-            await _accessService.ClearMemberAccessAsync(dbMember.Id);
             
             if (trans is not null) 
             {

@@ -112,6 +112,28 @@ public class PlanetPermissionService
             hostedPlanet.PermissionCache.ClearCacheForCombo(roleKey);
         }
     }
+
+    /// <summary>
+    /// Used whenever a member's roles change to update their role hash key
+    /// </summary>
+    /// <param name="memberId">The member to update</param>
+    public async Task UpdateMemberRoleHashAsync(long memberId)
+    {
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is null)
+            return;
+        
+        var roleIds = await _db.PlanetRoleMembers
+            .Where(x => x.MemberId == memberId)
+            .Select(x => x.RoleId)
+            .OrderBy(x => x)
+            .ToArrayAsync();
+        
+        var roleKey = GenerateRoleComboKey(roleIds);
+        member.RoleHashKey = roleKey;
+        
+        await _db.SaveChangesAsync();
+    }
     
     /// <summary>
     /// Returns if the member has access to the given channel
