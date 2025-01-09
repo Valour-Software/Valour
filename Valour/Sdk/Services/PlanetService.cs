@@ -430,7 +430,7 @@ public class PlanetService : ServiceBase
         if (!skipCache && _client.Cache.PlanetRoles.TryGet(id, out var cached))
             return cached;
 
-        var role = (await planet.Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.BaseRoute}/{id}")).Data;
+        var role = (await planet.Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.GetBaseRoute(planet.Id)}/{id}")).Data;
 
         return _client.Cache.Sync(role);
     }

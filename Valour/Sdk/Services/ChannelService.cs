@@ -88,12 +88,12 @@ public class ChannelService : ServiceBase
     /// <summary>
     /// Given a channel id, returns the channel. Planet channels should be fetched via the Planet.
     /// </summary>
-    public async ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false)
+    public async ValueTask<Channel> FetchDirectChannelAsync(long id, bool skipCache = false)
     {
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
+        var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetDirectIdRoute(id))).Data;
 
         return _cache.Sync(channel);
     }
@@ -109,7 +109,7 @@ public class ChannelService : ServiceBase
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(planet.Id, id))).Data;
+        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id))).Data;
 
         return _cache.Sync(channel);
     }
@@ -134,7 +134,7 @@ public class ChannelService : ServiceBase
             return cached;
 
         var dmChannel = (await _client.PrimaryNode.GetJsonAsync<Channel>(
-            $"{ISharedChannel.BaseRoute}/direct/{otherUserId}?create={create}")).Data;
+            $"{ISharedChannel.DirectBaseRoute}/{otherUserId}?create={create}")).Data;
 
         return _cache.Sync(dmChannel);
     }

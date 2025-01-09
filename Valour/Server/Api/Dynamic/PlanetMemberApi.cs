@@ -163,8 +163,8 @@ public class PlanetMemberApi
         
         if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
-
-        var role = await roleService.GetAsync(roleId);
+        
+        var role = await roleService.GetAsync(targetMember.PlanetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found.");
 
@@ -200,7 +200,7 @@ public class PlanetMemberApi
         if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var role = await roleService.GetAsync(roleId);
+        var role = await roleService.GetAsync(targetMember.PlanetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found.");
 

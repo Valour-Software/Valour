@@ -139,18 +139,9 @@ public class PlanetApi
             return ValourResult.NotPlanetMember();
 
         // Get all planet channels
-        var channels = await planetService.GetMemberChannelsAsync(id, member.Id);
+        var channels = await planetService.GetMemberChannelsAsync(member);
         
-        // Collection for channels that member can see
-        var allowedChannels = new List<Channel>();
-
-        foreach (var channel in channels)
-        {
-            if (await memberService.HasPermissionAsync(member, channel, ChannelPermissions.View))
-                allowedChannels.Add(channel);
-        }
-
-        return Results.Json(allowedChannels);
+        return Results.Json(channels.InternalList);
     }
     
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/primary")]
@@ -168,78 +159,6 @@ public class PlanetApi
         var channel = await planetService.GetPrimaryChannelAsync(id);
 
         return Results.Json(channel);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/chat")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetChatChannelsRouteAsync(
-        long id,
-        PlanetService planetService,
-        PlanetMemberService memberService)
-    {
-        var member = await memberService.GetCurrentAsync(id);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        var chatChannels = await planetService.GetMemberChatChannelsAsync(id, member.Id);
-
-        var allowedChannels = new List<Channel>();
-
-        foreach (var channel in chatChannels)
-        {
-            if (await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View));
-                allowedChannels.Add(channel);
-        }
-        
-        return Results.Json(allowedChannels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/voice")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetVoiceChannelsRouteAsync(
-        long id, 
-        PlanetService planetService,
-        PlanetMemberService memberService)
-    {
-        var member = await memberService.GetCurrentAsync(id);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        var voiceChannels = await planetService.GetMemberVoiceChannelsAsync(id, member.Id);
-
-        var allowedChannels = new List<Channel>();
-
-        foreach (var channel in voiceChannels)
-        {
-            if (await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.View))
-                allowedChannels.Add(channel);
-        }
-
-        return Results.Json(allowedChannels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/categories")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetCategoriesRouteAsync(
-        long id, 
-        PlanetService planetService,
-        PlanetMemberService memberService)
-    {
-        var member = await memberService.GetCurrentAsync(id);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        var categories = await planetService.GetMemberCategoriesAsync(id, member.Id);
-
-        var allowedCategories = new List<Channel>();
-
-        foreach (var category in categories)
-        {
-            if (await memberService.HasPermissionAsync(member, category, CategoryPermissions.View))
-                allowedCategories.Add(category);
-        }
-
-        return Results.Json(allowedCategories);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/memberinfo")]

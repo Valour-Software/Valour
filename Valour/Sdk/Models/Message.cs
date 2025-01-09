@@ -168,7 +168,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public ValueTask<Channel> FetchChannelAsync()
     {
         if (PlanetId is null)
-            return Client.ChannelService.FetchChannelAsync(ChannelId);
+            return Client.ChannelService.FetchDirectChannelAsync(ChannelId);
         else
             return Planet.FetchChannelAsync(ChannelId);
     }

@@ -117,19 +117,18 @@ public class ChannelService
     }
     
     /// <summary>
-    /// Soft deletes the given channel
+    /// Soft deletes the given planet channel
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(long id)
+    public async Task<TaskResult> DeletePlanetChannelAsync(long planetId, long channelId)
     {
-        var dbChannel = await _db.Channels.FindAsync(id);
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        
+        var dbChannel = await _db.Channels.FindAsync(channelId);
         if (dbChannel is null)
             return TaskResult.FromFailure( "Channel not found.");
-
-        HostedPlanet? hostedPlanet = null;
-        if (dbChannel.PlanetId is not null)
-        {
-            hostedPlanet = await _hostedPlanetService.GetRequiredAsync(dbChannel.PlanetId.Value);
-        } 
+        
+        if (dbChannel.PlanetId != planetId)
+            return TaskResult.FromFailure( "Channel does not belong to planet.");
         
         if (dbChannel.IsDefault == true)
             return TaskResult.FromFailure("You cannot delete the default channel.");
@@ -139,11 +138,8 @@ public class ChannelService
         await _db.SaveChangesAsync();
         
         // Remove from hosted planet
-        if (hostedPlanet is not null)
-        {
-            hostedPlanet.RemoveChannel(dbChannel.Id);
-        }
-        
+        hostedPlanet.RemoveChannel(dbChannel.Id);
+
         var model = dbChannel.ToModel();
 
         if (model.PlanetId is not null)

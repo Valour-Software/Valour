@@ -5,15 +5,16 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetRoleApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/roles/{id}")]
+    [ValourRoute(HttpVerbs.Get, "api/planet/{planetId}/roles/{roleId}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRouteAsync(
-        long id, 
+        long planetId,
+        long roleId, 
         PlanetRoleService roleService,
         PlanetMemberService memberService)
     {
         // Get the role
-        var role = await roleService.GetAsync(id);
+        var role = await roleService.GetAsync(planetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found");
 
@@ -27,9 +28,10 @@ public class PlanetRoleApi
     }
 
 
-    [ValourRoute(HttpVerbs.Post, "api/roles")]
+    [ValourRoute(HttpVerbs.Post, "api/planet/{planetId}/roles")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
+        long planetId,
         [FromBody] PlanetRole role,
         PlanetRoleService roleService,
         PlanetMemberService memberService,
@@ -37,15 +39,15 @@ public class PlanetRoleApi
     {
         if (role is null)
             return ValourResult.BadRequest("Include role in body.");
+        
+        if (role.PlanetId != planetId)
+            return ValourResult.BadRequest("Role planet id does not match route planet id.");
+        
         // Get member
         var member = await memberService.GetCurrentAsync(role.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
-
-        if (role.Position == -1) {
-            role.Position = (uint)(await planetService.GetRoleIdsAsync(role.PlanetId)).Count;
-        }
-
+        
         if (role.IsDefault)
             return ValourResult.BadRequest("You cannot create another default role.");
 
@@ -62,15 +64,16 @@ public class PlanetRoleApi
         return Results.Created($"api/roles/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/roles/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/planet/{planetId}/roles/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
-        [FromBody] PlanetRole role, 
-        long id,
+        [FromBody] PlanetRole role,
+        long planetId,
+        long roleId,
         PlanetMemberService memberService,
         PlanetRoleService roleService)
     {
-        var oldRole = await roleService.GetAsync(id);
+        var oldRole = await roleService.GetAsync(planetId, roleId);
         if (oldRole is null)
             return ValourResult.NotFound("Role not found.");
 
@@ -85,6 +88,9 @@ public class PlanetRoleApi
         if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
             return ValourResult.Forbid("You can only edit roles under your own.");
         
+        if (oldRole.IsDefault != role.IsDefault)
+            return ValourResult.BadRequest("You cannot change if a role is default.");
+        
         if ((oldRole.IsAdmin != role.IsAdmin) && !await memberService.IsAdminAsync(member.Id))
             return ValourResult.Forbid("Only an admin can change admin state of roles");
 
@@ -95,14 +101,15 @@ public class PlanetRoleApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/roles/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/planet/{planetId}/roles/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
-        long id,
+        long planetId,
+        long roleId,
         PlanetMemberService memberService,
         PlanetRoleService roleService)
     {
-        var role = await roleService.GetAsync(id);
+        var role = await roleService.GetAsync(planetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found.");
 
@@ -119,6 +126,9 @@ public class PlanetRoleApi
         
         if (role.IsAdmin && !await memberService.IsAdminAsync(member.Id))
             return ValourResult.Forbid("Only an admin can delete admin roles");
+        
+        if (role.IsDefault)
+            return ValourResult.BadRequest("You cannot delete the default role.");
 
         var result = await roleService.DeleteAsync(role);
         if (!result.Success)
@@ -128,14 +138,15 @@ public class PlanetRoleApi
 
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/roles/{id}/nodes")]
+    [ValourRoute(HttpVerbs.Get, "api/planet/{planetId}/roles/{roleId}/nodes")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetNodesRouteAsync(
-        long id,
+        long planetId,
+        long roleId,
         PlanetMemberService memberService,
         PlanetRoleService roleService)
     {
-        var role = await roleService.GetAsync(id);
+        var role = await roleService.GetAsync(planetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found.");
 
@@ -144,7 +155,7 @@ public class PlanetRoleApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        var nodes = await roleService.GetNodesAsync(role);
+        var nodes = await roleService.GetNodesAsync(roleId);
 
         return Results.Json(nodes);
 

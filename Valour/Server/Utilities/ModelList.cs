@@ -35,6 +35,20 @@ namespace Valour.Server.Utilities
             }
         }
         
+        /// <summary>
+        /// Be very careful using this due to multithreading issues
+        /// </summary>
+        public IReadOnlyList<TModel> InternalList
+        {
+            get
+            {
+                lock (Lock)
+                {
+                    return List;
+                }
+            }
+        }
+        
         public Dictionary<TId, TModel>.KeyCollection Ids
         {
             get

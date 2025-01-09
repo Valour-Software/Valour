@@ -248,7 +248,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// Returns the channel for the given id
     /// </summary>
     public ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false) =>
-        Client.ChannelService.FetchChannelAsync(id, skipCache);
+        Client.ChannelService.FetchDirectChannelAsync(id, skipCache);
 
 
     /// <summary>

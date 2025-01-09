@@ -23,6 +23,12 @@ public class PlanetMemberService
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
 
+    /// <summary>
+    /// A cached current member. It may not match the planet being requested (so check!) but it's
+    /// highly likely to be the same, so it makes sense to cache it.
+    /// </summary>
+    private PlanetMember _currentMember;
+    
     public PlanetMemberService(
         ValourDb db,
         CoreHubService coreHub,
@@ -54,11 +60,18 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetCurrentAsync(long planetId)
     {
+        if (_currentMember is not null && _currentMember.PlanetId == planetId)
+            return _currentMember;
+        
         var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null)
             return null;
 
-        return await GetByUserAsync(token.UserId, planetId);
+        var member =  await GetByUserAsync(token.UserId, planetId);
+        
+        _currentMember = member;
+        
+        return member;
     }
 
     /// <summary>

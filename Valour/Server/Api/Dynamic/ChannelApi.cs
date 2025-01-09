@@ -103,7 +103,7 @@ public class ChannelApi
             return ValourResult.Forbid("You do not have permission to delete this channel");
         }
 
-        var result = await channelService.DeleteAsync(id);
+        var result = await channelService.DeletePlanetChannelAsync(planetId, channelId);
         if (!result.Success)
         {
             return ValourResult.BadRequest(result.Message);
@@ -112,9 +112,10 @@ public class ChannelApi
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/channels")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels")]
     [UserRequired]
-    public static async Task<IResult> CreateAsync(
+    public static async Task<IResult> CreatePlanetChannelRouteAsync(
+        long planetId,
         [FromBody] CreateChannelRequest request,
         ChannelService channelService,
         TokenService tokenService,
@@ -125,6 +126,9 @@ public class ChannelApi
         
         if (channel is null)
             return ValourResult.BadRequest("Include channel in body");
+        
+        if (channel.PlanetId != planetId)
+            return ValourResult.BadRequest("Channel planet id does not match route planet id");
         
         var token = await tokenService.GetCurrentTokenAsync();
         
