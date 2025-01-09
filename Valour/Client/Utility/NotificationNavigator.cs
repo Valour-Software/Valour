@@ -35,7 +35,7 @@ public static class NotificationNavigator
             case NotificationSource.DirectMention:
             case NotificationSource.DirectReply:
             {
-                var channel = await client.ChannelService.FetchChannelAsync(notification.ChannelId!.Value);
+                var channel = await client.ChannelService.FetchDirectChannelAsync(notification.ChannelId!.Value);
                 if (channel is null)
                     break;
                 

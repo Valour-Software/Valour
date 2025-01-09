@@ -15,10 +15,10 @@ namespace Valour.Sdk.Models;
 public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
     public override string BaseRoute =>
-        ISharedPlanetRole.BaseRoute;
+        ISharedPlanetRole.GetBaseRoute(PlanetId);
 
     public override string IdRoute => 
-        ISharedPlanetRole.GetIdRoute(Id);
+        ISharedPlanetRole.GetIdRoute(PlanetId, Id);
 
     /// <summary>
     /// The id of the planet this belongs to
@@ -52,6 +52,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
         VoicePermissions = VoiceChannelPermissions.Default,
         AnyoneCanMention = false,
+        IsDefault = true
     };
 
     // Cached values

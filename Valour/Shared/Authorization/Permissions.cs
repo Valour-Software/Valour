@@ -125,9 +125,9 @@ public static class ChannelPermissions
     public const long ManageValue = 0x08;
     public const long PermissionsValue = 0x10;
     
-    public static readonly Permission View;
-    public static readonly Permission Manage;
-    public static readonly Permission ManagePermissions;
+    public static readonly ChannelPermission View;
+    public static readonly ChannelPermission Manage;
+    public static readonly ChannelPermission ManagePermissions;
     
     static ChannelPermissions() 
     {

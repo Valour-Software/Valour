@@ -45,7 +45,7 @@ public class PermissionService : ServiceBase
     
     public async Task<List<PermissionsNode>> FetchPermissionsNodesByRoleAsync(long roleId, Planet planet)
     {
-        var permissionNodes = (await planet.Node.GetJsonAsync<List<PermissionsNode>>($"{ISharedPlanetRole.GetIdRoute(roleId)}/nodes")).Data;
+        var permissionNodes = (await planet.Node.GetJsonAsync<List<PermissionsNode>>($"{ISharedPlanetRole.GetIdRoute(planet.Id, roleId)}/nodes")).Data;
         return permissionNodes.SyncAll(_cache);
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Valour.Server.Database;
+using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -216,7 +217,7 @@ public class PlanetService
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
     /// </summary>
-    public async Task<List<Channel>> GetMemberChannelsAsync(PlanetMember member) =>
+    public async Task<SortedServerModelList<Channel,long>> GetMemberChannelsAsync(PlanetMember member) =>
       await _permissionService.GetChannelAccessAsync(member);
     
     /// <summary>
