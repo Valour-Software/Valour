@@ -30,6 +30,17 @@ public class ChannelPermissionCache
         channelKeys.Add(channelKey);
     }
     
+    public void Remove(long roleKey, long channelKey)
+    {
+        if (_cache.TryRemove(channelKey, out _))
+        {
+            if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var keys))
+            {
+                keys.Remove(channelKey);
+            }
+        }
+    }
+    
     public void ClearCacheForCombo(long roleKey)
     {
         if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var keys))
@@ -74,6 +85,12 @@ public class PlanetPermissionsCache
     /// Cache for planet level permissions by role combination
     /// </summary>
     private readonly ConcurrentDictionary<long, long?> _planetPermissionsCache = new();
+    
+    /// <summary>
+    /// Maps a role to all known role combinations that include it
+    /// </summary>
+    private readonly ConcurrentDictionary<long, List<long>> _rolesToCombos = new();
+    private readonly ConcurrentDictionary<long, object> _roleToCombosLocks = new();
     
     public PlanetPermissionsCache()
     {
@@ -142,6 +159,12 @@ public class PlanetPermissionsCache
             cache.ClearCacheForCombo(roleKey);
         }
     }
+    
+    public void ClearCacheForComboInChannel(long roleKey, long channelKey, ChannelTypeEnum type)
+    {
+        var cache = GetChannelCache(type);
+        cache.Remove(roleKey, channelKey);
+    }
         
     public void Clear()
     {
@@ -171,5 +194,46 @@ public class PlanetPermissionsCache
     public void SetPlanetPermissions(long roleKey, long permissions)
     {
         _planetPermissionsCache[roleKey] = permissions;
+    }
+    
+    /// <summary>
+    /// Add a known role combination to the cache for a role
+    /// </summary>
+    public void AddKnownComboToRole(long roleId, long comboKey)
+    {
+        var lockObj = _roleToCombosLocks.GetOrAdd(roleId, _ => new object());
+        lock (lockObj)
+        {
+            if (!_rolesToCombos.TryGetValue(roleId, out var combos))
+            {
+                combos = new List<long>();
+                _rolesToCombos[roleId] = combos;
+            }
+            combos.Add(comboKey);
+        }
+    }
+    
+    /// <summary>
+    /// Add a known role combination to the cache for multiple roles
+    /// </summary>
+    public void AddKnownComboToRoles(IEnumerable<long> roleIds, long comboKey)
+    {
+        foreach (var roleId in roleIds)
+        {
+            AddKnownComboToRole(roleId, comboKey);
+        }
+    }
+    
+    
+    /// <summary>
+    /// Get all known role combinations that include the given role
+    /// </summary>
+    public List<long>? GetCombosForRole(long roleId)
+    {
+        var lockObj = _roleToCombosLocks.GetOrAdd(roleId, _ => new object());
+        lock (lockObj)
+        {
+            return _rolesToCombos.GetValueOrDefault(roleId).ToList(); // Copy to avoid threading issues
+        }
     }
 }

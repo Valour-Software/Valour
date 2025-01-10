@@ -11,6 +11,7 @@ public class PlanetRoleService
     private readonly ILogger<PlanetRoleService> _logger;
     private readonly CoreHubService _coreHub;
     private readonly HostedPlanetService _hostedService;
+    private readonly PlanetPermissionService _permissionService;
 
     public PlanetRoleService(
         ValourDb db,
@@ -45,16 +46,15 @@ public class PlanetRoleService
 
         role.Position = (uint)await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId && !x.IsDefault);
         role.Id = IdManager.Generate();
-
-
-    try
-    {
+        
+        try
+        {
             await _db.AddAsync(role.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError("Error saving role to database: {Error}", e.Message);
             return new(false, e.Message);
         }
 
@@ -79,9 +79,6 @@ public class PlanetRoleService
         if (updatedRole.IsDefault != oldRole.IsDefault)
             return new TaskResult<PlanetRole>(false, "Cannot change default status of role.");
         
-        if (updatedRole.IsOwner != oldRole.IsOwner)
-            return new TaskResult<PlanetRole>(false, "Cannot change owner status of role.");
-
         if (string.IsNullOrWhiteSpace(updatedRole.Color))
             updatedRole.Color = "#ffffff";
         
@@ -93,25 +90,17 @@ public class PlanetRoleService
         
         var trans = await _db.Database.BeginTransactionAsync();
 
+        // If any permissions or admin state changed, we need to recalculate permissions
+        var updatePerms = (updatedRole.IsAdmin != oldRole.IsAdmin ||
+                           updatedRole.Permissions != oldRole.Permissions ||
+                           updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
+                           updatedRole.ChatPermissions != oldRole.ChatPermissions ||
+                           updatedRole.VoicePermissions != oldRole.VoicePermissions);
+        
         try
         {
-            // If any permissions or admin state changed, we need to recalculate access
-            var updateAccess = (updatedRole.IsAdmin != oldRole.IsAdmin ||
-                                updatedRole.Permissions != oldRole.Permissions ||
-                                updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
-                                updatedRole.ChatPermissions != oldRole.ChatPermissions ||
-                                updatedRole.VoicePermissions != oldRole.VoicePermissions);
-            
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
             await _db.SaveChangesAsync();
-            
-            // Check if any permissions were changed
-            if (updateAccess)
-            {
-                // Recalculate access
-                await _accessService.UpdateAllChannelAccessForMembersInRole(oldRole.Id);
-                await _db.SaveChangesAsync();
-            }
 
             await trans.CommitAsync();
         }
@@ -120,6 +109,15 @@ public class PlanetRoleService
             await trans.RollbackAsync();
             _logger.LogError(e.Message);
             return new(false, e.Message);
+        }
+        
+        // Update in cache
+        hostedPlanet.UpsertRole(updatedRole);
+        
+        // If any permissions were changed
+        if (updatePerms)
+        {
+            await _permissionService.HandleRoleChange(updatedRole);
         }
 
         _coreHub.NotifyPlanetItemChange(updatedRole);
@@ -164,10 +162,6 @@ public class PlanetRoleService
 
             await _db.SaveChangesAsync();
             
-            // Recalculate access
-            await _accessService.UpdateAllChannelAccessForMembersInRole(role.Id);
-            await _db.SaveChangesAsync();
-            
             // Remove all members
             var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
             _db.PlanetRoleMembers.RemoveRange(members);
@@ -186,6 +180,9 @@ public class PlanetRoleService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
+        
+        // Update permissions related to the role
+        await _permissionService.HandleRoleChange(role);
         
         // Remove from hosted cache
         hostedPlanet.RemoveRole(role.Id);

@@ -93,6 +93,35 @@ public class PlanetPermissionService
     }
 
     /// <summary>
+    /// Handle a change in a permissions node for channel
+    /// </summary>
+    public async Task HandleNodeChange(PermissionsNode node)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(node.PlanetId);
+        
+        // Get all combinations in use that contain this role
+        var roleCombos = hostedPlanet.PermissionCache.GetCombosForRole(node.RoleId);
+        
+        // Unlike an entire role being changed, we only need to update for the specific channel
+        // that the node is for
+        
+        if (roleCombos is null)
+        {
+            // Nothing was generated for this role (yet) so we have nothing to do
+            return;
+        }
+        
+        // nodes only handle one permission type
+        var cache = hostedPlanet.PermissionCache.GetChannelCache(node.TargetType);
+        
+        foreach (var roleKey in roleCombos)
+        {
+            var channelKey = GetRoleChannelComboKey(roleKey, node.TargetId);
+            cache.Remove(roleKey, channelKey);
+        }
+    }
+
+    /// <summary>
     /// Updates access and permissions for all combinations with the given role
     /// </summary>
     public async Task HandleRoleChange(PlanetRole role)
@@ -100,11 +129,21 @@ public class PlanetPermissionService
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(role.PlanetId);
         
         // Get all combinations in use that contain this role
+        var roleCombos = hostedPlanet.PermissionCache.GetCombosForRole(role.Id);
+
+        if (roleCombos is null)
+        {
+            // Nothing was generated for this role (yet) so we have nothing to clean
+            return;
+        }
+        
+        /*
         var roleCombos = await _db.PlanetMembers
             .Where(x => x.RoleMembership.Any(y => y.RoleId == role.Id))
             .Select(x => x.RoleHashKey)
             .Distinct()
             .ToArrayAsync();
+        */
         
         // Clear all cached channel accesses and permissions for these role combos
         foreach (var roleKey in roleCombos)
@@ -204,11 +243,24 @@ public class PlanetPermissionService
         foreach (var roleId in roleMembership)
         {
             var role = hostedPlanet.GetRole(roleId);
+            
+            // Ok, this CAN happen. If a role is deleted, it will still be in the role membership.
+            // We just don't add it to the calculation. It shouldn't affect the result, and rebuilding
+            // the role combos is not worth the performance hit.
+            /*
             if (role is null)
             {
                 // This should never happen
                 throw new Exception("Role not found in hosted planet roles!");  
             }
+            */
+            
+            if (role is null)
+                continue;
+            
+            // Ensure we have linked the role to the combo
+            // This allows us to get all the role combos that include this role later
+            hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
             
             // If admin, they can access all channels
             if (role.IsAdmin)
@@ -303,11 +355,21 @@ public class PlanetPermissionService
         foreach (var roleId in roleMembership)
         {
             var role = hostedPlanet.GetRole(roleId);
+            
+            /*
             if (role is null)
             {
                 // This should never happen
                 throw new Exception("Role not found in hosted planet roles!");  
             }
+            */
+            
+            if (role is null)
+                continue;
+            
+            // Ensure we have linked the role to the combo
+            // This allows us to get all the role combos that include this role later
+            hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
             
             // If admin, they can access all channels
             if (role.IsAdmin)
