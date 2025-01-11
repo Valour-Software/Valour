@@ -521,8 +521,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     }
 
     /// <summary>
-    /// Returns the list of users in the channel but DO NOT use this for
-    /// planet channels please we will figure that out soon
+    /// Returns the list of users in the channel
     /// </summary>
     public async Task<List<User>> GetChannelMemberUsersAsync(bool refresh = false)
     {

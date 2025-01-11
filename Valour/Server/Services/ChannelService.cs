@@ -41,6 +41,19 @@ public class ChannelService
         var channel = hostedPlanet.GetChannel(channelId);
         return channel;
     }
+    
+    public async ValueTask<Channel?> GetDirectChannelAsync(long channelId)
+    {
+        var channel = await _db.Channels.FindAsync(channelId);
+        if (channel is null)
+            return null;
+        
+        // Prevent use for planet channels
+        if (channel.PlanetId is not null)
+            return null;
+        
+        return channel?.ToModel();
+    }
 
     /// <summary>
     /// Given two user ids, returns the direct chat channel between them
@@ -410,40 +423,32 @@ public class ChannelService
     /// <summary>
     /// Returns if the given user id has access to the given channel
     /// </summary>
-    public async Task<bool> HasAccessAsync(Channel channel, long userId)
+    public async Task<bool> HasDirectChannelAccessAsync(Channel channel, long userId)
     {
-        // Direct messages access
-        if (channel.PlanetId is null)
+        if (channel.PlanetId is not null)
         {
-            return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
+            return false;
         }
-        else
-        {
-            var planetMember = await _memberService.GetByUserAsync(userId, channel.PlanetId.Value);
-            if (planetMember is null)
-                return false;
-            
-            return await _planetPermissionService.HasChannelAccessAsync(planetMember, channel.Id);
-        }
+        
+        return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
     }
     
-    public async Task<bool> HasAccessAsync(Channel channel, PlanetMember member)
+    public async Task<bool> HasPlanetChannelAccessAsync(Channel channel, PlanetMember member)
     {
         if (channel.PlanetId is null)
         {
-            return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == member.UserId);
+            return false;
         }
-        else
-        {
-            return await _planetPermissionService.HasChannelAccessAsync(member, channel.Id);
-        }
+        
+        return await _planetPermissionService.HasChannelAccessAsync(member, channel.Id);
+        
     }
     
     /// <summary>
     /// Returns the channel members for a given channel id,
     /// which is NOT planet members
     /// </summary>
-    public Task<List<User>> GetMembersNonPlanetAsync(long channelId)
+    public Task<List<User>> GetDirectChannelMembersAsync(long channelId)
     {
         return _db.ChannelMembers.Include(x => x.User)
             .Where(x => x.ChannelId == channelId)

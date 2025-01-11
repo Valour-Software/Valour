@@ -148,7 +148,7 @@ public class ChannelApi
         // Check permission for the category we are inserting into
         if (channel.ParentId is not null)
         {
-            var parent = await channelService.GetPlanetChannelAsync(channel.ParentId.Value);
+            var parent = await channelService.GetPlanetChannelAsync(planetId, channel.ParentId.Value);
             if (parent is null || parent.ChannelType != ChannelTypeEnum.PlanetCategory)
             {
                 return ValourResult.BadRequest("Invalid parent id");
@@ -166,7 +166,7 @@ public class ChannelApi
             
             foreach (var node in request.Nodes)
             {
-                var role = await roleService.GetAsync(node.RoleId);
+                var role = await roleService.GetAsync(planetId, node.RoleId);
                 if (memberAuthority < role.GetAuthority())
                 {
                     return ValourResult.Forbid("A permission node's role cannot have higher authority than the member creating it");
@@ -215,14 +215,15 @@ public class ChannelApi
         return Results.Json(channels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/children")]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/children")]
     [UserRequired]
     public static async Task<IResult> GetChildrenAsync(
+        long planetId,
         long channelId,
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetPlanetChannelAsync(channelId);
+        var channel = await channelService.GetPlanetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -259,20 +260,21 @@ public class ChannelApi
         return Results.Json(nodes);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/nonPlanetMembers")]
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/{channelId}/members")]
     [UserRequired]
-    // Note: DOES NOT RETURN PLANET MEMBERS!
-    public static async Task<IResult> GetChannelMembersAsync(
+    public static async Task<IResult> GetDirectChannelMembersAsync(
         long channelId,
         ChannelService channelService,
         TokenService tokenService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
-        if (!await channelService.IsMemberAsync(channelId, token.UserId))
+        var channel = await channelService.GetDirectChatAsync(channelId);
+        
+        if (!await channelService.HasAccessAsync(channelId, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
 
-        return Results.Json(await channelService.GetMembersNonPlanetAsync(channelId));
+        return Results.Json(await channelService.GetDirectChannelMembersAsync(channelId));
     }
     
     [ValourRoute(HttpVerbs.Post, "api/channels/{id}/typing")]
