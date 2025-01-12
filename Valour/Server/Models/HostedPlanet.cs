@@ -15,6 +15,7 @@ public class HostedPlanet : ServerModel<long>
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
     public readonly PlanetPermissionsCache PermissionCache = new();
+    public readonly ChannelChatCache ChatCache = new();
 
     private Channel _defaultChannel;
     private PlanetRole _defaultRole;

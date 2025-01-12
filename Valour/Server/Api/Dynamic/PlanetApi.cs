@@ -227,28 +227,42 @@ public class PlanetApi
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetRoleOrderRouteAsync(
-        [FromBody] List<long> order,
-        long id,
+        [FromBody] long[] order,
+        long planetId,
         PlanetMemberService memberService,
         PlanetService planetService,
         PlanetRoleService roleService)
     {
-        // Remove duplicates
-        order = order.Distinct().ToList();
+        if (order.Length > 256)
+            return ValourResult.BadRequest("Too many roles in order.");
+        
+        // Check for duplicates
+        for (var i = 0; i < order.Length; i++)
+        {
+            var a = order[i];
+            
+            for (var j = i + 1; j < order.Length; j++)
+            {
+                var b = order[j];
+                
+                if (a == b)
+                {
+                    return ValourResult.BadRequest($"Duplicate role in order ({a})");
+                }
+            }
+        }
 
-        var member = await memberService.GetCurrentAsync(id);
+        var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         var authority = await memberService.GetAuthorityAsync(member);
-
-        List<long> newList = new();
-
+        
         // Make sure that there is permission for any changes
         var pos = 0;
         foreach (var roleId in order)
         {
-            var role = await roleService.GetAsync(roleId);
+            var role = await roleService.GetAsync(planetId, roleId);
             if (role is null)
                 return ValourResult.BadRequest("One or more of the given roles does not exist.");
 
@@ -260,13 +274,14 @@ public class PlanetApi
             // Only need to check permission if the position is being changed
             if (pos != role.Position && role.GetAuthority() >= authority)
                 return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");
-
-            newList.Add(role.Id);
-
+            
+            if (role.IsDefault && pos != order.Length - 1)
+                return ValourResult.Forbid("The default role must be last in the order.");
+            
             pos++;
         }
 
-        var result = await planetService.SetRoleOrderAsync(id, newList);
+        var result = await planetService.SetRoleOrderAsync(planetId, order);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
         
@@ -377,7 +392,7 @@ public class PlanetApi
         return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/planetChannels/insert")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/insert")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> InsertChildRouteAsync(
         [FromBody] InsertChannelChildModel model,
@@ -397,7 +412,7 @@ public class PlanetApi
         if (model.ParentId is not null)
         {
             // Get the category
-            var category = await channelService.GetChannelAsync(model.ParentId.Value);
+            var category = await channelService.GetChannelAsync(planetId, model.ParentId.Value);
             if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
@@ -406,14 +421,14 @@ public class PlanetApi
         }
 
         // If the child currently belongs to another category (not planet), we need to check permissions for it
-        var inserting = await channelService.GetChannelAsync(model.InsertId);
+        var inserting = await channelService.GetChannelAsync(planetId, model.InsertId);
         if (inserting.ParentId == model.ParentId)
             return ValourResult.BadRequest("Channel is already in this category.");
         
         // We need to get the old category and ensure we have permissions in it
         if (inserting.ParentId is not null)
         {
-            var oldCategory = await channelService.GetChannelAsync(inserting.ParentId.Value);
+            var oldCategory = await channelService.GetChannelAsync(planetId, inserting.ParentId.Value);
             if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
@@ -427,7 +442,7 @@ public class PlanetApi
         return ValourResult.Ok("Success");
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/planetChannels/order")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetChildOrderRouteAsync(
         [FromBody] OrderChannelsModel model,
@@ -446,7 +461,7 @@ public class PlanetApi
         // Get the category
         if (model.CategoryId is not null)
         {
-            var category = await channelService.GetChannelAsync(model.CategoryId.Value);
+            var category = await channelService.GetChannelAsync(planetId, model.CategoryId.Value);
             if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
@@ -466,7 +481,7 @@ public class PlanetApi
         //var pos = 0;
         foreach (var childId in model.Order)
         {
-            var child = await channelService.GetChannelAsync(childId);
+            var child = await channelService.GetChannelAsync(planetId, childId);
             if (child is null)
                 return ValourResult.NotFound($"Child {childId} not found");
 

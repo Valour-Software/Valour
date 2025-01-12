@@ -178,12 +178,12 @@ public class UserApi
     [ValourRoute(HttpVerbs.Get, "api/users/me/statedata")]
     public static async Task<IResult> ChannelStateDataRouteAsync(
         UserService userService,
-        ChannelStateService channelStateService)
+        UnreadService unreadService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
         
         var userChannelStates = (await userService.GetUserChannelStatesAsync(userId)).ToDictionary(x => x.ChannelId);
-        var channelStates = await channelStateService.GetChannelStates(userId);
+        var channelStates = await unreadService.GetChannelStates(userId);
 
         List<ChannelStateData> stateData = new();
 

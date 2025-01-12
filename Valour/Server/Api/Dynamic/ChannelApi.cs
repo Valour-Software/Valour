@@ -307,7 +307,7 @@ public class ChannelApi
         long? planetId,
         long channelId,
         [FromBody] UpdateUserChannelStateRequest request,
-        ChannelStateService stateService,
+        UnreadService stateService,
         ChannelService channelService,
         TokenService tokenService)
     {
@@ -322,7 +322,7 @@ public class ChannelApi
             return ValourResult.Forbid("You are not a member of this channel");
         }
 
-        var updated = await stateService.UpdateUserChannelState(channelId, token.UserId, request.UpdateTime);
+        var updated = await stateService.UpdateReadState(channelId, token.UserId, request.UpdateTime);
 
         return ValourResult.Json(updated);
     }

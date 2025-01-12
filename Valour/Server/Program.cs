@@ -329,7 +329,7 @@ namespace Valour.Server
             services.AddScoped<UserFriendService>();
             services.AddScoped<UserOnlineService>();
             services.AddScoped<UserService>();
-            services.AddScoped<ChannelStateService>();
+            services.AddScoped<UnreadService>();
             services.AddScoped<EcoService>();
             services.AddScoped<NotificationService>();
             services.AddScoped<ReportService>();

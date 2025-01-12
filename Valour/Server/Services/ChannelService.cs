@@ -39,7 +39,7 @@ public class ChannelService
     {
         if (planetId is not null)
         {
-            var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+            var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId.Value);
             var channel = hostedPlanet.GetChannel(channelId);
             return channel;
         }

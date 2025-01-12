@@ -30,6 +30,11 @@ namespace Valour.Database
         /// Subscriptions this user has or had
         /// </summary>
         public virtual ICollection<UserSubscription> Subscriptions { get; set; }
+        
+        /// <summary>
+        /// Channel states for this user.
+        /// </summary>
+        public virtual ICollection<UserChannelState> ChannelStates { get; set; }
 
         ///////////////////////
         // Entity Properties //

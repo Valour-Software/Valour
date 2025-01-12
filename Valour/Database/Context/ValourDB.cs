@@ -45,6 +45,7 @@ public class ValourDb : DbContext
         Message.SetupDbModel(modelBuilder);
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);
+        UserChannelState.SetupDbModel(modelBuilder);
     }
 
     // These are the database sets we can access
@@ -178,8 +179,6 @@ public class ValourDb : DbContext
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
     
-    public DbSet<ChannelState> ChannelStates { get; set; }
-
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }

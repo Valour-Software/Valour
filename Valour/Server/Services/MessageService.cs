@@ -17,7 +17,7 @@ public class MessageService
     private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ChannelService _channelService;
     private readonly NotificationService _notificationService;
-    private readonly ChannelStateService _stateService;
+    private readonly UnreadService _stateService;
     private readonly CoreHubService _coreHubService;
     private readonly HttpClient _http;
 
@@ -26,7 +26,7 @@ public class MessageService
         ValourDb db, 
         NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService, 
-        ChannelStateService stateService,
+        UnreadService stateService,
         IHttpClientFactory http, 
         CoreHubService coreHubService, 
         ChannelService channelService)

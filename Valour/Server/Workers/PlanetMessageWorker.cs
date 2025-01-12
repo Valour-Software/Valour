@@ -156,7 +156,7 @@ namespace Valour.Server.Workers
             // and does not insert into the database, so it should be fine.
             await using var scope = _serviceProvider.CreateAsyncScope();
             var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
-            var stateService = scope.ServiceProvider.GetRequiredService<ChannelStateService>();
+            var stateService = scope.ServiceProvider.GetRequiredService<UnreadService>();
             
             // This is ONLY READ FROM
             var dbService = scope.ServiceProvider.GetRequiredService<ValourDb>();

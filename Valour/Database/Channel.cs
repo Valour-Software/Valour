@@ -26,6 +26,8 @@ public class Channel : ISharedChannel
     [InverseProperty("Channel")]
     public virtual List<Message> Messages { get; set; }
     
+    public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

@@ -616,10 +616,10 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     }
 
 public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
-        await Node.PostAsync($"{IdRoute}/planetChannels/order", model);
+        await Node.PostAsync($"{IdRoute}/channels/order", model);
 
     public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
-        await Node.PostAsync($"{IdRoute}/planetChannels/insert", model);
+        await Node.PostAsync($"{IdRoute}/channels/insert", model);
 
     public ModelQueryEngine<EcoAccount> GetSharedAccountQueryEngine() =>
         Client.EcoService.GetSharedAccountQueryEngine(this);

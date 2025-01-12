@@ -11,7 +11,6 @@ public class MessageApi
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostMessageRouteAsync(
         [FromBody] Message message, 
-        long channelId,
         MessageService messageService,
         ChannelService channelService,
         PlanetMemberService memberService,
@@ -24,7 +23,7 @@ public class MessageApi
         if (message is null)
             return ValourResult.BadRequest("Include message in body");
         
-        var channel = await channelService.GetChannelAsync(channelId);
+        var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
         
@@ -35,7 +34,7 @@ public class MessageApi
         {
             if (!token.HasScope(UserPermissions.DirectMessages))
             {
-                return ValourResult.Forbid("Token lacks permission to post messages in direct chat channels");
+                return ValourResult.Forbid("Token lacks permission for direct messages");
             }
         }
         
@@ -76,9 +75,9 @@ public class MessageApi
                 {
                     foreach (var mention in mentions)
                     {
-                        if (mention.Type == MentionType.Role)
+                        if (channel.PlanetId is not null && mention.Type == MentionType.Role)
                         {
-                            var role = await roleService.GetAsync(mention.TargetId);
+                            var role = await roleService.GetAsync(channel.PlanetId.Value, mention.TargetId);
                             if (role is null)
                                 return ValourResult.BadRequest("Invalid role mention");
 
@@ -173,7 +172,7 @@ public class MessageApi
             if (member is null)
                 return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
 
-            var channel = await channelService.GetChannelAsync(message.ChannelId);
+            var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
 
             if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageMessages))
             {
@@ -205,7 +204,10 @@ public class MessageApi
         if (message is null)
             return ValourResult.NotFound<Message>();
         
-        var channel = await channelService.GetChannelAsync(message.ChannelId);
+        var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+        
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
         
