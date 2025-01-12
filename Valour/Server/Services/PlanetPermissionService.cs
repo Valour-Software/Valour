@@ -491,14 +491,25 @@ public class PlanetPermissionService
             .OrderByDescending(x => x.Role.Position)
             .ToListAsync();
 
-        if (permNodes.Count == 0)
+        long permissions = 0; // Start with no permissions
+        
+        // Apply role base permissions
+        var topRole = roles.Last();
+        switch (targetType)
         {
-            // Something is wrong
-            throw new Exception("No permissions nodes found for permission check!");
+            case ChannelTypeEnum.PlanetChat:
+                permissions = topRole.ChatPermissions;
+                break;
+            case ChannelTypeEnum.PlanetCategory:
+                permissions = topRole.CategoryPermissions;
+                break;
+            case ChannelTypeEnum.PlanetVoice:
+                permissions = topRole.VoicePermissions;
+                break;
+            default:
+                throw new Exception("PlanetPermissionService: Invalid channel type!");
         }
         
-        long permissions = 0; // Start with no permissions
-
         // Assuming permNodes is ordered from weakest to strongest:
         foreach (var node in permNodes)
         {
