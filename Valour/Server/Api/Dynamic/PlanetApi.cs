@@ -397,7 +397,7 @@ public class PlanetApi
         if (model.ParentId is not null)
         {
             // Get the category
-            var category = await channelService.GetPlanetChannelAsync(model.ParentId.Value);
+            var category = await channelService.GetChannelAsync(model.ParentId.Value);
             if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
@@ -406,14 +406,14 @@ public class PlanetApi
         }
 
         // If the child currently belongs to another category (not planet), we need to check permissions for it
-        var inserting = await channelService.GetPlanetChannelAsync(model.InsertId);
+        var inserting = await channelService.GetChannelAsync(model.InsertId);
         if (inserting.ParentId == model.ParentId)
             return ValourResult.BadRequest("Channel is already in this category.");
         
         // We need to get the old category and ensure we have permissions in it
         if (inserting.ParentId is not null)
         {
-            var oldCategory = await channelService.GetPlanetChannelAsync(inserting.ParentId.Value);
+            var oldCategory = await channelService.GetChannelAsync(inserting.ParentId.Value);
             if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
@@ -446,7 +446,7 @@ public class PlanetApi
         // Get the category
         if (model.CategoryId is not null)
         {
-            var category = await channelService.GetPlanetChannelAsync(model.CategoryId.Value);
+            var category = await channelService.GetChannelAsync(model.CategoryId.Value);
             if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
@@ -466,7 +466,7 @@ public class PlanetApi
         //var pos = 0;
         foreach (var childId in model.Order)
         {
-            var child = await channelService.GetPlanetChannelAsync(childId);
+            var child = await channelService.GetChannelAsync(childId);
             if (child is null)
                 return ValourResult.NotFound($"Child {childId} not found");
 

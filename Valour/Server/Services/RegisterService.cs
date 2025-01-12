@@ -253,7 +253,7 @@ public class RegisterService
             }
 
             // Send direct message from Victor to user
-            var victorDm = await _channelService.GetDirectChatAsync(user.Id, ISharedUser.VictorUserId, true);
+            var victorDm = await _channelService.GetDirectChannelByUsersAsync(user.Id, ISharedUser.VictorUserId, true);
 
             var victorMessage = await _messageService.PostMessageAsync(new Message()
             {

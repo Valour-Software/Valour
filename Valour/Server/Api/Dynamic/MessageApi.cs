@@ -24,7 +24,7 @@ public class MessageApi
         if (message is null)
             return ValourResult.BadRequest("Include message in body");
         
-        var channel = await channelService.GetPlanetChannelAsync(channelId);
+        var channel = await channelService.GetChannelAsync(channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
         
@@ -173,7 +173,7 @@ public class MessageApi
             if (member is null)
                 return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
 
-            var channel = await channelService.GetPlanetChannelAsync(message.ChannelId);
+            var channel = await channelService.GetChannelAsync(message.ChannelId);
 
             if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageMessages))
             {
@@ -205,7 +205,7 @@ public class MessageApi
         if (message is null)
             return ValourResult.NotFound<Message>();
         
-        var channel = await channelService.GetPlanetChannelAsync(message.ChannelId);
+        var channel = await channelService.GetChannelAsync(message.ChannelId);
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
         

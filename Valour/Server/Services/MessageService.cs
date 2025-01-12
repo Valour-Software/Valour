@@ -459,7 +459,7 @@ public class MessageService
     
     public async Task<List<Message>> GetChannelMessagesAsync(long channelId, int count = 50, long index = long.MaxValue)
     {
-        var channel = await _channelService.GetPlanetChannelAsync(channelId);
+        var channel = await _channelService.GetChannelAsync(channelId);
         if (channel is null)
             return null;
         

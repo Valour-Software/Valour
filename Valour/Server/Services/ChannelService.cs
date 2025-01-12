@@ -35,30 +35,32 @@ public class ChannelService
     /// <summary>
     /// Returns the channel with the given id
     /// </summary>
-    public async ValueTask<Channel?> GetPlanetChannelAsync(long planetId, long channelId)
+    public async ValueTask<Channel?> GetChannelAsync(long? planetId, long channelId)
     {
-        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-        var channel = hostedPlanet.GetChannel(channelId);
-        return channel;
-    }
-    
-    public async ValueTask<Channel?> GetDirectChannelAsync(long channelId)
-    {
-        var channel = await _db.Channels.FindAsync(channelId);
-        if (channel is null)
-            return null;
+        if (planetId is not null)
+        {
+            var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+            var channel = hostedPlanet.GetChannel(channelId);
+            return channel;
+        }
+        else
+        {
+            var channel = await _db.Channels.FindAsync(channelId);
+            if (channel is null)
+                return null;
+            
+            // Require planet up front
+            if (channel.PlanetId is not null)
+                return null;
         
-        // Prevent use for planet channels
-        if (channel.PlanetId is not null)
-            return null;
-        
-        return channel?.ToModel();
+            return channel?.ToModel();
+        }
     }
 
     /// <summary>
     /// Given two user ids, returns the direct chat channel between them
     /// </summary>
-    public async ValueTask<Channel?> GetDirectChatAsync(long userOneId, long userTwoId, bool create = true)
+    public async ValueTask<Channel?> GetDirectChannelByUsersAsync(long userOneId, long userTwoId, bool create = true)
     {
         var channel = await _db.Channels
             .AsNoTracking()
@@ -419,29 +421,18 @@ public class ChannelService
     public async Task<bool> IsLastCategory(long categoryId) =>
         await _db.Channels.CountAsync(x => x.PlanetId == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
     
-    
-    /// <summary>
-    /// Returns if the given user id has access to the given channel
-    /// </summary>
-    public async Task<bool> HasDirectChannelAccessAsync(Channel channel, long userId)
+    public async Task<bool> HasAccessAsync(Channel channel, long userId)
     {
         if (channel.PlanetId is not null)
         {
-            return false;
+            var member = await _memberService.GetCurrentAsync(userId);
+            if (member is null)
+                return false;
+            
+            return await _planetPermissionService.HasChannelAccessAsync(member, channel.Id);
         }
         
         return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
-    }
-    
-    public async Task<bool> HasPlanetChannelAccessAsync(Channel channel, PlanetMember member)
-    {
-        if (channel.PlanetId is null)
-        {
-            return false;
-        }
-        
-        return await _planetPermissionService.HasChannelAccessAsync(member, channel.Id);
-        
     }
     
     /// <summary>

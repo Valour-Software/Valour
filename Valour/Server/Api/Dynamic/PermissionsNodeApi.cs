@@ -136,7 +136,7 @@ public class PermissionsNodeApi
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var target = await channelService.GetPlanetChannelAsync(node.PlanetId, node.TargetId);
+        var target = await channelService.GetChannelAsync(node.PlanetId, node.TargetId);
         if (target is null)
             return ValourResult.NotFound<Channel>();
 

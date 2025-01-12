@@ -78,8 +78,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public Channel Parent { get; set; }
     
-    public override string BaseRoute => PlanetId is null ? 
-        ISharedChannel.DirectBaseRoute : ISharedChannel.GetIdRoute(PlanetId.Value, Id);
+    public override string BaseRoute => ISharedChannel.GetIdRoute(this);
 
     /////////////////////////////////
     // Shared between all channels //

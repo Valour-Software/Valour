@@ -10,29 +10,22 @@ namespace Valour.Server.Api.Dynamic;
 public class ChannelApi
 {
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}")]
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/{channelId}")]
     [UserRequired]
-    public static async Task<IResult> GetPlanetChannelRouteAsync(
-        long planetId,
+    public static async Task<IResult> GetChannelRouteAsync(
+        long? planetId,
         long channelId,
         ChannelService channelService,
         TokenService tokenService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
-        var channel = await channelService.GetPlanetChannelAsync(planetId, channelId);
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound<Channel>();
-
+        
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
-        
-        if (channel.ChannelType == ChannelTypeEnum.DirectChat)
-        {
-            if (!token.HasScope(UserPermissions.DirectMessages))
-            {
-                return ValourResult.Forbid("Token lacks permission to post messages in direct chat channels");
-            }
-        }
         
         return Results.Json(channel);
     }
@@ -49,7 +42,7 @@ public class ChannelApi
         if (updated.Id != channelId)
             return ValourResult.BadRequest("Channel id in body does not match channel id in route");
         
-        var old = await channelService.GetPlanetChannelAsync(planetId, channelId);
+        var old = await channelService.GetChannelAsync(planetId, channelId);
         if (old is null)
             return ValourResult.NotFound<Channel>();
 
@@ -85,7 +78,7 @@ public class ChannelApi
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetPlanetChannelAsync(planetId, channelId);
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -148,7 +141,7 @@ public class ChannelApi
         // Check permission for the category we are inserting into
         if (channel.ParentId is not null)
         {
-            var parent = await channelService.GetPlanetChannelAsync(planetId, channel.ParentId.Value);
+            var parent = await channelService.GetChannelAsync(planetId, channel.ParentId.Value);
             if (parent is null || parent.ChannelType != ChannelTypeEnum.PlanetCategory)
             {
                 return ValourResult.BadRequest("Invalid parent id");
@@ -183,7 +176,7 @@ public class ChannelApi
         return Results.Json(result.Data);
     }
     
-    [ValourRoute(HttpVerbs.Get, "api/channels/direct/{otherUserId}")]
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/byUser/{otherUserId}")]
     [UserRequired(UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetDirectRouteAsync(
         long otherUserId,
@@ -193,7 +186,7 @@ public class ChannelApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
         
-        var channel = await channelService.GetDirectChatAsync(userId, otherUserId, create);
+        var channel = await channelService.GetDirectChannelByUsersAsync(userId, otherUserId, create);
         if (channel is null)
             return ValourResult.NotFound<Channel>();
 
@@ -223,7 +216,7 @@ public class ChannelApi
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetPlanetChannelAsync(planetId, channelId);
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -238,14 +231,15 @@ public class ChannelApi
         return Results.Json(children);
     }
     
-    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/nodes")]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/nodes")]
     [UserRequired]
     public static async Task<IResult> GetNodesAsync(
+        long planetId,
         long channelId,
         ChannelService channelService,
         PlanetMemberService memberService)
     {
-        var channel = await channelService.GetPlanetChannelAsync(channelId);
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
@@ -269,43 +263,49 @@ public class ChannelApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
-        var channel = await channelService.GetDirectChatAsync(channelId);
+        var channel = await channelService.GetChannelAsync(null, channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
         
-        if (!await channelService.HasAccessAsync(channelId, token.UserId))
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
 
         return Results.Json(await channelService.GetDirectChannelMembersAsync(channelId));
     }
-    
-    [ValourRoute(HttpVerbs.Post, "api/channels/{id}/typing")]
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{id}/typing")]
+    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{id}/typing")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostTypingAsync(
-        long id, 
+        long? planetId,
+        long channelId,
         CurrentlyTypingService typingService,
         ChannelService channelService,
+        PlanetMemberService memberService,
         TokenService tokenService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
         // Get the channel
-        var channel = await channelService.GetPlanetChannelAsync(id);
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
+        
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
 
         if (!await channelService.HasAccessAsync(channel, token.UserId))
-        {
             return ValourResult.Forbid("You are not a member of this channel");
-        }
-
-        typingService.AddCurrentlyTyping(id, token.UserId);
+        
+        typingService.AddCurrentlyTyping(channelId, token.UserId);
         
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/channels/{id}/state")]
+    [ValourRoute(HttpVerbs.Post, "api/planet/{planetId}/channels/{channelId}/state")]
+    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/state")]
     [UserRequired]
     public static async Task<IResult> UpdateStateAsync(
-        long id,
+        long? planetId,
+        long channelId,
         [FromBody] UpdateUserChannelStateRequest request,
         ChannelStateService stateService,
         ChannelService channelService,
@@ -313,7 +313,7 @@ public class ChannelApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         
-        var channel = await channelService.GetPlanetChannelAsync(id);
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
         
@@ -322,15 +322,17 @@ public class ChannelApi
             return ValourResult.Forbid("You are not a member of this channel");
         }
 
-        var updated = await stateService.UpdateUserChannelState(id, token.UserId, request.UpdateTime);
+        var updated = await stateService.UpdateUserChannelState(channelId, token.UserId, request.UpdateTime);
 
         return ValourResult.Json(updated);
     }
     
-    [ValourRoute(HttpVerbs.Get, "api/channels/{channelId}/messages")]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/messages")]
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/{channelId}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetMessagesAsync(
         long channelId,
+        long? planetId,
         MessageService messageService,
         ChannelService channelService,
         TokenService tokenService,
@@ -341,18 +343,18 @@ public class ChannelApi
             return Results.BadRequest("Maximum count is 64.");
         
         var token = await tokenService.GetCurrentTokenAsync();
-        var channel = await channelService.GetPlanetChannelAsync(channelId);
+        
+        if (planetId is null && !token.HasScope(UserPermissions.DirectMessages))
+        {
+            return ValourResult.Forbid("Token lacks permission to view messages in this channel");
+        }
+        
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
         
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
-        
-        if (channel.PlanetId is null)
-        {
-            if (!token.HasScope(UserPermissions.DirectMessages))
-            {
-                return ValourResult.Forbid("Token lacks permission to delete messages in this channel");
-            }
-        }
         
         var messages = await messageService.GetChannelMessagesAsync(channelId, count, index);
         

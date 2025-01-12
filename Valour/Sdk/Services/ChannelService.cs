@@ -134,7 +134,7 @@ public class ChannelService : ServiceBase
             return cached;
 
         var dmChannel = (await _client.PrimaryNode.GetJsonAsync<Channel>(
-            $"{ISharedChannel.DirectBaseRoute}/{otherUserId}?create={create}")).Data;
+            $"{ISharedChannel.DirectBaseRoute}/byUser/{otherUserId}?create={create}")).Data;
 
         return _cache.Sync(dmChannel);
     }
