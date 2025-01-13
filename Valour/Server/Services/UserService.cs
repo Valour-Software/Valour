@@ -679,16 +679,6 @@ public class UserService
             // Channel states
             var states = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.UserChannelStates.RemoveRange(states);
-
-            await _db.SaveChangesAsync();
-
-            var memberIds = await _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id).Select(x => x.Id).ToListAsync();
-            foreach (var memberId in memberIds)
-            {
-                // Channel access
-                var access = _db.MemberChannelAccess.IgnoreQueryFilters().Where(x => x.MemberId == memberId);
-                _db.MemberChannelAccess.RemoveRange(access);
-            }
             
             await _db.SaveChangesAsync();
             
@@ -712,9 +702,6 @@ public class UserService
                 var st = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.UserChannelStates.RemoveRange(st);
                 
-                var pst = _db.ChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
-                _db.ChannelStates.RemoveRange(pst);
-                
                 // notifications
                 var dnots = _db.Notifications.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.Notifications.RemoveRange(dnots);
@@ -722,8 +709,6 @@ public class UserService
                 await _db.SaveChangesAsync();
             }
             
-            
-
             _db.Channels.RemoveRange(dChannels);
             
             await _db.SaveChangesAsync();

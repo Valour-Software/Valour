@@ -6,6 +6,12 @@ namespace Valour.Server.Services;
 
 public struct HostedPlanetResult
 {
+    public static readonly HostedPlanetResult DoesNotExist = new()
+    {
+        CorrectNode = "NONE",
+        HostedPlanet = null
+    };
+    
     public HostedPlanet HostedPlanet;
     public string CorrectNode;
 
@@ -75,6 +81,10 @@ public class HostedPlanetService
         var hostedPlanet = _cache.HostedPlanets.Get(id);
         if (hostedPlanet is not null)
             return new HostedPlanetResult(hostedPlanet);
+        
+        // Make sure the planet exists
+        if (!await _db.Planets.AnyAsync(p => p.Id == id))
+            return HostedPlanetResult.DoesNotExist;
 
         // Determine if the planet is hosted elsewhere
         var nodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(id);
@@ -101,7 +111,7 @@ public class HostedPlanetService
         {
             return result.HostedPlanet;
         }
-
+        
         throw new PlanetNotHostedException(id, result.CorrectNode);
     }
     

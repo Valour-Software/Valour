@@ -218,7 +218,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return false;
 
-        return Client.ChannelStateService.GetChannelUnreadState(Id);
+        return Client.UnreadService.IsChannelUnread(PlanetId, Id);
     }
 
     /// <summary>

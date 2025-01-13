@@ -79,8 +79,8 @@ public class NotificationService
         
         try
         {
-            changes = await _db.Database.ExecuteSqlRawAsync("UPDATE notifications SET time_read = (now() at time zone 'utc') WHERE user_id = {0} AND time_read IS NULL;",
-                userId);
+            changes = await _db.Notifications.Where(x => x.UserId == userId && x.TimeRead == null).ExecuteUpdateAsync(
+                x => x.SetProperty(n => n.TimeRead, DateTime.UtcNow));
         }
         catch (Exception)
         {
@@ -264,11 +264,11 @@ public class NotificationService
 
     public async Task HandleMentionAsync(
         Mention mention, 
-        Valour.Database.Planet planet, 
+        Models.Planet planet, 
         Message message, 
         Valour.Database.PlanetMember member, 
         Valour.Database.User user, 
-        Valour.Database.Channel channel)
+        Models.Channel channel)
     {
         switch (mention.Type)
         {

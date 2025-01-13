@@ -63,6 +63,7 @@ public class Program
         builder.Services.AddSingleton(client.OauthService);
         builder.Services.AddSingleton(client.SafetyService);
         builder.Services.AddSingleton(client.ThemeService);
+        builder.Services.AddSingleton(client.UnreadService);
         
         var host = builder.Build();
         await host.RunAsync();

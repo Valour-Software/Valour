@@ -47,6 +47,7 @@ public class ValourClient
     public readonly OauthService OauthService;
     public readonly SafetyService SafetyService;
     public readonly ThemeService ThemeService;
+    public readonly UnreadService UnreadService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -105,6 +106,7 @@ public class ValourClient
         OauthService = new OauthService(this);
         SafetyService = new SafetyService(this);
         ThemeService = new ThemeService(this);
+        UnreadService = new UnreadService(this);
 
         var tenorHttpClient = new HttpClient();
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");

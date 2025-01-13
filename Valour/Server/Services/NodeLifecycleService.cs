@@ -104,7 +104,7 @@ public class NodeLifecycleService
     {
         if (_cache.HostedPlanets.ContainsKey(planetId))
             return Name; // We are hosting the planet (this is a local request)
-        
+
         // Check if redis has the node who is hosting the planet
         var nodeName = await GetAssignedNodeForPlanet(planetId);
 

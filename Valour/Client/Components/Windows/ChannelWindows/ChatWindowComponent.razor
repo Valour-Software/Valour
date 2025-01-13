@@ -4,6 +4,7 @@
 @inject ValourClient Client
 @inject MessageService MessageService
 @inject ChannelStateService ChannelStateService
+@inject UnreadService UnreadService
 @using Valour.Sdk.Nodes
 @using Channel = Valour.Sdk.Models.Channel
 
@@ -126,7 +127,8 @@
         if (message.ChannelId != Channel.Id)
             return;
         
-        ChannelStateService.SetChannelLastViewedState(Channel.Id, message.TimeSent);
+        // TODO: Eventually move to message render with a specific time of message sent
+        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
         
         await AddMessage(message);
         InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());

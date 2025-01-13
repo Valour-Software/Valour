@@ -356,7 +356,7 @@ public class ChannelApi
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
         
-        var messages = await messageService.GetChannelMessagesAsync(channelId, count, index);
+        var messages = await messageService.GetChannelMessagesAsync(planetId, channelId, count, index);
         
         return Results.Json(messages);
     }

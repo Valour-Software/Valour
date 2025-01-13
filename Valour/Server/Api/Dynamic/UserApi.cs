@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Valour.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using ChannelState = Valour.Server.Models.ChannelState;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using User = Valour.Server.Models.User;
 using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
@@ -173,49 +172,6 @@ public class UserApi
         var channelStates = await userService.GetUserChannelStatesAsync(await userService.GetCurrentUserIdAsync());
 
         return Results.Json(channelStates);
-    }
-    
-    [ValourRoute(HttpVerbs.Get, "api/users/me/statedata")]
-    public static async Task<IResult> ChannelStateDataRouteAsync(
-        UserService userService,
-        UnreadService unreadService)
-    {
-        var userId = await userService.GetCurrentUserIdAsync();
-        
-        var userChannelStates = (await userService.GetUserChannelStatesAsync(userId)).ToDictionary(x => x.ChannelId);
-        var channelStates = await unreadService.GetChannelStates(userId);
-
-        List<ChannelStateData> stateData = new();
-
-        foreach (var pair in channelStates)
-        {
-            var hasUserState = userChannelStates.TryGetValue(pair.Key, out var userState);
-
-            DateTime userStateTime;
-            
-            if (!hasUserState)
-            {
-                userStateTime = DateTime.MaxValue;
-            }
-            else
-            {
-                userStateTime = userState.LastViewedTime;
-            }
-            
-            stateData.Add(new ChannelStateData()
-            {
-                ChannelId = pair.Key,
-                LastViewedTime = userStateTime,
-                ChannelState = new ChannelState()
-                {
-                    ChannelId = pair.Value.ChannelId,
-                    LastUpdateTime = pair.Value.LastUpdateTime,
-                    PlanetId = pair.Value.PlanetId
-                }
-            });
-        }
-
-        return Results.Json(stateData);
     }
 
     [RateLimit("login")]

@@ -211,6 +211,7 @@ public class ChannelService
         }
 
         channel.Id = IdManager.Generate();
+        channel.LastUpdateTime = DateTime.UtcNow;
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -218,18 +219,7 @@ public class ChannelService
         {
             await _db.Channels.AddAsync(channel.ToDatabase());
             await _db.SaveChangesAsync();
-
-            // Add fresh channel state
-            var state = new Valour.Database.ChannelState()
-            {
-                ChannelId = channel.Id,
-                PlanetId = channel.PlanetId,
-                LastUpdateTime = DateTime.UtcNow,
-            };
-
-            await _db.ChannelStates.AddAsync(state);
-            await _db.SaveChangesAsync();
-
+            
             // Only add nodes if necessary
             if (nodes is not null)
             {
@@ -399,6 +389,15 @@ public class ChannelService
             .OrderBy(x => x.RawPosition)
             .Select(x => x.ToModel())
             .ToListAsync();
+
+    /// <summary>
+    /// Get all descendants of a channel
+    /// </summary>
+    public Task<List<Channel>> GetDescendantsAsync(ISharedChannel channel) =>
+        _db.Channels.DescendantsOf(channel)
+                    .Select(x => x.ToModel())
+                    .ToListAsync();
+    
 
     /// <summary>
     /// Returns the number of children for the given channel id

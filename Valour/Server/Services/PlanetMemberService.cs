@@ -510,7 +510,8 @@ public class PlanetMemberService
             var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == memberId);
             _db.PlanetRoleMembers.RemoveRange(roles);
             
-            var channelStates = await _db.UserChannelStates.Where(x => x.UserId == dbMember.UserId && x. == dbMember.PlanetId).ToListAsync();
+            var channelStates = await _db.UserChannelStates.Where(x => x.UserId == dbMember.UserId && x.PlanetId == dbMember.PlanetId).ToListAsync();
+            _db.UserChannelStates.RemoveRange(channelStates);
             
             dbMember.IsDeleted = true;
             dbMember.RoleHashKey = 0;

@@ -7,6 +7,7 @@
 @inject ChannelService ChannelService
 @inject NotificationService NotificationService
 @inject ChannelStateService ChannelStateService
+@inject UnreadService UnreadService
 
 <div
     class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
@@ -241,7 +242,7 @@
     
     private void DetermineUnread()
     {
-        IsUnread = ChannelStateService.GetChannelUnreadState(Channel.Id);
+        IsUnread = UnreadService.IsChannelUnread(Channel.PlanetId, Channel.Id);
     }
 
     private void DetermineNotifications()

@@ -12,6 +12,11 @@ public class NotHostedExceptionFilter : IEndpointFilter
         }
         catch (PlanetNotHostedException e)
         {
+            if (e.CorrectNode == HostedPlanetResult.DoesNotExist.CorrectNode)
+            {
+                return ValourResult.NotFound($"Planet {e.PlanetId} was not found.");
+            }
+            
             return ValourResult.WrongNode(e.CorrectNode, e.PlanetId);
         }
     }

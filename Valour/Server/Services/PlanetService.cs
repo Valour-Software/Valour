@@ -602,7 +602,7 @@ public class PlanetService
             // Update channel access for inserted channel if it inherits from parent
             if (insert.InheritsPerms == true)
             {
-                await _accessService.UpdateAllChannelAccessForChannel(insertId);
+                await _permissionService.handle
             }
 
             await _db.SaveChangesAsync();
