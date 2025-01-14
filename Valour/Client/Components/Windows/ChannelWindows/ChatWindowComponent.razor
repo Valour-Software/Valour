@@ -264,7 +264,7 @@
 
             builder.OpenComponent<MessageComponent>(0);
             builder.AddAttribute(1, "ParamData", messageParams);
-            builder.SetKey($"q-{message.Id}");
+            builder.SetKey($"q-{message.Fingerprint}"); // Use fingerprint because they don't have IDs assigned yet
             builder.CloseComponent();
 
             lastMessage = message;

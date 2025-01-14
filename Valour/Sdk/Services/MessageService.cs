@@ -80,21 +80,21 @@ public class MessageService : ServiceBase
         => message.PostAsync();
     
     /// <summary>
-    /// Ran when a message is recieved
+    /// Ran when a message is received
     /// </summary>
     private void OnPlanetMessageReceived(Message message)
     {
-        Log($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
+        var cached = _cache.Sync(message);
+        
+        Log($"[{cached.Node?.Name}]: Received planet message {cached.Id} for channel {cached.ChannelId}");
         if (message.ReplyTo is not null)
         {
             message.ReplyTo = _cache.Sync(message.ReplyTo);
         }
-        
-        var cached = _cache.Sync(message);
 
         MessageReceived?.Invoke(cached);
         
-        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        if (_cache.Channels.TryGet(cached.ChannelId, out var channel))
         {
             channel.NotifyMessageReceived(message);
         }

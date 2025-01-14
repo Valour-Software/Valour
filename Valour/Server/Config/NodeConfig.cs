@@ -9,11 +9,11 @@ public class NodeConfig
 
     public string Key { get; set; }
     
-    #if DEBUG
-    public string Name => "debug-node";
-    #else
+    //#if DEBUG
+    //public string Name => "debug-node";
+    //#else
     public string Name { get; set; }
-    #endif
+    //#endif
     
     public bool LogInfo { get; set; }
     

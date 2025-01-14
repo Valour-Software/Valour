@@ -300,7 +300,7 @@ public class ChannelApi
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planet/{planetId}/channels/{channelId}/state")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{channelId}/state")]
     [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/state")]
     [UserRequired]
     public static async Task<IResult> UpdateStateAsync(
