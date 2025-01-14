@@ -215,6 +215,7 @@ public class PlanetService : ServiceBase
 
         // Get node for planet
         var node = await _client.NodeService.GetNodeForPlanetAsync(planet.Id);
+        planet.SetNode(node);
 
         List<Task> tasks = new();
 

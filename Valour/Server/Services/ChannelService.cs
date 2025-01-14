@@ -424,7 +424,7 @@ public class ChannelService
     {
         if (channel.PlanetId is not null)
         {
-            var member = await _memberService.GetCurrentAsync(userId);
+            var member = await _memberService.GetCurrentAsync(channel.PlanetId.Value);
             if (member is null)
                 return false;
             
