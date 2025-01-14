@@ -156,8 +156,7 @@ namespace Valour.Server.Workers
             // and does not insert into the database, so it should be fine.
             await using var scope = _serviceProvider.CreateAsyncScope();
             var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
-            var stateService = scope.ServiceProvider.GetRequiredService<UnreadService>();
-            
+
             // This is ONLY READ FROM
             var dbService = scope.ServiceProvider.GetRequiredService<ValourDb>();
             
@@ -169,7 +168,6 @@ namespace Valour.Server.Workers
 
                 message.TimeSent = DateTime.UtcNow;
                 
-                stateService.SetChannelStateTime(message.ChannelId, message.TimeSent);
                 hubService.NotifyChannelStateUpdate(message.PlanetId!.Value, message.ChannelId, message.TimeSent);
                 
                 if (message.ReplyToId is not null && message.ReplyTo is null)

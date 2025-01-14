@@ -36,7 +36,7 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     public static string GetIdRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetIdRoute(channel.PlanetId.Value, channel.Id) : GetDirectIdRoute(channel.Id);
     public static string GetDirectIdRoute(long id) => $"{DirectBaseRoute}/{id}";
     public static string GetPlanetBaseRoute(long planetId) => $"{ISharedPlanet.BaseRoute}/{planetId}/channels";
-    public static string GetPlanetIdRoute(long planetId, long id) => $"{GetPlanetBaseRoute(planetId)}/channels/{id}";
+    public static string GetPlanetIdRoute(long planetId, long id) => $"{GetPlanetBaseRoute(planetId)}/{id}";
     
     public static string GetTypeName(ChannelTypeEnum type)
     {

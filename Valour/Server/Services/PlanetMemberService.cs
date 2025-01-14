@@ -291,7 +291,7 @@ public class PlanetMemberService
             .FirstOrDefaultAsync();
         
         // Give role hash for just default role
-        var roleHashKey = _permissionService.GenerateRoleComboKey([defaultRoleId]);
+        var roleHashKey = PlanetPermissionService.GenerateRoleComboKey([defaultRoleId]);
         member.RoleHashKey = roleHashKey;
 
         // Add to default planet role

@@ -10,28 +10,45 @@ public class ChannelPermissionCache
     private readonly ConcurrentDictionary<long, long> _cache = new();
     
     // Used to get all the cached channel keys associated with a role key
-    private readonly ConcurrentDictionary<long, List<long>> _roleKeyToCachedChannelKeys = new();
+    private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _roleKeyToCachedChannelKeys = new();
+    
+    private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _channelIdToCachedChannelKeys = new();
     
     public long? GetChannelPermission(long key)
     {
-        return _cache.GetValueOrDefault(key);
+        if (!_cache.TryGetValue(key, out var value))
+            return null;
+        
+        return value;
     }
     
-    public void Set(long roleKey, long channelKey, long permissions)
+    public void Set(long roleKey, long channelId, long permissions)
     {
+        var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+        
         _cache[channelKey] = permissions;
+        
+        if (!_channelIdToCachedChannelKeys.TryGetValue(channelId, out var idToChannelKeys))
+        {
+            idToChannelKeys = new();
+            _channelIdToCachedChannelKeys[channelId] = idToChannelKeys;
+        }
+        
+        idToChannelKeys.Add(roleKey);
         
         if (!_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var channelKeys))
         {
-            channelKeys = new List<long>();
+            channelKeys = new();
             _roleKeyToCachedChannelKeys[roleKey] = channelKeys;
         }
         
         channelKeys.Add(channelKey);
     }
     
-    public void Remove(long roleKey, long channelKey)
+    public void Remove(long roleKey, long channelId)
     {
+        var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+        
         if (_cache.TryRemove(channelKey, out _))
         {
             if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var keys))
@@ -44,6 +61,19 @@ public class ChannelPermissionCache
     public void ClearCacheForCombo(long roleKey)
     {
         if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var keys))
+        {
+            foreach (var key in keys)
+            {
+                _cache.Remove(key, out _);
+            }
+            
+            keys.Clear();
+        }
+    }
+    
+    public void ClearCacheForChannel(long channelId)
+    {
+        if (_channelIdToCachedChannelKeys.TryGetValue(channelId, out var keys))
         {
             foreach (var key in keys)
             {
@@ -160,8 +190,17 @@ public class PlanetPermissionsCache
         }
     }
     
-    public void ClearCacheForComboInChannel(long roleKey, long channelKey, ChannelTypeEnum type)
+    public void ClearCacheForChannel(long channelId)
     {
+        foreach (var cache in _channelPermissionCachesByType)
+        {
+            cache.ClearCacheForChannel(channelId);
+        }
+    }
+    
+    public void ClearCacheForComboInChannel(long roleKey, long channelId, ChannelTypeEnum type)
+    {
+        var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
         var cache = GetChannelCache(type);
         cache.Remove(roleKey, channelKey);
     }

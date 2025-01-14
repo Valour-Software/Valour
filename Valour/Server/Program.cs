@@ -260,7 +260,7 @@ public class Program
         services.AddSingleton<ModelCacheService>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-        services.AddSingleton<HostedPlanetService>();
+        services.AddScoped<HostedPlanetService>();
 
         services.AddScoped<UserOnlineService>();
         services.AddScoped<CoreHubService>();
@@ -289,6 +289,7 @@ public class Program
         services.AddScoped<SubscriptionService>();
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
+        services.AddScoped<PlanetPermissionService>();
 
         services.AddSingleton<NodeLifecycleService>();
 
@@ -297,6 +298,7 @@ public class Program
         services.AddHostedService<ChannelWatchingWorker>();
         services.AddHostedService<NodeStateWorker>();
         services.AddHostedService<SubscriptionWorker>();
+        services.AddHostedService<MigrationWorker>();
 
         services.AddEndpointsApiExplorer();
 

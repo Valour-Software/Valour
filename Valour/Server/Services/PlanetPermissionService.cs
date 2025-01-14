@@ -1,5 +1,6 @@
+#nullable enable
+
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Server.Utilities;
 using Valour.Shared.Authorization;
@@ -45,13 +46,26 @@ public class PlanetPermissionService
     public static readonly ObjectPool<List<PlanetRole>> RoleListPool = 
         new DefaultObjectPool<List<PlanetRole>>(new ListPooledObjectPolicy<PlanetRole>());
     
+    /// <summary>
+    /// A map from channel id to the channel it inherits permissions from
+    /// </summary>
+    private readonly ConcurrentDictionary<long, long?> _inheritanceMap = new();
+    
+    /// <summary>
+    /// A map from channel id to all the channels that inherit permissions from it
+    /// </summary>
+    private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _inheritanceLists = new();
+    
     private readonly ValourDb _db;
     private readonly HostedPlanetService _hostedPlanetService;
     
-    public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService)
+    private readonly ILogger<PlanetPermissionService> _logger;
+    
+    public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService, ILogger<PlanetPermissionService> logger)
     {
         _db = db;
         _hostedPlanetService = hostedPlanetService;
+        _logger = logger;
     }
     
     public async ValueTask<bool> HasPlanetPermissionAsync(PlanetMember member, PlanetPermission permission)
@@ -93,6 +107,27 @@ public class PlanetPermissionService
     }
 
     /// <summary>
+    /// Handle permissions for when a channel changes
+    /// </summary>
+    public async Task HandleChannelInheritanceChange(Channel channel)
+    {
+        if (channel.PlanetId is null)
+            return;
+        
+        // We delete the channel's cached permissions and all the channels that inherit from it
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
+        if (_inheritanceLists.TryGetValue(channel.Id, out var inheritorsList))
+        {
+            foreach (var inheritorId in inheritorsList)
+            {
+                hostedPlanet.PermissionCache.ClearCacheForChannel(inheritorId);
+            }
+        }
+        
+        hostedPlanet.PermissionCache.ClearCacheForChannel(channel.Id);
+    }
+
+    /// <summary>
     /// Handle a change in a permissions node for channel
     /// </summary>
     public async Task HandleNodeChange(PermissionsNode node)
@@ -116,8 +151,7 @@ public class PlanetPermissionService
         
         foreach (var roleKey in roleCombos)
         {
-            var channelKey = GetRoleChannelComboKey(roleKey, node.TargetId);
-            cache.Remove(roleKey, channelKey);
+            cache.Remove(roleKey, node.TargetId);
         }
     }
 
@@ -156,7 +190,8 @@ public class PlanetPermissionService
     /// Used whenever a member's roles change to update their role hash key
     /// </summary>
     /// <param name="memberId">The member to update</param>
-    public async Task UpdateMemberRoleHashAsync(long memberId)
+    /// <param name="saveChanges">Whether to save changes to the database</param>
+    public async Task UpdateMemberRoleHashAsync(long memberId, bool saveChanges = true)
     {
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is null)
@@ -171,7 +206,34 @@ public class PlanetPermissionService
         var roleKey = GenerateRoleComboKey(roleIds);
         member.RoleHashKey = roleKey;
         
+        if (saveChanges)
+            await _db.SaveChangesAsync();
+    }
+
+    public async Task BulkUpdateMemberRoleHashesAsync(int saveInterval = 50)
+    {
+        var members = await _db.PlanetMembers.ToListAsync();
+        
+        var count = 0;
+        foreach (var member in members)
+        {
+            if (member.RoleHashKey == 0)
+            {
+                await UpdateMemberRoleHashAsync(member.Id, false);
+            }
+            
+            if (count % saveInterval == 0)
+            {
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("Bulk role hash update: {Count} members updated", count);
+            }
+            
+            count++;
+        }
+        
+        // Save any remaining changes
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Bulk role hash update: {Count} members updated - Finished", count);
     }
     
     /// <summary>
@@ -297,18 +359,18 @@ public class PlanetPermissionService
                 continue;
             }
 
-            long? perms = null;
+            long? perms;
             
             switch (channel.ChannelType)
             {
                 case ChannelTypeEnum.PlanetChat:
-                    perms = await GenerateChannelPermissionsAsync<ChatChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
+                    perms = await GenerateChannelPermissionsAsync(member.RoleHashKey, roles, channel, hostedPlanet, ChannelTypeEnum.PlanetChat);
                     break;
                 case ChannelTypeEnum.PlanetCategory:
-                    perms = await GenerateChannelPermissionsAsync<CategoryPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
+                    perms = await GenerateChannelPermissionsAsync(member.RoleHashKey, roles, channel, hostedPlanet, ChannelTypeEnum.PlanetCategory);
                     break;
                 case ChannelTypeEnum.PlanetVoice:
-                    perms = await GenerateChannelPermissionsAsync<VoiceChannelPermission>(member.RoleHashKey, roles, channel, hostedPlanet);
+                    perms = await GenerateChannelPermissionsAsync(member.RoleHashKey, roles, channel, hostedPlanet, ChannelTypeEnum.PlanetVoice);
                     break;
                 default:
                     throw new Exception("Invalid channel type!");
@@ -389,16 +451,63 @@ public class PlanetPermissionService
     
     public async ValueTask<bool> HasChannelPermissionAsync(PlanetMember member, Channel channel, ChannelPermission permission)
     {
-        var permissions = await GetChannelPermissionsAsync(member, channel, permission);
+        var permissions = await GetChannelPermissionsAsync(member, channel, permission.TargetType);
         return Permission.HasPermission(permissions, permission);
     }
 
-    public async ValueTask<long> GetChannelPermissionsAsync(PlanetMember member, Channel channel, ChannelPermission permission)
+    public async ValueTask<long> GetChannelPermissionsAsync(PlanetMember member, Channel channel, ChannelTypeEnum targetType)
     {
-        var channelKey = GetRoleChannelComboKey(member.RoleHashKey, channel.Id);
-        
         // Check if cached
         var hosted = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        
+        var initialChannelId = channel.Id;
+
+        if (channel.InheritsPerms)
+        {
+            // Check if we have cached inheritance
+            if (_inheritanceMap.TryGetValue(channel.Id, out var targetId))
+            {
+                // We have cached inheritance
+                if (targetId is not null)
+                {
+                    var targetChannel = hosted.GetChannel(targetId.Value);
+                    if (targetChannel is not null)
+                    {
+                        channel = targetChannel;
+                    }
+                }
+            }
+            else
+            {
+                // Handle channel inheritance
+                while (channel.InheritsPerms && channel.ParentId is not null)
+                {
+                    var parent = hosted.GetChannel(channel.ParentId.Value);
+                    if (parent is null)
+                        break;
+
+                    // Switch to parent scope
+                    channel = parent;
+                }
+
+                // Cache the inheritance
+                _inheritanceMap[initialChannelId] = channel.Id;
+                
+                // Add to the inheritance list
+                if (!_inheritanceLists.TryGetValue(channel.Id, out var inheritorsList))
+                {
+                    inheritorsList = [initialChannelId];
+                    _inheritanceLists[channel.Id] = inheritorsList;
+                }
+                else
+                {
+                    inheritorsList.Add(initialChannelId);
+                }
+            }
+        }
+
+        var channelKey = GetRoleChannelComboKey(member.RoleHashKey, channel.Id);
+        
         var cache = hosted.PermissionCache.GetChannelCache(channel.ChannelType);
         var cachedPermissions = cache.GetChannelPermission(channelKey);
         
@@ -425,24 +534,24 @@ public class PlanetPermissionService
             roles.Add(role);
         }
         
-        var permissions = await GenerateChannelPermissionsAsync<ChannelPermission>(member.RoleHashKey, roles, channel, hosted);
+        var permissions = await GenerateChannelPermissionsAsync(member.RoleHashKey, roles, channel, hosted, targetType);
         
         // Recycle
         RoleListPool.Return(roles);
         
         // Cache
-        cache.Set(member.RoleHashKey, channelKey, permissions);
+        cache.Set(member.RoleHashKey, channel.Id, permissions);
         
         return permissions;
     }
     
-    private async ValueTask<long> GenerateChannelPermissionsAsync<TPermissionType>(
+    private async ValueTask<long> GenerateChannelPermissionsAsync(
         long roleKey,
         List<PlanetRole> roles, 
         Channel channel,
-        HostedPlanet hostedPlanet
+        HostedPlanet hostedPlanet,
+        ChannelTypeEnum targetType
     )
-        where TPermissionType : ChannelPermission
     {
         var channelKey = GetRoleChannelComboKey(roleKey, channel.Id);
         
@@ -455,26 +564,13 @@ public class PlanetPermissionService
             return cachedPermissions.Value;
         }
         
-        // Handle channel inheritance
-        while (channel.InheritsPerms && channel.ParentId is not null)
-        {
-            var parent = hostedPlanet.GetChannel(channel.ParentId.Value);
-            if (parent is null)
-                break;
-            
-            // Switch to parent scope
-            channel = parent;
-        }
-        
         // Note for future self: The Owner role has IsAdmin, so this also checks for owner
         if (roles.Any(x => x.IsAdmin))
         {
-            permCache.Set(roleKey, channelKey, Permission.FULL_CONTROL);
+            permCache.Set(roleKey, channel.Id, Permission.FULL_CONTROL);
             return Permission.FULL_CONTROL;
         }
-
-        var targetType = ISharedPermissionsNode.GetChannelTypeEnum<TPermissionType>();
-
+        
         var targetRoleIds = new long[roles.Count];
         for (int i = 0; i < roles.Count; i++)
         {
@@ -521,13 +617,13 @@ public class PlanetPermissionService
         }
         
         // Cache the permissions
-        permCache.Set(roleKey, channelKey, permissions);
+        permCache.Set(roleKey, channel.Id, permissions);
         
         return permissions;
     }
 
     // A simple mix function that combines the previous hash with the next to create a new unique hash
-    private long MixHash(long currentHash, long roleId)
+    private static long MixHash(long currentHash, long roleId)
     {
         // XOR mixing for a simple and fast hash
         return currentHash ^ ((roleId + MagicNumber) + (currentHash << 6) + (currentHash >> 2));
@@ -536,7 +632,7 @@ public class PlanetPermissionService
     /// <summary>
     /// Returns a combined key for a given set of role IDs and a channel ID.
     /// </summary>
-    private long GetRoleChannelComboKey(long rolesKey, long channelId)
+    public static long GetRoleChannelComboKey(long rolesKey, long channelId)
     {
         // Step 1: Get hash for the channel ID
         var hash = MixHash(Seed, channelId);
@@ -548,7 +644,7 @@ public class PlanetPermissionService
         return hash;
     }
 
-    public long GenerateRoleComboKey(IEnumerable<PlanetRole> roles)
+    public static long GenerateRoleComboKey(IEnumerable<PlanetRole> roles)
     {
         var hash = Seed;
         
@@ -564,7 +660,7 @@ public class PlanetPermissionService
     /// Returns the combined hash key for the given role ids. Unique for any combination of roles.
     /// You MUST provide a sorted list of role IDs.
     /// </summary>
-    public long GenerateRoleComboKey(long[] sortedRoleIds)
+    public static long GenerateRoleComboKey(long[] sortedRoleIds)
     {
         var hash = Seed; // Initial value (seed value)
 

@@ -44,6 +44,9 @@ public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
 
 public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 {
+    public override string BaseRoute => ISharedChannel.GetBaseRoute(this);
+    public override string IdRoute => ISharedChannel.GetIdRoute(this);
+
     /// <summary>
     /// Run when a channel sends a watching update
     /// </summary>
@@ -77,8 +80,6 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// Cached parent which should be linked when channels are received
     /// </summary>
     public Channel Parent { get; set; }
-    
-    public override string BaseRoute => ISharedChannel.GetIdRoute(this);
 
     /////////////////////////////////
     // Shared between all channels //

@@ -42,7 +42,7 @@ public class HostedPlanet : ServerModel<long>
     {
         lock (_lock)
         {
-            Planet.CopyAllTo(updated);
+            updated.CopyAllTo(Planet);
         }
     }
     
@@ -89,7 +89,13 @@ public class HostedPlanet : ServerModel<long>
         // Get existing channel
         var existing = _channels.Get(updated.Id);
         
-        var permChange = existing.InheritsPerms != updated.InheritsPerms;
+        var oldPermValue = existing?.InheritsPerms ?? false;
+        var newPermValue = updated.InheritsPerms;
+        
+        if (oldPermValue != newPermValue)
+        {
+            PermissionCache.ClearCacheForChannel(updated.Id);
+        }
         
         var result = _channels.Upsert(updated);
         

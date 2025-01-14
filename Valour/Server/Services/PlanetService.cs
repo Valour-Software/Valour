@@ -22,13 +22,14 @@ public class PlanetService
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
         NodeLifecycleService nodeLifecycleService,
-        HostedPlanetService hostedPlanetService)
+        HostedPlanetService hostedPlanetService, PlanetPermissionService permissionService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
         _nodeLifecycleService = nodeLifecycleService;
         _hostedPlanetService = hostedPlanetService;
+        _permissionService = permissionService;
     }
     
     /// <summary>
@@ -375,7 +376,7 @@ public class PlanetService
             };
             
             // Create role combo key (ids go up over time so we order them accordingly)
-            var rolesKey = _permissionService.GenerateRoleComboKey([defaultRole.Id, ownerRole.Id]);
+            var rolesKey = PlanetPermissionService.GenerateRoleComboKey([defaultRole.Id, ownerRole.Id]);
 
             // Create owner member
             var member = new Valour.Database.PlanetMember()
@@ -600,9 +601,9 @@ public class PlanetService
             await _db.SaveChangesAsync();
             
             // Update channel access for inserted channel if it inherits from parent
-            if (insert.InheritsPerms == true)
+            if (insert.InheritsPerms)
             {
-                await _permissionService.handle
+                await _permissionService.HandleChannelInheritanceChange(insert.ToModel());
             }
 
             await _db.SaveChangesAsync();
