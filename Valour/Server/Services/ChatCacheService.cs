@@ -22,7 +22,7 @@ public class ChatCacheService
     private static readonly ConcurrentDictionary<long, ConcurrentCircularBuffer<PlanetMember>> _lastChattersCaches
         = new ();
     
-    private static readonly ConcurrentDictionary<long, PlanetMember[]> _lastChattersCacheSnapshots
+    private static readonly ConcurrentDictionary<long, List<PlanetMember>> _lastChattersCacheSnapshots
         = new ();
     
     private readonly ValourDb _db;
@@ -34,14 +34,16 @@ public class ChatCacheService
     
     private async Task<List<Message>> GetCachedMessagesAsync(long channelId)
     {
+        var created = false;
         if (!_lastMessagesCaches.TryGetValue(channelId, out var cache))
         {
             cache = new ConcurrentCircularBuffer<Message>(50);
             _lastMessagesCaches[channelId] = cache;
+            created = true;
         }
         
         // Fill the cache if it's empty
-        if (cache.Count == 0)
+        if (created)
         {
             var messages = await _db.Messages
                 .AsNoTracking()
@@ -114,4 +116,87 @@ public class ChatCacheService
 
     public Task<List<Message>> GetLastMessagesAsync(long channelId)
         => GetCachedMessagesAsync(channelId);
+
+    public async Task<List<PlanetMember>> GetCachedChatPlanetMembersAsync(long channelId)
+    {
+        var created = false;
+        if (!_lastChattersCaches.TryGetValue(channelId, out var cache))
+        {
+            cache = new ConcurrentCircularBuffer<PlanetMember>(50);
+            _lastChattersCaches[channelId] = cache;
+            created = true;
+        }
+        
+        // Fill the cache if it's empty
+        if (created)
+        {
+            // Get the last 50 messages' authors
+            var members = await _db.Messages
+                .AsNoTracking()
+                .Where(m => m.ChannelId == channelId)
+                .Include(m => m.AuthorMember.User)
+                .OrderByDescending(m => m.Id)
+                .Take(50)
+                .Select(m => m.AuthorMember.ToModel())
+                .ToArrayAsync();
+
+            foreach (var member in members.DistinctBy(m => m.Id))
+            {
+                cache.Enqueue(member);
+            }
+            
+            var snapshot = cache.ToListAscending();
+            
+            // Create snapshot
+            _lastChattersCacheSnapshots[channelId] = snapshot;
+            
+            return snapshot;
+        }
+        else
+        {
+            // Try to get snapshot
+            if (_lastChattersCacheSnapshots.TryGetValue(channelId, out var snapshot))
+            {
+                return snapshot;
+            }
+            
+            // Create snapshot
+            snapshot = cache.ToListAscending();
+            
+            _lastChattersCacheSnapshots[channelId] = snapshot;
+            
+            return snapshot;
+        }
+    }
+    
+    public void AddChatPlanetMember(long channelId, PlanetMember member)
+    {
+        // Add to the circular buffer, generate new snapshot
+        if (_lastChattersCaches.TryGetValue(channelId, out var cache))
+        {
+            // Remove any existing member with the same ID
+            cache.RemoveWhere(m => m.Id == member.Id);
+            cache.Enqueue(member);
+            
+            _lastChattersCacheSnapshots[channelId] = cache.ToListAscending();
+        }
+    }
+    
+    public void RemoveChatPlanetMember(long channelId, long memberId)
+    {
+        if (_lastChattersCaches.TryGetValue(channelId, out var cache))
+        {
+            cache.RemoveWhere(m => m.Id == memberId);
+            _lastChattersCacheSnapshots[channelId] = cache.ToListAscending();
+        }
+    }
+    
+    public void ReplaceChatPlanetMember(long channelId, PlanetMember member)
+    {
+        if (_lastChattersCaches.TryGetValue(channelId, out var cache))
+        {
+            cache.ReplaceWhere(m => m.Id == member.Id, member);
+            _lastChattersCacheSnapshots[channelId] = cache.ToListAscending();
+        }
+    }
 }

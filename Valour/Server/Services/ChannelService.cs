@@ -15,6 +15,7 @@ public class ChannelService
     private readonly CoreHubService _coreHub;
     private readonly PlanetPermissionService _planetPermissionService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly ChatCacheService _chatCacheService;
 
     public ChannelService(
         ValourDb db,
@@ -22,7 +23,8 @@ public class ChannelService
         CoreHubService coreHubService,
         ILogger<ChannelService> logger,
         PlanetPermissionService planetPermissionService, 
-        HostedPlanetService hostedPlanetService)
+        HostedPlanetService hostedPlanetService, 
+        ChatCacheService chatCacheService)
     {
         _db = db;
         _memberService = memberService;
@@ -30,6 +32,7 @@ public class ChannelService
         _coreHub = coreHubService;
         _planetPermissionService = planetPermissionService;
         _hostedPlanetService = hostedPlanetService;
+        _chatCacheService = chatCacheService;
     }
 
     /// <summary>

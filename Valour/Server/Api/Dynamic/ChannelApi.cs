@@ -360,4 +360,35 @@ public class ChannelApi
         
         return Results.Json(messages);
     }
+
+    [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/recentChatters")]
+    public static async Task<IResult> GetRecentChatMembersAsync(
+        long channelId,
+        long? planetId,
+        ChannelService channelService,
+        TokenService tokenService,
+        ChatCacheService chatCacheService
+    )
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        if (planetId is null)
+        {
+            return ValourResult.Forbid("Can only be used on planet channels");
+        }
+        
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        if (channel.ChannelType != ChannelTypeEnum.PlanetChat)
+        {
+            return ValourResult.Forbid("Can only be used on planet chat channels");
+        }
+        
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        return Results.Json(await chatCacheService.GetCachedChatPlanetMembersAsync(channelId));
+    }
 }

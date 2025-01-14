@@ -529,7 +529,7 @@
     }
     
     public string GetAuthorAvatar() =>
-        _author.GetAvatar(AvatarFormat.Webp128);
+        _author?.GetAvatar(AvatarFormat.Webp128);
     
     public string GetAuthorAvatarAnimated()
     {   

@@ -202,6 +202,25 @@ public class ConcurrentCircularBuffer<T>
             }
         }
     }
+    
+    public bool Any(Predicate<T> match)
+    {
+        lock (_syncRoot)
+        {
+            for (int i = 0; i < _count; i++)
+            {
+                int index = (_tail + i) % Capacity;
+                var item = _buffer[index];
+                
+                if (item != null && match(item))
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+    }
 
     /// <summary>
     /// Clears the buffer, resetting all pointers.

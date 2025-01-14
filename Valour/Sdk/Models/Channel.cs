@@ -520,6 +520,9 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return result.Data;
     }
 
+    public Task<List<PlanetMember>> FetchRecentChattersAsync() =>
+        Client.ChannelService.FetchRecentChattersAsync(this);
+
     /// <summary>
     /// Returns the list of users in the channel
     /// </summary>

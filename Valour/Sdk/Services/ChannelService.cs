@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
 using Valour.Shared;
@@ -139,6 +140,18 @@ public class ChannelService : ServiceBase
         return _cache.Sync(dmChannel);
     }
     
+    public async Task<List<PlanetMember>> FetchRecentChattersAsync(Channel channel)
+    {
+        return await FetchRecentChattersAsync(channel.Id, channel.Planet);
+    }
+
+    public async Task<List<PlanetMember>> FetchRecentChattersAsync(long channelId, Planet planet)
+    {
+        var result = await planet.Node.GetJsonAsync<List<PlanetMember>>($"{ISharedChannel.GetPlanetIdRoute(planet.Id, channelId)}/recentChatters");
+        result.Data.SyncAll(_client.Cache);
+        return result.Data;
+    }
+    
     public async Task LoadDmChannelsAsync()
     {
         var response = await _client.PrimaryNode.GetJsonAsync<List<Channel>>("api/channels/direct/self");
@@ -213,6 +226,9 @@ public class ChannelService : ServiceBase
         var planetResult = await _client.PlanetService.TryOpenPlanetConnection(planet, key);
         if (!planetResult.Success)
             return planetResult;
+        
+        // Get recent chatter members
+        _ = await FetchRecentChattersAsync(channel);
 
         // Join channel SignalR group
         var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);

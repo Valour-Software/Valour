@@ -234,7 +234,7 @@ public class PlanetService : ServiceBase
         await planet.LoadRolesAsync();
 
         // Load member data early for the same reason (speed)
-        tasks.Add(planet.FetchMemberDataAsync());
+        // tasks.Add(planet.FetchMemberDataAsync());
 
         // Load channels
         tasks.Add(planet.FetchChannelsAsync());
