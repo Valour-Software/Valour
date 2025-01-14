@@ -24,6 +24,7 @@ public class MessageService
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly PlanetService _planetService;
     private readonly HttpClient _http;
+    private readonly ChatCacheService _chatCacheService;
 
     public MessageService(
         ILogger<MessageService> logger,
@@ -33,7 +34,7 @@ public class MessageService
         UnreadService stateService,
         IHttpClientFactory http, 
         CoreHubService coreHubService, 
-        ChannelService channelService, HostedPlanetService hostedPlanetService, PlanetService planetService)
+        ChannelService channelService, HostedPlanetService hostedPlanetService, PlanetService planetService, ChatCacheService chatCacheService)
     {
         _logger = logger;
         _db = db;
@@ -45,6 +46,7 @@ public class MessageService
         _channelService = channelService;
         _hostedPlanetService = hostedPlanetService;
         _planetService = planetService;
+        _chatCacheService = chatCacheService;
     }
     
     /// <summary>
@@ -232,6 +234,9 @@ public class MessageService
             // Serialize mentions to the message
             message.MentionsData = JsonSerializer.Serialize(mentions);
         }
+        
+        // Add to chat caches
+        _chatCacheService.AddMessage(message);
 
         if (planet is null)
         {
@@ -383,6 +388,8 @@ public class MessageService
             }
         }
         
+        _chatCacheService.ReplaceMessage(updated);
+        
         // Handle events
 
         if (updated.PlanetId is not null)
@@ -441,6 +448,8 @@ public class MessageService
             }
         }
         
+        _chatCacheService.RemoveMessage(message.ChannelId, messageId);
+        
         if (message.PlanetId is not null)
         {
             _coreHubService.NotifyMessageDeletion(message);
@@ -453,7 +462,7 @@ public class MessageService
         return TaskResult.SuccessResult;
     }
     
-    public async Task<List<Message>?> GetChannelMessagesAsync(long? planetId, long channelId, int count = 50, long index = long.MaxValue)
+    public async Task<IEnumerable<Message>?> GetChannelMessagesAsync(long? planetId, long channelId, int count = 50, long index = long.MaxValue)
     {
         var channel = await _channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
@@ -464,9 +473,18 @@ public class MessageService
 
         // Not sure why this request would even be made
         if (count < 1)
-            return new();
+            return [];
+        
+        if (count > 50)
+            count = 50;
+        
+        // For default latest messages, use the cache
+        if (index == long.MaxValue && count == 50)
+        {
+            return await _chatCacheService.GetLastMessagesAsync(channelId);
+        }
 
-        List<Message> staged = null;
+        List<Message>? staged = null;
 
         if (channel.ChannelType == ChannelTypeEnum.PlanetChat
             && index == long.MaxValue) // ONLY INCLUDE STAGED FOR LATEST

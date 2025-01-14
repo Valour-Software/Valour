@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -149,6 +150,13 @@ public class MessageApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         var message = await messageService.GetMessageNoReplyAsync(id);
+        if (message is null)
+        {
+            // Try to get staged
+            message = PlanetMessageWorker.GetStagedMessage(id);
+            if (message is null)
+                return ValourResult.NotFound("Message not found");
+        }
         
         // Direct messages require stronger token perms
         if (message.PlanetId is null)

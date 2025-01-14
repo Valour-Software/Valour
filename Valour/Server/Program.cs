@@ -270,6 +270,7 @@ public class Program
 
         services.AddScoped<OauthAppService>();
         services.AddScoped<PlanetBanService>();
+        services.AddScoped<ChatCacheService>();
         services.AddScoped<ChannelService>();
         services.AddScoped<MessageService>();
         services.AddScoped<PlanetInviteService>();

@@ -69,7 +69,6 @@ public class HostedPlanetService
         var hostedPlanet = new HostedPlanet(planet, channels, roles);
         _cache.HostedPlanets.Set(hostedPlanet);
         
-
         return hostedPlanet;
     }
     

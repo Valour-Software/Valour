@@ -118,16 +118,21 @@ public class ConcurrentCircularBuffer<T>
     /// <summary>
     /// Gets a snapshot of all items in the buffer from oldest to newest.
     /// </summary>
-    /// <returns>An array containing all items in oldest-to-newest order.</returns>
-    public T[] ToArrayAscending()
+    /// <returns>A list containing all items in oldest-to-newest order.</returns>
+    public List<T> ToListAscending()
     {
         lock (_syncRoot)
         {
-            T[] result = new T[_count];
+            var result = new List<T>(_count);
             for (int i = 0; i < _count; i++)
             {
                 int index = (_tail + i) % Capacity;
-                result[i] = _buffer[index];
+                var item = _buffer[index];
+                
+                if (item != null)
+                {
+                    result.Add(item);
+                }
             }
             return result;
         }
@@ -136,13 +141,13 @@ public class ConcurrentCircularBuffer<T>
     /// <summary>
     /// Gets a snapshot of all items in the buffer from newest to oldest.
     /// </summary>
-    /// <returns>An array containing all items in newest-to-oldest order.</returns>
-    public T[] ToArrayDescending()
+    /// <returns>A list containing all items in newest-to-oldest order.</returns>
+    public List<T> ToListDescending()
     {
         lock (_syncRoot)
         {
-            T[] result = new T[_count];
-
+            var result = new List<T>(_count);
+            
             // The newest item is at (_head - 1) mod Capacity (if the buffer is not empty).
             // We'll fill the result array from result[0] = newest, to result[_count - 1] = oldest.
             // Start from the index just "behind" _head.
@@ -151,10 +156,50 @@ public class ConcurrentCircularBuffer<T>
             for (int i = 0; i < _count; i++)
             {
                 int index = (newestIndex - i + Capacity) % Capacity;
-                result[i] = _buffer[index];
+                var item = _buffer[index];
+                
+                if (item != null)
+                {
+                    result.Add(item);
+                }
             }
 
             return result;
+        }
+    }
+    
+    public void RemoveWhere(Predicate<T> match)
+    {
+        lock (_syncRoot)
+        {
+            for (int i = 0; i < _count; i++)
+            {
+                int index = (_tail + i) % Capacity;
+                var item = _buffer[index];
+                
+                if (item != null && match(item))
+                {
+                    _buffer[index] = default!;
+                    _count--;
+                }
+            }
+        }
+    }
+    
+    public void ReplaceWhere(Predicate<T> match, T replacement)
+    {
+        lock (_syncRoot)
+        {
+            for (int i = 0; i < _count; i++)
+            {
+                int index = (_tail + i) % Capacity;
+                var item = _buffer[index];
+                
+                if (item != null && match(item))
+                {
+                    _buffer[index] = replacement;
+                }
+            }
         }
     }
 

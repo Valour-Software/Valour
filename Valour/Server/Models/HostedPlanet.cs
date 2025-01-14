@@ -15,7 +15,6 @@ public class HostedPlanet : ServerModel<long>
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
     public readonly PlanetPermissionsCache PermissionCache = new();
-    public readonly ChannelChatCache ChatCache = new();
 
     private Channel _defaultChannel;
     private PlanetRole _defaultRole;
@@ -25,15 +24,10 @@ public class HostedPlanet : ServerModel<long>
     
     public Planet Planet { get; }
     
-    public long Id
-    {
-        get => Planet.Id;
-        set => Planet.Id = value;
-    }
-    
     public HostedPlanet(Planet planet, List<Channel> channels, List<PlanetRole> roles)
     {
         Planet = planet;
+        Id = planet.Id;
         SetChannels(channels);
         SetRoles(roles);
     }
