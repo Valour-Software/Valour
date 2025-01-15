@@ -126,6 +126,7 @@ jobs:
         TEST_DB_USER: "test_user"
         TEST_DB_PASS: "test_password_123"
         TEST_REDIS: "redis:6379,abortConnect=False"
+        NODE_NAME: "emma"
       run: dotnet test --no-build --verbosity normal
       continue-on-error: true
 
