@@ -101,15 +101,22 @@ public partial class Program
         AmazonS3Client client = new(cred, config);
         BucketManager.Client = client;
 
-        // public bucket
-        BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
-        var publicConfig = new AmazonS3Config()
+        if (CdnConfig.Current is not null)
         {
-            ServiceURL = CdnConfig.Current.PublicS3Endpoint
-        };
-
-        AmazonS3Client publicClient = new(publicCred, publicConfig);
-        BucketManager.PublicClient = publicClient;
+            // public bucket
+            BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
+            var publicConfig = new AmazonS3Config()
+            {
+                ServiceURL = CdnConfig.Current.PublicS3Endpoint
+            };
+            
+            AmazonS3Client publicClient = new(publicCred, publicConfig);
+            BucketManager.PublicClient = publicClient;
+        }
+        else
+        {
+            Console.WriteLine("Missing CDN config - file uploads will not function properly");
+        }
 
         DynamicApis = new()
         {

@@ -5,7 +5,7 @@ public class CdnConfig
     /// <summary>
     /// The static instance of the current instance
     /// </summary>
-    public static CdnConfig Current;
+    public static CdnConfig? Current;
 
     public CdnConfig()
     {
