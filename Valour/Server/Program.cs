@@ -245,6 +245,14 @@ public partial class Program
 
         services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); });
 
+        // Apply migrations if flag is set
+        if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
+        {
+            using var scope = services.BuildServiceProvider().CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            db.Database.Migrate();
+        }
+        
         Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
         
         services.AddSingleton<IConnectionMultiplexer>(
