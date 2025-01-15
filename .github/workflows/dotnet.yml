@@ -13,6 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Sanitize branch name
+      run: |
+        TAG_NAME=$(echo "${GITHUB_REF_NAME}" | tr '/:' '-_')
+        echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+
     - name: Get Short SHA
       id: short-sha
       run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
