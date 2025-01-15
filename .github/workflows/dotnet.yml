@@ -125,7 +125,7 @@ jobs:
         TEST_DB_HOST: "postgres:5432"
         TEST_DB_USER: "test_user"
         TEST_DB_PASS: "test_password_123"
-        TEST_REDIS: "redis:6379"
+        TEST_REDIS: "redis:6379,abortConnect=False"
       run: dotnet test --no-build --verbosity normal
       continue-on-error: true
 
