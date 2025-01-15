@@ -46,6 +46,7 @@ public class ValourDb : DbContext
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);
         UserChannelState.SetupDbModel(modelBuilder);
+        PlanetMember.SetupDbModel(modelBuilder);
     }
 
     // These are the database sets we can access

@@ -615,6 +615,12 @@ public class UserService
         // Verify new username is ACTUALLY NEW
         if (user.Name == newUsername)
             return new TaskResult(false, "New username matches your existing username.");
+        
+        // Verify username is allowed
+        var validResult = UserUtils.TestUsername(newUsername);
+        if (!validResult.Success)
+            return validResult;
+        
         // If user is a Stargazer, verify the new username/tag combo is unique
         if (user.SubscriptionType is not null)
         {
