@@ -238,6 +238,8 @@ public partial class Program
 
         services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); });
 
+        Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
+        
         services.AddSingleton<IConnectionMultiplexer>(
             ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
 
