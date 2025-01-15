@@ -15,7 +15,7 @@ public static class ConfigLoader
     public static void LoadConfigs()
     {
         var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
