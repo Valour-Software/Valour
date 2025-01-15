@@ -69,7 +69,7 @@ jobs:
       run: dotnet build --no-restore
 
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity detailed
       continue-on-error: true
 
     - name: Publish Test Results
