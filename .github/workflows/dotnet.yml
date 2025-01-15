@@ -10,6 +10,31 @@ env:
 jobs:
   build:
     runs-on: self-hosted
+
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password_123
+          POSTGRES_DB: valour_test
+        options: >-
+          --health-cmd="pg_isready -U test_user"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
     steps:
     - uses: actions/checkout@v3
 
@@ -95,6 +120,12 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Test
+      env:
+        TEST_DB: "valour_test"
+        TEST_DB_HOST: "postgres:5432"
+        TEST_DB_USER: "test_user"
+        TEST_DB_PASS: "test_password_123"
+        TEST_REDIS: "redis:6379"
       run: dotnet test --no-build --verbosity normal
       continue-on-error: true
 
