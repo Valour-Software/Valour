@@ -51,6 +51,11 @@ public static class ConfigLoader
             EmailConfig.Instance!.ApiKey = testEmail;
             Console.WriteLine("Using test email");
         }
+
+        if (CdnConfig.Current is null)
+        {
+            new CdnConfig();
+        }
     }
 
     public static void LoadTestDbConfig()
