@@ -11,7 +11,7 @@ public class EmailConfig
     /// <summary>
     /// The current Email Configuration
     /// </summary>
-    public static EmailConfig instance;
+    public static EmailConfig Instance { get; private set; }
 
     /// <summary>
     /// The API key for the email service
@@ -23,6 +23,6 @@ public class EmailConfig
     /// </summary>
     public EmailConfig()
     {
-        instance = this;
+        Instance = this;
     }
 }

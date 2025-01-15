@@ -145,7 +145,7 @@ public class RegisterService
             UserPrivateInfo userPrivateInfo = new()
             {
                 Email = request.Email,
-                Verified = (EmailConfig.instance.ApiKey == "fake-value"),
+                Verified = (EmailConfig.Instance.ApiKey == "fake-value"),
                 UserId = user.Id,
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 Locality = request.Locality,
@@ -194,7 +194,7 @@ public class RegisterService
             await _db.SaveChangesAsync();
             
             // Helper for dev environment
-            if (EmailConfig.instance.ApiKey != "fake-value")
+            if (EmailConfig.Instance.ApiKey != "fake-value")
             {
                 var emailCode = Guid.NewGuid().ToString();
                 EmailConfirmCode confirmCode = new()

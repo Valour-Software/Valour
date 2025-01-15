@@ -16,7 +16,7 @@ public class EmailManager
 
     public static void SetupClient()
     {
-        client = new SendGridClient(EmailConfig.instance.ApiKey);
+        client = new SendGridClient(EmailConfig.Instance.ApiKey);
     }
 
     /// <summary>

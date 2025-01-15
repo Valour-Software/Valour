@@ -42,6 +42,13 @@ public static class ConfigLoader
             RedisConfig.Current.ConnectionString = testRedis;
             Console.WriteLine($"Using test redis: {testRedis}");
         }
+        
+        var testEmail = Environment.GetEnvironmentVariable("TEST_EMAIL") ?? "fake-value";
+        if (testEmail is not null)
+        {
+            EmailConfig.Instance.ApiKey = testEmail;
+            Console.WriteLine("Using test email");
+        }
     }
 
     public static void LoadTestDbConfig()
