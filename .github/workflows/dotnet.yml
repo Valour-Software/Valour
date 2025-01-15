@@ -95,7 +95,7 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Test
-      run: dotnet test --no-build --verbosity detailed
+      run: dotnet test --no-build --verbosity normal
       continue-on-error: true
 
     - name: Publish Test Results
