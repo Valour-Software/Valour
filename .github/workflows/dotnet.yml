@@ -55,8 +55,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 9.0.100-rc.1.24452.12 
-        include-prerelease: true
+        dotnet-version: 9.0.1
 
     - name: Restore workload
       run: dotnet workload restore
@@ -72,6 +71,14 @@ jobs:
 
     - name: Build
       run: dotnet build --no-restore
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
 
     - name: Test
       run: dotnet test --no-build --verbosity detailed
