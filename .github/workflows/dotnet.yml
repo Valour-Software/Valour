@@ -111,8 +111,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${{ steps.short-sha.outputs.short_sha }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-latest
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-${{ steps.short-sha.outputs.short_sha }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-latest
         labels: |
           org.opencontainers.image.source=${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
