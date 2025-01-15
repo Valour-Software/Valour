@@ -44,9 +44,10 @@ public static class ConfigLoader
         }
         
         var testEmail = Environment.GetEnvironmentVariable("TEST_EMAIL") ?? "fake-value";
-        if (testEmail is not null)
+        if (EmailConfig.Instance is null)
         {
-            EmailConfig.Instance.ApiKey = testEmail;
+            new EmailConfig();
+            EmailConfig.Instance!.ApiKey = testEmail;
             Console.WriteLine("Using test email");
         }
     }
