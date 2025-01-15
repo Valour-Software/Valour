@@ -91,18 +91,18 @@ public partial class Program
 
         // s3 (r2) setup
 
-        // private bucket
-        BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
-        var config = new AmazonS3Config()
-        {
-            ServiceURL = CdnConfig.Current.S3Endpoint
-        };
-
-        AmazonS3Client client = new(cred, config);
-        BucketManager.Client = client;
-
         if (CdnConfig.Current is not null)
         {
+            // private bucket
+            BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
+            var config = new AmazonS3Config()
+            {
+                ServiceURL = CdnConfig.Current.S3Endpoint
+            };
+
+            AmazonS3Client client = new(cred, config);
+            BucketManager.Client = client;
+            
             // public bucket
             BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
             var publicConfig = new AmazonS3Config()
