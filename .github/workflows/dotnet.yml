@@ -11,20 +11,20 @@ jobs:
   build:
     runs-on: self-hosted
 
-    services:
-      postgres:
-        image: postgres:latest
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password_123
-          POSTGRES_DB: valour_test
-        options: >-
-          --health-cmd="pg_isready -U test_user"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+    #services:
+    #  postgres:
+    #    image: postgres:latest
+    #    ports:
+    #      - 5432:5432
+    #    env:
+    #      POSTGRES_USER: test_user
+    #      POSTGRES_PASSWORD: test_password_123
+    #      POSTGRES_DB: valour_test
+    #    options: >-
+    #      --health-cmd="pg_isready -U test_user"
+    #      --health-interval=10s
+    #      --health-timeout=5s
+    #      --health-retries=5
       #redis:
       #  image: redis:latest
       #  ports:
@@ -122,7 +122,7 @@ jobs:
     - name: Test
       env:
         TEST_DB: "valour_test"
-        TEST_DB_HOST: "postgres:5432"
+        TEST_DB_HOST: "localhost:5432"
         TEST_DB_USER: "test_user"
         TEST_DB_PASS: "test_password_123"
         TEST_REDIS: "localhost:6379,abortConnect=False"
