@@ -10,6 +10,22 @@ env:
 jobs:
   build:
     runs-on: self-hosted
+
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password_123
+          POSTGRES_DB: valour_test
+        options: >-
+          --health-cmd="pg_isready -U test_user"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
     steps:
     - uses: actions/checkout@v3
 
