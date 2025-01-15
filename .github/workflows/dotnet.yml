@@ -38,6 +38,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
     - name: Check Disk Space and Clean Docker Artifacts
       run: |
         THRESHOLD=10 # Disk space threshold in GB
@@ -110,29 +118,6 @@ jobs:
 
     - name: Build
       run: dotnet build --no-restore
-
-    - name: Cache NuGet packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-
-    - name: Wait for PostgreSQL and Redis
-      run: |
-        echo "Waiting for PostgreSQL..."
-        until pg_isready -h postgres -p 5432 -U test_user; do
-          echo "PostgreSQL is not ready yet..."
-          sleep 2
-        done
-        echo "PostgreSQL is ready!"
-        echo "Waiting for Redis..."
-        until redis-cli -h redis -p 6379 ping | grep -q PONG; do
-          echo "Redis is not ready yet..."
-          sleep 2
-        done
-        echo "Redis is ready!"
 
     - name: Test
       env:
