@@ -1,6 +1,6 @@
 ﻿using SendGrid;
 using SendGrid.Helpers.Mail;
-using Valour.Server.Config;
+using Valour.Config.Configs;
 
 namespace Valour.Server.Email;
 

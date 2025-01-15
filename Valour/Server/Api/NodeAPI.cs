@@ -1,4 +1,4 @@
-﻿using Valour.Server.Config;
+﻿using Valour.Config.Configs;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Hubs;
 

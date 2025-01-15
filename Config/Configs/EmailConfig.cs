@@ -1,4 +1,4 @@
-﻿namespace Valour.Server.Config;
+﻿namespace Valour.Config.Configs;
 
 /*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2024 Valour Software LLC

@@ -1,4 +1,4 @@
-﻿namespace Valour.Server.Config;
+﻿namespace Valour.Config.Configs;
 
 public class CdnConfig
 {

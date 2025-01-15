@@ -1,4 +1,4 @@
-namespace Valour.Server.Config;
+namespace Valour.Config.Configs;
 
 /// <summary>
 /// Please don't leak this one :)

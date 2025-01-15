@@ -9,14 +9,14 @@ using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
 using Valour.Server.Cdn.Extensions;
-using Valour.Server.Config;
 using Valour.Server.Email;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
 using WebPush;
-using Valour.Database.Config;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Valour.Config;
+using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
 
@@ -27,7 +27,7 @@ public class Program
     public static List<object> DynamicApis { get; set; }
 
     public static NodeAPI NodeAPI { get; set; }
-
+    
     public static async Task Main(string[] args)
     {
         // Create builder
@@ -37,7 +37,7 @@ public class Program
         builder.WebHost.UseStaticWebAssets();
 
         // Load configs
-        LoadConfigsAsync(builder);
+        ConfigLoader.LoadConfigs();
 
         // Initialize Email Manager
         EmailManager.SetupClient();
@@ -316,31 +316,5 @@ public class Program
             });
             c.OperationFilter<FileUploadOperation>();
         });
-    }
-
-    /// <summary>
-    /// Loads the json configs for services
-    /// </summary>
-    public static void LoadConfigsAsync(WebApplicationBuilder builder)
-    {
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
-            .AddEnvironmentVariables()
-            .Build();
-
-        builder.Configuration.GetSection("CDN").Get<CdnConfig>();
-        builder.Configuration.GetSection("Database").Get<DbConfig>();
-        builder.Configuration.GetSection("Email").Get<EmailConfig>();
-        builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
-        builder.Configuration.GetSection("Node").Get<NodeConfig>();
-        builder.Configuration.GetSection("Redis").Get<RedisConfig>();
-        builder.Configuration.GetSection("Paypal").Get<PaypalConfig>();
-
-        // Override with Kubernetes node details
-        var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
-        if (nodeName is not null)
-        {
-            NodeConfig.Instance.ApplyKubeHostname(nodeName);
-        }
     }
 }

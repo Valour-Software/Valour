@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using Valour.Server.Config;
+using Valour.Config.Configs;
 using Valour.Server.Hubs;
 using Valour.Server.Redis;
 

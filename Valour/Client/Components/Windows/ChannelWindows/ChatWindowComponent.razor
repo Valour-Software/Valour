@@ -26,6 +26,7 @@
     public PermissionsNode ChannelPermissions { get; set; }
     
     // Stores for messages (Always initialized so don't bother null checking)
+    // TODO: Replace with CircularBuffer
     public List<Message> DisplayedMessages { get; set; } = new();
     public List<Message> QueuedMessages { get; set; } = new();
     public List<MessageComponent> RenderedMessages { get; set; } = new();

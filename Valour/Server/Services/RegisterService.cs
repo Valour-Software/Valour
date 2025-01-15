@@ -1,5 +1,5 @@
 using SendGrid;
-using Valour.Server.Config;
+using Valour.Config.Configs;
 using Valour.Server.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;

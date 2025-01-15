@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
+using Valour.Config.Configs;
 using Valour.Database;
-using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Models;

@@ -4,7 +4,7 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Database.Config;
+namespace Valour.Config.Configs;
 
 public class DbConfig
 {

@@ -1,4 +1,4 @@
-﻿namespace Valour.Server.Config;
+﻿namespace Valour.Config.Configs;
 
 /// <summary>
 /// Configuration for node system
