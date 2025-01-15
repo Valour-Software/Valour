@@ -33,5 +33,46 @@ public static class ConfigLoader
         {
             NodeConfig.Instance.ApplyKubeHostname(nodeName);
         }
+        
+        LoadTestDbConfig();
+        
+        var testRedis = Environment.GetEnvironmentVariable("TEST_REDIS");
+        if (testRedis is not null)
+        {
+            RedisConfig.Current.ConnectionString = testRedis;
+            Console.WriteLine($"Using test redis: {testRedis}");
+        }
+    }
+
+    public static void LoadTestDbConfig()
+    {
+        // Check for integration test database details
+        var testDb = Environment.GetEnvironmentVariable("TEST_DB");
+        if (testDb is not null)
+        {
+            DbConfig.Instance.Database = testDb;
+            Console.WriteLine($"Using test database: {testDb}");
+        }
+        
+        var testDbUser = Environment.GetEnvironmentVariable("TEST_DB_USER");
+        if (testDbUser is not null)
+        {
+            DbConfig.Instance.Username = testDbUser;
+            Console.WriteLine($"Using test database user: {testDbUser}");
+        }
+        
+        var testDbPass = Environment.GetEnvironmentVariable("TEST_DB_PASS");
+        if (testDbPass is not null)
+        {
+            DbConfig.Instance.Password = testDbPass;
+            Console.WriteLine("Using test database password");
+        }
+        
+        var testDbHost = Environment.GetEnvironmentVariable("TEST_DB_HOST");
+        if (testDbHost is not null)
+        {
+            DbConfig.Instance.Host = testDbHost;
+            Console.WriteLine($"Using test database host: {testDbHost}");
+        }
     }
 }

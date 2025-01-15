@@ -22,7 +22,7 @@ using Valour.Server.Hubs;
 
 namespace Valour.Server;
 
-public class Program
+public partial class Program
 {
     public static List<object> DynamicApis { get; set; }
 

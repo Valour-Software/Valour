@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="..\Tests\Valour.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.0-preview.3" />
     <PackageReference Include="ExCSS" Version="4.3.0" />
     <PackageReference Include="IdGen" Version="3.0.7" />
