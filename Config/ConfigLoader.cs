@@ -31,6 +31,11 @@ public static class ConfigLoader
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
         if (nodeName is not null)
         {
+            if (NodeConfig.Instance is null)
+            {
+                new NodeConfig();
+            }
+            
             NodeConfig.Instance.ApplyKubeHostname(nodeName);
         }
         
