@@ -37,9 +37,10 @@ public static class ConfigLoader
         LoadTestDbConfig();
         
         var testRedis = Environment.GetEnvironmentVariable("TEST_REDIS");
-        if (testRedis is not null)
+        if (RedisConfig.Current is null)
         {
-            RedisConfig.Current.ConnectionString = testRedis;
+            new RedisConfig();
+            RedisConfig.Current!.ConnectionString = testRedis;
             Console.WriteLine($"Using test redis: {testRedis}");
         }
         
@@ -54,6 +55,11 @@ public static class ConfigLoader
 
     public static void LoadTestDbConfig()
     {
+        if (DbConfig.Instance is null)
+        {
+            new DbConfig();
+        }
+        
         // Check for integration test database details
         var testDb = Environment.GetEnvironmentVariable("TEST_DB");
         if (testDb is not null)
