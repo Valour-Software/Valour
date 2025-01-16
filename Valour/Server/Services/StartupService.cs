@@ -68,7 +68,7 @@ public class StartupService
                 OwnerId = ISharedUser.VictorUserId,
                 Discoverable = true,
                 Public = true,
-            }, victor);
+            }, victor, ISharedPlanet.ValourCentralId);
             
             if (!result.Success)
             {
