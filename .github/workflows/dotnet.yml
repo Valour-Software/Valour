@@ -17,7 +17,7 @@ jobs:
     #    ports:
     #      - 5432:5432
     #    env:
-    #      POSTGRES_USER: test_user
+    #      POSTGRES_USER: test_user 
     #      POSTGRES_PASSWORD: test_password_123
     #      POSTGRES_DB: valour_test
     #    options: >-
@@ -129,7 +129,7 @@ jobs:
         NODE_NAME: "emma"
         APPLY_MIGRATIONS: true
       run: dotnet test --no-build --verbosity normal
-      continue-on-error: true
+      #continue-on-error: true
 
     - name: Publish Test Results
       if: always()
