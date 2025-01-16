@@ -17,4 +17,9 @@ public class TestHttpProvider : HttpClientProvider
     {
         return _factory.CreateClient();
     }
+    
+    public HttpMessageHandler GetHttpMessageHandler()
+    {
+        return _factory.Server.CreateHandler();
+    }
 }

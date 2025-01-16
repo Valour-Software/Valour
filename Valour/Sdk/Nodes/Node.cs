@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http.Connections;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Services;
@@ -187,10 +188,18 @@ public class Node : ServiceBase // each node acts like a service
         Log("Connecting to Core hub at " + address);
 
         HubConnection = new HubConnectionBuilder()
-            .WithUrl(address, options =>
-            {
-                options.Headers.Add("X-Server-Select", Name);
-                options.UseStatefulReconnect = true;
+            .WithUrl(address, options => {
+                {
+                    options.Headers.Add("X-Server-Select", Name);
+                    options.UseStatefulReconnect = true;
+                    
+                    // Support in-memory testing
+                    if (Client.HttpClientProvider is not null)
+                    {
+                        options.HttpMessageHandlerFactory = (_ => Client.HttpClientProvider.GetHttpMessageHandler());
+                        options.Transports = HttpTransportType.LongPolling;
+                    }
+                }
             })
             .Build();
 

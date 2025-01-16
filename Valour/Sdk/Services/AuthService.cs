@@ -82,8 +82,14 @@ public class AuthService : ServiceBase
     {
         var tokenResult = await FetchToken(email, password);
         if (!tokenResult.Success)
+        {
             return tokenResult.WithoutData();
-        
+        }
+        else
+        {
+            _token = tokenResult.Data;
+        }
+
         return await LoginAsync();
     }
     

@@ -548,7 +548,7 @@ public class UserService
                     TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userId,
-                    IssuedAddress = ctx.Connection.RemoteIpAddress.ToString()
+                    IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN"
                 }.ToDatabase();
 
                 await _db.AuthTokens.AddAsync(token);
