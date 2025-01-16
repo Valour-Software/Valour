@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Valour.Sdk.Client;
 using Valour.Server;
 
@@ -20,6 +21,8 @@ public class LoginTestFixture : IAsyncLifetime
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
+                builder.UseSetting("https_port", "5001");
+                builder.UseUrls("http://localhost:5000");
             });
 
         // Create a client from the factory
@@ -27,7 +30,7 @@ public class LoginTestFixture : IAsyncLifetime
         
         
         
-        Client = new ValourClient("http://localhost:5000/");
+        Client = new ValourClient("https://localhost:5001/");
         httpClient.BaseAddress = new Uri(Client.BaseAddress);
         Client.SetHttpClient(httpClient);
 
