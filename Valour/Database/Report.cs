@@ -104,10 +104,18 @@ public class Report : ISharedReport
             e.Property(x => x.Reviewed)
                 .HasColumnName("reviewed");
             
-            // Relantioships
+            // Relationships
             
-            e.HasOne(x => x.)
-            
+            // Indices
+
+            e.HasIndex(x => x.ReportingUserId);
+
+            e.HasIndex(x => x.MessageId);
+
+            e.HasIndex(x => x.ChannelId);
+
+            e.HasIndex(x => x.PlanetId);
+
 
 
         });
