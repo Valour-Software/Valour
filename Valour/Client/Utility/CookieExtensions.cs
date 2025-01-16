@@ -18,4 +18,9 @@ public static class CookieExtensions
     {
         return await js.InvokeAsync<string>("getCookie", name);
     }
+    
+    public static async Task DeleteCookieAsync(this IJSRuntime js, string name)
+    {
+        await js.InvokeVoidAsync("deleteCookie", name);
+    }
 }

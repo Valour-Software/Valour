@@ -83,6 +83,9 @@ public class ValourClient
     {
         BaseAddress = baseAddress;
         
+        if (!BaseAddress.EndsWith('/'))
+            BaseAddress += '/';
+        
         if (logger is null)
             Logger = new LoggingService();
         else 

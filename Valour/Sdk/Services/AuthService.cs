@@ -97,10 +97,14 @@ public class AuthService : ServiceBase
         
         // Add auth header to main http client so we never have to do that again
         _client.Http.DefaultRequestHeaders.Add("authorization", Token);
-        
+
         if (_client.PrimaryNode is null)
-            await _client.NodeService.SetupPrimaryNodeAsync();
-        
+        {
+            var nodeResult = await _client.NodeService.SetupPrimaryNodeAsync();
+            if (!nodeResult.Success)
+                return nodeResult;
+        }
+
         var response = await _client.PrimaryNode!.GetJsonAsync<User>($"api/users/me");
 
         if (!response.Success)

@@ -44,8 +44,11 @@ public class CoreHub : Hub
         // Authenticate user
         var authToken = await _tokenService.GetAsync(token);
 
+        var result = new TaskResult(false, "Failed to authenticate connection.");
+        result.Code = 401;
+
         if (authToken is null)
-            return new TaskResult(false, "Failed to authenticate connection.");
+            return result;
 
         ConnectionTracker.ConnectionIdentities[Context.ConnectionId] = authToken;
 

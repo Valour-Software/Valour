@@ -58,7 +58,7 @@ public class Node : ServiceBase // each node acts like a service
         _nodeService = client.NodeService;
     }
 
-    public async Task InitializeAsync(string name, bool isPrimary = false)
+    public async Task<TaskResult> InitializeAsync(string name, bool isPrimary = false)
     {
         Name = name;
         IsPrimary = isPrimary;
@@ -79,15 +79,28 @@ public class Node : ServiceBase // each node acts like a service
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
+        
+        if (Client.AuthService.Token is null)
+        {
+            LogWarning("No token found, skipping full node initialization. Only registration will be possible.");
+            return TaskResult.SuccessResult;
+        }
+        
         HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
 
         Log("Setting up new hub connection...");
 
         await ConnectSignalRHub();
-        await AuthenticateSignalR();
+        
+        var authResult = await AuthenticateSignalR();
+        if (!authResult.Success)
+            return authResult;
+        
         await ConnectToUserChannel();
 
         BeginPings();
+        
+        return TaskResult.SuccessResult;
     }
 
     private async Task ConnectToUserChannel()
@@ -186,7 +199,7 @@ public class Node : ServiceBase // each node acts like a service
         _nodeService.NodeAdded?.Invoke(this);
     }
 
-    private async Task AuthenticateSignalR()
+    private async Task<TaskResult> AuthenticateSignalR()
     {
         Log("Authenticating with SignalR hub...");
 
@@ -204,6 +217,12 @@ public class Node : ServiceBase // each node acts like a service
             {
                 response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Client.AuthService.Token);
                 authorized = response.Success;
+
+                // Token invalid or expired. Clear 
+                if (response.Code == 401)
+                {
+                    return response;
+                }
             }
             catch (Exception ex)
             {
@@ -216,9 +235,11 @@ public class Node : ServiceBase // each node acts like a service
         if (!authorized)
         {
             Log("** FATAL: Failed to authorize with SignalR after 5 attempts. **");
+            return new TaskResult(false, "Failed to authorize with SignalR after 5 attempts.");
         }
 
         Log(response.Message);
+        return TaskResult.SuccessResult;
     }
 
     private void HookModelEvents<TModel>(TModel model)

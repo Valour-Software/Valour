@@ -107,13 +107,20 @@ else
                 {
                     var result = await Client.InitializeUser(cookieToken);
 
+                    if (result.Code == 401)
+                    {
+                        // Clear cookie
+                        await JsRuntime.DeleteCookieAsync("token");
+                    }
+
                     if (result.Success) {
                         Log("App", $"Auto-logged user {Client.Me.Name}", "magenta");
                     }
-                }
+                } 
             }
 
             _triedInitialLogin = true;
+            Log("App", $"Tried initial login. Status: {Client.IsLoggedIn}", "magenta");
 
             StateHasChanged();
         }
