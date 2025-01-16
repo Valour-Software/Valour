@@ -17,7 +17,7 @@ jobs:
     #    ports:
     #      - 5432:5432
     #    env:
-    #      POSTGRES_USER: test_user
+    #      POSTGRES_USER: test_user 
     #      POSTGRES_PASSWORD: test_password_123
     #      POSTGRES_DB: valour_test
     #    options: >-
