@@ -12,11 +12,9 @@
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public interface ISharedUserFriend : ISharedModel
+public interface ISharedUserFriend : ISharedModel<long>
 {
     const string BaseRoute = "api/userfriends";
-    
-    long Id { get; set; }
     
     /// <summary>
     /// The user who added the friend

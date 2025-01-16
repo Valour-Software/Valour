@@ -1,14 +1,10 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using Valour.Sdk.Client;
-using Valour.Server;
 using Valour.Shared.Models;
-using Xunit.Extensions.Ordering;
 
 namespace Valour.Tests.Apis;
 
-[Order(-1)]
-//public class UserApiTests : IClassFixture<WebApplicationFactory<Program>>
-public class UserApiTests : IClassFixture<LoginTestFixture>
+[Collection("ApiCollection")]
+public class UserApiTests
 {
     private readonly HttpClient _httpClient;
     private ValourClient _client;
@@ -20,6 +16,18 @@ public class UserApiTests : IClassFixture<LoginTestFixture>
         _client = fixture.Client;
         _httpClient = _client.Http;
         _fixture = fixture;
+    }
+
+    [Fact]
+    public void UserRegistered()
+    {
+        Assert.True(_fixture.UserRegistered);
+    }
+    
+    [Fact]
+    public void UserLoggedIn()
+    {
+        Assert.True(_fixture.UserLoggedIn);
     }
     
     [Fact]

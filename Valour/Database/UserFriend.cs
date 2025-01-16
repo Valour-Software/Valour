@@ -36,6 +36,7 @@ public class UserFriend : ISharedUserFriend
     /// <summary>
     /// The id of the user friend model
     /// </summary>
+    [Column("id")]
     public long Id { get; set; }
 
     /// <summary>
@@ -50,9 +51,4 @@ public class UserFriend : ISharedUserFriend
     /// </summary>
     [Column("friend_id")]
     public long FriendId { get; set; }
-
-    public object GetId()
-    {
-        return (UserId, FriendId);
-    }
 }

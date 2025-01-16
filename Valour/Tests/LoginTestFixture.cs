@@ -1,29 +1,28 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Swashbuckle.SwaggerUi;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
-using Valour.Server.Services;
 using Valour.Shared.Models;
-using Xunit.Extensions.Ordering;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Valour.Tests;
 
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Xunit;
+public class TestShared
+{
+    public static RegisterUserRequest TestUserDetails { get; set; }
+}
 
 public class LoginTestFixture : IAsyncLifetime
 {
     public WebApplicationFactory<Program> Factory { get; private set; } = null!;
     public ValourClient Client { get; private set; } = null!;
     public  RegisterUserRequest TestUserDetails { get; private set; } = null!;
-
-
+    
+    public bool UserRegistered { get; private set; } = false;
+    public bool UserLoggedIn { get; private set; } = false;
+    
     public async Task InitializeAsync()
     {
         // Create the underlying WebApplicationFactory
@@ -40,12 +39,12 @@ public class LoginTestFixture : IAsyncLifetime
         Client = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(Factory));
         httpClient.BaseAddress = new Uri(Client.BaseAddress);
         Client.SetHttpClient(httpClient);
-
+        
         // Sets up the primary node
         await Client.NodeService.SetupPrimaryNodeAsync();
 
         // Register a user
-        await RegisterUser();
+        await RegisterUser(true);
         
         // Log in the user
         await TestLoginUser();
@@ -53,7 +52,7 @@ public class LoginTestFixture : IAsyncLifetime
         Console.WriteLine("Initialized LoginTestFixture");
     }
     
-    public async Task RegisterUser()
+    public async Task<RegisterUserRequest> RegisterUser(bool primary = false)
     {
         var testString = Guid.NewGuid().ToString().Substring(0, 8);
 
@@ -61,7 +60,7 @@ public class LoginTestFixture : IAsyncLifetime
         var testUsername = $"test-{testString}";
         var testPassword = $"Test-{testString}";
 
-        TestUserDetails = new RegisterUserRequest()
+        var details = new RegisterUserRequest()
         {
             Email = testEmail,
             Locality = Locality.General,
@@ -70,6 +69,12 @@ public class LoginTestFixture : IAsyncLifetime
             DateOfBirth = new DateTime(2000, 1, 1),
             Source = "test"
         };
+        
+        if (primary)
+        {
+            TestUserDetails = details;
+            TestShared.TestUserDetails = details;
+        }
 
         try
         {
@@ -94,11 +99,15 @@ public class LoginTestFixture : IAsyncLifetime
                 response.EnsureSuccessStatusCode();
             }
 
-            Console.WriteLine("Registered Test User");
+            Console.WriteLine("Startup: Registered Test User");
+            
+            UserRegistered = true;
+
+            return details;
         }
         catch (Exception e)
         {
-            Console.WriteLine("Failed to register Test User");
+            Console.WriteLine("Startup: Failed to register Test User");
             Console.WriteLine(e);
             throw;
         }
@@ -119,20 +128,97 @@ public class LoginTestFixture : IAsyncLifetime
             Assert.NotNull(loginResult);
             Assert.True(loginResult.Success);
 
-            Console.WriteLine("Logged in to Test User");
+            Console.WriteLine("Startup: Logged in to Test User");
+            
+            UserLoggedIn = true;
         }
         catch (Exception e)
         {
-            Console.WriteLine("Failed to log in to Test User");
+            Console.WriteLine("Startup: Failed to log in to Test User");
             Console.WriteLine(e);
             throw;
         }
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
+    {
+        /*
+        // Hard delete the test user
+        try
+        {
+            await Client.DeleteMyAccountAsync(TestUserDetails.Password);
+            Console.WriteLine("Deleted Test User");
+            
+            UserDeleted = true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Failed to delete Test User");
+            Console.WriteLine(e);
+
+            throw;
+        }
+        */
+
+        // Clean up if needed
+        await Factory.DisposeAsync();
+    }
+}
+
+// Similar to login, but doesn't register. Just uses shared user details to login
+public class TeardownTestFixture : IAsyncLifetime
+{
+    public WebApplicationFactory<Program> Factory { get; private set; } = null!;
+    public ValourClient Client { get; private set; } = null!;
+    public RegisterUserRequest TestUserDetails { get; private set; } = null!;
+    
+    public bool UserDeleted { get; private set; } = false;
+    
+    public async Task InitializeAsync()
+    {
+        // Create the underlying WebApplicationFactory
+        Factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("https_port", "5001");
+                builder.UseUrls("http://localhost:5000");
+            });
+        
+        // Log in the user
+        await TestLoginUser();
+        
+        Console.WriteLine("Initialized TeardownTestFixture");
+    }
+    
+    public async Task TestLoginUser()
+    {
+        try
+        {
+            // Create a client from the factory
+            var httpClient = Factory.CreateClient();
+            
+            // Build new client for logged in user
+            Client = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(Factory));
+            Client.SetHttpClient(httpClient);
+
+            var loginResult = await Client.AuthService.LoginAsync(TestShared.TestUserDetails.Email, TestShared.TestUserDetails.Password);
+
+            Assert.NotNull(loginResult);
+            Assert.True(loginResult.Success);
+
+            Console.WriteLine("Teardown: Logged in to Test User");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Teardown: Failed to log in to Test User");
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+
+    public async Task DisposeAsync()
     {
         // Clean up if needed
-        Factory.Dispose();
-        return Task.CompletedTask;
+        await Factory.DisposeAsync();
     }
 }
