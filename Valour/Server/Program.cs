@@ -309,6 +309,7 @@ public partial class Program
         services.AddScoped<ThemeService>();
         services.AddScoped<StaffService>();
         services.AddScoped<PlanetPermissionService>();
+        services.AddScoped<StartupService>();
 
         services.AddSingleton<NodeLifecycleService>();
 

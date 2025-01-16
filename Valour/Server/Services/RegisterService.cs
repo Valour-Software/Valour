@@ -46,7 +46,7 @@ public class RegisterService
         _messageService = messageService;
     }
     
-    public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx)
+    public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
     {
         if (await _db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
             return new(false, "Username is taken");
@@ -118,7 +118,7 @@ public class RegisterService
         {
             user = new()
             {
-                Id = IdManager.Generate(),
+                Id = forceId ?? IdManager.Generate(),
                 Name = request.Username,
                 Tag = await _userService.GetUniqueTag(request.Username),
                 TimeJoined = DateTime.UtcNow,
@@ -145,7 +145,7 @@ public class RegisterService
             UserPrivateInfo userPrivateInfo = new()
             {
                 Email = request.Email,
-                Verified = (EmailConfig.Instance.ApiKey == "fake-value"),
+                Verified = skipEmail || (EmailConfig.Instance.ApiKey == "fake-value"),
                 UserId = user.Id,
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 Locality = request.Locality,
@@ -194,7 +194,7 @@ public class RegisterService
             await _db.SaveChangesAsync();
             
             // Helper for dev environment
-            if (EmailConfig.Instance.ApiKey != "fake-value")
+            if (!skipEmail && EmailConfig.Instance.ApiKey != "fake-value")
             {
                 var emailCode = Guid.NewGuid().ToString();
                 EmailConfirmCode confirmCode = new()

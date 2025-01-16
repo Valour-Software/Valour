@@ -24,6 +24,10 @@ public class MigrationWorker : IHostedService
         var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
         var permService = scope.ServiceProvider.GetRequiredService<PlanetPermissionService>();
         
+        // Perform startup tasks
+        var startupService = scope.ServiceProvider.GetRequiredService<StartupService>();
+        await startupService.EnsureVictorAndValourCentralReady();
+        
         // Generate role hash keys for all members
         await permService.BulkUpdateMemberRoleHashesAsync();
         _logger.LogInformation("Migration Worker has finished");

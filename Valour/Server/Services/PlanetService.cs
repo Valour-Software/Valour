@@ -283,7 +283,7 @@ public class PlanetService
     /// <summary>
     /// Creates the given planet
     /// </summary>
-    public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user)
+    public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user, long? forceId = null)
     {
         var baseValid = await ValidateBasic(model);
         if (!baseValid.Success)
@@ -297,7 +297,7 @@ public class PlanetService
         
         try
         {
-            planet.Id = IdManager.Generate();
+            planet.Id = forceId ?? IdManager.Generate();
 
             // Create general category
             var category = new Valour.Database.Channel()
