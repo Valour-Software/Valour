@@ -51,7 +51,7 @@ public class UserUtils
     private static readonly Regex HasSymbolsRegex = new Regex(@"\W");
 
     private static readonly TaskResult PasswordFailedResult = 
-        new TaskResult(false, $"Password must be 10 characters, with an uppercase letter, lowercase letter, and number or symbol.");
+        new TaskResult(false, $"Password must be 10+ characters, with an uppercase letter, lowercase letter, and number or symbol.");
     
     /// <summary>
     /// Returns success if a password meets complexity rules

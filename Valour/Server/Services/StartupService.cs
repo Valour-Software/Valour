@@ -36,7 +36,7 @@ public class StartupService
             {
                 Email = "victor@valour.gg",
                 Locality = Locality.General,
-                Password = Guid.NewGuid().ToString() + "!",
+                Password = "T" + Guid.NewGuid().ToString().Substring(0, 10) + "!",
                 Username = "Victor",
                 DateOfBirth = new DateTime(1990, 1, 1),
             }, null, skipEmail: true, forceId: ISharedUser.VictorUserId);
