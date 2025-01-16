@@ -74,7 +74,15 @@ public class Node : ServiceBase // each node acts like a service
 
         Client.NodeService.RegisterNode(this);
 
-        HttpClient = new HttpClient();
+        if (Client.HttpClientProvider is not null)
+        {
+            HttpClient = Client.HttpClientProvider.GetHttpClient();
+        }
+        else
+        {
+            HttpClient = new HttpClient();
+        }
+
         HttpClient.BaseAddress = new Uri(Client.BaseAddress);
 
         // Set header for node

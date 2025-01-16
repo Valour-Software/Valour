@@ -1,5 +1,6 @@
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Services;
+using Valour.Sdk.Utility;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -78,8 +79,13 @@ public class ValourClient
     /// The primary node this client is connected to
     /// </summary>
     public Node PrimaryNode { get; set; }
+    
+    /// <summary>
+    /// Used mostly for testing, allows for a custom HttpClientProvider
+    /// </summary>
+    public HttpClientProvider HttpClientProvider { get; set; }
 
-    public ValourClient(string baseAddress, LoggingService logger = null)
+    public ValourClient(string baseAddress, LoggingService logger = null, HttpClientProvider httpProvider = null)
     {
         BaseAddress = baseAddress;
         
@@ -90,6 +96,8 @@ public class ValourClient
             Logger = new LoggingService();
         else 
             Logger = logger;
+        
+        HttpClientProvider = httpProvider;
         
         Logger.Log("App", $"ValourClient Base address: {BaseAddress}", "magenta");
         
