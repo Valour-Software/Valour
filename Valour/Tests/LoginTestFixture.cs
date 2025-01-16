@@ -70,43 +70,61 @@ public class LoginTestFixture : IAsyncLifetime
             DateOfBirth = new DateTime(2000, 1, 1),
             Source = "test"
         };
-        
-        var result = await Client.AuthService.RegisterAsync(TestUserDetails);
-        
-        Assert.NotNull(result);
-        Assert.True(result.Success);
-        
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-        var dbUser = await db.Users.Where(x => x.Name == testUsername).FirstOrDefaultAsync();
 
-        Assert.NotNull(dbUser);
+        try
+        {
+            var result = await Client.AuthService.RegisterAsync(TestUserDetails);
 
-        var emailConfirmCode = await db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.UserId == dbUser.Id);
-        
-        Assert.NotNull(emailConfirmCode);
-        
-        // GET to confirm email
-        var response = await Client.Http.GetAsync($"/api/users/verify/{emailConfirmCode.Code}");
-        response.EnsureSuccessStatusCode();
-        
-        Console.WriteLine("Registered Test User");
+            Assert.NotNull(result);
+            Assert.True(result.Success);
+
+            using var scope = Factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            var dbUser = await db.Users.Where(x => x.Name == testUsername).FirstOrDefaultAsync();
+
+            Assert.NotNull(dbUser);
+
+            var emailConfirmCode = await db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.UserId == dbUser.Id);
+
+            Assert.NotNull(emailConfirmCode);
+
+            // GET to confirm email
+            var response = await Client.Http.GetAsync($"/api/users/verify/{emailConfirmCode.Code}");
+            response.EnsureSuccessStatusCode();
+
+            Console.WriteLine("Registered Test User");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Failed to register Test User");
+            Console.WriteLine(e);
+            throw;
+        }
     }
     
     public async Task TestLoginUser()
     {
         var oldClient = Client;
-        
-        // Build new client for logged in user
-        Client = new ValourClient("https://localhost:5001/", httpProvider: oldClient.HttpClientProvider);
-        Client.SetHttpClient(oldClient.Http);
-        
-        var loginResult = await Client.AuthService.LoginAsync(TestUserDetails.Email, TestUserDetails.Password);
-        
-        Assert.NotNull(loginResult);
-        Assert.True(loginResult.Success);
-        
-        Console.WriteLine("Logged in to Test User");
+
+        try
+        {
+            // Build new client for logged in user
+            Client = new ValourClient("https://localhost:5001/", httpProvider: oldClient.HttpClientProvider);
+            Client.SetHttpClient(oldClient.Http);
+
+            var loginResult = await Client.AuthService.LoginAsync(TestUserDetails.Email, TestUserDetails.Password);
+
+            Assert.NotNull(loginResult);
+            Assert.True(loginResult.Success);
+
+            Console.WriteLine("Logged in to Test User");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Failed to log in to Test User");
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     public Task DisposeAsync()
