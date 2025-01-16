@@ -91,6 +91,8 @@ public class ValourClient
         else 
             Logger = logger;
         
+        Logger.Log("App", $"ValourClient Base address: {BaseAddress}", "magenta");
+        
         Cache = new CacheService(this);
         AuthService = new AuthService(this);
         NodeService = new NodeService(this);

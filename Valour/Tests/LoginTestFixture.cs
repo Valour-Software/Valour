@@ -25,7 +25,10 @@ public class LoginTestFixture : IAsyncLifetime
         // Create a client from the factory
         var httpClient = Factory.CreateClient();
         
+        
+        
         Client = new ValourClient("https://localhost:5001/");
+        httpClient.BaseAddress = new Uri(Client.BaseAddress);
         Client.SetHttpClient(httpClient);
 
         // Sets up the primary node
