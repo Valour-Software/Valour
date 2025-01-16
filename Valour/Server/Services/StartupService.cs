@@ -32,7 +32,7 @@ public class StartupService
         {
             _logger.LogInformation("Creating Victor User");
             
-            await _registerService.RegisterUserAsync(new RegisterUserRequest()
+            var result = await _registerService.RegisterUserAsync(new RegisterUserRequest()
             {
                 Email = "victor@valour.gg",
                 Locality = Locality.General,
@@ -40,6 +40,13 @@ public class StartupService
                 Username = "Victor",
                 DateOfBirth = new DateTime(1990, 1, 1),
             }, null, skipEmail: true, forceId: ISharedUser.VictorUserId);
+            
+            if (!result.Success)
+            {
+                _logger.LogError("Failed to create Victor User");
+                _logger.LogError("Error: {Error}", result.Message);
+                return;
+            }
         }
         else
         {
@@ -54,7 +61,7 @@ public class StartupService
         {
             _logger.LogInformation("Creating Valour Central");
             
-            await _planetService.CreateAsync(new Planet()
+            var result = await _planetService.CreateAsync(new Planet()
             {
                 Name = "Valour Central",
                 Description = "The central hub of Valour",
@@ -62,6 +69,13 @@ public class StartupService
                 Discoverable = true,
                 Public = true,
             }, victor);
+            
+            if (!result.Success)
+            {
+                _logger.LogError("Failed to create Valour Central");
+                _logger.LogError("Error: {Error}", result.Message);
+                return;
+            }
         }
         else
         {
