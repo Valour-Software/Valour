@@ -36,7 +36,7 @@ public static class ConfigLoader
                 new NodeConfig();
             }
             
-            NodeConfig.Instance.ApplyKubeHostname(nodeName);
+            NodeConfig.Instance.Name = nodeName;
         }
         
         LoadTestDbConfig();
