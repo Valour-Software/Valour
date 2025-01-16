@@ -27,7 +27,7 @@ public class LoginTestFixture : IAsyncLifetime
         
         
         
-        Client = new ValourClient("https://localhost:5001/");
+        Client = new ValourClient("http://localhost:5000/");
         httpClient.BaseAddress = new Uri(Client.BaseAddress);
         Client.SetHttpClient(httpClient);
 
