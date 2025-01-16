@@ -13,11 +13,13 @@ public class UserApiTests : IClassFixture<LoginTestFixture>
     private readonly HttpClient _httpClient;
     private ValourClient _client;
     private RegisterUserRequest _testUserDetails;
+    private LoginTestFixture _fixture;
 
     public UserApiTests(LoginTestFixture fixture)
     {
         _client = fixture.Client;
         _httpClient = _client.Http;
+        _fixture = fixture;
     }
     
     [Fact]

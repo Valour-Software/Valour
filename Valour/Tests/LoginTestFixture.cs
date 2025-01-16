@@ -89,6 +89,8 @@ public class LoginTestFixture : IAsyncLifetime
         // GET to confirm email
         var response = await Client.Http.GetAsync($"/api/users/verify/{emailConfirmCode.Code}");
         response.EnsureSuccessStatusCode();
+        
+        Console.WriteLine("Registered Test User");
     }
     
     public async Task TestLoginUser()
@@ -103,6 +105,8 @@ public class LoginTestFixture : IAsyncLifetime
         
         Assert.NotNull(loginResult);
         Assert.True(loginResult.Success);
+        
+        Console.WriteLine("Logged in to Test User");
     }
 
     public Task DisposeAsync()
