@@ -208,7 +208,12 @@ public class ValourClient
     public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password)
     {
         var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password };
-        return await PrimaryNode.PostAsync("api/users/me/username", model);
+        var result =  await PrimaryNode.PostAsync("api/users/me/username", model);
+
+        if (result.Success)
+            Me.Name = newUsername;
+        
+        return result;
     }
     
     // Sad zone

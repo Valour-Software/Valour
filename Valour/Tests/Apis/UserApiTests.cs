@@ -16,6 +16,7 @@ public class UserApiTests
         _client = fixture.Client;
         _httpClient = _client.Http;
         _fixture = fixture;
+        _testUserDetails = fixture.TestUserDetails;
     }
 
     [Fact]
@@ -47,5 +48,15 @@ public class UserApiTests
         var user = await _client.UserService.FetchUserAsync(_client.Me.Id);
         Assert.NotNull(user);
         Assert.Equal(user.Id, _client.Me.Id);
+    }
+
+    [Fact]
+    public async Task TestRenameUser()
+    {
+        var oldName = _client.Me.Name;
+        var result = await _client.UpdateMyUsernameAsync(_client.Me.Name + "_", _testUserDetails.Password);
+        Assert.NotNull(result);
+        Assert.True(result.Success);
+        Assert.Equal(oldName + "_", _client.Me.Name);
     }
 }

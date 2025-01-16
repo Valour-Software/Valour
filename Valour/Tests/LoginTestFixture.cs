@@ -172,8 +172,6 @@ public class TeardownTestFixture : IAsyncLifetime
     public ValourClient Client { get; private set; } = null!;
     public RegisterUserRequest TestUserDetails { get; private set; } = null!;
     
-    public bool UserDeleted { get; private set; } = false;
-    
     public async Task InitializeAsync()
     {
         // Create the underlying WebApplicationFactory
