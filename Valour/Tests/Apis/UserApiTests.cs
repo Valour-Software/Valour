@@ -16,6 +16,7 @@ public class UserApiTests : IClassFixture<LoginTestFixture>
     public UserApiTests(LoginTestFixture fixture)
     {
         _client = fixture.Client;
+        _httpClient = _client.Http;
     }
     
     [Fact]
