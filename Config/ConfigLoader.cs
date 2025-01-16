@@ -56,6 +56,11 @@ public static class ConfigLoader
             EmailConfig.Instance!.ApiKey = testEmail;
             Console.WriteLine("Using test email");
         }
+
+        if (VapidConfig.Current is null)
+        {
+            new VapidConfig();
+        }
     }
 
     public static void LoadTestDbConfig()
