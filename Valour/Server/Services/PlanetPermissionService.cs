@@ -248,6 +248,12 @@ public class PlanetPermissionService
     public async ValueTask<uint> GetAuthorityAsync(PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+
+        if (hostedPlanet.Planet.OwnerId == member.UserId)
+        {
+            return uint.MaxValue;
+        }
+        
         var cached = hostedPlanet.PermissionCache.GetAuthority(member.RoleHashKey);
         
         if (cached is not null)
@@ -275,6 +281,12 @@ public class PlanetPermissionService
     public async ValueTask<SortedServerModelList<Channel, long>> GetChannelAccessAsync(PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+
+        if (member.UserId == hostedPlanet.Planet.OwnerId)
+        {
+            return hostedPlanet.GetInternalChannels();
+        }
+        
         var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleHashKey);
         if (cached is not null)
             return cached;
@@ -324,7 +336,7 @@ public class PlanetPermissionService
             // This allows us to get all the role combos that include this role later
             hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
             
-            // If admin, they can access all channels
+            // If admin or owner, they can access all channels
             if (role.IsAdmin)
             {
                 isAdmin = true;
@@ -433,8 +445,8 @@ public class PlanetPermissionService
             // This allows us to get all the role combos that include this role later
             hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
             
-            // If admin, they can access all channels
-            if (role.IsAdmin)
+            // If admin or owner, they can access all channels
+            if (role.IsAdmin || role.Position == 0)
             {
                 permissions = Permission.FULL_CONTROL;
                 break;
@@ -459,6 +471,11 @@ public class PlanetPermissionService
     {
         // Check if cached
         var hosted = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        
+        if (member.UserId == hosted.Planet.OwnerId)
+        {
+            return Permission.FULL_CONTROL;
+        }
         
         var initialChannelId = channel.Id;
 

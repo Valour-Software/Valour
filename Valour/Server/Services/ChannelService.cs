@@ -470,6 +470,12 @@ public class ChannelService
         await _memberService.HasPermissionAsync(member, channel, permission);
 
     /// <summary>
+    /// Returns the permissions for a given member in a channel
+    /// </summary>
+    public ValueTask<long> GetPermissionsAsync(Channel channel, PlanetMember member, ChannelTypeEnum permType) =>
+        _planetPermissionService.GetChannelPermissionsAsync(member, channel, permType);
+
+    /// <summary>
     /// Returns the permissions nodes for the given channel id
     /// </summary>
     public async Task<List<PermissionsNode>> GetPermissionNodesAsync(long channelId) =>

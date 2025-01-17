@@ -214,6 +214,12 @@ public class PlanetService
         var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
         return hosted.GetDefaultChannel();
     }
+    
+    public async ValueTask<List<Channel>> GetAllChannelsAsync(long planetId)
+    {
+        var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hosted.GetChannels();
+    }
 
     /// <summary>
     /// Returns the channels for the given planet that the given member can access

@@ -27,10 +27,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Services\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Client\Valour.Client.csproj" />
       <ProjectReference Include="..\Database\Valour.Database.csproj" />
       <ProjectReference Include="..\Sdk\Valour.Sdk.csproj" />

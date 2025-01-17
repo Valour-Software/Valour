@@ -42,6 +42,11 @@ public class HostedPlanet : ServerModel<long>
     
     // Channels //
     
+    public SortedServerModelList<Channel, long> GetInternalChannels()
+    {
+        return _channels;
+    }
+    
     public List<Channel> GetChannels()
     {
         return _channels.CloneAsList();
