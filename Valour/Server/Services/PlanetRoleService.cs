@@ -17,12 +17,14 @@ public class PlanetRoleService
         ValourDb db,
         ILogger<PlanetRoleService> logger,
         CoreHubService coreHub,
-        HostedPlanetService hostedService)
+        HostedPlanetService hostedService, 
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
         _hostedService = hostedService;
+        _permissionService = permissionService;
     }
 
     /// <summary>
@@ -131,12 +133,17 @@ public class PlanetRoleService
 
     public async Task<List<PermissionsNode>> GetNodesAsync(long roleId) =>
         await _db.PermissionsNodes.Where(x => x.RoleId == roleId).Select(x => x.ToModel()).ToListAsync();
-    
-    public async Task<TaskResult> DeleteAsync(PlanetRole role)
+
+    public Task<TaskResult> DeleteAsync(PlanetRole role) =>
+        DeleteAsync(role.PlanetId, role.Id);
+
+    public async Task<TaskResult> DeleteAsync(long planetId, long roleId)
     {
-        var hostedPlanet = await _hostedService.GetRequiredAsync(role.PlanetId);
+        var hostedPlanet = await _hostedService.GetRequiredAsync(planetId);
+        var role = hostedPlanet.GetRole(roleId);
+        if (role is null) return new(false, "Role not found in hosted planet");
         
-        var dbRole = await _db.PlanetRoles.FindAsync(role.Id);
+        var dbRole = await _db.PlanetRoles.FindAsync(roleId);
         if (dbRole is null) return new(false, "Role not found");
             
         if (dbRole.IsDefault)
@@ -161,13 +168,13 @@ public class PlanetRoleService
             await _db.SaveChangesAsync();
             
             // Remove role nodes
-            var nodes = _db.PermissionsNodes.Where(x => x.RoleId == role.Id);
+            var nodes = _db.PermissionsNodes.Where(x => x.RoleId == roleId);
             _db.PermissionsNodes.RemoveRange(nodes);
 
             await _db.SaveChangesAsync();
             
             // Remove all members
-            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
+            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == roleId);
             _db.PlanetRoleMembers.RemoveRange(members);
             await _db.SaveChangesAsync();
 

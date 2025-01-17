@@ -272,7 +272,8 @@ public class PlanetPermissionsCache
         var lockObj = _roleToCombosLocks.GetOrAdd(roleId, _ => new object());
         lock (lockObj)
         {
-            return _rolesToCombos.GetValueOrDefault(roleId).ToList(); // Copy to avoid threading issues
+            var combos = _rolesToCombos.GetValueOrDefault(roleId);
+            return combos?.ToList(); // Copy to avoid threading issues
         }
     }
 }
