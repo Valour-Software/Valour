@@ -461,9 +461,6 @@ public class PlanetMemberService
         if (roleMember.Role.IsDefault)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
-        if (roleMember.Role.Position == 0)
-            return new TaskResult(false, "Cannot remove the owner role.");
-        
         await using var trans = await _db.Database.BeginTransactionAsync();
         
         try

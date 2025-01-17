@@ -164,9 +164,6 @@ public class PlanetService
                     if (existingRole is null)
                         return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
 
-                    if (existingRole.Position == 0 && newPosition != 0)
-                        return new TaskResult(false, "Owner role must be first in order.");
-
                     if (existingRole.IsDefault && newPosition != orderIn.Length - 1)
                         return new TaskResult(false, "Default role must be last in order.");
 

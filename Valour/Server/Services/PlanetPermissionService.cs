@@ -446,7 +446,7 @@ public class PlanetPermissionService
             hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
             
             // If admin or owner, they can access all channels
-            if (role.IsAdmin || role.Position == 0)
+            if (role.IsAdmin)
             {
                 permissions = Permission.FULL_CONTROL;
                 break;
