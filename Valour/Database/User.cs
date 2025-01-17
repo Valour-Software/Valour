@@ -29,6 +29,11 @@ namespace Valour.Database
         public virtual ICollection<OauthApp> OwnedApps { get; set; }
         
         /// <summary>
+        /// User OwnedTokens
+        /// </summary>
+        public virtual ICollection<AuthToken> OwnedTokens { get; set; }
+        
+        /// <summary>
         /// All messages sent by this user.
         /// </summary>
         public virtual ICollection<Message> Messages { get; set; }
