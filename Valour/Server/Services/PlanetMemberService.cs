@@ -433,7 +433,7 @@ public class PlanetMemberService
             await _db.PlanetRoleMembers.AddAsync(newRoleMember);
             await _db.SaveChangesAsync();
 
-            await _permissionService.UpdateMemberRoleHashAsync(memberId);
+            await _permissionService.UpdateMemberRoleHashAsync(member, false);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();

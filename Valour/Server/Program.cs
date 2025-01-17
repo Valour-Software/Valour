@@ -243,7 +243,7 @@ public partial class Program
             options.MultipartBodyLengthLimit = 20480000;
         });
 
-        services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); });
+        services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
 
         // Apply migrations if flag is set
         if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")

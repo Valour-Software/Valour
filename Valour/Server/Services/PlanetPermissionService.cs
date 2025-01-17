@@ -197,8 +197,18 @@ public class PlanetPermissionService
         if (member is null)
             return;
         
+        await UpdateMemberRoleHashAsync(member, saveChanges);
+    }
+    
+    /// <summary>
+    /// Used whenever a member's roles change to update their role hash key
+    /// </summary>
+    /// <param name="member">The member to update</param>
+    /// <param name="saveChanges">Whether to save changes to the database</param>
+    public async Task UpdateMemberRoleHashAsync(Valour.Database.PlanetMember member, bool saveChanges = true)
+    {
         var roleIds = await _db.PlanetRoleMembers
-            .Where(x => x.MemberId == memberId)
+            .Where(x => x.MemberId == member.Id)
             .Select(x => x.RoleId)
             .OrderBy(x => x)
             .ToArrayAsync();

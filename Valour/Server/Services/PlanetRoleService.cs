@@ -38,6 +38,8 @@ public class PlanetRoleService
 
     public async Task<TaskResult<PlanetRole>> CreateAsync(PlanetRole role)
     {
+        var hostedPlanet = await _hostedService.GetRequiredAsync(role.PlanetId);
+        
         if (string.IsNullOrWhiteSpace(role.Color))
             role.Color = "#ffffff";
 
@@ -57,6 +59,8 @@ public class PlanetRoleService
             _logger.LogError("Error saving role to database: {Error}", e.Message);
             return new(false, e.Message);
         }
+        
+        hostedPlanet.UpsertRole(role);
 
         _coreHub.NotifyPlanetItemChange(role);
 
