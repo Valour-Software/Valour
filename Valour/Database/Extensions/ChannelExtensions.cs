@@ -24,7 +24,7 @@ public static class ChannelExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IQueryable<Channel> DirectChildrenOf(this IQueryable<Channel> channels, long? planetId, uint position)
+    public static IQueryable<Channel>DirectChildrenOf(this IQueryable<Channel> channels, long? planetId, uint position)
     {
         // In this case we return nothing
         if (planetId is null)

@@ -226,6 +226,11 @@ public class ChannelService
             // Only add nodes if necessary
             if (nodes is not null)
             {
+                foreach (var node in nodes)
+                {
+                    node.TargetId = channel.Id;
+                }
+                
                 await _db.PermissionsNodes.AddRangeAsync(nodes.Select(x => x.ToDatabase()));
                 await _db.SaveChangesAsync();
             }
@@ -431,7 +436,7 @@ public class ChannelService
             if (member is null)
                 return false;
             
-            return await _planetPermissionService.HasChannelAccessAsync(member, channel.Id);
+            return await _planetPermissionService.HasChannelAccessAsync(member.Id, channel.Id);
         }
         
         return await _db.ChannelMembers.AnyAsync(x => x.ChannelId == channel.Id && x.UserId == userId);
@@ -593,7 +598,7 @@ public class ChannelService
         }
 
         // Auto determine position
-        if (channel.RawPosition < 0)
+        if (channel.RawPosition == uint.MaxValue)
         {
             var nextPosResult = await TryGetNextChannelPosition(channel.PlanetId, channel.ParentId, channel.ChannelType);
             if (!nextPosResult.Success)
@@ -660,13 +665,11 @@ public class ChannelService
     public async Task<TaskResult<uint>> TryGetNextChannelPosition(long? planetId, long? parentId, ChannelTypeEnum channelType)
     {
         var parent = (await _db.Channels.FindAsync(parentId)).ToModel();
-        if (parent is null)
-            return TaskResult<uint>.FromFailure("Parent channel not found");
         
         return await TryGetNextChannelPosition(planetId, parent, channelType);
     }
 
-    public async Task<TaskResult<uint>> TryGetNextChannelPosition(long? planetId, Channel parentCategory, ChannelTypeEnum channelType)
+    public async Task<TaskResult<uint>> TryGetNextChannelPosition(long? planetId, Channel? parentCategory, ChannelTypeEnum channelType)
     {
         // non-planet channels do not have a position
         if (planetId is null)
@@ -704,11 +707,12 @@ public class ChannelService
         }
         
         // Get the child with the highest position within the bounds
-        var highestChildRawPosition = await _db.Channels
+        var highestChildRawPositionNullable = await _db.Channels
             .DirectChildrenOf(planetId, parentPosition)
-            .Select(x => x.RawPosition)
-            .DefaultIfEmpty(0u)
+            .Select(x => (uint?)x.RawPosition)
             .MaxAsync();
+        
+        var highestChildRawPosition = highestChildRawPositionNullable ?? 0;
 
         var highestChildPosition = new ChannelPosition(highestChildRawPosition);
         

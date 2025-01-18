@@ -198,19 +198,17 @@ public class PlanetMemberService
     /// <summary>
     /// Returns if a member has the given permission
     /// </summary>
+    public async ValueTask<bool> HasPermissionAsync(long memberId, PlanetPermission permission)
+    {
+        return await _permissionService.HasPlanetPermissionAsync(memberId, permission);
+    }
+    
+    /// <summary>
+    /// Returns if a member has the given permission
+    /// </summary>
     public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
     {
-        if (member is null)
-            return false;
-        
-        // Special case for viewing planets
-        // All existing members can view a planet
-        if (permission.Value == PlanetPermissions.View.Value)
-        {
-            return true;
-        }
-
-        return await _permissionService.HasPlanetPermissionAsync(member, permission);
+        return await _permissionService.HasPlanetPermissionAsync(member.Id, permission);
     }
 
     /// <summary>
@@ -468,7 +466,7 @@ public class PlanetMemberService
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
             
-            await _permissionService.UpdateMemberRoleHashAsync(memberId);
+            await _permissionService.UpdateMemberRoleHashAsync(memberId, false);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();

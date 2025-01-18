@@ -68,8 +68,20 @@ public class PlanetPermissionService
         _logger = logger;
     }
     
-    public async ValueTask<bool> HasPlanetPermissionAsync(PlanetMember member, PlanetPermission permission)
+    public async ValueTask<bool> HasPlanetPermissionAsync(long memberId, PlanetPermission permission)
     {
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        
+        if (member is null)
+            return false;
+        
+        // Special case for viewing planets
+        // All existing members can view a planet
+        if (permission.Value == PlanetPermissions.View.Value)
+        {
+            return true;
+        }
+        
         var permissions = await GetPlanetPermissionsAsync(member);
         return Permission.HasPermission(permissions, permission);
     }
@@ -146,12 +158,10 @@ public class PlanetPermissionService
             return;
         }
         
-        // nodes only handle one permission type
-        var cache = hostedPlanet.PermissionCache.GetChannelCache(node.TargetType);
-        
+        // clear access for combos
         foreach (var roleKey in roleCombos)
         {
-            cache.Remove(roleKey, node.TargetId);
+            hostedPlanet.PermissionCache.ClearCacheForComboAndChannel(roleKey, node.TargetId);
         }
     }
 
@@ -205,7 +215,7 @@ public class PlanetPermissionService
     /// </summary>
     /// <param name="member">The member to update</param>
     /// <param name="saveChanges">Whether to save changes to the database</param>
-    public async Task UpdateMemberRoleHashAsync(Valour.Database.PlanetMember member, bool saveChanges = true)
+    public async Task  UpdateMemberRoleHashAsync(Valour.Database.PlanetMember member, bool saveChanges = true)
     {
         var roleIds = await _db.PlanetRoleMembers
             .Where(x => x.MemberId == member.Id)
@@ -249,9 +259,12 @@ public class PlanetPermissionService
     /// <summary>
     /// Returns if the member has access to the given channel
     /// </summary> 
-    public async ValueTask<bool> HasChannelAccessAsync(PlanetMember member, long channelId)
+    public async ValueTask<bool> HasChannelAccessAsync(long memberId, long channelId)
     {
-        var access = await GetChannelAccessAsync(member);
+        var access = await GetChannelAccessAsync(memberId);
+        if (access is null)
+            return false;
+        
         return access.Contains(channelId);
     }
 
@@ -288,8 +301,12 @@ public class PlanetPermissionService
     /// <summary>
     /// Returns a list of channels the member has access to
     /// </summary> 
-    public async ValueTask<SortedServerModelList<Channel, long>> GetChannelAccessAsync(PlanetMember member)
+    public async ValueTask<SortedServerModelList<Channel, long>?> GetChannelAccessAsync(long memberId)
     {
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is null)
+            return null;
+        
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
 
         if (member.UserId == hostedPlanet.Planet.OwnerId)
@@ -307,7 +324,7 @@ public class PlanetPermissionService
         return access;
     }
 
-    private async Task<SortedServerModelList<Channel, long>> GenerateChannelAccessAsync(PlanetMember member)
+    private async Task<SortedServerModelList<Channel, long>> GenerateChannelAccessAsync(Valour.Database.PlanetMember member)
     {
         // The member acts as representative for the role combination
         
@@ -344,7 +361,7 @@ public class PlanetPermissionService
             
             // Ensure we have linked the role to the combo
             // This allows us to get all the role combos that include this role later
-            hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
+            hostedPlanet.PermissionCache.AddKnownComboToRole(roleId, member.RoleHashKey);
             
             // If admin or owner, they can access all channels
             if (role.IsAdmin)
@@ -416,7 +433,7 @@ public class PlanetPermissionService
         return result;
     }
 
-    private async ValueTask<long> GetPlanetPermissionsAsync(PlanetMember member)
+    private async ValueTask<long> GetPlanetPermissionsAsync(Valour.Database.PlanetMember member)
     {
         // The member acts as representative for the role combination
         
@@ -453,7 +470,7 @@ public class PlanetPermissionService
             
             // Ensure we have linked the role to the combo
             // This allows us to get all the role combos that include this role later
-            hostedPlanet.PermissionCache.AddKnownComboToRole(member.RoleHashKey, roleId);
+            hostedPlanet.PermissionCache.AddKnownComboToRole(roleId, member.RoleHashKey);
             
             // If admin or owner, they can access all channels
             if (role.IsAdmin)

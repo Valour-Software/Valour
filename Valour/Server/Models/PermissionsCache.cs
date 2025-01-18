@@ -71,6 +71,24 @@ public class ChannelPermissionCache
         }
     }
     
+    // For clearing a specific channel
+    public void ClearCacheForCombo(long roleKey, long channelId)
+    {
+        if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var keys))
+        {
+            // generate the key for the channel
+            var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+            
+            if (keys.Contains(channelKey))
+            {
+                _cache.Remove(channelKey, out _);
+                keys.Remove(channelKey);
+            }
+            
+            keys.Clear();
+        }
+    }
+    
     public void ClearCacheForChannel(long channelId)
     {
         if (_channelIdToCachedChannelKeys.TryGetValue(channelId, out var keys))
@@ -190,6 +208,16 @@ public class PlanetPermissionsCache
         }
     }
     
+    public void ClearCacheForComboAndChannel(long roleKey, long channelId)
+    {
+        _accessCache.TryRemove(roleKey, out _); // Access could change, so clear
+        
+        foreach (var cache in _channelPermissionCachesByType)
+        {
+            cache.ClearCacheForCombo(roleKey, channelId);
+        }
+    }
+    
     public void ClearCacheForChannel(long channelId)
     {
         foreach (var cache in _channelPermissionCachesByType)
@@ -248,7 +276,9 @@ public class PlanetPermissionsCache
                 combos = new List<long>();
                 _rolesToCombos[roleId] = combos;
             }
-            combos.Add(comboKey);
+            
+            if (!combos.Contains(comboKey))
+                combos.Add(comboKey);
         }
     }
     

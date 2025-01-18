@@ -69,7 +69,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+        if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
         if (planet is null)
@@ -139,9 +139,9 @@ public class PlanetApi
             return ValourResult.NotPlanetMember();
 
         // Get all planet channels
-        var channels = await planetService.GetMemberChannelsAsync(member);
+        var channels = await planetService.GetMemberChannelsAsync(member.Id);
         
-        return Results.Json(channels.InternalList);
+        return Results.Json(channels?.InternalList ?? []);
     }
     
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/primary")]
@@ -294,7 +294,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+        if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Invite))
             return ValourResult.Forbid("You do not have permission for invites.");
 
         var invites = await planetService.GetInvitesAsync(id);
@@ -312,7 +312,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+        if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Invite))
             return ValourResult.Forbid("You do not have permission for invites.");
 
         var inviteIds = await planetService.GetInviteIdsAsync(id);
@@ -466,7 +466,7 @@ public class PlanetApi
         else
         {
             // Top level requires planet management perms
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage))
                 return ValourResult.LacksPermission(PlanetPermissions.Manage);
         }
 

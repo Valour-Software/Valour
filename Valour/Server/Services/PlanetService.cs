@@ -221,8 +221,8 @@ public class PlanetService
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
     /// </summary>
-    public async Task<SortedServerModelList<Channel,long>> GetMemberChannelsAsync(PlanetMember member) =>
-      await _permissionService.GetChannelAccessAsync(member);
+    public async Task<SortedServerModelList<Channel,long>?> GetMemberChannelsAsync(long memberId) =>
+      await _permissionService.GetChannelAccessAsync(memberId);
     
     /// <summary>
     /// Returns member info for the given planet, paged by the page index
