@@ -5,11 +5,11 @@ namespace Valour.Server.Services;
 
 public class TenorFavoriteService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<TenorFavoriteService> _logger;
 
     public TenorFavoriteService(
-        ValourDB db,
+        ValourDb db,
         ILogger<TenorFavoriteService> logger)
     {
         _db = db;

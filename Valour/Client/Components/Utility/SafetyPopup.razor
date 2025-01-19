@@ -1,6 +1,7 @@
 @inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
-@if (ValourClient.Self is null || ValourClient.Self.Compliance)
+@if (Client.Me is null || Client.Me.Compliance)
 {
     return;
 }
@@ -60,7 +61,7 @@
         var isEuropean = await JsRuntime.InvokeAsync<bool>("isEuropeanUnion");
         var locale = isEuropean ? Locality.EuropeanUnion : Locality.General;
 
-        var result = await ValourClient.SetComplianceDataAsync(_model.DateOfBirth, locale);
+        var result = await Client.AuthService.SetComplianceDataAsync(_model.DateOfBirth, locale);
         if (!result.Success)
         {
             _errorSpan = result.Message;
@@ -68,7 +69,7 @@
         }
         
         // Set user compliance to true and close this
-        ValourClient.Self.Compliance = true;
+        Client.Me.Compliance = true;
         StateHasChanged();
     }
 }

@@ -1,4 +1,7 @@
-﻿<div class="@Class" style="color: white" @onclick="ShowProfileAsync">
+﻿@inject ValourClient Client
+@inject UserService UserService
+
+<div class="@Class" style="color: white" @onclick="ShowProfileAsync">
     @if (User == null)
     {
         <div>@@NotFound</div>
@@ -15,7 +18,7 @@
     {
         get
         {
-            if (User == null || User.Id != ValourClient.Self.Id)
+            if (User == null || User.Id != Client.Me.Id)
             {
                 return "mention";
             }
@@ -54,8 +57,7 @@
 
     public async Task Build()
     {
-        User = await User.FindAsync(Mention.TargetId);
-
+        User = await UserService.FetchUserAsync(Mention.TargetId);
         StateHasChanged();
     }
     

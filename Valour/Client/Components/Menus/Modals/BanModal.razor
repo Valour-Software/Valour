@@ -1,4 +1,5 @@
-﻿@inherits Modal<BanModal.BanModalProps>
+﻿@inject ValourClient Client
+@inherits Modal<BanModal.BanModalProps>
 
 <div class="col-md-12">
 	<section class="glassy-modal" style="text-align: center; padding: 30px">
@@ -60,30 +61,30 @@
 
 		var reason = _reason;
 		if (string.IsNullOrWhiteSpace(reason))
-			reason = $"Banned by ${ValourClient.Self.NameAndTag}";
+			reason = $"Banned by ${Client.Me.NameAndTag}";
 		
 		var ban = new PlanetBan()
 		{
 			PlanetId = Data.Member.PlanetId,
 			TargetId = Data.Member.UserId,
-			IssuerId = ValourClient.Self.Id,
+			IssuerId = Client.Me.Id,
 			TimeExpires = expires,
 			TimeCreated = DateTime.UtcNow,
 			Reason = reason
 		};
 
-		_result = await ClientModel.CreateAsync(ban);
-
+		_result = await ban.CreateAsync();
+		
 		if (_result.Success)
 		{
-			await CloseAsync();
+			Close();
 		}
 		
 		StateHasChanged();
 	}
 	
-	private Task OnCancel()
+	private void OnCancel()
 	{
-		return CloseAsync();
+		Close();
 	}
 }

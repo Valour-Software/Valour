@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class Planet : ServerModel, ISharedPlanet
+public class Planet : ServerModel<long>, ISharedPlanet
 {
     /// <summary>
     /// The Id of the owner of this planet

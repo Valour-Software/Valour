@@ -3,9 +3,8 @@
 /// <summary>
 /// Theme meta allows for viewing theme information without the need for the full theme object.
 /// </summary>
-public interface ISharedThemeMeta
+public interface ISharedThemeMeta : ISharedModel<long>
 {
-    public long Id { get; set; }
     public long AuthorId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }

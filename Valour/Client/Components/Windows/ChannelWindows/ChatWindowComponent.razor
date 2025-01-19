@@ -1,0 +1,604 @@
+﻿@inherits WindowContentComponent<Channel>
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject UnreadService UnreadService
+@using Valour.Sdk.Nodes
+@using Channel = Valour.Sdk.Models.Channel
+
+<div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
+    <!-- Pushes messages to bottom -->
+    <div class="pusher"></div>
+
+    <!-- Actual messages -->
+    @MessagesFragment
+
+    <div class="anchor"></div>
+</div>
+
+<InputComponent @ref="@InputComponent" ChatComponent="@this" />
+
+
+@code {
+    private bool _loading = true;
+
+    public Channel Channel;
+    public PermissionsNode ChannelPermissions { get; set; }
+    
+    // Stores for messages (Always initialized so don't bother null checking)
+    // TODO: Replace with CircularBuffer
+    public List<Message> DisplayedMessages { get; set; } = new();
+    public List<Message> QueuedMessages { get; set; } = new();
+    public List<MessageComponent> RenderedMessages { get; set; } = new();
+
+    // Interop references
+    public ElementReference MessageWrapperEl;
+    private DotNetObjectReference<ChatWindowComponent> _thisRef;
+    private IJSInProcessObjectReference _jsModule;
+    private IJSInProcessObjectReference _jsService;
+    
+    // Child references
+    public InputComponent InputComponent;
+    
+    // Used for locking channel connection while window is open
+    private readonly string _instanceId = Guid.NewGuid().ToString();
+    private string WindowChannelKey => WindowCtx.Id + _instanceId;
+
+    // Runs when page is initialized
+    protected override void OnInitialized()
+    {
+        Channel = Data;
+
+        if (Channel is null)
+        {
+            Client.Logger.Log<ChatWindowComponent>("Channel is null, cannot initialize.", "red");
+            return;
+        }
+        
+        _thisRef = DotNetObjectReference.Create(this);
+        
+        Client.Logger.Log<ChatWindowComponent>("Initializing channel window component.", "cyan");
+        
+        Client.NodeService.NodeReconnected += OnNodeReconnect;
+        
+        Channel.MessageReceived += OnReceiveMessage;
+        Channel.MessageEdited += OnReceiveMessageEdit;
+        Channel.MessageDeleted += OnDeleteMessage;
+        
+        WindowCtx.Tab.OnStartFloating += OnStartFloating;
+    }
+    
+    public async Task SetupNewChannelAsync()
+    {
+        await Channel.Open(WindowChannelKey);
+        
+        // Planet stuff
+        if (Channel.PlanetId is not null)
+        {
+            Channel.Planet.Deleted += OnPlanetDeleted;
+            Channel.Planet.MyMember.Deleted += OnSelfMemberDeleted;
+            ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(Channel.Planet.MyMember.Id);
+        }
+        
+        Channel.Updated += OnChatChannelUpdate;
+        
+        ClearMessages(false);
+        await LoadRecentMessages(64);
+        await Channel.UpdateUserState(DateTime.UtcNow);
+        
+        _loading = false;
+        
+        ReRender();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SetupNewChannelAsync();
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
+            _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, MessageWrapperEl);
+
+            await ScrollToBottom(true);
+        }
+        
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public async Task OpenEditMode(MessageComponent message)
+    {
+        await InputComponent.OnBeginEdit(message, message.ParamData.Message);
+    }
+
+    public async Task CloseEditMode(bool cancel = false)
+    {
+        await InputComponent.OnStopEdit(cancel);
+    }
+    
+    public void OnChatChannelUpdate(ModelUpdateEvent<Channel> eventData)
+    {
+        ReRender();
+    }
+
+    public virtual async Task OnReceiveMessage(Message message)
+    {
+    // Ignore messages not meant for this channel
+        if (message.ChannelId != Channel.Id)
+            return;
+        
+        // TODO: Eventually move to message render with a specific time of message sent
+        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
+        
+        await AddMessage(message);
+        InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());
+        InputComponent.PreviewMessageComponent.CheckMinimal();
+        InputComponent.PreviewMessageComponent.ReRender();
+    }
+    
+    public virtual async Task OnReceiveMessageEdit(Message message)
+    {
+        // Ignore messages not meant for this channel
+        if (message.ChannelId != Channel.Id)
+            return;
+
+        foreach (var messageComponent in RenderedMessages)
+        {
+            if (messageComponent.ParamData.Message.Id == message.Id)
+            {
+                var msg = messageComponent.ParamData.Message;
+                
+                msg.EditedTime = DateTime.UtcNow;
+                msg.Content = message.Content;
+                msg.AttachmentsData = message.AttachmentsData;
+                msg.MentionsData = message.MentionsData;
+
+                if (messageComponent.Edit)
+                {
+                    await messageComponent.CloseEditMode();
+                }
+                
+                messageComponent.BuildMessage(true);
+            }
+        }
+    }
+
+    public async Task OnClickWindow()
+    {
+        await WindowCtx.Tab.NotifyFocused();
+    }
+    
+    public async Task OnStartFloating()
+    {
+        await ScrollToBottom();
+    }
+
+    public Task OnPlanetDeleted()
+    {
+        return WindowCtx.Tab.SetContent(HomeWindowComponent.DefaultContent);
+    }
+
+    public Task OnSelfMemberDeleted()
+    {
+        return WindowCtx.Tab.SetContent(HomeWindowComponent.DefaultContent);
+    }
+    
+    public async Task<List<PlanetMember>> GetLastChatMembers(int count)
+    {
+        // Not applicable for non-planet channels
+        if (Channel.PlanetId is null)
+            return new List<PlanetMember>();
+        
+        var lastMessages = DisplayedMessages.TakeLast(20).Reverse();
+        List<PlanetMember> chatters = new();
+
+        foreach (var message in lastMessages)
+        {
+            var member = await message.FetchAuthorMemberAsync();
+            if (!chatters.Contains(member))
+                chatters.Add(member);
+        }
+
+        return chatters;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await HandleWindowClose();
+
+        if (Channel.PlanetId is not null)
+        {
+            Channel.Planet.Deleted -= OnPlanetDeleted;
+            
+            if (Channel.Planet.MyMember is not null)
+                Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
+        }
+        
+        Channel.MessageReceived -= OnReceiveMessage;
+        
+        _thisRef.Dispose();
+    }
+
+    public async Task HandleWindowClose()
+    {
+        await Channel.Close(WindowChannelKey);
+    }
+    
+    ///////////////////////
+    // Message Rendering //
+    ///////////////////////
+    
+    private RenderFragment MessagesFragment => builder =>
+    {
+        Message lastMessage = null;
+
+        // Displayed messages
+        foreach (var message in DisplayedMessages)
+        {
+            var messageParams = new MessageComponent.Params()
+            {
+                ChatComponent = this,
+                Message = message,
+                IsInnerReply = false,
+                LastMessage = lastMessage,
+                Ghost = false,
+            };
+
+            builder.OpenComponent<MessageComponent>(0);
+            builder.AddAttribute(1, "ParamData", messageParams);
+            builder.SetKey(message.Id);
+            builder.CloseComponent();
+
+            lastMessage = message;
+        }
+        
+        // Queued messages
+        foreach (var message in QueuedMessages)
+        {
+            var messageParams = new MessageComponent.Params()
+            {
+                ChatComponent = this,
+                Message = message,
+                IsInnerReply = false,
+                LastMessage = lastMessage,
+                Ghost = true,
+            };
+
+            builder.OpenComponent<MessageComponent>(0);
+            builder.AddAttribute(1, "ParamData", messageParams);
+            builder.SetKey($"q-{message.Fingerprint}"); // Use fingerprint because they don't have IDs assigned yet
+            builder.CloseComponent();
+
+            lastMessage = message;
+        }
+        
+    };
+    
+    //////////////////////
+    // Message Handling //
+    //////////////////////
+    
+    public async Task LoadRecentMessages(int count)
+    {
+        var messages = await Channel.GetLastMessagesAsync(64);
+        await AddMessages(messages, true, true);
+    }
+
+    public void AddQueuedMessage(Message message)
+    {
+        //Console.WriteLine("Queued Message");
+        QueuedMessages.Add(message);
+        ReRender();
+    }
+
+    public void RemoveQueuedMessage(string fingerprint)
+    {
+        
+        var queued = QueuedMessages.FirstOrDefault(x => x.Fingerprint == fingerprint);
+        if (queued != null)
+        {
+            //Console.WriteLine("Removed Queued Message");
+            QueuedMessages.Remove(queued);
+            ReRender();
+        }
+    }
+
+    public void RemoveErrorMessage()
+    {
+        var error = DisplayedMessages.FirstOrDefault(x => x.Id == long.MaxValue);
+        if (error != null) { 
+            //Console.WriteLine("Removed error message");
+            DisplayedMessages.Remove(error); 
+            ReRender();
+        }
+    }
+    
+    public void ClearMessages(bool render = true)
+    {
+        DisplayedMessages.Clear();
+        QueuedMessages.Clear();
+        RenderedMessages.Clear();
+        
+        if (render)
+            ReRender();
+    }
+    
+    public Message GetLastMessage()
+    {
+        return QueuedMessages.LastOrDefault() ?? DisplayedMessages.LastOrDefault();
+    }
+    
+    public async Task AddMessages(List<Message> messages, bool render = true, bool scroll = false)
+    {
+        foreach (var msg in messages)
+        {
+            // No duplicates
+            if (DisplayedMessages.Any(x => x.Id == msg.Id))
+            {
+                continue;
+            }
+            
+            // Resort
+            DisplayedMessages.Sort(MessageComparerInstance);
+        }
+        
+        DisplayedMessages.AddRange(messages);
+
+        if (render)
+        {
+            ReRender();
+        }
+        
+        if (scroll)
+        {
+            await ScrollToBottom();
+        }
+        
+        InputComponent.Refresh();
+    }
+
+    public void InsertMessages(int position, List<Message> messages, bool render = true)
+    {
+        DisplayedMessages.InsertRange(position, messages);
+
+        if (render)
+        {
+            ReRender();
+        }
+    }
+
+    public async Task AddMessage(Message message, bool render = true)
+    {
+        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+
+        //Get current window scroll pos
+        var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
+
+        // check if there's too many messages
+        if (atBottom && DisplayedMessages.Count > 120)
+        {
+            DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - 120);
+        }
+
+        DisplayedMessages.Add(message);
+
+        // Flag for UI refresh
+        if (render)
+        {
+            ReRender();
+        }
+
+        await ScrollToBottom();
+    }
+    
+    /* This is called by the MessageComponent when it is rendered */
+    public void AddRenderedMessage(MessageComponent message)
+    {
+        RenderedMessages.Add(message);
+    }
+
+    /* This is called by the MessageComponent when it is disposed */
+    public void RemoveRenderedMessage(MessageComponent message)
+    {
+        RenderedMessages.Remove(message);
+    }
+    
+    // Used for sorting messages
+    private static readonly MessageComparer MessageComparerInstance = new();
+
+    private class MessageComparer : IComparer<Message>
+    {
+        public int Compare(Message a, Message b)
+        {
+            return a?.Id > b?.Id ? 1 : -1;
+        }
+    }
+    
+    // Events
+    
+    public void OnDeleteMessage(Message message)
+    {
+        DisplayedMessages.RemoveAll(x => x.Id == message.Id);
+        QueuedMessages.RemoveAll(x => x.Id == message.Id);
+
+        var nextMessage = RenderedMessages.FirstOrDefault(x => x.ParamData.Message.Id > message.Id);
+        if (nextMessage != null){
+            var lastMessage = RenderedMessages
+                .OrderByDescending(x => x.ParamData.Message.Id)
+                .FirstOrDefault(x => x.ParamData.Message.Id < message.Id);
+            
+            if (lastMessage is not null)
+                nextMessage.SetLast(lastMessage.ParamData.Message);
+            
+            nextMessage.RefreshMessage();
+            nextMessage.ReRender();
+        }
+
+        ReRender();
+    }
+    
+    /////////////////////
+    // JS Interop Zone //
+    /////////////////////
+
+    public ValueTask ScrollToBottom(bool force = false)
+    {
+        if (_jsService is not null)
+            return _jsService.InvokeVoidAsync("scrollToBottom", force);
+        
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask ScrollToBottomAnimated() => _jsService.InvokeVoidAsync("scrollToBottomAnimated");
+
+    public ValueTask UpdateScrollPosition() => _jsService.InvokeVoidAsync("updateScrollPosition");
+
+    public ValueTask ScaleScrollPosition() => _jsService.InvokeVoidAsync("scaleScrollPosition");
+
+    [JSInvokable("OnScrollTopInvoke")]
+    public async Task OnScrollTop()
+    {
+        if (DisplayedMessages == null ||
+            DisplayedMessages.Count == 0)
+        {
+            return;
+        }
+
+        var firstId = DisplayedMessages[0].Id;
+
+        Client.Logger.Log<ChatWindowComponent>($"Fetching older messages from id {firstId} for window {WindowCtx.Id}", "cyan");
+
+        var messages = await Channel.GetMessagesAsync(firstId, 64);
+
+        if (messages is null || !messages.Any())
+            return;
+        
+        await UpdateScrollPosition(); // This saves the scroll position
+
+        InsertMessages(0, messages);
+
+        await ScaleScrollPosition(); // This ensures the page doesnt move harshly
+    }
+    
+    ///////////////////////////////
+    // Window State & Management //
+    ///////////////////////////////
+    
+        public class StateData
+    {
+        public long? PlanetId { get; set; }
+        public long ChannelId { get; set; }
+    }
+
+    public class Content : WindowContent<ChatWindowComponent, Channel>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            var imported = JsonSerializer.Deserialize<StateData>(data);
+
+            if (imported.PlanetId is not null)
+            {
+                var planet = await client.PlanetService.FetchPlanetAsync(imported.PlanetId!.Value);
+                Data = await planet.FetchChannelAsync(imported.ChannelId);
+            }
+            else
+            {
+                Data = await client.ChannelService.FetchDirectChannelAsync(imported.ChannelId);
+            }
+        }
+
+        public override string ExportData(ValourClient clientc)
+        {
+            if (Data is null)
+                return null;
+            
+            var export = new StateData
+            {
+                PlanetId = Data.PlanetId,
+                ChannelId = Data.Id
+            };
+            
+            return JsonSerializer.Serialize(export);
+        }
+    }
+
+    public static async Task<Content> GetContentForPlanetPrimaryChannel(Planet planet)
+    {
+        // Ensure planet node is ready
+        await planet.EnsureReadyAsync();
+        
+        // get primary channel
+        var channel = await planet.FetchPrimaryChatChannelAsync();
+        
+        return new()
+        {
+            Icon = await channel.GetIconAsync(),
+            Title = await channel.GetTitleAsync(),
+            PlanetId = planet.Id,
+            Data = channel
+        };
+    }
+    
+    public static async Task<Content> GetDefaultContent(Channel channel)
+    {
+        if (channel.PlanetId is not null)
+        {
+            // Make sure planet is loaded for channel
+            var planet = await channel.Client.PlanetService.FetchPlanetAsync(channel.PlanetId!.Value);
+            await planet.EnsureReadyAsync();
+        }
+
+        return new()
+        {
+            Icon = await channel.GetIconAsync(),
+            Title = await channel.GetTitleAsync(),
+            PlanetId = channel.PlanetId,
+            Data = channel
+        };
+    }
+    
+    ///////////////
+    // Reconnect //
+    ///////////////
+    
+    public async Task OnNodeReconnect(Node node)
+    {
+        // We only need to get latest messages if we're scrolled to the bottom
+        var isAtBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
+        
+        if (!isAtBottom)
+            return;
+        
+        if (Channel.PlanetId is null)
+        {
+            if (node.Name == Client.PrimaryNode.Name)
+            {
+                ClearMessages(false);
+                await LoadRecentMessages(64);
+            }
+        }
+        else
+        {
+            if (node.Name == Channel.Planet.NodeName)
+            {
+                ClearMessages(false);
+                await LoadRecentMessages(64);
+            }
+        }
+    }
+    
+    /////////////
+    // Cleanup //
+    /////////////
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        Channel.MessageDeleted -= OnDeleteMessage;
+        Channel.MessageReceived -= OnReceiveMessage;
+        Channel.MessageEdited -= OnReceiveMessageEdit;
+        
+        WindowCtx.Tab.OnStartFloating -= OnStartFloating;
+        Client.NodeService.NodeReconnected -= OnNodeReconnect;
+        
+        await _jsModule.DisposeAsync();
+    }
+}

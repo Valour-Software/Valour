@@ -3,10 +3,8 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class AuthToken : ISharedAuthToken
+public class AuthToken : ServerModel<string>, ISharedAuthToken
 {
-    public string Id { get; set; }
-    
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>

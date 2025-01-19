@@ -1,7 +1,7 @@
 ﻿namespace Valour.Shared.Models;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -12,8 +12,10 @@
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public interface ISharedUserFriend : ISharedModel
+public interface ISharedUserFriend : ISharedModel<long>
 {
+    const string BaseRoute = "api/userfriends";
+    
     /// <summary>
     /// The user who added the friend
     /// </summary>

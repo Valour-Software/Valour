@@ -1,7 +1,7 @@
 ﻿namespace Valour.Shared.Models;
 
-/*  Valour - A free and secure chat client
-*  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+*  Copyright (C) 2024 Valour Software LLC
 *  This program is subject to the GNU Affero General Public license
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
@@ -10,7 +10,7 @@
 /// Oauth apps allow an organization or person to issue tokens on behalf of a user
 /// which can be easily tracked and revoked
 /// </summary>
-public interface ISharedOauthApp : ISharedModel
+public interface ISharedOauthApp : ISharedModel<long>
 {
     /// <summary>
     /// The secret key for the app

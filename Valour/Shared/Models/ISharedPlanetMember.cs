@@ -1,7 +1,7 @@
 ﻿namespace Valour.Shared.Models;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -10,8 +10,10 @@
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetMember : ISharedPlanetModel
+public interface ISharedPlanetMember : ISharedPlanetModel<long>
 {
+    const string BaseRoute = "api/members";
+    
     /// <summary>
     /// The user within the planet
     /// </summary>
@@ -26,6 +28,11 @@ public interface ISharedPlanetMember : ISharedPlanetModel
     /// The pfp to be used within the planet
     /// </summary>
     string MemberAvatar { get; set; }
+    
+    /// <summary>
+    /// The key representing the roles the user has within the planet
+    /// </summary>
+    long RoleHashKey { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

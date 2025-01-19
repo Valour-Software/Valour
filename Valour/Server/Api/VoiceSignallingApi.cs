@@ -13,7 +13,7 @@ public class VoiceSignallingApi
         app.MapGet("api/voice/hasChannelAccess/{channelId}/{userToken}", HasChannelAccess);
     }
     
-    public static async Task<IResult> HasChannelAccess(ValourDB db, PlanetMemberService memberService, long channelId, string userToken)
+    public static async Task<IResult> HasChannelAccess(ValourDb db, PlanetMemberService memberService, long channelId, string userToken)
     {
         var dbChannel = await db.Channels.FindAsync(channelId);
         if (dbChannel is null || dbChannel.ChannelType != ChannelTypeEnum.PlanetVoice)

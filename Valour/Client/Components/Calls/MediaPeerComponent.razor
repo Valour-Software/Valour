@@ -139,11 +139,10 @@
 
         if (long.TryParse(split[1], out var memberId))
         {
-            _member = await PlanetMember.FindAsync(memberId, Parent.ActiveChannel.PlanetId!.Value);
-            _name = await _member.GetNameAsync();
-
-            _user = await _member.GetUserAsync();
-            _pfpUrl = AvatarUtility.GetAvatarUrl(_user, _member);
+            _member = await Parent.ActiveChannel.Planet.FetchMemberAsync(memberId);
+            _name = _member.Name;
+            _user = _member.User;
+            _pfpUrl = _member.GetAvatar();
         }
     }
 
@@ -178,7 +177,7 @@
 
     private void OnPfpError()
     {
-        _pfpUrl = AvatarUtility.GetFailedPfpUrl(_user);
+        _pfpUrl = _member.GetFailedAvatar();
         StateHasChanged();
     }
 

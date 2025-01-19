@@ -12,24 +12,23 @@
 .message {
     width: 100%;
     max-width: 100%;
-    padding-bottom: 0px;
+    padding-bottom: 0;
     padding-left: 4px;
     position: relative;
 }
 
 .message.minimal {
-    margin-bottom: 0px;
+    margin-bottom: 0;
     min-height: auto;
 }
 
 .message .content-holder {
-    width: 95%;
     display: inline-block;
     margin-left: 3px;
     margin-top: 2px;
     margin-bottom: 2px;
     vertical-align: top;
-    padding-left: 52px;
+    padding-left: 48px;
     max-width: 100%;
 }
 
@@ -39,12 +38,11 @@
 }
 
 .message .content {
-    width: 100%;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: 300;
-    font-size: 16px;
-    line-height: 23px;
+    font-size: 15px;
+    line-height: 22px;
     color: #FFFFFF;
     margin: 0px;
     word-break: break-all;
@@ -54,7 +52,14 @@
 
 .message.minimal .content {
     margin-bottom: 0px;
-    padding-left: 48px;
+    padding-left: 44px;
+}
+
+.message .badge-1k {
+    font-weight: bold; 
+    font-size: 8px; 
+    margin-left: 2px; 
+    color: var(--v-purple);
 }
 
 .message .hasreply {
@@ -66,9 +71,8 @@
 .message .reply {
     border-top: 0;
     border-left: 3px rgba(255, 255, 255, 0.2) solid;
-    background-color: rgba(255, 255, 255, 0.04);
-    border-bottom-right-radius: 8px;
-    border-top-right-radius: 8px;
+    background-color: var(--main-2);
+    border-radius: 8px;
     margin-top: 5px;
     margin-bottom: 5px;
     width: fit-content;
@@ -111,7 +115,7 @@
     margin-top: 41px;
 }
 
-.message .author-pfp {
+.message .author-avatar {
     background-position: center;
     background-size: cover;
     
@@ -121,8 +125,8 @@
     min-height: 38px;
     max-width: 38px;
     max-height: 38px;
-    border-radius: 50%;
-    margin-top: 8px;
+    border-radius: 8px;
+    margin-top: 3px;
     margin-left: 4px;
     margin-right: 4px;
 }
@@ -130,14 +134,15 @@
 .message .name-role-holder {
     display: flex;
     max-width: 100%;
+    align-items: center;
+    margin-bottom: 2px;
 }
 
 .message .author-name {
     display: inline-block;
     font-family: Ubuntu, sans-serif;
     font-style: normal;
-    font-size: 16px;
-    line-height: 25px;
+    font-size: 15px;
     margin: 0;
     vertical-align: top;
     cursor: pointer;
@@ -151,12 +156,12 @@
     color: #ffffff;
     opacity: 0.3;
     font-style: italic;
-    line-height: 25px;
-    display: inline-block;
-    margin: 0px;
+    margin: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    padding-right: 6px;
+    font-size: 13px;
 }
 
 .message .left-info {
@@ -204,7 +209,7 @@
 
 
 
-.message:hover .left-info .author-pfp {
+.message:hover .left-info .author-avatar {
     width: 30px;
     height: 30px;
     min-width: 30px;
@@ -247,7 +252,7 @@
     font-size: 11px;
 }
 
-.reply .author-pfp {
+.reply .author-avatar {
     width: 30px;
     height: 30px;
     max-width: 30px;
@@ -263,7 +268,7 @@
     cursor: pointer;
 }
 
-.message:hover .reply .author-pfp {
+.message:hover .reply .author-avatar {
     margin-left: 4px;
 }
 

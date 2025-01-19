@@ -36,7 +36,7 @@ public class StatWorker : IHostedService, IDisposable
     {
         using var scope = _scopeFactory.CreateScope();
             
-        ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
+        ValourDb context = scope.ServiceProvider.GetRequiredService<ValourDb>();
 
         if (!System.Diagnostics.Debugger.IsAttached)
         {

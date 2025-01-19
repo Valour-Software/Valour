@@ -1,84 +1,36 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Valour.Database.Config;
+using Valour.Config;
+using Valour.Config.Configs;
 using Valour.Database.Economy;
 using Valour.Database.Themes;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
 namespace Valour.Database.Context;
 
-public class ValourDB : DbContext
+internal class ValourDbDesignTimeContext : IDesignTimeDbContextFactory<ValourDb>
+{
+    public ValourDb CreateDbContext(string[] args)
+    {
+        // Load configs
+        ConfigLoader.LoadConfigs();
+        
+        var optionsBuilder = new DbContextOptionsBuilder<ValourDb>();
+        optionsBuilder.UseNpgsql(ValourDb.ConnectionString).UseExceptionProcessor();
+        return new ValourDb(optionsBuilder.Options);
+    }
+}
+
+public partial class ValourDb : DbContext
 {
     public static readonly string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
-
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-    {
-        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.ForeignKeyPropertiesMappedToUnrelatedTables));
-        options.UseNpgsql(ConnectionString).UseExceptionProcessor();
-    }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // Composite key
-        modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
-
-        // Soft delete
-        modelBuilder.Entity<Planet>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
-        
-        // can only add query filters to root entities
-        // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        // modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        // modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
-        // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false); 
-        
-        //base.OnModelCreating(modelBuilder);
-        
-        modelBuilder.Entity<Message>()
-            .Property(x => x.TimeSent)
-            .HasConversion(x => x, x => new DateTime(x.Ticks, DateTimeKind.Utc));
-        
-        modelBuilder.Entity<Message>()
-            .Property(x => x.EditedTime)
-            .HasConversion(x => x, x =>
-                x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
-            );
-
-        modelBuilder.Entity<MemberChannelAccess>(e =>
-        {
-            e.ToTable("member_channel_access");
-            
-            e.Property(x => x.MemberId)
-                .HasColumnName("member_id");
-            e.Property(x => x.ChannelId)
-                .HasColumnName("channel_id");
-            e.Property(x => x.PlanetId)
-                .HasColumnName("planet_id");
-            e.Property(x => x.UserId)
-                .HasColumnName("user_id");
-            
-            e.HasKey(x => new {x.MemberId, x.ChannelId});
-            e.HasOne(x => x.Member)
-                .WithMany(x => x.ChannelAccess)
-                .HasForeignKey(x => x.MemberId);
-            
-            e.HasIndex(x => x.ChannelId);
-            e.HasIndex(x => x.MemberId);
-        });
-
-        modelBuilder.Entity<PermissionCheckResult>().HasNoKey();
-        modelBuilder.Entity<UpdateAccessResult>().HasNoKey();
-        modelBuilder.Entity<UpdateAccessRowCountResult>().HasNoKey();
-
-    }
 
     // These are the database sets we can access
     //public DbSet<ClientPlanetMessage> Messages { get; set; }
@@ -156,11 +108,6 @@ public class ValourDB : DbContext
     public DbSet<Channel> Channels { get; set; }
     
     /// <summary>
-    /// Table for all member channel access records
-    /// </summary>
-    public DbSet<MemberChannelAccess> MemberChannelAccess { get; set; }
-    
-    /// <summary>
     /// Table for all channel members (not to be confused with planet members)
     /// </summary>
     public DbSet<ChannelMember> ChannelMembers { get; set; }
@@ -216,8 +163,6 @@ public class ValourDB : DbContext
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
     
-    public DbSet<ChannelState> ChannelStates { get; set; }
-
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
@@ -243,10 +188,47 @@ public class ValourDB : DbContext
     
     public DbSet<Theme> Themes { get; set; }
     public DbSet<ThemeVote> ThemeVotes { get; set; }
-
-    public ValourDB(DbContextOptions options)
+    
+    public ValourDb()
     {
+        
+    }
+    
+    public ValourDb(DbContextOptions<ValourDb> options) : base(options)
+    {
+        
+    }
+    
+    protected override void OnConfiguring(DbContextOptionsBuilder options)
+    {
+        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.ForeignKeyPropertiesMappedToUnrelatedTables));
+        options.UseNpgsql(ConnectionString).UseExceptionProcessor();
+    }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Composite key
+        modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
+
+        // Soft delete
+        modelBuilder.Entity<Planet>().HasQueryFilter(x => x.IsDeleted == false);
+        modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
+        modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
+        
+        // can only add query filters to root entities
+        // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false); 
+        
+        //base.OnModelCreating(modelBuilder);
+        
+        Message.SetupDbModel(modelBuilder);
+        User.SetupDbModel(modelBuilder);
+        UserSubscription.SetupDbModel(modelBuilder);
+        UserChannelState.SetupDbModel(modelBuilder);
+        PlanetMember.SetupDbModel(modelBuilder);
     }
 }
 

@@ -1,8 +1,9 @@
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class UserProfile : ClientModel, ISharedUserProfile
+public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
 {
     public override string BaseRoute => "api/userProfiles";
 
@@ -55,4 +56,14 @@ public class UserProfile : ClientModel, ISharedUserProfile
     /// The background image for the profile (should be 300x400)
     /// </summary>
     public string BackgroundImage { get; set; }
+
+    public override UserProfile AddToCacheOrReturnExisting()
+    {
+        return Client.Cache.UserProfiles.Put(Id, this);
+    }
+    
+    public override UserProfile TakeAndRemoveFromCache()
+    {
+        return Client.Cache.UserProfiles.TakeAndRemove(Id);
+    }
 }

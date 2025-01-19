@@ -187,6 +187,27 @@ namespace Valour.Server.Http
                 await httpContext.Response.WriteAsync(_message);
             }
         }
+        
+        private readonly struct WrongNodeResult : IResult
+        {
+            private readonly string _node;
+            private readonly long? _planetId;
+            
+            public WrongNodeResult(string node, long? planetId)
+            {
+                _node = node;
+                _planetId = planetId;
+            }
+            
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 421; // Misdirected
+                await httpContext.Response.WriteAsync(_node); // Write the correct node name
+                await httpContext.Response.WriteAsync(":");
+                if (_planetId is not null)
+                    await httpContext.Response.WriteAsync(_planetId.ToString()); // Write the planet ID
+            }
+        }
 
         public static IResult RawJson(string data) => new RawJsonResult(data);
         public static IResult Ok() => new OkResult("");
@@ -201,6 +222,7 @@ namespace Valour.Server.Http
         public static IResult NotPlanetMember() => _notPlanetMember;
         public static IResult LacksPermission(Permission permission) => new LacksPermissionResult(permission);
         public static IResult Json(object data) => new JsonResult(data);
+        public static IResult WrongNode(string node, long? planetId) => new WrongNodeResult(node, planetId);
         public static IResult Null() => new NullResult();
 
         private static readonly IResult _noToken = new NoTokenResult();

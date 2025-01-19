@@ -24,9 +24,9 @@ public abstract class DragListItem
     /// </summary>
     public int ChildMargin { get; set; }
     
-    public abstract int Depth { get; }
+    public abstract uint Depth { get; }
 
-    public abstract int Position { get; }
+    public abstract uint Position { get; }
     
     public virtual Task OnClick()
     {

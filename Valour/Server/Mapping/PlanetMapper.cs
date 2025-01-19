@@ -1,3 +1,5 @@
+using Valour.Shared.Models;
+
 namespace Valour.Server.Mapping;
 
 public static class PlanetMapper

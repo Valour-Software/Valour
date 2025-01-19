@@ -15,44 +15,63 @@ namespace Valour.Server.Services;
 
 public class PlanetMemberService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
-    private readonly ChannelAccessService _accessService;
+    private readonly PlanetPermissionService _permissionService;
     private readonly ILogger<PlanetMemberService> _logger;
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
 
+    /// <summary>
+    /// A cached current member. It may not match the planet being requested (so check!) but it's
+    /// highly likely to be the same, so it makes sense to cache it.
+    /// </summary>
+    private PlanetMember _currentMember;
+    
     public PlanetMemberService(
-        ValourDB db,
+        ValourDb db,
         CoreHubService coreHub,
         TokenService tokenService,
-        ChannelAccessService accessService,
-        ILogger<PlanetMemberService> logger)
+        ILogger<PlanetMemberService> logger, 
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
         _logger = logger;
-        _accessService = accessService;
+        _permissionService = permissionService;
     }
-    
+
     /// <summary>
     /// Returns the PlanetMember for the given id
     /// </summary>
-    public async Task<PlanetMember> GetAsync(long id) =>
-        (await _db.PlanetMembers.FindAsync(id)).ToModel();
+    public async Task<PlanetMember> GetAsync(long id)
+    {
+        var member = await _db.PlanetMembers
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        
+        return member.ToModel();
+    }
 
     /// <summary>
     /// Returns the current user's PlanetMember for the given planet id
     /// </summary>
     public async Task<PlanetMember> GetCurrentAsync(long planetId)
     {
+        if (_currentMember is not null && _currentMember.PlanetId == planetId)
+            return _currentMember;
+        
         var token = await _tokenService.GetCurrentTokenAsync();
         if (token is null)
             return null;
 
-        return await GetByUserAsync(token.UserId, planetId);
+        var member =  await GetByUserAsync(token.UserId, planetId);
+        
+        _currentMember = member;
+        
+        return member;
     }
 
     /// <summary>
@@ -86,12 +105,17 @@ public class PlanetMemberService
     {
         if (MemberIdLookup.TryGetValue((userId, planetId), out var memberId))
         {
-            var member = await _db.PlanetMembers.FindAsync(memberId);
+            var member = await _db.PlanetMembers
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x => x.Id == memberId);
             return member.ToModel();
         }
         else
         {
-            var member = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            var member = await _db.PlanetMembers
+                .Include(x => x.User)
+                .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+            
             if (member is not null)
             {
                 MemberIdLookup.TryAdd((userId, planetId), member.Id);
@@ -124,70 +148,6 @@ public class PlanetMemberService
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.Id)
-            .ToListAsync();
-
-    
-    public class PlanetRoleAndNode
-    {
-        public PlanetRole Role { get; set; }
-        public PermissionsNode Node { get; set; }
-    }
-
-    public class PlanetRoleIdAndNode
-    {
-        public long RoleId { get; set; }
-        public PermissionsNode Node { get; set;  }
-    }
-    
-    /// <summary>
-    /// Returns the roles for the given PlanetMember id,
-    /// including the permissions node for a specific target channel
-    /// </summary>
-    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
-       await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .ThenInclude(r => r.PermissionNodes)
-            .OrderBy(x => x.Role.Position)
-            .Select(x => new PlanetRoleAndNode()
-            {
-                Role = x.Role.ToModel(),
-                Node = x.Role.PermissionNodes.FirstOrDefault(n => n.TargetId == targetId && n.TargetType == type).ToModel()
-            })
-            .ToListAsync();
-
-    /// <summary>
-    /// Returns the role ids for the given PlanetMember id,
-    /// including the permissions node for a specific target channel
-    /// this will return role ids that no node
-    /// </summary>
-    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
-        await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
-            .OrderBy(x => x.Role.Position)
-            .Select(x => new PlanetRoleIdAndNode()
-            {
-                RoleId = x.Role.Id,
-                Node = x.Role.PermissionNodes.FirstOrDefault(n => n.TargetId == targetId && n.TargetType == type).ToModel()
-            })
-            .Where(x => x.Node.TargetId == targetId && x.Node.TargetType == type)
-            .ToListAsync();
-
-    /// <summary>
-    /// Returns the permission nodes for the given target in order of role position
-    /// </summary>
-    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelTypeEnum type) =>
-        await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
-            .OrderBy(x => x.Role.Position)
-            .Select(x => x.Role.PermissionNodes.FirstOrDefault().ToModel())
             .ToListAsync();
     
     /// <summary>
@@ -230,25 +190,17 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
-    public async Task<int> GetAuthorityAsync(PlanetMember member)
+    public async Task<uint> GetAuthorityAsync(PlanetMember member)
     {
-        var planet = await _db.Planets.FindAsync(member.PlanetId);
-        
-        // Planet owner has highest possible authority
-        if (planet.OwnerId == member.UserId)
-            return int.MaxValue;
-        
-        // Otherwise, we get the primary role's position
-        var rolePos = await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .OrderBy(x => x.Role.Position)
-            .Select(x => x.Role.Position)
-            .FirstAsync();
-        
-        // Calculate the authority
-        return int.MaxValue - rolePos - 1;
+        return await _permissionService.GetAuthorityAsync(member);
+    }
+    
+    /// <summary>
+    /// Returns if a member has the given permission
+    /// </summary>
+    public async ValueTask<bool> HasPermissionAsync(long memberId, PlanetPermission permission)
+    {
+        return await _permissionService.HasPlanetPermissionAsync(memberId, permission);
     }
     
     /// <summary>
@@ -256,38 +208,13 @@ public class PlanetMemberService
     /// </summary>
     public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
     {
-        if (member is null)
-            return false;
-        
-        // Special case for viewing planets
-        // All existing members can view a planet
-        if (permission.Value == PlanetPermissions.View.Value)
-        {
-            return true;
-        }
-        
-        var planet = await _db.Planets.FindAsync(member.PlanetId);
-
-        // This should never happen, but we will still check
-        if (planet is null)
-            return false;
-        
-        // Owner has all permissions
-        if (member.UserId == planet.OwnerId)
-            return true;
-
-        return await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .AnyAsync(x => x.Role.IsAdmin || // Admins have all permissions
-                      (x.Role.Permissions & permission.Value) != 0); // Otherwise, at least one role must have the planet permission granted
+        return await _permissionService.HasPlanetPermissionAsync(member.Id, permission);
     }
 
     /// <summary>
     /// Returns if the member has the given channel permission
     /// </summary>
-    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, Channel target, Permission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, Channel target, ChannelPermission permission)
     {
         if (target is null)
             return false;
@@ -297,90 +224,8 @@ public class PlanetMemberService
         {
             return true;
         }
-        
-        var permTypeCode = 0;
-        switch (permission)
-        {
-            case ChatChannelPermission:
-                permTypeCode = 0;
-                break;
-            case CategoryPermission:
-                permTypeCode = 1;
-                break;
-            case VoiceChannelPermission:
-                permTypeCode = 2;
-                break;
-            default:
-                throw new Exception("Unexpected permission type in HasPermissionAsync: " + permission.GetType().Name);
-        }
-        
-        // This stored procedure will check if the member has the given permission
-        // and return null if there's no roles to check against
-        var result = await _db.Set<PermissionCheckResult>()
-            .FromSqlInterpolated($@"
-                SELECT * FROM check_member_permission(
-                    {member.Id}, 
-                    {target.Id}, 
-                    {permission.Value}, 
-                    {permTypeCode}
-                )")
-            .AsNoTracking()
-            .SingleOrDefaultAsync();
-        
-        /*
-        var x = _db.Set<PermissionCheckResult>()
-            .FromSqlInterpolated($@"
-                SELECT check_member_permission(
-                    {member.Id}, 
-                    {target.Id}, 
-                    {(int) target.ChannelType}, 
-                    {permission.Value}, 
-                    {permTypeCode}
-                ) AS value").ToQueryString();
-        */
 
-        if (result.Value == -1)
-        {
-            // This really should never happen. Everyone has the @everyone role.
-            _logger.LogError("No permissions found for member {MEMBER} in channel {CHANNEL}", member.Id, target.Id);
-            return false;
-        }
-
-        // CODES:
-        // Success:
-        // 4: Member is admin
-        // 6: Member is owner
-        // 8: There were both ALLOW and DENY, but ALLOW won
-        // 10: There was only an ALLOW node
-        // 12: Fallback on top role ALLOWED
-        // Failure: 
-        // 7: There were both ALLOW and DENY, but DENY won
-        // 9: There was only a DENY node
-        // 11: Invalid permission type
-        // 13: Fallback on top role DENIED
-        // 15: Member does not exist
-        // 
-        // -1: Something is wrong
-         
-        return (result.Value % 2) == 0; // Even codes are granted, odd codes are denied
-        
-        // Fallback to base permissions
-        
-        /*
-        switch (permission)
-        {
-            case ChatChannelPermission:
-                return Permission.HasPermission(ChatChannelPermissions.Default, permission);
-            case CategoryPermission:
-                return Permission.HasPermission(CategoryPermissions.Default, permission);
-            case VoiceChannelPermission:
-                return Permission.HasPermission(VoiceChannelPermissions.Default, permission);
-            default:
-                throw new Exception("Unexpected permission type: " + permission.GetType().Name);
-        }
-        */
-        
-        
+        return await _permissionService.HasChannelPermissionAsync(member, target, permission);
     }
     
     /// <summary>
@@ -434,13 +279,18 @@ public class PlanetMemberService
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
                 PlanetId = planet.Id,
-                UserId = user.Id
+                UserId = user.Id,
+                User = user
             };
         }
         
         var defaultRoleId = await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id && x.IsDefault)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
+        
+        // Give role hash for just default role
+        var roleHashKey = PlanetPermissionService.GenerateRoleComboKey([defaultRoleId]);
+        member.RoleHashKey = roleHashKey;
 
         // Add to default planet role
         var roleMember = new Valour.Database.PlanetRoleMember()
@@ -449,7 +299,7 @@ public class PlanetMemberService
             PlanetId = planet.Id,
             UserId = user.Id,
             RoleId = defaultRoleId,
-            MemberId = member.Id
+            MemberId = member.Id,
         };
         
         IDbContextTransaction trans = null;
@@ -483,9 +333,6 @@ public class PlanetMemberService
 
             await _db.SaveChangesAsync();
             
-            // Add channel access
-            await _accessService.UpdateAllChannelAccessMember(member.Id);
-
         }
         catch (Exception e)
         {
@@ -510,7 +357,9 @@ public class PlanetMemberService
     /// <returns></returns>
     public async Task<TaskResult<PlanetMember>> UpdateAsync(PlanetMember member)
     {
-        var old = await _db.PlanetMembers.FindAsync(member.Id);
+        var old = await _db.PlanetMembers
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == member.Id);
 
         if (old is null)
             return new TaskResult<PlanetMember>(false, "Member not found.");
@@ -541,6 +390,9 @@ public class PlanetMemberService
         
         _coreHub.NotifyPlanetItemChange(member);
 
+        // ensure user model is included
+        member.User = old.User.ToModel();
+
         return new TaskResult<PlanetMember>(true, "Success", member);
     }
 
@@ -553,6 +405,9 @@ public class PlanetMemberService
         var role = await _db.PlanetRoles.FindAsync(roleId);
         if (role is null)
             return new TaskResult<PlanetRoleMember>(false, "Role is null.");
+        
+        if (role.Position == 0)
+            return new TaskResult<PlanetRoleMember>(false, "Cannot add owner role to member.");
         
         if (member.PlanetId != role.PlanetId)
             return new TaskResult<PlanetRoleMember>(false, "Role and member are not in the same planet.");
@@ -576,7 +431,7 @@ public class PlanetMemberService
             await _db.PlanetRoleMembers.AddAsync(newRoleMember);
             await _db.SaveChangesAsync();
 
-            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _permissionService.UpdateMemberRoleHashAsync(member, false);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();
@@ -596,13 +451,12 @@ public class PlanetMemberService
     
     public async Task<TaskResult> RemoveRoleAsync(long memberId, long roleId)
     {
-        var roleMember = await _db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
+        var roleMember = await _db.PlanetRoleMembers.Include(x => x.Role).FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
         
         if (roleMember is null)
             return new TaskResult(false, "Member does not have this role.");
-
-        var isDefaultRole = await _db.PlanetRoles.AnyAsync(x => x.Id == roleMember.RoleId && x.IsDefault);
-        if (isDefaultRole)
+        
+        if (roleMember.Role.IsDefault)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
         await using var trans = await _db.Database.BeginTransactionAsync();
@@ -612,7 +466,7 @@ public class PlanetMemberService
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
             
-            await _accessService.UpdateAllChannelAccessMember(memberId);
+            await _permissionService.UpdateMemberRoleHashAsync(memberId, false);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();
@@ -651,12 +505,13 @@ public class PlanetMemberService
             var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == memberId);
             _db.PlanetRoleMembers.RemoveRange(roles);
             
+            var channelStates = await _db.UserChannelStates.Where(x => x.UserId == dbMember.UserId && x.PlanetId == dbMember.PlanetId).ToListAsync();
+            _db.UserChannelStates.RemoveRange(channelStates);
+            
             dbMember.IsDeleted = true;
+            dbMember.RoleHashKey = 0;
 
             await _db.SaveChangesAsync();
-            
-            // Remove channel access
-            await _accessService.ClearMemberAccessAsync(dbMember.Id);
             
             if (trans is not null) 
             {

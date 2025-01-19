@@ -42,9 +42,9 @@ public class ResizeObserver : IAsyncDisposable
     }
     
     [JSInvokable("NotifyResize")]
-    public async Task NotifyResize(ElementDimensions dimensions)
+    public void NotifyResize(ElementDimensions dimensions)
     {
         if (ResizeEvent is not null)
-            await ResizeEvent.Invoke(dimensions);
+            ResizeEvent.Invoke(dimensions);
     }
 }

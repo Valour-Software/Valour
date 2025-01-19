@@ -1,4 +1,5 @@
 @inherits Modal<CreateChannelComponent.ModalParams>
+@inject ChannelService ChannelService
 
 <section>
     <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
@@ -39,7 +40,7 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    @if (role.GetAuthority() == SelfAuthority)
+                                    @if (role.GetAuthority() == MyAuthority)
                                     {
                                         <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@_selectedRoles[role]" disabled>
                                         <span class="slider round" cursor: not-allowed;></span>
@@ -94,30 +95,26 @@
     List<PlanetRole> _roles = new();
     bool _isPrivate = false;
 
-    int SelfAuthority { get; set; }
+    uint MyAuthority { get; set; }
     
-    private async Task ClickEscape(MouseEventArgs e)
+    private void ClickEscape(MouseEventArgs e)
     {
-        await ModalRoot.CloseModal(ModalId);
+        ModalRoot.CloseModal(ModalId);
     }
 
-    protected override async Task OnInitializedAsync() {
+    protected override void OnInitialized() {
         _roles.Clear();
         _selectedRoles.Clear();
-
-        var selfMember = await ValourClient.GetSelfMember(Data.Planet);
-
-        var roles = await Data.Planet.GetRolesAsync();
-
-        SelfAuthority = await selfMember.GetAuthorityAsync();
-        foreach (PlanetRole item in roles)
+        
+        MyAuthority = Data.Planet.MyMember.Authority;
+        foreach (PlanetRole item in Data.Planet.Roles)
         {
-            if (item.GetAuthority() > SelfAuthority)
+            if (item.GetAuthority() > MyAuthority)
                 continue;
 
             _roles.Add(item);
 
-            if (item.GetAuthority() == SelfAuthority)
+            if (item.GetAuthority() == MyAuthority)
                 _selectedRoles.Add(item, true);
             else
                 _selectedRoles.Add(item, false);
@@ -149,9 +146,6 @@
         if (Data.Parent != null)
             parentId = Data.Parent.Id;
 
-        long userId = ValourClient.Self.Id;
-        //string token = ValourClient.Token;
-
         CreateChannelRequest createRequest = new()
         {
             Channel = new()
@@ -160,17 +154,15 @@
                 Description = "A category",
                 ParentId = parentId,
                 PlanetId = planetId,
-                Position = -1,
                 
                 ChannelType = Data.ChannelType
             },
-            Nodes = new()
+            Nodes = new(),
+            TargetId = null
         };
 
         if (_isPrivate)
         {
-            var defaultRoleId = (await Data.Planet.GetDefaultRoleAsync()).Id;
-            
             // set the default role channel view perms to false
 
             // only need category node for categories, but if it IS a category, we need every type of node
@@ -187,7 +179,7 @@
                 {
                     TargetId = 0,
                     PlanetId = planetId,
-                    RoleId = defaultRoleId,
+                    RoleId = Data.Planet.DefaultRole.Id,
                     Mask = 0x00,
                     Code = 0x00,
 
@@ -205,7 +197,7 @@
                 {
                     TargetId = 0,
                     PlanetId = planetId,
-                    RoleId = defaultRoleId,
+                    RoleId = Data.Planet.DefaultRole.Id,
                     Mask = 0x00,
                     Code = 0x00,
 
@@ -223,7 +215,7 @@
                 {
                     TargetId = 0,
                     PlanetId = Data.Planet.Id,
-                    RoleId = defaultRoleId,
+                    RoleId = Data.Planet.DefaultRole.Id,
                     Mask = 0x00,
                     Code = 0x00,
                     
@@ -297,7 +289,7 @@
             }
         }
 
-        var result = await Channel.CreateWithDetails(createRequest);
+        var result = await ChannelService.CreatePlanetChannelAsync(Data.Planet, createRequest);
 
         if (!result.Success)
         {
@@ -308,6 +300,6 @@
         }
 
         // close modal
-        await ModalRoot.CloseModal(ModalId);
+        ModalRoot.CloseModal(ModalId);
     }
 }

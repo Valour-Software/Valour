@@ -3,7 +3,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PermissionsNode : ServerModel, ISharedPermissionsNode
+public class PermissionsNode : ServerModel<long>, ISharedPermissionsNode
 {
     /// <summary>
     /// The id of the planet this node belongs to

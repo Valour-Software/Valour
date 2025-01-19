@@ -8,8 +8,8 @@ public class PlanetListItem : DragListItem
 {
     public Planet Planet { get; set; }
 
-    public override int Depth => 0;
-    public override int Position => Planet.Name.FirstOrDefault();
+    public override uint Depth => 0u;
+    public override uint Position => Planet.Name.FirstOrDefault();
 
     public PlanetListItem(Planet planet)
     {
@@ -21,8 +21,8 @@ public class ChannelListItem : DragListItem
 {
     public Channel Channel { get; set; }
     
-    public override int Depth => Channel.Depth;
-    public override int Position => Channel.Position;
+    public override uint Depth => Channel.Position.Depth;
+    public override uint Position => Channel.RawPosition;
     
     public ChannelListItem(Channel channel)
     {

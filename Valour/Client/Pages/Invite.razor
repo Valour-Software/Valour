@@ -1,6 +1,8 @@
 ﻿@page "/I/{InviteCode}"
 
 @inject NavigationManager NavManager
+@inject ValourClient Client
+@inject PlanetService PlanetService
 
 <body class="login-background" style="background-image: url('_content/Valour.Client/media/Abstract-Background.png')">
     <div class="popup-box">
@@ -20,7 +22,7 @@
                     </div>
                     <img alt="@_inviteData.PlanetName icon" class="planet-card-icon mt-2" style="width:128px;" src="@_inviteData.PlanetImageUrl" @onerror="OnIconError" />
                                                                                                                                                                   
-                    if (!ValourClient.IsLoggedIn)
+                    if (!Client.IsLoggedIn)
                     {
                         <p class="m-4">Log in or register to join this planet</p>
                         <button class="v-btn blue large mt-2" @onclick="OnClickLogin">Log in and Join</button>
@@ -60,7 +62,7 @@
 
     protected override async  Task OnInitializedAsync()
     {
-        _inviteData = await PlanetInvite.GetInviteScreenData(InviteCode);
+        _inviteData = await PlanetService.FetchInviteScreenData(InviteCode);
         
         if (_inviteData is null)
         {
@@ -77,7 +79,7 @@
         }
         
         // Already joined
-        if (ValourClient.JoinedPlanets.Any(x => x.Id == _inviteData.PlanetId))
+        if (PlanetService.JoinedPlanets.Any(x => x.Id == _inviteData.PlanetId))
         {
             _alreadyJoined = true;
         }
@@ -90,7 +92,7 @@
 
     public async Task OnClose()
     {
-        await ValourClient.LoadJoinedPlanetsAsync();
+        await PlanetService.FetchJoinedPlanetsAsync();
         NavManager.NavigateTo("/");
     }
 
@@ -106,9 +108,9 @@
 
     private async Task OnClickJoin()
     {
-        if (ValourClient.IsLoggedIn)
+        if (Client.IsLoggedIn)
         {
-            var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{_inviteData.PlanetId}/join?inviteCode={InviteCode}");
+            var response = await PlanetService.JoinPlanetAsync(_inviteData.PlanetId, InviteCode);
 
             if (!response.Success)
             {

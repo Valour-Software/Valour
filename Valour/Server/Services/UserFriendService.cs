@@ -6,19 +6,19 @@ namespace Valour.Server.Services;
 
 public class UserFriendService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly UserService _userService;
     private readonly NotificationService _notificationService;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ILogger<UserFriendService> _logger;
 
     public UserFriendService(
-        ValourDB db,
+        ValourDb db,
         UserService userService,
         NotificationService notificationService,
         CoreHubService coreHub,
-        NodeService nodeService,
+        NodeLifecycleService nodeLifecycleService,
         ILogger<UserFriendService> logger)
     {
         _db = db;
@@ -26,7 +26,7 @@ public class UserFriendService
         _userService = userService;
         _notificationService = notificationService;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
     }
 
     public async Task<UserFriend> GetAsync(long userId, long friendId) =>
@@ -55,7 +55,7 @@ public class UserFriendService
         {
             User = user.ToModel(),
             Type = FriendEventType.Removed
-        }, _nodeService);
+        }, _nodeLifecycleService);
 
         return new(true, "Succcess");
     }
@@ -101,7 +101,7 @@ public class UserFriendService
         {
             User = user.ToModel(),
             Type = FriendEventType.Added
-        }, _nodeService);
+        }, _nodeLifecycleService);
 
         return new(true, "Success", newFriend);
     }
@@ -158,7 +158,7 @@ public class UserFriendService
         {
             User = user.ToModel(),
             Type = FriendEventType.Removed
-        }, _nodeService);
+        }, _nodeLifecycleService);
 
         return new(true, "Success");
     }

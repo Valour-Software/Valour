@@ -1,7 +1,7 @@
 ﻿@using Valour.Client.Components.Windows.ModTools
 @inherits Modal<EditUserComponent.ModalParams>
 @inject NavigationManager NavManager
-@inject IJSRuntime JS
+@inject ValourClient Client
 
 
 @if (@Data.User is null)
@@ -27,7 +27,7 @@
                     <BigMenuSubMenuComponent Icon="envelope-paper-heart-fill" Name="Referrals"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="sign-stop-lights-fill" Name="Permissions"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="phone-fill" Name="Device Preferences"></BigMenuSubMenuComponent>
-                    @if (ValourClient.Self.ValourStaff)
+                    @if (Client.Me.ValourStaff)
                     {
                         <BigMenuSubMenuComponent OnClickOverride="OpenStaffTools" Icon="hammer" Name="Staff Tools"></BigMenuSubMenuComponent>
                     }
@@ -126,7 +126,7 @@
             "Cancel",
             async () =>
             {
-                var result = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+                var result = await Client.PrimaryNode.PostAsync($"api/users/me/logout", null);
                 Console.WriteLine(result.Message);
                 NavManager.NavigateTo("/", true);
             },
@@ -143,7 +143,7 @@
             Console.WriteLine(e.Message);
 
             // If an error occurs in building/using the ConfirmModal, it reverts back to original behavior and logs out regardless
-            var result = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
+            var result = await Client.PrimaryNode.PostAsync($"api/users/me/logout", null);
             Console.WriteLine(result.Message);
             NavManager.NavigateTo("/", true);
         }
@@ -160,6 +160,6 @@
         var floatingProps = ModToolsWindowComponent.GetDefaultFloatingProps();
         await WindowService.TryAddFloatingWindow(content, floatingProps);
 
-        await CloseAsync();
+        Close();
     }
 }

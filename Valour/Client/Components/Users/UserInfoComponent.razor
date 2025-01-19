@@ -1,12 +1,14 @@
 ﻿@inject ContextMenuService ContextMenuService
 @implements IDisposable
+@inject ValourClient Client
+@inject UserService UserService
 
 @* Placeholder *@
 @if (User is null)
 {
     <div class="user-info" style="@Style">
         <div class="left-block">
-            <img alt="user not found" class="pfp" src="@_avatarUrl">
+            <img alt="user not found" class="avatar" src="@_avatarUrl">
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor">Not Found</p>
@@ -15,14 +17,14 @@
                     -------------
                 </p>
             </div>
-            <div class="state-circle offline" />
+            <div class="state-circle offline"></div>
         </div>
     </div>
     return;
 }
 
 <div @oncontextpress="@OnContextMenu" style="display:inline" tabindex="0"
-     @onkeydown="@(async e => { if (e.Key == "Enter") await ShowProfileAsync(); })">
+     @onkeydown="@OnKeyDown">
     <div class="user-info" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
             @if (User.HasAnimatedAvatar)
@@ -105,7 +107,7 @@
         // use the UserId to still function
         if (User is null && Member is not null)
         {
-            User = await User.FindAsync(Member.UserId);
+            User = await UserService.FetchUserAsync(Member.UserId);
         }
         
         if (User is not null)
@@ -118,7 +120,7 @@
             // Id given, but no user supplied
             if (UserId != 0)
             {
-                User = await User.FindAsync(UserId);
+                User = await UserService.FetchUserAsync(UserId);
                 User.Updated += OnUserUpdate;
             }
         }
@@ -127,22 +129,22 @@
         {
             UserId = Member.UserId;
             Member.Updated += OnMemberUpdate;
-            Member.OnRoleModified += OnMemberRoleModified;
+            Member.Roles.Changed += OnMemberRoleModified;
         }
 
-        await CalculateAll();
+        CalculateAll();
 
         StateHasChanged();
     }
 
-    private async Task CalculateAll()
+    private void CalculateAll()
     {
         CalculateName();
         CalculateTag();
         CalculateAvatar();
         CalculateStatus();
         CalculateStatusCode();
-        await DetermineColorChange();
+        DetermineColorChange();
     }
 
     void IDisposable.Dispose()
@@ -155,7 +157,7 @@
         if (Member is not null)
         {
             Member.Updated -= OnMemberUpdate;
-            Member.OnRoleModified -= OnMemberRoleModified;
+            Member.Roles.Changed -= OnMemberRoleModified;
         }
     }
 
@@ -164,7 +166,7 @@
         if (Member is not null)
         {
             ContextMenuService.Root.OpenMenu<MemberContextMenu>(e,
-                new MemberContextMenu.MemberContextParams()
+                new MemberContextMenu.MemberContextParams
                 {
                     Member = Member
                 }
@@ -173,7 +175,7 @@
         else
         {
             ContextMenuService.Root.OpenMenu<UserContextMenu>(e,
-                new UserContextMenu.UserContextParams()
+                new UserContextMenu.UserContextParams
                 {
                     User = User
                 }
@@ -194,19 +196,8 @@
 
     private void CalculateAvatar()
     {
-        if (User is null && Member is null)
-        {   
-            _avatarUrl = "./_content/Valour.Client/media/logo/logo-128.png";
-            return;
-        }
-
-        _avatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.Webp128);
-        if (User.HasAnimatedAvatar)
-        {
-            _animAvatarUrl = AvatarUtility.GetAvatarUrl(User, Member, AvatarFormat.WebpAnimated128);
-        }
-
-        _failedAvatarUrl = User.GetFailedAvatarUrl();
+        _avatarUrl = Member?.GetAvatar() ?? User?.GetAvatar() ?? ISharedUser.DefaultAvatar;
+        _failedAvatarUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
     }
 
     private void CalculateStatus()
@@ -219,7 +210,7 @@
         _statusClass = User?.UserState?.CssClassName ?? "offline";
     }
 
-    private async Task<bool> DetermineColorChange()
+    private bool DetermineColorChange()
     {
         var old = _roleColor;
         if (Member is null)
@@ -228,16 +219,16 @@
         }
         else
         {
-            var displayedRole = await Member.GetDisplayedRoleAsync();
+            var displayedRole = Member.GetDisplayedRoleAsync();
             _roleColor = displayedRole is null ? DefaultRoleColor : displayedRole.Color;
         }
 
         return old != _roleColor;
     }
 
-    private Task OnUserUpdate(ModelUpdateEvent eventData)
+    private void OnUserUpdate(ModelUpdateEvent<User> eventData)
     {
-        bool render = false;
+        var render = false;
         
         if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
         {
@@ -269,13 +260,11 @@
         {
             StateHasChanged();
         }
-
-        return Task.CompletedTask;
     }
  
-    private Task OnMemberUpdate(ModelUpdateEvent eventData)
+    private void OnMemberUpdate(ModelUpdateEvent<PlanetMember> eventData)
     {
-        bool render = false;
+        var render = false;
 
         if (eventData.PropsChanged.Contains(nameof(Member.MemberAvatar)))
         {
@@ -293,14 +282,12 @@
         {
             StateHasChanged();
         }
-
-        return Task.CompletedTask;
     }
 
-    private async Task OnMemberRoleModified(MemberRoleEvent eventData)
+    private void OnMemberRoleModified(ModelListChangeEvent<PlanetRole> eventData)
     {
         // We can skip for update because it's the same role
-        if (await DetermineColorChange())
+        if (DetermineColorChange())
         {
             StateHasChanged();
         }
@@ -321,14 +308,20 @@
         }
     }
 
-    public async Task UpdateAll()
+    public void UpdateAll()
     {
-        await CalculateAll();
+        CalculateAll();
         StateHasChanged();
     }
     
     public void Refresh()
     {
         StateHasChanged();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") 
+            await ShowProfileAsync();
     }
 }

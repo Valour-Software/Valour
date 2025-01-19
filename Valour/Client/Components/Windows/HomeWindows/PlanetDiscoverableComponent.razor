@@ -1,13 +1,14 @@
 @using System.Text
 @inject IJSRuntime JsRuntime
 @inject ContextMenuService ContextMenuService
+@inject PlanetService PlanetService
 
-<div id="flipper-discover-@Planet.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-discover-@Planet.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-discover-@Planet.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
+<div id="flipper-discover-@PlanetInfo.PlanetId-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-discover-@PlanetInfo.PlanetId-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-discover-@PlanetInfo.PlanetId-@WindowCtx.Id', 240)" @onclick="OnClick"> 
     <div class="outer-circle"
          @oncontextpress="@OnContextPress">
         @if (!string.IsNullOrWhiteSpace(_iconText))
         {
-            <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon" />
+            <img alt="planet icon" src="@_iconUrl" class="icon" />
 
             <div class="icon-text-holder">
                 <h1 class="icon-text" style="@_iconTextStyle">@_iconText</h1>
@@ -15,20 +16,20 @@
         }
         else
         {
-            @if (Planet.HasAnimatedIcon)
+            @if (PlanetInfo.HasAnimatedIcon)
             {
                 <style>
-                    .outer-circle:hover .discovery-icon-@Planet.Id {
+                    .outer-circle:hover .discovery-icon-@PlanetInfo.PlanetId {
                         background-image: url(@_animatedIconUrl), url(@_iconUrl), url(@_fallbackIconUrl) !important;
                     }
                 </style>
             }
-            <div class="icon discovery-icon-@Planet.Id" style="background-image: url(@_iconUrl), url(@_fallbackIconUrl)"></div>
+            <div class="icon discovery-icon-@PlanetInfo.PlanetId" style="background-image: url(@_iconUrl), url(@_fallbackIconUrl)"></div>
         }
         <div class="rect-slide">
             <div class="text-wrapper">
                 <div class="text-flex">
-                    <b class="planet-name">@Planet.Name</b>
+                    <b class="planet-name">@PlanetInfo.Name</b>
                 </div>
             </div>
         </div>
@@ -37,7 +38,7 @@
 
 @code {
     [Parameter]
-    public Planet Planet { get; set; }
+    public PlanetListInfo PlanetInfo { get; set; }
 
     [Parameter]
     public WindowContent WindowCtx { get; set; }
@@ -55,13 +56,13 @@
     private int _iconImageColor;
 
     protected override void OnInitialized(){
-        if (Planet.HasCustomIcon)
+        if (PlanetInfo.HasCustomIcon)
         {
-            _iconUrl = Planet.GetIconUrl(IconFormat.Webp256);
+            _iconUrl = ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
 
-            if (Planet.HasAnimatedIcon)
+            if (PlanetInfo.HasAnimatedIcon)
             {
-                _animatedIconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
+                _animatedIconUrl =  ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256);
             }
         }
         else
@@ -72,12 +73,7 @@
     
     private void OnContextPress(ContextPressEventArgs e)
     {
-        ContextMenuService.Root.OpenMenu<PlanetContextMenu>(e,
-            new PlanetContextMenu.PlanetContextParams()
-            {
-                Planet = Planet
-            }
-            );
+        
     }
     
     private string GetCommunityShortCode(string communityName)
@@ -123,8 +119,8 @@
     private void GenerateAutoGraphic()
     {
         _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-        _iconText = GetCommunityShortCode(Planet.Name);
-        _iconImageColor = Planet.Id.GetHashCode();
+        _iconText = GetCommunityShortCode(PlanetInfo.Name);
+        _iconImageColor = PlanetInfo.PlanetId.GetHashCode();
 
         _iconTextStyle = $"font-size: {100f / (_iconText.Length + 1)}px;";
     }
@@ -132,10 +128,10 @@
     private async Task OnClick()
     {
         // Attempt to join planet
-        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
-            $"Joining {Planet.Name}",
+        _ = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
+            $"Joining {PlanetInfo.Name}",
             "...",
-            ValourClient.JoinPlanetAsync(Planet),
+            PlanetService.JoinPlanetAsync(PlanetInfo.PlanetId),
             "Joined successfully!"
         ));
     }

@@ -11,32 +11,59 @@ jobs:
   build:
     runs-on: self-hosted
 
-    services:
-      postgres:
-        image: postgres:latest
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password_123
-          POSTGRES_DB: valour_test
-        options: >-
-          --health-cmd="pg_isready -U test_user"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-      redis:
-        image: redis:latest
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+    #services:
+    #  postgres:
+    #    image: postgres:latest
+    #    ports:
+    #      - 5432:5432
+    #    env:
+    #      POSTGRES_USER: test_user 
+    #      POSTGRES_PASSWORD: test_password_123
+    #      POSTGRES_DB: valour_test
+    #    options: >-
+    #      --health-cmd="pg_isready -U test_user"
+    #      --health-interval=10s
+    #      --health-timeout=5s
+    #      --health-retries=5
+      #redis:
+      #  image: redis:latest
+      #  ports:
+      #    - 6379:6379
+      #  options: >-
+      #    --health-cmd="redis-cli ping || exit 1"
+      #    --health-interval=10s
+      #    --health-timeout=5s
+      #    --health-retries=5
     
     steps:
     - uses: actions/checkout@v3
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Check Disk Space and Clean Docker Artifacts
+      run: |
+        THRESHOLD=10 # Disk space threshold in GB
+        AVAILABLE_SPACE=$(df --output=avail / | tail -n 1 | awk '{print int($1/1024/1024)}')
+        echo "Available disk space: ${AVAILABLE_SPACE} GB"
+        
+        if (( AVAILABLE_SPACE < THRESHOLD )); then
+          echo "Low disk space detected! Cleaning up Docker artifacts..."
+          docker system prune -af --volumes
+          echo "Docker cleanup complete."
+        else
+          echo "Sufficient disk space available: ${AVAILABLE_SPACE} GB"
+        fi
+
+    - name: Sanitize branch name
+      run: |
+        TAG_NAME=$(echo "${GITHUB_REF_NAME}" | tr '/:' '-_')
+        echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
 
     - name: Get Short SHA
       id: short-sha
@@ -75,8 +102,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 9.0.100-rc.1.24452.12 
-        include-prerelease: true
+        dotnet-version: 9.0.100
 
     - name: Restore workload
       run: dotnet workload restore
@@ -94,12 +120,20 @@ jobs:
       run: dotnet build --no-restore
 
     - name: Test
+      env:
+        TEST_DB: "valour_test"
+        TEST_DB_HOST: "localhost:5432"
+        TEST_DB_USER: "test_user"
+        TEST_DB_PASS: "test_password_123"
+        TEST_REDIS: "localhost:6379,abortConnect=False"
+        NODE_NAME: "emma"
+        APPLY_MIGRATIONS: true
       run: dotnet test --no-build --verbosity normal
-      continue-on-error: true
+      #continue-on-error: true
 
     - name: Publish Test Results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Test Results
         path: "**/test_results.trx"
@@ -131,8 +165,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-${{ steps.short-sha.outputs.short_sha }}
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}-latest
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-${{ steps.short-sha.outputs.short_sha }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}-latest
         labels: |
           org.opencontainers.image.source=${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}

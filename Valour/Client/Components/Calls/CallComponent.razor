@@ -1,4 +1,5 @@
-﻿@inject IJSRuntime JsRuntime
+﻿@inject ValourClient Client
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
 @if (ActiveChannel is not null)
@@ -51,8 +52,6 @@
     public List<MediaPeerComponent> PeerComponents { get; set; } = new List<MediaPeerComponent>();
 
     public static CallComponent Instance { get; private set; }
-    
-    private PlanetMember SelfMember { get; set; }
     
     private string _lastActiveSpeakerId = null;
     
@@ -126,10 +125,8 @@
         }
 
         ActiveChannel = channel;
-
-        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, channel.PlanetId!.Value);
-
-        _clientId = Guid.NewGuid().ToString() + ":" + SelfMember.Id.ToString();
+        
+        _clientId = Guid.NewGuid().ToString() + ":" + channel.Planet.MyMember.Id.ToString();
         
         await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id, null, DevicePreferences.MicrophoneDeviceId);
         
@@ -164,7 +161,7 @@
     {
         var data = new EditUserComponent.ModalParams()
         {
-            User = ValourClient.Self,
+            User = Client.Me,
             StartTopMenu = "General Settings",
             StartSubMenu = "Device Preferences"
         };

@@ -1,3 +1,4 @@
+@inject ValourClient Client
 @using System.Net.Http.Headers
 @if (_profile is null)
 {
@@ -14,7 +15,7 @@
     <span class="v-span m-1">Bio</span>
     <textarea class="v-input" cols="3" placeholder="A little bit about me..." @bind="@_profile.Bio"></textarea>
     
-    @if (ValourClient.Self.Subscription is null)
+    @if (Client.Me.Subscription is null)
     {
         <div class="perm-list-item">
             <div class="perm-list-name mb-1">
@@ -68,7 +69,7 @@
     }
 
     <div>
-        @if (ValourClient.Self.Subscription != null && _isGradientEnabled)
+        @if (Client.Me.Subscription != null && _isGradientEnabled)
         {
             <div class="d-inline-block m-1">
                 <span class="v-span">Primary color</span>
@@ -112,7 +113,7 @@
         </div>
     </div>
     
-    @if (ValourClient.Self.Subscription is null)
+    @if (Client.Me.Subscription is null)
     {
         <div class="perm-list-item">
             <div class="perm-list-name mb-1">
@@ -169,7 +170,7 @@
 
 <ProfileCard
     @ref="@_profileCard"
-    User="@ValourClient.Self"
+    User="@Client.Me"
     Profile="@_profile"
     CssStyle="position: unset; margin-left: auto; margin-right: auto; padding-top: 20px; margin-bottom: 100px;">
 </ProfileCard>
@@ -197,11 +198,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        var profileResult = await ValourClient.Self.GetProfileAsync();
-        if (profileResult.Success)
-        {
-            _profile = profileResult.Data;
-        }
+        _profile = await Client.Me.FetchProfileAsync();
 
         _isCustomBackgroundEnabled = !string.IsNullOrWhiteSpace(_profile.BackgroundImage);
         _isGradientEnabled = !string.IsNullOrWhiteSpace(_profile.PrimaryColor);
@@ -256,8 +253,8 @@
         {
             _profile.BackgroundImage = null;
         }
-        
-        var result = await UserProfile.UpdateAsync(_profile);
+
+        var result = await _profile.UpdateAsync();
 
         if (result.Success)
         {
@@ -298,7 +295,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/profilebg", content);
+        var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/profilebg", content);
 
         if (!result.Success)
         {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
+using Valour.Config.Configs;
 using Valour.Database;
-using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -15,23 +15,23 @@ public class NotificationService
     private static VapidDetails _vapidDetails;
     private static WebPushClient _webPush;
     
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly UserService _userService;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly IServiceScopeFactory _scopeFactory;
     
     public NotificationService(
-        ValourDB db, 
+        ValourDb db, 
         UserService userService, 
         CoreHubService coreHub,
-        NodeService nodeService,
+        NodeLifecycleService nodeLifecycleService,
         IServiceScopeFactory scopeFactory)
     {
         _db = db;
         _userService = userService;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _scopeFactory = scopeFactory;
         
         if (_vapidDetails is null)
@@ -68,7 +68,7 @@ public class NotificationService
             return new TaskResult(false, "Error saving changes to database");
         }
 
-        _coreHub.RelayNotificationReadChange(notification.ToModel(), _nodeService);
+        _coreHub.RelayNotificationReadChange(notification.ToModel(), _nodeLifecycleService);
         
         return TaskResult.SuccessResult;
     }
@@ -79,15 +79,15 @@ public class NotificationService
         
         try
         {
-            changes = await _db.Database.ExecuteSqlRawAsync("UPDATE notifications SET time_read = (now() at time zone 'utc') WHERE user_id = {0} AND time_read IS NULL;",
-                userId);
+            changes = await _db.Notifications.Where(x => x.UserId == userId && x.TimeRead == null).ExecuteUpdateAsync(
+                x => x.SetProperty(n => n.TimeRead, DateTime.UtcNow));
         }
         catch (Exception)
         {
             return new TaskResult(false, "Error saving changes to database");
         }
         
-        _coreHub.RelayNotificationsCleared(userId, _nodeService);
+        _coreHub.RelayNotificationsCleared(userId, _nodeLifecycleService);
 
         return new TaskResult(true, $"Cleared {changes} notifications");
     }
@@ -126,7 +126,7 @@ public class NotificationService
         await _db.SaveChangesAsync();
 
         // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notification, _nodeService);
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
         
         // Send actual push notification to devices
         await SendPushNotificationAsync(
@@ -138,7 +138,7 @@ public class NotificationService
         );
     }
     
-    public async Task AddBatchedNotificationAsync(Notification notification, ValourDB db)
+    public async Task AddBatchedNotificationAsync(Notification notification, ValourDb db)
     {
         // Create id for notification
         notification.Id = IdManager.Generate();
@@ -146,7 +146,7 @@ public class NotificationService
         notification.TimeSent = DateTime.UtcNow;
 
         // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notification, _nodeService);
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
         
         // Send actual push notification to devices
         await SendPushNotificationAsync(
@@ -165,7 +165,7 @@ public class NotificationService
         Task.Run(async () =>
         {
             await using var scope = _scopeFactory.CreateAsyncScope();
-            await using var db = scope.ServiceProvider.GetService<ValourDB>();
+            await using var db = scope.ServiceProvider.GetService<ValourDb>();
         
             var notifications = await db.PlanetRoleMembers.Where(x => x.RoleId == roleId).Select(x => new Notification()
             {
@@ -194,7 +194,7 @@ public class NotificationService
         return Task.CompletedTask;
     }
 
-    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDB db = null)
+    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDb db = null)
     {
         var adb = db ?? _db;
         
@@ -264,11 +264,11 @@ public class NotificationService
 
     public async Task HandleMentionAsync(
         Mention mention, 
-        Valour.Database.Planet planet, 
+        Models.Planet planet, 
         Message message, 
         Valour.Database.PlanetMember member, 
         Valour.Database.User user, 
-        Valour.Database.Channel channel)
+        Models.Channel channel)
     {
         switch (mention.Type)
         {

@@ -6,9 +6,9 @@ namespace Valour.Server.Api.Dynamic;
 public class PlanetMemberApi
 {
      // Helpful route to return the member for the authorizing user
-    [ValourRoute(HttpVerbs.Get, "api/members/self/{planetId}")]
+    [ValourRoute(HttpVerbs.Get, "api/members/me/{planetId}")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetSelfRouteAsync(
+    public static async Task<IResult> GetMyMemberRouteAsync(
         long planetId, 
         PlanetMemberService memberService)
     {
@@ -163,8 +163,8 @@ public class PlanetMemberApi
         
         if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
-
-        var role = await roleService.GetAsync(roleId);
+        
+        var role = await roleService.GetAsync(targetMember.PlanetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found.");
 
@@ -200,7 +200,7 @@ public class PlanetMemberApi
         if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var role = await roleService.GetAsync(roleId);
+        var role = await roleService.GetAsync(targetMember.PlanetId, roleId);
         if (role is null)
             return ValourResult.NotFound("Role not found.");
 

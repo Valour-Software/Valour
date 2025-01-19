@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planets")]
-public class Planet : Model, ISharedPlanet
+public class Planet : ISharedPlanet
 {
     ///////////////////////////
     // Relational Properties //
@@ -24,11 +25,19 @@ public class Planet : Model, ISharedPlanet
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
+    
+    public virtual ICollection<Message> Messages { get; set; }
+    
+    public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
 
     ///////////////////////
     // Entity Properties //
     ///////////////////////
 
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
+    
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>

@@ -1,4 +1,5 @@
 @using System.Text.Json.Serialization
+@using Valour.Shared.Utilities
 @inject IJSRuntime JsRuntime
 
 @code {
@@ -30,7 +31,7 @@
         public bool MetaKey { get; set; }
     }
     
-    public static event Func<KeyboardEvent, Task> OnKeyDown;
+    public static HybridEvent<KeyboardEvent> KeyDown;
     
     private IJSInProcessObjectReference _jsModule;
 
@@ -44,9 +45,9 @@
     }
 
     [JSInvokable]
-    public async Task OnKeyDownInteropAsync(KeyboardEvent e)
+    public void OnKeyDownInteropAsync(KeyboardEvent e)
     {
-        if (OnKeyDown is not null)
-            await OnKeyDown.Invoke(e);
+        if (KeyDown is not null)
+            KeyDown.Invoke(e);
     }
 }

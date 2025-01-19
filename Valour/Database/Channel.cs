@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("channels")]
-public class Channel : Model, ISharedChannel
+public class Channel : ISharedChannel
 {
     ///////////////////////////
     // Relational Properties //
@@ -25,9 +26,15 @@ public class Channel : Model, ISharedChannel
     [InverseProperty("Channel")]
     public virtual List<Message> Messages { get; set; }
     
+    public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
     
     /// <summary>
     /// The name of the channel
@@ -79,7 +86,7 @@ public class Channel : Model, ISharedChannel
     /// The position of the channel in the channel list
     /// </summary>
     [Column("position")]
-    public int Position { get; set; }
+    public uint RawPosition { get; set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -92,10 +99,4 @@ public class Channel : Model, ISharedChannel
     /// </summary>
     [Column("is_default")]
     public bool IsDefault { get; set; }
-    
-    ////////////////////////
-    // Shared Non-columns //
-    ////////////////////////
-    public int Depth => ISharedChannel.GetDepth(this);
-    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
 }

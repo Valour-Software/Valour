@@ -1,3 +1,7 @@
+@inject ValourClient Client
+@inject PlanetService PlanetService
+@inject EcoService EcoService
+
 @if (!string.IsNullOrWhiteSpace(_transactionId))
 {
     <h5>Success!</h5>
@@ -102,8 +106,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _globalCurrency = await Currency.FindByPlanetAsync(ISharedPlanet.ValourCentralId);
-        _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+        _globalCurrency = await EcoService.FetchGlobalCurrencyAsync();
+        _globalAccount = await EcoService.GetSelfGlobalAccountAsync();
 
         _loading = false;
         
@@ -154,14 +158,16 @@ else
     private async Task OnClickCreateAccount()
     {
         _errorSpan = null;
-        
-        var result = await ClientModel.CreateAsync(new EcoAccount()
+
+        var account = new EcoAccount()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
-            UserId = ValourClient.Self.Id,
+            UserId = Client.Me.Id,
             AccountType = AccountType.User,
             CurrencyId = ISharedCurrency.ValourCreditsId,
-        });
+        };
+
+        var result = await account.CreateAsync();
         
         if (!result.Success)
         {
@@ -184,7 +190,7 @@ else
         Transaction transaction = new()
         {
             PlanetId = ISharedPlanet.ValourCentralId,
-            UserFromId = ValourClient.Self.Id,
+            UserFromId = Client.Me.Id,
             AccountFromId = _globalAccount.Id,
             UserToId = _targetAccountData.UserId,
             AccountToId = _targetAccountData.AccountId,
@@ -193,7 +199,7 @@ else
             Description = "Sent via Valour App (Global)",
         };
         
-        var result = await Transaction.SendTransactionAsync(transaction);
+        var result = await EcoService.SendTransactionAsync(transaction);
         if (!result.Success)
         {
             _errorSpan = result.Message;
@@ -245,12 +251,12 @@ else
 
     private async Task GetTargetAccount()
     {
-        _targetAccountData = await EcoAccount.FindGlobalIdByNameAsync(_targetName);
+        _targetAccountData = await EcoService.SearchGlobalAccountsAsync(_targetName);
     }
     
-    private async Task OnClickReceipt()
+    private void OnClickReceipt()
     {
-        await Input.AddReceipt(_transactionId);
-        await Modal.CloseAsync();
+        Input.AddReceipt(_transactionId);
+        Modal.Close();
     }
 }

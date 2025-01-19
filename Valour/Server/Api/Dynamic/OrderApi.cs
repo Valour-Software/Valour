@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Valour.Server.Config;
+using Valour.Config.Configs;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -381,7 +381,7 @@ public class OrderApi
                 unit
             },
             ReferenceId = $"{userId}-{productId}-{DateTime.UtcNow}",
-            SoftDescriptor = $"VALOUR - {productId}",
+            SoftDescriptor = $"Valour (TM) - {productId}",
             AppContext = new AppContext()
             {
                 ShippingPreference = "NO_SHIPPING"

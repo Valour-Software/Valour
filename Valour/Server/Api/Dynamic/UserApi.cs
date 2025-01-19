@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Valour.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using ChannelState = Valour.Server.Models.ChannelState;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using User = Valour.Server.Models.User;
 using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
@@ -100,7 +99,7 @@ public class UserApi
     public static async Task<IResult> VerifyEmailRouteAsync(
         string code,
         UserService userService,
-        ValourDB db)
+        ValourDb db)
     {
         var confirmCode = await db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code);
         if (confirmCode is null)
@@ -124,7 +123,7 @@ public class UserApi
         return Results.LocalRedirect("/FromVerify" + query, true, false);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/users/self/compliance/{birthDate}/{locality}")]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/compliance/{birthDate}/{locality}")]
     [UserRequired(UserPermissionsEnum.FullControl)] // Require direct login
     public static async Task<IResult> SetComplianceData(UserService service, DateTime? birthDate, Locality? locality)
     {
@@ -146,14 +145,14 @@ public class UserApi
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/users/self/logout")]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/logout")]
     public static async Task<IResult> LogOutRouteAsync(UserService userService)
     {
         var result = await userService.Logout();
         return Results.Ok("Come back soon!");
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/users/self")]
+    [ValourRoute(HttpVerbs.Get, "api/users/me")]
     public static async Task<IResult> SelfRouteAsync(
         UserService userService)
     {
@@ -166,56 +165,13 @@ public class UserApi
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/users/self/channelstates")]
+    [ValourRoute(HttpVerbs.Get, "api/users/me/channelstates")]
     public static async Task<IResult> ChannelStatesRouteAsync(
         UserService userService)
     {
         var channelStates = await userService.GetUserChannelStatesAsync(await userService.GetCurrentUserIdAsync());
 
         return Results.Json(channelStates);
-    }
-    
-    [ValourRoute(HttpVerbs.Get, "api/users/self/statedata")]
-    public static async Task<IResult> ChannelStateDataRouteAsync(
-        UserService userService,
-        ChannelStateService channelStateService)
-    {
-        var userId = await userService.GetCurrentUserIdAsync();
-        
-        var userChannelStates = (await userService.GetUserChannelStatesAsync(userId)).ToDictionary(x => x.ChannelId);
-        var channelStates = await channelStateService.GetChannelStates(userId);
-
-        List<ChannelStateData> stateData = new();
-
-        foreach (var pair in channelStates)
-        {
-            var hasUserState = userChannelStates.TryGetValue(pair.Key, out var userState);
-
-            DateTime userStateTime;
-            
-            if (!hasUserState)
-            {
-                userStateTime = DateTime.MaxValue;
-            }
-            else
-            {
-                userStateTime = userState.LastViewedTime;
-            }
-            
-            stateData.Add(new ChannelStateData()
-            {
-                ChannelId = pair.Key,
-                LastViewedTime = userStateTime,
-                ChannelState = new ChannelState()
-                {
-                    ChannelId = pair.Value.ChannelId,
-                    LastUpdateTime = pair.Value.LastUpdateTime,
-                    PlanetId = pair.Value.PlanetId
-                }
-            });
-        }
-
-        return Results.Json(stateData);
     }
 
     [RateLimit("login")]
@@ -252,7 +208,7 @@ public class UserApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/users/self/recovery")]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/recovery")]
     public static async Task<IResult> RecoverPasswordRouteAsync(
         [FromBody] PasswordRecoveryRequest request,
         UserService userService)
@@ -345,19 +301,19 @@ public class UserApi
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/users/self/planets"),]
+    [ValourRoute(HttpVerbs.Get, "api/users/me/planets"),]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetPlanetsRouteAsync(
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
 
-        var planets = await userService.GetPlanetsUserIn(userId);
+        var planets = await userService.GetJoinedPlanetInfo(userId);
 
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/users/self/planetids")]
+    [ValourRoute(HttpVerbs.Get, "api/users/me/planetids")]
     [UserRequired(UserPermissionsEnum.Membership)]
 
     public static async Task<IResult> GetPlanetIdsRouteAsync(
@@ -365,7 +321,7 @@ public class UserApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
 
-        var planets = (await userService.GetPlanetsUserIn(userId)).Select(x => x.Id).ToList();
+        var planets = (await userService.GetJoinedPlanetInfo(userId)).Select(x => x.Id).ToList();
 
         return Results.Json(planets);
     }
@@ -404,7 +360,7 @@ public class UserApi
         });
     }
     
-    [ValourRoute(HttpVerbs.Get, "api/users/self/tenorfavorites")]
+    [ValourRoute(HttpVerbs.Get, "api/users/me/tenorfavorites")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetTenorFavoritesRouteAsync(
         UserService userService)
@@ -413,7 +369,7 @@ public class UserApi
         return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/users/self/referrals")]
+    [ValourRoute(HttpVerbs.Get, "api/users/me/referrals")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> GetReferralsAsync(UserService userService)
     {
@@ -421,7 +377,7 @@ public class UserApi
         return Results.Json(await userService.GetReferralDataAsync(userId));
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/users/self/password")]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/password")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> ChangePasswordRouteAsync(
         [FromBody] ChangePasswordRequest request,
@@ -447,8 +403,34 @@ public class UserApi
 
         return Results.NoContent();
     }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/me/username")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> ChangeUsernameRouteAsync(
+        [FromBody] ChangeUsernameRequest request,
+        UserService userService)
+    {
+        if (request is null)
+        {
+            return ValourResult.BadRequest("Include request in body.");
+        }
+        
+        var credential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
+        
+        // Verify password
+        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, credential.Identifier, request.Password);
+        if (!validResult.Success)
+            return ValourResult.Forbid(validResult.Message);
+        
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await userService.ChangeUsernameAsync(userId, request.NewUsername);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        return Results.NoContent();
+    }
 
-    [ValourRoute(HttpVerbs.Post, "api/users/self/hardDelete")]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/hardDelete")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> DeleteAccountAsync(UserService userService, [FromBody] DeleteAccountModel model)
     {
@@ -480,10 +462,10 @@ public class UserApi
     public static async Task<IResult> QueryUsersAsync(
         UserService userService,
         [FromBody] UserQueryModel query,
-        [FromQuery] int amount = 50,
+        [FromQuery] int take = 50,
         [FromQuery] int page = 0)
     {
-        var result = await userService.QueryUsersAsync(query.UsernameAndTag, amount * page, amount);
+        var result = await userService.QueryUsersAsync(query.UsernameAndTag, page, take);
         return Results.Json(result);
     }
 }

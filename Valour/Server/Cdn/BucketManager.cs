@@ -35,7 +35,7 @@ public static class BucketManager
     }
 
     public static async Task<TaskResult> Upload(MemoryStream data, string fileName, string extension, long userId, string mime, 
-        ContentCategory category, ValourDB db)
+        ContentCategory category, ValourDb db)
     {
         // Get hash from image
         byte[] hashBytes = Sha256.ComputeHash(data.GetBuffer());

@@ -19,11 +19,11 @@ namespace Valour.Server.Services;
 
 public class UserService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
 
 
     /// <summary>
@@ -32,17 +32,17 @@ public class UserService
     private User _currentUser;
 
     public UserService(
-        ValourDB db,
+        ValourDb db,
         TokenService tokenService,
         ILogger<UserService> logger,
         CoreHubService coreHub,
-        NodeService nodeService)
+        NodeLifecycleService nodeLifecycleService)
     {
         _db = db;
         _tokenService = tokenService;
         _logger = logger;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
     }
 
     public Task<int> GetUserCountAsync()
@@ -66,18 +66,13 @@ public class UserService
     /// <summary>
     /// Queries users by the given attributes and returns the results
     /// </summary>
-    /// <param name="usernameAndTag">The username + tag search</param>
-    /// <param name="skip">The number of results to skip</param>
-    /// <param name="take">The number of results to return</param>
-    /// <returns></returns>
-    public async Task<PagedResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
+    public async Task<QueryResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
     {
         if (take > 50)
-        {
             take = 50;
-        }
 
         var query = _db.Users
+            .AsNoTracking()
             .Where(x => EF.Functions.ILike((x.Name.ToLower() + "#" + x.Tag), "%" + usernameAndTag.ToLower() + "%"))
             .OrderBy(x => x.Name);
 
@@ -87,7 +82,7 @@ public class UserService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedResponse<User>()
+        return new QueryResponse<User>()
         {
             TotalCount = totalCount,
             Items = users
@@ -153,7 +148,7 @@ public class UserService
         return new TaskResult<UserProfile>(true, "Profile updated", updated);
     }
     
-    public async Task<List<Planet>> GetPlanetsUserIn(long userId)
+    public async Task<List<Planet>> GetJoinedPlanetInfo(long userId)
     {
         var planets = await _db.PlanetMembers
             .Where(x => x.UserId == userId)
@@ -163,7 +158,7 @@ public class UserService
 
         foreach (var planet in planets)
         {
-            planet.NodeName = await _nodeService.GetPlanetNodeAsync(planet.Id);
+            planet.NodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(planet.Id);
         }
 
         return planets;
@@ -553,7 +548,7 @@ public class UserService
                     TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userId,
-                    IssuedAddress = ctx.Connection.RemoteIpAddress.ToString()
+                    IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN"
                 }.ToDatabase();
 
                 await _db.AuthTokens.AddAsync(token);
@@ -606,6 +601,65 @@ public class UserService
     }
 
     /// <summary>
+    /// Updates the user's username, and changes their tag if they are not a Stargazer.
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="newUsername"></param>
+    /// <returns>TaskResult(success, message)</returns>
+    public async Task<TaskResult> ChangeUsernameAsync(long userId, string newUsername)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        // Verify user exists
+        if (user is null)
+            return new TaskResult(false, "User not found.");
+        // Verify new username is ACTUALLY NEW
+        if (user.Name == newUsername)
+            return new TaskResult(false, "New username matches your existing username.");
+        
+        // Verify username is allowed
+        var validResult = UserUtils.TestUsername(newUsername);
+        if (!validResult.Success)
+            return validResult;
+        
+        // If user is a Stargazer, verify the new username/tag combo is unique
+        if (user.SubscriptionType is not null)
+        {
+            if (await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == user.Tag))
+                return new TaskResult(false, "Username and tag already taken, please change the username or your tag and try again.");
+        }
+        // If user is NOT a Stargazer, assign new tag and verify it is unique with the new username
+        if (user.SubscriptionType is null)
+        {
+            var loop = true;
+            while (loop)
+            {
+                var tag = await GetUniqueTag(newUsername);
+                if (!await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == tag))
+                {
+                    user.Tag = tag;
+                    loop = false;
+                }
+            }
+        }
+
+        user.PriorName = user.Name;
+        user.Name = newUsername;
+        user.NameChangeTime = DateTime.UtcNow;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
+        
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
     /// Nuke it.
     /// </summary>
     public async Task<TaskResult> HardDelete(User user)
@@ -614,7 +668,7 @@ public class UserService
         
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)
-            return TaskResult.FromError("User not found.");
+            return TaskResult.FromFailure("User not found.");
         
         try
         {
@@ -631,16 +685,6 @@ public class UserService
             // Channel states
             var states = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.UserChannelStates.RemoveRange(states);
-
-            await _db.SaveChangesAsync();
-
-            var memberIds = await _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id).Select(x => x.Id).ToListAsync();
-            foreach (var memberId in memberIds)
-            {
-                // Channel access
-                var access = _db.MemberChannelAccess.IgnoreQueryFilters().Where(x => x.MemberId == memberId);
-                _db.MemberChannelAccess.RemoveRange(access);
-            }
             
             await _db.SaveChangesAsync();
             
@@ -664,9 +708,6 @@ public class UserService
                 var st = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.UserChannelStates.RemoveRange(st);
                 
-                var pst = _db.ChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
-                _db.ChannelStates.RemoveRange(pst);
-                
                 // notifications
                 var dnots = _db.Notifications.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.Notifications.RemoveRange(dnots);
@@ -674,8 +715,6 @@ public class UserService
                 await _db.SaveChangesAsync();
             }
             
-            
-
             _db.Channels.RemoveRange(dChannels);
             
             await _db.SaveChangesAsync();

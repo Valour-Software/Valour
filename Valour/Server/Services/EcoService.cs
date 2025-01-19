@@ -12,10 +12,10 @@ namespace Valour.Server.Services;
 /// </summary>
 public class EcoService
 {
-    private readonly ValourDB _db;
+    private readonly ValourDb _db;
     private readonly ILogger<EcoService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly NotificationService _notificationService;
 
     /// <summary>
@@ -24,16 +24,16 @@ public class EcoService
     private readonly ConcurrentDictionary<long, Currency> _currencyCache = new();
 
     public EcoService(
-        ValourDB db, 
+        ValourDb db, 
         ILogger<EcoService> logger, 
         CoreHubService coreHub, 
-        NodeService nodeService, 
+        NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _notificationService = notificationService;
     }
 
@@ -158,34 +158,34 @@ public class EcoService
     public static TaskResult ValidateCurrency(Currency currency)
     {
         if (currency.Name.Length > 20)
-            return TaskResult.FromError("Max name length is 20 characters");
+            return TaskResult.FromFailure("Max name length is 20 characters");
 
         if (string.IsNullOrEmpty(currency.Name))
-            return TaskResult.FromError("Currency must have a name");
+            return TaskResult.FromFailure("Currency must have a name");
 
         if (currency.PluralName.Length > 20)
-            return TaskResult.FromError("Max name plural length is 20 characters");
+            return TaskResult.FromFailure("Max name plural length is 20 characters");
 
         if (string.IsNullOrEmpty(currency.PluralName))
-            return TaskResult.FromError("Currency must have a plural name");
+            return TaskResult.FromFailure("Currency must have a plural name");
 
         if (currency.ShortCode.Length > 5)
-            return TaskResult.FromError("Max shortcode length is 5 characters");
+            return TaskResult.FromFailure("Max shortcode length is 5 characters");
 
         if (string.IsNullOrEmpty(currency.ShortCode))
-            return TaskResult.FromError("Currency must have a shortcode");
+            return TaskResult.FromFailure("Currency must have a shortcode");
 
         if (currency.Symbol.Length > 5)
-            return TaskResult.FromError("Max symbol length is 5 characters");
+            return TaskResult.FromFailure("Max symbol length is 5 characters");
 
         if (string.IsNullOrEmpty(currency.Symbol))
-            return TaskResult.FromError("Currency must have a symbol");
+            return TaskResult.FromFailure("Currency must have a symbol");
 
         if (currency.DecimalPlaces > 8)
-            return TaskResult.FromError("Currency can have max 8 decimals");
+            return TaskResult.FromFailure("Currency can have max 8 decimals");
 
         if (currency.DecimalPlaces < 0)
-            return TaskResult.FromError("Negative decimals are not allowed");
+            return TaskResult.FromFailure("Negative decimals are not allowed");
 
         return TaskResult.SuccessResult;
     }
@@ -203,16 +203,18 @@ public class EcoService
     /// <summary>
     /// Returns the user account with the given user and planet ids
     /// </summary>
-    public async ValueTask<EcoAccount> GetUserAccountAsync(long userId, long planetId) =>
+    public async Task<EcoAccount> GetUserAccountAsync(long userId, long planetId) =>
         (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId && x.AccountType == AccountType.User)).ToModel();
 
     /// <summary>
-    /// Returns the planet accounts for the given planet id
+    /// Returns the shared accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0,
+    public async Task<QueryResponse<EcoAccount>> GetPlanetSharedAccountsAsync(long planetId, int skip = 0,
         int take = 50)
     {
-        var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId)
+        var baseQuery = _db.EcoAccounts
+            .AsNoTracking()
+            .Where(x => x.AccountType == AccountType.Shared && x.PlanetId == planetId)
             .OrderByDescending(x => x.BalanceValue);
 
         var total = await baseQuery.CountAsync();
@@ -223,7 +225,7 @@ public class EcoService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedResponse<EcoAccount>()
+        return new QueryResponse<EcoAccount>()
         {
             TotalCount = total,
             Items = items
@@ -233,9 +235,11 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    public async Task<QueryResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
-        var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
+        var baseQuery = _db.EcoAccounts
+            .AsNoTracking()
+            .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
             .OrderByDescending(x => x.BalanceValue);
             
         var total = await baseQuery.CountAsync();
@@ -246,7 +250,7 @@ public class EcoService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        return new PagedResponse<EcoAccount>()
+        return new QueryResponse<EcoAccount>()
         {
             TotalCount = total,
             Items = items
@@ -256,14 +260,16 @@ public class EcoService
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<PagedResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
+    public async ValueTask<QueryResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
         int skip = 0, int take = 50)
     {
         var baseQuery = 
-            _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
+            _db.EcoAccounts
+                .AsNoTracking()
+                .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
                                                          x.PlanetMemberId != null)
-            .Include(x => x.PlanetMember)
-            .OrderByDescending(x => x.BalanceValue);
+                .Include(x => x.PlanetMember)
+                .OrderByDescending(x => x.BalanceValue);
         
         var total = await baseQuery.CountAsync();
         
@@ -277,7 +283,7 @@ public class EcoService
             })
             .ToListAsync();
 
-        return new PagedResponse<EcoAccountPlanetMember>()
+        return new QueryResponse<EcoAccountPlanetMember>()
         {
             TotalCount = total,
             Items = items
@@ -292,7 +298,9 @@ public class EcoService
     {
         filter = filter?.ToLower() ?? "";
 
-        IQueryable<Valour.Database.Economy.EcoAccount> query = _db.EcoAccounts.Where(x => x.PlanetId == planetId && x.Id != accountId)
+        IQueryable<Valour.Database.Economy.EcoAccount> query = _db.EcoAccounts
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId && x.Id != accountId)
             .Include(x => x.User);
         
         if (!string.IsNullOrEmpty(filter))
@@ -444,6 +452,7 @@ public class EcoService
         {
 
             var transaction = await _db.Transactions
+                .AsNoTracking()
                 .Include(x => x.UserFrom)
                 .Include(x => x.UserTo)
                 .Include(x => x.AccountFrom)
@@ -495,6 +504,7 @@ public class EcoService
     {
         // Get transactions in either direction ordered by time
         return await _db.Transactions
+            .AsNoTracking()
             .Where(x => x.AccountFromId == accountId || x.AccountToId == accountId)
             .OrderByDescending(x => x.TimeStamp)
             .Select(x => x.ToModel())
@@ -603,7 +613,7 @@ public class EcoService
 
         if (isGlobal)
         {
-            await _coreHub.RelayTransaction(transaction, _nodeService);
+            await _coreHub.RelayTransaction(transaction, _nodeLifecycleService);
         }
         else
         {

@@ -1,30 +1,33 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-/*  Valour - A free and secure chat client
-*  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+*  Copyright (C) 2024 Valour Software LLC
 *  This program is subject to the GNU Affero General Public license
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
+public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
-    #region IPlanetModel implementation
+    public override string BaseRoute =>
+        ISharedPlanetRole.GetBaseRoute(PlanetId);
 
+    public override string IdRoute => 
+        ISharedPlanetRole.GetIdRoute(PlanetId, Id);
+
+    /// <summary>
+    /// The id of the planet this belongs to
+    /// </summary>
     public long PlanetId { get; set; }
 
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetModel.GetPlanetAsync(this, refresh);
-
-    public override string BaseRoute =>
-            $"api/roles";
-
-    #endregion
-
+    protected override long? GetPlanetId()
+        => PlanetId;
+    
     // Coolest role on this damn platform.
     // Fight me.
     public static PlanetRole VictorRole = new PlanetRole()
@@ -49,6 +52,7 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
         CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
         VoicePermissions = VoiceChannelPermissions.Default,
         AnyoneCanMention = false,
+        IsDefault = true
     };
 
     // Cached values
@@ -62,7 +66,7 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public int Position { get; set; }
+    public uint Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -106,7 +110,7 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
     
     public bool AnyoneCanMention { get; set; }
 
-    public int GetAuthority() =>
+    public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public bool HasPermission(PlanetPermission perm) =>
@@ -124,67 +128,32 @@ public class PlanetRole : ClientModel, IPlanetModel, ISharedPlanetRole
         };
     }
 
-    public static async Task<PlanetRole> FindAsync(long id, long planetId, bool refresh = false)
+    protected override void OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<PlanetRole>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetRole>($"api/roles/{id}")).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
+        Planet.OnRoleUpdated(eventData);
     }
 
-    protected override async Task OnUpdated(ModelUpdateEvent eventData)
+    public override PlanetRole AddToCacheOrReturnExisting()
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyRoleUpdateAsync(this, eventData);
+        return Client.Cache.PlanetRoles.Put(Id, this);
     }
 
-    protected override async Task OnDeleted()
+    public override PlanetRole TakeAndRemoveFromCache()
     {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyRoleDeleteAsync(this);
+        return Client.Cache.PlanetRoles.TakeAndRemove(Id);
     }
 
+    protected override void OnDeleted()
+    {
+        Planet.OnRoleDeleted(this);
+    }
+
+    // TODO: Model store
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>
-    public async Task LoadPermissionNodesAsync()
-    {
-        var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
-        if (nodes is null)
-            return;
-
-        // Update cache values
-        foreach (var node in nodes)
-        {
-            // Skip event for bulk loading
-            await ValourCache.Put(node.Id, node, true);
-        }
-
-        // Create container if needed
-        if (PermissionsNodes == null)
-            PermissionsNodes = new List<PermissionsNode>();
-        else
-            PermissionsNodes.Clear();
-
-        // Retrieve cache values (this is necessary to ensure single copies of items)
-        foreach (var node in nodes)
-        {
-            var cNode = ValourCache.Get<PermissionsNode>(node.Id);
-
-            if (cNode is not null)
-                PermissionsNodes.Add(cNode);
-        }
-    }
+    public Task LoadPermissionNodesAsync() =>
+        Client.PermissionService.FetchPermissionsNodesByRoleAsync(Id, Planet);
 
     /// <summary>
     /// Returns the permission node for the given channel id

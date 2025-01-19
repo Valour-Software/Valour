@@ -1,34 +1,23 @@
-﻿<div class="friend-container">
+﻿@inject FriendService FriendService
+
+<div class="friend-container">
     <p class="subtitle mb-2">Friends</p>
     <div class="v-gradient-underline"></div>
     <div>
-        @{
-            var firstId = _friends.FirstOrDefault()?.Id;
-            var lastId = _friends.LastOrDefault()?.Id;
-            
-            
-            <Virtualize Items="@_friends">
-                <UserInfoComponent User="@context" @key="@context.Id" />
-            </Virtualize>
-        }
+        <Virtualize Items="@FriendService.Friends">
+            <UserInfoComponent User="@context" @key="@context.Id" />
+        </Virtualize>
     </div>
 </div>
 
 @code {
-
-    private List<User> _friends;
-    
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        _friends = ValourClient.Friends;
-        ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
-        await base.OnInitializedAsync();
+        FriendService.FriendsChanged += OnFriendsListUpdate;
     }
 
-    public Task OnFriendsListUpdate()
+    private void OnFriendsListUpdate(FriendEventData e)
     {
-        _friends = ValourClient.Friends;
         StateHasChanged();
-        return Task.CompletedTask;
     }
 }

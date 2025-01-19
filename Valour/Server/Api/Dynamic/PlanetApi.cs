@@ -69,7 +69,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+        if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
         if (planet is null)
@@ -139,90 +139,26 @@ public class PlanetApi
             return ValourResult.NotPlanetMember();
 
         // Get all planet channels
-        var channels = await planetService.GetMemberChannelsAsync(id, member.Id);
+        var channels = await planetService.GetMemberChannelsAsync(member.Id);
         
-        // Collection for channels that member can see
-        var allowedChannels = new List<Channel>();
-
-        foreach (var channel in channels)
-        {
-            if (await memberService.HasPermissionAsync(member, channel, ChannelPermissions.View))
-                allowedChannels.Add(channel);
-        }
-
-        return Results.Json(allowedChannels);
+        return Results.Json(channels?.InternalList ?? []);
     }
-
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/chat")]
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/primary")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetChatChannelsRouteAsync(
+    public static async Task<IResult> GetPrimaryChannelRouteAsync(
         long id,
         PlanetService planetService,
         PlanetMemberService memberService)
     {
+        // Get current member for planet
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
             return ValourResult.NotPlanetMember();
-        
-        var chatChannels = await planetService.GetMemberChatChannelsAsync(id, member.Id);
 
-        var allowedChannels = new List<Channel>();
+        var channel = await planetService.GetPrimaryChannelAsync(id);
 
-        foreach (var channel in chatChannels)
-        {
-            if (await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View));
-                allowedChannels.Add(channel);
-        }
-        
-        return Results.Json(allowedChannels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/voice")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetVoiceChannelsRouteAsync(
-        long id, 
-        PlanetService planetService,
-        PlanetMemberService memberService)
-    {
-        var member = await memberService.GetCurrentAsync(id);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        var voiceChannels = await planetService.GetMemberVoiceChannelsAsync(id, member.Id);
-
-        var allowedChannels = new List<Channel>();
-
-        foreach (var channel in voiceChannels)
-        {
-            if (await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.View))
-                allowedChannels.Add(channel);
-        }
-
-        return Results.Json(allowedChannels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/categories")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetCategoriesRouteAsync(
-        long id, 
-        PlanetService planetService,
-        PlanetMemberService memberService)
-    {
-        var member = await memberService.GetCurrentAsync(id);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        var categories = await planetService.GetMemberCategoriesAsync(id, member.Id);
-
-        var allowedCategories = new List<Channel>();
-
-        foreach (var category in categories)
-        {
-            if (await memberService.HasPermissionAsync(member, category, CategoryPermissions.View))
-                allowedCategories.Add(category);
-        }
-
-        return Results.Json(allowedCategories);
+        return Results.Json(channel);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/memberinfo")]
@@ -272,45 +208,75 @@ public class PlanetApi
         
         return Results.Json(roleIds);
     }
-
-    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
-    [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> SetRoleOrderRouteAsync(
-        [FromBody] List<long> order,
-        long id,
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles/counts")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetRoleCountsRouteAsync(
+        long id, 
         PlanetMemberService memberService,
-        PlanetService planetService,
-        PlanetRoleService roleService)
+        PlanetService planetService)
     {
-        // Remove duplicates
-        order = order.Distinct().ToList();
-
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
+        var counts = await planetService.GetRoleMembershipCountsAsync(id);
+        return Results.Json(counts);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> SetRoleOrderRouteAsync(
+        [FromBody] long[] order,
+        long planetId,
+        PlanetMemberService memberService,
+        PlanetService planetService,
+        PlanetRoleService roleService)
+    {
+        if (order.Length > 256)
+            return ValourResult.BadRequest("Too many roles in order.");
+        
+        // Check for duplicates
+        for (var i = 0; i < order.Length; i++)
+        {
+            var a = order[i];
+            
+            for (var j = i + 1; j < order.Length; j++)
+            {
+                var b = order[j];
+                
+                if (a == b)
+                {
+                    return ValourResult.BadRequest($"Duplicate role in order ({a})");
+                }
+            }
+        }
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
         var authority = await memberService.GetAuthorityAsync(member);
-
-        List<PlanetRole> newList = new();
-
+        
         // Make sure that there is permission for any changes
         var pos = 0;
         foreach (var roleId in order)
         {
-            var role = await roleService.GetAsync(roleId);
+            var role = await roleService.GetAsync(planetId, roleId);
             if (role is null)
                 return ValourResult.BadRequest("One or more of the given roles does not exist.");
-
+            
             // Only need to check permission if the position is being changed
             if (pos != role.Position && role.GetAuthority() >= authority)
                 return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");
-
-            newList.Add(role);
-
+            
+            if (role.IsDefault && pos != order.Length - 1)
+                return ValourResult.Forbid("The default role must be last in the order.");
+            
             pos++;
         }
 
-        var result = await planetService.SetRoleOrderAsync(id, newList);
+        var result = await planetService.SetRoleOrderAsync(planetId, order);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
         
@@ -328,7 +294,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+        if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Invite))
             return ValourResult.Forbid("You do not have permission for invites.");
 
         var invites = await planetService.GetInvitesAsync(id);
@@ -346,7 +312,7 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+        if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Invite))
             return ValourResult.Forbid("You do not have permission for invites.");
 
         var inviteIds = await planetService.GetInviteIdsAsync(id);
@@ -421,7 +387,7 @@ public class PlanetApi
         return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/planetChannels/insert")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/insert")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> InsertChildRouteAsync(
         [FromBody] InsertChannelChildModel model,
@@ -441,7 +407,7 @@ public class PlanetApi
         if (model.ParentId is not null)
         {
             // Get the category
-            var category = await channelService.GetAsync(model.ParentId.Value);
+            var category = await channelService.GetChannelAsync(planetId, model.ParentId.Value);
             if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
@@ -450,14 +416,14 @@ public class PlanetApi
         }
 
         // If the child currently belongs to another category (not planet), we need to check permissions for it
-        var inserting = await channelService.GetAsync(model.InsertId);
+        var inserting = await channelService.GetChannelAsync(planetId, model.InsertId);
         if (inserting.ParentId == model.ParentId)
             return ValourResult.BadRequest("Channel is already in this category.");
         
         // We need to get the old category and ensure we have permissions in it
         if (inserting.ParentId is not null)
         {
-            var oldCategory = await channelService.GetAsync(inserting.ParentId.Value);
+            var oldCategory = await channelService.GetChannelAsync(planetId, inserting.ParentId.Value);
             if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
@@ -471,7 +437,7 @@ public class PlanetApi
         return ValourResult.Ok("Success");
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/planetChannels/order")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetChildOrderRouteAsync(
         [FromBody] OrderChannelsModel model,
@@ -490,7 +456,7 @@ public class PlanetApi
         // Get the category
         if (model.CategoryId is not null)
         {
-            var category = await channelService.GetAsync(model.CategoryId.Value);
+            var category = await channelService.GetChannelAsync(planetId, model.CategoryId.Value);
             if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
                 return ValourResult.NotFound("Category not found");
             
@@ -500,7 +466,7 @@ public class PlanetApi
         else
         {
             // Top level requires planet management perms
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage))
                 return ValourResult.LacksPermission(PlanetPermissions.Manage);
         }
 
@@ -510,7 +476,7 @@ public class PlanetApi
         //var pos = 0;
         foreach (var childId in model.Order)
         {
-            var child = await channelService.GetAsync(childId);
+            var child = await channelService.GetChannelAsync(planetId, childId);
             if (child is null)
                 return ValourResult.NotFound($"Child {childId} not found");
 

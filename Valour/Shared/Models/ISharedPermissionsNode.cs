@@ -1,27 +1,30 @@
 ﻿using Valour.Shared.Authorization;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
+/*  Valour (TM) - A free and secure chat client
+ *  Copyright (C) 2024 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPermissionsTarget
-{
-    /// <summary>
-    /// The type of target this item is
-    /// </summary>
-    public ChannelTypeEnum Type { get; }
-}
-
 /// <summary>
 /// A permission node is a set of permissions for a specific thing
 /// </summary>
-public interface ISharedPermissionsNode : ISharedPlanetModel
+public interface ISharedPermissionsNode : ISharedPlanetModel<long>
 {
+    // Routes //
+    const string BaseRoute = "api/permissionsnodes";
+    
+    public static string GetIdRoute(ISharedPermissionsNode node) 
+        => GetIdRoute(node.TargetId, node.RoleId, node.TargetType);
 
+    public static string GetIdRoute(long targetId, long roleId, ChannelTypeEnum targetType) 
+        => $"{BaseRoute}/{targetType}/{targetId}/{roleId}";
+    
+    public static string GetAllRoute(long planetId) 
+        => $"{BaseRoute}/all/{planetId}";
+    
     /// <summary>
     /// The permission code that this node has set
     /// </summary>
@@ -96,6 +99,27 @@ public interface ISharedPermissionsNode : ISharedPlanetModel
 
             // Remove true bit
             node.Code &= ~perm.Value;
+        }
+    }
+
+    public static ChannelTypeEnum GetChannelTypeEnum<TPermissionType>()
+    where TPermissionType : ChannelPermission
+    {
+        if (typeof(TPermissionType) == typeof(ChatChannelPermission))
+        {
+            return ChannelTypeEnum.PlanetChat;
+        }
+        else if (typeof(TPermissionType) == typeof(CategoryPermission))
+        {
+            return ChannelTypeEnum.PlanetCategory;
+        }
+        else if (typeof(TPermissionType) == typeof(VoiceChannelPermission))
+        {
+            return ChannelTypeEnum.PlanetVoice;
+        }
+        else
+        {
+            throw new ArgumentException("Invalid permission type");
         }
     }
 }

@@ -2,17 +2,12 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PlanetInvite : ServerModel, ISharedPlanetInvite
+public class PlanetInvite : ServerModel<string>, ISharedPlanetInvite
 {
     /// <summary>
     /// The id of the planet this belongs to
     /// </summary>
     public long PlanetId { get; set; }
-
-    /// <summary>
-    /// The invite code
-    /// </summary>
-    public string Code { get; set; }
 
     /// <summary>
     /// The user that created the invite

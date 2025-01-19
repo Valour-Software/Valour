@@ -1,8 +1,19 @@
-﻿namespace Valour.Shared.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Shared.Models;
 
 public interface ISharedModel
 {
-    long Id { get; set; }
+    public object GetId();
+}
+
+public interface ISharedModel<TId> : ISharedModel
+{
+    TId Id { get; set; }
+    object ISharedModel.GetId()
+    {
+        return Id;
+    }
 }
 
 

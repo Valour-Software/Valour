@@ -1,4 +1,5 @@
 ﻿@implements IAsyncDisposable
+@inject ValourClient InjectedClient
 @inject ISyncLocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
 @using Valour.Client.Pages
@@ -20,6 +21,8 @@
     [Parameter]
     public StartScreenData StartData { get; set; }
     
+    public ValourClient Client { get; private set; }
+    
     public WindowLayout Layout { get; private set; }
 
     public List<WindowTab> Tabs { get; private set; } = new();
@@ -35,8 +38,14 @@
     // Floaters are not tracked by a layout, so they are stored here
     private List<WindowTab> _floaters = new();
 
+    private WindowSaveLoadAdapter _saveLoadAdapter;
+
     protected override async Task OnInitializedAsync()
     {
+        Client = InjectedClient;
+        
+        _saveLoadAdapter = new(Client);
+        
         WindowService.AddDock(this);
 
         var loaded = false;
@@ -47,7 +56,7 @@
         {
             try
             {
-                Layout = await WindowSaveLoadAdapter.DeserializeLayout(layoutJson);
+                Layout = await _saveLoadAdapter.DeserializeLayout(layoutJson);
                 Layout.SetDockRecursiveRaw(this);
             }
             catch (Exception e)
@@ -65,7 +74,7 @@
         {
             try
             {
-                _floaters = await WindowSaveLoadAdapter.DeserializeFloaters(floatersJson);
+                _floaters = await _saveLoadAdapter.DeserializeFloaters(floatersJson);
             }
             catch (Exception e)
             {
@@ -184,14 +193,14 @@
     
     public void SaveLayout()
     {
-        var layoutJson = WindowSaveLoadAdapter.SerializeLayout(Layout);
+        var layoutJson = _saveLoadAdapter.SerializeLayout(Layout);
         // Console.WriteLine(layoutJson);
         LocalStorage.SetItemAsString("coreLayout", layoutJson);
     }
     
     public void SaveFloaters()
     {
-        var floatersJson = WindowSaveLoadAdapter.SerializeFloaters(_floaters);
+        var floatersJson = _saveLoadAdapter.SerializeFloaters(_floaters);
         LocalStorage.SetItemAsString("coreFloaters", floatersJson);
     }
 

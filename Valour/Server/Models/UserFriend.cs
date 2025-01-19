@@ -8,7 +8,7 @@ namespace Valour.Server.Models;
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public class UserFriend : ServerModel, ISharedUserFriend
+public class UserFriend : ServerModel<long>, ISharedUserFriend
 {
     /// <summary>
     /// The id of the user who added the friend

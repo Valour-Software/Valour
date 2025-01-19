@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using Valour.Server.Config;
+using Valour.Config.Configs;
 using Valour.Server.Redis;
 
 namespace Valour.Server.Hubs;

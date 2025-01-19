@@ -1,6 +1,8 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
@@ -8,23 +10,76 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
-public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
+/// <summary>
+/// The DirectChannelKey uses two user ids to build a key to get the direct channel between them
+/// </summary>
+public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
 {
+    private readonly long _lowerId;
+    private readonly long _higherId;
+
+    public DirectChannelKey(long user1Id, long user2Id)
+    {
+        if (user1Id < user2Id)
+        {
+            _lowerId = user1Id;
+            _higherId = user2Id;
+        }
+        else
+        {
+            _lowerId = user2Id;
+            _higherId = user1Id;
+        }
+    }
+
+    public bool Equals(DirectChannelKey other)
+    {
+        return _lowerId == other._lowerId && _higherId == other._higherId;
+    }
+}
+
+public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
+{
+    public override string BaseRoute => ISharedChannel.GetBaseRoute(this);
+    public override string IdRoute => ISharedChannel.GetIdRoute(this);
+
+    /// <summary>
+    /// Run when a channel sends a watching update
+    /// </summary>
+    public HybridEvent<ChannelWatchingUpdate> WatchingUpdated;
+
+    /// <summary>
+    /// Run when a channel sends a currently typing update
+    /// </summary>
+    public HybridEvent<ChannelTypingUpdate> TypingUpdated;
+    
+    /// <summary>
+    /// Run when a message is received in this channel
+    /// </summary>
+    public HybridEvent<Message> MessageReceived;
+    
+    /// <summary>
+    /// Run when a message is edited in this channel
+    /// </summary>
+    public HybridEvent<Message> MessageEdited;
+    
+    /// <summary>
+    /// Run when a message is deleted in this channel
+    /// </summary>
+    public HybridEvent<Message> MessageDeleted;
+    
     // Cached values
     // Will only be used for planet channels
-    private List<PermissionsNode> _permissionNodes;
     private List<User> _memberUsers;
     
     /// <summary>
     /// Cached parent which should be linked when channels are received
     /// </summary>
     public Channel Parent { get; set; }
-
-    public override string BaseRoute =>
-        $"api/channels";
 
     /////////////////////////////////
     // Shared between all channels //
@@ -57,32 +112,18 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /////////////////////////////
 
     /// <summary>
-    /// The id of the planet this channel belongs to, if any
+    /// The planet this channel belongs to, if any
     /// </summary>
     public long? PlanetId { get; set; }
-
-    /// <summary>
-    /// This is used to allow the IPlanetModel interface to be used
-    /// Please ensure you know what you're doing if you use this
-    /// </summary>
-    long IPlanetModel.PlanetId
-    {
-        get
-        {
-            if (PlanetId is null)
-            {
-                return -1;
-            }
-
-            return PlanetId.Value;
-        }
-        set => PlanetId = value;
-    }
+    protected override long? GetPlanetId() => PlanetId;
 
     /// <summary>
     /// The id of the parent of the channel, if any
     /// </summary>
     public long? ParentId { get; set; }
+    
+    // Backing store for RawPosition
+    private uint _rawPosition;
     
     /// <summary>
     /// The position of the channel. Works as the following:
@@ -93,17 +134,18 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /// This does limit the depth of categories to 4, and the highest position
     /// to 254 (since 000 means no position)
     /// </summary>
-    public int Position { get; set; }
+    public uint RawPosition
+    {
+        get => _rawPosition;
+        set
+        {
+            _rawPosition = value;
+            Position = new ChannelPosition(value);
+        }
+    }
 
-    /// <summary>
-    /// The depth, or how many categories deep the channel is
-    /// </summary>
-    public int Depth => ISharedChannel.GetDepth(this);
-
-    /// <summary>
-    /// The position of the channel within its parent
-    /// </summary>
-    public int LocalPosition => ISharedChannel.GetLocalPosition(this);
+    [JsonIgnore]
+    public ChannelPosition Position { get; protected set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -116,125 +158,58 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     public bool IsDefault { get; set; }
 
     /// <summary>
-    /// Returns the channel for the given id. Requires planetId for
-    /// planet channels. Makes a request to the server if the channel
-    /// is not cached or refresh is true.
+    /// Used to limit typing updates
     /// </summary>
-    public static async ValueTask<Channel> FindAsync(long id, long? planetId = null, bool refresh = false)
+    private DateTime _lastTypingUpdateSend = DateTime.UtcNow;
+
+    protected override void OnUpdated(ModelUpdateEvent<Channel> eventData)
     {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<Channel>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        Node node;
-        if (planetId is null)
-        {
-            node = ValourClient.PrimaryNode;
-        }
-        else
-        {
-            node = await NodeManager.GetNodeForPlanetAsync(id);
-        }
-
-        var item = (await node.GetJsonAsync<Channel>($"api/channels/{id}", refresh)).Data;
-
-        if (item is not null)
-            await item.AddToCache(item);
-
-        return item;
+        if (PlanetId is not null)
+            Planet.OnChannelUpdated(eventData);
     }
-
-    /// <summary>
-    /// Used to create channels. Allows specifying permissions nodes.
-    /// </summary>
-    public static async Task<TaskResult<Channel>> CreateWithDetails(CreateChannelRequest request)
+    
+    protected override void OnDeleted()
     {
-        Node node;
-        if (request.Channel.PlanetId is not null)
-        {
-            node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId.Value);
-        }
-        else
-        {
-            node = ValourClient.PrimaryNode;
-        }
-
-        return await node.PostAsyncWithResponse<Channel>(request.Channel.BaseRoute, request);
+        if (PlanetId is not null)
+            Planet.OnChannelDeleted(this);
     }
-
-    /// <summary>
-    /// Used to speed up direct channel lookups
-    /// </summary>
-    public static readonly Dictionary<(long, long), long> DirectChannelIdLookup = new();
-
-    /// <summary>
-    /// Given a user id, returns the direct channel between them and the requester.
-    /// If create is true, this will create the channel if it is not found.
-    /// </summary>
-    public static async ValueTask<Channel> GetDirectChannelAsync(long otherUserId, bool create = false,
-        bool refresh = false)
+    
+    public override Channel AddToCacheOrReturnExisting()
     {
-        // We insert into the cache with lower-value id first to ensure a match
-        // so we do the same to get it back
-        var lowerId = ValourClient.Self.Id;
-        var higherId = otherUserId;
-
-        if (lowerId > higherId)
+        // Add to direct channel lookup if needed
+        if (ChannelType == ChannelTypeEnum.DirectChat)
         {
-            // Swap
-            (lowerId, higherId) = (higherId, lowerId);
+            if (Members is not null && Members.Count == 2)
+            {
+                var key = new DirectChannelKey(Members[0].UserId, Members[1].UserId);
+                Client.Cache.DmChannelKeyToId[key] = Id;
+            }
         }
 
-        var key = (lowerId, higherId);
-
-        if (DirectChannelIdLookup.TryGetValue(key, out var id))
+        return Client.Cache.Channels.Put(Id, this);
+    }
+    
+    public override Channel TakeAndRemoveFromCache()
+    {
+        // Remove from direct channel lookup if needed
+        if (ChannelType == ChannelTypeEnum.DirectChat)
         {
-            var cached = ValourCache.Get<Channel>(id);
-            if (cached is not null)
-                return cached;
+            if (Members is not null && Members.Count == 2)
+            {
+                var key = new DirectChannelKey(Members[0].UserId, Members[1].UserId);
+                Client.Cache.DmChannelKeyToId.Remove(key);
+            }
         }
-
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Channel>(
-            $"api/channels/direct/{otherUserId}?create={create}")).Data;
-
-        if (item is not null)
-        {
-            DirectChannelIdLookup.Add(key, item.Id);
-            await item.AddToCache(item);
-        }
-
-        return item;
+        
+        Client.Cache.Channels.Remove(Id);
+        
+        return this;
     }
 
     /// <summary>
     /// Returns if this channel is a chat channel
     /// </summary>
     public bool IsChatChannel => ISharedChannel.ChatChannelTypes.Contains(ChannelType);
-
-    /// <summary>
-    /// Returns the planet for this channel, if any
-    /// </summary>
-    public ValueTask<Planet> GetPlanetAsync(bool refresh = false)
-    {
-        if (PlanetId is null)
-            return ValueTask.FromResult<Planet>(null);
-
-        return Planet.FindAsync(PlanetId.Value, refresh);
-    }
-
-    /// <summary>
-    /// Returns the parent of this channel, if any
-    /// </summary>
-    public ValueTask<Channel> GetParentAsync(bool refresh = false)
-    {
-        if (ParentId is null)
-            return ValueTask.FromResult<Channel>(null);
-
-        return FindAsync(ParentId.Value, PlanetId, refresh);
-    }
 
     /// <summary>
     /// Returns if the channel is unread
@@ -244,7 +219,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return false;
 
-        return ValourClient.GetChannelUnreadState(Id);
+        return Client.UnreadService.IsChannelUnread(PlanetId, Id);
     }
 
     /// <summary>
@@ -252,11 +227,19 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /// </summary>
     public async Task SendIsTyping()
     {
+        // Limit spam
+        if (_lastTypingUpdateSend.Subtract(DateTime.UtcNow).TotalSeconds < 5)
+        {
+            return;
+        }
+        
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return;
 
         if (Node is null) // Need to make strategy for DMs in the future
             return;
+
+        _lastTypingUpdateSend = DateTime.UtcNow;
         
         await Node.PostAsync($"{IdRoute}/typing", null);
     }
@@ -268,17 +251,15 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
             UpdateTime = updateTime ?? DateTime.UtcNow
         };
         
-        var nodeToUse = Node ?? ValourClient.PrimaryNode;
-
-        var result = await nodeToUse.PostAsyncWithResponse<UserChannelState>($"{IdRoute}/state", request);
+        var result = await Node.PostAsyncWithResponse<UserChannelState>($"{IdRoute}/state", request);
 
         if (result.Success)
         {
-            await ValourClient.HandleUpdateUserChannelState(result.Data);
+            Client.ChannelStateService.OnUserChannelStateUpdated(result.Data);
         }
         else
         {
-            await Logger.Log("Failed to update user state: " + result.Message, "yellow");
+            Client.Logger.Log("Channel", "Failed to update user state: " + result.Message, "yellow");
         }
     }
 
@@ -287,35 +268,24 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     /// Channel type allows getting the node for a specific type of channel in a category,
     /// for normal channels this chan be ignored
     /// </summary>
-    public async Task<PermissionsNode> GetPermNodeAsync(long roleId, ChannelTypeEnum? type = null, bool refresh = false)
+    public async ValueTask<PermissionsNode> GetPermNodeAsync(long roleId, ChannelTypeEnum? type = null, bool refresh = false)
     {
         if (type is null)
             type = ChannelType;
 
-        if (_permissionNodes is null || refresh)
-            await LoadPermissionNodesAsync(refresh);
+        PermissionsNodeKey key = new(Id, roleId, type.Value);
 
-        return _permissionNodes!.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
-    }
-
-    /// <summary>
-    /// Requests and caches nodes from the server
-    /// </summary>
-    private async Task LoadPermissionNodesAsync(bool refresh = false)
-    {
-        var planet = await GetPlanetAsync();
-        var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
-
-        if (_permissionNodes is not null)
-            _permissionNodes.Clear();
-        else
-            _permissionNodes = new List<PermissionsNode>();
-
-        foreach (var node in allPermissions)
+        if (Client.Cache.PermNodeKeyToId.TryGetValue(key, out var nodeId))
         {
-            if (node.TargetId == Id)
-                _permissionNodes.Add(node);
+            if (Client.Cache.PermissionsNodes.TryGet(nodeId, out var cached))
+            {
+                return cached;
+            }
         }
+
+        var node = await Planet.FetchPermissionsNodeAsync(key);
+        
+        return node;
     }
 
     /// <summary>
@@ -349,8 +319,28 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         if (PlanetId is null)
             return true;
 
-        var member = await PlanetMember.FindAsyncByUser(userId, PlanetId.Value);
+        var member = await Planet.FetchMemberByUserAsync(userId);
         return await HasPermissionAsync(member, permission);
+    }
+
+    public Channel GetParent()
+    {
+        if (ParentId is null)
+            return null;
+        
+        return Planet.Channels.TryGet(ParentId.Value, out var parent) ? parent : null;
+    }
+
+    public Channel GetPermissionSource()
+    {
+        var source = this;
+
+        while (source is not null && source.InheritsPerms)
+        {
+            source = source.GetParent();
+        }
+        
+        return source;
     }
 
     public async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
@@ -358,31 +348,18 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         // No permission rules for non-planet channels (at least for now)
         if (PlanetId is null)
             return true;
-
+        
         // Member is from another planet
         if (member.PlanetId != PlanetId)
             return false;
-
-        var planet = await member.GetPlanetAsync();
-
+        
         // Owners have all permissions
-        if (planet.OwnerId == member.UserId)
+        if (Planet.OwnerId == member.UserId)
             return true;
-
-        var memberRoles = await member.GetRolesAsync();
-
-        var target = this;
-
-        // Move up until no longer inheriting
-        while (target.InheritsPerms &&
-               target.ParentId is not null)
-        {
-            target = await target.GetParentAsync();
-        }
-
+        
         var viewPerm = PermissionState.Undefined;
 
-        foreach (var role in memberRoles)
+        foreach (var role in member.Roles)
         {
             var node = await GetPermNodeAsync(role.Id, permission.TargetType);
             if (node is null)
@@ -393,7 +370,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
                 break;
         }
 
-        var topRole = memberRoles.FirstOrDefault() ?? PlanetRole.DefaultRole;
+        var topRole = member.PrimaryRole ?? PlanetRole.DefaultRole;
 
         if (viewPerm == PermissionState.Undefined)
         {
@@ -406,7 +383,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
             return false;
 
         // Go through roles in order
-        foreach (var role in memberRoles)
+        foreach (var role in member.Roles)
         {
             var node = await GetPermNodeAsync(role.Id, permission.TargetType);
             if (node is null)
@@ -454,9 +431,8 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     {
         if (PlanetId is null)
             return null;
-
-        var member = await PlanetMember.FindAsync(memberId, PlanetId.Value);
-        var roles = await member.GetRolesAsync();
+        
+        var member = await Planet.FetchMemberAsync(memberId);
 
         // Start with no permissions
         var dummyNode = new PermissionsNode()
@@ -470,25 +446,23 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
             TargetId = Id,
             TargetType = ChannelType
         };
-
-        var planet = await GetPlanetAsync();
-
+        
         // Easy cheat for owner
-        if (planet.OwnerId == member.UserId)
+        if (Planet.OwnerId == member.UserId)
         {
             dummyNode.Code = Permission.FULL_CONTROL;
             return dummyNode;
         }
-
+        
         // Should be in order of most power -> least,
         // so we reverse it here
-        for (int i = roles.Count - 1; i >= 0; i--)
+        for (int i = member.Roles.Count - 1; i >= 0; i--)
         {
-            var role = roles[i];
+            var role = member.Roles[i];
             PermissionsNode node;
             // If true, we grab the parent's permission node
             if (InheritsPerms == true)
-                node = await (await GetParentAsync()).GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
+                node = await Parent.GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
             else
                 node = await GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
 
@@ -532,21 +506,25 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return new List<Message>();
 
-        var result =
-            await ValourClient.PrimaryNode.GetJsonAsync<List<Message>>(
+        var result = await Node.GetJsonAsync<List<Message>>(
                 $"{IdRoute}/messages?index={index}&count={count}");
+        
         if (!result.Success)
         {
-            Console.WriteLine($"Failed to get messages from {Id}: {result.Message}");
+            Client.Logger.Log("Channel",$"Failed to get messages from {Id}: {result.Message}", "Yellow");
             return new List<Message>();
         }
+
+        result.Data.SyncAll(Client.Cache);
 
         return result.Data;
     }
 
+    public Task<List<PlanetMember>> FetchRecentChattersAsync() =>
+        Client.ChannelService.FetchRecentChattersAsync(this);
+
     /// <summary>
-    /// Returns the list of users in the channel but DO NOT use this for
-    /// planet channels please we will figure that out soon
+    /// Returns the list of users in the channel
     /// </summary>
     public async Task<List<User>> GetChannelMemberUsersAsync(bool refresh = false)
     {
@@ -555,7 +533,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
 
         if (Members is null)
         {
-            var result = await ValourClient.PrimaryNode.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
+            var result = await Node.GetJsonAsync<List<User>>(IdRoute + "/nonPlanetMembers");
             if (result.Success)
                 _memberUsers = result.Data;
             else
@@ -574,23 +552,21 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
 
     public async Task<string> GetIconAsync()
     {
-        var result = "./_content/Valour.Client/media/logo/logo-128.png";
+        var result = "./_content/Valour.Client/media/logo/logo-128.webp";
         
-        if (ISharedChannel.PlanetChannelTypes.Contains(ChannelType))
+        if (PlanetId is not null)
         {
-            var planet = await GetPlanetAsync();
-            if (planet is not null)
-                result = planet.GetIconUrl(IconFormat.Webp64);
+            result = Planet.GetIconUrl(IconFormat.Webp64);
         }
         else
         {
-            var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
+            var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
             if (!others.Any())
-                result =  ValourClient.Self.GetAvatarUrl();
+                result =  Client.Me.GetAvatar();
 
-            var other = await User.FindAsync(others.First().UserId);
+            var other = await Client.UserService.FetchUserAsync(others.First().UserId);
             if (other is not null)
-                result = other.GetAvatarUrl();
+                result = other.GetAvatar();
         }
 
         return result;
@@ -599,55 +575,49 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
     public async Task<string> GetTitleAsync()
     {
         if (PlanetId is not null)
-        {
             return Name;
-        }
-        else
+        
+        var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
+
+        if (!others.Any())
+            return "Chat with yourself";
+        
+        var sb = new StringBuilder("Chat with ");
+        
+        var i = 0;
+        foreach (var other in others)
         {
-            var others = Members.Where(x => x.UserId != ValourClient.Self.Id).ToList();
-
-            if (!others.Any())
-                return "Chat with yourself";
+            var user = await Client.UserService.FetchUserAsync(other.UserId);
             
-            var sb = new StringBuilder("Chat with ");
+            sb.Append(user.Name);
+            if (i < others.Count - 1)
+                sb.Append(", ");
+            else
+                sb.Append(' ');
             
-            var i = 0;
-            foreach (var other in others)
-            {
-                var user = await User.FindAsync(other.UserId);
-                
-                sb.Append(user.Name);
-                if (i < others.Count - 1)
-                    sb.Append(", ");
-                else
-                    sb.Append(" ");
-                
-                i++;
-            }
-
-            return sb.ToString();
+            i++;
         }
+
+        return sb.ToString();
     }
 
-    public async Task<TaskResult> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
+    public async Task<TaskResult<Message>> SendMessageAsync(string content, List<MessageAttachment> attachments = null, List<Mention> mentions = null, Embed embed = null)
     {
         if (!IsChatChannel)
-            return new TaskResult(false, "Cannot send messages to non-chat channels.");
+            return new TaskResult<Message>(false, "Cannot send messages to non-chat channels.");
         
         var msg = new Message()
         {
             Content = content,
             ChannelId = Id,
             PlanetId = PlanetId,
-            AuthorUserId = ValourClient.Self.Id,
+            AuthorUserId = Client.Me.Id,
             Fingerprint = Guid.NewGuid().ToString(),
         };
-
-        PlanetMember member;
+        
         if (PlanetId is not null)
         {
-            member = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId.Value);
-            msg.AuthorMemberId = member.Id;
+            msg.AuthorMemberId = Planet.MyMember.Id;
         }
         
         if (mentions is not null)
@@ -659,7 +629,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         if (embed is not null)
             msg.EmbedData = JsonSerializer.Serialize(embed);
 
-        return await ValourClient.SendMessage(msg);
+        return await Client.MessageService.SendMessage(msg);
     }
 
     public async Task Open(string key)
@@ -667,7 +637,7 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await ValourClient.OpenPlanetChannelConnection(this, key);
+                await Client.ChannelService.TryOpenPlanetChannelConnection(this, key);
                 break;
             case ChannelTypeEnum.DirectChat:
                 await UpdateUserState(DateTime.UtcNow); // Update the user state
@@ -682,15 +652,39 @@ public class Channel : ClientModel, IChannel, ISharedChannel, IPlanetModel
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await ValourClient.ClosePlanetChannelConnection(this, key);
+                await Client.ChannelService.TryClosePlanetChannelConnection(this, key);
                 break;
             default:
                 break;
         }
     }
 
+    public void NotifyMessageReceived(Message message)
+    {
+        if (message.ChannelId != Id)
+            return;
+        
+        MessageReceived?.Invoke(message);
+    }
+    
+    public void NotifyMessageEdited(Message message)
+    {
+        if (message.ChannelId != Id)
+            return;
+        
+        MessageEdited?.Invoke(message);
+    }
+    
+    public void NotifyMessageDeleted(Message message)
+    {
+        if (message.ChannelId != Id)
+            return;
+        
+        MessageDeleted?.Invoke(message);
+    }
+
     public int Compare(Channel x, Channel y)
     {
-        return x.Position.CompareTo(y.Position);
+        return x.RawPosition.CompareTo(y.RawPosition);
     }
 }

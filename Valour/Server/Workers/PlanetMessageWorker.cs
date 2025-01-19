@@ -97,7 +97,7 @@ namespace Valour.Server.Workers
 
             /* Get required services in new scope */
             await using var scope = _serviceProvider.CreateAsyncScope();
-            await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+            await using var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
             
             _logger.LogInformation(@"Planet Message Worker running at: {Time}
                                              Queue size: {QueueSize}
@@ -156,10 +156,9 @@ namespace Valour.Server.Workers
             // and does not insert into the database, so it should be fine.
             await using var scope = _serviceProvider.CreateAsyncScope();
             var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
-            var stateService = scope.ServiceProvider.GetRequiredService<ChannelStateService>();
-            
+
             // This is ONLY READ FROM
-            var dbService = scope.ServiceProvider.GetRequiredService<ValourDB>();
+            var dbService = scope.ServiceProvider.GetRequiredService<ValourDb>();
             
             // This is a stream and will run forever
             foreach (var message in MessageQueue.GetConsumingEnumerable())
@@ -169,7 +168,6 @@ namespace Valour.Server.Workers
 
                 message.TimeSent = DateTime.UtcNow;
                 
-                stateService.SetChannelStateTime(message.ChannelId, message.TimeSent);
                 hubService.NotifyChannelStateUpdate(message.PlanetId!.Value, message.ChannelId, message.TimeSent);
                 
                 if (message.ReplyToId is not null && message.ReplyTo is null)

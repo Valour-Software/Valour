@@ -1,7 +1,30 @@
-﻿namespace Valour.Shared.Extensions;
+﻿using System.Reflection;
+
+namespace Valour.Shared.Extensions;
 
 public static class CopyToExtension
 {
+    public static void CopyAllTo<T>(this T source, T target, PropertyInfo[] properties, FieldInfo[] fields)
+    {
+        if (properties is not null)
+        {
+            foreach (var property in properties)
+            {
+                if (property.CanWrite)
+                    property.SetValue(target, property.GetValue(source, null), null);
+            }
+        }
+        
+        if (fields is not null)
+        {
+            foreach (var field in fields)
+            {
+                if (!field.IsStatic)
+                    field.SetValue(target, field.GetValue(source));
+            }
+        }
+    }
+    
     public static void CopyAllTo<T>(this T source, T target)
     {
         var type = typeof(T);

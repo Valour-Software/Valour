@@ -1,15 +1,16 @@
 ﻿@using global::Markdig.Blazor
-@inject IJSRuntime JsRuntime
+@inject ValourClient Client
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
-@if (Message == null || Message.IsEmpty() || !_isBuilt)
+@if (_message == null || _message.IsEmpty() || !_isBuilt)
 {
     return;
 }
 
 <div id="@Id"
      class="@_class"
+     style="@_style"
      tabindex="0"
      @oncontextpress="@OnContextMenu"
      @oncontextpress:stopPropagation="true"
@@ -18,15 +19,15 @@
     <div class="left-info">
         @if (!Minimal)
         {
-            @if (User.HasAnimatedAvatar)
+            @if (_user.HasAnimatedAvatar)
             {
                 <style>
-                    .message:hover .author-pfp-@User.Id {
+                    .message:hover .author-avatar-@_user.Id {
                         background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
                     }
                 </style>
             }
-            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-pfp author-pfp-@User.Id" @onerror="OnPfpError"></div>
+            <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@_user.Id" @onerror="OnAvatarError"></div>
         }
         <div class="time-container">
             <p class="time" title="@_timeTitle">
@@ -49,15 +50,15 @@
                 </p>
 
                 <div class="dot-badge-holder">
-                    @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                    @if (_user.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                     {
                         <BasicTooltipComponent Title="Stargazer" Placement="top">
                             <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
                         </BasicTooltipComponent>
                     }
-                    @if (User.Id <= 22113735421460480)
+                    @if (_user.Id <= 22113735421460480)
                     {
-                        <span style="font-weight: bold; font-size: 8px; margin-left: 2px; color: var(--v-purple)">1k</span>
+                        <span class="badge-1k">1k</span>
                     }
                 </div>
 
@@ -67,27 +68,26 @@
             </div>
         }
 
-        @if (Message.ReplyTo is not null && !IsInnerReply)
+        @if (_message.ReplyTo is not null && !_isInnerReply)
         {
             @RenderReply
         }
 
         <div class="content">
-
-            @if (Message.Attachments != null)
+            @if (_message.Attachments != null)
             {
-                @for (var i = 0; i < Message.Attachments.Count; i++)
+                @for (var i = 0; i < _message.Attachments.Count; i++)
                 {
                     var id = i;
-                    var attachment = Message.Attachments[id];
+                    var attachment = _message.Attachments[id];
                     var par = new Dictionary<string, object>()
                     {
                         {"Attachment", attachment},
                         {"MessageComponent", this}
                     };
 
-                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
-                        @if (Ghost)
+                    <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
+                        @if (_ghost)
                         {
                             <div class="attachment-x">x</div>
                         }
@@ -96,10 +96,10 @@
                 }
             }
 
-            @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
+            @if (_message.Embed != null && _message.Embed.Pages.Count > 0)
             {
-                <EmbedComponent Message="@Message" MessageComponent="@this"></EmbedComponent>
-                @if (Message.EditedTime != null)
+                <EmbedComponent Message="@_message" MessageComponent="@this"></EmbedComponent>
+                @if (_message.EditedTime != null)
                 {
                     <p class="edited-flag"> (Edited)</p>
                 }
@@ -113,7 +113,7 @@
                     <p class="edit-flag">(Editing)</p>
                 }
 
-                @if (Message.EditedTime != null)
+                @if (_message.EditedTime != null)
                 {
                     <p class="edited-flag"> (Edited)</p>
                 }
@@ -121,70 +121,74 @@
         </div>
     </div>
 
-    @if (IsInnerReply)
+    @if (_isInnerReply)
     {
         <div class="reply-x">x</div>
     }
 </div>
 
 @code {
+    
+    public class Params
+    {
+        public ChatWindowComponent ChatComponent;
+        public Message Message;
+        public Message LastMessage;
+        public bool IsInnerReply;
+        public bool Ghost;
+    }
 
     private RenderFragment RenderContent => builder =>
     {
-        if (string.IsNullOrWhiteSpace(Message.Content))
+        if (string.IsNullOrWhiteSpace(_message.Content))
             return;
         
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
         Markdown.RenderToFragment(
-            Message.Content, 
+            _message.Content, 
             builder, 
             MarkdownManager.Pipeline, 
-            MarkdownManager.Renderer);
+            MarkdownManager.Renderer,
+            this);
         builder.CloseElement();
     };
     
     private RenderFragment RenderReply => builder =>
     {
-        var messageParams = new MessageHolderComponent.MessageComponentParams()
+        var messageParams = new Params()
         {
-            Message = Message.ReplyTo,
+            Message = _message.ReplyTo,
             LastMessage = null,
-            Ghost = Ghost,
-            IsInnerReply = true
+            Ghost = _ghost,
+            IsInnerReply = true,
+            ChatComponent = _chat
         };
 
         builder.OpenComponent<MessageComponent>(0);
         builder.AddAttribute(0, "ParamData", messageParams);
-        builder.SetKey($"r-{Message.Id}-{Message.ReplyTo.Id}");
+        builder.SetKey($"r-{_message.Id}-{_message.ReplyTo!.Id}");
         builder.CloseComponent();
     };
 
-    [CascadingParameter]
-    public MessageHolderComponent Holder { get; set; }
-
-    [CascadingParameter]
-    public WindowTab Window { get; set; }
-    
-    [CascadingParameter]
-    public ChatChannelWindowComponent ChatComponent { get; set; }
-
     /* Set Params */
     [Parameter]
-    public MessageHolderComponent.MessageComponentParams ParamData { get; set; }
+    public Params ParamData { get; set; }
 
-    public Message Message { get; set; }
-    public Message LastMessage { get; set; }
-    public bool Ghost { get; set; }
-    public bool IsInnerReply { get; set; }
+    private ChatWindowComponent _chat;
+    private Message _message;
+    private Message _lastMessage;
+    private bool _ghost;
+    private bool _isInnerReply;
     /* End Set Params */
+
+    private IMessageAuthor _author;
 
     /* Planet Message Only */
     private PlanetMember _member;
     
     /* End Planet Message Only */
-
-    public User User { get; set; }
+    private User _user;
 
     public MessageComponent ReplyComponent;
 
@@ -209,9 +213,10 @@
     private bool _isBuilt = false;
 
     private string _class = "message";
+    private string _style = string.Empty;
     
 
-    private void CalculateClass()
+    private void CalculateClassAndStyles()
     {
         var newClass = "message";
 
@@ -224,13 +229,20 @@
         if (Edit)
             newClass += " edit";
 
-        if (IsInnerReply)
+        if (_isInnerReply)
+        {
             newClass += " reply";
 
-        if (Ghost)
+            if (_member is not null)
+            {
+                _style = $"border-left-color: {_nameColor}85";
+            }
+        }
+
+        if (_ghost)
             newClass += " ghost";
 
-        if (Message.ReplyTo is not null)
+        if (_message.ReplyTo is not null)
             newClass += " hasreply";
 
         _class = newClass;
@@ -238,8 +250,8 @@
 
     private void CalculateTime()
     {
-        var hoursAgo = (DateTime.UtcNow - Message.TimeSent).TotalHours;
-        var localTime = Message.TimeSent.ToLocalTime();
+        var hoursAgo = (DateTime.UtcNow - _message.TimeSent).TotalHours;
+        var localTime = _message.TimeSent.ToLocalTime();
 
         if (hoursAgo >= 24)
         {
@@ -265,20 +277,18 @@
     {
         if (_member is not null)
         {
-            return ProfilePopup.Instance.OpenAsync(_member, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+            return ProfilePopup.Instance.OpenAsync(_member, (int)e.ClientX, (int)e.ClientY);
         }
         else
         {
-            return ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+            return ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY);
         }
     }
 
 
-    private async Task OnEditReceived(ModelUpdateEvent eventData)
+    private async Task OnEditReceived(ModelUpdateEvent<Message> eventData)
     {
-        // Console.WriteLine("EDIT RECEIVED");
-        // Console.WriteLine(JsonSerializer.Serialize(eventData));
-        await BuildMessage();
+        BuildMessage();
         await CloseEditMode();
     }
 
@@ -287,9 +297,9 @@
         ContextMenuService.Root.OpenMenu<MessageContextMenu>(e,
             new MessageContextMenu.MessageContextParams()
             {
-                Message = Message,
+                Message = _message,
                 MessageComponent = this,
-                WindowComponent = ChatComponent
+                WindowComponent = _chat
             }
         );
     }
@@ -309,34 +319,34 @@
         {
             ContextMenuService.Root.OpenMenu<UserContextMenu>(e, new UserContextMenu.UserContextParams()
             {
-                User = User
+                User = _user
             });
         }
     }
 
     public async Task OnPointerDown()
     {
-        if (Ghost)
+        if (_ghost)
         {
-            if (IsInnerReply)
+            if (_isInnerReply)
             {
                 Console.WriteLine("Removing replyto");
-                var input = ChatComponent.MessageHolder.InputComponent;
+                var input = _chat.InputComponent;
                 await input.RemoveReply();
             }
         }
         else
         {
-            await Window.NotifyFocused();
+            await _chat.WindowCtx.NotifyFocused();
         }
     }
 
-    public async Task OnClickAttachment(int id)
+    public void OnClickAttachment(int id)
     {
-        if (Ghost)
+        if (_ghost)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
-            await input.RemoveAttachment(id);
+            var input = _chat.InputComponent;
+            input.RemoveAttachment(id);
         }
     }
 
@@ -345,27 +355,23 @@
         if (firstRender)
         {
             // Clear notification if one exists for this message
-            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(Message.Id, out var notification);
+            var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(_message.Id, out var notification);
             if (found && notification.TimeRead is null)
             {
-                await ValourClient.MarkNotificationRead(notification, true);
+                await Client.NotificationService.MarkNotificationRead(notification, true);
             }
         }
-        
-        // #if DEBUG
-        // Console.WriteLine("Rendered message " + MessageData.Message.Id);
-        // #endif
     }
 
     public async Task OpenEditMode()
     {
         Edit = true;
 
-        CalculateClass();
+        CalculateClassAndStyles();
 
         ReRender();
 
-        await ChatComponent.OpenEditMode(this);
+        await _chat.OpenEditMode(this);
     }
 
     public async Task CloseEditMode(bool cancel = false)
@@ -375,48 +381,48 @@
 
         Edit = false;
 
-        CalculateClass();
+        CalculateClassAndStyles();
 
-        await ChatComponent.CloseEditMode(cancel);
-
-        ReRender();
-    }
-
-    public async Task SetMessage(Message message)
-    {
-        Message = message;
-        await BuildMessage();
+        await _chat.CloseEditMode(cancel);
 
         ReRender();
     }
 
-    public async Task RefreshMessage()
+    public void SetMessage(Message message)
     {
-        await BuildMessage();
+        _message = message;
+        BuildMessage();
+
+        ReRender();
+    }
+
+    public void RefreshMessage()
+    {
+        BuildMessage();
         StateHasChanged();
     }
 
     public void SetLast(Message msg)
     {
-        LastMessage = msg;
+        _lastMessage = msg;
     }
 
-    public async Task BuildMessage(bool render = true)
+    public void BuildMessage(bool render = true)
     {
-        if (Message == null)
+        if (_message == null)
             return;
 
         // Check if we are a minimal message
         CheckMinimal();
 
-        if (!IsInnerReply)
-            _mentioned = await Message.CheckIfMentioned();
-
-        CalculateClass();
+        if (!_isInnerReply)
+            _mentioned = _message.CheckIfMentioned();
+        
         CalculateTime();
 
         if (Minimal)
         {
+            CalculateClassAndStyles();
             _isBuilt = true;
 
             if (render)
@@ -425,12 +431,13 @@
             return;
         }
 
-        _name = await Message.GetAuthorNameAsync();
-        _nameColor = await Message.GetAuthorColorAsync();
-        _nameTag = await Message.GetAuthorRoleTagAsync();
-        _avatarUrl = await Message.GetAuthorImageUrlAsync();
-        _animatedAvatarUrl = await Message.GetAuthorImageUrlAnimatedAsync();
-        _fallbackAvatarUrl = await Message.GetAuthorImageUrlFallbackAsync();
+        _name = GetAuthorName();
+        _nameColor = GetAuthorColor();
+        _nameTag = GetAuthorRoleTag();
+        _avatarUrl = GetAuthorAvatar();
+        _animatedAvatarUrl = GetAuthorAvatarAnimated();
+        _fallbackAvatarUrl = GetAuthorAvatarUrlFallback();
+        CalculateClassAndStyles();
 
         _isBuilt = true;
 
@@ -440,86 +447,142 @@
 
     protected override async Task OnInitializedAsync()
     {
-        this.Message = ParamData.Message;
-        this.LastMessage = ParamData.LastMessage;
-        this.Ghost = ParamData.Ghost;
-        this.IsInnerReply = ParamData.IsInnerReply;
-        KeyboardListener.OnKeyDown += OnKeyDown;
+        _message = ParamData.Message;
+        _lastMessage = ParamData.LastMessage;
+        _ghost = ParamData.Ghost;
+        _isInnerReply = ParamData.IsInnerReply;
+        _chat = ParamData.ChatComponent;
         
-        if (Message is null)
+        KeyboardListener.KeyDown += OnKeyDown;
+        
+        if (_message is null)
         {
-            await Logger.Log("[!!!] MessageData is null", "red");
+            Client.Logger.Log("Message", "MessageData is null", "red");
             return;
         }
         
+        // This prevents client sync issues from breaking the message
+        _message.SetClient(Client);
+        
         await base.OnInitializedAsync();
 
-        Id = $"m-{Message.ChannelId}-{Message.Id}";
+        Id = $"m-{_message.ChannelId}-{_message.Id}";
 
-        User = await Message.GetAuthorUserAsync();
+        _user = await _message.FetchAuthorUserAsync();
 
-        await BuildMessage(false);
-
-        if (User != null)
-            User.Updated += OnUserUpdated;
+        if (_user != null)
+            _user.Updated += OnUserUpdated;
         
-        if (!IsInnerReply && !Ghost)
+        if (!_isInnerReply && !_ghost)
         {
-            Holder.AddRenderedMessage(this);
+            _chat.AddRenderedMessage(this);
         }
 
         // Planet message logic
-        if (Message.PlanetId is not null)
+        if (_message.PlanetId is not null)
         {
             
-            _member = await Message.GetAuthorMemberAsync();
+            _member = await _message.FetchAuthorMemberAsync();
             
             // Hook events
             if (_member is not null) // There is a chance they were deleted
             {
-                _member.OnRoleModified += OnMemberRoleChange;
+                _member.Roles.Changed += UpdateForRoleChange;
                 _member.Updated += OnMemberUpdated;
             }
         }
-    }
 
-    private async Task<Task> OnKeyDown(KeyboardListener.KeyboardEvent e)
+        _author = _member is not null ? _member : (_user ?? User.NotFound);
+        
+        BuildMessage(false);
+    }
+    
+    /// <summary>
+    /// Returns the name that should be displayed for the author of this message
+    /// </summary>
+    private string GetAuthorName()
     {
-        if (e.Key != "Escape") return Task.CompletedTask;
+        return _member is not null ? _member.Name : _user.Name;
+    }
+    
+    private string GetAuthorRoleTag()
+    {
+        // If there's a member, we use the member's planet role
+        if (_member is not null) 
+            return _member.PrimaryRole?.Name ?? "Unknown Role";
+        
+        // Bot always shows Bot
+        if (_user.Bot)
+            return "Bot";
+        
+        // Otherwise, we use their relationship with the user
+        if (_user.Id == Client.Me.Id)
+            return "You";
+
+        return Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "Friend" : "User";
+    }
+    
+    private string GetAuthorColor()
+    {
+        return _member is not null ? (_member.PrimaryRole?.Color ?? "#fff") :
+            (Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "#9ffff1" : "#fff");
+    }
+    
+    public string GetAuthorAvatar() =>
+        _author?.GetAvatar(AvatarFormat.Webp128);
+    
+    public string GetAuthorAvatarAnimated()
+    {   
+        // TODO: Tweak when member avatars are implemented
+        if (!_user.HasAnimatedAvatar)
+            return null;
+
+        return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+    }
+    
+    public string GetAuthorAvatarUrlFallback() =>
+        _author.GetFailedAvatar();
+
+    private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key != "Escape") return;
         if (Edit) 
         {
             await CloseEditMode(true);
         }
  
-        if (IsInnerReply)
+        if (_isInnerReply)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
+            var input = _chat.InputComponent;
             await input.RemoveReply(); 
         }
         
-        if (Ghost)
+        if (_ghost)
         {
-            var input = ChatComponent.MessageHolder.InputComponent;
-            await input.RemoveAttachment(-1);
+            var input = _chat.InputComponent;
+            input.RemoveAttachment(-1);
         }
-
-        return Task.CompletedTask;
     }
 
-    public async Task OnUserUpdated(ModelUpdateEvent eventData)
+    public void OnUserUpdated(ModelUpdateEvent<User> eventData)
     {
         bool render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(User.Name)))
+        if (eventData.PropsChanged.Contains(nameof(_user.Name)))
         {
             render = true;
-            _name = await Message.GetAuthorNameAsync();
+            _name = GetAuthorName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
+        if (eventData.PropsChanged.Contains(nameof(_user.HasCustomAvatar)))
         {
             render = true;
-            _avatarUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = GetAuthorAvatar();
+
+            if (_user.HasAnimatedAvatar)
+            {
+                _animatedAvatarUrl = GetAuthorAvatarAnimated();
+            }
         }
 
         if (render)
@@ -527,27 +590,26 @@
             ReRender();
         }
     }
-    
-    /* Planet Member Only */
-    private async Task OnMemberRoleChange(MemberRoleEvent roleEvent)
-    {
-        await UpdateForRoleChange();
-    }
 
-    private async Task OnMemberUpdated(ModelUpdateEvent eventData)
+    private void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
         var render = false;
         
         if (eventData.PropsChanged.Contains(nameof(_member.Nickname)))
         {
             render = true;
-            _name = await Message.GetAuthorNameAsync();
+            _name = GetAuthorName();
         }
 
         if (eventData.PropsChanged.Contains(nameof(_member.MemberAvatar)))
         {
             render = true;
-            _avatarUrl = await Message.GetAuthorImageUrlAsync();
+            _avatarUrl = GetAuthorAvatar();
+            
+            if (_user.HasAnimatedAvatar)
+            {
+                _animatedAvatarUrl = GetAuthorAvatarAnimated();
+            }
         }
 
         if (render)
@@ -557,27 +619,25 @@
     }
     
     // Update for any role changes
-    private async Task UpdateForRoleChange()
+    private void UpdateForRoleChange(ModelListChangeEvent<PlanetRole> change)
     {
-        var newPrimaryRole = await _member.GetPrimaryRoleAsync();
-
-    // Cosmetic changes
-        _nameTag = newPrimaryRole.Name;
-        _nameColor = newPrimaryRole.Color;
+        // Cosmetic changes
+        _nameTag = _member.PrimaryRole.Name;
+        _nameColor = _member.PrimaryRole.Color;
         
         ReRender();
     }
 
     public void CheckMinimal()
     {
-        if (LastMessage != null && Message != null)
+        if (_lastMessage != null && _message != null)
         {
-            if (Message.ReplyTo is not null)
+            if (_message.ReplyTo is not null)
             {
                 Minimal = false;
                 return;
             }
-            if (LastMessage.AuthorUserId == Message.AuthorUserId)
+            if (_lastMessage.AuthorUserId == _message.AuthorUserId)
             {
                 Minimal = true;
                 return;
@@ -589,7 +649,7 @@
 
     public void ReRender()
     {
-        if (Ghost && IsInnerReply) return;
+        if (_ghost && _isInnerReply) return;
 
         ShouldRenderValue = true;
         
@@ -600,25 +660,25 @@
 
     void IDisposable.Dispose()
     {
-        if (Holder != null)
+        if (_chat != null)
         {
-            Holder.RemoveRenderedMessage(this);
+            _chat.RemoveRenderedMessage(this);
         }
         
         if (_member is not null)
         {
             _member.Updated -= OnMemberUpdated;
-            _member.OnRoleModified -= OnMemberRoleChange;
+            _member.Roles.Changed -= UpdateForRoleChange;
         }
     }
 
     // Always allow a re-render when the pfp fails to load
-    private bool _pfpErrorRender = false;
+    private bool _avatarErrorRender = false;
     
-    private void OnPfpError()
+    private void OnAvatarError()
     {
-        _avatarUrl = AvatarUtility.GetFailedPfpUrl(User);
-        _pfpErrorRender = true;
+        _avatarUrl = _author.GetFailedAvatar();
+        _avatarErrorRender = true;
         ReRender();
     }
 
@@ -627,13 +687,13 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        if (_pfpErrorRender)
+        if (_avatarErrorRender)
         {
-            _pfpErrorRender = false;
+            _avatarErrorRender = false;
             return true;
         }
 
-        if (Ghost && IsInnerReply) return false;
+        if (_ghost && _isInnerReply) return false;
 
         return ShouldRenderValue;
     }
