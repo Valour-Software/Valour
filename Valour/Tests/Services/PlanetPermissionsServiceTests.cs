@@ -240,5 +240,11 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         // Delete the test channel
         var deleteChannelResult = await _channelService.DeletePlanetChannelAsync(adminChannel.PlanetId!.Value, adminChannel.Id);
         Assert.True(deleteChannelResult.Success, "Failed to delete channel");
+        
+        // Should still have no access to the channel
+        channelAccess = await _planetService.GetMemberChannelsAsync(member.Id);
+        canAccess = channelAccess?.Contains(adminChannel.Id) ?? false;
+        
+        Assert.False(canAccess, "Member should not have access to admin channel");
     }
 }
