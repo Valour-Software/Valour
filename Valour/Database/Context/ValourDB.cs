@@ -233,6 +233,7 @@ public partial class ValourDb : DbContext
         PlanetInvite.SetupDbModel(modelBuilder);
         AuthToken.SetupDbModel(modelBuilder);
         OauthApp.SetupDbModel(modelBuilder);
+        Channel.SetupDbModel(modelBuilder);
     }
 }
 

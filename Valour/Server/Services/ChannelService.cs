@@ -113,6 +113,8 @@ public class ChannelService
                 // but I am showing it so you know it SHOULD be null!
                 PlanetId = null,
                 ParentId = null,
+                
+                Version = ISharedChannel.CurrentVersion,
             };
             
             await _db.Channels.AddAsync(channel);

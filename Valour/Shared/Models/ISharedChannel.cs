@@ -31,6 +31,7 @@ public static class SharedChannelNames
 
 public interface ISharedChannel : ISharedModel<long>, ISortable
 {
+    public const byte CurrentVersion = 2;
     public const string DirectBaseRoute = "api/channels/direct";
     public static string GetBaseRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetBaseRoute(channel.PlanetId.Value) : DirectBaseRoute;
     public static string GetIdRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetIdRoute(channel.PlanetId.Value, channel.Id) : GetDirectIdRoute(channel.Id);

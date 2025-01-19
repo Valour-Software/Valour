@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Valour.Database.Context;
@@ -11,9 +12,11 @@ using Valour.Database.Context;
 namespace Valour.Database.Migrations
 {
     [DbContext(typeof(ValourDb))]
-    partial class ValourDbModelSnapshot : ModelSnapshot
+    [Migration("20250119232259_ChannelConversion")]
+    partial class ChannelConversion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,7 +59,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("auth_tokens", (string)null);
+                    b.ToTable("auth_tokens");
                 });
 
             modelBuilder.Entity("Valour.Database.BlockedUserEmail", b =>
@@ -67,7 +70,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Email");
 
-                    b.ToTable("blocked_user_emails", (string)null);
+                    b.ToTable("blocked_user_emails");
                 });
 
             modelBuilder.Entity("Valour.Database.CdnBucketItem", b =>
@@ -98,7 +101,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("cdn_bucket_items", (string)null);
+                    b.ToTable("cdn_bucket_items");
                 });
 
             modelBuilder.Entity("Valour.Database.CdnProxyItem", b =>
@@ -125,7 +128,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("cdn_proxies", (string)null);
+                    b.ToTable("cdn_proxies");
                 });
 
             modelBuilder.Entity("Valour.Database.Channel", b =>
@@ -175,7 +178,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("PlanetId");
 
-                    b.ToTable("Channels", (string)null);
+                    b.ToTable("Channels");
                 });
 
             modelBuilder.Entity("Valour.Database.ChannelMember", b =>
@@ -201,7 +204,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("channel_members", (string)null);
+                    b.ToTable("channel_members");
                 });
 
             modelBuilder.Entity("Valour.Database.Credential", b =>
@@ -237,7 +240,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("credentials", (string)null);
+                    b.ToTable("credentials");
                 });
 
             modelBuilder.Entity("Valour.Database.Economy.Currency", b =>
@@ -285,7 +288,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("currencies", (string)null);
+                    b.ToTable("currencies");
                 });
 
             modelBuilder.Entity("Valour.Database.Economy.EcoAccount", b =>
@@ -337,7 +340,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("eco_accounts", (string)null);
+                    b.ToTable("eco_accounts");
                 });
 
             modelBuilder.Entity("Valour.Database.Economy.Transaction", b =>
@@ -402,7 +405,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserToId");
 
-                    b.ToTable("transactions", (string)null);
+                    b.ToTable("transactions");
                 });
 
             modelBuilder.Entity("Valour.Database.EmailConfirmCode", b =>
@@ -419,7 +422,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("email_confirm_codes", (string)null);
+                    b.ToTable("email_confirm_codes");
                 });
 
             modelBuilder.Entity("Valour.Database.Message", b =>
@@ -514,7 +517,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Name");
 
-                    b.ToTable("node_stats", (string)null);
+                    b.ToTable("node_stats");
                 });
 
             modelBuilder.Entity("Valour.Database.Notification", b =>
@@ -572,7 +575,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("notifications", (string)null);
+                    b.ToTable("notifications");
                 });
 
             modelBuilder.Entity("Valour.Database.NotificationSubscription", b =>
@@ -604,7 +607,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("notification_subscriptions", (string)null);
+                    b.ToTable("notification_subscriptions");
                 });
 
             modelBuilder.Entity("Valour.Database.OauthApp", b =>
@@ -644,7 +647,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("oauth_apps", (string)null);
+                    b.ToTable("oauth_apps");
                 });
 
             modelBuilder.Entity("Valour.Database.PasswordRecovery", b =>
@@ -661,7 +664,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("password_recoveries", (string)null);
+                    b.ToTable("password_recoveries");
                 });
 
             modelBuilder.Entity("Valour.Database.PermissionsNode", b =>
@@ -705,7 +708,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("TargetId");
 
-                    b.ToTable("permissions_nodes", (string)null);
+                    b.ToTable("permissions_nodes");
                 });
 
             modelBuilder.Entity("Valour.Database.Planet", b =>
@@ -759,7 +762,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("planets", (string)null);
+                    b.ToTable("planets");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetBan", b =>
@@ -799,7 +802,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("PlanetId");
 
-                    b.ToTable("planet_bans", (string)null);
+                    b.ToTable("planet_bans");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetInvite", b =>
@@ -828,7 +831,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("PlanetId");
 
-                    b.ToTable("planet_invites", (string)null);
+                    b.ToTable("planet_invites");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetMember", b =>
@@ -944,7 +947,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("PlanetId");
 
-                    b.ToTable("planet_roles", (string)null);
+                    b.ToTable("planet_roles");
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetRoleMember", b =>
@@ -982,7 +985,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("planet_role_members", (string)null);
+                    b.ToTable("planet_role_members");
                 });
 
             modelBuilder.Entity("Valour.Database.Referral", b =>
@@ -1007,7 +1010,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("ReferrerId");
 
-                    b.ToTable("referrals", (string)null);
+                    b.ToTable("referrals");
                 });
 
             modelBuilder.Entity("Valour.Database.Report", b =>
@@ -1050,7 +1053,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("reports", (string)null);
+                    b.ToTable("reports");
                 });
 
             modelBuilder.Entity("Valour.Database.StatObject", b =>
@@ -1096,7 +1099,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("stat_objects", (string)null);
+                    b.ToTable("stat_objects");
                 });
 
             modelBuilder.Entity("Valour.Database.TenorFavorite", b =>
@@ -1118,7 +1121,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("tenor_favorites", (string)null);
+                    b.ToTable("tenor_favorites");
                 });
 
             modelBuilder.Entity("Valour.Database.Themes.Theme", b =>
@@ -1226,7 +1229,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.ToTable("themes", (string)null);
+                    b.ToTable("themes");
                 });
 
             modelBuilder.Entity("Valour.Database.Themes.ThemeVote", b =>
@@ -1260,7 +1263,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("theme_votes", (string)null);
+                    b.ToTable("theme_votes");
                 });
 
             modelBuilder.Entity("Valour.Database.User", b =>
@@ -1402,7 +1405,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("user_friends", (string)null);
+                    b.ToTable("user_friends");
                 });
 
             modelBuilder.Entity("Valour.Database.UserPrivateInfo", b =>
@@ -1440,7 +1443,7 @@ namespace Valour.Database.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("user_emails", (string)null);
+                    b.ToTable("user_emails");
                 });
 
             modelBuilder.Entity("Valour.Database.UserProfile", b =>
@@ -1494,7 +1497,7 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("user_profiles", (string)null);
+                    b.ToTable("user_profiles");
                 });
 
             modelBuilder.Entity("Valour.Database.UserSubscription", b =>
