@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -14,6 +15,8 @@ public class OauthApp : ISharedOauthApp
     [ForeignKey("OwnerId")]
     public virtual User Owner { get; set; }
     
+    
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
@@ -27,6 +30,12 @@ public class OauthApp : ISharedOauthApp
     /// </summary>
     [Column("secret")]
     public string Secret { get; set; }
+
+    
+    /// <summary>
+    /// The User for Oauthapps
+    /// </summary>
+    
 
     /// <summary>
     /// The ID of the user that created this app
@@ -57,4 +66,47 @@ public class OauthApp : ISharedOauthApp
     /// </summary>
     [Column("redirect_url")]
     public string RedirectUrl { get; set; }
+
+    public static void SetupDDModel(ModelBuilder builder)
+    {
+        builder.Entity<OauthApp>(e =>
+        {
+            // Table
+            e.ToTable("oauth_apps");
+            
+            // Keys
+            e.HasKey(x => x.Id);
+            
+            // Properties
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.Secret)
+                .HasColumnName("secret");
+            
+            e.Property(x => x.OwnerId)
+                .HasColumnName("owner_id");
+            
+            e.Property(x => x.Uses)
+                .HasColumnName("uses");
+            
+            e.Property(x => x.ImageUrl)
+                .HasColumnName("image_url");
+            
+            e.Property(x => x.Name)
+                .HasColumnName("name");
+            
+            // Relationships
+
+            e.HasOne(x => x.Owner)
+                .WithMany(x => x.OwnedApps)
+                .HasForeignKey(x => x.OwnerId);
+
+            // Indices
+
+            e.HasIndex(x => new { x.OwnerId, x.Uses })
+                .IsUnique();
+
+        });
+    }
 }
