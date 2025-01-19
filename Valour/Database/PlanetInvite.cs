@@ -52,7 +52,7 @@ public class PlanetInvite : ISharedPlanetInvite
             // Properties
 
             e.Property(x => x.Id)
-                .HasColumnName("id");
+                .HasColumnName("code");
 
             e.Property(x => x.PlanetId)
                 .HasColumnName("planet_id");
