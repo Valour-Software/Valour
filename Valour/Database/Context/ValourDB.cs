@@ -229,6 +229,10 @@ public partial class ValourDb : DbContext
         UserSubscription.SetupDbModel(modelBuilder);
         UserChannelState.SetupDbModel(modelBuilder);
         PlanetMember.SetupDbModel(modelBuilder);
+        Report.SetupDbModel(modelBuilder);
+        PlanetInvite.SetupDbModel(modelBuilder);
+        AuthToken.SetupDbModel(modelBuilder);
+        OauthApp.SetupDbModel(modelBuilder);
     }
 }
 

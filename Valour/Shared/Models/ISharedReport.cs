@@ -131,13 +131,8 @@ public enum ReportReasonCode : long
 /// <summary>
 /// Reports are used to keep the community safe for everyone
 /// </summary>
-public interface ISharedReport
+public interface ISharedReport : ISharedModel<string>
 {
-    /// <summary>
-    /// Guid Id of the report
-    /// </summary>
-    string Id { get; set; }
-    
     /// <summary>
     /// The time the report was created
     /// </summary>

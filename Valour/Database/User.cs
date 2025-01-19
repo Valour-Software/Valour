@@ -21,8 +21,6 @@ namespace Valour.Database
         /// </summary>
         public virtual ICollection<PlanetMember> Membership { get; set; }
         
-        
-        
         /// <summary>
         /// User ownedApps
         /// </summary>
@@ -31,7 +29,7 @@ namespace Valour.Database
         /// <summary>
         /// User OwnedTokens
         /// </summary>
-        public virtual ICollection<AuthToken> OwnedTokens { get; set; }
+        public virtual ICollection<AuthToken> AuthTokens { get; set; }
         
         /// <summary>
         /// All messages sent by this user.
