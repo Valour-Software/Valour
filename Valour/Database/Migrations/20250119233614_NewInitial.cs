@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Valour.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class NewInitial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -253,7 +253,8 @@ namespace Valour.Database.Migrations
                     parent_id = table.Column<long>(type: "bigint", nullable: true),
                     position = table.Column<long>(type: "bigint", nullable: false),
                     inherits_perms = table.Column<bool>(type: "boolean", nullable: false),
-                    is_default = table.Column<bool>(type: "boolean", nullable: false)
+                    is_default = table.Column<bool>(type: "boolean", nullable: false),
+                    version = table.Column<byte>(type: "smallint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -443,7 +444,7 @@ namespace Valour.Database.Migrations
                     uses = table.Column<int>(type: "integer", nullable: false),
                     image_url = table.Column<string>(type: "text", nullable: true),
                     name = table.Column<string>(type: "text", nullable: true),
-                    redirect_url = table.Column<string>(type: "text", nullable: true)
+                    RedirectUrl = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -598,14 +599,14 @@ namespace Valour.Database.Migrations
                 name: "user_friends",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
+                    id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     user_id = table.Column<long>(type: "bigint", nullable: false),
                     friend_id = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_user_friends", x => x.Id);
+                    table.PrimaryKey("PK_user_friends", x => x.id);
                     table.ForeignKey(
                         name: "FK_user_friends_users_friend_id",
                         column: x => x.friend_id,
@@ -939,9 +940,21 @@ namespace Valour.Database.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_auth_tokens_id",
+                table: "auth_tokens",
+                column: "id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_auth_tokens_scope",
+                table: "auth_tokens",
+                column: "scope");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_auth_tokens_user_id",
                 table: "auth_tokens",
-                column: "user_id");
+                column: "user_id",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_channel_members_channel_id",
@@ -954,6 +967,11 @@ namespace Valour.Database.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_channels_is_deleted",
+                table: "channels",
+                column: "is_deleted");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_channels_parent_id",
                 table: "channels",
                 column: "parent_id");
@@ -962,6 +980,11 @@ namespace Valour.Database.Migrations
                 name: "IX_channels_planet_id",
                 table: "channels",
                 column: "planet_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_channels_position",
+                table: "channels",
+                column: "position");
 
             migrationBuilder.CreateIndex(
                 name: "IX_credentials_user_id",
@@ -1044,9 +1067,20 @@ namespace Valour.Database.Migrations
                 column: "planet_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_planet_invites_issuer_id",
+                table: "planet_invites",
+                column: "issuer_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_planet_invites_planet_id",
                 table: "planet_invites",
                 column: "planet_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_planet_invites_time_created_time_expires",
+                table: "planet_invites",
+                columns: new[] { "time_created", "time_expires" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_planet_members_planet_id",
@@ -1098,6 +1132,26 @@ namespace Valour.Database.Migrations
                 name: "IX_referrals_referrer_id",
                 table: "referrals",
                 column: "referrer_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_reports_channel_id",
+                table: "reports",
+                column: "channel_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_reports_message_id",
+                table: "reports",
+                column: "message_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_reports_planet_id",
+                table: "reports",
+                column: "planet_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_reports_reporting_user_id",
+                table: "reports",
+                column: "reporting_user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_theme_votes_theme_id",

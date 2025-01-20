@@ -12,8 +12,8 @@ using Valour.Database.Context;
 namespace Valour.Database.Migrations
 {
     [DbContext(typeof(ValourDb))]
-    [Migration("20250116184428_FixFriendId")]
-    partial class FixFriendId
+    [Migration("20250119233614_NewInitial")]
+    partial class NewInitial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -57,9 +57,15 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("Id")
+                        .IsUnique();
 
-                    b.ToTable("auth_tokens");
+                    b.HasIndex("Scope");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("auth_tokens", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.BlockedUserEmail", b =>
@@ -180,13 +186,21 @@ namespace Valour.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("position");
 
+                    b.Property<byte>("Version")
+                        .HasColumnType("smallint")
+                        .HasColumnName("version");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("ParentId");
 
                     b.HasIndex("PlanetId");
 
-                    b.ToTable("channels");
+                    b.HasIndex("RawPosition");
+
+                    b.ToTable("channels", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.ChannelMember", b =>
@@ -640,8 +654,7 @@ namespace Valour.Database.Migrations
                         .HasColumnName("owner_id");
 
                     b.Property<string>("RedirectUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("redirect_url");
+                        .HasColumnType("text");
 
                     b.Property<string>("Secret")
                         .HasColumnType("text")
@@ -655,7 +668,7 @@ namespace Valour.Database.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("oauth_apps");
+                    b.ToTable("oauth_apps", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.PasswordRecovery", b =>
@@ -837,9 +850,14 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IssuerId")
+                        .IsUnique();
+
                     b.HasIndex("PlanetId");
 
-                    b.ToTable("planet_invites");
+                    b.HasIndex("TimeCreated", "TimeExpires");
+
+                    b.ToTable("planet_invites", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetMember", b =>
@@ -1061,7 +1079,15 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("reports");
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("MessageId");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("ReportingUserId");
+
+                    b.ToTable("reports", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.StatObject", b =>
@@ -1552,7 +1578,7 @@ namespace Valour.Database.Migrations
             modelBuilder.Entity("Valour.Database.AuthToken", b =>
                 {
                     b.HasOne("Valour.Database.User", "User")
-                        .WithMany()
+                        .WithMany("AuthTokens")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1563,7 +1589,7 @@ namespace Valour.Database.Migrations
             modelBuilder.Entity("Valour.Database.Channel", b =>
                 {
                     b.HasOne("Valour.Database.Channel", "Parent")
-                        .WithMany()
+                        .WithMany("Children")
                         .HasForeignKey("ParentId");
 
                     b.HasOne("Valour.Database.Planet", "Planet")
@@ -1727,7 +1753,7 @@ namespace Valour.Database.Migrations
             modelBuilder.Entity("Valour.Database.OauthApp", b =>
                 {
                     b.HasOne("Valour.Database.User", "Owner")
-                        .WithMany()
+                        .WithMany("OwnedApps")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1977,6 +2003,8 @@ namespace Valour.Database.Migrations
 
             modelBuilder.Entity("Valour.Database.Channel", b =>
                 {
+                    b.Navigation("Children");
+
                     b.Navigation("Members");
 
                     b.Navigation("Messages");
@@ -2027,11 +2055,15 @@ namespace Valour.Database.Migrations
 
             modelBuilder.Entity("Valour.Database.User", b =>
                 {
+                    b.Navigation("AuthTokens");
+
                     b.Navigation("ChannelStates");
 
                     b.Navigation("Membership");
 
                     b.Navigation("Messages");
+
+                    b.Navigation("OwnedApps");
 
                     b.Navigation("PrivateInfo");
 
