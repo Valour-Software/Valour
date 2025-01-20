@@ -731,4 +731,73 @@ public class ChannelService
         
         return TaskResult<uint>.FromData(newPosition);
     }
+    
+    private static int _migratedChannels = 0;
+
+    public async Task MigrateChannels()
+    {
+        // From V0 -> V2, we convert the position to the new format
+        
+        // Non-planet channels just get updated to version 2
+        await _db.Channels.Where(x => x.PlanetId == null)
+            .ExecuteUpdateAsync(u => u.SetProperty(c => c.Version, 2));
+        
+        var rootChannels = await _db.Channels
+            .Where(x => x.Version < 2
+                && x.PlanetId != null
+                && x.ParentId == null)
+            .ToListAsync();
+        
+        // Build set of planets
+        var planets = new HashSet<long>();
+        foreach (var root in rootChannels)
+        {
+            planets.Add(root.PlanetId!.Value);
+        }
+
+        foreach (var planetId in planets)
+        {
+            var rootChannelsForPlanet = rootChannels.Where(x => x.PlanetId == planetId).ToList();
+            
+            // Sort the root channels by position
+            rootChannelsForPlanet.Sort((a, b) => a.RawPosition.CompareTo(b.RawPosition));
+
+            var ri = 0;
+            foreach (var rootChannel in rootChannelsForPlanet)
+            {
+                var rootPos = ChannelPosition.AppendRelativePosition(0, (uint)ri, 0);
+                ri++;
+                
+                await MigrateChannel(rootChannel, rootPos);
+                
+                await _db.SaveChangesAsync();
+                
+                _logger.LogInformation("Migrated channel tree, total {ChannelCount}", _migratedChannels);
+            }
+        }
+    }
+
+    public async Task MigrateChannel(Valour.Database.Channel channel, uint newPosition)
+    {
+        channel.RawPosition = newPosition;
+        channel.Version = 2;
+        
+        _db.Channels.Update(channel);
+        
+        _migratedChannels++;
+        
+        // Migrate children
+        var children = await _db.Channels
+            .Where(x => x.ParentId == channel.Id)
+            .OrderBy(x => x.RawPosition)
+            .ToListAsync();
+        
+        var ci = 0;
+        foreach (var child in children)
+        {
+            var childPos = ChannelPosition.AppendRelativePosition(newPosition, (uint)ci);
+            ci++;
+            await MigrateChannel(child, childPos);
+        }
+    }
 }

@@ -80,7 +80,7 @@ public class Channel : ISharedChannel
     public bool IsDefault { get; set; }
     
     // Used for migrations
-    public byte Version { get; set; }
+    public int Version { get; set; }
 
     public static void SetupDbModel(ModelBuilder builder)
     {

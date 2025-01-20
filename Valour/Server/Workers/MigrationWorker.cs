@@ -23,6 +23,7 @@ public class MigrationWorker : IHostedService
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
         var permService = scope.ServiceProvider.GetRequiredService<PlanetPermissionService>();
+        var channelService = scope.ServiceProvider.GetRequiredService<ChannelService>();
         
         // Perform startup tasks
         var startupService = scope.ServiceProvider.GetRequiredService<StartupService>();
@@ -31,6 +32,9 @@ public class MigrationWorker : IHostedService
         // Generate role hash keys for all members
         await permService.BulkUpdateMemberRoleHashesAsync();
         _logger.LogInformation("Migration Worker has finished");
+
+        // Migrate channels
+        await channelService.MigrateChannels();
     }
     
     public Task StopAsync(CancellationToken stoppingToken)
