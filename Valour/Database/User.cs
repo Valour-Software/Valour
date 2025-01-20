@@ -21,7 +21,10 @@ namespace Valour.Database
         /// </summary>
         public virtual ICollection<PlanetMember> Membership { get; set; }
         
-        
+        /// <summary>
+        /// The membership of this user in different channels.
+        /// </summary>
+        public virtual ICollection<ChannelMember> ChannelMembership { get; set; }
         
         /// <summary>
         /// User ownedApps

@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-
+using Microsoft.EntityFrameworkCore;
 namespace Valour.Database;
 
 /// <summary>
@@ -40,4 +40,48 @@ public class ChannelMember
     /// </summary>
     [Column("user_id")]
     public long UserId { get; set; }
+
+
+    public static void SetUpDDModel(ModelBuilder builder)
+    {
+        builder.Entity<ChannelMember>(e =>
+        {
+            // ToTable
+
+            e.ToTable("channel_members");
+
+            // Key
+
+            e.HasKey(x => x.Id);
+
+            // Properties
+
+            e.Property(x => x.ChannelId)
+                .HasColumnName("channel_id");
+
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+
+            // Relationships
+
+            e.HasOne(x => x.User)
+                .WithMany(x => x.ChannelMembership)
+                .HasForeignKey(x => x.UserId);
+
+            e.HasOne(x => x.Channel)
+                .WithMany(x => x.Members)
+                .HasForeignKey(x => x.ChannelId);
+            
+            // Indices
+            
+            e.HasIndex(x => x.Id)
+                .IsUnique();
+            
+            e.HasIndex(x => new { x.ChannelId, x.UserId });
+
+        });
+    }
 }
