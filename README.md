@@ -40,7 +40,7 @@ Planets can deploy a currency and economic system in two clicks. Why? Don't both
 
 Valour Nodes are designed to be able to run independantly of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
 
-## Contibute
+## Contribute
 
 To contribute to Valour, getting a mock server environment set up is crucial. Here's a simple walkthough:
 
