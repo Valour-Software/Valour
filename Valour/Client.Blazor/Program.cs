@@ -1,6 +1,6 @@
+using System.Globalization;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.JSInterop;
 using Valour.Sdk.Client;
 using Valour.Client.Categories;
 using Valour.Client.Components.Sidebar.ChannelList;
@@ -63,6 +63,11 @@ public class Program
         builder.Services.AddSingleton(client.OauthService);
         builder.Services.AddSingleton(client.SafetyService);
         builder.Services.AddSingleton(client.ThemeService);
+        
+        // localization
+        var defaultCulture = new CultureInfo("en-US"); // we can dynamically change this later if we want to extend to other languages
+        CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = defaultCulture;
         
         var host = builder.Build();
         await host.RunAsync();
