@@ -34,6 +34,8 @@ public class Planet : ISharedPlanet
     
     public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
     
+    public virtual ICollection<PlanetBan> BanRole { get; set; }
+    
 
     
     ///////////////////////
