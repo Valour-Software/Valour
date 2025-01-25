@@ -117,6 +117,20 @@ public class PermissionsNode : ISharedPermissionsNode
             e.HasOne(x =>  x.Target)
                 .WithMany(x => x.Permissions)
                 .HasForeignKey(x => x.TargetId);
+            
+            // Indices
+            
+            e.HasIndex(x => x.Id);
+            
+            e.HasIndex(x => x.PlanetId);
+            
+            e.HasIndex(x => x.TargetId);
+            
+            e.HasIndex(x => x.RoleId);
+            
+            e.HasIndex(x => x.Mask);
+            
+            e.HasIndex(x => x.Code);
         });
     }
 }

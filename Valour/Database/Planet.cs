@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -106,4 +107,51 @@ public class Planet : ISharedPlanet
     // Only to fulfill contract
     [NotMapped]
     public new string NodeName { get; set; }
+
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<Planet>(e =>
+        {
+            // ToTable
+            e.ToTable("planets");
+            
+            // Key
+            e.HasKey(x => x.Id);
+            
+            // Properties
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.OwnerId)
+                .HasColumnName("owner_id");
+            
+            e.Property(x => x.Name)
+                .HasColumnName("name");
+            
+            e.Property(x => x.Description)
+                .HasColumnName("description");
+            
+            e.Property(x => x.Public)
+                .HasColumnName("public");
+            
+            e.Property(x => x.Discoverable)
+                .HasColumnName("discoverable");
+            
+            e.Property(x => x.IsDeleted)
+                .HasColumnName("is_deleted");
+            
+            e.Property(x => x.Nsfw)
+                .HasColumnName("nsfw");
+
+            e.Property(x => x.NodeName);
+            
+            // Relationships
+            
+            // Indices
+            
+            e.HasIndex(x => x.OwnerId);
+
+        });
+    }
 }
