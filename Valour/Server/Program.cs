@@ -285,6 +285,7 @@ public partial class Program
         services.AddScoped<CurrentlyTypingService>();
         services.AddScoped<OauthAppService>();
         services.AddScoped<PermissionsNodeService>();
+        services.AddScoped<MultiAuthService>();
 
         services.AddScoped<OauthAppService>();
         services.AddScoped<PlanetBanService>();

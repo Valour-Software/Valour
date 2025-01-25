@@ -1,0 +1,84 @@
+@inherits Modal<List<string>>
+@inject AuthService AuthService
+
+<div class="col-md-12">
+    <section class="modal-bg flex flex-column">
+        @if (_complete || Data.Count > 0)
+        {
+            <h3>MFA Already Setup</h3>
+        }
+        else
+        {
+            <h3>Setup MFA</h3>
+            
+            @if (_loading)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                if (_createResult.Success)
+                {
+                    <img class="mb-4" alt="MFA QR Code" src="@_createResult.Data.QRCode" />
+                
+                    <code>
+                        @_createResult.Data.Key
+                    </code>
+                    <span class="mb-4">Manual Code</span>
+
+                    <p>Scan the QR code with your authenticator app, or enter the manual code to setup MFA</p>
+                
+                    <input class="form-control" type="text" placeholder="Enter Code" @bind-value="@_multiFactorCode" />
+                
+                    <button class="v-btn blue" @onclick="@OnClickMultiFactorAuth">Submit</button>
+                
+                    @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
+                    {
+                        <span class="text-danger mt-4">@_multiFactorSpan</span>
+                    }
+                }
+                else
+                {
+                    <p class="error">Error setting up MFA</p>
+                }
+            }
+        }
+    </section>
+</div>
+
+@code {
+
+    private int _page = 0;
+    
+    private bool _loading = true;
+    private TaskResult<CreateAppMultiAuthResponse> _createResult;
+    
+    private string _multiFactorSpan;
+    private string _multiFactorCode;
+
+    private bool _complete = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _createResult = await AuthService.SetupMultiAuthAsync();
+        _loading = false;
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnClickMultiFactorAuth()
+    {
+        var multiResult = await AuthService.VerifyMultiAuthAsync(_multiFactorCode);
+        if (multiResult.Success)
+        {
+            _complete = true;
+            StateHasChanged();
+        }
+        else
+        {
+            _multiFactorSpan = "Invalid code.";
+            StateHasChanged();
+        }
+    }
+
+}

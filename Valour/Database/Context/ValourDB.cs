@@ -73,9 +73,14 @@ public partial class ValourDb : DbContext
     public DbSet<Credential> Credentials { get; set; }
 
     /// <summary>
+    /// Table for multi-auth information
+    /// </summary>
+    public DbSet<MultiAuth> MultiAuths { get; set; }
+
+    /// <summary>
     /// Table for email information
     /// </summary>
-    public DbSet<UserPrivateInfo> UserEmails { get; set; }
+    public DbSet<UserPrivateInfo> PrivateInfos { get; set; }
 
     /// <summary>
     /// Table for blocked email addresses and hosts
@@ -234,6 +239,7 @@ public partial class ValourDb : DbContext
         AuthToken.SetupDbModel(modelBuilder);
         OauthApp.SetupDbModel(modelBuilder);
         Channel.SetupDbModel(modelBuilder);
+        MultiAuth.SetupDbModel(modelBuilder);
     }
 }
 

@@ -114,7 +114,7 @@ public class UserApi
 
         var query = "";
 
-        var userInfo = await db.UserEmails.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
+        var userInfo = await db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
         if (!string.IsNullOrWhiteSpace(userInfo.JoinInviteCode))
         {
             query = $"?redirect=/i/{userInfo.JoinInviteCode}";
@@ -179,7 +179,8 @@ public class UserApi
     public static async Task<IResult> GetTokenRouteAsync(
         [FromBody] TokenRequest tokenRequest,
         HttpContext ctx,
-        UserService userService)
+        UserService userService,
+        MultiAuthService multiAuthService)
     {
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
@@ -197,15 +198,45 @@ public class UserApi
         if (user.Disabled)
             return ValourResult.Forbid("Your account is disabled.");
 
-        var validResult = await userService.ValidateCredentialAsync(Valour.Database.CredentialType.PASSWORD, tokenRequest.Email, tokenRequest.Password);
-        if (!validResult.Success)
-            return Results.Unauthorized();
+        Models.AuthToken? token = null;
+        
+        // Check for multi auth
+        var multiAuths = await multiAuthService.GetAppMultiAuthTypes(userPrivateInfo.UserId);
+        var requiresMultiAuth = multiAuths.Count > 0;
+        if (requiresMultiAuth){
+            if (string.IsNullOrWhiteSpace(tokenRequest.MultiFactorCode))
+            {
+                return Results.Json(new AuthResult
+                {
+                    Success = true,
+                    Token = null,
+                    Message = "Multi-auth is required for this account.",
+                    RequiresMultiAuth = true
+                });
+            }
+            else
+            {
+                var mfaValid = multiAuthService.VerifyAppMultiAuth(userPrivateInfo.UserId, tokenRequest.MultiFactorCode);
+                if (!mfaValid.Result.Success)
+                    return ValourResult.Forbid("Invalid code.");
+            }
+        }
 
-        var result = await userService.GetTokenAfterLoginAsync(ctx, userPrivateInfo.UserId);
-        if (!result.Success)
-            return ValourResult.Problem(result.Message);
+        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, tokenRequest.Email, tokenRequest.Password);
+        if (validResult.Success) {            
+            var result = await userService.GetTokenAfterLoginAsync(ctx, userPrivateInfo.UserId);
+            if (!result.Success)
+                return ValourResult.Problem(result.Message);
 
-        return Results.Json(result.Data);
+            token = result.Data;
+        }
+
+        return Results.Json(new AuthResult {
+            Success = validResult.Success,
+            Token = token,
+            Message = validResult.Message,
+            RequiresMultiAuth = false
+        });
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/me/recovery")]
@@ -358,6 +389,46 @@ public class UserApi
             added = result.added,
             addedBy = result.addedBy
         });
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/users/me/multiAuth")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> GetMultiFactorRouteAsync(
+        UserService userService,
+        MultiAuthService multiAuthService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await multiAuthService.GetAppMultiAuthTypes(userId);
+        return Results.Json(result);
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> SetupMultiFactorRouteAsync(
+        [FromBody] CreateAppMultiAuthResponse request,
+        UserService userService,
+        MultiAuthService multiAuthService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await multiAuthService.CreateAppMultiAuth(userId);
+        
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        return Results.Json(result.Data);
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/verify/{code}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> VerifyMultiFactorRouteAsync(
+        string code,
+        UserService userService,
+        MultiAuthService multiAuthService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await multiAuthService.VerifyAppMultiAuth(userId, code);
+        
+        return Results.Json(result.Success);
     }
     
     [ValourRoute(HttpVerbs.Get, "api/users/me/tenorfavorites")]
