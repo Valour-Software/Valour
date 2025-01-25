@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -64,5 +65,67 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     /// </summary>
     [Column("join_source")]
     public string JoinSource { get; set; }
+
+
+    public static void SetUpDDModel(ModelBuilder builder)
+    {
+        builder.Entity<UserPrivateInfo>(e =>
+        {
+            // ToTable
+            e.ToTable("user_private_info");
+            
+            // key
+            e.HasKey(x => x.Email);
+            
+            // Property
+            e.Property(x => x.Email)
+                .HasColumnName("email");
+            
+            e.Property(x => x.Verified)
+                .HasColumnName("verified");
+            
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+
+            e.Property(x => x.BirthDate)
+                .HasColumnName("birth_date")
+                .HasConversion(
+                    x => x,
+                    x => x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
+                );
+
+            e.Property(x => x.Locality)
+                .HasColumnName("locality")
+                .HasConversion(
+                    x => x.ToString(),
+                    x => (Locality)Enum.Parse(typeof(Locality), x)
+                );
+            
+            e.Property(x => x.JoinInviteCode)
+                .HasColumnName("join_invite_code");
+            
+            e.Property(x => x.JoinSource)
+                .HasColumnName("join_source");
+            
+            // Relationships
+            
+            e.HasOne(x => x.User)
+                .WithMany(x => x.UserPrivateInfo)
+                .HasForeignKey(x => x.UserId);
+            
+            // Indices
+            
+            e.HasIndex(x => x.UserId)
+                .IsUnique();
+            
+            e.HasIndex(x => x.BirthDate);
+            
+            e.HasIndex(x => x.Locality);
+
+            e.HasIndex(x => x.JoinInviteCode);
+            
+            e.HasIndex(x => x.Email);
+        });
+    }
 }
 

@@ -50,7 +50,14 @@ namespace Valour.Database
         /// Channel states for this user.
         /// </summary>
         public virtual ICollection<UserChannelState> ChannelStates { get; set; }
-
+        
+        /// <summary>
+        /// Privateinfo for this user.
+        /// </summary>
+        public virtual ICollection<UserPrivateInfo> UserPrivateInfo { get; set; }
+        
+        
+        
         ///////////////////////
         // Entity Properties //
         ///////////////////////
