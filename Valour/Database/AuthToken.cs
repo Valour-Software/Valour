@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -57,5 +58,68 @@ public class AuthToken : ISharedAuthToken
     /// </summary>
     [Column("issued_address")]
     public string IssuedAddress { get; set; }
+
+
+    public static void SetUpDDModel(ModelBuilder builder)
+    {
+        builder.Entity<AuthToken>(e =>
+        {
+            // ToTable
+
+            e.ToTable("auth_tokens");
+            
+            // Key
+            
+            e.HasKey(x => x.Id);
+            
+            // Properties
+
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.AppId)
+                .HasColumnName("app_id");
+            
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+            
+            e.Property(x => x.Scope)
+                .HasColumnName("scope");
+
+            e.Property(x => x.TimeCreated)
+                .HasColumnName("time_created")
+                .HasConversion(
+                    x => x,
+                    x => new DateTime(x.Ticks, DateTimeKind.Utc)
+                );
+
+            e.Property(x => x.TimeExpires)
+                .HasColumnName("time_expires")
+                .HasConversion(
+                    x => x,
+                    x => new DateTime(x.Ticks, DateTimeKind.Utc)
+                );
+            
+            e.Property(x => x.IssuedAddress)
+                .HasColumnName("issued_address");
+            
+            // Relationships
+
+            e.HasOne(x => x.User)
+                .WithMany(x => x.OwnedTokens)
+                .HasForeignKey(x => x.UserId);
+            
+            // Indices
+            
+            e.HasIndex(x => x.Id)
+                .IsUnique();
+
+            e.HasIndex(x => x.UserId)
+                .IsUnique();
+
+            e.HasIndex(x => x.Scope);
+        });
+    }
+
 }
 

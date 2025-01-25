@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -21,4 +22,41 @@ public class TenorFavorite : ISharedTenorFavorite
     
     [Column("tenor_id")]
     public string TenorId { get; set; }
+
+
+    public static void SetUpDdModel(ModelBuilder builder)
+    {
+        builder.Entity<TenorFavorite>(e =>
+        {
+            // ToTable
+            
+            e.ToTable("tenor_favorites");
+            
+            // Key
+            
+            // Properties
+
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+            
+            e.Property(x => x.TenorId)
+                .HasColumnName("tenor_id");
+            
+            // Relationships 
+            
+            // Indices
+            
+            e.HasIndex(x => x.Id);   
+            
+            e.HasIndex(x => x.TenorId);
+            
+            e.HasIndex(x => x.UserId)
+                .IsUnique();
+
+
+        });
+    }
 }
