@@ -15,11 +15,26 @@ namespace Valour.Database
         /// Private info associated with this user.
         /// </summary>
         public virtual UserPrivateInfo PrivateInfo { get; set; }
+        
+        /// <summary>
+        /// The user's referral.
+        /// </summary>
+        public virtual Referral ReferredBy { get; set; }
 
         /// <summary>
         /// The membership of this user in different planets.
         /// </summary>
         public virtual ICollection<PlanetMember> Membership { get; set; }
+        
+        /// <summary>
+        /// The role membership of this user in different planets.
+        /// </summary>
+        public virtual ICollection<PlanetRoleMember> RoleMemberships { get; set; }
+        
+        /// <summary>
+        /// The membership of this user in different channels.
+        /// </summary>
+        public virtual ICollection<ChannelMember> ChannelMembership { get; set; }
         
         /// <summary>
         /// User ownedApps
@@ -49,7 +64,12 @@ namespace Valour.Database
         /// <summary>
         /// Rewards for this user.
         /// </summary>
-        public virtual ICollection<Referral> Rewards { get; set; }
+        public virtual ICollection<UserPrivateInfo> UserPrivateInfo { get; set; }
+        
+        /// <summary>
+        /// Rewards for this user.
+        /// </summary>
+        public virtual ICollection<Referral> Referrals { get; set; }
         
         /// <summary>
         /// Notification of Subscriptions for this user.

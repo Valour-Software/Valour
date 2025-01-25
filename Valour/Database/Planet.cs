@@ -29,7 +29,7 @@ public class Planet : ISharedPlanet
     public virtual ICollection<Message> Messages { get; set; }
     
     public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
-
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

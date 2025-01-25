@@ -241,7 +241,9 @@ public partial class ValourDb : DbContext
         Channel.SetupDbModel(modelBuilder);
         MultiAuth.SetupDbModel(modelBuilder);
         PushNotificationSubscription.SetUpDbModel(modelBuilder);
-        UserPrivateInfo.SetUpDbModel(modelBuilder);
+        UserPrivateInfo.SetupDbModel(modelBuilder);
+        Referral.SetupDbModel(modelBuilder);
+        Valour.Database.NodeStats.SetupDbModel(modelBuilder);
     }
 }
 

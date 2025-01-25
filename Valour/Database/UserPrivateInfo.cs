@@ -52,7 +52,7 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     /// </summary>
     public string JoinSource { get; set; }
 
-    public static void SetUpDbModel(ModelBuilder builder)
+    public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<UserPrivateInfo>(e =>
         {
