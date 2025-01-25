@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Valour.Database;
 
@@ -50,5 +51,57 @@ public class StatObject
 
     [Column("time_created")] 
     public DateTime TimeCreated { get; set; }
+
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<StatObject>(e =>
+        {
+            // ToTable
+            e.ToTable("stat_objects");
+            
+            // Key
+            e.HasKey(x => x.Id);
+            
+            // Properties
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.MessagesSent)
+                .HasColumnName("messages_sent");
+            
+            e.Property(x => x.UserCount)
+                .HasColumnName("user_count");
+            
+            e.Property(x => x.PlanetCount)
+                .HasColumnName("planet_count");
+            
+            e.Property(x => x.PlanetMemberCount)
+                .HasColumnName("planet_member_count");
+            
+            e.Property(x => x.ChannelCount)
+                .HasColumnName("channel_count");
+            
+            e.Property(x => x.CategoryCount)
+                .HasColumnName("category_count");
+            
+            e.Property(x => x.MessageDayCount)
+                .HasColumnName("message_day_count");
+
+            e.Property(x => x.TimeCreated)
+                .HasColumnName("time_created")
+                .HasConversion(
+                    x => x,
+                    x => new DateTime(x.Ticks, DateTimeKind.Utc)
+                );
+            
+            // Relationships
+            
+            // Indices
+            
+            e.HasIndex(x => x.Id)
+                .IsUnique();
+        });
+    }
 }
 
