@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Valour.Database;
 
@@ -38,4 +39,41 @@ public class PrimaryNodeConnection
     /// </summary>
     [Column("open_time")]
     public DateTime OpenTime { get; set; }
+
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<PrimaryNodeConnection>(e =>
+        {
+            // ToTable
+            e.ToTable("primary_node_connections");
+
+            // Key
+            e.HasKey(x => x.ConnectionId);
+
+            // Properties
+
+            e.Property(x => x.ConnectionId)
+                .HasColumnName("connection_id");
+            
+            e.Property(x => x.NodeId)
+                .HasColumnName("node_id");
+
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+
+            e.Property(x => x.OpenTime)
+                .HasColumnName("open_time")
+                .HasConversion(
+                    x => x,
+                    x => new DateTime(x.Ticks, DateTimeKind.Utc)
+                    );
+            
+            // Relationships
+            
+            // Indices
+            
+            e.HasIndex(x => x.UserId);
+        });
+    }
 }

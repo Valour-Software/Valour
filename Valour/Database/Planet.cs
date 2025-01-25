@@ -24,6 +24,9 @@ public class Planet : ISharedPlanet
     public virtual ICollection<Channel> Channels { get; set; }
 
     [InverseProperty("Planet")]
+    public virtual ICollection<PermissionsNode> PlanetNodes { get; set; }
+
+    [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
     
     public virtual ICollection<Message> Messages { get; set; }

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -67,5 +68,56 @@ public class PermissionsNode : ISharedPermissionsNode
     /// </summary>
     [Column("target_type")]
     public ChannelTypeEnum TargetType { get; set; }
+
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<PermissionsNode>(e =>
+        {
+            // ToTable
+            e.ToTable("permissions_nodes");
+            
+            // Key
+            e.HasKey(x => x.Id);
+            
+            // Properties
+
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.PlanetId)
+                .HasColumnName("planet_id");
+            
+            e.Property(x => x.Code)
+                .HasColumnName("code");
+            
+            e.Property(x => x.Mask)
+                .HasColumnName("mask");
+            
+            e.Property(x => x.RoleId)
+                .HasColumnName("role_id");
+            
+            e.Property(x => x.TargetId)
+                .HasColumnName("target_id");
+            
+            e.Property(x => x.TargetType)
+                .HasColumnName("target_type");
+            
+            // Relationships
+
+            e.HasOne(x => x.Planet)
+                .WithMany(x => x.PlanetNodes)
+                .HasForeignKey(x => x.PlanetId);
+            
+            
+            e.HasOne(x => x.Role)
+                .WithMany(x => x.PermissionNodes)
+                .HasForeignKey(x => x.RoleId);
+            
+            e.HasOne(x =>  x.Target)
+                .WithMany(x => x.Permissions)
+                .HasForeignKey(x => x.TargetId);
+        });
+    }
 }
 

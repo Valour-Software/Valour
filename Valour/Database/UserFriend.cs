@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -36,6 +37,7 @@ public class UserFriend : ISharedUserFriend
     /// <summary>
     /// The id of the user friend model
     /// </summary>
+    [Column("model_id")]
     public long Id { get; set; }
 
     /// <summary>
@@ -54,5 +56,28 @@ public class UserFriend : ISharedUserFriend
     public object GetId()
     {
         return (UserId, FriendId);
+    }
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<UserFriend>(e =>
+        {
+            // ToTable
+            e.ToTable("user_friends");
+            
+            // Key
+            e.HasKey(x => x.GetId());
+            
+            // Properties
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+            
+            e.Property(x => x.FriendId)
+                .HasColumnName("friend_id");
+            
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+        });
     }
 }

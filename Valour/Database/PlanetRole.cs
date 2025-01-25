@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -102,4 +103,94 @@ public class PlanetRole : ISharedPlanetRole
 
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
+
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<PlanetRole>(e =>
+        {
+            // ToTable
+            e.ToTable("planet_roles");
+            
+            // Key
+            
+            e.HasKey(x => x.Id);
+            
+            // Properties
+
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.IsAdmin)
+                .HasColumnName("is_admin");
+            
+            e.Property(x => x.PlanetId)
+                .HasColumnName("planet_id");
+            
+            e.Property(x => x.Position)
+                .HasColumnName("position");
+            
+            e.Property(x => x.IsDefault)
+                .HasColumnName("is_default");
+            
+            e.Property(x => x.Permissions)
+                .HasColumnName("permissions");
+
+            e.Property(x => x.ChatPermissions)
+                .HasColumnName("chat_perms");
+            
+            e.Property(x => x.CategoryPermissions)
+                .HasColumnName("category_perms");
+            
+            e.Property(x => x.VoicePermissions)
+                .HasColumnName("voice_perms");
+            
+            e.Property(x => x.Color)
+                .HasColumnName("color");
+            
+            e.Property(x => x.Bold)
+                .HasColumnName("bold");
+            
+            e.Property(x => x.Italics)
+                .HasColumnName("italics");
+            
+            e.Property(x => x.Name)
+                .HasColumnName("name");
+            
+            e.Property(x => x.AnyoneCanMention)
+                .HasColumnName("anyone_can_mention");
+            
+            // Relationships
+
+            e.HasOne(x => x.Planet)
+                .WithMany(x => x.Roles)
+                .HasForeignKey(x => x.PlanetId);
+            
+            // Indices
+
+            e.HasIndex(x => x.Position);
+            
+            e.HasIndex(x => x.IsDefault);
+            
+            e.HasIndex(x => x.Permissions);
+            
+            e.HasIndex(x => x.ChatPermissions);
+            
+            e.HasIndex(x => x.CategoryPermissions);
+            
+            e.HasIndex(x => x.VoicePermissions);
+            
+            e.HasIndex(x => x.Color);
+            
+            e.HasIndex(x => x.Bold);
+            
+            e.HasIndex(x => x.Italics);
+            
+            e.HasIndex(x => x.PlanetId);
+            
+
+
+
+        });
+    }
 }
