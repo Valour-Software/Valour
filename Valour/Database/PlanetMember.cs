@@ -25,6 +25,9 @@ public class PlanetMember : ISharedPlanetMember
     [JsonIgnore]
     public virtual ICollection<Message> Messages { get; set; }
     
+  
+    
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

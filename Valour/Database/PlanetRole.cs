@@ -18,6 +18,10 @@ public class PlanetRole : ISharedPlanetRole
     [InverseProperty("Role")]
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
     
+    [InverseProperty("Role")]
+    public virtual ICollection<PlanetRoleMember> Roles { get; set; }
+
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
