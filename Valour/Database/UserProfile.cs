@@ -87,25 +87,35 @@ public class UserProfile : ISharedUserProfile
             
             // Properties
 
-            e.Property(x => x.Headline);
+            e.Property(x => x.Headline)
+                .HasColumnName("headline");
 
-            e.Property(x => x.Bio);
+            e.Property(x => x.Bio)
+                .HasColumnName("bio");
 
-            e.Property(x => x.BorderColor);
+            e.Property(x => x.BorderColor)
+                .HasColumnName("border_color");
 
-            e.Property(x => x.GlowColor);
+            e.Property(x => x.GlowColor)
+                .HasColumnName("glow_color");
 
-            e.Property(x => x.TextColor);
+            e.Property(x => x.TextColor)
+                .HasColumnName("text_color");
 
-            e.Property(x => x.PrimaryColor);
+            e.Property(x => x.PrimaryColor)
+                .HasColumnName("primary_color");
             
-            e.Property(x => x.SecondaryColor);
+            e.Property(x => x.SecondaryColor)
+                .HasColumnName("secondary_color");
 
-            e.Property(x => x.TertiaryColor);
+            e.Property(x => x.TertiaryColor)
+                .HasColumnName("tertiary_color");
             
-            e.Property(x => x.AnimatedBorder);
+            e.Property(x => x.AnimatedBorder)
+                .HasColumnName("animated_border");
             
-            e.Property(x => x.BackgroundImage);
+            e.Property(x => x.BackgroundImage)
+                .HasColumnName("background_image");
             
             // Relationships
             
