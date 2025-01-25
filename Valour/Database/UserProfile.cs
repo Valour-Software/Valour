@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -73,4 +74,47 @@ public class UserProfile : ISharedUserProfile
     /// </summary>
     [Column("bg_image")]
     public string BackgroundImage { get; set; }
+
+    public static void SetUpDDModel(ModelBuilder builder)
+    {
+        builder.Entity<UserProfile>(e =>
+        {
+            // TOtable
+            e.ToTable("user_profiles");
+            
+            // Key
+            e.HasKey(x => x.Id);
+            
+            // Properties
+
+            e.Property(x => x.Headline);
+
+            e.Property(x => x.Bio);
+
+            e.Property(x => x.BorderColor);
+
+            e.Property(x => x.GlowColor);
+
+            e.Property(x => x.TextColor);
+
+            e.Property(x => x.PrimaryColor);
+            
+            e.Property(x => x.SecondaryColor);
+
+            e.Property(x => x.TertiaryColor);
+            
+            e.Property(x => x.AnimatedBorder);
+            
+            e.Property(x => x.BackgroundImage);
+            
+            // Relationships
+            
+            // Indices
+            
+            e.HasIndex(x => x.Id)
+                .IsUnique();
+            
+
+        });
+    }
 }
