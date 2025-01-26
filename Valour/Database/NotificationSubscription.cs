@@ -52,6 +52,9 @@ public class NotificationSubscription : ISharedNotificationSubscription
             e.Property(x => x.Id)
                 .HasColumnName("id");
             
+            e.Property(x => x.Endpoint)
+                .HasColumnName("endpoint");
+            
             e.Property(x => x.UserId)
                 .HasColumnName("user_id");
             
