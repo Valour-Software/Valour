@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace Valour.Database;
 
@@ -43,5 +44,39 @@ public class CdnProxyItem
     /// </summary>
     [JsonIgnore]
     public string Url => $"https://cdn.valour.gg/proxy/{Id}";
+
+    public static void SetUpDbmodel(ModelBuilder builder)
+    {
+        builder.Entity<CdnProxyItem>(e =>
+        {
+            // ToTable
+            e.ToTable("cdn_proxies");
+            
+            // Key
+            e.HasKey(x => x.Id);
+            
+            // Properties
+            e.Property(x => x.Origin)
+                .HasColumnName("origin");
+            
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.MimeType)
+                .HasColumnName("mime_type");
+            
+            e.Property(x => x.Width)
+                .HasColumnName("width");
+            
+            e.Property(x => x.Height)
+                .HasColumnName("height");
+            
+            // Relationships
+            
+            // Indices
+
+            e.HasIndex(x => x.Id);
+        });
+    }
 }
 
