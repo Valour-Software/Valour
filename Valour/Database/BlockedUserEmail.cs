@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Valour.Database;
 
@@ -16,4 +17,20 @@ public class BlockedUserEmail
     [Key]
     [Column("email")]
     public string Email { get; set; }
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<BlockedUserEmail>(e =>
+        {
+            // ToTable
+            e.ToTable("blocked_user_emails");
+            
+            // key
+            e.HasKey(x => x.Email);
+            
+            // Properties
+            e.Property(x => x.Email)
+                .HasColumnName("email");
+        });
+    }
 }

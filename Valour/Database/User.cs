@@ -71,6 +71,13 @@ namespace Valour.Database
         /// </summary>
         public virtual ICollection<NotificationSubscription> NotificationSubscriptions { get; set; }
         
+        /// <summary>
+        /// Email confirmation code for this user.
+        /// </summary>
+        public virtual ICollection<EmailConfirmCode> EmailConfirmCodes { get; set; }
+        
+        
+        
         
         ///////////////////////
         // Entity Properties //

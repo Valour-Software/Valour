@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Valour.Database;
 
@@ -32,5 +33,34 @@ public class EmailConfirmCode
     /// </summary>
     [Column("user_id")]
     public long UserId { get; set; }
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<EmailConfirmCode>(e =>
+        {
+            // ToTable
+            e.ToTable("email_confirm_codes");
+            
+            // Key
+            e.HasKey(x => x.Code);
+            
+            // Properties
+            e.Property(x => x.Code)
+                .HasColumnName("code");
+            
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+            
+            // Relationships
+            e.HasOne(x => x.User)
+                .WithMany(x => x.EmailConfirmCodes)
+                .HasForeignKey(x => x.UserId);
+            
+            
+            // Indices
+            e.HasIndex(x => x.UserId)
+                .IsUnique();
+        });
+    }
 }
 
