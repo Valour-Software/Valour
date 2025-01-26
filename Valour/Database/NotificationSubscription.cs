@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -36,4 +37,44 @@ public class NotificationSubscription : ISharedNotificationSubscription
 
     [Column("auth")]
     public string Auth { get; set; }
+
+    public static void SetUpDbModel(ModelBuilder builder)
+    {
+        builder.Entity<NotificationSubscription>(e =>
+        {
+            // ToTable
+            e.ToTable("notification_subscriptions");
+            
+            // Key
+            e.HasKey(x => x.Id);
+            
+            // Properties
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.UserId)
+                .HasColumnName("user_id");
+            
+            e.Property(x => x.Key)
+                .HasColumnName("key");
+            
+            e.Property(x => x.Auth)
+                .HasColumnName("auth");
+            
+            // Relationships
+
+            e.HasOne(x => x.User)
+                .WithMany(x => x.NotificationSubscriptions)
+                .HasForeignKey(x => x.UserId);
+            
+            // Indices
+            
+            e.HasIndex(x => x.UserId)
+                .IsUnique();
+            
+            e.HasIndex(x => x.Id)
+                .IsUnique();
+
+        });
+    }
 }

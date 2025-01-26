@@ -66,6 +66,11 @@ namespace Valour.Database
         /// </summary>
         public virtual ICollection<Referral> Rewards { get; set; }
         
+        /// <summary>
+        /// Notification of Subscriptions for this user.
+        /// </summary>
+        public virtual ICollection<NotificationSubscription> NotificationSubscriptions { get; set; }
+        
         
         ///////////////////////
         // Entity Properties //
