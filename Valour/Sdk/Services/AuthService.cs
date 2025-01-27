@@ -160,7 +160,7 @@ public class AuthService : ServiceBase
     /// <summary>
     /// Returns all the multi-factor authentication methods available to the user
     /// </summary>
-    public async Task<List<string>> GetMultiAuthMethodsAsync()
+    public async Task<List<string>> GetMfaMethodsAsync()
     {
         var response = await _client.PrimaryNode.GetJsonAsync<List<string>>("api/users/me/multiauth");
 
@@ -177,12 +177,12 @@ public class AuthService : ServiceBase
     /// <summary>
     /// Requests and sets up a multi-factor authentication key
     /// </summary>
-    public async Task<TaskResult<CreateAppMultiAuthResponse>> SetupMultiAuthAsync()
+    public async Task<TaskResult<CreateAppMultiAuthResponse>> SetupMfaAsync()
     {
         return await _client.PrimaryNode.PostAsyncWithResponse<CreateAppMultiAuthResponse>($"api/users/me/multiAuth", null);
     }
     
-    public async Task<TaskResult> VerifyMultiAuthAsync(string code)
+    public async Task<TaskResult> VerifyMfaAsync(string code)
     {
         var result = await _client.PrimaryNode.PostAsyncWithResponse<bool>($"api/users/me/multiAuth/verify/{code}", null);
         
@@ -193,5 +193,15 @@ public class AuthService : ServiceBase
             return new TaskResult(true, "Invalid code");
 
         return TaskResult.SuccessResult;
+    }
+    
+    public async Task<TaskResult> RemoveMfaAsync(string password)
+    {
+        var request = new RemoveMfaRequest()
+        {
+            Password = password
+        };
+        
+        return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
     }
 }

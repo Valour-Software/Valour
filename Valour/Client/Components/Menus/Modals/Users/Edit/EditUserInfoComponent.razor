@@ -71,6 +71,7 @@ else
     if (_multiAuthMethods.Count > 0)
     {
         <p>Multi-factor codes enabled!</p>
+        <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
     }
     else
     {
@@ -190,7 +191,7 @@ else
         
         StateHasChanged();
 
-        _multiAuthMethods = await AuthService.GetMultiAuthMethodsAsync();
+        _multiAuthMethods = await AuthService.GetMfaMethodsAsync();
         
         StateHasChanged();
     }
@@ -250,5 +251,15 @@ else
     private void OnClickMfA()
     {
         ModalRoot.OpenModal<SetupMfaModal>(_multiAuthMethods);
+    }
+
+    private void OnClickRemoveMfa()
+    {
+        ModalRoot.OpenModal<PasswordConfirmModal>(new PasswordConfirmModal.Params()
+        {
+            Title = "Remove MFA?",
+            Description = "You will need to enter your password to continue.",
+            Icon = "lock-fill"
+        });
     }
 }

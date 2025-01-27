@@ -203,7 +203,7 @@ public class UserService
         return friends;
     }
 
-    public async Task<UserPrivateInfo> GetUserEmailAsync(string email, bool makelowercase = true)
+    public async Task<UserPrivateInfo> GetUserPrivateInfoAsync(string email, bool makelowercase = true)
     {
         if (!makelowercase)
             return (await _db.PrivateInfos.FindAsync(email)).ToModel();

@@ -495,3 +495,57 @@
 }
 
  */
+
+/* Standard modal */
+
+.v-modal {
+    background-color: var(--main-2);
+    border-radius: 8px 8px 0 0;
+}
+
+@media only screen and (min-width: 800px) {
+    .v-modal {
+        width: 512px;
+    }
+}
+.v-modal {
+    max-height: 760px;
+}
+
+.v-modal .top-section {
+    margin-left: 45px;
+    margin-right: 45px;
+    margin-top: 26px;
+}
+
+.v-modal .top-section .title {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 34px;
+    text-align: center;
+}
+
+.escape-button {
+    position: relative;
+    top: 20px;
+    left: 93%;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.v-modal .bottom {
+    height: 95px;
+    width: 100%;
+    background-color: var(--main-4);
+    border-radius: 0 0 12px 12px;
+}
+
+.v-modal .icon {
+    width: 11px;
+    height: 16px;
+    position: relative;
+    vertical-align: unset;
+    top: 2px;
+    opacity: 0.75;
+}

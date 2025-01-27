@@ -95,4 +95,16 @@ public class MultiAuthService
 
         return TaskResult.FromFailure("Invalid");
     }
+    
+    public async Task<TaskResult> RemoveAppMultiAuth(long userId)
+    {
+        var multiAuth = await _db.MultiAuths.FirstOrDefaultAsync(x => x.UserId == userId && x.Type == "app");
+        if (multiAuth == null)
+            return TaskResult.FromFailure("Invalid");
+
+        _db.MultiAuths.Remove(multiAuth);
+        await _db.SaveChangesAsync();
+
+        return TaskResult.SuccessResult;
+    }
 }

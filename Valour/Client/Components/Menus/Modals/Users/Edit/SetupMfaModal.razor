@@ -60,7 +60,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        _createResult = await AuthService.SetupMultiAuthAsync();
+        _createResult = await AuthService.SetupMfaAsync();
         _loading = false;
         
         StateHasChanged();
@@ -68,7 +68,7 @@
     
     private async Task OnClickMultiFactorAuth()
     {
-        var multiResult = await AuthService.VerifyMultiAuthAsync(_multiFactorCode);
+        var multiResult = await AuthService.VerifyMfaAsync(_multiFactorCode);
         if (multiResult.Success)
         {
             _complete = true;

@@ -185,7 +185,7 @@ public class UserApi
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
 
-        UserPrivateInfo userPrivateInfo = await userService.GetUserEmailAsync(tokenRequest.Email);
+        UserPrivateInfo userPrivateInfo = await userService.GetUserPrivateInfoAsync(tokenRequest.Email);
 
         if (userPrivateInfo is null)
             return ValourResult.InvalidToken();
@@ -299,7 +299,7 @@ public class UserApi
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
-        UserPrivateInfo userPrivateInfo = await userService.GetUserEmailAsync(request.Email);
+        UserPrivateInfo userPrivateInfo = await userService.GetUserPrivateInfoAsync(request.Email);
 
         if (userPrivateInfo is null)
             return ValourResult.NotFound("Could not find user. Retry registration?");
@@ -320,7 +320,7 @@ public class UserApi
         UserService userService,
         HttpContext ctx)
     {
-        var userEmail = await userService.GetUserEmailAsync(email, true);
+        var userEmail = await userService.GetUserPrivateInfoAsync(email, true);
 
         if (userEmail is null)
             return ValourResult.NotFound<UserPrivateInfo>();
@@ -416,6 +416,26 @@ public class UserApi
             return ValourResult.Problem(result.Message);
         
         return Results.Json(result.Data);
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth")]
+    public static async Task<IResult> RemoveMultiFactorRouteAsync(
+        [FromBody] RemoveMfaRequest request,
+        UserService userService,
+        MultiAuthService multiAuthService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        
+        var currentCredential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
+        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.Password);
+        if (!validResult.Success)
+            return ValourResult.Forbid(validResult.Message);
+
+        var result = await multiAuthService.RemoveAppMultiAuth(userId);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok();
     }
     
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/verify/{code}")]
