@@ -261,8 +261,13 @@ else
             Description = "Enter your password to disable Multi-Factor Authentication",
             OnConfirmAsync = async (password) =>
             {
-                var result = await AuthService.RemoveMfaAsync(password);
-
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>()
+                {
+                    ProgressTask = AuthService.RemoveMfaAsync(password),
+                    Title = "Removing MFA",
+                    Message = "Verifying password...",
+                });
+                
                 if (result.Success)
                 {
                     _multiAuthMethods = new List<string>();

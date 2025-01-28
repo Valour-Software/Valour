@@ -195,7 +195,7 @@ public class AuthService : ServiceBase
             return new TaskResult(false, result.Message);
         
         if (!result.Data)
-            return new TaskResult(true, "Invalid code");
+            return new TaskResult(false, "Invalid code");
 
         return TaskResult.SuccessResult;
     }
