@@ -10,6 +10,8 @@
     flex-direction: column;
     gap: 1em;
     text-align: center;
+    max-height: calc(100vh - 8em);
+    overflow: auto;
 }
 
 .basic-modal .top {

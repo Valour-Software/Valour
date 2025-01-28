@@ -1,16 +1,14 @@
 @inherits Modal<List<string>>
 @inject AuthService AuthService
 
-<div class="col-md-12">
-    <section class="modal-bg flex flex-column">
+<BasicModalLayout Title="Setup MFA" Icon="key-fill">
+    <MainArea>
         @if (_complete || Data.Count > 0)
         {
             <h3>MFA Already Setup</h3>
         }
         else
         {
-            <h3>Setup MFA</h3>
-            
             @if (_loading)
             {
                 <p>Loading...</p>
@@ -20,18 +18,16 @@
                 if (_createResult.Success)
                 {
                     <img class="mb-4" alt="MFA QR Code" src="@_createResult.Data.QRCode" />
-                
+
                     <code>
                         @_createResult.Data.Key
                     </code>
-                    <span class="mb-4">Manual Code</span>
+                    <span class="mb-4">Manual Key</span>
 
-                    <p>Scan the QR code with your authenticator app, or enter the manual code to setup MFA</p>
-                
-                    <input class="form-control" type="text" placeholder="Enter Code" @bind-value="@_multiFactorCode" />
-                
-                    <button class="v-btn blue" @onclick="@OnClickMultiFactorAuth">Submit</button>
-                
+                    <p>Scan the QR code or enter the Manual Key into your authenticator app to setup MFA. Then enter a code from your app below.</p>
+
+                    <input class="form-control" type="text" placeholder="Enter App Code" @bind-value="@_multiFactorCode" />
+                    
                     @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
                     {
                         <span class="text-danger mt-4">@_multiFactorSpan</span>
@@ -43,8 +39,21 @@
                 }
             }
         }
-    </section>
-</div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_complete || Data.Count > 0)
+            {
+                <button class="v-btn" @onclick="@Close">Close</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="@Close">Cancel</button>
+                <button class="v-btn blue" @onclick="@OnClickMultiFactorAuth">Submit</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 
@@ -73,6 +82,8 @@
         {
             _complete = true;
             StateHasChanged();
+            
+            Close();
         }
         else
         {
