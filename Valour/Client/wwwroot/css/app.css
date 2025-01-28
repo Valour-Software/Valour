@@ -89,6 +89,12 @@ label {
     color: var(--font-color);
 }
 
+.form-control::placeholder {
+    color: var(--font-color) !important;
+    opacity: 0.65 !important;
+    font-style: italic;
+}
+
 .form-control:focus {
     background-color: var(--slight-tint);
     color: var(--font-color);

@@ -549,3 +549,23 @@
     top: 2px;
     opacity: 0.75;
 }
+
+.basic-modal-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+}
+
+.basic-modal-buttons > button {
+    border-radius: 0;
+    flex: 1;
+}
+
+.basic-modal-buttons > button:first-child {
+    border-radius: 0 0 0 8px;
+}
+
+.basic-modal-buttons > button:last-child {
+    border-radius: 0 0 8px 0;
+}

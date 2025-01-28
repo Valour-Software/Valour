@@ -418,7 +418,7 @@ public class UserApi
         return Results.Json(result.Data);
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth")]
+    [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/remove")]
     public static async Task<IResult> RemoveMultiFactorRouteAsync(
         [FromBody] RemoveMfaRequest request,
         UserService userService,

@@ -124,6 +124,11 @@ public class AuthService : ServiceBase
             if (!nodeResult.Success)
                 return nodeResult;
         }
+        else
+        {
+            // Update the token if it's already been set
+            _client.PrimaryNode.UpdateToken();
+        }
 
         var response = await _client.PrimaryNode!.GetJsonAsync<User>($"api/users/me");
 

@@ -258,8 +258,19 @@ else
         ModalRoot.OpenModal<PasswordConfirmModal>(new PasswordConfirmModal.Params()
         {
             Title = "Remove MFA?",
-            Description = "You will need to enter your password to continue.",
-            Icon = "lock-fill"
+            Description = "Enter your password to disable Multi-Factor Authentication",
+            OnConfirmAsync = async (password) =>
+            {
+                var result = await AuthService.RemoveMfaAsync(password);
+
+                if (result.Success)
+                {
+                    _multiAuthMethods = new List<string>();
+                    StateHasChanged();
+                }
+                
+                return result;
+            }
         });
     }
 }

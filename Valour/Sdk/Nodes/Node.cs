@@ -112,6 +112,16 @@ public class Node : ServiceBase // each node acts like a service
         return TaskResult.SuccessResult;
     }
 
+    public void UpdateToken()
+    {
+        if (HttpClient.DefaultRequestHeaders.Authorization is not null)
+        {
+            HttpClient.DefaultRequestHeaders.Remove("Authorization");
+        }
+        
+        HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
+    }
+
     private async Task ConnectToUserChannel()
     {
         TaskResult userResult;
