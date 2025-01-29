@@ -1,6 +1,6 @@
 namespace Valour.Server.Mapping;
 
-public static class NotificationSubscriptionMapper
+public static class WebPushSubscriptionMapper
 {
     public static WebPushSubscription ToModel(this Valour.Database.NotificationSubscription subscription)
     {
