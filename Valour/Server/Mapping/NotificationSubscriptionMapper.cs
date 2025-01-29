@@ -1,15 +1,13 @@
-using Valour.Sdk.Models;
-
 namespace Valour.Server.Mapping;
 
 public static class NotificationSubscriptionMapper
 {
-    public static NotificationSubscription ToModel(this Valour.Database.NotificationSubscription subscription)
+    public static WebPushSubscription ToModel(this Valour.Database.NotificationSubscription subscription)
     {
         if (subscription is null)
             return null;
         
-        return new NotificationSubscription()
+        return new WebPushSubscription()
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
@@ -19,7 +17,7 @@ public static class NotificationSubscriptionMapper
         };
     }
     
-    public static Valour.Database.NotificationSubscription ToDatabase(this NotificationSubscription subscription)
+    public static Valour.Database.NotificationSubscription ToDatabase(this WebPushSubscription subscription)
     {
         if (subscription is null)
             return null;

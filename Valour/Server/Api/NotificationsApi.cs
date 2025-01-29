@@ -4,7 +4,7 @@ using Valour.Server.Database;
 
 namespace Valour.Server.API;
 
-public class NotificationsAPI : BaseAPI
+public class NotificationsApi : BaseAPI
 {
     /// <summary>
     /// Adds the routes for this API section

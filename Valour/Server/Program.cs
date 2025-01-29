@@ -87,7 +87,7 @@ public partial class Program
         OauthAPI.AddRoutes(app);
 
         // Notification routes
-        NotificationsAPI.AddRoutes(app);
+        NotificationsApi.AddRoutes(app);
 
         // s3 (r2) setup
 

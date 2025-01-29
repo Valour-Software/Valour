@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.Azure.NotificationHubs;
 using Valour.Config.Configs;
 using Valour.Database;
 using Valour.Server.Database;
@@ -21,6 +22,8 @@ public class NotificationService
     private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly IServiceScopeFactory _scopeFactory;
     
+    private readonly NotificationHubClient _hubClient;
+    
     public NotificationService(
         ValourDb db, 
         UserService userService, 
@@ -34,11 +37,30 @@ public class NotificationService
         _nodeLifecycleService = nodeLifecycleService;
         _scopeFactory = scopeFactory;
         
-        if (_vapidDetails is null)
-            _vapidDetails = new VapidDetails(VapidConfig.Current.Subject, VapidConfig.Current.PublicKey, VapidConfig.Current.PrivateKey);
+        if (!string.IsNullOrWhiteSpace(NotificationsConfig.Current.AzureConnectionString))
+        {
+            _hubClient = NotificationHubClient.CreateClientFromConnectionString(
+                NotificationsConfig.Current.AzureConnectionString, 
+                NotificationsConfig.Current.AzureHubName);
+        }
+    }
+
+    public async Task<TaskResult> SubscribeAsync(WebPushSubscription subscription)
+    {
+        var subId = Guid.NewGuid().ToString();
         
-        if (_webPush is null)
-            _webPush = new WebPushClient();
+        var installation = new Installation
+        {
+            InstallationId = subId,
+            Platform = NotificationPlatform.WebPush,
+            PushChannel = subscription.Endpoint, // The endpoint from the subscription object
+            Tags = new List<string> { userTag }, // Associate with user or channel tags
+            PushChannelHeaders = new Dictionary<string, string>
+            {
+                { "p256dh", subscription.Keys.P256dh },
+                { "auth", subscription.Keys.Auth }
+            }
+        };
     }
     
     public async Task<Notification> GetNotificationAsync(long id)
@@ -129,7 +151,7 @@ public class NotificationService
         _coreHub.RelayNotification(notification, _nodeLifecycleService);
         
         // Send actual push notification to devices
-        await SendPushNotificationAsync(
+        await SendPushNotificationBasicAsync(
             notification.UserId, 
             notification.ImageUrl, 
             notification.Title, 
@@ -149,7 +171,7 @@ public class NotificationService
         _coreHub.RelayNotification(notification, _nodeLifecycleService);
         
         // Send actual push notification to devices
-        await SendPushNotificationAsync(
+        await SendPushNotificationBasicAsync(
             notification.UserId, 
             notification.ImageUrl, 
             notification.Title, 
@@ -193,8 +215,13 @@ public class NotificationService
 
         return Task.CompletedTask;
     }
+    
+    public async Task SendPushNotificationAzureAsync(long userId, string iconUrl, string title, string message, string clickUrl)
+    {
 
-    public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDb db = null)
+    }
+
+    public async Task SendPushNotificationBasicAsync(long userId, string iconUrl, string title, string message, string clickUrl, ValourDb db = null)
     {
         var adb = db ?? _db;
         
@@ -204,7 +231,7 @@ public class NotificationService
         bool dbChange = false;
         
         // List of tasks for notifications. Will return subscription if it fails to be removed.
-        var tasks = new List<Task<NotificationSubscription>>();
+        var tasks = new List<Task<WebPushSubscription>>();
         
         // Send notification to all
         foreach (var sub in subs)

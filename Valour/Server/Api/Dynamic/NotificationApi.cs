@@ -4,6 +4,43 @@ namespace Valour.Server.Api.Dynamic;
 
 public class NotificationApi
 {
+    [ValourRoute(HttpVerbs.Post, "api/notifications/subscribe")]
+    [UserRequired]
+    public static async Task<IResult> SubscribeAsync(
+        WebPushSubscription subscription,
+        NotificationService notificationService,
+        UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        
+        if (subscription.UserId != userId)
+            return ValourResult.Forbid("You do not have permission to subscribe on behalf of another user");
+        
+        var result = await notificationService.SubscribeAsync(subscription);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok();
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/notifications/unsubscribe")]
+    [UserRequired]
+    public static async Task<IResult> UnsubscribeAsync(
+        WebPushSubscription subscription,
+        NotificationService notificationService,
+        UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        if (subscription.UserId != userId)
+            return ValourResult.Forbid("You do not have permission to unsubscribe on behalf of another user");
+        
+        var result = await notificationService.UnsubscribeAsync(subscription);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok();
+    }
+    
     [ValourRoute(HttpVerbs.Get, "api/notifications/self/unread/all")]
     [UserRequired(UserPermissionsEnum.FullControl)] // Notifications could contain anything so we require all permissions
     public static async Task<IResult> GetAllUnreadNotificationsAsync(

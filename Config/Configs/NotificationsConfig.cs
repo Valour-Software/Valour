@@ -2,12 +2,12 @@
 
 namespace Valour.Config.Configs;
 
-public class VapidConfig
+public class NotificationsConfig
 {
-    public static VapidConfig Current;
+    public static NotificationsConfig Current;
     private static VapidDetails _details;
 
-    public VapidConfig()
+    public NotificationsConfig()
     {
         Current = this;
     }
@@ -27,5 +27,8 @@ public class VapidConfig
     public string PublicKey { get; set; }
 
     public string PrivateKey { get; set; }
+    
+    public string AzureConnectionString { get; set; }
+    public string AzureHubName { get; set; }
 }
 
