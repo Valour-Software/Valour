@@ -128,7 +128,7 @@ else
 
     public async Task RequestNotificationSubscriptionAsync()
     {
-        var subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        var subscription = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.requestSubscription");
         if (subscription != null)
         {
             try

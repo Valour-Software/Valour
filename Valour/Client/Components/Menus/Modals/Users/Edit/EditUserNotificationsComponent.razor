@@ -24,12 +24,12 @@
     private bool _notificationsEnabled = false;
     private bool _notificationsBlocked = false;
 
-    private Notifications.NotificationSubscription _subscription = null;
+    private Notifications.PushNotificationSubscription _subscription = null;
 
     protected override async Task OnInitializedAsync()
     {
         _notificationsEnabled = await JsRuntime.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
-        _subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription", false);
+        _subscription = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.requestSubscription", false);
 
         if (_subscription != null)
         {
@@ -45,14 +45,14 @@
     {
         if (_notificationsEnabled)
         {
-            var sub = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.removeSubscription");
+            var sub = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.removeSubscription");
             _notificationsEnabled = false;
 
             await Client.PrimaryNode.PostAsync("api/notification/unsubscribe", sub);
         }
         else
         {
-            _subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+            _subscription = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.requestSubscription");
 
             if (_subscription != null)
             {

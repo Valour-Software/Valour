@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Sdk.Models;
 using Valour.Server.Database;
-using NotificationSubscription = Valour.Sdk.Models.NotificationSubscription;
+using PushNotificationSubscription = Valour.Sdk.Models.PushNotificationSubscription;
 
 namespace Valour.Server.API;
 
@@ -16,7 +16,7 @@ public class NotificationsApi : BaseAPI
         app.MapPost("api/notification/unsubscribe", Unsubscribe);
     }
 
-    public static async Task<IResult> Subscribe(ValourDb db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
+    public static async Task<IResult> Subscribe(ValourDb db, [FromBody] PushNotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();
@@ -63,7 +63,7 @@ public class NotificationsApi : BaseAPI
         return Results.Ok("Subscription was accepted.");
     }
 
-    public static async Task<IResult> Unsubscribe(ValourDb db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
+    public static async Task<IResult> Unsubscribe(ValourDb db, [FromBody] PushNotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();

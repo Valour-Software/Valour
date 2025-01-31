@@ -14,14 +14,14 @@ public class NotificationService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<NotificationService> _logger;
     private readonly PlanetPermissionService _permissionService;
-    private readonly PushNotificationWorker _pushPushNotificationWorker;
+    private readonly PushNotificationWorker _pushNotificationWorker;
     
     public NotificationService(
         ValourDb db, 
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
         IServiceScopeFactory scopeFactory, 
-        ILogger<NotificationService> logger, PlanetPermissionService permissionService, PushNotificationWorker pushPushNotificationWorker)
+        ILogger<NotificationService> logger, PlanetPermissionService permissionService, PushNotificationWorker pushNotificationWorker)
     {
         _db = db;
         _coreHub = coreHub;
@@ -29,7 +29,7 @@ public class NotificationService
         _scopeFactory = scopeFactory;
         _logger = logger;
         _permissionService = permissionService;
-        _pushPushNotificationWorker = pushPushNotificationWorker;
+        _pushNotificationWorker = pushNotificationWorker;
     }
     
     public async Task<Models.Notification> GetNotificationAsync(long id)
@@ -105,7 +105,7 @@ public class NotificationService
             .Select(x => x.ToModel())
             .ToListAsync();
     
-    public async Task SendRoleNotificationAsync(long roleId, Models.Notification baseNotification)
+    public async Task SendRoleNotificationsAsync(long roleId, Models.Notification baseNotification)
     {
         // Create db notifications
         
@@ -128,11 +128,11 @@ public class NotificationService
                 TimeSent = DateTime.UtcNow,
             }).ToListAsync();
         
-        await _db.Notifications.AddRangeAsync(notifications.Select(x => x.ToDatabase()));
+        await _db.Notifications.AddRangeAsync(notifications);
         await _db.SaveChangesAsync();
         
         // Send push notifications
-        await _pushPushNotificationWorker.QueueNotificationAction(new SendRolePushNotification()
+        await _pushNotificationWorker.QueueNotificationAction(new SendRolePushNotification()
         {
             Content = new NotificationContent()
             {
@@ -145,7 +145,7 @@ public class NotificationService
         });
     }
 
-    public async Task HandleMentionAsync(
+    public Task HandleMentionAsync(
         Mention mention, 
         ISharedPlanet planet, 
         ISharedMessage message, 
@@ -156,83 +156,121 @@ public class NotificationService
         switch (mention.Type)
         {
             case MentionType.PlanetMember:
-            {
-                // Member mentions only work in planet channels
-                if (planet is null)
-                    return;
-            
-                var targetMember = await _db.PlanetMembers.FindAsync(mention.TargetId);
-                if (targetMember is null)
-                    return;
-
-                var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
-
-                Models.Notification notification = new()
-                {
-                    Id = IdManager.Generate(),
-                    Title = member.Nickname + " in " + planet.Name,
-                    Body = content,
-                    ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
-                    UserId = targetMember.UserId,
-                    PlanetId = planet.Id,
-                    ChannelId = channel.Id,
-                    SourceId = message.Id,
-                    Source = NotificationSource.PlanetMemberMention,
-                    ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}",
-                    TimeSent = DateTime.UtcNow
-                };
-                
-                // Add notification to database
-                await _db.Notifications.AddAsync(notification.ToDatabase());
-                await _db.SaveChangesAsync();
-
-                // Send notification to all of the user's online Valour instances
-                _coreHub.RelayNotification(notification, _nodeLifecycleService);
-                
-                // Send push notification
-                
-                
-                break;
-            }
+                return HandleMemberMentionAsync(mention, planet, message, member, user, channel);
             case MentionType.User:
-            {
-                // Ensure that the user is a member of the channel
-                if (await _db.ChannelMembers.AnyAsync(x =>
-                        x.UserId == mention.TargetId && x.ChannelId == message.ChannelId))
-                    return;
-            
-                var mentionTargetUser = await _db.Users.FindAsync(mention.TargetId);
-
-                var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
-
-                Notification notif = new()
-                {
-                    Title = user.Name + " mentioned you in DMs",
-                    Body = content,
-                    ImageUrl = user.GetAvatarUrl(AvatarFormat.Webp128),
-                    ClickUrl = $"/channels/{channel.Id}/{message.Id}",
-                    ChannelId = channel.Id,
-                    Source = NotificationSource.DirectMention,
-                    SourceId = message.Id,
-                    UserId = mentionTargetUser.Id,
-                };
-            
-                await AddNotificationAsync(notif);
-                
-                break;
-            }
+                return HandleUserMentionAsync(mention, message, user, channel);
             case MentionType.Role:
-            {
-                
-                
-                break;
-            }
+                return HandleRoleMentionAsync(mention, planet, message, member, user, channel);
             default:
-                return;
+                return Task.CompletedTask;
         }
     }
+    
+    private async Task HandleUserMentionAsync(
+        Mention mention,
+        ISharedMessage message,
+        ISharedUser user,
+        ISharedChannel channel
+    )
+    {
+        // Ensure that the user is a member of the channel
+        if (await _db.ChannelMembers.AnyAsync(x =>
+            x.UserId == mention.TargetId && x.ChannelId == message.ChannelId))
+            return;
+        
+        var mentionTargetUser = await _db.Users.FindAsync(mention.TargetId);
 
-    public async Task HandleMemberMentionAsync(
+        var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
+
+        Models.Notification notification = new()
+        {
+            Title = user.Name + " mentioned you in DMs",
+            Body = content,
+            ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
+            ClickUrl = $"/channels/direct/{channel.Id}/{message.Id}",
+            ChannelId = channel.Id,
+            Source = NotificationSource.DirectMention,
+            SourceId = message.Id,
+            UserId = mentionTargetUser.Id,
+        };
+        
+        // Add notification to database
+        await _db.Notifications.AddAsync(notification.ToDatabase());
+        await _db.SaveChangesAsync();
+
+        // Send notification to all of the user's online Valour instances
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
+        
+        // Send push notification
+        await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
+        {
+            Content = new NotificationContent()
+            {
+                Title = notification.Title,
+                Message = notification.Body,
+                IconUrl = notification.ImageUrl,
+                Url = notification.ClickUrl,
+            },
+            UserId = mentionTargetUser.Id
+        });
+    }
+
+    private async Task HandleMemberMentionAsync(
+        Mention mention,
+        ISharedPlanet planet,
+        ISharedMessage message,
+        ISharedPlanetMember member,
+        ISharedUser user,
+        ISharedChannel channel
+    )
+    {
+        // Member mentions only work in planet channels
+        if (planet is null)
+            return;
+            
+        var targetMember = await _db.PlanetMembers.FindAsync(mention.TargetId);
+        if (targetMember is null)
+            return;
+
+        var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
+
+        Models.Notification notification = new()
+        {
+            Id = IdManager.Generate(),
+            Title = member.Nickname + " in " + planet.Name,
+            Body = content,
+            ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
+            UserId = targetMember.UserId,
+            PlanetId = planet.Id,
+            ChannelId = channel.Id,
+            SourceId = message.Id,
+            Source = NotificationSource.PlanetMemberMention,
+            ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}",
+            TimeSent = DateTime.UtcNow
+        };
+                
+        // Add notification to database
+        await _db.Notifications.AddAsync(notification.ToDatabase());
+        await _db.SaveChangesAsync();
+
+        // Send notification to all of the user's online Valour instances
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
+                
+        // Send push notification
+        await _pushNotificationWorker.QueueNotificationAction(new SendMemberPushNotification()
+        {
+            Content = new NotificationContent()
+            {
+                Title = notification.Title,
+                Message = notification.Body,
+                IconUrl = notification.ImageUrl,
+                Url = notification.ClickUrl,
+            },
+            MemberId = targetMember.Id
+        });
+    }
+
+    private async Task HandleRoleMentionAsync(
         Mention mention,
         ISharedPlanet planet,
         ISharedMessage message,
@@ -270,6 +308,16 @@ public class NotificationService
         _coreHub.RelayNotification(notif, _nodeLifecycleService);
         
         // Send push notification
-        
+        await _pushNotificationWorker.QueueNotificationAction(new SendMemberPushNotification()
+        {
+            Content = new NotificationContent()
+            {
+                Title = notif.Title,
+                Message = notif.Body,
+                IconUrl = notif.ImageUrl,
+                Url = notif.ClickUrl,
+            },
+            MemberId = member.Id
+        });
     }
 }

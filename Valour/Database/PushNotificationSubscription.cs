@@ -5,7 +5,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Database;
 
-public class PushNotificationSubscription : ISharedNotificationSubscription
+public class PushNotificationSubscription : ISharedPushNotificationSubscription
 {
     ///////////////////////////
     // Relational Properties //

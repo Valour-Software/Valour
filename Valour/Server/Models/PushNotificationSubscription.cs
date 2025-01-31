@@ -2,7 +2,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 
-public class PushNotificationSubscription : ISharedNotificationSubscription
+public class PushNotificationSubscription : ISharedPushNotificationSubscription
 {
     public long Id { get; set; }
     public NotificationDeviceType DeviceType { get; set; }
