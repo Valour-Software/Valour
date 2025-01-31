@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Amazon.Runtime;
+﻿using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
@@ -14,7 +13,6 @@ using Valour.Server.Email;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
-using WebPush;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
 using Valour.Config.Configs;
@@ -261,8 +259,7 @@ public partial class Program
         // This probably needs to be customized further but the documentation changed
         services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        // Adds user manager to dependency injection
-        services.AddSingleton<WebPushClient>();
+
         services.AddControllersWithViews().AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;

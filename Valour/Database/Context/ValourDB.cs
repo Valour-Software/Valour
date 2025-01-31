@@ -145,7 +145,7 @@ public partial class ValourDb : DbContext
     /// <summary>
     /// Table for notification subscriptions
     /// </summary>
-    public DbSet<NotificationSubscription> NotificationSubscriptions { get; set; }
+    public DbSet<PushNotificationSubscription> PushNotificationSubscriptions { get; set; }
     
     /// <summary>
     /// Table for notifications

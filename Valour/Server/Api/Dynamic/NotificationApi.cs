@@ -7,7 +7,7 @@ public class NotificationApi
     [ValourRoute(HttpVerbs.Post, "api/notifications/subscribe")]
     [UserRequired]
     public static async Task<IResult> SubscribeAsync(
-        WebPushSubscription subscription,
+        PushNotificationSubscription subscription,
         NotificationService notificationService,
         UserService userService)
     {
@@ -26,7 +26,7 @@ public class NotificationApi
     [ValourRoute(HttpVerbs.Post, "api/notifications/unsubscribe")]
     [UserRequired]
     public static async Task<IResult> UnsubscribeAsync(
-        WebPushSubscription subscription,
+        PushNotificationSubscription subscription,
         NotificationService notificationService,
         UserService userService)
     {

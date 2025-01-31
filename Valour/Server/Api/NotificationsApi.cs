@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Sdk.Models;
 using Valour.Server.Database;
+using NotificationSubscription = Valour.Sdk.Models.NotificationSubscription;
 
 namespace Valour.Server.API;
 
@@ -37,7 +38,7 @@ public class NotificationsApi : BaseAPI
         }
 
         // Look for old subscription
-        var old = await db.NotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
+        var old = await db.PushNotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
 
         if (old != null)
         {
@@ -48,7 +49,7 @@ public class NotificationsApi : BaseAPI
             old.Auth = subscription.Auth;
             old.Key = subscription.Key;
 
-            db.NotificationSubscriptions.Update(old);
+            db.PushNotificationSubscriptions.Update(old);
             await db.SaveChangesAsync();
 
             return Results.Ok("Updated subscription.");
@@ -56,7 +57,7 @@ public class NotificationsApi : BaseAPI
 
         subscription.Id = IdManager.Generate();
 
-        await db.NotificationSubscriptions.AddAsync(subscription.ToDatabase());
+        await db.PushNotificationSubscriptions.AddAsync(subscription.ToDatabase());
         await db.SaveChangesAsync();
 
         return Results.Ok("Subscription was accepted.");
@@ -73,13 +74,13 @@ public class NotificationsApi : BaseAPI
             return ValourResult.InvalidToken();
 
         // Look for old subscription
-        var old = await db.NotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
+        var old = await db.PushNotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
 
         if (old is null)
             return Results.Ok("Subscription already removed.");
 
 
-        db.NotificationSubscriptions.Remove(old);
+        db.PushNotificationSubscriptions.Remove(old);
         await db.SaveChangesAsync();
 
         return Results.Ok("Removed subscription.");

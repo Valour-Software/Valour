@@ -768,8 +768,8 @@ public class UserService
             _db.Referrals.RemoveRange(refer);
 
             // Notifications
-            var nots = _db.NotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.NotificationSubscriptions.RemoveRange(nots);
+            var nots = _db.PushNotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.PushNotificationSubscriptions.RemoveRange(nots);
             
             // Also notifications
             var noots  = _db.Notifications.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);

@@ -59,7 +59,7 @@ namespace Valour.Database
         /// <summary>
         /// Notification of Subscriptions for this user.
         /// </summary>
-        public virtual ICollection<NotificationSubscription> NotificationSubscriptions { get; set; }
+        public virtual ICollection<PushNotificationSubscription> NotificationSubscriptions { get; set; }
         
         ///////////////////////
         // Entity Properties //

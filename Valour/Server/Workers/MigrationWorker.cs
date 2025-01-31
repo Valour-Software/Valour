@@ -32,7 +32,7 @@ public class MigrationWorker : IHostedService
         // Generate role hash keys for all members
         await permService.BulkUpdateMemberRoleHashesAsync();
         _logger.LogInformation("Migration Worker has finished");
-
+        
         // Migrate channels
         await channelService.MigrateChannels();
     }
