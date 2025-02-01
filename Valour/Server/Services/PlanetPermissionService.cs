@@ -58,16 +58,14 @@ public class PlanetPermissionService
     
     private readonly ValourDb _db;
     private readonly HostedPlanetService _hostedPlanetService;
-    private readonly NotificationService _notificationService;
     
     private readonly ILogger<PlanetPermissionService> _logger;
     
-    public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService, ILogger<PlanetPermissionService> logger, NotificationService notificationService)
+    public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService, ILogger<PlanetPermissionService> logger)
     {
         _db = db;
         _hostedPlanetService = hostedPlanetService;
         _logger = logger;
-        _notificationService = notificationService;
     }
     
     public async ValueTask<bool> HasPlanetPermissionAsync(long memberId, PlanetPermission permission)

@@ -3,12 +3,11 @@ using System.Diagnostics;
 using System.Threading.Channels;
 using Microsoft.Azure.NotificationHubs;
 using Valour.Config.Configs;
-
 using ThreadChannel = System.Threading.Channels.Channel;
 
 namespace Valour.Server.Workers;
 
-public class PushNotificationAction {}
+public class PushNotificationAction { }
 
 public class PushNotificationRoleHashChange : PushNotificationAction
 {
@@ -49,72 +48,121 @@ public class PushNotificationWorker : IHostedService, IDisposable
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<PushNotificationWorker> _logger;
     private readonly NotificationHubClient _hubClient;
-    
-    /// <summary>
-    /// Queue for role hash changes that need to be made for member notifications
-    /// </summary>
-    private Channel<PushNotificationAction> _actionChannel = 
+
+    // The unbounded channel for queuing notification actions.
+    private Channel<PushNotificationAction> _actionChannel =
         ThreadChannel.CreateUnbounded<PushNotificationAction>();
-    
+
+    // Fields to manage the background processing task.
+    private Task? _executingTask;
+    private CancellationTokenSource? _cts;
+
     public PushNotificationWorker(ILogger<PushNotificationWorker> logger,
-        IServiceScopeFactory serviceScopeFactory)
+                                  IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
         
+        // Initialize the hub client if the configuration is present.
         if (!string.IsNullOrWhiteSpace(NotificationsConfig.Current.AzureConnectionString))
         {
             _hubClient = NotificationHubClient.CreateClientFromConnectionString(
-                NotificationsConfig.Current.AzureConnectionString, 
+                NotificationsConfig.Current.AzureConnectionString,
                 NotificationsConfig.Current.AzureHubName);
         }
     }
-    
+
+    /// <summary>
+    /// Enqueue a push notification action.
+    /// </summary>
     public ValueTask QueueNotificationAction(PushNotificationAction action)
         => _actionChannel.Writer.WriteAsync(action);
-    
-    public async Task StartAsync(CancellationToken cancellationToken)
+
+    /// <summary>
+    /// Starts the background processing loop on a separate task.
+    /// </summary>
+    public Task StartAsync(CancellationToken cancellationToken)
     {
+        // If no hub client is available, log a warning and do nothing.
         if (_hubClient is null)
         {
             _logger.LogWarning("Notifications config missing - disabling worker");
-            return;
+            return Task.CompletedTask;
         }
 
-        while (await _actionChannel.Reader.WaitToReadAsync(cancellationToken))
+        // Create a linked cancellation token and start the background loop.
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _executingTask = Task.Run(() => ProcessQueueAsync(_cts.Token), _cts.Token);
+
+        // Return immediately so that the host startup isn't delayed.
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Continuously processes actions from the channel.
+    /// </summary>
+    private async Task ProcessQueueAsync(CancellationToken token)
+    {
+        try
         {
-            while (_actionChannel.Reader.TryRead(out var action))
+            while (await _actionChannel.Reader.WaitToReadAsync(token))
             {
-                await HandleAction(action);
+                while (_actionChannel.Reader.TryRead(out var action))
+                {
+                    try
+                    {
+                        await HandleAction(action);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing push notification action: {ActionType}", action.GetType().Name);
+                    }
+                }
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Expected when the token is canceled.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in ProcessQueueAsync.");
+        }
     }
-    
-    private Task HandleAction(PushNotificationAction action)
+
+    /// <summary>
+    /// Dispatches the action to the appropriate processing method.
+    /// </summary>
+    private async Task HandleAction(PushNotificationAction action)
     {
         switch (action)
         {
             case PushNotificationRoleHashChange roleHashChange:
-                return ProcessRoleHashChange(roleHashChange.OldHash, roleHashChange.NewHash);
+                await ProcessRoleHashChange(roleHashChange.OldHash, roleHashChange.NewHash);
+                break;
             case PushNotificationSubscribe subscribe:
-                return ProcessSubscribe(subscribe.Subscription);
+                await ProcessSubscribe(subscribe.Subscription);
+                break;
             case PushNotificationUnsubscribe unsubscribe:
-                return ProcessUnsubscribe(unsubscribe.Subscription);
+                await ProcessUnsubscribe(unsubscribe.Subscription);
+                break;
             case SendRolePushNotification roleMention:
-                return ProcessRoleNotification(roleMention.RoleId, roleMention.Content);
+                await ProcessRoleNotification(roleMention.RoleId, roleMention.Content);
+                break;
             case SendUserPushNotification userMention:
-                return ProcessUserNotification(userMention.UserId, userMention.Content);
+                await ProcessUserNotification(userMention.UserId, userMention.Content);
+                break;
             case SendMemberPushNotification memberMention:
-                return ProcessMemberNotification(memberMention.MemberId, memberMention.Content);
+                await ProcessMemberNotification(memberMention.MemberId, memberMention.Content);
+                break;
             default:
                 _logger.LogWarning("Unknown notification action: {ActionType}", action.GetType().Name);
                 break;
         }
-        
-        return Task.CompletedTask;
     }
 
-    private Stopwatch _sw = new();
+    private readonly Stopwatch _sw = new();
+    
     private async Task ProcessRoleHashChange(long oldHashKey, long newHashKey)
     {
         _sw.Restart();
@@ -125,7 +173,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
         _sw.Stop();
         _logger.LogInformation("Role hash change processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
     }
-    
+
     private async Task ProcessSubscribe(PushNotificationSubscription subscription)
     {
         _sw.Restart();
@@ -136,7 +184,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
         _sw.Stop();
         _logger.LogInformation("Subscription processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
     }
-    
+
     private async Task ProcessUnsubscribe(PushNotificationSubscription subscription)
     {
         _sw.Restart();
@@ -147,7 +195,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
         _sw.Stop();
         _logger.LogInformation("Unsubscription processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
     }
-    
+
     private async Task ProcessRoleNotification(long roleId, NotificationContent content)
     {
         _sw.Restart();
@@ -158,28 +206,40 @@ public class PushNotificationWorker : IHostedService, IDisposable
         _sw.Stop();
         _logger.LogInformation("Role mention processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
     }
-    
+
     private async Task ProcessUserNotification(long userId, NotificationContent content)
     {
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.SendUserPushNotificationAsync(userId, content);
     }
-    
+
     private async Task ProcessMemberNotification(long memberId, NotificationContent content)
     {
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.SendMemberPushNotificationAsync(memberId, content);
     }
-    
-    public Task StopAsync(CancellationToken stoppingToken)
+
+    /// <summary>
+    /// Signals cancellation and waits for the background task to finish.
+    /// </summary>
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Notifications Worker is Stopping");
-        return Task.CompletedTask;
+        _logger.LogInformation("Notifications Worker is stopping");
+        if (_cts != null)
+        {
+            await _cts.CancelAsync();
+        }
+
+        if (_executingTask != null)
+        {
+            await Task.WhenAny(_executingTask, Task.Delay(Timeout.Infinite, cancellationToken));
+        }
     }
 
     public void Dispose()
     {
+        _cts?.Dispose();
     }
 }

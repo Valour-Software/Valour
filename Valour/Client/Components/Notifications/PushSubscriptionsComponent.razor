@@ -44,7 +44,7 @@
         };
         
         // Post to server
-        var result = await Client.PrimaryNode.PostAsync($"api/notification/subscribe", pushNotificationSubscription);
+        var result = await Client.PrimaryNode.PostAsync($"api/notifications/subscribe", pushNotificationSubscription);
 
         if (!result.Success)
         {
@@ -61,7 +61,7 @@
     public async Task UnsubscribeAsync()
     {
         await  _jsService.InvokeVoidAsync("unsubscribe");
-        await Client.PrimaryNode.PostAsync("api/notification/unsubscribe", Client.Me.Id);
+        await Client.PrimaryNode.PostAsync("api/notifications/unsubscribe", Client.Me.Id);
     }
     
     public ValueTask<bool> IsNotificationsEnabledAsync()

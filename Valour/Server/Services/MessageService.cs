@@ -19,9 +19,7 @@ public class MessageService
     private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ChannelService _channelService;
     private readonly NotificationService _notificationService;
-    private readonly UnreadService _stateService;
     private readonly CoreHubService _coreHubService;
-    private readonly HostedPlanetService _hostedPlanetService;
     private readonly PlanetService _planetService;
     private readonly HttpClient _http;
     private readonly ChatCacheService _chatCacheService;
@@ -31,20 +29,19 @@ public class MessageService
         ValourDb db, 
         NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService, 
-        UnreadService stateService,
         IHttpClientFactory http, 
         CoreHubService coreHubService, 
-        ChannelService channelService, HostedPlanetService hostedPlanetService, PlanetService planetService, ChatCacheService chatCacheService)
+        ChannelService channelService, 
+        PlanetService planetService, 
+        ChatCacheService chatCacheService)
     {
         _logger = logger;
         _db = db;
         _nodeLifecycleService = nodeLifecycleService;
         _notificationService = notificationService;
-        _stateService = stateService;
         _http = http.CreateClient();
         _coreHubService = coreHubService;
         _channelService = channelService;
-        _hostedPlanetService = hostedPlanetService;
         _planetService = planetService;
         _chatCacheService = chatCacheService;
     }

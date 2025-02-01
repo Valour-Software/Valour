@@ -307,6 +307,11 @@ public partial class Program
         services.AddScoped<StartupService>();
 
         services.AddSingleton<NodeLifecycleService>();
+        
+        // Register PushNotificationWorker as a singleton.
+        services.AddSingleton<PushNotificationWorker>();
+        // Register it as the IHostedService.
+        services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<PushNotificationWorker>());
 
         services.AddHostedService<PlanetMessageWorker>();
         services.AddHostedService<StatWorker>();
