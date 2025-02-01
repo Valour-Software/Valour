@@ -95,7 +95,7 @@ public class UserFriendService
             ClickUrl = $"/friends"
         };
 
-        await _notificationService.AddNotificationAsync(notification);
+        await _notificationService.SendUserNotification(friendId, notification);
         
         await _coreHub.RelayFriendEvent(friendId, new FriendEventData()
         {

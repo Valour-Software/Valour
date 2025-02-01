@@ -104,7 +104,7 @@ public class PushNotificationService
         }
     }
     
-        public async Task SubscribeAsync(PushNotificationSubscription subscription)
+    public async Task SubscribeAsync(PushNotificationSubscription subscription)
     {
         await SubscribeUserAsync(subscription);
         await SubscribePlanetsAsync(subscription);
@@ -175,6 +175,16 @@ public class PushNotificationService
             // Create or update on azure
             await _hubClient.CreateOrUpdateInstallationAsync(planetInstallation);
         }
+    }
+    
+    public async Task UnsubscribeAsync(PushNotificationSubscription subscription)
+    {
+        // Get all subscriptions for this endpoint
+        var subscriptions = await _db.PushNotificationSubscriptions
+            .Where(x => x.Endpoint == subscription.Endpoint)
+            .ToListAsync();
+        
+        
     }
     
     /// <summary>

@@ -11,9 +11,13 @@ public static class NotificationSubscriptionMapper
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
+            PlanetId = subscription.PlanetId,
+            MemberId = subscription.MemberId,
+            RoleHashKey = subscription.RoleHashKey,
             Endpoint = subscription.Endpoint,
             Key = subscription.Key,
-            Auth = subscription.Auth
+            Auth = subscription.Auth,
+            ExpiresAt = subscription.ExpiresAt
         };
     }
     
@@ -26,9 +30,13 @@ public static class NotificationSubscriptionMapper
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
+            PlanetId = subscription.PlanetId,
+            MemberId = subscription.MemberId,
+            RoleHashKey = subscription.RoleHashKey,
             Endpoint = subscription.Endpoint,
             Key = subscription.Key,
-            Auth = subscription.Auth
+            Auth = subscription.Auth,
+            ExpiresAt = subscription.ExpiresAt
         };
     }
 }

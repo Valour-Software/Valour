@@ -23,21 +23,10 @@
     public string NotificationState = "null";
     private bool _notificationsEnabled = false;
     private bool _notificationsBlocked = false;
-
-    private Notifications.PushNotificationSubscription _subscription = null;
-
+    
     protected override async Task OnInitializedAsync()
     {
-        _notificationsEnabled = await JsRuntime.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
-        _subscription = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.requestSubscription", false);
-
-        if (_subscription != null)
-        {
-            _notificationsEnabled = true;
-        }
-
-        // Client.Logger.Log<EditUserNotificationsComponent>(_subscription., "cyan");
-
+        _notificationsEnabled = await PushSubscriptionsComponent.Instance.IsNotificationsEnabledAsync();
         StateHasChanged();
     }
 
@@ -45,19 +34,21 @@
     {
         if (_notificationsEnabled)
         {
-            var sub = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.removeSubscription");
+            await PushSubscriptionsComponent.Instance.UnsubscribeAsync();
             _notificationsEnabled = false;
-
-            await Client.PrimaryNode.PostAsync("api/notification/unsubscribe", sub);
         }
         else
         {
-            _subscription = await JsRuntime.InvokeAsync<Notifications.PushNotificationSubscription>("blazorPushNotifications.requestSubscription");
+            var result = await ToastContainer.Instance.WaitToastWithResult(new ProgressToastData<PushSubscriptionResult>()
+            {
+                ProgressTask = PushSubscriptionsComponent.Instance.RequestSubscriptionAsync(),
+                Title = "Enabling push notifications",
+                Message = "Setting up..."
+            });
 
-            if (_subscription != null)
+            if (result.Success)
             {
                 _notificationsEnabled = true;
-                await Client.PrimaryNode.PostAsync($"api/notification/subscribe", _subscription);
             }
         }
 

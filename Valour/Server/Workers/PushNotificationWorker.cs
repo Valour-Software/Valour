@@ -21,6 +21,11 @@ public class PushNotificationSubscribe : PushNotificationAction
     public PushNotificationSubscription Subscription;
 }
 
+public class PushNotificationUnsubscribe : PushNotificationAction
+{
+    public PushNotificationSubscription Subscription;
+}
+
 public class SendRolePushNotification : PushNotificationAction
 {
     public long RoleId;
@@ -93,6 +98,8 @@ public class PushNotificationWorker : IHostedService, IDisposable
                 return ProcessRoleHashChange(roleHashChange.OldHash, roleHashChange.NewHash);
             case PushNotificationSubscribe subscribe:
                 return ProcessSubscribe(subscribe.Subscription);
+            case PushNotificationUnsubscribe unsubscribe:
+                return ProcessUnsubscribe(unsubscribe.Subscription);
             case SendRolePushNotification roleMention:
                 return ProcessRoleNotification(roleMention.RoleId, roleMention.Content);
             case SendUserPushNotification userMention:
@@ -128,6 +135,17 @@ public class PushNotificationWorker : IHostedService, IDisposable
         await pushService.SubscribeAsync(subscription);
         _sw.Stop();
         _logger.LogInformation("Subscription processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
+    }
+    
+    private async Task ProcessUnsubscribe(PushNotificationSubscription subscription)
+    {
+        _sw.Restart();
+        _logger.LogInformation("Processing unsubscription for user {UserId}", subscription.UserId);
+        using var scope = _serviceScopeFactory.CreateScope();
+        var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
+        await pushService.UnsubscribeAsync(subscription);
+        _sw.Stop();
+        _logger.LogInformation("Unsubscription processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
     }
     
     private async Task ProcessRoleNotification(long roleId, NotificationContent content)

@@ -30,11 +30,6 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
     /// When this subscription expires
     /// </summary>
     public DateTime ExpiresAt { get; set; }
-    
-    /// <summary>
-    /// The Id of the device, to prevent duplicate subscriptions
-    /// </summary>
-    public required string DeviceId { get; set; }
 
     /// <summary>
     /// The Id of the user this subscription is for

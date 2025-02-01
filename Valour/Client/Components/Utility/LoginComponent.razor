@@ -201,6 +201,8 @@
         }
         
         StateHasChanged();
+
+        await PushSubscriptionsComponent.Instance.RequestSubscriptionAsync();
     }
 
     private void OnClickRegister(MouseEventArgs e)

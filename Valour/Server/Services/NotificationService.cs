@@ -105,6 +105,29 @@ public class NotificationService
             .Select(x => x.ToModel())
             .ToListAsync();
     
+    public async Task SendUserNotification(long userId, Models.Notification notification)
+    {
+        notification.UserId = userId;
+        notification.TimeSent = DateTime.UtcNow;
+        
+        await _db.Notifications.AddAsync(notification.ToDatabase());
+        await _db.SaveChangesAsync();
+        
+        _coreHub.RelayNotification(notification, _nodeLifecycleService);
+        
+        await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
+        {
+            Content = new NotificationContent()
+            {
+                Title = notification.Title,
+                Message = notification.Body,
+                IconUrl = notification.ImageUrl,
+                Url = notification.ClickUrl,
+            },
+            UserId = userId
+        });
+    }
+    
     public async Task SendRoleNotificationsAsync(long roleId, Models.Notification baseNotification)
     {
         // Create db notifications
@@ -308,7 +331,7 @@ public class NotificationService
         _coreHub.RelayNotification(notif, _nodeLifecycleService);
         
         // Send push notification
-        await _pushNotificationWorker.QueueNotificationAction(new SendMemberPushNotification()
+        await _pushNotificationWorker.QueueNotificationAction(new SendRolePushNotification()
         {
             Content = new NotificationContent()
             {
@@ -317,7 +340,7 @@ public class NotificationService
                 IconUrl = notif.ImageUrl,
                 Url = notif.ClickUrl,
             },
-            MemberId = member.Id
+            RoleId = targetRole.Id,
         });
     }
 }

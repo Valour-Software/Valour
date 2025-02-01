@@ -83,10 +83,7 @@ public partial class Program
         BaseAPI.AddRoutes(app);
         EmbedAPI.AddRoutes(app);
         OauthAPI.AddRoutes(app);
-
-        // Notification routes
-        NotificationsApi.AddRoutes(app);
-
+        
         // s3 (r2) setup
 
         if (CdnConfig.Current is not null)

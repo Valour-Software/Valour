@@ -1,4 +1,6 @@
-﻿using Valour.Shared.Authorization;
+﻿using System.Web.Http;
+using Valour.Server.Workers;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -7,18 +9,19 @@ public class NotificationApi
     [ValourRoute(HttpVerbs.Post, "api/notifications/subscribe")]
     [UserRequired]
     public static async Task<IResult> SubscribeAsync(
-        PushNotificationSubscription subscription,
-        NotificationService notificationService,
+        [FromBody] PushNotificationSubscription subscription,
+        PushNotificationWorker pushWorker,
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
         
         if (subscription.UserId != userId)
             return ValourResult.Forbid("You do not have permission to subscribe on behalf of another user");
-        
-        var result = await notificationService.SubscribeAsync(subscription);
-        if (!result.Success)
-            return ValourResult.BadRequest(result.Message);
+
+        await pushWorker.QueueNotificationAction(new PushNotificationSubscribe()
+        {
+            Subscription = subscription
+        });
 
         return ValourResult.Ok();
     }
@@ -26,17 +29,18 @@ public class NotificationApi
     [ValourRoute(HttpVerbs.Post, "api/notifications/unsubscribe")]
     [UserRequired]
     public static async Task<IResult> UnsubscribeAsync(
-        PushNotificationSubscription subscription,
-        NotificationService notificationService,
+        [FromBody] PushNotificationSubscription subscription,
+        PushNotificationWorker pushWorker,
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
         if (subscription.UserId != userId)
             return ValourResult.Forbid("You do not have permission to unsubscribe on behalf of another user");
         
-        var result = await notificationService.UnsubscribeAsync(subscription);
-        if (!result.Success)
-            return ValourResult.BadRequest(result.Message);
+        await pushWorker.QueueNotificationAction(new PushNotificationUnsubscribe()
+        {
+            Subscription = subscription
+        });
 
         return ValourResult.Ok();
     }

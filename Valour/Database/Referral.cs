@@ -14,9 +14,6 @@ public class Referral : ISharedReferral
     
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
-
-    [ForeignKey("ReferrerId")]
-    public virtual User Referrer { get; set; }
     
     ///////////////////////
     // Entity Properties //
