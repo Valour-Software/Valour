@@ -1,0 +1,68 @@
+.directories {
+    max-height: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.connected-planets {
+    resize: vertical;
+    margin-bottom: 1em;
+}
+
+.connected-planets .list {
+    overflow-y: auto;
+}
+
+/* Hide scrollbars on connected/joined planets */
+.connected-planets .list::-webkit-scrollbar {
+    display: none;
+}
+
+::deep .directory {
+    cursor: pointer;
+}
+
+::deep .directory:hover {
+    background-color: var(--main-4);
+}
+
+::deep .planet-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: center;
+    padding: 4px;
+    font-size: 14px;
+}
+
+::deep .planet-row .left {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    gap: 6px;
+    max-width: 90%;
+}
+
+::deep .planet-row .left img {
+    width: 24px;
+    height: 24px;
+    border-radius: 1000px;
+}
+
+::deep .planet-row .left span {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+}
+
+::deep .planet-row .right {
+
+}
+
+::deep .planet-row .right .edit {
+    cursor: pointer;
+}

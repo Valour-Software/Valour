@@ -1,0 +1,30 @@
+﻿<div @ref="@OuterReference" class="tooltip-trigger" @onmousemove="ShowTooltip" @onmouseover="ShowTooltip" @onmouseout="HideTooltip">
+    @ChildContent
+</div>
+
+@code {
+    
+    // Used for the root to identify tooltip triggers
+    public string TriggerId = Guid.NewGuid().ToString();
+    
+    public ElementReference OuterReference { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment TooltipContent { get; set; }
+    
+    [Parameter]
+    public string Position { get; set; } = "top"; // Default position
+
+    [Parameter]
+    public string TooltipClass { get; set; }
+
+    [Parameter]
+    public string TooltipStyle { get; set; }
+
+    public void ShowTooltip() => TooltipRoot.ShowTooltip(this);
+
+    public Task HideTooltip() => TooltipRoot.HideTooltip(this);
+}

@@ -1,0 +1,56 @@
+﻿.tooltip {
+    position: fixed;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 999999999;
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+    font-size: 0.875rem;
+    font-family: Arial, sans-serif;
+    max-width: 200px;
+    
+    pointer-events: none;
+}
+
+.tooltip.show { opacity: 1; }
+.tooltip.hide { opacity: 0; }
+
+.carrot {
+    background-color: #333;
+    width: 0;
+    height: 0;
+    position: fixed;
+    border-style: solid;
+    opacity: 1;
+
+    transition: opacity 0.1s ease-in-out;
+
+    pointer-events: none;
+}
+
+.carrot.show { opacity: 1; }
+.carrot.hide { opacity: 0; }
+
+.carrot-bottom {
+    border-width: 0 5px 5px 5px;
+    border-color: transparent transparent #333 transparent;
+}
+
+.carrot-top {
+    border-width: 5px 5px 0 5px;
+    border-color: #333 transparent transparent transparent;
+}
+
+.carrot-left {
+    border-width: 5px 0 5px 5px;
+    border-color: transparent transparent transparent #333;
+}
+
+.carrot-right {
+    border-width: 5px 5px 5px 0;
+    border-color: transparent #333 transparent transparent;
+}

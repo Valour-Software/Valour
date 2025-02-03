@@ -1,0 +1,54 @@
+﻿@inherits ControlledRenderComponentBase
+
+@foreach(var tooltipData in _tooltips)
+{
+    <Tooltip Data="@tooltipData" @ref="@tooltipData.Component" />
+}
+
+@code {
+    public static TooltipRoot Instance { get; private set; }
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    private static List<TooltipData> _tooltips = new List<TooltipData>();
+    
+    public static void ShowTooltip(TooltipTrigger trigger)
+    {
+        // Check if we already have a tooltip for this trigger
+        var existing = _tooltips.FirstOrDefault(x => x.Trigger.TriggerId == trigger.TriggerId);
+        if (existing is not null)
+        {
+            if (existing.Component is not null)
+            {
+                existing.Component.Show();
+            }
+        }
+        else
+        {
+            _tooltips.Add(new TooltipData
+            {
+                Trigger = trigger,
+            });
+            
+            // Re-render the root component
+            Instance.ReRender();
+        }
+    }
+    
+    public static async Task HideTooltip(TooltipTrigger trigger)
+    {
+        var tooltip = _tooltips.FirstOrDefault(x => x.Trigger.TriggerId == trigger.TriggerId);
+        if (tooltip != null)
+        {
+            await tooltip.Component.HideAsync();
+        }
+    }
+    
+    public static void RemoveTooltip(Tooltip tooltip)
+    {
+        _tooltips.RemoveAll(x => x.Trigger.TriggerId == tooltip.Data.Trigger.TriggerId);
+        Instance.ReRender();
+    }
+}

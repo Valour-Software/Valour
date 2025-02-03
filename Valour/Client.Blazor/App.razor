@@ -10,6 +10,7 @@
 @using Valour.Client.Components.Theme
 @using Valour.Client.Components.DockWindows
 @using Valour.Sdk.Services
+@using Valour.Client.Components.Tooltips
 
 @inject ValourClient Client
 @inject LoggingService Logger
@@ -32,6 +33,8 @@
 
 <!-- Window Target helper -->
 <WindowTargetScanner />
+
+<TooltipRoot />
 
 @if (_triedInitialLogin)
 {

@@ -13,6 +13,7 @@ public class ToastData
     
     public string Title { get; set; }
     public string Message { get; set; }
+    public ToastProgressState? Type { get; set; }
     public bool ShouldAutoClose { get; set; } = true;
 
     public virtual bool AutoClose => ShouldAutoClose;

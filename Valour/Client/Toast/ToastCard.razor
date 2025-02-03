@@ -36,6 +36,27 @@
             }
             default:
             {
+                @if (Toast.Type is not null)
+                {
+                    <div class="toast-left">
+                        <div style="width: 30px; height: 30px"></div>
+                        <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_spin.json" background="transparent" speed="1" style="width: 30px; height: 30px;" loop autoplay></lottie-player>
+                        @switch (Toast.Type)
+                        {
+                            case ToastProgressState.Success:
+                            {
+                                <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_success.json" background="transparent" speed="1" style="width: 30px; height: 30px;" autoplay></lottie-player>
+                                break;
+                            }
+                            case ToastProgressState.Failure:
+                            {
+                                <lottie-player class="lottie-overlay" src="./_content/Valour.Client/media/animations/victor_failure.json" background="transparent" speed="1" style="width: 30px; height: 30px;" autoplay></lottie-player>
+                                break;
+                            }
+                        }
+                    </div>
+                }
+
                 <div class="toast-right">
                     <p class="toast-title">@Toast.Title</p>
                     <p class="toast-desc">@Toast.Message</p>

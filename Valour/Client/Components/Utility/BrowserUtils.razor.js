@@ -51,6 +51,9 @@ export const getElementPosition = (element) => {
     const { left, top } = element.getBoundingClientRect();
     return { x: left, y: top };
 };
+export const getElementBoundingRect = (element) => {
+    return element.getBoundingClientRect();
+};
 export const getWindowUri = () => {
     return {
         href: window.location.href,

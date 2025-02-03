@@ -44,7 +44,7 @@ public abstract class WindowContent
     {
         if (PlanetId is not null)
         {
-            var planetService = Tab.Layout.DockComponent.Client.PlanetService;
+            var planetService = Tab.Component.Dock.Client.PlanetService;
             await planetService.TryClosePlanetConnection(PlanetId.Value, Tab.Id);
         }
     }

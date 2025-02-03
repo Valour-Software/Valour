@@ -1,0 +1,131 @@
+﻿@inherits ControlledRenderComponentBase
+@implements IDisposable
+@using System.Timers
+
+<div @ref="@_tooltipReference" class="tooltip @ComputedClass" style="@TooltipStyles" data-position="@Data.Trigger.Position">
+    @Data.Trigger.TooltipContent
+</div>
+<div class="carrot @ComputedClass" style="@CarrotStyles"></div>
+
+@code {
+    [Parameter]
+    public TooltipData Data { get; set; }
+
+    private ElementReference _tooltipReference;
+    private ElementBounds _contentBounds;
+    
+    private ElementPosition? _tooltipPosition;
+    private ElementPosition? _carrotPosition;
+
+    // Hidden until bounds are calculated and position is known
+    private string TooltipStyles => _tooltipPosition is null ? "opacity: 0; pointer-events: none;" : $"position: fixed; top: {_tooltipPosition.Value.Y}px; left: {_tooltipPosition.Value.X}px;";
+    private string CarrotStyles => _carrotPosition is null ? "opacity: 0; pointer-events: none;" : $"position: fixed; top: {_carrotPosition.Value.Y}px; left: {_carrotPosition.Value.X}px;";
+
+    private string ComputedClass => _shown ? Data.Trigger.TooltipClass + " show" : Data.Trigger.TooltipClass + " hide";
+
+    private bool _shown;
+    
+    protected override void OnInitialized()
+    {
+        MouseListener.SubscribeMouseMove(MouseCheck);
+    }
+    
+    private async Task MouseCheck(MousePosition mousePosition)
+    {
+        if (!_shown) return;
+        
+        var triggerRect = await BrowserUtils.GetElementBoundingRectAsync(Data.Trigger.OuterReference);
+        
+        if ( // Check if mouse is outside the trigger element
+            mousePosition.ClientX < triggerRect.Left || mousePosition.ClientX > triggerRect.Right ||
+            mousePosition.ClientY < triggerRect.Top || mousePosition.ClientY > triggerRect.Bottom
+        )
+        {
+            await HideAsync();
+        }
+    }
+
+    public void Show()
+    {
+        if (_shown) return;
+        _shown = true;
+        
+        ReRender();
+    }
+
+    public async Task HideAsync()
+    {
+        _shown = false;
+        ReRender();
+
+        await Task.Delay(150); // Wait for the fade-out animation
+        
+        if (_shown) return; // Re-shown before fade-out completed
+        // TooltipRoot.RemoveTooltip(this);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _contentBounds = await BrowserUtils.GetElementBoundingRectAsync(_tooltipReference);
+            await UpdateTooltipPosition();
+            ReRender();
+        }
+    }
+
+    private async Task UpdateTooltipPosition()
+    {
+        // Retrieve trigger element dimensions
+        var triggerRect = await BrowserUtils.GetElementBoundingRectAsync(Data.Trigger.OuterReference);
+        
+        if (_contentBounds is not null)
+        {
+            // Calculate new position
+            var basePosition = CalculateTooltipBasePosition(triggerRect, _contentBounds, Data.Trigger.Position);
+            _tooltipPosition = basePosition;
+            // _tooltipPosition = EnsureOnScreen(basePosition.Y, basePosition.X, _contentBounds.Width, _contentBounds.Height);
+            _carrotPosition = CalculateTooltipBasePosition(triggerRect, _contentBounds, position: Data.Trigger.Position, true);
+
+            ReRender();
+        }
+    }
+    
+    const int TooltipMargin = 10; // Space between trigger and tooltip
+    
+    private ElementPosition CalculateTooltipBasePosition(ElementBounds triggerRect, ElementBounds contentRect, string position, bool carrot = false)
+    {
+        double top = 0, left = 0;
+
+        switch (position.ToLower())
+        {
+            default:
+            {
+                top = triggerRect.Top - (triggerRect.Height / 2);
+                if (!carrot) top -= TooltipMargin * 2;
+                
+                left = triggerRect.Left - (contentRect.Width / 2) + (triggerRect.Width / 2);
+                break;
+            }
+        }
+
+        return new ElementPosition() { X = left, Y = top };
+    }
+
+    private ElementPosition EnsureOnScreen(double top, double left, double width = 0, double height = 0)
+    {
+        var windowDimensions = BrowserUtils.WindowDimensions;
+
+        if (top - (height / 2) - TooltipMargin < 0) top = (height / 2) + TooltipMargin;
+        if (left - (width / 2) - TooltipMargin < 0) left = (width / 2) + TooltipMargin;
+        if (top + (height / 2) + TooltipMargin > windowDimensions.Height) top = windowDimensions.Height - (height / 2) - TooltipMargin;
+        if (left + (width / 2) + TooltipMargin > windowDimensions.Width) left = windowDimensions.Width - (width / 2) - TooltipMargin;
+
+        return new ElementPosition() { X = top, Y = left };
+    }
+    
+    public void Dispose()
+    {
+        MouseListener.UnsubscribeMouseMove(MouseCheck);
+    }
+}

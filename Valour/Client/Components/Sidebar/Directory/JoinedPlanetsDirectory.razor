@@ -1,0 +1,52 @@
+﻿@inherits ControlledRenderComponentBase
+@inject PlanetService PlanetService
+
+<div class="joined-planets">
+    <p class="subtitle mb-2">Joined Planets</p>
+    <div class="v-gradient-underline"></div>
+    
+    <div class="list">
+        @foreach (var joinedPlanet in PlanetService.JoinedPlanets)
+        {
+            <div class="directory" @onclick="@(async () => await OnPlanetClick(joinedPlanet))">
+                <div class="planet-row">
+                    <div class="left">
+                        <img alt="@joinedPlanet.Name Icon" src="@joinedPlanet.GetIconUrl(IconFormat.Webp64)"/>
+                        <span>@joinedPlanet.Name</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    
+    protected override void OnInitialized()
+    {
+        PlanetService.JoinedPlanetsUpdated += OnJoinedPlanetsUpdated;
+    }
+    
+    private void OnJoinedPlanetsUpdated()
+    {
+        ReRender();
+    }
+    
+    public async Task OnPlanetClick(Planet planet)
+    {
+        // Open default channel
+        var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(planet);
+        
+        if (newWindowContent is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData()
+            {
+                Title = "Failure loading planet",
+                Message = $"Error accessing {planet.Name}",
+                Type = ToastProgressState.Failure
+            });
+        }
+
+        await WindowService.TryAddFloatingWindow(newWindowContent);
+    }
+}

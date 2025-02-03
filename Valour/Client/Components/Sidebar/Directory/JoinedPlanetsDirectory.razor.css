@@ -1,0 +1,19 @@
+.joined-planets {
+    min-height: 25%;
+    max-height: 50%;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1em;
+}
+
+.joined-planets .list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: scroll;
+    border-radius: 14px;
+    background-color: var(--main-3);
+}
+
+.joined-planets .list::-webkit-scrollbar {
+    display: none;
+}

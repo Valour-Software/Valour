@@ -63,7 +63,6 @@
             {
                 Console.WriteLine("Failed to load saved layout: " + e.Message);
                 Reset();
-                throw;
             }
             
             loaded = true;
@@ -80,7 +79,6 @@
             {
                 Console.WriteLine("Failed to load saved floaters: " + e.Message);
                 _floaters.Clear();
-                throw;
             }
         }
         

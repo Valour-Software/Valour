@@ -23,6 +23,15 @@
     
     public List<ToastData> ActiveToasts { get; set; } = new List<ToastData>();
 
+    public async Task ErrorToast(ToastData toast)
+    {
+        var progressToast = new ProgressToastData()
+        {
+            Message = toast.Message,
+            ProgressTask = Task.CompletedTask,
+        };
+    }
+
     public async Task WaitToast(ProgressToastData toast)
     {
         AddToast(toast);

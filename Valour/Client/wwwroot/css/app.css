@@ -152,19 +152,6 @@ body {
     cursor: pointer;
 }
 
-.sidebar-2 {
-    margin: 0px;
-    background-color: var(--main-2);
-    z-index: 1;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    max-height: 100vh;
-    max-height: 100dvh;
-    min-height: 100vh;
-    min-height: 100dvh;
-}
-
 .channel-and-topbar {
     display: flex;
     margin: 0;
@@ -179,61 +166,6 @@ body {
     flex: 0;
     width: 100vw;
     position: absolute;
-}
-
-.sidebar-2 .channel-name {
-    display: inline-block;
-    margin: 0px;
-    margin-top: 5px;
-    margin-left: 3px;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 27.5px;
-    line-height: 32px;
-    color: #FFFFFF;
-}
-
-.sidebar-2 .top-bar {
-    width: 100%;
-    border-top: 3px solid var(--main-3);
-}
-
-.mobile .sidebar-2 .top-bar {
-    width: 100vw;
-}
-
-.sidebar-2 .channel-description {
-    font-family: Futura;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 11px;
-    line-height: 15px;
-    color: #9E9E9E;
-}
-
-.sidebar-2 .channel-name-plus-pin .pin {
-    display: inline-block;
-    margin: 0px;
-    margin-left: 18px;
-}
-
-
-.sidebar-2 .viewing-current-channel {
-    margin-left: 15px;
-}
-
-.sidebar-2 .viewing-current-channel .pfp {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    margin-left: -15px;
-}
-
-.sidebar-2 .current-channel-info {
-    padding-top: 16px;
-    margin-left: 16px;
-    height: 115px;
 }
 
 .mainrow {

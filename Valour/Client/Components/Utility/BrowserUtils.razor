@@ -67,6 +67,12 @@
         return position;
     }
     
+    public static async Task<ElementBounds> GetElementBoundingRectAsync(ElementReference element)
+    {
+        var position = await _jsModule.InvokeAsync<ElementBounds>("getElementBoundingRect", element);
+        return position;
+    }
+    
     public static async Task<WindowUri> GetUriData()
     {
         var uriData = await _jsModule.InvokeAsync<WindowUri>("getWindowUri");

@@ -1,0 +1,77 @@
+﻿.planet .arrow {
+    margin-left: 6px;
+    cursor: pointer;
+}
+
+.planet-name {
+    margin: 0;
+    margin-left: 6px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 21px;
+    color: #FFFFFF;
+}
+
+.planet {
+    position: relative;
+    border-radius: 5px;
+    margin-right: auto;
+    margin-left: auto;
+    margin-bottom: 4px;
+}
+
+.is-open {
+    padding-bottom: 10px;
+}
+
+.planet .icon {
+    width: 22px;
+    height: 22px;
+    float: right;
+    margin-right: 4px;
+    border-radius: 50%;
+}
+
+.planet-about-icon {
+    display: inline-block;
+    max-width: 16px;
+    margin-right: 2px;
+    margin-left: -2px;
+    margin-bottom: 3px;
+}
+
+.planet .header {
+    display: inline-block;
+    width: 100%;
+    border-radius: 8px;
+    padding: 4px;
+    padding-left: 0px;
+}
+
+.planet-about {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 2px;
+    padding-left: 6px;
+    overflow: visible;
+    white-space: nowrap;
+    width: max-content;
+    padding-right: 24px;
+}
+
+.planet .header:hover {
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.planet .header:active {
+    background: rgba(255, 255, 255, 0.125);
+}
+
+.planet .channel-list {
+    margin-left: 2px !important;
+}
+

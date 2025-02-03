@@ -1,0 +1,52 @@
+﻿@inject PlanetService PlanetService
+
+<div class="directory">
+    <div class="planet-row">
+        <div class="left">
+            <img alt="@Planet.Name Icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" />
+            <span>@Planet.Name</span>
+        </div>
+        <div class="right">
+            @if (_showEdit && _connected)
+            {
+                <i tabindex="0" role="button" class="bi bi-gear-fill edit"></i>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private bool _showEdit = false;
+    private bool _connected = false;
+    
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _connected = PlanetService.ConnectedPlanetsLookup.ContainsKey(Planet.Id);
+
+        if (_connected)
+        {
+            DeterminePerms();
+        }
+        
+        StateHasChanged();
+    }
+
+    private void DeterminePerms()
+    {
+        // _showEdit = Planet.MyMember.HasPermission(PlanetPermissions.Manage);
+    }
+    
+    private void OnPlanetConnected(Planet planet)
+    {
+        if (planet.Id == Planet.Id)
+        {
+            _connected = true;
+            DeterminePerms();
+            StateHasChanged();
+        }
+    }
+}

@@ -3,7 +3,7 @@
 <div class="friend-container">
     <p class="subtitle mb-2">Friends</p>
     <div class="v-gradient-underline"></div>
-    <div>
+    <div class="list">
         <Virtualize Items="@FriendService.Friends">
             <UserInfoComponent User="@context" @key="@context.Id" />
         </Virtualize>
