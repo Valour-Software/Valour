@@ -6,7 +6,7 @@
     <div class="top-section">
         <h2 class="title">Create</h2>
         
-        <span id="image-span" style="color:white; text-align: center">@_imageSpan</span>
+        <span id="image-span" style="color:white; text-align: center">@_errorSpan</span>
 
         <div asp-validation-summary="All" class="text-info"></div>
         <div class="form-group mt-2 new-input-style">
@@ -90,7 +90,7 @@
     string _name;
 
     // Spans
-    string _imageSpan = "";
+    string _errorSpan = "";
     Dictionary<PlanetRole, bool> _selectedRoles = new();
     List<PlanetRole> _roles = new();
     bool _isPrivate = false;
@@ -136,7 +136,7 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(_name))
         {
-            _imageSpan = "Please input a category name!";
+            _errorSpan = "Please input a category name!";
             return;
         }
 
@@ -295,7 +295,7 @@
         {
             var errorText = result.Message;
             Console.WriteLine(errorText);
-            _imageSpan = errorText;
+            _errorSpan = errorText;
             return;
         }
 

@@ -58,7 +58,7 @@ public class RegisterService
         if (age < 13)
             return new TaskResult(false, "You must be 13 to use Valour. Sorry!");
         
-        if (await _db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
+        if (await _db.PrivateInfos.AnyAsync(x => x.Email.ToLower() == request.Email))
             return new(false, "This email has already been used");
 
         var emailValid = UserUtils.TestEmail(request.Email);
@@ -153,7 +153,7 @@ public class RegisterService
                 JoinSource = request.Source
             };
             
-            _db.UserEmails.Add(userPrivateInfo.ToDatabase());
+            _db.PrivateInfos.Add(userPrivateInfo.ToDatabase());
 
             Valour.Database.Credential cred = new()
             {

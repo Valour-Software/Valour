@@ -1,36 +1,36 @@
-using Valour.Sdk.Models;
-
 namespace Valour.Server.Mapping;
 
 public static class NotificationSubscriptionMapper
 {
-    public static NotificationSubscription ToModel(this Valour.Database.NotificationSubscription subscription)
+    public static PushNotificationSubscription ToModel(this Valour.Database.PushNotificationSubscription subscription)
     {
         if (subscription is null)
             return null;
         
-        return new NotificationSubscription()
+        return new PushNotificationSubscription()
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
             Endpoint = subscription.Endpoint,
             Key = subscription.Key,
-            Auth = subscription.Auth
+            Auth = subscription.Auth,
+            ExpiresAt = subscription.ExpiresAt
         };
     }
     
-    public static Valour.Database.NotificationSubscription ToDatabase(this NotificationSubscription subscription)
+    public static Valour.Database.PushNotificationSubscription ToDatabase(this PushNotificationSubscription subscription)
     {
         if (subscription is null)
             return null;
         
-        return new Valour.Database.NotificationSubscription()
+        return new Valour.Database.PushNotificationSubscription()
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
             Endpoint = subscription.Endpoint,
             Key = subscription.Key,
-            Auth = subscription.Auth
+            Auth = subscription.Auth,
+            ExpiresAt = subscription.ExpiresAt
         };
     }
 }

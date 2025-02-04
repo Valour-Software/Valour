@@ -10,7 +10,7 @@ public class Notification : ISharedNotification
     /// The id of the notification
     /// </summary>
     [Column("id")]
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     
     /// <summary>
     /// The user the notification was sent to

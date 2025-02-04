@@ -52,6 +52,19 @@
             </div>
         </form>
     </div>
+
+    @if (_showMultiFactorAuth)
+    {
+        <div class="multi-factor-auth">
+            <h3>Multi-Factor Authentication</h3>
+            <input class="form-control" type="text" @bind-value="@_multiFactorCode" />
+            @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
+            {
+                <span class="text-danger mt-4">@_multiFactorSpan</span>
+            }
+            <button class="v-btn blue" @onclick="@OnClickMultiFactorAuth">Submit</button>
+        </div>
+    }
 </div>
 
 @code {
@@ -68,6 +81,11 @@
     private string _passwordSpan;
     private string _resultSpan;
 
+    private bool _showMultiFactorAuth = false;
+    private string _multiFactorCode;
+
+    private string _multiFactorSpan;
+
     private async Task OnEmailKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -81,6 +99,28 @@
         if (e.Key == "Enter")
         {
             await OnClickLogin();
+        }
+    }
+
+    private async Task OnClickMultiFactorAuth()
+    {
+        var multiResult = await AuthService.FetchToken(_email, _password, _multiFactorCode);
+        if (multiResult.Success)
+        {
+            var result = await Client.InitializeUser(multiResult.Token.Id);
+            if (!result.Success)
+            {
+                _multiFactorSpan = result.Message;
+                StateHasChanged();
+                return;
+            }
+            
+            await OnLoginSuccess();
+        }
+        else
+        {
+            _multiFactorSpan = "Invalid code.";
+            StateHasChanged();
         }
     }
 
@@ -107,6 +147,13 @@
 
         var tokenResult = await AuthService.FetchToken(_email, _password);
 
+        if (tokenResult.RequiresMultiAuth){
+            // Show multi-factor auth dialog
+            _showMultiFactorAuth = true;   
+            StateHasChanged();
+            return;
+        }
+
         if (!tokenResult.Success)
         {
             Client.Logger.Log<LoginComponent>($"Failed to request user token. Code: {tokenResult.Code}", "salmon");
@@ -125,28 +172,37 @@
             return;
         }
 
-        var result = await Client.InitializeUser(tokenResult.Data);
+        var result = await Client.InitializeUser(tokenResult.Token.Id);
 
         if (result.Success)
-        {
-            _resultSpan = result.Message;
-            await JsRuntime.SetCookieAsync("token", AuthService.Token);
-
-            if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
-            {
-                NavManager.NavigateTo(redirect, true);
-                return;
-            }
-            
-            if (FromVerified)
-            {
-                NavManager.NavigateTo("/", true);
-                return;
-            }
+        {   
+            await OnLoginSuccess();
         }
         else {
             _passwordSpan = result.Message;
         }
+    }
+
+    private async Task OnLoginSuccess()
+    {
+        _resultSpan = "Logging in...";
+        await JsRuntime.SetCookieAsync("token", AuthService.Token);
+
+        if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
+        {
+            NavManager.NavigateTo(redirect, true);
+            return;
+        }
+            
+        if (FromVerified)
+        {
+            NavManager.NavigateTo("/", true);
+            return;
+        }
+        
+        StateHasChanged();
+
+        await PushSubscriptionsComponent.Instance.RequestSubscriptionAsync();
     }
 
     private void OnClickRegister(MouseEventArgs e)

@@ -80,9 +80,6 @@ else
             "blazorFuncs.registerClient",
             DotNetObjectReference.Create(this)
         );
-
-        // Request notifications in background
-        _ = RequestNotificationSubscriptionAsync();
     }
 
     private Task OnBrowserReady()
@@ -128,23 +125,7 @@ else
             StateHasChanged();
         }
     }
-
-    public async Task RequestNotificationSubscriptionAsync()
-    {
-        var subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
-        if (subscription != null)
-        {
-            try
-            {
-                await Client.PrimaryNode.PostAsync($"api/notification/subscribe", subscription);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-    }
-
+    
     public void Log(string prefix, string msg, string color)
     {
         _ = JsRuntime.InvokeVoidAsync($"Log", $"[{prefix}] {msg}", color);

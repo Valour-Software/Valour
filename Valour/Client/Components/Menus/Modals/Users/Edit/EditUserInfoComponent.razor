@@ -2,6 +2,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject ValourClient Client
+@inject AuthService AuthService
 
 <div class="title-container">
     <h3>Basic Info <i class="bi bi-info-circle-fill"></i></h3>
@@ -59,6 +60,27 @@
 
 <br/>
 
+<h3>Multi-Factor Authentication (MFA)</h3>
+
+@if (_multiAuthMethods is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    if (_multiAuthMethods.Count > 0)
+    {
+        <p>Multi-factor codes enabled!</p>
+        <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
+    }
+    else
+    {
+        <button @onclick="@OnClickMfA" class="v-btn blue">Setup MFA</button>
+    }
+}
+
+<br/>
+
 <h3>DANGER ZONE</h3>
 <div class="btn-row">
     <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
@@ -90,6 +112,8 @@
     private int _statusCode;
     private ITaskResult _statusCodeChangeResult;
 
+    private List<string> _multiAuthMethods;
+    
     private async Task OnStatusApply()
     {
         var oldStatus = User.Status;
@@ -158,12 +182,18 @@
         _infoPreview.UpdateAll();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _pfpUrl = User.GetAvatar(AvatarFormat.Webp256);
         _status = User.Status;
         _statusCode = User.UserStateCode;
         _tag = User.Tag;
+        
+        StateHasChanged();
+
+        _multiAuthMethods = await AuthService.GetMfaMethodsAsync();
+        
+        StateHasChanged();
     }
 
     private void OnPfpError()
@@ -216,5 +246,36 @@
     private void OnClickChangeUsername()
     {
         ModalRoot.OpenModal<ChangeUsernameModal>();
+    }
+    
+    private void OnClickMfA()
+    {
+        ModalRoot.OpenModal<SetupMfaModal>(_multiAuthMethods);
+    }
+
+    private void OnClickRemoveMfa()
+    {
+        ModalRoot.OpenModal<PasswordConfirmModal>(new PasswordConfirmModal.Params()
+        {
+            Title = "Remove MFA?",
+            Description = "Enter your password to disable Multi-Factor Authentication",
+            OnConfirmAsync = async (password) =>
+            {
+                var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>()
+                {
+                    ProgressTask = AuthService.RemoveMfaAsync(password),
+                    Title = "Removing MFA",
+                    Message = "Verifying password...",
+                });
+                
+                if (result.Success)
+                {
+                    _multiAuthMethods = new List<string>();
+                    StateHasChanged();
+                }
+                
+                return result;
+            }
+        });
     }
 }

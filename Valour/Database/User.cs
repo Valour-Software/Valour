@@ -45,7 +45,17 @@ namespace Valour.Database
         /// Channel states for this user.
         /// </summary>
         public virtual ICollection<UserChannelState> ChannelStates { get; set; }
-
+        
+        /// <summary>
+        /// Rewards for this user.
+        /// </summary>
+        public virtual ICollection<Referral> Rewards { get; set; }
+        
+        /// <summary>
+        /// Notification of Subscriptions for this user.
+        /// </summary>
+        public virtual ICollection<PushNotificationSubscription> NotificationSubscriptions { get; set; }
+        
         ///////////////////////
         // Entity Properties //
         ///////////////////////

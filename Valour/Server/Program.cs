@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Amazon.Runtime;
+﻿using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
@@ -14,7 +13,6 @@ using Valour.Server.Email;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
-using WebPush;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
 using Valour.Config.Configs;
@@ -85,10 +83,7 @@ public partial class Program
         BaseAPI.AddRoutes(app);
         EmbedAPI.AddRoutes(app);
         OauthAPI.AddRoutes(app);
-
-        // Notification routes
-        NotificationsAPI.AddRoutes(app);
-
+        
         // s3 (r2) setup
 
         if (CdnConfig.Current is not null)
@@ -261,8 +256,7 @@ public partial class Program
         // This probably needs to be customized further but the documentation changed
         services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        // Adds user manager to dependency injection
-        services.AddSingleton<WebPushClient>();
+
         services.AddControllersWithViews().AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
@@ -285,6 +279,7 @@ public partial class Program
         services.AddScoped<CurrentlyTypingService>();
         services.AddScoped<OauthAppService>();
         services.AddScoped<PermissionsNodeService>();
+        services.AddScoped<MultiAuthService>();
 
         services.AddScoped<OauthAppService>();
         services.AddScoped<PlanetBanService>();
@@ -310,8 +305,14 @@ public partial class Program
         services.AddScoped<StaffService>();
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<StartupService>();
+        services.AddScoped<PushNotificationService>();
 
         services.AddSingleton<NodeLifecycleService>();
+        
+        // Register PushNotificationWorker as a singleton.
+        services.AddSingleton<PushNotificationWorker>();
+        // Register it as the IHostedService.
+        services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<PushNotificationWorker>());
 
         services.AddHostedService<PlanetMessageWorker>();
         services.AddHostedService<StatWorker>();

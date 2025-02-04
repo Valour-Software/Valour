@@ -22,7 +22,7 @@ public static class ConfigLoader
         config.GetSection("CDN").Get<CdnConfig>();
         config.GetSection("Database").Get<DbConfig>();
         config.GetSection("Email").Get<EmailConfig>();
-        config.GetSection("Vapid").Get<VapidConfig>();
+        config.GetSection("Notifications").Get<NotificationsConfig>();
         config.GetSection("Node").Get<NodeConfig>();
         config.GetSection("Redis").Get<RedisConfig>();
         config.GetSection("Paypal").Get<PaypalConfig>();
@@ -57,9 +57,9 @@ public static class ConfigLoader
             Console.WriteLine("Using test email");
         }
 
-        if (VapidConfig.Current is null)
+        if (NotificationsConfig.Current is null)
         {
-            new VapidConfig();
+            new NotificationsConfig();
         }
     }
 

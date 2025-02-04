@@ -203,12 +203,12 @@ public class UserService
         return friends;
     }
 
-    public async Task<UserPrivateInfo> GetUserEmailAsync(string email, bool makelowercase = true)
+    public async Task<UserPrivateInfo> GetUserPrivateInfoAsync(string email, bool makelowercase = true)
     {
         if (!makelowercase)
-            return (await _db.UserEmails.FindAsync(email)).ToModel();
+            return (await _db.PrivateInfos.FindAsync(email)).ToModel();
         else
-            return (await _db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
+            return (await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
     }
 
     public async Task<TaskResult> SendPasswordResetEmail(UserPrivateInfo userPrivateInfo, string email, HttpContext ctx)
@@ -316,7 +316,7 @@ public class UserService
         if (user is null)
             return new TaskResult(false, "User not found");
         
-        var userPrivateInfo = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == userId);
+        var userPrivateInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == userId);
         if (userPrivateInfo is null)
             return new TaskResult(false, "User info not found");
 
@@ -424,7 +424,7 @@ public class UserService
         
         try
         {
-            var email = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
+            var email = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
             email.Verified = true;
             
             _db.EmailConfirmCodes.Remove(confirmCode);
@@ -548,7 +548,7 @@ public class UserService
                     TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userId,
-                    IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN"
+                    IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN",
                 }.ToDatabase();
 
                 await _db.AuthTokens.AddAsync(token);
@@ -728,8 +728,8 @@ public class UserService
             _db.EmailConfirmCodes.RemoveRange(codes);
             
             // Remove user emails
-            var emails = _db.UserEmails.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.UserEmails.RemoveRange(emails);
+            var emails = _db.PrivateInfos.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.PrivateInfos.RemoveRange(emails);
 
             // Remove credentials
             var creds = _db.Credentials.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -768,8 +768,8 @@ public class UserService
             _db.Referrals.RemoveRange(refer);
 
             // Notifications
-            var nots = _db.NotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.NotificationSubscriptions.RemoveRange(nots);
+            var nots = _db.PushNotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.PushNotificationSubscriptions.RemoveRange(nots);
             
             // Also notifications
             var noots  = _db.Notifications.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);

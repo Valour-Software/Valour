@@ -1,0 +1,99 @@
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+@code {
+    
+    public static PushSubscriptionsComponent Instance;
+    
+    private IJSInProcessObjectReference _jsModule;
+    private IJSInProcessObjectReference _jsService;
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Notifications/PushSubscriptionsComponent.razor.js");
+        _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init");
+    }
+    
+    public async Task<PushSubscriptionResult> RequestSubscriptionAsync()
+    {
+        var subResult = await _jsService.InvokeAsync<PushSubscriptionResult>("requestSubscription");
+
+        if (!subResult.Success)
+            return subResult;
+
+        if (subResult.Subscription is null)
+        {
+            return new PushSubscriptionResult()
+            {
+                Success = false,
+                Error = "Unknown subscription error"
+            };
+        }
+
+        var pushNotificationSubscription = new PushNotificationSubscription()
+        {
+            UserId = Client.Me.Id,
+            Key = subResult.Subscription.Key,
+            Auth = subResult.Subscription.Auth,
+            Endpoint = subResult.Subscription.Endpoint,
+        };
+        
+        // Post to server
+        var result = await Client.PrimaryNode.PostAsync($"api/notifications/subscribe", pushNotificationSubscription);
+
+        if (!result.Success)
+        {
+            return new PushSubscriptionResult()
+            {
+                Success = false,
+                Error = result.Message
+            };
+        }
+        
+        return subResult;
+    }
+
+    public async Task UnsubscribeAsync()
+    {
+        // Get existing subscription
+        var subResult = await GetSubscriptionAsync();
+        if (subResult.Success && subResult.Subscription is not null)
+        {
+            var pushNotificationSubscription = new PushNotificationSubscription()
+            {
+                UserId = Client.Me.Id,
+                Key = subResult.Subscription.Key,
+                Auth = subResult.Subscription.Auth,
+                Endpoint = subResult.Subscription.Endpoint,
+            };
+            
+            await _jsService.InvokeVoidAsync("unsubscribe");
+            await Client.PrimaryNode.PostAsync("api/notifications/unsubscribe", pushNotificationSubscription);
+        }
+    }
+    
+    public ValueTask<PushSubscriptionResult> GetSubscriptionAsync()
+    {
+        return _jsService.InvokeAsync<PushSubscriptionResult>("getSubscription");
+    }
+    
+    public ValueTask<bool> IsNotificationsEnabledAsync()
+    {
+        return _jsService.InvokeAsync<bool>("notificationsEnabled");
+    }
+    
+    public ValueTask<string> GetPermissionStateAsync()
+    {
+        return _jsService.InvokeAsync<string>("getPermissionState");
+    }
+    
+    public ValueTask AskForPermissionAsync()
+    {
+        return _jsService.InvokeVoidAsync("askForPermission");
+    }
+}

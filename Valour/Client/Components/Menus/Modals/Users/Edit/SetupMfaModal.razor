@@ -1,0 +1,101 @@
+@inherits Modal<List<string>>
+@inject AuthService AuthService
+
+<BasicModalLayout Title="Setup MFA" Icon="key-fill">
+    <MainArea>
+        @if (_complete || Data.Count > 0)
+        {
+            <h3>MFA Already Setup</h3>
+        }
+        else
+        {
+            @if (_loading)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                if (_createResult.Success)
+                {
+                    <img class="mb-4" alt="MFA QR Code" src="@_createResult.Data.QRCode" />
+
+                    <code>
+                        @_createResult.Data.Key
+                    </code>
+                    <span class="mb-4">Manual Key</span>
+
+                    <p>Scan the QR code or enter the Manual Key into your authenticator app to setup MFA. Then enter a code from your app below.</p>
+
+                    <input class="form-control" type="text" placeholder="Enter App Code" @bind-value="@_multiFactorCode" />
+                    
+                    @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
+                    {
+                        <span class="text-danger mt-4">@_multiFactorSpan</span>
+                    }
+                }
+                else
+                {
+                    <p class="error">Error setting up MFA</p>
+                }
+            }
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_complete || Data.Count > 0)
+            {
+                <button class="v-btn" @onclick="@Close">Close</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="@Close">Cancel</button>
+                <button class="v-btn blue" @onclick="@OnClickMultiFactorAuth">Submit</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+
+    private int _page = 0;
+    
+    private bool _loading = true;
+    private TaskResult<CreateAppMultiAuthResponse> _createResult;
+    
+    private string _multiFactorSpan;
+    private string _multiFactorCode;
+
+    private bool _complete = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _createResult = await AuthService.SetupMfaAsync();
+        _loading = false;
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnClickMultiFactorAuth()
+    {
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>()
+        {
+            ProgressTask = AuthService.VerifyMfaAsync(_multiFactorCode),
+            Title = "Setting up MFA",
+            Message = "Sending code...",
+        });
+
+        if (result.Success)
+        {
+            _complete = true;
+            StateHasChanged();
+            
+            Close();
+        }
+        else
+        {
+            _multiFactorSpan = "Invalid code.";
+            StateHasChanged();
+        }
+    }
+
+}

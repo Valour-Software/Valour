@@ -1,0 +1,33 @@
+<div class="basic-modal" style="max-width: @MaxWidth">
+    <div class="top">
+        @if (Icon is not null)
+        {
+            <i class="bi bi-@Icon"></i>
+        }
+        
+        <span class="title">@Title</span>
+    </div>
+    <div class="content">
+        @MainArea
+    </div>
+    <div class="bottom">
+        @ButtonArea
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string MaxWidth { get; set; } = "300px";
+    
+    [Parameter]
+    public string Title { get; set; }
+    
+    [Parameter]
+    public string Icon { get; set; }
+    
+    [Parameter]
+    public RenderFragment MainArea { get; set; }
+    
+    [Parameter]
+    public RenderFragment ButtonArea { get; set; }
+}

@@ -1,4 +1,5 @@
 using Valour.Server.Database;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -12,19 +13,22 @@ public class PlanetRoleService
     private readonly CoreHubService _coreHub;
     private readonly HostedPlanetService _hostedService;
     private readonly PlanetPermissionService _permissionService;
+    private readonly PushNotificationWorker _pushNotificationWorker;
 
     public PlanetRoleService(
         ValourDb db,
         ILogger<PlanetRoleService> logger,
         CoreHubService coreHub,
         HostedPlanetService hostedService, 
-        PlanetPermissionService permissionService)
+        PlanetPermissionService permissionService, 
+        PushNotificationWorker pushNotificationWorker)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
         _hostedService = hostedService;
         _permissionService = permissionService;
+        _pushNotificationWorker = pushNotificationWorker;
     }
 
     /// <summary>
@@ -153,42 +157,42 @@ public class PlanetRoleService
         
         try
         {
-            // This order is important. We recalculate access after removing permission nodes
-            // but BEFORE the role itself is removed. This is because the procedure to
-            // recalculate access needs the role members to be present.
-            
-            // We also set all the permissions to FALSE in the role so it acts like it doesn't exist
-            
-            // Set all permissions to false
-            dbRole.Permissions = 0;
-            dbRole.ChatPermissions = 0;
-            dbRole.CategoryPermissions = 0;
-            dbRole.VoicePermissions = 0;
-            
-            await _db.SaveChangesAsync();
-            
             // Remove role nodes
-            var nodes = _db.PermissionsNodes.Where(x => x.RoleId == roleId);
-            _db.PermissionsNodes.RemoveRange(nodes);
-
-            await _db.SaveChangesAsync();
             
-            // Remove all members
-            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == roleId);
-            _db.PlanetRoleMembers.RemoveRange(members);
-            await _db.SaveChangesAsync();
+            await _db.PermissionsNodes.Where(x => x.RoleId == roleId)
+                .ExecuteDeleteAsync();
+            
+            // Update role hash keys
+            // This MUST happen before role members are deleted, it uses them!
+            // Get all role combinations that include this role
+            var newRoleCombos = await _permissionService.GetPlanetRoleCombosForRolePostDeletion(role.Id);
+        
+            // For each of these, we need to create a new role hash key (without the role being deleted)
+            // and replace the old ones
+            foreach (var newCombo in newRoleCombos)
+            {
+                var oldHashKey = newCombo.RoleHashKey;
+                var newHashKey = PlanetPermissionService.GenerateRoleComboKey(newCombo.Roles);
+            
+                await _db.PlanetMembers.Where(x => x.RoleHashKey == oldHashKey)
+                    .ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleHashKey, newHashKey));
+            }
+
+            await _db.PlanetRoleMembers.Where(x => x.RoleId == roleId)
+                .ExecuteDeleteAsync();
 
             // Remove the role
             _db.PlanetRoles.Remove(dbRole);
 
             await _db.SaveChangesAsync();
+            
             await trans.CommitAsync();
 
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await trans.RollbackAsync();
-            _logger.LogError(e.Message);
+            _logger.LogError("DB Error removing role: {Error}", e.Message);
             return new(false, e.Message);
         }
         

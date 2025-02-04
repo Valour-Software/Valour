@@ -623,7 +623,7 @@ public class EcoService
         var userFrom = await _db.Users.FindAsync(transaction.UserFromId);
 
         // Send notification
-        await _notificationService.AddNotificationAsync(new Notification()
+        await _notificationService.SendUserNotification(transaction.UserToId, new Notification()
         {
             UserId = transaction.UserToId,
             Title = $"{userFrom.Name} sent you {currency.Format(transaction.Amount)}!",

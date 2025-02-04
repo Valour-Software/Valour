@@ -50,7 +50,6 @@ public class AuthToken : ISharedAuthToken
     /// </summary>
     public string IssuedAddress { get; set; }
 
-
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<AuthToken>(e =>

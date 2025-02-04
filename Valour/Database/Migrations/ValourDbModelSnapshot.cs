@@ -512,6 +512,42 @@ namespace Valour.Database.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.MultiAuth", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Secret")
+                        .HasColumnType("text")
+                        .HasColumnName("secret");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<bool>("Verified")
+                        .HasColumnType("boolean")
+                        .HasColumnName("verified");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("multi_auth", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.NodeStats", b =>
                 {
                     b.Property<string>("Name")
@@ -541,12 +577,10 @@ namespace Valour.Database.Migrations
 
             modelBuilder.Entity("Valour.Database.Notification", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
+                        .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Body")
                         .HasColumnType("text")
@@ -595,38 +629,6 @@ namespace Valour.Database.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("notifications");
-                });
-
-            modelBuilder.Entity("Valour.Database.NotificationSubscription", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Auth")
-                        .HasColumnType("text")
-                        .HasColumnName("auth");
-
-                    b.Property<string>("Endpoint")
-                        .HasColumnType("text")
-                        .HasColumnName("endpoint");
-
-                    b.Property<string>("Key")
-                        .HasColumnType("text")
-                        .HasColumnName("key");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("notification_subscriptions");
                 });
 
             modelBuilder.Entity("Valour.Database.OauthApp", b =>
@@ -1011,6 +1013,49 @@ namespace Valour.Database.Migrations
                     b.ToTable("planet_role_members");
                 });
 
+            modelBuilder.Entity("Valour.Database.PushNotificationSubscription", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Auth")
+                        .HasColumnType("text")
+                        .HasColumnName("auth");
+
+                    b.Property<int>("DeviceType")
+                        .HasColumnType("integer")
+                        .HasColumnName("device_type");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("endpoint");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at")
+                        .HasDefaultValueSql("(NOW() + INTERVAL '7 days')");
+
+                    b.Property<string>("Key")
+                        .HasColumnType("text")
+                        .HasColumnName("key");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("notification_subscriptions", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.Referral", b =>
                 {
                     b.Property<long>("UserId")
@@ -1030,8 +1075,6 @@ namespace Valour.Database.Migrations
                         .HasColumnName("reward");
 
                     b.HasKey("UserId");
-
-                    b.HasIndex("ReferrerId");
 
                     b.ToTable("referrals");
                 });
@@ -1471,10 +1514,18 @@ namespace Valour.Database.Migrations
 
                     b.HasKey("Email");
 
+                    b.HasIndex("BirthDate");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("JoinInviteCode");
+
+                    b.HasIndex("Locality");
+
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("user_emails");
+                    b.ToTable("user_emails", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.UserProfile", b =>
@@ -1736,7 +1787,7 @@ namespace Valour.Database.Migrations
                     b.Navigation("ReplyToMessage");
                 });
 
-            modelBuilder.Entity("Valour.Database.NotificationSubscription", b =>
+            modelBuilder.Entity("Valour.Database.MultiAuth", b =>
                 {
                     b.HasOne("Valour.Database.User", "User")
                         .WithMany()
@@ -1883,21 +1934,24 @@ namespace Valour.Database.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Valour.Database.Referral", b =>
+            modelBuilder.Entity("Valour.Database.PushNotificationSubscription", b =>
                 {
-                    b.HasOne("Valour.Database.User", "Referrer")
-                        .WithMany()
-                        .HasForeignKey("ReferrerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Valour.Database.User", "User")
-                        .WithMany()
+                        .WithMany("NotificationSubscriptions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Referrer");
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Valour.Database.Referral", b =>
+                {
+                    b.HasOne("Valour.Database.User", "User")
+                        .WithMany("Rewards")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -2060,9 +2114,13 @@ namespace Valour.Database.Migrations
 
                     b.Navigation("Messages");
 
+                    b.Navigation("NotificationSubscriptions");
+
                     b.Navigation("OwnedApps");
 
                     b.Navigation("PrivateInfo");
+
+                    b.Navigation("Rewards");
 
                     b.Navigation("Subscriptions");
                 });

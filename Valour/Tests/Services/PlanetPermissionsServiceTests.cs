@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
@@ -27,6 +28,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
     private readonly PlanetRoleService _roleService;
     private readonly UserService _userService;
     private readonly PermissionsNodeService _nodeService;
+    private readonly ValourDb _db;
 
     public PlanetPermissionsServiceTests(LoginTestFixture fixture)
     {
@@ -37,6 +39,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         _factory = fixture.Factory;
         
         var scope = _factory.Services.CreateScope();
+        _db = scope.ServiceProvider.GetRequiredService<ValourDb>();
         _permissionService = scope.ServiceProvider.GetRequiredService<PlanetPermissionService>();
         _planetService = scope.ServiceProvider.GetRequiredService<PlanetService>();
         _channelService = scope.ServiceProvider.GetRequiredService<ChannelService>();
@@ -53,6 +56,12 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         var planetService = scope.ServiceProvider.GetRequiredService<PlanetService>();
         var valourCentral = await planetService.GetAsync(ISharedPlanet.ValourCentralId);
         Assert.NotNull(valourCentral);
+    }
+
+    [Fact]
+    public async Task GetAllRoleCombosWithRole()
+    {
+        // TODO: Come up with this test, it's important (sob)
     }
 
     [Fact]
