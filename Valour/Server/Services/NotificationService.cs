@@ -31,10 +31,10 @@ public class NotificationService
         _pushNotificationWorker = pushNotificationWorker;
     }
     
-    public async Task<Models.Notification> GetNotificationAsync(long id)
+    public async Task<Models.Notification> GetNotificationAsync(Guid id)
         => (await _db.Notifications.FindAsync(id)).ToModel();
 
-    public async Task<TaskResult> SetNotificationRead(long id, bool value)
+    public async Task<TaskResult> SetNotificationRead(Guid id, bool value)
     {
         var notification = await _db.Notifications.FindAsync(id);
         if (notification is null)
@@ -108,6 +108,8 @@ public class NotificationService
     {
         notification.UserId = userId;
         notification.TimeSent = DateTime.UtcNow;
+
+        notification.Id = Guid.NewGuid();
         
         await _db.Notifications.AddAsync(notification.ToDatabase());
         await _db.SaveChangesAsync();
@@ -134,10 +136,11 @@ public class NotificationService
         // TODO: this could be a lot of data to move. may want a sequence or something on the db
         // at some point to handle this.
         var notifications = await _db.PlanetRoleMembers
+            .AsNoTracking()
             .Where(x => x.RoleId == roleId)
             .Select(x => new Valour.Database.Notification()
             {
-                Id = IdManager.Generate(),
+                Id = Guid.NewGuid(),
                 Title = baseNotification.Title,
                 Body = baseNotification.Body,
                 ImageUrl = baseNotification.ImageUrl,
@@ -148,7 +151,7 @@ public class NotificationService
                 SourceId = baseNotification.SourceId,
                 UserId = x.UserId,
                 TimeSent = DateTime.UtcNow,
-            }).ToListAsync();
+            }).ToArrayAsync();
         
         await _db.Notifications.AddRangeAsync(notifications);
         await _db.SaveChangesAsync();
@@ -216,25 +219,7 @@ public class NotificationService
             UserId = mentionTargetUser.Id,
         };
         
-        // Add notification to database
-        await _db.Notifications.AddAsync(notification.ToDatabase());
-        await _db.SaveChangesAsync();
-
-        // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notification, _nodeLifecycleService);
-        
-        // Send push notification
-        await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
-        {
-            Content = new NotificationContent()
-            {
-                Title = notification.Title,
-                Message = notification.Body,
-                IconUrl = notification.ImageUrl,
-                Url = notification.ClickUrl,
-            },
-            UserId = mentionTargetUser.Id
-        });
+        await SendUserNotification(mentionTargetUser.Id, notification);
     }
 
     private async Task HandleMemberMentionAsync(
@@ -258,7 +243,7 @@ public class NotificationService
 
         Models.Notification notification = new()
         {
-            Id = IdManager.Generate(),
+            Id = Guid.NewGuid(),
             Title = member.Nickname + " in " + planet.Name,
             Body = content,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
@@ -270,26 +255,8 @@ public class NotificationService
             ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}",
             TimeSent = DateTime.UtcNow
         };
-                
-        // Add notification to database
-        await _db.Notifications.AddAsync(notification.ToDatabase());
-        await _db.SaveChangesAsync();
 
-        // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notification, _nodeLifecycleService);
-                
-        // Send push notification
-        await _pushNotificationWorker.QueueNotificationAction(new SendMemberPushNotification()
-        {
-            Content = new NotificationContent()
-            {
-                Title = notification.Title,
-                Message = notification.Body,
-                IconUrl = notification.ImageUrl,
-                Url = notification.ClickUrl,
-            },
-            MemberId = targetMember.Id
-        });
+        await SendUserNotification(targetMember.UserId, notification);
     }
 
     private async Task HandleRoleMentionAsync(
@@ -311,8 +278,9 @@ public class NotificationService
 	        
         var content = message.Content.Replace($"«@r-{mention.TargetId}»", $"@{targetRole.Name}");
 
-        Models.Notification notif = new()
+        var baseNotification = new Notification()
         {
+            Id = Guid.NewGuid(),
             Title = member.Nickname + " in " + planet.Name,
             Body = content,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
@@ -322,24 +290,6 @@ public class NotificationService
             ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}"
         };
 
-        // Add notification to database
-        await _db.Notifications.AddAsync(notif.ToDatabase());
-        await _db.SaveChangesAsync();
-        
-        // Send notification to all of the user's online Valour instances
-        _coreHub.RelayNotification(notif, _nodeLifecycleService);
-        
-        // Send push notification
-        await _pushNotificationWorker.QueueNotificationAction(new SendRolePushNotification()
-        {
-            Content = new NotificationContent()
-            {
-                Title = notif.Title,
-                Message = notif.Body,
-                IconUrl = notif.ImageUrl,
-                Url = notif.ClickUrl,
-            },
-            RoleId = targetRole.Id,
-        });
+        await SendRoleNotificationsAsync(mention.TargetId, baseNotification);
     }
 }

@@ -59,7 +59,7 @@ public class NotificationApi
     [ValourRoute(HttpVerbs.Post, "api/notifications/self/{id}/read/{value}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> SetNotificationRead(
-        long id,
+        Guid id,
         bool value,
         UserService userService,
         NotificationService notificationService)

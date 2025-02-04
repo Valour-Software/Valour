@@ -11,26 +11,23 @@ public class PushNotificationService
     private readonly ILogger<PushNotificationService> _logger;
     private readonly PlanetPermissionService _permissionService;
     private readonly WebPushClient _webPushClient;
-    private readonly NotificationsConfig _notificationsConfig;
     private readonly VapidDetails _vapidDetails;
     
     public PushNotificationService(
         ILogger<PushNotificationService> logger, 
         ValourDb db, 
-        PlanetPermissionService permissionService,
-        IOptions<NotificationsConfig> notificationsConfig)
+        PlanetPermissionService permissionService)
     {
         _logger = logger;
         _db = db;
         _permissionService = permissionService;
         _webPushClient = new WebPushClient();
-        _notificationsConfig = notificationsConfig.Value;
         
         _vapidDetails = new VapidDetails()
         {
-            Subject = _notificationsConfig.Subject,
-            PublicKey = _notificationsConfig.PublicKey,
-            PrivateKey = _notificationsConfig.PrivateKey
+            Subject = NotificationsConfig.Current?.Subject,
+            PublicKey = NotificationsConfig.Current?.PublicKey,
+            PrivateKey = NotificationsConfig.Current?.PrivateKey
         };
     }
     
@@ -98,8 +95,9 @@ public class PushNotificationService
     {
         // Get user's push subscriptions
         var subs = await _db.PushNotificationSubscriptions
+            .AsNoTracking()
             .Where(x => x.UserId == userId)
-            .ToListAsync();
+            .ToArrayAsync();
         
         var payload = GetPayload(content);
         
@@ -115,19 +113,22 @@ public class PushNotificationService
     /// </summary>
     public async Task SendMemberPushNotificationAsync(long memberId, NotificationContent content)
     {
-        // Get userId from memberId
-        var userId = await _db.PlanetMembers
+        // Get subscriptions
+        var subscriptions = await _db.PlanetMembers
+            .AsNoTracking()
             .Where(x => x.Id == memberId)
-            .Select(x => x.UserId)
-            .FirstOrDefaultAsync();
+            .Select(x => x.User.NotificationSubscriptions)
+            // Flatten
+            .SelectMany(x => x)
+            .ToArrayAsync();
         
-        if (userId == 0)
+        var payload = GetPayload(content);
+        
+        await Parallel.ForEachAsync(subscriptions, async (sub, cancellationToken) =>
         {
-            _logger.LogWarning("Member {MemberId} not found", memberId);
-            return;
-        }
-        
-        await SendUserPushNotificationAsync(userId, content);
+            var webSub = new PushSubscription(sub.Endpoint, sub.Key, sub.Auth);
+            await _webPushClient.SendNotificationAsync(webSub, payload, _vapidDetails, cancellationToken: cancellationToken);
+        });
     }
     
     /// <summary>
@@ -135,15 +136,14 @@ public class PushNotificationService
     /// </summary>
     public async Task SendRolePushNotificationsAsync(long roleId, NotificationContent content)
     {
-        // We need to get all the role combinations containing this role
-        var roleComboKeys = await _permissionService.GetPlanetRoleComboKeysForRole(roleId);
-        
         // Now get all the subscriptions for users with these role combos
-        var subscriptions = await _db.PlanetMembers.Where(x => roleComboKeys.Contains(x.RoleHashKey))
-            .Select(x => x.PushSubscriptions)
+        var subscriptions = await _db.PlanetRoleMembers
+            .AsNoTracking()
+            .Where(x => x.RoleId == roleId)
+            .Select(x => x.User.NotificationSubscriptions)
             // Flatten
             .SelectMany(x => x)
-            .ToListAsync();
+            .ToArrayAsync();
         
         var payload = GetPayload(content);
         
@@ -153,6 +153,6 @@ public class PushNotificationService
             await _webPushClient.SendNotificationAsync(webSub, payload, _vapidDetails, cancellationToken: cancellationToken);
         });
         
-        _logger.LogInformation("Sent role mention for {SubscriptionCount} subscriptions", subscriptions.Count);
+        _logger.LogInformation("Sent role mention for {SubscriptionCount} subscriptions", subscriptions.Length);
     }
 }

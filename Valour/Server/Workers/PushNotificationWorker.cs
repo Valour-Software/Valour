@@ -40,7 +40,6 @@ public class PushNotificationWorker : IHostedService, IDisposable
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<PushNotificationWorker> _logger;
-    private readonly IOptions<NotificationsConfig> _notificationsConfig;
 
     // The unbounded channel for queuing notification actions.
     private Channel<PushNotificationAction> _actionChannel =
@@ -51,11 +50,11 @@ public class PushNotificationWorker : IHostedService, IDisposable
     private CancellationTokenSource? _cts;
 
     public PushNotificationWorker(ILogger<PushNotificationWorker> logger,
-                                  IServiceScopeFactory serviceScopeFactory, IOptions<NotificationsConfig> notificationsConfig)
+                                  IServiceScopeFactory serviceScopeFactory, 
+                                  IOptions<NotificationsConfig> notificationsConfig)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
-        _notificationsConfig = notificationsConfig;
     }
 
     /// <summary>
@@ -70,7 +69,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         // If no hub client is available, log a warning and do nothing.
-        if (_notificationsConfig is null || string.IsNullOrWhiteSpace(_notificationsConfig.Value.PrivateKey))
+        if (NotificationsConfig.Current is null || string.IsNullOrWhiteSpace(NotificationsConfig.Current.PrivateKey))
         {
             _logger.LogWarning("Notifications config missing - disabling push worker");
             return;

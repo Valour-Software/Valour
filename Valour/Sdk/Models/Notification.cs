@@ -3,7 +3,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Notification : ClientModel<Notification, long>, ISharedNotification
+public class Notification : ClientModel<Notification, Guid>, ISharedNotification
 {
     /// <summary>
     /// The user the notification was sent to
