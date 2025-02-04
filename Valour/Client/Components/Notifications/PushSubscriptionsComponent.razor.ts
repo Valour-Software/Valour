@@ -15,6 +15,7 @@ type PushNotificationsService = {
     getPermissionState: () => NotificationPermission;
     askForPermission: () => Promise<NotificationPermission>;
     requestSubscription: () => Promise<PushSubscriptionResult>;
+    getSubscription: () => Promise<PushSubscriptionResult>;
     unsubscribe: () => Promise<void>;
 }
 
@@ -73,6 +74,26 @@ export function init(): PushNotificationsService {
                 return {
                     success: false,
                     error: 'Unexpected error: ' + e.message
+                }
+            }
+        },
+        getSubscription: async (): Promise<PushSubscriptionResult> => {
+            const registration = await navigator.serviceWorker.ready;
+            const existingSubscription = await registration.pushManager.getSubscription();
+            
+            if (existingSubscription) {
+                return {
+                    success: true,
+                    subscription: {
+                        endpoint: existingSubscription.endpoint,
+                        key: arrayBufferToBase64(existingSubscription.getKey('p256dh')),
+                        auth: arrayBufferToBase64(existingSubscription.getKey('auth')),
+                    }
+                }
+            } else {
+                return {
+                    success: false,
+                    error: 'No subscription found'
                 }
             }
         },

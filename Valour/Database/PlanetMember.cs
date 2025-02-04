@@ -20,6 +20,9 @@ public class PlanetMember : ISharedPlanetMember
     public virtual User User { get; set; }
     
     [JsonIgnore]
+    public virtual ICollection<PushNotificationSubscription> PushSubscriptions { get; set; }
+    
+    [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
     
     [JsonIgnore]

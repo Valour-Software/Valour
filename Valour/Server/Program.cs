@@ -305,6 +305,7 @@ public partial class Program
         services.AddScoped<StaffService>();
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<StartupService>();
+        services.AddScoped<PushNotificationService>();
 
         services.AddSingleton<NodeLifecycleService>();
         

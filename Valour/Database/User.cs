@@ -47,11 +47,6 @@ namespace Valour.Database
         public virtual ICollection<UserChannelState> ChannelStates { get; set; }
         
         /// <summary>
-        /// Private info for this user.
-        /// </summary>
-        public virtual ICollection<UserPrivateInfo> UserPrivateInfo { get; set; }
-        
-        /// <summary>
         /// Rewards for this user.
         /// </summary>
         public virtual ICollection<Referral> Rewards { get; set; }

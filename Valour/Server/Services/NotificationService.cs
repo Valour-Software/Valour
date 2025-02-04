@@ -1,5 +1,4 @@
-﻿using Microsoft.Azure.NotificationHubs;
-using Valour.Server.Database;
+﻿using Valour.Server.Database;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Models;

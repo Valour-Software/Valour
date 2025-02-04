@@ -240,6 +240,8 @@ public partial class ValourDb : DbContext
         OauthApp.SetupDbModel(modelBuilder);
         Channel.SetupDbModel(modelBuilder);
         MultiAuth.SetupDbModel(modelBuilder);
+        PushNotificationSubscription.SetUpDbModel(modelBuilder);
+        UserPrivateInfo.SetUpDbModel(modelBuilder);
     }
 }
 

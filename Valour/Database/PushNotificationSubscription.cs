@@ -12,7 +12,7 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
     ///////////////////////////
     
     public virtual User? User { get; set; }
-    
+    public virtual PlanetMember? Member { get; set; }
     public virtual Planet? Planet { get; set; }
     
     ///////////////////////
@@ -62,7 +62,7 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
         builder.Entity<PushNotificationSubscription>(e =>
         {
             // ToTable
-            e.ToTable("web_push_subscriptions");
+            e.ToTable("notification_subscriptions");
             
             // Key
             e.HasKey(x => x.Id);
@@ -76,7 +76,7 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
             
             e.Property(x => x.ExpiresAt)
                 .HasColumnName("expires_at")
-                .HasDefaultValue("(NOW() + INTERVAL '7 days')")
+                .HasDefaultValueSql("(NOW() + INTERVAL '7 days')")
                 .HasConversion(
                     x => x,
                     x => new DateTime(x.Ticks, DateTimeKind.Utc)
@@ -100,6 +100,9 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
             e.Property(x => x.Auth)
                 .HasColumnName("auth");
             
+            e.Property(x => x.Endpoint)
+                .HasColumnName("endpoint");
+            
             // Relationships
 
             e.HasOne(x => x.User)
@@ -109,6 +112,10 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
             e.HasOne(x => x.Planet)
                 .WithMany(x => x.NotificationSubscriptions)
                 .HasForeignKey(x => x.PlanetId);
+            
+            e.HasOne(x => x.Member)
+                .WithMany(x => x.PushSubscriptions)
+                .HasForeignKey(x => x.MemberId);
             
             // Indices
 

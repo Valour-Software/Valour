@@ -49,24 +49,6 @@ public class PushNotificationService
         return new List<string> { $"p:{planetId}", $"rh:{roleHashKey}", $"m:{memberId}" }; // planet, role hash, member
     }
     
-    private Installation CreateInstallation(string endpoint, string key, string auth, long? planetId, List<string> tags)
-    {
-        var subId = GetSubscriptionId(endpoint, planetId);
-
-        return new Installation
-        {
-            InstallationId = subId,
-            PushChannel = endpoint,
-            ExpirationTime = DateTime.UtcNow.AddDays(7),
-            Tags = tags,
-            PushVariables = new Dictionary<string, string>
-            {
-                { "p256dh", key },
-                { "auth", auth }
-            }
-        };
-    }
-    
     public async Task ReplaceRoleHashTags(long oldHashKey, long newHashKey)
     {
         // Get all subscriptions with the old hash key
@@ -92,7 +74,7 @@ public class PushNotificationService
             var newTags = GetPlanetTags(sub.PlanetId.Value, sub.RoleHashKey.Value, sub.MemberId.Value);
         
             var subId = GetSubscriptionId(sub.Endpoint, sub.PlanetId);
-        
+            
             await _hubClient.PatchInstallationAsync(subId, new List<PartialUpdateOperation>(){
                 new ()
                 {
@@ -117,7 +99,36 @@ public class PushNotificationService
     {
         var tags = new List<string> { $"u:{subscription.UserId}" }; // user
         
+        var registration = await _hubClient.CreateBrowserNativeRegistrationAsync(
+            subscription.Endpoint, 
+            subscription.Auth, 
+            subscription.Key, 
+            tags,
+            DateTime.UtcNow.AddDays(7)
+        );
+        
+        
+        /*
+        
         var userInstallation = CreateInstallation(subscription.Endpoint, subscription.Key, subscription.Auth, null, tags);
+        
+        var subId = GetSubscriptionId(endpoint, planetId);
+        x.RegistrationId = subId;
+        x.ExpirationTime = DateTime.UtcNow.AddDays(7);
+        
+        new Installation
+        {
+            InstallationId = subId,
+            PushChannel = endpoint,
+            ExpirationTime = DateTime.UtcNow.AddDays(7),
+            Tags = tags,
+        }
+        
+        
+       
+       
+       _hubClient.regist
+        
         
         // Check if subscription already exists in db
         var existingUserSub = 
@@ -136,16 +147,22 @@ public class PushNotificationService
         else
         {
             var newUserSub = subscription.ToDatabase();
+            
             // Add new subscription
             await _db.PushNotificationSubscriptions.AddAsync(newUserSub);
         }
 
         // Create or update on azure
         await _hubClient.CreateOrUpdateInstallationAsync(userInstallation);
+        
+        await _db.SaveChangesAsync();
+        */
     }
 
     public async Task SubscribePlanetsAsync(PushNotificationSubscription userSubscription)
     {
+        /*
+        
         // Get PlanetId and RoleHashKey from all planetmembers for user
         var membership = await _db.PlanetMembers
             .Where(x => x.UserId == userSubscription.UserId)
@@ -170,11 +187,24 @@ public class PushNotificationService
                 existingPlanetSub.Key = userSubscription.Key;
                 
                 _db.PushNotificationSubscriptions.Update(existingPlanetSub);
+            } 
+            else
+            {
+                var newPlanetSub = userSubscription.ToDatabase();
+                newPlanetSub.PlanetId = member.PlanetId;
+                newPlanetSub.RoleHashKey = member.RoleHashKey;
+                newPlanetSub.MemberId = member.Id;
+                
+                await _db.PushNotificationSubscriptions.AddAsync(newPlanetSub);
             }
 
             // Create or update on azure
             await _hubClient.CreateOrUpdateInstallationAsync(planetInstallation);
         }
+        
+        await _db.SaveChangesAsync();
+        
+        */
     }
     
     public async Task UnsubscribeAsync(PushNotificationSubscription subscription)
@@ -183,8 +213,18 @@ public class PushNotificationService
         var subscriptions = await _db.PushNotificationSubscriptions
             .Where(x => x.Endpoint == subscription.Endpoint)
             .ToListAsync();
+
+        foreach (var sub in subscriptions)
+        {
+            // Remove from azure
+            var subId = GetSubscriptionId(subscription.Endpoint, subscription.PlanetId);
+            await _hubClient.DeleteInstallationAsync(subId);
+            
+            // Remove from db
+            _db.PushNotificationSubscriptions.Remove(sub);
+        }
         
-        
+        await _db.SaveChangesAsync();
     }
     
     /// <summary>

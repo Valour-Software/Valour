@@ -55,6 +55,26 @@ export function init() {
                 };
             }
         },
+        getSubscription: async () => {
+            const registration = await navigator.serviceWorker.ready;
+            const existingSubscription = await registration.pushManager.getSubscription();
+            if (existingSubscription) {
+                return {
+                    success: true,
+                    subscription: {
+                        endpoint: existingSubscription.endpoint,
+                        key: arrayBufferToBase64(existingSubscription.getKey('p256dh')),
+                        auth: arrayBufferToBase64(existingSubscription.getKey('auth')),
+                    }
+                };
+            }
+            else {
+                return {
+                    success: false,
+                    error: 'No subscription found'
+                };
+            }
+        },
         unsubscribe: async () => {
             const registration = await navigator.serviceWorker.ready;
             const existingSubscription = await registration.pushManager.getSubscription();

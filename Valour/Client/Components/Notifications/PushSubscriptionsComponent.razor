@@ -57,11 +57,29 @@
         
         return subResult;
     }
-    
+
     public async Task UnsubscribeAsync()
     {
-        await  _jsService.InvokeVoidAsync("unsubscribe");
-        await Client.PrimaryNode.PostAsync("api/notifications/unsubscribe", Client.Me.Id);
+        // Get existing subscription
+        var subResult = await GetSubscriptionAsync();
+        if (subResult.Success && subResult.Subscription is not null)
+        {
+            var pushNotificationSubscription = new PushNotificationSubscription()
+            {
+                UserId = Client.Me.Id,
+                Key = subResult.Subscription.Key,
+                Auth = subResult.Subscription.Auth,
+                Endpoint = subResult.Subscription.Endpoint,
+            };
+            
+            await _jsService.InvokeVoidAsync("unsubscribe");
+            await Client.PrimaryNode.PostAsync("api/notifications/unsubscribe", pushNotificationSubscription);
+        }
+    }
+    
+    public ValueTask<PushSubscriptionResult> GetSubscriptionAsync()
+    {
+        return _jsService.InvokeAsync<PushSubscriptionResult>("getSubscription");
     }
     
     public ValueTask<bool> IsNotificationsEnabledAsync()
