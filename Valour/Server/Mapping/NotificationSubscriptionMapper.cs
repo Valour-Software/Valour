@@ -11,9 +11,6 @@ public static class NotificationSubscriptionMapper
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
-            PlanetId = subscription.PlanetId,
-            MemberId = subscription.MemberId,
-            RoleHashKey = subscription.RoleHashKey,
             Endpoint = subscription.Endpoint,
             Key = subscription.Key,
             Auth = subscription.Auth,
@@ -30,9 +27,6 @@ public static class NotificationSubscriptionMapper
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
-            PlanetId = subscription.PlanetId,
-            MemberId = subscription.MemberId,
-            RoleHashKey = subscription.RoleHashKey,
             Endpoint = subscription.Endpoint,
             Key = subscription.Key,
             Auth = subscription.Auth,

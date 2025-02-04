@@ -26,9 +26,6 @@ public class Planet : ISharedPlanet
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
     
-    [InverseProperty("Planet")]
-    public virtual ICollection<PushNotificationSubscription> NotificationSubscriptions { get; set; }
-    
     public virtual ICollection<Message> Messages { get; set; }
     
     public virtual ICollection<UserChannelState> UserChannelStates { get; set; }

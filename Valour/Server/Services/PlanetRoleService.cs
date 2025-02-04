@@ -176,14 +176,6 @@ public class PlanetRoleService
             
                 await _db.PlanetMembers.Where(x => x.RoleHashKey == oldHashKey)
                     .ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleHashKey, newHashKey));
-            
-                // We also need to let the Notification Sub Worker know to update tags
-                // This is because the role hash key is used in the notification tags
-                await _pushNotificationWorker.QueueNotificationAction(new PushNotificationRoleHashChange()
-                {
-                    OldHash = oldHashKey,
-                    NewHash = newHashKey
-                });
             }
 
             await _db.PlanetRoleMembers.Where(x => x.RoleId == roleId)

@@ -12,8 +12,6 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
     ///////////////////////////
     
     public virtual User? User { get; set; }
-    public virtual PlanetMember? Member { get; set; }
-    public virtual Planet? Planet { get; set; }
     
     ///////////////////////
     // Entity Properties //
@@ -37,20 +35,8 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
     public long UserId { get; set; }
     
     /// <summary>
-    /// The Id of the planet (if any) this subscription is for
+    /// The endpoint of the subscription
     /// </summary>
-    public long? PlanetId { get; set; }
-    
-    /// <summary>
-    /// The Id of the member this subscription is for, if a planet subscription.
-    /// </summary>
-    public long? MemberId { get; set; }
-    
-    /// <summary>
-    /// The RoleHashKey the planet member is subscribed to. Should only be used for planet subscriptions.
-    /// </summary>
-    public long? RoleHashKey { get; set; }
-    
     public required string Endpoint { get; set; }
     
     public string? Key { get; set; }
@@ -85,15 +71,6 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
             e.Property(x => x.UserId)
                 .HasColumnName("user_id");
             
-            e.Property(x => x.PlanetId)
-                .HasColumnName("planet_id");
-            
-            e.Property(x => x.MemberId)
-                .HasColumnName("member_id");
-            
-            e.Property(x => x.RoleHashKey)
-                .HasColumnName("role_hash_key");
-            
             e.Property(x => x.Key)
                 .HasColumnName("key");
             
@@ -109,21 +86,8 @@ public class PushNotificationSubscription : ISharedPushNotificationSubscription
                 .WithMany(x => x.NotificationSubscriptions)
                 .HasForeignKey(x => x.UserId);
             
-            e.HasOne(x => x.Planet)
-                .WithMany(x => x.NotificationSubscriptions)
-                .HasForeignKey(x => x.PlanetId);
-            
-            e.HasOne(x => x.Member)
-                .WithMany(x => x.PushSubscriptions)
-                .HasForeignKey(x => x.MemberId);
-            
             // Indices
-
             e.HasIndex(x => x.UserId);
-            e.HasIndex(x => x.PlanetId);
-            
-            e.HasIndex(x => x.MemberId)
-                .IsUnique();
         });
     }
 }

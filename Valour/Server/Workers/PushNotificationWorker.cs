@@ -1,19 +1,12 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
-using Microsoft.Azure.NotificationHubs;
+using Microsoft.Extensions.Options;
 using Valour.Config.Configs;
 using ThreadChannel = System.Threading.Channels.Channel;
 
 namespace Valour.Server.Workers;
 
 public class PushNotificationAction { }
-
-public class PushNotificationRoleHashChange : PushNotificationAction
-{
-    public long OldHash;
-    public long NewHash;
-}
 
 public class PushNotificationSubscribe : PushNotificationAction
 {
@@ -47,7 +40,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<PushNotificationWorker> _logger;
-    private readonly NotificationHubClient _hubClient;
+    private readonly IOptions<NotificationsConfig> _notificationsConfig;
 
     // The unbounded channel for queuing notification actions.
     private Channel<PushNotificationAction> _actionChannel =
@@ -58,18 +51,11 @@ public class PushNotificationWorker : IHostedService, IDisposable
     private CancellationTokenSource? _cts;
 
     public PushNotificationWorker(ILogger<PushNotificationWorker> logger,
-                                  IServiceScopeFactory serviceScopeFactory)
+                                  IServiceScopeFactory serviceScopeFactory, IOptions<NotificationsConfig> notificationsConfig)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
-        
-        // Initialize the hub client if the configuration is present.
-        if (!string.IsNullOrWhiteSpace(NotificationsConfig.Current.AzureConnectionString))
-        {
-            _hubClient = NotificationHubClient.CreateClientFromConnectionString(
-                NotificationsConfig.Current.AzureConnectionString,
-                NotificationsConfig.Current.AzureHubName);
-        }
+        _notificationsConfig = notificationsConfig;
     }
 
     /// <summary>
@@ -81,21 +67,27 @@ public class PushNotificationWorker : IHostedService, IDisposable
     /// <summary>
     /// Starts the background processing loop on a separate task.
     /// </summary>
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         // If no hub client is available, log a warning and do nothing.
-        if (_hubClient is null)
+        if (_notificationsConfig is null || string.IsNullOrWhiteSpace(_notificationsConfig.Value.PrivateKey))
         {
-            _logger.LogWarning("Notifications config missing - disabling worker");
-            return Task.CompletedTask;
+            _logger.LogWarning("Notifications config missing - disabling push worker");
+            return;
         }
+        
+        await ClearExpiredSubscriptions();
 
         // Create a linked cancellation token and start the background loop.
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _executingTask = Task.Run(() => ProcessQueueAsync(_cts.Token), _cts.Token);
-
-        // Return immediately so that the host startup isn't delayed.
-        return Task.CompletedTask;
+    }
+    
+    private async Task ClearExpiredSubscriptions()
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
+        await pushService.ClearExpiredSubscriptionsAsync();
     }
 
     /// <summary>
@@ -137,9 +129,6 @@ public class PushNotificationWorker : IHostedService, IDisposable
     {
         switch (action)
         {
-            case PushNotificationRoleHashChange roleHashChange:
-                await ProcessRoleHashChange(roleHashChange.OldHash, roleHashChange.NewHash);
-                break;
             case PushNotificationSubscribe subscribe:
                 await ProcessSubscribe(subscribe.Subscription);
                 break;
@@ -162,17 +151,6 @@ public class PushNotificationWorker : IHostedService, IDisposable
     }
 
     private readonly Stopwatch _sw = new();
-    
-    private async Task ProcessRoleHashChange(long oldHashKey, long newHashKey)
-    {
-        _sw.Restart();
-        _logger.LogInformation("Processing role hash change from {OldHashKey} to {NewHashKey}", oldHashKey, newHashKey);
-        using var scope = _serviceScopeFactory.CreateScope();
-        var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
-        await pushService.ReplaceRoleHashTags(oldHashKey, newHashKey);
-        _sw.Stop();
-        _logger.LogInformation("Role hash change processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
-    }
 
     private async Task ProcessSubscribe(PushNotificationSubscription subscription)
     {
