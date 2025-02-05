@@ -67,6 +67,8 @@
     margin-left: 50%;
     display: flex;
     flex-direction: row;
+    
+    max-width: 250px;
 }
 
 .tab-wrapper.floating {
@@ -80,6 +82,11 @@
 
 .tab-wrapper.last {
     padding-right: 0;
+    max-width: 282px;
+}
+
+.active .tab {
+    background-color: var(--main-5);
 }
 
 .tab {

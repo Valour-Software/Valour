@@ -88,7 +88,7 @@
     
     private int ZIndex => IsFloating ? (IsActive ? 101 : 100) : (IsActive ? 2 : 1);
 
-    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: {GetTabWidth() * GetIndex()}%";
+    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: min({250 * GetIndex()}px, {GetTabWidth() * GetIndex()}%)";
 
     private string TabWrapperClasses
     {
