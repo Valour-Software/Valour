@@ -10,14 +10,16 @@
 }
 
 .version .logo {
-    max-width: 40px;
-    max-height: 40px;
-    margin-right: 20px;
+    max-width: 28px;
+    max-height: 28px;
+    margin-right: 8px;
+    border-radius: var(--main-radius);
     cursor: pointer;
 }
 
 .version .text {
     margin: 0;
+    font-size: 13px;
 }
 
 .version-gap {

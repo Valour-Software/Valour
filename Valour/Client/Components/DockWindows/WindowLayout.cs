@@ -180,10 +180,11 @@ public class WindowLayout
         }
     }
     
-    public Task AddTab(WindowContent content, bool render = true)
+    public async Task<WindowTab> AddTab(WindowContent content, bool render = true)
     {
         var tab = new WindowTab(content);
-        return AddTab(tab, render);
+        await AddTab(tab, render);
+        return tab;
     }
 
     public async Task AddTab(WindowTab tab, bool render = true)

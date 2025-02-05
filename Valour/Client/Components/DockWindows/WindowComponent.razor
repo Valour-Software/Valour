@@ -26,18 +26,6 @@
                 <div class="tab-buttons"
                      @onclick:stopPropagation="true"
                      @onmousedown:stopPropagation="true">
-                    @if (Type != typeof(HomeWindowComponent))
-                    {
-                        <span class="home" @onclick="@OnClickHome">
-                            <i class="bi bi-house-door-fill"></i>
-                        </span>
-                    }
-                    @if (Layout is not null)
-                    {
-                        <span class="plus" @onclick="@OnClickPlus">
-                            <i class="bi bi-plus-circle-fill"></i>
-                        </span>
-                    }
                     @if (Layout is null || Layout.Tabs.Count > 1)
                     {
                         <span class="minus" @onclick="@OnClickMinus">
@@ -46,6 +34,19 @@
                     }
                 </div>
             </div>
+            
+            @if (IsLastTab)
+            {
+                <div 
+                    class="tab add" 
+                    @onclick="@OnClickPlus"
+                    @onclick:stopPropagation="true"
+                    @onmousedown:stopPropagation="true"
+                    @onmousedown:preventDefault="true"
+                >
+                    <i class="bi bi-plus-square"></i>
+                </div>
+            }
         }
     </div>
     <div class="window"
@@ -79,6 +80,7 @@
     public WindowLayout Layout => WindowTab.Layout;
     public bool IsActive => Layout?.FocusedTab == WindowTab;
     public bool IsFloating => WindowTab.IsFloating;
+    private bool IsLastTab => Layout is not null && (Layout.Tabs.Last().Id == WindowTab.Id);
 
     ///////////////////////
     // Private properties //
@@ -221,10 +223,9 @@
         }
     }
 
-    public Task AddSiblingTab(WindowContent content)
+    public async Task AddSiblingTab(WindowContent content)
     {
-        Layout.AddTab(content);
-        return Task.CompletedTask;
+       await Layout.AddTab(content);
     }
 
     public void NotifyNeedsReRender()
