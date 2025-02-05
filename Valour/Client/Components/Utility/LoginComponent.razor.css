@@ -75,6 +75,7 @@
     width: 100px;
     height: 100px;
     transition: all 0.2s ease-in-out;
+    filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
 }
 
 .v-btn-grad-wrapper:hover .hidden-victor {

@@ -6,10 +6,7 @@
 	<div id="@_id" class="sidebar-menu">
 		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
 		<div class="sidebar">
-			@if (!Flip)
-			{
-				<VersionComponent />
-			}
+			<VersionComponent />
 			<div class="sidebar-content">
 				
 				@switch (_selectedTab)
@@ -24,9 +21,9 @@
 						<FriendListComponent></FriendListComponent>
 						break;
 					}
-					case "Members":
+					case "Planets":
 					{
-						<MemberListComponent></MemberListComponent>
+						<JoinedPlanetsDirectory />
 						break;
 					}
 					case "Notifications":
@@ -78,96 +75,22 @@
 	private IJSInProcessObjectReference _jsModule;
 
 	private IJSInProcessObjectReference _jsRef;
-
-
-	public class SidebarLayout
-	{
-		public string Left { get; set; }
-		public string Right { get; set; }
-	}
+	
 	
 	protected override async Task OnInitializedAsync()
 	{
-		/*
-		if (await LocalStorage.ContainKeyAsync("sidebar-home-left"))
+		
+		if (await LocalStorage.ContainKeyAsync("sidebar"))
 		{
-			HomeLayout.Left = await LocalStorage.GetItemAsync<string>("sidebar-home-left");
-		}
-		if (await LocalStorage.ContainKeyAsync("sidebar-home-right"))
-		{
-			HomeLayout.Right = await LocalStorage.GetItemAsync<string>("sidebar-home-right");
-		}
-		if (await LocalStorage.ContainKeyAsync("sidebar-channel-left"))
-		{
-			ChannelLayout.Left = await LocalStorage.GetItemAsync<string>("sidebar-channel-left");
-		}
-		if (await LocalStorage.ContainKeyAsync("sidebar-channel-right"))
-		{
-			ChannelLayout.Right = await LocalStorage.GetItemAsync<string>("sidebar-channel-right");
-		}
-
-		if (WindowService.FocusedPlanet is null)
-		{
-			// Home window layout
-			if (Flip)
-			{
-				_selectedTab = HomeLayout.Right;
-			}
-			else
-			{
-				_selectedTab = HomeLayout.Left;
-			}
-		}
-		else
-		{
-			// Chat channel layout
-			if (Flip)
-			{
-				_selectedTab = ChannelLayout.Right;
-			}
-			else
-			{
-				_selectedTab = ChannelLayout.Left;
-			}
+			_selectedTab = await LocalStorage.GetItemAsync<string>("sidebar");
 		}
 		
-		*/
-
 		OnToggleMobileSidebar += OnOpenTabClicked;
 	}
 
 	private async Task OnSelected(TabStripItem tab)
 	{
-		/*
-		// Save change to local storage
-		if (WindowService.FocusedPlanet is null)
-		{
-			if (Flip)
-			{
-				HomeLayout.Right = tab.Name;
-				await LocalStorage.SetItemAsStringAsync("sidebar-home-right", tab.Name);
-			}
-			else
-			{
-				HomeLayout.Left = tab.Name;
-				await LocalStorage.SetItemAsStringAsync("sidebar-home-left", tab.Name);
-			}
-		}
-		else
-		{
-			if (Flip)
-			{
-				ChannelLayout.Right = tab.Name;
-				await LocalStorage.SetItemAsStringAsync("sidebar-channel-right", tab.Name);
-			}
-			else
-			{
-				ChannelLayout.Left = tab.Name;
-				await LocalStorage.SetItemAsStringAsync("sidebar-channel-left", tab.Name);
-			}
-		}
-		*/
-		
+		await LocalStorage.SetItemAsStringAsync("sidebar", tab.Name);
 		_selectedTab = tab.Name;
 		
 		StateHasChanged();

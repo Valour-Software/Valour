@@ -83,9 +83,12 @@ label {
 }
 
 .form-control {
+    line-height: 1;
+    font-size: 14px;
     background-color: var(--slight-tint);
     border-width: 0;
-    border-radius: 1em;
+    border-radius: var(--main-radius);
+    padding: 0.25em 0.75rem;
     color: var(--font-color);
 }
 

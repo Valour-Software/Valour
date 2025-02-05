@@ -19,31 +19,27 @@ public class UnreadService
     /// </summary>
     public async Task<long[]> GetUnreadChannels(long? planetId, long userId)
     {
-        var query =
-            from c in _db.Channels.Where(x => x.PlanetId == planetId)
-            join s in _db.UserChannelStates.Where(x => x.UserId == userId)
-                on c.Id equals s.ChannelId
-                into grouping
-            from g in grouping.DefaultIfEmpty()
-            where g == null || c.LastUpdateTime > g.LastViewedTime
-            select c;
-
-        return await query.Select(x => x.Id).ToArrayAsync();
+        return await _db.Channels
+            .AsNoTracking()
+            .Where(c => c.PlanetId == planetId)
+            .Where(c => !_db.UserChannelStates
+                .Where(s => s.UserId == userId)
+                .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
+            )
+            .Select(c => c.Id)
+            .ToArrayAsync();
     }
     
     public async Task<long[]> GetUnreadPlanets(long userId)
     {
-        var query =
-            from c in _db.Channels.Where(x => x.PlanetId != null)
-            join s in _db.UserChannelStates.Where(x => x.UserId == userId)
-                on c.Id equals s.ChannelId
-                into grouping
-            from g in grouping.DefaultIfEmpty()
-            where g == null || c.LastUpdateTime > g.LastViewedTime
-            select c;
-        
-        return await query
-            .Select(x => x.PlanetId.Value)
+        return await _db.Channels
+            .AsNoTracking()
+            .Where(c => c.PlanetId != null)
+            .Where(c => !_db.UserChannelStates
+                .Where(s => s.UserId == userId)
+                .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
+            )
+            .Select(c => c.PlanetId.Value)
             .Distinct()
             .ToArrayAsync();
     }

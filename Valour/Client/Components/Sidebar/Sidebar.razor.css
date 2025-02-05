@@ -8,6 +8,8 @@
     max-height: 100%;
 
     margin: 0;
+    padding: 0;
+    
     background-color: var(--main-1);
 
     z-index: 1;

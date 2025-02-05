@@ -14,7 +14,7 @@
         <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))">
             <BasicTooltipComponent Placement="top" Title="@item.Name">
                 <div class="icon-holder">
-                    <img style="scale: @item.IconScale" class="icon" src="_content/Valour.Client/media/@item.IconUrl" alt="@item"/>
+                    <i aria-label="@item.Name" style="font-size: @(item.Size)px" class="bi bi-@item.Icon"></i>
                 </div>
             </BasicTooltipComponent>
         </div>
@@ -32,43 +32,43 @@
     [Parameter]
     public Func<TabStripItem, Task> OnSelected { get; set; }
 
+    private static TabStripItem _planetsItem = new()
+    {
+        Name = "Planets",
+        Icon = "folder-fill",
+        Size = 16
+    };
+    
     private static TabStripItem _friendsItem = new()
     {
         Name = "Friends",
-        IconUrl = "tabstrip-friends-icon.svg",
-        IconScale = 1.5f
-    };
-    
-    private static TabStripItem _membersItem = new()
-    {
-        Name = "Members",
-        IconUrl = "tabstrip-members-icon.svg",
-        IconScale = 1.7f
+        Icon = "person-fill",
+        Size = 21
     };
     
     private static TabStripItem _channelsItem = new()
     {
         Name = "Channels",
-        IconUrl = "tabstrip-channels-icon.svg",
-        IconScale = 1.1f
+        Icon = "chat-left-fill",
+        Size = 15
     };
     
     private static TabStripItem _notificationsItem = new()
     {
         Name = "Notifications",
-        IconUrl = "tabstrip-bell-icon.svg",
-        IconScale = 1.1f
+        Icon = "bell-fill",
+        Size = 16
     };
 
     private static readonly Dictionary<string, int> _tabIndexes = new()
     {
-        { "Channels", 0 },
-        { "Members", 1 },
+        { "Planets", 0 },
+        { "Channels", 1 },
         { "Friends", 2 },
         { "Notifications", 3 }
     };
     
-    private TabStripItem[] _tabItems = { _channelsItem, _membersItem, _friendsItem, _notificationsItem };
+    private TabStripItem[] _tabItems = { _planetsItem, _channelsItem, _friendsItem, _notificationsItem };
     
     private int _selectedTab = 0;
 
@@ -83,27 +83,13 @@
 
     private async Task LoadStoredLayout(Planet planet)
     {
-        if (Flip)
+        if (await LocalStorage.ContainKeyAsync("sidebar"))
         {
-            if (await LocalStorage.ContainKeyAsync("sidebar-home-right"))
-            {
-                _selectedTab = _tabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar-home-right")];
-            }
-            else
-            {
-                _selectedTab = 1;
-            }
+            _selectedTab = _tabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar")];
         }
         else
         {
-            if (await LocalStorage.ContainKeyAsync("sidebar-home-left"))
-            {
-                _selectedTab = _tabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar-home-left")];
-            }
-            else
-            {
-                _selectedTab = 0;
-            }
+            _selectedTab = 0;
         }
     }
 

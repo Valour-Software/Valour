@@ -15,6 +15,7 @@
     pointer-events: all;
     border-radius: 1em;
     box-shadow: #000 0 0 10px, #000 0 0 10px;
+    outline: 4px solid var(--main-5);
 }
 
 .window-wrapper.floating.active {
@@ -36,7 +37,7 @@
     display: flex;
     flex-direction: column;
     pointer-events: all;
-    background-color: var(--main-3);
+    background-color: var(--main-1);
     max-height: calc(100% - 30px);
     flex: 1 1 auto;
 }
@@ -79,7 +80,7 @@
 .tab {
     height: 30px;
     padding: 5px;
-    background-color: var(--main-5);
+    background-color: var(--main-4);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -88,21 +89,8 @@
     min-width: 150px;
     box-shadow: #000 0 0 5px;
 }
-
-.active .tab {
-    background-color: var(--p-cyan-purple);
-}
-
-.active .tab:hover {
-    background-color: var(--p-purple);
-}
-
 .tab:hover {
-    background-color: var(--p-cyan-purple);
-}
-
-.tab:active {
-    background-color: var(--p-purple);
+    background-color: var(--main-5);
 }
 
 .tab-info {

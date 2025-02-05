@@ -3,6 +3,8 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    padding: 0.5em;
 }
 
 .connected-planets {
@@ -15,9 +17,11 @@
 }
 
 /* Hide scrollbars on connected/joined planets */
+/*
 .connected-planets .list::-webkit-scrollbar {
     display: none;
 }
+*/
 
 ::deep .directory {
     cursor: pointer;

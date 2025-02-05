@@ -800,4 +800,9 @@ public class ChannelService
             await MigrateChannel(child, childPos);
         }
     }
+    
+    public async Task GetPlanetChannelMembers(long planetId, long channelId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+    }
 }
