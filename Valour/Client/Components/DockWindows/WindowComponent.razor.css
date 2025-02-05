@@ -112,6 +112,7 @@
     max-width: 32px;
     min-width: 32px;
     margin-left: 4px;
+    background-color: transparent;
 }
 
 .tab.add i {
