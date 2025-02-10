@@ -31,7 +31,6 @@
         </div>
     </div>
     <div class="channel-list">
-        
         @if (Open)
         {
             <div class="v-gradient-underline"></div>
@@ -79,6 +78,8 @@
         ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
         ChannelService.CategoryReordered += OnOrderUpdate;
+        
+        DetermineUnreadAndNotifications();
 
         GetTopLevelItems();
     }

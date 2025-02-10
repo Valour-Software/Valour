@@ -48,11 +48,6 @@
 .header-wrapper {
 }
 
-.header-wrapper .v-gradient-underline {
-    margin-left: 6px;
-    margin-right: 6px;
-}
-
 .header {
     display: flex;
     flex-direction: row;
@@ -71,9 +66,8 @@
 
 .header .right .unread-badge {
     background-color: var(--strong-tint);
-    border-radius: 8px 0 0 8px;
+    border-radius: 8px;
     height: 13px;
-    min-width: 13px;
     transition: min-width, height 0.2s ease-in-out;
     display: flex;
     flex-direction: row;
@@ -119,3 +113,7 @@
     margin-left: 2px !important;
 }
 
+.channel-list .v-gradient-underline {
+    margin-left: 6px;
+    margin-right: 6px;
+}
