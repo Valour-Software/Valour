@@ -9,7 +9,7 @@
     style="padding-bottom:80px">
     @foreach (var planet in PlanetService.ConnectedPlanets)
     {
-        <OldPlanetListComponent Planet="planet" @key='planet.Id'></OldPlanetListComponent>
+        <PlanetListComponent Planet="planet" @key='planet.Id'></PlanetListComponent>
     }
     <div class="channel-fade-left"></div>
     <div class="channel-fade-right"></div>

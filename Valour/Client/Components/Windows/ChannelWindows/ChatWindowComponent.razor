@@ -6,15 +6,22 @@
 @using Valour.Sdk.Nodes
 @using Channel = Valour.Sdk.Models.Channel
 
-<div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
-    <!-- Pushes messages to bottom -->
-    <div class="pusher"></div>
+@if (_loading)
+{
+    <Loading Title="Loading chat..." Spin="@true" />
+}
+else
+{
+    <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
+        <!-- Pushes messages to bottom -->
+        <div class="pusher"></div>
 
-    <!-- Actual messages -->
-    @MessagesFragment
+        <!-- Actual messages -->
+        @MessagesFragment
 
-    <div class="anchor"></div>
-</div>
+        <div class="anchor"></div>
+    </div>
+}
 
 <InputComponent @ref="@InputComponent" ChatComponent="@this" />
 
@@ -70,6 +77,12 @@
     
     public async Task SetupNewChannelAsync()
     {
+        if (!_loading)
+        {
+            _loading = true;
+            ReRender();
+        }
+
         await Channel.Open(WindowChannelKey);
         
         // Planet stuff

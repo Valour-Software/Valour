@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Valour.Client.Components.Sidebar;
 
-public class TabStripItem
+public abstract class TabStripItem
 {
     public string Name;
     public string Icon;

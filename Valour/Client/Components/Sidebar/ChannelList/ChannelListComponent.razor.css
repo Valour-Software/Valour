@@ -1,6 +1,7 @@
 /* Entire Thing */
 .full-channel-list {
     padding: 8px;
+    overflow: auto;
 }
 
 .channel-fade-right {

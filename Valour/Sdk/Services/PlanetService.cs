@@ -21,6 +21,11 @@ public class PlanetService : ServiceBase
     /// Run when SignalR closes a planet
     /// </summary>
     public HybridEvent<Planet> PlanetDisconnected;
+    
+    /// <summary>
+    /// Run when the list of connected planets is updated
+    /// </summary>
+    public HybridEvent ConnectedPlanetsUpdated;
 
     /// <summary>
     /// Run when a planet is joined
@@ -206,6 +211,8 @@ public class PlanetService : ServiceBase
         // Mark as opened
         _connectedPlanets.Add(planet);
         _connectedPlanetsLookup[planet.Id] = planet;
+        
+        ConnectedPlanetsUpdated?.Invoke();
 
         Log($"Opening planet {planet.Name} ({planet.Id})");
 
@@ -304,6 +311,8 @@ public class PlanetService : ServiceBase
         // Remove from list
         _connectedPlanets.Remove(planet);
         _connectedPlanetsLookup.Remove(planet.Id);
+        
+        ConnectedPlanetsUpdated?.Invoke();
 
         Log($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 

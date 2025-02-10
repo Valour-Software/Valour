@@ -8,6 +8,9 @@
 
     padding-right: 0.5rem;
     overflow-y: auto;
+    
+    /* fade in on first render */
+    animation: fadeIn 0.2s;
 }
 
 .chat-holder * {

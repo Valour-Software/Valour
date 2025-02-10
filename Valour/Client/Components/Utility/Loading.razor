@@ -1,12 +1,68 @@
-﻿<div class="loading-container">
+﻿@implements IAsyncDisposable
+
+<div class="loading-container">
     <div class="loading-center">
-        <img alt="Valour logo" src="_content/Valour.Client/media/logo/logo-256.webp" class="loading-logo color-shift">
-        <p class="loading-title">Valour</p>
+        <div class="@(Spin ? "spin" : "")">
+            <img alt="Valour logo" src="@Logos.RoundWebp256" class="loading-logo color-shift"/>
+        </div>
+        <p class="loading-title">@Title</p>
         <p class="loading-subtext">@Subtext</p>
     </div>
 </div>
 
 @code {
+    #nullable enable
+
+    private static string[] _loadingBlurbs = [
+        "Reticulating splines...",
+        "Fetching Victor treats...",
+        "Surviving Tsunamis...",
+        "Hacking the mainframe...",
+        "Creating Potato revolution...",
+        "Preaching Vooperism...",
+        "Saving your data from D*****d...",
+        "Optimizing Gamer-9000 engine...",
+        "Finding new interns...",
+        "Solving the halting problem...",
+        "Debugging the debugger...",
+        "Fighting the AI uprising...",
+        "Mourning New Vooperis...",
+        "Simulating Empires...",
+        "Pretending to work...",
+        "Not Slacking...",
+        "Drop-kicking bugs...",
+    ];
+    
     [Parameter]
-    public string Subtext { get; set; }
+    public string Title { get; set; } = "Valour";
+    
+    [Parameter]
+    public string? Subtext { get; set; }
+    
+    [Parameter]
+    public bool Spin { get; set; }
+    
+    // If the subtext is not provided, rotate random blurbs every 3 seconds
+    private Timer? _timer;
+    
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrWhiteSpace(Subtext))
+        {
+            Subtext = _loadingBlurbs[new Random().Next(0, _loadingBlurbs.Length)];
+            _timer = new Timer(OnTimerFire, null, 3000, 3000);
+        }
+    }
+
+    private void OnTimerFire(object? state)
+    {
+        Subtext = _loadingBlurbs[new Random().Next(0, _loadingBlurbs.Length)];
+        StateHasChanged();
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_timer is not null)
+         await _timer.DisposeAsync();
+    }
 }

@@ -3,6 +3,7 @@
     flex-direction: column;
     
     transition: opacity 0.2s ease-in-out;
+    animation: windowZoomFadeIn 0.2s ease-in-out;
 }
 
 .window-wrapper.floating {

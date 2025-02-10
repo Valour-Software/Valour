@@ -18,7 +18,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
         // Only of of these should be non-null at a time
         private ChannelListItem _currentDragParentCategory;
-        public OldPlanetListComponent currentDragParentPlanet;
+        public PlanetListComponent currentDragParentPlanet;
 
         /// <summary>
         /// Run when an item is clicked within a category

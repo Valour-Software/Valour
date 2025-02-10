@@ -8,14 +8,14 @@
 		<div class="sidebar">
 			<VersionComponent />
 			<div class="sidebar-content">
-				@TabItems[SelectedTab].RenderContent
+				@_tabItems[SelectedTab].RenderContent
 			</div>
 			<div class="sidebar-tabstrip">
 				@if (!Flip)
 				{
 					<SelfInfoComponent />
 				}
-				<SidebarTabstrip TabItems="@TabItems" Sidebar="@this" Flip="Flip" />
+				<SidebarTabstrip TabItems="@_tabItems" Sidebar="@this" Flip="Flip" />
 			</div>
 		</div>
 	</div>
@@ -23,7 +23,7 @@
 
 @code {
 
-	public List<TabStripItem> TabItems = new()
+	private List<TabStripItem> _tabItems = new()
 	{
 		new TabStripItem<JoinedPlanetsDirectory>("Planets", "folder-fill", 16),
 		new TabStripItem<FriendListComponent>("Friends", "person-fill", 21),
@@ -68,7 +68,7 @@
 		if (await LocalStorage.ContainKeyAsync("sidebar"))
 		{
 			var name = await LocalStorage.GetItemAsStringAsync("sidebar");
-			SelectedTab = TabItems.FindIndex(x => x.Name == name);
+			SelectedTab = _tabItems.FindIndex(x => x.Name == name);
 			if (SelectedTab == -1)
 				SelectedTab = 0;
 		}

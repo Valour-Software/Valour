@@ -1,26 +1,40 @@
 ﻿@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
 @inject ChannelService ChannelService
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
 
 <div 
     class="@GetCssClass()" 
     id="list-@Planet.Id"
     @oncontextpress="@OnContextPress">
-    <div style="cursor:pointer" id="list-inner-@Planet.Id">
-        <div @onclick='@OnClick'
-             class="header" ondragover="event.preventDefault();">
-            <img alt="planet dropdown arrow" class="arrow" src="_content/Valour.Client/media/channel-icons/category_unread.svg" style="@GetArrowStyle()">
-            <p class="planet-name">
-                @Planet.Name
-            </p>
-
-            <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon" />
+    <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
+        <div @onclick='@OnClick' class="header" ondragover="event.preventDefault();">
+            <div class="left">
+                <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon"/>
+                <p class="planet-name">
+                    @Planet.Name
+                </p>
+            </div>
+            <div class="right">
+                @if (_notifications > 0)
+                {
+                    <div class="unread-badge notification">
+                        <span>@_notifications</span>
+                    </div>
+                }
+                else if (_hasUnread)
+                {
+                    <div class="unread-badge"></div>
+                }
+            </div>
         </div>
     </div>
     <div class="channel-list">
         
         @if (Open)
         {
+            <div class="v-gradient-underline"></div>
             <div class="channel planet-about" @onclick="OnClickPlanetInfo">
                 <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
                 <p class="name">
@@ -44,12 +58,14 @@
 </div>
 
 @code {
-    [Parameter]
-    public Planet Planet { get; set; }
+    [Parameter] public Planet Planet { get; set; }
 
     public bool Open { get; set; } = true;
 
     public List<Channel> TopChannels;
+
+    private int _notifications;
+    private bool _hasUnread;
 
     protected override void OnInitialized()
     {
@@ -63,8 +79,14 @@
         ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
         ChannelService.CategoryReordered += OnOrderUpdate;
-        
+
         GetTopLevelItems();
+    }
+
+    private void DetermineUnreadAndNotifications()
+    {
+        _hasUnread = UnreadService.IsPlanetUnread(Planet.Id);
+        _notifications = NotificationService.GetPlanetNotifications(Planet.Id);
     }
 
     private void OnContextPress(ContextPressEventArgs e)

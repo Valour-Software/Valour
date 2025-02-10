@@ -18,10 +18,11 @@
 
 .planet {
     position: relative;
-    border-radius: 5px;
     margin-right: auto;
     margin-left: auto;
     margin-bottom: 4px;
+    background-color: var(--main-3);
+    border-radius: 8px;
 }
 
 .is-open {
@@ -44,12 +45,55 @@
     margin-bottom: 3px;
 }
 
-.planet .header {
-    display: inline-block;
-    width: 100%;
+.header-wrapper {
+}
+
+.header-wrapper .v-gradient-underline {
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px;
     border-radius: 8px;
-    padding: 4px;
-    padding-left: 0px;
+}
+
+.header .right,
+.header .left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.header .right .unread-badge {
+    background-color: var(--strong-tint);
+    border-radius: 8px 0 0 8px;
+    height: 13px;
+    min-width: 13px;
+    transition: min-width, height 0.2s ease-in-out;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.header-wrapper:hover .header .right .unread-badge {
+    min-width: 16px;
+    height: 16px;
+}
+
+.header .right .unread-badge.notification {
+    background-color: var(--p-red);
+}
+
+.unread-badge span {
+    font-size: 10px;
+    padding: 0;
+    margin-left: 3px;
+    margin-right: 2px;
 }
 
 .planet-about {
