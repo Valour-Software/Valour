@@ -231,7 +231,7 @@ public class ChannelService : ServiceBase
         _ = await FetchRecentChattersAsync(channel);
 
         // Join channel SignalR group
-        var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
+        var result = await channel.ConnectToRealtime();
         
         if (!result.Success)
         {
@@ -286,7 +286,7 @@ public class ChannelService : ServiceBase
             return TaskResult.FromFailure("Channel is not open.");
 
         // Leaves channel SignalR group
-        await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
+        await channel.DisconnectFromRealtime();
 
         // Remove from open set
         _connectedPlanetChannels.Remove(channel);

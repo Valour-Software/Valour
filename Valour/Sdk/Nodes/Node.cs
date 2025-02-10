@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -39,6 +40,12 @@ public class Node : ServiceBase // each node acts like a service
     /// True if this is the primary node for this client
     /// </summary>
     public bool IsPrimary { get; private set; }
+    
+    
+    /// <summary>
+    /// True if this node has been fully set up for real-time communication
+    /// </summary>
+    public bool IsRealtimeSetup { get; private set; }
 
     public static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {
@@ -52,6 +59,10 @@ public class Node : ServiceBase // each node acts like a service
 
     public ValourClient Client { get; private set; }
     private readonly NodeService _nodeService;
+    
+    // Tracking realtime connections
+    private readonly ConcurrentDictionary<long, byte> _realtimePlanets = new();
+    private readonly ConcurrentDictionary<long, byte> _realtimeChannels = new();
 
     public Node(ValourClient client)
     {
@@ -97,7 +108,22 @@ public class Node : ServiceBase // each node acts like a service
         
         HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
 
-        Log("Setting up new hub connection...");
+        // Only the primary node automatically connects.
+        // Other nodes wait until a channel is to be connected.
+        if (IsPrimary)
+        {
+            return await SetupRealtimeConnection();
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    public async Task<TaskResult> SetupRealtimeConnection()
+    {
+        if (IsRealtimeSetup)
+            return TaskResult.SuccessResult;
+        
+        Log("Setting up new realtime hub connection...");
 
         await ConnectSignalRHub();
         
@@ -108,6 +134,8 @@ public class Node : ServiceBase // each node acts like a service
         await ConnectToUserChannel();
 
         BeginPings();
+        
+        IsRealtimeSetup = true;
         
         return TaskResult.SuccessResult;
     }
@@ -141,6 +169,133 @@ public class Node : ServiceBase // each node acts like a service
 
 
         Log("Connected to user channel for SignalR.");
+    }
+
+    public async Task<TaskResult> ConnectToPlanetRealtime(Planet planet)
+    {
+        // Ensure the node is set up for real-time communication
+        if (!IsRealtimeSetup)
+        {
+            await SetupRealtimeConnection();
+        }
+
+        // Ensure this node is the correct node for the planet
+        var correctNode = await Client.NodeService.GetNodeForPlanetAsync(planet.Id);
+        if (correctNode != this)
+        {
+            LogError($"Incorrect node for planet {planet.Id}. Cannot connect to planet.");
+            return TaskResult.FromFailure("Incorrect node for planet.");
+        }
+
+        var result = await HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
+
+        if (result.Success)
+        {
+            _realtimePlanets.TryAdd(planet.Id, 1);
+        }
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Checks if there are no realtime channel subscriptions, and thus
+    /// the node should disconnect entirely from SignalR.
+    /// </summary>
+    private async Task CheckShouldDisconnect()
+    {
+        if (IsPrimary)
+            return;
+        
+        if (_realtimePlanets.Count == 0 && _realtimeChannels.Count == 0)
+        {
+            Log("No more realtime connections. Disconnecting from SignalR.");
+            await HubConnection.StopAsync();
+            IsRealtimeSetup = false;
+        }
+    }
+    
+    public async Task<TaskResult> DisconnectFromPlanetRealtime(Planet planet)
+    {
+        if (!IsRealtimeSetup)
+        {
+            LogError("Node is not set up for real-time communication.");
+            return TaskResult.FromFailure("Node is not set up for real-time communication.");
+        }
+
+        if (!_realtimePlanets.ContainsKey(planet.Id))
+        {
+            LogError($"Node is not connected to planet {planet.Id}.");
+            return TaskResult.FromFailure("Node is not connected to planet.");
+        }
+
+        var result = await HubConnection.InvokeAsync<TaskResult>("LeavePlanet", planet.Id);
+
+        if (result.Success)
+        {
+            _realtimePlanets.TryRemove(planet.Id, out _);
+        }
+        
+        await CheckShouldDisconnect();
+        
+        return result;
+    }
+    
+    public async Task<TaskResult> ConnectToPlanetChannelRealtime(Channel channel)
+    {
+        if (channel.PlanetId is null)
+        {
+            LogError($"Channel {channel.Id} has no planet ID. Cannot connect to channel.");
+            return TaskResult.FromFailure("Channel has no planet ID.");
+        }
+        
+        // Ensure the node is set up for real-time communication
+        if (!IsRealtimeSetup)
+        {
+            await SetupRealtimeConnection();
+        }
+
+        // Ensure this node is the correct node for the channel
+        var correctNode = await Client.NodeService.GetNodeForPlanetAsync(channel.PlanetId.Value);
+        if (correctNode != this)
+        {
+            LogError($"Incorrect node for channel {channel.Id}. Cannot connect to channel.");
+            return TaskResult.FromFailure("Incorrect node for channel.");
+        }
+
+        var result = await HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
+
+        if (result.Success)
+        {
+            _realtimeChannels.TryAdd(channel.Id, 1);
+        }
+        
+        return result;
+    }
+    
+    public async Task<TaskResult> DisconnectFromChannelRealtime(Channel channel)
+    {
+        if (!IsRealtimeSetup)
+        {
+            LogError("Node is not set up for real-time communication.");
+            return TaskResult.FromFailure("Node is not set up for real-time communication.");
+        }
+
+        if (!_realtimeChannels.ContainsKey(channel.Id))
+        {
+            LogError($"Node is not connected to channel {channel.Id}.");
+            return TaskResult.FromFailure("Node is not connected to channel.");
+        }
+
+        var result = await HubConnection.InvokeAsync<TaskResult>("LeaveChannel", channel.Id);
+
+        if (result.Success)
+        {
+            _realtimeChannels.TryRemove(channel.Id, out _);
+        }
+        
+        await CheckShouldDisconnect();
+        
+        return result;
     }
 
     /// <summary>

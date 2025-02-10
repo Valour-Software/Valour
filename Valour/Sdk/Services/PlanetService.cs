@@ -220,14 +220,10 @@ public class PlanetService : ServiceBase
 
         sw.Start();
 
-        // Get node for planet
-        var node = await _client.NodeService.GetNodeForPlanetAsync(planet.Id);
-        planet.SetNode(node);
-
         List<Task> tasks = new();
 
         // Joins SignalR group
-        var result = await node.HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
+        var result = await planet.ConnectToRealtime();
 
         if (!result.Success)
         {
@@ -306,7 +302,7 @@ public class PlanetService : ServiceBase
             return TaskResult.SuccessResult;
 
         // Close connection
-        await planet.Node.HubConnection.SendAsync("LeavePlanet", planet.Id);
+        await planet.DisconnectFromRealtime();
 
         // Remove from list
         _connectedPlanets.Remove(planet);

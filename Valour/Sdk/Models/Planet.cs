@@ -20,10 +20,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         ISharedPlanet.BaseRoute;
 
     private Node _node;
-
-    public override Node Node =>
-        _node; // Planets have node known if they are connected
-
+    
     // Cached values
 
     // A note to future Spike:
@@ -313,6 +310,27 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         // Always also get member of client
         if (MyMember is null)
             MyMember = await FetchMemberByUserAsync(Client.Me.Id);
+    }
+
+    /// <summary>
+    /// Connects to realtime planet data
+    /// </summary>
+    public async Task<TaskResult> ConnectToRealtime()
+    {
+        await EnsureReadyAsync();
+        return await _node.ConnectToPlanetRealtime(this);
+    }
+    
+    /// <summary>
+    /// Disconnects from realtime planet data
+    /// </summary>
+    public async Task<TaskResult> DisconnectFromRealtime()
+    {
+        // No node = no realtime
+        if (_node is null)
+            return TaskResult.SuccessResult;
+        
+        return await _node.DisconnectFromPlanetRealtime(this);
     }
 
     public override Planet AddToCacheOrReturnExisting()

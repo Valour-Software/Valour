@@ -174,6 +174,34 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             Planet.OnChannelDeleted(this);
     }
     
+    /// <summary>
+    /// Opens a connection to realtime planet channel data.
+    /// Do not use for non-planet channels!
+    /// </summary>
+    public async Task<TaskResult> ConnectToRealtime()
+    {
+        if (PlanetId is null)
+            return new TaskResult(false, "Cannot connect to realtime data for non-planet channels. The primary node handles this.");
+        
+        await Planet.EnsureReadyAsync();
+        return await Planet.Node.ConnectToPlanetChannelRealtime(this);
+    }
+    
+    /// <summary>
+    /// Disconnects from realtime planet channel data
+    /// </summary>
+    public async Task<TaskResult> DisconnectFromRealtime()
+    {
+        if (PlanetId is null)
+            return TaskResult.SuccessResult;
+        
+        // No node = no realtime
+        if (Planet.Node is null)
+            return TaskResult.SuccessResult;
+        
+        return await Planet.Node.DisconnectFromChannelRealtime(this);
+    }
+    
     public override Channel AddToCacheOrReturnExisting()
     {
         // Add to direct channel lookup if needed
