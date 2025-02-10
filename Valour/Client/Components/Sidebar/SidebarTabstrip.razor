@@ -2,13 +2,9 @@
 @implements IDisposable
 
 <div class="tabstrip">
-    @{
-        var items = GetCurrentItems();
-    }
-    
-    @for (var i = 0; i < items.Length; i++)
+    @for (var i = 0; i < TabItems.Count; i++)
     {
-        var item = items[i];
+        var item = TabItems[i];
         var index = i;
 
         <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))">
@@ -30,87 +26,21 @@
     public bool Flip { get; set; }
     
     [Parameter]
-    public Func<TabStripItem, Task> OnSelected { get; set; }
-
-    private static TabStripItem _planetsItem = new()
-    {
-        Name = "Planets",
-        Icon = "folder-fill",
-        Size = 16
-    };
-    
-    private static TabStripItem _friendsItem = new()
-    {
-        Name = "Friends",
-        Icon = "person-fill",
-        Size = 21
-    };
-    
-    private static TabStripItem _channelsItem = new()
-    {
-        Name = "Channels",
-        Icon = "chat-left-fill",
-        Size = 15
-    };
-    
-    private static TabStripItem _notificationsItem = new()
-    {
-        Name = "Notifications",
-        Icon = "bell-fill",
-        Size = 16
-    };
-
-    private static readonly Dictionary<string, int> _tabIndexes = new()
-    {
-        { "Planets", 0 },
-        { "Channels", 1 },
-        { "Friends", 2 },
-        { "Notifications", 3 }
-    };
-    
-    private TabStripItem[] _tabItems = { _planetsItem, _channelsItem, _friendsItem, _notificationsItem };
-    
-    private int _selectedTab = 0;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadStoredLayout(null);
-    }
+    public List<TabStripItem> TabItems { get; set; }
     
     void IDisposable.Dispose()
     {
     }
 
-    private async Task LoadStoredLayout(Planet planet)
-    {
-        if (await LocalStorage.ContainKeyAsync("sidebar"))
-        {
-            _selectedTab = _tabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar")];
-        }
-        else
-        {
-            _selectedTab = 0;
-        }
-    }
-
     private async Task OnClick(int index, TabStripItem item)
     {
-        _selectedTab = index;
-        
-        if (OnSelected is not null)
-            await OnSelected.Invoke(item);
-        
+        await Sidebar.OnSelected(index, item);
         StateHasChanged();
-    }
-
-    private TabStripItem[] GetCurrentItems()
-    {
-        return _tabItems;
     }
 
     private string GetItemClass(int index)
     {
-        return index == _selectedTab ? "item selected" : "item";
+        return index == Sidebar.SelectedTab ? "item selected" : "item";
     }
 
 }

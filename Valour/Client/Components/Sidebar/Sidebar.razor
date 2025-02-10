@@ -8,37 +8,14 @@
 		<div class="sidebar">
 			<VersionComponent />
 			<div class="sidebar-content">
-				
-				@switch (_selectedTab)
-				{
-					case "Channels":
-					{
-						<PlanetsDirectory />
-						break;
-					}
-					case "Friends":
-					{
-						<FriendListComponent></FriendListComponent>
-						break;
-					}
-					case "Planets":
-					{
-						<JoinedPlanetsDirectory />
-						break;
-					}
-					case "Notifications":
-					{
-						<NotificationsListComponent></NotificationsListComponent>
-						break;
-					}
-				}
+				@TabItems[SelectedTab].RenderContent
 			</div>
 			<div class="sidebar-tabstrip">
 				@if (!Flip)
 				{
 					<SelfInfoComponent />
 				}
-				<SidebarTabstrip Sidebar="@this" OnSelected="OnSelected" Flip="Flip"></SidebarTabstrip>
+				<SidebarTabstrip TabItems="@TabItems" Sidebar="@this" Flip="Flip" />
 			</div>
 		</div>
 	</div>
@@ -46,6 +23,14 @@
 
 @code {
 
+	public List<TabStripItem> TabItems = new()
+	{
+		new TabStripItem<JoinedPlanetsDirectory>("Planets", "folder-fill", 16),
+		new TabStripItem<FriendListComponent>("Friends", "person-fill", 21),
+		new TabStripItem<ChannelListComponent>("Channels", "chat-left-fill", 15),
+		new TabStripItem<NotificationsListComponent>("Notifications", "bell-fill", 16)
+	};
+	
 	private static event Func<Task> OnToggleMobileSidebar;
 	public static async Task ToggleMobileSidebar()
 	{
@@ -57,7 +42,7 @@
 	public bool Flip { get; set; }
 	public string FlipClass => Flip ? "flip" : "";
 	
-    private string _selectedTab = "Friends";
+    public int SelectedTab = 0;
 	private bool _active = !DeviceInfo.IsMobile;
 	
 	private string ActiveClass => _active ? "sidebar-active" : "";
@@ -82,17 +67,23 @@
 		
 		if (await LocalStorage.ContainKeyAsync("sidebar"))
 		{
-			_selectedTab = await LocalStorage.GetItemAsync<string>("sidebar");
+			var name = await LocalStorage.GetItemAsStringAsync("sidebar");
+			SelectedTab = TabItems.FindIndex(x => x.Name == name);
+			if (SelectedTab == -1)
+				SelectedTab = 0;
+		}
+		else
+		{
+			SelectedTab = 0;
 		}
 		
 		OnToggleMobileSidebar += OnOpenTabClicked;
 	}
 
-	private async Task OnSelected(TabStripItem tab)
+	public async Task OnSelected(int index, TabStripItem tab)
 	{
 		await LocalStorage.SetItemAsStringAsync("sidebar", tab.Name);
-		_selectedTab = tab.Name;
-		
+		SelectedTab = index;
 		StateHasChanged();
 	}
 	
