@@ -10,8 +10,8 @@
 }
 
 .version .logo {
-    max-width: 28px;
-    max-height: 28px;
+    max-width: 30px;
+    max-height: 30px;
     margin-right: 8px;
     border-radius: var(--main-radius);
     cursor: pointer;
