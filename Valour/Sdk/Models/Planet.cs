@@ -303,8 +303,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public async Task EnsureReadyAsync()
     {
         if (_node is null)
-            _node = await Client.NodeService.GetNodeForPlanetAsync(Id);
-        
+        {
+            if (NodeName is not null)
+                _node = await Client.NodeService.GetByName(NodeName);
+            else
+                _node = await Client.NodeService.GetNodeForPlanetAsync(Id);
+        }
+
         // Always also get member of client
         if (MyMember is null)
             MyMember = await FetchMemberByUserAsync(Client.Me.Id);

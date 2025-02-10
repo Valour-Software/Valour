@@ -68,6 +68,7 @@
     background-color: var(--strong-tint);
     border-radius: 8px;
     height: 13px;
+    min-width: 13px;
     transition: min-width, height 0.2s ease-in-out;
     display: flex;
     flex-direction: row;
@@ -75,12 +76,20 @@
 }
 
 .header-wrapper:hover .header .right .unread-badge {
-    min-width: 16px;
-    height: 16px;
+
 }
 
 .header .right .unread-badge.notification {
     background-color: var(--p-red);
+}
+
+.header .edit-button {
+    margin-left: 6px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.header .edit-button:hover {
+    transform: rotate(45deg) scale(1.1);
 }
 
 .unread-badge span {

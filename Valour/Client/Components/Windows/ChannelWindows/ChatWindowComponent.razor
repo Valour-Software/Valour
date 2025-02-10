@@ -511,6 +511,7 @@ else
             if (imported.PlanetId is not null)
             {
                 var planet = await client.PlanetService.FetchPlanetAsync(imported.PlanetId!.Value);
+                await planet.EnsureReadyAsync();
                 Data = await planet.FetchChannelAsync(imported.ChannelId);
             }
             else
