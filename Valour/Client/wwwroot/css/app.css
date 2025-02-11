@@ -211,6 +211,21 @@ h6, .h6 {
     opacity: 1;
 }
 
+.form-select {
+    /* Fix issue with icon repeating to the left */
+    background-size: 1em;
+    background-position: right 0.5em center;
+    background-repeat: no-repeat;
+    /* Hide default select arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+}
+
 .text-center {
     text-align: center;
 }
@@ -346,19 +361,16 @@ label {
     display: flex;
 }
 
-.input-group:first-child {
+.input-group .form-control {
+    border-radius: 0;
+}
+
+.input-group > *:first-child {
     border-radius: var(--main-radius) 0 0 var(--main-radius) !important;
 }
 
-.input-group:last-child {
+.input-group > *:last-child {
     border-radius: 0 var(--main-radius) var(--main-radius) 0 !important;
-}
-
-.form-select {
-    /* Fix issue with icon repeating to the left */
-    background-size: 1em;
-    background-position: right 0.5em center;
-    background-repeat: no-repeat;
 }
 
 body {
