@@ -16,6 +16,8 @@ public class BlazorCssBundleService : IHostedService
         "_content/Valour.Client/css/reboot.min.css",
         "_content/Valour.Client/css/app.css",
         "_content/Valour.Client/css/globals.css",
+        "_content/Valour.Client/css/bootstrap-icons.css",
+        "_content/Valour.Client/css/hljs-theme.min.css",
     };
     
     private static readonly CssSettings CssSettings = new()
