@@ -8,11 +8,16 @@
         var index = i;
 
         <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))">
-            <BasicTooltipComponent Placement="top" Title="@item.Name">
-                <div class="icon-holder">
-                    <i aria-label="@item.Name" style="font-size: @(item.Size)px" class="bi bi-@item.Icon"></i>
-                </div>
-            </BasicTooltipComponent>
+            <TooltipTrigger>
+                <ChildContent>
+                    <div class="icon-holder">
+                        <i aria-label="@item.Name" style="font-size: @(item.Size)px" class="bi bi-@item.Icon"></i>
+                    </div>
+                </ChildContent>
+                <TooltipContent>
+                    <span>@item.Name</span>
+                </TooltipContent>
+            </TooltipTrigger>
         </div>
     }
 </div>

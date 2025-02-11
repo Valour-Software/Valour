@@ -45,9 +45,14 @@
                     <div class="dot-badge-holder">
                         @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                         {
-                            <BasicTooltipComponent Title="Stargazer" Placement="top">
-                                <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
-                            </BasicTooltipComponent>
+                            <TooltipTrigger>
+                                <ChildContent>
+                                    <img alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
+                                </ChildContent>
+                                <TooltipContent>
+                                    <span>Stargazer</span>
+                                </TooltipContent>
+                            </TooltipTrigger>
                         }
                         @if (UserId <= 22113735421460480)
                         {

@@ -5,7 +5,6 @@
 <div @ref="@_tooltipReference" class="tooltip @ComputedClass" style="@TooltipStyles" data-position="@Data.Trigger.Position">
     @Data.Trigger.TooltipContent
 </div>
-<div class="carrot @ComputedClass" style="@CarrotStyles"></div>
 
 @code {
     [Parameter]
@@ -15,12 +14,9 @@
     private ElementBounds _contentBounds;
     
     private ElementPosition? _tooltipPosition;
-    private ElementPosition? _carrotPosition;
 
     // Hidden until bounds are calculated and position is known
     private string TooltipStyles => _tooltipPosition is null ? "opacity: 0; pointer-events: none;" : $"position: fixed; top: {_tooltipPosition.Value.Y}px; left: {_tooltipPosition.Value.X}px;";
-    private string CarrotStyles => _carrotPosition is null ? "opacity: 0; pointer-events: none;" : $"position: fixed; top: {_carrotPosition.Value.Y}px; left: {_carrotPosition.Value.X}px;";
-
     private string ComputedClass => _shown ? Data.Trigger.TooltipClass + " show" : Data.Trigger.TooltipClass + " hide";
 
     private bool _shown;
@@ -61,7 +57,7 @@
         await Task.Delay(150); // Wait for the fade-out animation
         
         if (_shown) return; // Re-shown before fade-out completed
-        // TooltipRoot.RemoveTooltip(this);
+        TooltipRoot.RemoveTooltip(this);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -84,27 +80,41 @@
             // Calculate new position
             var basePosition = CalculateTooltipBasePosition(triggerRect, _contentBounds, Data.Trigger.Position);
             _tooltipPosition = basePosition;
-            // _tooltipPosition = EnsureOnScreen(basePosition.Y, basePosition.X, _contentBounds.Width, _contentBounds.Height);
-            _carrotPosition = CalculateTooltipBasePosition(triggerRect, _contentBounds, position: Data.Trigger.Position, true);
-
+            
             ReRender();
         }
     }
     
-    const int TooltipMargin = 10; // Space between trigger and tooltip
+    const double TooltipMargin = 4; // Space between trigger and tooltip
     
-    private ElementPosition CalculateTooltipBasePosition(ElementBounds triggerRect, ElementBounds contentRect, string position, bool carrot = false)
+    private ElementPosition CalculateTooltipBasePosition(ElementBounds triggerRect, ElementBounds contentRect, string position)
     {
         double top = 0, left = 0;
 
-        switch (position.ToLower())
-        {
+        switch (position.ToLower()) {
+            case "bottom":
+            {
+                top = triggerRect.Top + triggerRect.Height + TooltipMargin;
+                left = triggerRect.Left + (triggerRect.Width / 2) - (contentRect.Width / 2);
+                break;
+            }
+            case "left":
+            {
+                top = triggerRect.Top + (triggerRect.Height / 2) - (contentRect.Height / 2);
+                left = triggerRect.Left - contentRect.Width - TooltipMargin;
+                break;
+            }
+            case "right":
+            {
+                top = triggerRect.Top + (triggerRect.Height / 2) - (contentRect.Height / 2);
+                left = triggerRect.Left + triggerRect.Width + TooltipMargin;
+                break;
+            }
             default:
             {
-                top = triggerRect.Top - (triggerRect.Height / 2);
-                if (!carrot) top -= TooltipMargin * 2;
-                
-                left = triggerRect.Left - (contentRect.Width / 2) + (triggerRect.Width / 2);
+                // Default to top placement
+                top = triggerRect.Top - contentRect.Height - TooltipMargin;
+                left = triggerRect.Left + (triggerRect.Width / 2) - (contentRect.Width / 2);
                 break;
             }
         }

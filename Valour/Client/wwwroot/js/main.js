@@ -289,20 +289,6 @@ function SetCardTitle(id, name) {
    document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
 }
 
-/* Tooltips */
-
-function enableTooltip(id) {
-    $('#' + id).tooltip()
-}
-
-function disableTooltip(id) {
-    $('#' + id).tooltip('hide')
-}
-
-function updateTooltip(id) {
-    $('#' + id).tooltip('update')
-}
-
 /* Content upload handling */
 
 // Creates a blob and returns the location
