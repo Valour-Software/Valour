@@ -1,7 +1,6 @@
 using NUglify;
 using NUglify.Css;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Valour.Server.Utilities;
