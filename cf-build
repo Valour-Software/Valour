@@ -8,4 +8,5 @@ chmod +x dotnet-install.sh
 
 # Build Valour
 ./dotnet/dotnet workload restore
+./dotnet/dotnet workload install wasm-tools
 ./dotnet/dotnet publish -c Release -o output
