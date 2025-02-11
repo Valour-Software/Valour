@@ -101,16 +101,16 @@ else
             
             if (!Client.IsLoggedIn)
             {
-                var cookieToken = await JsRuntime.GetCookieAsync("token");
+                var localToken = await LocalStorage.GetItemAsStringAsync("token");
 
-                if (!string.IsNullOrWhiteSpace(cookieToken))
+                if (!string.IsNullOrWhiteSpace(localToken))
                 {
-                    var result = await Client.InitializeUser(cookieToken);
+                    var result = await Client.InitializeUser(localToken);
 
                     if (result.Code == 401)
                     {
                         // Clear cookie
-                        await JsRuntime.DeleteCookieAsync("token");
+                        await LocalStorage.RemoveItemAsync("token");
                     }
 
                     if (result.Success) {

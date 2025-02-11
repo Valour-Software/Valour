@@ -6,6 +6,7 @@
 @inject AuthService AuthService
 
 @using Microsoft.AspNetCore.WebUtilities
+
 <div class="page">
     <div class="login-background">
     </div>
@@ -185,7 +186,7 @@
     private async Task OnLoginSuccess()
     {
         _resultSpan = "Logging in...";
-        await JsRuntime.SetCookieAsync("token", AuthService.Token);
+        await LocalStorage.SetItemAsStringAsync("token", AuthService.Token);
 
         if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
         {
