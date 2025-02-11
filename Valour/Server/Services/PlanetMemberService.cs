@@ -19,6 +19,7 @@ public class PlanetMemberService
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly PlanetPermissionService _permissionService;
+    private readonly HostedPlanetService _hostedPlanetService;
     private readonly ILogger<PlanetMemberService> _logger;
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
@@ -34,13 +35,15 @@ public class PlanetMemberService
         CoreHubService coreHub,
         TokenService tokenService,
         ILogger<PlanetMemberService> logger, 
-        PlanetPermissionService permissionService)
+        PlanetPermissionService permissionService, 
+        HostedPlanetService hostedPlanetService)
     {
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
         _logger = logger;
         _permissionService = permissionService;
+        _hostedPlanetService = hostedPlanetService;
     }
 
     /// <summary>
@@ -396,15 +399,17 @@ public class PlanetMemberService
         return new TaskResult<PlanetMember>(true, "Success", member);
     }
 
-    public async Task<TaskResult<PlanetRoleMember>> AddRoleAsync(long memberId, long roleId)
+    public async Task<TaskResult<PlanetRoleMember>> AddRoleAsync(long planetId, long memberId, long roleId)
     {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is null)
-            return new TaskResult<PlanetRoleMember>(false, "Member is null.");
+            return new TaskResult<PlanetRoleMember>(false, "Member not found.");
 
-        var role = await _db.PlanetRoles.FindAsync(roleId);
+        var role = hostedPlanet.GetRole(roleId);
         if (role is null)
-            return new TaskResult<PlanetRoleMember>(false, "Role is null.");
+            return new TaskResult<PlanetRoleMember>(false, "Role not found.");
         
         if (role.Position == 0)
             return new TaskResult<PlanetRoleMember>(false, "Cannot add owner role to member.");

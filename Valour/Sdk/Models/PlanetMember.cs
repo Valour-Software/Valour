@@ -1,6 +1,7 @@
 ﻿using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
@@ -128,6 +129,12 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     {
         User = Client.Cache.Sync(User, skipEvent, flags);
     }
+
+    public Task<TaskResult> AddRoleAsync(long roleId) =>
+        Planet.AddMemberRoleAsync(Id, roleId);
+    
+    public Task<TaskResult> RemoveRoleAsync(long roleId) =>
+        Planet.RemoveMemberRoleAsync(Id, roleId);
 
     public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
     {

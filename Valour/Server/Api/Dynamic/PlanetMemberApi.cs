@@ -145,17 +145,21 @@ public class PlanetMemberApi
         return Results.Json(await memberService.GetRoleIdsAsync(targetMember.Id));
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/members/{id}/roles/{roleId}")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/members/{memberId}/roles/{roleId}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> AddRoleToMemberRouteAsync(
-        long id,
+        long planetId,
+        long memberId,
         long roleId,
         PlanetMemberService memberService,
         PlanetRoleService roleService)
     {
-        var targetMember = await memberService.GetAsync(id);
+        var targetMember = await memberService.GetAsync(memberId);
         if (targetMember is null)
             return ValourResult.NotFound("Target member not found.");
+        
+        if (targetMember.PlanetId != planetId)
+            return ValourResult.BadRequest("Member does not belong to the planet.");
         
         var selfMember = await memberService.GetCurrentAsync(targetMember.PlanetId);
         if (selfMember is null)
@@ -173,7 +177,7 @@ public class PlanetMemberApi
             return ValourResult.Forbid("You can only add roles with a lower authority than your own.");
 
         
-        var result = await memberService.AddRoleAsync(targetMember.Id, role.Id);
+        var result = await memberService.AddRoleAsync(planetId, targetMember.Id, role.Id);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 

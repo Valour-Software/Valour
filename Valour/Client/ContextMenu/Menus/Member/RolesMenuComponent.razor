@@ -46,13 +46,14 @@
 
 	private async Task OnRoleClick(PlanetRole role, bool value)
 	{
-		if (value)
-			// Add role
-			await Member.Node.PostAsync($"api/members/{Member.Id}/roles/{role.Id}", null);
-		else
-			// Remove role
-			await Member.Node.DeleteAsync($"api/members/{Member.Id}/roles/{role.Id}");
-
+		var task = value ? Member.AddRoleAsync(role.Id) : Member.RemoveRoleAsync(role.Id);
+		
+		await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+			"Updating roles...",
+			"Loading...",
+			task,
+			"Roles updated!"
+		));
 
 		StateHasChanged();
 	}

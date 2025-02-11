@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Concurrent;
 using StackExchange.Redis;
 using Valour.Server.Utilities;
 using Valour.Shared.Extensions;
@@ -15,6 +16,14 @@ public class HostedPlanet : ServerModel<long>
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
     public readonly PlanetPermissionsCache PermissionCache = new();
+    
+    /// <summary>
+    /// Holds all the existing role combo keys and their roles
+    /// </summary>
+    private readonly ConcurrentDictionary<long, long[]> _roleComboCache = new();
+    private volatile IReadOnlyDictionary<long, long[]> _roleComboCacheBuilt;
+    private readonly object _roleComboCacheLock = new object();
+    private volatile bool _cacheNeedsRebuild = true;
 
     private Channel _defaultChannel;
     private PlanetRole _defaultRole;
@@ -164,5 +173,39 @@ public class HostedPlanet : ServerModel<long>
     public void RecycleRoleIdMap(Dictionary<long, PlanetRole> roles)
     {
         _roles.ReturnIdMap(roles);
+    }
+    
+    // Role combos //
+
+    public long[] GetRolesForCombo(long key)
+    {
+        if (_roleComboCache.TryGetValue(key, out var roles))
+        {
+            return roles;
+        }
+        
+        return [];
+    }
+    
+    public void SetRoleCombo(long key, long[] roleIds)
+    {
+        _roleComboCache[key] = roleIds;
+        _cacheNeedsRebuild = true;
+    }
+
+    public IReadOnlyDictionary<long, long[]> GetAllRoleCombos()
+    {
+        if (_cacheNeedsRebuild)
+        {
+            lock (_roleComboCacheLock)
+            {
+                if (_cacheNeedsRebuild)
+                {
+                    _roleComboCacheBuilt = new Dictionary<long, long[]>(_roleComboCache);
+                    _cacheNeedsRebuild = false;
+                }
+            }
+        }
+        return _roleComboCacheBuilt;
     }
 }

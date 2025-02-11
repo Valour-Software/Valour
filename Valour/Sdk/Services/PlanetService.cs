@@ -489,6 +489,18 @@ public class PlanetService : ServiceBase
 
         return _client.Cache.Sync(member);
     }
+
+    public async Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        return await planet.Node.PostAsync($"api/planets/{planetId}/members/{memberId}/roles/{roleId}", null);
+    }
+    
+    public async Task<TaskResult> RemoveMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        return await planet.Node.DeleteAsync($"api/planets/{planetId}/members/{memberId}/roles/{roleId}");
+    }
     
     private void OnRoleOrderUpdate(RoleOrderEvent e)
     {

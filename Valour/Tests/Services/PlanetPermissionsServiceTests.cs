@@ -184,7 +184,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         Assert.False(canManage, "Member should not have manage permissions");
         
         // Assign the role to the member
-        var assignRoleResult = await _planetMemberService.AddRoleAsync(member.Id, adminRole.Id);
+        var assignRoleResult = await _planetMemberService.AddRoleAsync(member.PlanetId, member.Id, adminRole.Id);
         Assert.True(assignRoleResult.Success);
         
         // Update member
@@ -216,7 +216,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         Assert.True(removeAdminResult.Success, "Failed to update role");
         
         // Give the admin role back to the member
-        assignRoleResult = await _planetMemberService.AddRoleAsync(member.Id, adminRole.Id);
+        assignRoleResult = await _planetMemberService.AddRoleAsync(member.PlanetId, member.Id, adminRole.Id);
         Assert.True(assignRoleResult.Success, "Failed to assign role");
         
         // Member should not have planet management permissions

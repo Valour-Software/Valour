@@ -638,7 +638,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         }
     }
 
-public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
+    public Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId) =>
+        Client.PlanetService.AddMemberRoleAsync(memberId, roleId, Id);
+    
+    public Task<TaskResult> RemoveMemberRoleAsync(long memberId, long roleId) =>
+        Client.PlanetService.RemoveMemberRoleAsync(memberId, roleId, Id);
+    
+    public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
         await Node.PostAsync($"{IdRoute}/channels/order", model);
 
     public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>

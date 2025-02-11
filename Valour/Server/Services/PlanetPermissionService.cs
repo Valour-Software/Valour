@@ -18,12 +18,6 @@ namespace Valour.Server.Services;
 
 // - Spike, 2024
 
-public class RoleComboInfo
-{
-    public required long RoleHashKey;
-    public required long[] Roles;
-}
-
 public class PlanetPermissionService
 {
     private const long Seed = unchecked((long)0xcbf29ce484222325); // FNV1a seed
@@ -226,27 +220,34 @@ public class PlanetPermissionService
 
     public async Task<long> GetOrUpdateRoleHashKeyAsync(ISharedPlanetMember member)
     {
-        var roleKey = await CalculateRoleHashKeyAsync(member.Id);
+        var roleKey = await CalculateRoleHashKeyAsync(member.PlanetId, member.Id);
         member.RoleHashKey = roleKey;
         await _db.PlanetMembers.Where(x => x.Id == member.Id)
             .ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleHashKey, roleKey));
         return roleKey;
     }
 
-    public async Task<long> CalculateRoleHashKeyAsync(long memberId)
+    public async Task<long> CalculateRoleHashKeyAsync(long planetId, long memberId)
     {
         var roleIds = await _db.PlanetRoleMembers
             .Where(x => x.MemberId == memberId)
             .Select(x => x.RoleId)
             .OrderBy(x => x)
             .ToArrayAsync();
-        return GenerateRoleComboKey(roleIds);
+        
+        var key = GenerateRoleComboKey(roleIds);
+
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        hostedPlanet.SetRoleCombo(key, roleIds);
+        
+        return key;
     }
 
     public async Task UpdateMemberRoleHashAsync(Valour.Database.PlanetMember member, bool saveChanges = true)
     {
-        var roleKey = await CalculateRoleHashKeyAsync(member.Id);
+        var roleKey = await CalculateRoleHashKeyAsync(member.PlanetId, member.Id);
         member.RoleHashKey = roleKey;
+        
         if (saveChanges)
             await _db.SaveChangesAsync();
     }
