@@ -16,6 +16,7 @@ namespace Valour.Tests.Services
         private readonly WebApplicationFactory<Program> _factory;
         private readonly ValourClient _client;
         private readonly IServiceScope _scope;
+        private readonly HostedPlanetService _hostedService;
         private readonly PlanetRoleService _roleService;
         private readonly PlanetService _planetService;
         private readonly UserService _userService;
@@ -38,6 +39,7 @@ namespace Valour.Tests.Services
             _roleService = _scope.ServiceProvider.GetRequiredService<PlanetRoleService>();
             _planetService = _scope.ServiceProvider.GetRequiredService<PlanetService>();
             _userService = _scope.ServiceProvider.GetRequiredService<UserService>();
+            _hostedService = _scope.ServiceProvider.GetRequiredService<HostedPlanetService>();
         }
 
         // Clean up any created roles after all tests in this class have run
@@ -331,6 +333,32 @@ namespace Valour.Tests.Services
             // Get permission nodes
             var nodes = await _roleService.GetNodesAsync(createdRole.Id);
             Assert.Empty(nodes);
+        }
+
+        [Fact]
+        public async Task EnsureHostedCache_RoleCombosUnique()
+        {
+            // Get hosted planet for valour central
+            var hostedPlanet = await _hostedService.GetRequiredAsync(_valourCentralId);
+            
+            // Check role combos
+            var combos = hostedPlanet.GetAllRoleCombos();
+            
+            // Ensure all keys are unique
+            Assert.Equal(combos.Count, combos.Select(c => c.Key).Distinct().Count());
+            
+            // Ensure all role lists are unique
+            // Kind of ugly, but...
+            var roleComboValues = combos.Select(x => 
+            {
+                var roleIds = x.Value;
+                return string.Join('-', roleIds);
+            }).ToList();
+            
+            // Asser not null
+            Assert.NotNull(roleComboValues);
+            
+            Assert.Equal(roleComboValues.Count(), roleComboValues.Distinct().Count());
         }
     }
 }
