@@ -11,6 +11,7 @@ using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Services;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Nodes;
 
@@ -427,7 +428,7 @@ public class Node : ServiceBase // each node acts like a service
     private void HookModelEvents<TModel>(TModel model)
         where TModel : ClientModel<TModel>
     {
-        var typeName = nameof(TModel);
+        var typeName = model.GetType().Name;
         HubConnection.On<TModel, int>($"{typeName}-Update", OnModelUpdate<TModel>);
         HubConnection.On<TModel>($"{typeName}-Delete", OnModelDelete<TModel>);
     }
@@ -438,7 +439,7 @@ public class Node : ServiceBase // each node acts like a service
     private void OnModelUpdate<TModel>(TModel model, int flags)
         where TModel : ClientModel<TModel>
     {
-        Client.Cache.Sync(model, true, flags);
+        Client.Cache.Sync(model, false, flags);
     }
 
     private void OnModelDelete<TModel>(TModel model)
@@ -467,6 +468,11 @@ public class Node : ServiceBase // each node acts like a service
     public void HookSignalREvents()
     {
         Log("Hooking model events.");
+        
+        HubConnection.On<PlanetMember, int>($"PlanetMember-Update", (PlanetMember pm, int i) =>
+        {
+            Log("TEST");
+        });
 
         // For every single item...
         var baseType = typeof(ClientModel<>);
@@ -505,7 +511,7 @@ public class Node : ServiceBase // each node acts like a service
                 LogError($"Failed to hook model type {type.Name}", ex);
             }
         }
-
+        
         HubConnection.On<Notification>("RelayNotification", Client.NotificationService.OnNotificationReceived);
         HubConnection.On("RelayNotificationsCleared", Client.NotificationService.OnNotificationsCleared);
         HubConnection.On<FriendEventData>("RelayFriendEvent", Client.FriendService.OnFriendEventReceived);

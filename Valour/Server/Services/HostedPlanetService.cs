@@ -76,7 +76,7 @@ public class HostedPlanetService
         
         foreach (var combo in combos)
         {
-            hostedPlanet.SetRoleCombo(combo.RoleHashKey, combo.Roles);
+            hostedPlanet.SetRoleMembershipCombo(combo.RoleHashKey, combo.Roles);
         }
         
         _cache.HostedPlanets.Set(hostedPlanet);

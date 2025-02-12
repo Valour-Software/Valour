@@ -1,22 +1,24 @@
 ﻿@implements IDisposable
 
-@foreach (var role in Member.Planet.Roles)
-{
-	var cRole = role;
-	var hasRole = Member.Roles.Any(x => x.Id == role.Id);
+<div class="roles-wrapper">
+	@foreach (var role in Member.Planet.Roles)
+	{
+		var cRole = role;
+		var hasRole = Member.Roles.Any(x => x.Id == role.Id);
 
-	<ContextMenuItem>
-		<div class="role-row" @onpointerdown="@(() => OnRoleClick(cRole, !hasRole))">
-			<div class="v-checkmark-wrapper">
-				<input class="role-checkbox" type="checkbox"
-                			       checked="@hasRole" disabled />
-				<span class="v-checkmark" style="@(hasRole ? $"background-color: {role.Color};" : "")"></span>
-				<i class="bi bi-check v-checkmark-fill"></i>
+		<ContextMenuItem>
+			<div class="role-row" @onpointerdown="@(() => OnRoleClick(cRole, !hasRole))">
+				<div class="v-checkmark-wrapper">
+					<input class="role-checkbox" type="checkbox"
+                				       checked="@hasRole" disabled />
+					<span class="v-checkmark" style="@(hasRole ? $"background-color: {role.Color};" : "")"></span>
+					<i class="bi bi-check v-checkmark-fill"></i>
+				</div>
+				<p style="color:@role.Color; display: inline-block; margin: 0;">@role.Name</p>
 			</div>
-			<p style="color:@role.Color; display: inline-block; margin: 0;">@role.Name</p>
-		</div>
-	</ContextMenuItem>
-}
+		</ContextMenuItem>
+	}
+</div>
 
 @code {
 	[Parameter]
@@ -51,12 +53,41 @@
 	{
 		var task = value ? Member.AddRoleAsync(role.Id) : Member.RemoveRoleAsync(role.Id);
 		
-		await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+		var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
 			"Updating roles...",
 			"Loading...",
 			task,
 			"Roles updated!"
 		));
+
+		/*
+		if (result.Success)
+		{
+			// technically the server will send over the new role membership hash, but for speed we'll
+			// update it client-side first
+
+			var newRoles = Member.Roles.ToList();
+			if (value)
+				newRoles.Add(role);
+			else
+				newRoles.Remove(role);
+			
+			// Sort roles
+			newRoles.Sort(ISortable.Comparer);
+			
+			// Get ids (they need to be sorted by value rather than position as well)
+			var newRoleIds = newRoles.Select(x => x.Id).Order().ToArray();
+			
+			var membershipHash = PlanetPermissionUtils.GenerateRoleMembershipHash(newRoleIds);
+			
+			Member.Planet.AddRoleMembershipHashMappings(new Dictionary<long, long[]>
+			{
+				{ membershipHash, newRoleIds }
+			});
+			
+			Member.RoleMembershipHash = membershipHash;
+		}
+		*/
 
 		StateHasChanged();
 	}

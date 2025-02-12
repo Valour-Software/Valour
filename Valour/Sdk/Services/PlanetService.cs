@@ -525,10 +525,19 @@ public class PlanetService : ServiceBase
             Log($"Rejoined SignalR group for planet {planet.Id}");
         }
     }
+    
+    private void OnRoleMembershipHashesUpdated(RoleMembershipHashChange e)
+    {
+        if (!_client.Cache.Planets.TryGet(e.PlanetId, out var planet))
+            return;
+
+        planet.NotifyRoleMembershipHashesChange(e);
+    }
 
     private void HookHubEvents(Node node)
     {
         node.HubConnection.On<RoleOrderEvent>("RoleOrder-Update", OnRoleOrderUpdate);
+        node.HubConnection.On<RoleMembershipHashChange>("RoleMembershipHash-Update", OnRoleMembershipHashesUpdated);
     }
 
 }

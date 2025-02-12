@@ -297,6 +297,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         return response;
     }
+
+    public void NotifyRoleMembershipHashesChange(RoleMembershipHashChange changes)
+    {
+        AddRoleMembershipHashMappings(changes.AddedHashes);
+    }
     
     /// <summary>
     /// Clears and then applies the given role combination map to the planet

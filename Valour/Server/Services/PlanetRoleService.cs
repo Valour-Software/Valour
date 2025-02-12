@@ -178,7 +178,7 @@ public class PlanetRoleService
             {
                 var newCombo = newRoleCombos[i];
                 var oldHashKey = newCombo.RoleHashKey;
-                var newHashKey = PlanetPermissionService.GenerateRoleComboKey(newCombo.Roles);
+                var newHashKey = PlanetPermissionUtils.GenerateRoleMembershipHash(newCombo.Roles);
                 
                 oldMembershipHashes[i] = oldHashKey;
                 newMembershipHashes[i] = newHashKey;

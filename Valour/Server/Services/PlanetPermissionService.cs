@@ -20,9 +20,6 @@ namespace Valour.Server.Services;
 
 public class PlanetPermissionService
 {
-    private const long Seed = unchecked((long)0xcbf29ce484222325); // FNV1a seed
-    private const long MagicNumber = unchecked((long)0x9e3779b97f4a7c15);
-
     public static readonly ObjectPool<List<PlanetRole>> RoleListPool =
         new DefaultObjectPool<List<PlanetRole>>(new ListPooledObjectPolicy<PlanetRole>());
 
@@ -32,14 +29,16 @@ public class PlanetPermissionService
 
     private readonly ValourDb _db;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetPermissionService> _logger;
 
     public PlanetPermissionService(ValourDb db, HostedPlanetService hostedPlanetService,
-        ILogger<PlanetPermissionService> logger)
+        ILogger<PlanetPermissionService> logger, CoreHubService coreHub)
     {
         _db = db;
         _hostedPlanetService = hostedPlanetService;
         _logger = logger;
+        _coreHub = coreHub;
     }
 
     /// <summary>
@@ -231,10 +230,24 @@ public class PlanetPermissionService
             .OrderBy(x => x)
             .ToArrayAsync();
         
-        var key = GenerateRoleComboKey(roleIds);
+        var key = PlanetPermissionUtils.GenerateRoleMembershipHash(roleIds);
 
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-        hostedPlanet.SetRoleCombo(key, roleIds);
+
+        if (!hostedPlanet.RoleMembershipCombos.ContainsKey(key))
+        {
+            // This is a new combination    
+            hostedPlanet.SetRoleMembershipCombo(key, roleIds);
+            
+            _coreHub.NotifyRoleMembershipHashChanges(new RoleMembershipHashChange()
+            {
+                PlanetId = planetId,
+                AddedHashes = new Dictionary<long, long[]>()
+                {
+                    { key, roleIds }
+                }
+            });
+        }
         
         return key;
     }
@@ -310,7 +323,7 @@ public class PlanetPermissionService
 
         foreach (var roleKey in allRoleComboKeys)
         {
-            var combinedKey = GetRoleChannelComboKey(roleKey, channel.Id);
+            var combinedKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channel.Id);
             long? perms = channelCache.GetChannelPermission(combinedKey);
             if (perms == null)
             {
@@ -521,7 +534,7 @@ public class PlanetPermissionService
             }
         }
 
-        var channelKey = GetRoleChannelComboKey(member.RoleMembershipHash, channel.Id);
+        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(member.RoleMembershipHash, channel.Id);
         var cache = hosted.PermissionCache.GetChannelCache(channel.ChannelType);
         var cachedPerms = cache.GetChannelPermission(channelKey);
         if (cachedPerms is not null)
@@ -555,7 +568,7 @@ public class PlanetPermissionService
         HostedPlanet hostedPlanet,
         ChannelTypeEnum targetType)
     {
-        var channelKey = GetRoleChannelComboKey(roleKey, channel.Id);
+        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channel.Id);
         var permCache = hostedPlanet.PermissionCache.GetChannelCache(channel.ChannelType);
 
         var cachedPerms = permCache.GetChannelPermission(channelKey);
@@ -593,33 +606,5 @@ public class PlanetPermissionService
 
         permCache.Set(roleKey, channel.Id, permissions);
         return permissions;
-    }
-
-    private static long MixHash(long currentHash, long roleId)
-    {
-        return currentHash ^ ((roleId + MagicNumber) + (currentHash << 6) + (currentHash >> 2));
-    }
-
-    public static long GetRoleChannelComboKey(long rolesKey, long channelId)
-    {
-        var hash = MixHash(Seed, channelId);
-        hash = MixHash(rolesKey, hash);
-        return hash;
-    }
-
-    public static long GenerateRoleComboKey(IEnumerable<PlanetRole> roles)
-    {
-        long hash = Seed;
-        foreach (var role in roles.OrderBy(x => x.Id))
-            hash = MixHash(hash, role.Id);
-        return hash;
-    }
-
-    public static long GenerateRoleComboKey(long[] sortedRoleIds)
-    {
-        long hash = Seed;
-        foreach (var roleId in sortedRoleIds)
-            hash = MixHash(hash, roleId);
-        return hash;
     }
 }

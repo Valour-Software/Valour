@@ -286,7 +286,7 @@ public class PlanetMemberService
             .FirstOrDefaultAsync();
         
         // Give role hash for just default role
-        var roleHashKey = PlanetPermissionService.GenerateRoleComboKey([defaultRoleId]);
+        var roleHashKey = PlanetPermissionUtils.GenerateRoleMembershipHash([defaultRoleId]);
         member.RoleMembershipHash = roleHashKey;
 
         // Add to default planet role
@@ -446,7 +446,7 @@ public class PlanetMemberService
         return new TaskResult<PlanetRoleMember>(true, "Success", newRoleMember.ToModel());
     }
     
-    public async Task<TaskResult> RemoveRoleAsync(long memberId, long roleId)
+    public async Task<TaskResult> RemoveRoleAsync(long planetId, long memberId, long roleId)
     {
         var roleMember = await _db.PlanetRoleMembers.Include(x => x.Role).FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
         

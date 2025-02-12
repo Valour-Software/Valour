@@ -100,11 +100,15 @@
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
 
-        await Task.Delay(500);
+        // Fire this off async so it doesn't block task completion
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(500);
         
-        await toast.Card.ShrinkAndRemove();
+            await toast.Card.ShrinkAndRemove();
         
-        StateHasChanged();
+            StateHasChanged();
+        });
         
         return toast.ProgressTask.Result;
     }
@@ -148,12 +152,16 @@
             toast.Card.SetProgressState(ToastProgressState.Failure);
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
-
-        await Task.Delay(500);
         
-        await toast.Card.ShrinkAndRemove();
+        // Fire this off async so it doesn't block task completion
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(500);
         
-        StateHasChanged();
+            await toast.Card.ShrinkAndRemove();
+        
+            StateHasChanged();
+        });
         
         return toast.ProgressTask.Result;
     }

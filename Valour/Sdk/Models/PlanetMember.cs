@@ -35,8 +35,9 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// The user of the member
     /// </summary>
+    [IgnoreRealtimeChanges]
     public User User { get; set; }
-
+    
     private ImmutableList<PlanetRole>? _roles = null;
     
     public ImmutableList<PlanetRole> Roles

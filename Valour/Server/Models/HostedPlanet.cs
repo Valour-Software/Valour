@@ -159,13 +159,13 @@ public class HostedPlanet : ServerModel<long>
         return [];
     }
     
-    public void SetRoleCombo(long key, long[] roleIds)
+    public void SetRoleMembershipCombo(long key, long[] roleIds)
     {
         _roleComboCache[key] = roleIds;
         _cacheNeedsRebuild = true;
     }
 
-    public ImmutableDictionary<long, long[]> RoleCombos
+    public ImmutableDictionary<long, long[]> RoleMembershipCombos
     {
         get
         {

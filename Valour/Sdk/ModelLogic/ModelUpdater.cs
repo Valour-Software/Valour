@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Shared.Extensions;
 using Valour.Shared.Models;
@@ -30,8 +31,11 @@ public static class ModelUpdater
         {
             if (modelType.IsSubclassOf(typeof(ClientModel)))
             {
-                ModelPropertyCache[modelType] = modelType.GetProperties();
-                ModelFieldCache[modelType] = modelType.GetFields();
+                ModelPropertyCache[modelType] = modelType.GetProperties()
+                    .Where(x => x.GetCustomAttribute<IgnoreRealtimeChangesAttribute>() is null &&
+                                x.CanWrite).ToArray(); // If it's just a getter, it can't be updated
+                ModelFieldCache[modelType] = modelType.GetFields()
+                    .Where(x => x.GetCustomAttribute<IgnoreRealtimeChangesAttribute>() is null).ToArray();
             }
         }
     }
@@ -82,8 +86,27 @@ public static class ModelUpdater
 
             foreach (var prop in pInfo)
             {
-                if (prop.GetValue(cached) != prop.GetValue(updated))
+                var a = prop.GetValue(cached);
+                var b = prop.GetValue(updated);
+
+                if (a is null)
+                {
+                    if (b is null)
+                    {
+                        continue;
+                    }
+                    
                     eventData.PropsChanged.Add(prop.Name);
+                }
+                else if (b is null)
+                {
+                    eventData.PropsChanged.Add(prop.Name);
+                }
+                else
+                {
+                    if (!a.Equals(b))
+                        eventData.PropsChanged.Add(prop.Name);
+                }
             }
             
             // Check position change

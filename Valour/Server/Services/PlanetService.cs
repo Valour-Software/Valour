@@ -234,7 +234,7 @@ public class PlanetService
         
         data.Channels = channels?.List ?? [];
         data.Roles = hostedPlanet.Roles.List;
-        data.RoleCombinationMap = hostedPlanet.RoleCombos;
+        data.RoleCombinationMap = hostedPlanet.RoleMembershipCombos;
         
         return data;
     }
@@ -394,7 +394,7 @@ public class PlanetService
             };
             
             // Create role combo key (ids go up over time so we order them accordingly)
-            var rolesKey = PlanetPermissionService.GenerateRoleComboKey([defaultRole.Id, ownerRole.Id]);
+            var rolesKey = PlanetPermissionUtils.GenerateRoleMembershipHash([defaultRole.Id, ownerRole.Id]);
 
             // Create owner member
             var member = new Valour.Database.PlanetMember()

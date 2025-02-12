@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Server.Utilities;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
@@ -20,7 +21,7 @@ public class ChannelPermissionCache
 
     public void Set(long roleKey, long channelId, long permissions)
     {
-        var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channelId);
         _cache[channelKey] = permissions;
 
         // Record by channel ID.
@@ -34,7 +35,7 @@ public class ChannelPermissionCache
 
     public void Remove(long roleKey, long channelId)
     {
-        var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channelId);
         if (_cache.TryRemove(channelKey, out _))
         {
             if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var set))
@@ -56,7 +57,7 @@ public class ChannelPermissionCache
     {
         if (_roleKeyToCachedChannelKeys.TryGetValue(roleKey, out var keys))
         {
-            var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+            var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channelId);
             if (keys.Contains(channelKey))
             {
                 _cache.TryRemove(channelKey, out _);
@@ -71,7 +72,7 @@ public class ChannelPermissionCache
         {
             foreach (var roleKey in keys)
             {
-                var channelKey = PlanetPermissionService.GetRoleChannelComboKey(roleKey, channelId);
+                var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channelId);
                 _cache.TryRemove(channelKey, out _);
             }
             keys.Clear();

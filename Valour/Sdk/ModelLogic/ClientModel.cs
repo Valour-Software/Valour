@@ -7,14 +7,26 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.ModelLogic;
 
+/// <summary>
+/// Marks a field or method as being ignored when checking for changes
+/// when a realtime update is received.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
+public class IgnoreRealtimeChangesAttribute : Attribute
+{
+    
+}
+
 public abstract class ClientModel
 {
+    [IgnoreRealtimeChanges]
     [JsonIgnore]
     public virtual string BaseRoute => $"api/{GetType().Name}";
     
     /// <summary>
     /// Ran when this item is deleted
     /// </summary>
+    [IgnoreRealtimeChanges]
     public HybridEvent Deleted;
 
     /// <summary>
@@ -26,12 +38,14 @@ public abstract class ClientModel
     /// The Valour Client this model belongs to
     /// </summary>
     [JsonIgnore]
+    [IgnoreRealtimeChanges]
     public ValourClient Client { get; private set; }
 
     /// <summary>
     /// The node this model belongs to
     /// </summary>
     [JsonIgnore]
+    [IgnoreRealtimeChanges]
     public virtual Node Node => Client?.PrimaryNode;
 
     /// <summary>
@@ -59,6 +73,7 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// <summary>
     /// Ran when this item is updated
     /// </summary>
+    [IgnoreRealtimeChanges]
     public HybridEvent<ModelUpdateEvent<TSelf>> Updated;
 
     /// <summary>
@@ -97,6 +112,7 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
 {
     public TId Id { get; set; }
     
+    [IgnoreRealtimeChanges]
     [JsonIgnore]
     public virtual string IdRoute => $"{BaseRoute}/{Id}";
     
