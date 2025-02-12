@@ -14,16 +14,15 @@ public static class RoleExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IQueryable<RoleComboInfo> GetUniquePlanetRoleComboInfo(this IQueryable<PlanetRoleMember> roleMembers)
     {
-        return from rm in roleMembers
-            group rm by rm.Member.RoleHashKey into g
-            select new RoleComboInfo
+        return roleMembers.GroupBy(rm => rm.Member.RoleHashKey)
+            .Select(g => new RoleComboInfo
             {
                 RoleHashKey = g.Key,
-                Roles = g.SelectMany(x => x.Member.RoleMembership
-                        .Select(r => r.Role.Id))
+                Roles = g.SelectMany(rm => rm.Member.RoleMembership)
+                    .Select(rm => rm.Role.Id)
                     .Distinct()
-                    .OrderBy(x => x)
+                    .OrderBy(id => id)
                     .ToArray()
-            };
+            });
     }
 }

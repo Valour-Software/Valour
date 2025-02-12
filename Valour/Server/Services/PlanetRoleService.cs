@@ -146,11 +146,8 @@ public class PlanetRoleService
         var hostedPlanet = await _hostedService.GetRequiredAsync(planetId);
         var role = hostedPlanet.GetRole(roleId);
         if (role is null) return new(false, "Role not found in hosted planet");
-        
-        var dbRole = await _db.PlanetRoles.FindAsync(roleId);
-        if (dbRole is null) return new(false, "Role not found");
             
-        if (dbRole.IsDefault)
+        if (role.IsDefault)
             return new (false, "Cannot delete default roles");
 
         await using var trans = await _db.Database.BeginTransactionAsync();
@@ -181,10 +178,8 @@ public class PlanetRoleService
             await _db.PlanetRoleMembers.Where(x => x.RoleId == roleId)
                 .ExecuteDeleteAsync();
 
-            // Remove the role
-            _db.PlanetRoles.Remove(dbRole);
-
-            await _db.SaveChangesAsync();
+            await _db.PlanetRoles.Where(x => x.Id == roleId)
+                .ExecuteDeleteAsync();
             
             await trans.CommitAsync();
 

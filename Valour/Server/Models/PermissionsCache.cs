@@ -8,13 +8,13 @@ namespace Valour.Server.Models;
 
 public class ChannelPermissionCache
 {
-    private readonly ConcurrentDictionary<long, long> _cache = new();
+    private readonly ConcurrentDictionary<long, long?> _cache = new();
     private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _roleKeyToCachedChannelKeys = new();
     private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _channelIdToCachedChannelKeys = new();
 
     public long? GetChannelPermission(long key)
     {
-        _cache.TryGetValue(key, out long value);
+        _cache.TryGetValue(key, out long? value);
         return value;
     }
 
@@ -124,7 +124,7 @@ public class PlanetPermissionsCache
     public ModelListSnapshot<Channel, long>? GetChannelAccess(long roleKey)
     {
         _accessCache.TryGetValue(roleKey, out var access);
-        return access.Snapshot;
+        return access?.Snapshot;
     }
 
     public List<Channel> GetEmptyAccessList() => AccessListPool.Get();

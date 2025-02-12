@@ -91,24 +91,20 @@ public class PlanetPermissionService
     /// </summary>
     public async Task<RoleComboInfo[]> GetPlanetRoleCombosForRolePostDeletion(long roleId)
     {
-        var roleCombos = await _db.PlanetRoleMembers
-            .Where(x => x.RoleId == roleId)
-            .Select(x => x.Member)
-            .Include(m => m.RoleMembership)
-            .ThenInclude(rm => rm.Role)
-            .GroupBy(x => x.RoleHashKey)
-            .Select(g => g.First())
-            .Select(x => new RoleComboInfo()
+        return await _db.PlanetRoleMembers
+            .Where(rm => rm.RoleId == roleId)
+            .GroupBy(rm => rm.Member.RoleHashKey)
+            .Select(g => new RoleComboInfo
             {
-                RoleHashKey = x.RoleHashKey,
-                Roles = x.RoleMembership.Where(y => y.RoleId != roleId)
-                    .Select(z => z.Role.Id)
-                    .Order()
+                RoleHashKey = g.Key,
+                Roles = g.SelectMany(rm => rm.Member.RoleMembership)
+                    .Where(rm => rm.RoleId != roleId)
+                    .Select(rm => rm.Role.Id)
+                    .Distinct()
+                    .OrderBy(id => id)
                     .ToArray()
             })
             .ToArrayAsync();
-
-        return roleCombos;
     }
 
     /// <summary>
