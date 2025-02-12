@@ -26,6 +26,21 @@ public class PlanetApi
         // Return json
         return Results.Json(planet);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/initialData")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetInitialDataRouteAsync(
+        long id,
+        PlanetService planetService,
+        PlanetMemberService memberService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var data = await planetService.GetInitialDataAsync(id, member.Id);
+        return Results.Json(data);
+    }
 
     [ValourRoute(HttpVerbs.Post, "api/planets")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]

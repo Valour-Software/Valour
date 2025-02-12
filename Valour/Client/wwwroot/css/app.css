@@ -176,6 +176,8 @@ h6, .h6 {
 /* Form Classes */
 .form-group {
     margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-label {
@@ -184,8 +186,8 @@ h6, .h6 {
 }
 
 .form-control {
-    display: block;
     width: 100%;
+    display: block;
     padding: 0.375rem 0.75rem;
     font-size: 1rem;
     font-weight: 400;

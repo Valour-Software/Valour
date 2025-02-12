@@ -233,7 +233,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     if (PlanetId is null || Planet.MyMember is null)
                         continue;
                     
-                    if (Planet.MyMember.Roles.ContainsId(mention.TargetId))
+                    if (Planet.MyMember.Roles.Any(x => x.Id == mention.TargetId))
                         return true;
 
                     break;

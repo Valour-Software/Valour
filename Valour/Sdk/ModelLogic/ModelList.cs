@@ -118,6 +118,12 @@ public class ModelList<TModel, TId> : IEnumerable<TModel>, IDisposable
         return IdMap.TryGetValue(id, out item);
     }
     
+    public TModel? Get(TId id)
+    {
+        IdMap.TryGetValue(id, out var item);
+        return item;
+    }
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Contains(TModel item)
     {

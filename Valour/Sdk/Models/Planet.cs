@@ -1,12 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
-using Valour.Sdk.Services;
 using Valour.Shared;
 using Valour.Shared.Models;
-using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
@@ -29,8 +28,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     // The lists are updated in realtime which means UI watching the lists do not
     // need to get an updated list. Do not second guess this decision. It is correct.
     // - Spike, 10/05/2024
-
-    public HybridEvent<RoleMembershipEvent> RoleMembershipChanged;
     
     /// <summary>
     /// The channels in this planet
@@ -55,7 +52,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// A map from role hash key to the contained roles
     /// </summary>
-    public ConcurrentDictionary<long, PlanetRole[]> RoleKeyMap { get; } = new(); 
+    public ConcurrentDictionary<long, ImmutableList<PlanetRole>> RoleMembershipHashToRoles { get; } = new(); 
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -166,23 +163,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             DefaultRole = eventData.Model;
 
         Roles.Upsert(eventData);
-
-        // Let members know
-        foreach (var member in Members)
-        {
-            member.OnRoleUpdated(eventData);
-        }
     }
 
     public void OnRoleDeleted(PlanetRole role)
     {
         Roles.Remove(role);
-
-        // Let members know
-        foreach (var member in Members)
-        {
-            member.OnRoleDeleted(role);
-        }
     }
 
     public void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData) =>
@@ -190,34 +175,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public void OnMemberDeleted(PlanetMember member) =>
         Members.Remove(member);
-
-    public void OnMemberRoleAdded(PlanetRoleMember roleMember)
-    {
-        if (!Members.TryGet(roleMember.MemberId, out var member))
-            return;
-
-        if (!Roles.TryGet(roleMember.RoleId, out var role))
-            return;
-
-        member.OnRoleAdded(role);
-
-        var eventArgs = new RoleMembershipEvent(MemberRoleEventType.Added, role, member);
-        RoleMembershipChanged?.Invoke(eventArgs);
-    }
-
-    public void OnMemberRoleRemoved(PlanetRoleMember roleMember)
-    {
-        if (!Members.TryGet(roleMember.MemberId, out var member))
-            return;
-
-        if (!Roles.TryGet(roleMember.RoleId, out var role))
-            return;
-
-        member.OnRoleRemoved(role);
-
-        var eventArgs = new RoleMembershipEvent(MemberRoleEventType.Removed, role, member);
-        RoleMembershipChanged?.Invoke(eventArgs);
-    }
 
     #endregion
 
@@ -316,6 +273,57 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         // Always also get member of client
         if (MyMember is null)
             MyMember = await FetchMemberByUserAsync(Client.Me.Id);
+    }
+
+    public async Task<TaskResult<InitialPlanetData>> FetchInitialDataAsync()
+    {
+        var response = await Client.PlanetService.FetchInitialPlanetDataAsync(Id);
+        if (!response.Success)
+            return response;
+
+        var data = response.Data;
+
+        data.Roles.SyncAll(Client.Cache);
+        data.Channels.SyncAll(Client.Cache);
+        
+        // Apply roles
+        Roles.Set(data.Roles);
+        
+        // Apply channels
+        ApplyChannels(data.Channels);
+        
+        // Apply role hash map
+        SetRoleMembershipHashMappings(data.RoleCombinationMap);
+
+        return response;
+    }
+    
+    /// <summary>
+    /// Clears and then applies the given role combination map to the planet
+    /// </summary>
+    public void SetRoleMembershipHashMappings(Dictionary<long, long[]> roleCombinationMap)
+    {
+        RoleMembershipHashToRoles.Clear();
+        AddRoleMembershipHashMappings(roleCombinationMap);
+    }
+    
+    /// <summary>
+    /// Adds the given role combination mappings to the planet
+    /// </summary>
+    public void AddRoleMembershipHashMappings(Dictionary<long, long[]> roleCombinationMap)
+    {
+        foreach (var pair in roleCombinationMap)
+        {
+            var roles = new List<PlanetRole>(pair.Value.Length);
+            for (int i = 0; i < pair.Value.Length; i++)
+            {
+                roles.Add(Roles.Get(pair.Value[i]));
+            }
+            
+            roles.Sort(ISortable.Comparer);
+            
+            RoleMembershipHashToRoles[pair.Key] = roles.ToImmutableList();
+        }
     }
 
     /// <summary>
@@ -551,9 +559,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             // Skip event for bulk loading
             var cachedMember = Client.Cache.Sync(info.Member, true);
             Members.Upsert(cachedMember, true);
-            
-            // Set role id data manually
-            await cachedMember.SetLocalRoleIds(info.RoleIds);
         }
 
         Members.NotifySet();
@@ -637,10 +642,10 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         
         Roles.Sort();
         
-        // Resort members
-        foreach (var member in Members)
+        // Resort role lists in key map
+        foreach (var pair in RoleMembershipHashToRoles)
         {
-            member.Roles.Sort();
+            RoleMembershipHashToRoles[pair.Key] = pair.Value.OrderBy(r => r.Position).ToImmutableList();
         }
     }
 

@@ -404,7 +404,7 @@ public class PlanetService
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
                 UserId = user.Id,
-                RoleHashKey = rolesKey
+                RoleMembershipHash = rolesKey
             };
 
             planet.Members = new List<Valour.Database.PlanetMember>()

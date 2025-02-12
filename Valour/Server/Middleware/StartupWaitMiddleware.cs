@@ -24,8 +24,12 @@ public class StartupWaitMiddleware
                 context.Request.Path.Value.Contains(".js") || 
                 context.Request.Path.Value.Contains(".css")))
             {
-                await _next(context);
-                return;
+                // Don't serve bundled css until server is ready
+                if (!context.Request.Path.Value.Contains("bundled.min.css"))
+                {
+                    await _next(context);
+                    return;
+                }
             }
             
             var startTime = DateTime.UtcNow;

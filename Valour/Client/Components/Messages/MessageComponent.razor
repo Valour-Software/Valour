@@ -492,7 +492,6 @@
             // Hook events
             if (_member is not null) // There is a chance they were deleted
             {
-                _member.Roles.Changed += UpdateForRoleChange;
                 _member.Updated += OnMemberUpdated;
             }
         }
@@ -617,22 +616,20 @@
             }
         }
 
+        if (eventData.PropsChanged.Contains(nameof(_member.RoleMembershipHash)))
+        {
+            render = true;
+            
+            _nameTag = _member.PrimaryRole.Name;
+            _nameColor = _member.PrimaryRole.Color;
+        }
+
         if (render)
         {
             ReRender();
         }
     }
     
-    // Update for any role changes
-    private void UpdateForRoleChange(ModelListChangeEvent<PlanetRole> change)
-    {
-        // Cosmetic changes
-        _nameTag = _member.PrimaryRole.Name;
-        _nameColor = _member.PrimaryRole.Color;
-        
-        ReRender();
-    }
-
     public void CheckMinimal()
     {
         if (_lastMessage != null && _message != null)
@@ -673,7 +670,6 @@
         if (_member is not null)
         {
             _member.Updated -= OnMemberUpdated;
-            _member.Roles.Changed -= UpdateForRoleChange;
         }
     }
 

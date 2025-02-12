@@ -111,7 +111,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, ISharedPlanet.ValourCentralId);
         Assert.NotNull(member); // New member should be a member of valour central
 
-        var oldRoleKey = member.RoleHashKey;
+        var oldRoleKey = member.RoleMembershipHash;
         Assert.NotEqual(0, oldRoleKey); // Should have a role key
         
         // Ensure they do NOT have planet permissions
@@ -191,7 +191,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         member = await _planetMemberService.GetAsync(member.Id);
         
         // Should have a new role key on the member
-        Assert.NotEqual(oldRoleKey, member.RoleHashKey);
+        Assert.NotEqual(oldRoleKey, member.RoleMembershipHash);
         
         // Ensure the member now has manage permissions
         canManage = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);

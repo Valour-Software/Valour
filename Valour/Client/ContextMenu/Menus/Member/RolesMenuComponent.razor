@@ -3,7 +3,7 @@
 @foreach (var role in Member.Planet.Roles)
 {
 	var cRole = role;
-	var hasRole = Member.Roles.ContainsId(role.Id);
+	var hasRole = Member.Roles.Any(x => x.Id == role.Id);
 
 	<ContextMenuItem>
 		<div class="role-row" @onpointerdown="@(() => OnRoleClick(cRole, !hasRole))">
@@ -25,23 +25,26 @@
 	protected override void OnInitialized()
 	{
 		Member.Planet.Roles.Changed += OnRoleUpdate;
-		Member.Roles.Changed += OnMemberRoleUpdate;
+		Member.Updated += OnMemberUpdate;
 	}
 
 	void IDisposable.Dispose()
 	{
 		Member.Planet.Roles.Changed -= OnRoleUpdate;
-		Member.Roles.Changed -= OnMemberRoleUpdate;
+		Member.Updated -= OnMemberUpdate;
 	}
 
 	private void OnRoleUpdate(ModelListChangeEvent<PlanetRole> eventData)
 	{
 		StateHasChanged();
 	}
-	
-	private void OnMemberRoleUpdate(ModelListChangeEvent<PlanetRole> eventData)
+
+	private void OnMemberUpdate(ModelUpdateEvent<PlanetMember> eventData)
 	{
-		StateHasChanged();
+		if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleMembershipHash)))
+		{
+			StateHasChanged();
+		}
 	}
 
 	private async Task OnRoleClick(PlanetRole role, bool value)

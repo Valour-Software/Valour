@@ -7,28 +7,18 @@ namespace Valour.Sdk.Models;
 public class InitialPlanetData
 {
     /// <summary>
-    /// The planet this data was requested for
-    /// </summary>
-    public long PlanetId { get; set; }
-    
-    /// <summary>
-    /// The roles within the planet
-    /// </summary>
-    public List<PlanetRole> Roles { get; set; }
-    
-    /// <summary>
-    /// The channels within the planet that the user has access to
+    /// Channels the user has access to
     /// </summary>
     public List<Channel> Channels { get; set; }
     
     /// <summary>
-    /// Initial member data. Will include most recently active members, but may not
-    /// include all members
+    /// All the roles in the planet
     /// </summary>
-    public List<PlanetMemberData> MemberData { get; set; }
+    public List<PlanetRole> Roles { get; set; }
     
     /// <summary>
-    /// The 
+    /// A map from role combo key to role ids, which can be used
+    /// to determine the roles a member has based on their role hash key
     /// </summary>
-    public List<PermissionsNode> Permissions { get; set; }
+    public Dictionary<long, long[]> RoleCombinationMap { get; set; }
 }

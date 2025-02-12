@@ -35,7 +35,7 @@ public class PlanetMember : ISharedPlanetMember
     public string Nickname { get; set; }
     public string MemberAvatar { get; set; }
     public bool IsDeleted { get; set; }
-    public long RoleHashKey { get; set; }
+    public long RoleMembershipHash { get; set; }
 
     /// <summary>
     /// Configures the entity model for the `PlanetMember` class using fluent configuration.
@@ -70,7 +70,7 @@ public class PlanetMember : ISharedPlanetMember
             e.Property(x => x.IsDeleted)
                 .HasColumnName("is_deleted");
             
-            e.Property(x => x.RoleHashKey)
+            e.Property(x => x.RoleMembershipHash)
                 .HasColumnName("role_hash_key");
             
             // Relationships
@@ -97,7 +97,7 @@ public class PlanetMember : ISharedPlanetMember
 
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.PlanetId);
-            e.HasIndex(x => x.RoleHashKey);
+            e.HasIndex(x => x.RoleMembershipHash);
         });
     }
 }

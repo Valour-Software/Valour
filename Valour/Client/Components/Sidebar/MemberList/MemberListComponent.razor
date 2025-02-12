@@ -174,11 +174,6 @@
         StateHasChanged();
         return Task.CompletedTask;
     }
-
-    private void OnRoleMembershipChange(RoleMembershipEvent eventData)
-    {
-        DetermineDisplayedRole(eventData.Member);
-    }
     
     public void DetermineDisplayedRole(PlanetMember member)
     {
@@ -385,12 +380,17 @@
             // Ensure role should be listed
             if (!role.HasPermission(PlanetPermissions.DisplayRole))
                 continue;
-
+            
             // Member has role
-            if (member.Roles.Contains(role))
+            for (int i = 0; i < member.Roles.Count; i++)
             {
-                return role.Id;
+                if (member.Roles[i].Id == role.Id)
+                {
+                    return role.Id;
+                }
             }
+            
+            // TODO: Optimize using role hashes
         }
 
         // Online without display role
@@ -401,7 +401,6 @@
     {
         _planet.Roles.Changed -= OnPlanetRolesChange;
         _planet.Members.Changed -= OnMemberListChange;
-        _planet.RoleMembershipChanged -= OnRoleMembershipChange;
         
         _lastMemberRoles?.Clear();
         _displayedRoleMembers.Clear();
@@ -439,7 +438,6 @@
             {
                 _planet.Roles.Changed += OnPlanetRolesChange;
                 _planet.Members.Changed += OnMemberListChange;
-                _planet.RoleMembershipChanged += OnRoleMembershipChange;
                 
                 Client.Logger.Log<MemberListComponent>($"Member list is updating to {planet.Name}", "cyan");
 

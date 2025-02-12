@@ -52,7 +52,7 @@ public class CoreHubService
         await group.SendAsync("Relay", message);
     }
     
-    public async void RelayMessageEdit(Message message)
+    public void RelayMessageEdit(Message message)
     {
         var groupId = $"c-{message.ChannelId}";
 
@@ -62,7 +62,7 @@ public class CoreHubService
         if (NodeConfig.Instance.LogInfo)
             Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying edited message {message.Id} to group {groupId}");
 
-        await group.SendAsync("RelayEdit", message);
+        _ = group.SendAsync("RelayEdit", message);
     }
 
     public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeLifecycleService nodeLifecycleService)
@@ -86,62 +86,65 @@ public class CoreHubService
         }
     }
 
-    public async void RelayNotification(Notification notif, NodeLifecycleService nodeLifecycleService)
+    public void RelayNotification(Notification notif, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeLifecycleService.RelayUserEventAsync(notif.UserId, NodeLifecycleService.NodeEventType.Notification, notif);
+        _ = nodeLifecycleService.RelayUserEventAsync(notif.UserId, NodeLifecycleService.NodeEventType.Notification, notif);
     }
     
-    public async void RelayNotificationReadChange(Notification notif, NodeLifecycleService nodeLifecycleService)
+    public void RelayNotificationReadChange(Notification notif, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeLifecycleService.RelayUserEventAsync(notif.UserId, NodeLifecycleService.NodeEventType.Notification, notif);
+        _ = nodeLifecycleService.RelayUserEventAsync(notif.UserId, NodeLifecycleService.NodeEventType.Notification, notif);
     }
     
-    public async void RelayNotificationsCleared(long userId, NodeLifecycleService nodeLifecycleService)
+    public void RelayNotificationsCleared(long userId, NodeLifecycleService nodeLifecycleService)
     {
-        await nodeLifecycleService.RelayUserEventAsync(userId, NodeLifecycleService.NodeEventType.NotificationsCleared, userId);
+        _ = nodeLifecycleService.RelayUserEventAsync(userId, NodeLifecycleService.NodeEventType.NotificationsCleared, userId);
     }
     
-    public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
-        await _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("CategoryOrder-Update", eventData);
+    public void NotifyRoleMembershipHashChanges(RoleMembershipHashChange change) =>
+        _ = _hub.Clients.Group($"p-{change.PlanetId}").SendAsync("RoleMembershipHash-Update", change);
     
-    public async void NotifyRoleOrderChange(RoleOrderEvent eventData) =>
-        await _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("RoleOrder-Update", eventData);
-
-    public async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
-        await _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
-
-    public async void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
-        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
+    public void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
+        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("CategoryOrder-Update", eventData);
     
-    public async void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel =>
-        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
+    public void NotifyRoleOrderChange(RoleOrderEvent eventData) =>
+        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("RoleOrder-Update", eventData);
 
-    public async void NotifyPlanetItemDelete<T>(T model) where T : ISharedPlanetModel =>
-        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Delete", model);
+    public void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
+        _ = _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
+
+    public void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
+        _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
     
-    public async void NotifyPlanetItemDelete<T>(long planetId, T model) =>
-        await _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Delete", model);
+    public void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel =>
+        _ = _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
 
-    public async void NotifyPlanetChange(Planet item, int flags = 0) =>
-        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Update", item, flags);
-
-    public async void NotifyPlanetDelete(Planet item) =>
-        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Delete", item);
+    public void NotifyPlanetItemDelete<T>(T model) where T : ISharedPlanetModel =>
+        _ = _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Delete", model);
     
-    public async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
-        await _hub.Clients.Group($"i-{interaction.PlanetId}").SendAsync("InteractionEvent", interaction);
+    public void NotifyPlanetItemDelete<T>(long planetId, T model) =>
+        _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Delete", model);
 
-    public async void NotifyMessageDeletion(Message message) =>
-        await _hub.Clients.Group($"c-{message.ChannelId}").SendAsync("DeleteMessage", message);
+    public void NotifyPlanetChange(Planet item, int flags = 0) =>
+        _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Update", item, flags);
 
-    public async void NotifyDirectMessageDeletion(Message message, long targetUserId) =>
-        await _hub.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
+    public void NotifyPlanetDelete(Planet item) =>
+        _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Delete", item);
+    
+    public void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
+        _ = _hub.Clients.Group($"i-{interaction.PlanetId}").SendAsync("InteractionEvent", interaction);
 
-    public async void NotifyPersonalEmbedUpdateEvent(PersonalEmbedUpdate u) =>
-        await _hub.Clients.Group($"u-{u.TargetUserId}").SendAsync("Personal-Embed-Update", u);
+    public void NotifyMessageDeletion(Message message) =>
+        _ = _hub.Clients.Group($"c-{message.ChannelId}").SendAsync("DeleteMessage", message);
 
-    public async void NotifyChannelEmbedUpdateEvent(ChannelEmbedUpdate u) =>
-        await _hub.Clients.Group($"c-{u.TargetChannelId}").SendAsync("Channel-Embed-Update", u);
+    public void NotifyDirectMessageDeletion(Message message, long targetUserId) =>
+        _ = _hub.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
+
+    public void NotifyPersonalEmbedUpdateEvent(PersonalEmbedUpdate u) =>
+        _ = _hub.Clients.Group($"u-{u.TargetUserId}").SendAsync("Personal-Embed-Update", u);
+
+    public void NotifyChannelEmbedUpdateEvent(ChannelEmbedUpdate u) =>
+        _ = _hub.Clients.Group($"c-{u.TargetChannelId}").SendAsync("Channel-Embed-Update", u);
     
     public async Task NotifyUserChange(User user, int flags = 0)
     {
@@ -191,29 +194,29 @@ public class CoreHubService
             }
         }
 
-        public async void NotifyCurrentlyTyping(long channelId, long userId)
+        public void NotifyCurrentlyTyping(long channelId, long userId)
         {
-            await _hub.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate
+            _ = _hub.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate
             {
                 ChannelId = channelId,
                 UserId = userId
             });
         }
 
-        public async void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
+        public void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
         {
-            await _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time, planetId));
+            _ = _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time, planetId));
         }
 
     ////////////////
     // Eco Events //
     ////////////////
 
-    public async void NotifyPlanetTransactionProcessed(Transaction transaction)
+    public void NotifyPlanetTransactionProcessed(Transaction transaction)
     {
-        await _hub.Clients.Group($"p-{transaction.PlanetId}").SendAsync("Transaction-Processed", transaction);
-        await _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
-        await _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+        _ = _hub.Clients.Group($"p-{transaction.PlanetId}").SendAsync("Transaction-Processed", transaction);
+        _ = _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
+        _ = _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
     }
 
     public async Task RelayTransaction(Transaction transaction, NodeLifecycleService nodeLifecycleService)
@@ -222,6 +225,6 @@ public class CoreHubService
         await nodeLifecycleService.RelayUserEventAsync(transaction.UserToId, NodeLifecycleService.NodeEventType.Transaction, transaction);
     }
 
-    public async void NotifyCurrencyChange(Currency item, int flags = 0) =>
-        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"Currency-Update", item, flags);
+    public void NotifyCurrencyChange(Currency item, int flags = 0) =>
+        _ =  _hub.Clients.Group($"p-{item.Id}").SendAsync($"Currency-Update", item, flags);
 }

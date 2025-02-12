@@ -14,7 +14,7 @@ public static class PlanetMemberMapper
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
-            RoleHashKey = member.RoleHashKey,
+            RoleMembershipHash = member.RoleMembershipHash,
             User = member.User.ToModel()
         };
     }
@@ -31,7 +31,7 @@ public static class PlanetMemberMapper
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
-            RoleHashKey = member.RoleHashKey
+            RoleMembershipHash = member.RoleMembershipHash
         };
     }
 }

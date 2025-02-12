@@ -1,15 +1,9 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore.Storage;
-using Valour.Database;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using Channel = Valour.Server.Models.Channel;
-using PermissionsNode = Valour.Server.Models.PermissionsNode;
-using PlanetMember = Valour.Server.Models.PlanetMember;
-using PlanetRole = Valour.Server.Models.PlanetRole;
-using PlanetRoleMember = Valour.Server.Models.PlanetRoleMember;
 
 namespace Valour.Server.Services;
 
@@ -293,7 +287,7 @@ public class PlanetMemberService
         
         // Give role hash for just default role
         var roleHashKey = PlanetPermissionService.GenerateRoleComboKey([defaultRoleId]);
-        member.RoleHashKey = roleHashKey;
+        member.RoleMembershipHash = roleHashKey;
 
         // Add to default planet role
         var roleMember = new Valour.Database.PlanetRoleMember()
@@ -446,12 +440,10 @@ public class PlanetMemberService
             await trans.RollbackAsync();
             return new TaskResult<PlanetRoleMember>(false, "An unexpected error occurred.");
         }
-
-        var newMemberModel = newRoleMember.ToModel();
         
-        _coreHub.NotifyPlanetItemChange(newMemberModel);
+        _coreHub.NotifyPlanetItemChange(member.ToModel());
 
-        return new TaskResult<PlanetRoleMember>(true, "Success", newMemberModel);
+        return new TaskResult<PlanetRoleMember>(true, "Success", newRoleMember.ToModel());
     }
     
     public async Task<TaskResult> RemoveRoleAsync(long memberId, long roleId)
@@ -464,6 +456,10 @@ public class PlanetMemberService
         if (roleMember.Role.IsDefault)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is null)
+            return new TaskResult(false, "Member not found.");
+        
         await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
@@ -471,7 +467,7 @@ public class PlanetMemberService
             _db.PlanetRoleMembers.Remove(roleMember);
             await _db.SaveChangesAsync();
             
-            await _permissionService.UpdateMemberRoleHashAsync(memberId, false);
+            await _permissionService.UpdateMemberRoleHashAsync(member, false);
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();
@@ -482,7 +478,7 @@ public class PlanetMemberService
             return new TaskResult(false, "An unexpected error occurred.");
         }
 
-        _coreHub.NotifyPlanetItemDelete(roleMember.ToModel());
+        _coreHub.NotifyPlanetItemChange(member.ToModel());
 
         return TaskResult.SuccessResult;
     }
@@ -514,7 +510,7 @@ public class PlanetMemberService
             _db.UserChannelStates.RemoveRange(channelStates);
             
             dbMember.IsDeleted = true;
-            dbMember.RoleHashKey = 0;
+            dbMember.RoleMembershipHash = 0;
 
             await _db.SaveChangesAsync();
             

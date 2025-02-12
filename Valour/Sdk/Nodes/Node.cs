@@ -728,7 +728,7 @@ public class Node : ServiceBase // each node acts like a service
             {
                 var correctNode = await HandleMisdirect(response, "GET", uri);
                 if (correctNode is not null)
-                    return await correctNode.GetJsonAsync<T>(uri, allow404, retries + 1);
+                    return await correctNode.GetJsonAsync<T>(uri, allow404, 100, retries + 1);
 
                 return TaskResult<T>.FromFailure("Failed to find correct node.");
             }

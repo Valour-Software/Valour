@@ -134,7 +134,6 @@
         {
             UserId = Member.UserId;
             Member.Updated += OnMemberUpdate;
-            Member.Roles.Changed += OnMemberRoleModified;
         }
 
         CalculateAll();
@@ -162,7 +161,6 @@
         if (Member is not null)
         {
             Member.Updated -= OnMemberUpdate;
-            Member.Roles.Changed -= OnMemberRoleModified;
         }
     }
 
@@ -282,17 +280,17 @@
             render = true;
             CalculateName();
         }
+
+        if (eventData.PropsChanged.Contains(nameof(Member.RoleMembershipHash)))
+        {
+            // We can skip for update because it's the same role
+            if (DetermineColorChange())
+            {
+                render = true;
+            }
+        }
         
         if (render)
-        {
-            StateHasChanged();
-        }
-    }
-
-    private void OnMemberRoleModified(ModelListChangeEvent<PlanetRole> eventData)
-    {
-        // We can skip for update because it's the same role
-        if (DetermineColorChange())
         {
             StateHasChanged();
         }

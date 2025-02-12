@@ -119,6 +119,12 @@ public class PlanetService : ServiceBase
 
         return _client.Cache.Sync(planet);
     }
+    
+    /// <summary>
+    /// Returns initial data for planet setup
+    /// </summary>
+    public async Task<TaskResult<InitialPlanetData>> FetchInitialPlanetDataAsync(long planetId) =>
+        await _client.PrimaryNode.GetJsonAsync<InitialPlanetData>($"api/planets/{planetId}/initialData");
 
     /// <summary>
     /// Returns the invite for the given invite code (id)
@@ -182,6 +188,18 @@ public class PlanetService : ServiceBase
         return TryOpenPlanetConnection(planet, key);
     }
 
+    private void HandlePlanetConnectionFailure(ITaskResult reason, Planet planet, string key)
+    {
+        LogError(reason.Message);
+            
+        // Remove lock
+        RemovePlanetLock(key);
+            
+        // Remove from lists
+        _connectedPlanets.Remove(planet);
+        _connectedPlanetsLookup.Remove(planet.Id);
+    }
+
     /// <summary>
     /// Opens a planet and prepares it for use
     /// </summary>
@@ -212,44 +230,33 @@ public class PlanetService : ServiceBase
         _connectedPlanets.Add(planet);
         _connectedPlanetsLookup[planet.Id] = planet;
         
-        ConnectedPlanetsUpdated?.Invoke();
-
         Log($"Opening planet {planet.Name} ({planet.Id})");
 
         var sw = new Stopwatch();
 
         sw.Start();
-
-        List<Task> tasks = new();
-
+        
         // Joins SignalR group
         var result = await planet.ConnectToRealtime();
 
         if (!result.Success)
         {
-            LogError(result.Message);
+            HandlePlanetConnectionFailure(result, planet, key);
             return result;
         }
 
         Log(result.Message);
-
-        // Load roles early for cached speed
-        await planet.LoadRolesAsync();
-
-        // Load member data early for the same reason (speed)
-        // tasks.Add(planet.FetchMemberDataAsync());
-
-        // Load channels
-        tasks.Add(planet.FetchChannelsAsync());
-
-        // Load permissions nodes
-        tasks.Add(planet.FetchPermissionsNodesAsync());
-
-        // requesting/loading the data does not require data from other requests/types
-        // so just await them all, instead of one by one
-        await Task.WhenAll(tasks);
+        
+        var initialDataResult = await planet.FetchInitialDataAsync();
+        if (!initialDataResult.Success)
+        {
+            HandlePlanetConnectionFailure(initialDataResult, planet, key);
+            return initialDataResult.WithoutData();
+        }
 
         sw.Stop();
+        
+        ConnectedPlanetsUpdated?.Invoke();
 
         Log($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
 

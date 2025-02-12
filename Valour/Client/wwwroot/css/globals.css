@@ -216,6 +216,10 @@
     gap: 5px;
 }
 
+.v-btn-wrapper > button {
+    flex: 1;
+}
+
 .v-btn-grad-wrapper {
     width: 100%;
     display: inline-block;
@@ -234,6 +238,7 @@
 .v-btn-grad-wrapper.half {
     flex: 1;
     width: unset;
+    display: flex;
 }
 
 .v-btn.gradient {
@@ -242,7 +247,7 @@
     background-color: #111122;
     transition: all 0.3s ease-in-out;
     border-radius: 1em;
-    width: 100%;
+    flex: 1;
 }
 
 .v-btn.gradient.large,
