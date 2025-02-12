@@ -141,7 +141,7 @@ public class PlanetApi
         // Get all planet channels
         var channels = await planetService.GetMemberChannelsAsync(member.Id);
         
-        return Results.Json(channels?.InternalList ?? []);
+        return Results.Json(channels?.List ?? []);
     }
     
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/primary")]

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Server.Utilities;
 using Valour.Shared.Models;
@@ -120,15 +121,15 @@ public class PlanetPermissionsCache
         };
     }
 
-    public SortedServerModelList<Channel, long>? GetChannelAccess(long roleKey)
+    public ModelListSnapshot<Channel, long>? GetChannelAccess(long roleKey)
     {
         _accessCache.TryGetValue(roleKey, out var access);
-        return access;
+        return access.Snapshot;
     }
 
     public List<Channel> GetEmptyAccessList() => AccessListPool.Get();
 
-    public SortedServerModelList<Channel, long> SetChannelAccess(long roleKey, List<Channel> access)
+    public SortedServerModelList<Channel, long> SetChannelAccess(long roleKey, IEnumerable<Channel> access)
     {
         SortedServerModelList<Channel, long> result;
         if (_accessCache.TryGetValue(roleKey, out var existing))
@@ -143,7 +144,7 @@ public class PlanetPermissionsCache
             _accessCache[roleKey] = newAccess;
             result = newAccess;
         }
-        AccessListPool.Return(access);
+
         return result;
     }
 

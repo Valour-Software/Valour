@@ -342,7 +342,7 @@ namespace Valour.Tests.Services
             var hostedPlanet = await _hostedService.GetRequiredAsync(_valourCentralId);
             
             // Check role combos
-            var combos = hostedPlanet.GetAllRoleCombos();
+            var combos = hostedPlanet.RoleCombos;
             
             // Ensure all keys are unique
             Assert.Equal(combos.Count, combos.Select(c => c.Key).Distinct().Count());

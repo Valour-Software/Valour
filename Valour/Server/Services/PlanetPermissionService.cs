@@ -362,7 +362,7 @@ public class PlanetPermissionService
         return authority;
     }
 
-    public async ValueTask<SortedServerModelList<Channel, long>?> GetChannelAccessAsync(long memberId)
+    public async ValueTask<ModelListSnapshot<Channel, long>?> GetChannelAccessAsync(long memberId)
     {
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is null)
@@ -370,14 +370,14 @@ public class PlanetPermissionService
 
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
         if (member.UserId == hostedPlanet.Planet.OwnerId)
-            return hostedPlanet.GetInternalChannels();
+            return hostedPlanet.Channels;
 
         var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleHashKey);
         if (cached is not null)
             return cached;
 
         var access = await GenerateChannelAccessAsync(member);
-        return access;
+        return access.Snapshot;
     }
 
     private async Task<SortedServerModelList<Channel, long>> GenerateChannelAccessAsync(
@@ -389,7 +389,7 @@ public class PlanetPermissionService
             .Select(x => x.RoleId)
             .ToListAsync();
 
-        var allChannels = hostedPlanet.GetChannels();
+        var allChannels = hostedPlanet.Channels;
         var roles = RoleListPool.Get();
         bool isAdmin = false;
         foreach (var roleId in roleMembership)
@@ -409,15 +409,14 @@ public class PlanetPermissionService
 
         if (isAdmin)
         {
-            var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleHashKey, allChannels);
+            var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleHashKey, allChannels.List);
             RoleListPool.Return(roles);
-            hostedPlanet.RecycleChannelList(allChannels);
             return adminResult;
         }
 
         roles.Sort(ISortable.Comparer);
         var access = hostedPlanet.PermissionCache.GetEmptyAccessList();
-        foreach (var channel in allChannels)
+        foreach (var channel in allChannels.List)
         {
             if (channel.IsDefault)
             {
@@ -439,8 +438,7 @@ public class PlanetPermissionService
             if (Permission.HasPermission(perms.Value, ChannelPermissions.View))
                 access.Add(channel);
         }
-
-        hostedPlanet.RecycleChannelList(allChannels);
+        
         RoleListPool.Return(roles);
         var result = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleHashKey, access);
         return result;

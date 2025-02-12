@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using StackExchange.Redis;
 using Valour.Server.Utilities;
 using Valour.Shared.Extensions;
@@ -21,7 +22,7 @@ public class HostedPlanet : ServerModel<long>
     /// Holds all the existing role combo keys and their roles
     /// </summary>
     private readonly ConcurrentDictionary<long, long[]> _roleComboCache = new();
-    private volatile IReadOnlyDictionary<long, long[]> _roleComboCacheBuilt;
+    private volatile ImmutableDictionary<long, long[]> _roleComboCacheSnapshot;
     private readonly object _roleComboCacheLock = new object();
     private volatile bool _cacheNeedsRebuild = true;
 
@@ -51,25 +52,8 @@ public class HostedPlanet : ServerModel<long>
     
     // Channels //
     
-    public SortedServerModelList<Channel, long> GetInternalChannels()
-    {
-        return _channels;
-    }
-    
-    public List<Channel> GetChannels()
-    {
-        return _channels.CloneAsList();
-    }
-    
-    public void RecycleChannelList(List<Channel> channels)
-    {
-        _channels.ReturnList(channels);
-    }
-    
-    public void RecycleIdMap(Dictionary<long, Channel> channels)
-    {
-        _channels.ReturnIdMap(channels);
-    }
+    public ModelListSnapshot<Channel, long> Channels
+        => _channels.Snapshot;
     
     public Channel? GetChannel(long id)
         => _channels.Get(id);
@@ -160,20 +144,8 @@ public class HostedPlanet : ServerModel<long>
         _roles.Remove(id);
     }
 
-    public List<PlanetRole> GetRoles()
-    {
-        return _roles.CloneAsList();
-    }
-    
-    public void RecycleRoleList(List<PlanetRole> roles)
-    {
-        _roles.ReturnList(roles);
-    }
-    
-    public void RecycleRoleIdMap(Dictionary<long, PlanetRole> roles)
-    {
-        _roles.ReturnIdMap(roles);
-    }
+    public ModelListSnapshot<PlanetRole, long> Roles
+        => _roles.Snapshot;
     
     // Role combos //
 
@@ -193,19 +165,23 @@ public class HostedPlanet : ServerModel<long>
         _cacheNeedsRebuild = true;
     }
 
-    public IReadOnlyDictionary<long, long[]> GetAllRoleCombos()
+    public ImmutableDictionary<long, long[]> RoleCombos
     {
-        if (_cacheNeedsRebuild)
+        get
         {
-            lock (_roleComboCacheLock)
+            if (_cacheNeedsRebuild)
             {
-                if (_cacheNeedsRebuild)
+                lock (_roleComboCacheLock)
                 {
-                    _roleComboCacheBuilt = new Dictionary<long, long[]>(_roleComboCache);
-                    _cacheNeedsRebuild = false;
+                    if (_cacheNeedsRebuild)
+                    {
+                        _roleComboCacheSnapshot = ImmutableDictionary.CreateRange(_roleComboCache);
+                        _cacheNeedsRebuild = false;
+                    }
                 }
             }
+
+            return _roleComboCacheSnapshot;
         }
-        return _roleComboCacheBuilt;
     }
 }

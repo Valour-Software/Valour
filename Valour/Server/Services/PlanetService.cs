@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Valour.Server.Database;
 using Valour.Server.Utilities;
 using Valour.Shared;
@@ -59,10 +60,10 @@ public class PlanetService
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(long planetId)
+    public async Task<ImmutableList<PlanetRole>> GetRolesAsync(long planetId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-        return hostedPlanet.GetRoles();
+        return hostedPlanet.Roles.List;
     }
 
     /// <summary>
@@ -212,17 +213,31 @@ public class PlanetService
         return hosted.GetDefaultChannel();
     }
     
-    public async ValueTask<List<Channel>> GetAllChannelsAsync(long planetId)
+    public async ValueTask<ImmutableList<Channel>> GetAllChannelsAsync(long planetId)
     {
         var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
-        return hosted.GetChannels();
+        return hosted.Channels.List;
     }
 
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
     /// </summary>
-    public async Task<SortedServerModelList<Channel,long>?> GetMemberChannelsAsync(long memberId) =>
+    public async Task<ModelListSnapshot<Channel,long>?> GetMemberChannelsAsync(long memberId) =>
       await _permissionService.GetChannelAccessAsync(memberId);
+
+    public async Task<InitialPlanetData> GetInitialDataAsync(long planetId, long memberId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        
+        var data = new InitialPlanetData();
+        var channels = await GetMemberChannelsAsync(memberId);
+        
+        data.Channels = channels?.List ?? [];
+        data.Roles = hostedPlanet.Roles.List;
+        data.RoleCombinationMap = hostedPlanet.RoleCombos;
+        
+        return data;
+    }
     
     /// <summary>
     /// Returns member info for the given planet, paged by the page index
