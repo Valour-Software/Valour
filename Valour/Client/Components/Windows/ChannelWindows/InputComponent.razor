@@ -7,7 +7,7 @@
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
 
-<div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
+<div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")' style="@(_loading ? "pointer-events: none; opacity: 0.8" : string.Empty)">
     <div class="preview-message">
         @{
             if (PreviewMessage is not null  && !PreviewMessage.IsEmpty())
@@ -25,30 +25,34 @@
         }
     </div>
 
-    <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
+    @if (!_loading)
+    {
+        <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
 
-    <div class="upload-menu" style="@_uploadMenuStyle">
-        <div class="content tenor" @onmousedown:stopPropagation="true">
-            @* Somewhat creative way to call main upload element *@
-            <button class="button" @onmousedown="@OnClickUploadAsync">
-                Upload a File
-            </button>
-            <button class="button tenor" @onmousedown="@ShowTenorMenu">
-                Gifs via Tenor
-            </button>
-            <button class="button" @onmousedown="@OnClickSendCurrency">
-                Send Currency
-            </button>
+        <div class="upload-menu" style="@_uploadMenuStyle">
+            <div class="content tenor" @onmousedown:stopPropagation="true">
+                @* Somewhat creative way to call main upload element *@
+                <button class="button" @onmousedown="@OnClickUploadAsync">
+                    Upload a File
+                </button>
+                <button class="button tenor" @onmousedown="@ShowTenorMenu">
+                    Gifs via Tenor
+                </button>
+                <button class="button" @onmousedown="@OnClickSendCurrency">
+                    Send Currency
+                </button>
+            </div>
+            <div class="carrot"></div>
         </div>
-        <div class="carrot"></div>
-    </div>
-    
-    <div style="position: relative">
-        <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
-    </div>
-    <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
-    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+        
+        <div style="position: relative">
+            <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
+        </div>
+        <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
+        <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
 
+    }
+    
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
             <InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
@@ -86,6 +90,8 @@
 
 
 @code {
+    
+    private bool _loading = true;
 
     [Parameter]
     public ChatWindowComponent ChatComponent { get; set; }
@@ -98,7 +104,7 @@
     /// <summary>
     /// Placeholder text shown in the input box when empty
     /// </summary>
-    private string PlaceholderText => $"Discuss in {ChatComponent.Channel.Name}";
+    private string PlaceholderText =>_loading ? "Loading channel..." : $"Discuss in {ChatComponent.Channel.Name}";
 
     /// <summary>
     /// The tenor menu component
@@ -248,7 +254,7 @@
         await _jsCtx.DisposeAsync();
     }
 
-    protected override async Task OnInitializedAsync()
+    public async Task NotifyChannelLoadedAsync()
     {
         var planet = ChatComponent.Channel.Planet;
         if (planet is not null)
@@ -261,6 +267,8 @@
         }
 
         PreviewMessage = BuildNewMessage();
+
+        _loading = false;
         
         Refresh();
     }

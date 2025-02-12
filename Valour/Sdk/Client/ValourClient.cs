@@ -132,6 +132,10 @@ public class ValourClient
     /// </summary>
     public void SetOrigin(string origin)
     {
+        // Cloudflare pages. Use main api endpoint.
+        if (origin.Contains(".valour.pages.dev"))
+            origin = "https://app.valour.gg";
+        
         BaseAddress = origin;
         _httpClient = new HttpClient()
         {
