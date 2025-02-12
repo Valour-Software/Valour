@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.ModelLogic;
+﻿using System.Collections.Concurrent;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
@@ -30,7 +31,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     // - Spike, 10/05/2024
 
     public HybridEvent<RoleMembershipEvent> RoleMembershipChanged;
-
+    
     /// <summary>
     /// The channels in this planet
     /// </summary>
@@ -50,6 +51,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The categories in this planet
     /// </summary>
     public SortedModelList<Channel, long> Categories { get; } = new();
+    
+    /// <summary>
+    /// A map from role hash key to the contained roles
+    /// </summary>
+    public ConcurrentDictionary<long, PlanetRole[]> RoleKeyMap { get; } = new(); 
 
     /// <summary>
     /// The primary (default) chat channel of the planet

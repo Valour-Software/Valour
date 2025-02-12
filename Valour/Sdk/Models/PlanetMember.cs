@@ -58,11 +58,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
 
     protected override long? GetPlanetId()
         => PlanetId;
-
-    /// <summary>
-    /// The member's roles
-    /// </summary>
-    public readonly SortedModelList<PlanetRole, long> Roles = new();
     
     /// <summary>
     /// The primary role of the member
