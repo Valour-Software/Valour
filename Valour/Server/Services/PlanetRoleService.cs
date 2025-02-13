@@ -151,10 +151,6 @@ public class PlanetRoleService
             return new (false, "Cannot delete default roles");
 
         await using var trans = await _db.Database.BeginTransactionAsync();
-
-        long[] oldMembershipHashes;
-        long[] newMembershipHashes;
-        Dictionary<long, long[]> newHashMapping;
         
         try
         {
@@ -163,32 +159,13 @@ public class PlanetRoleService
             await _db.PermissionsNodes.Where(x => x.RoleId == roleId)
                 .ExecuteDeleteAsync();
             
-            // Update role membership hashes
-            // This MUST happen before role members are deleted, it uses them!
-            // Get all role combinations that include this role
-            var newRoleCombos = await _permissionService.GetPlanetRoleCombosForRoleDeletion(role.Id);
-            
-            oldMembershipHashes = new long[newRoleCombos.Length];
-            newMembershipHashes = new long[newRoleCombos.Length];
-            newHashMapping = new Dictionary<long, long[]>();
-            
-            // For each of these, we need to create a new role hash key (without the role being deleted)
-            // and replace the old ones
-            for (var i = 0; i < newRoleCombos.Length; i++)
-            {
-                var newCombo = newRoleCombos[i];
-                var oldHashKey = newCombo.RoleHashKey;
-                var newHashKey = PlanetPermissionUtils.GenerateRoleMembershipHash(newCombo.Roles);
-                
-                oldMembershipHashes[i] = oldHashKey;
-                newMembershipHashes[i] = newHashKey;
-                
-                newHashMapping[oldHashKey] = newCombo.Roles;
-            
-                await _db.PlanetMembers.Where(x => x.RoleMembershipHash == oldHashKey)
-                    .ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembershipHash, newHashKey));
-            }
+            // Update role membership flags
 
+            var flagChanges = await _db.PlanetMembers.WithRoleFlag(role.PlanetId, role.LocalId)
+                .SetRoleFlag(role.LocalId, false);
+            
+            _logger.LogInformation("Role flag changes for deletion: {Changes}", flagChanges);
+            
             await _db.PlanetRoleMembers.Where(x => x.RoleId == roleId)
                 .ExecuteDeleteAsync();
 
@@ -212,16 +189,6 @@ public class PlanetRoleService
         hostedPlanet.RemoveRole(role.Id);
         
         _coreHub.NotifyPlanetItemDelete(role);
-
-        var changes = new RoleMembershipHashChange()
-        {
-            ReplacedOldHashes = oldMembershipHashes,
-            ReplacedNewHashes = newMembershipHashes,
-            AddedHashes = newHashMapping
-        };
-        
-        // Notify of role hash key changes
-        _coreHub.NotifyRoleMembershipHashChanges(changes);
 
         return new(true, "Success");
     }

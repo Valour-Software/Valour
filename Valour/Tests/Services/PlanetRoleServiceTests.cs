@@ -334,31 +334,5 @@ namespace Valour.Tests.Services
             var nodes = await _roleService.GetNodesAsync(createdRole.Id);
             Assert.Empty(nodes);
         }
-
-        [Fact]
-        public async Task EnsureHostedCache_RoleCombosUnique()
-        {
-            // Get hosted planet for valour central
-            var hostedPlanet = await _hostedService.GetRequiredAsync(_valourCentralId);
-            
-            // Check role combos
-            var combos = hostedPlanet.RoleMembershipCombos;
-            
-            // Ensure all keys are unique
-            Assert.Equal(combos.Count, combos.Select(c => c.Key).Distinct().Count());
-            
-            // Ensure all role lists are unique
-            // Kind of ugly, but...
-            var roleComboValues = combos.Select(x => 
-            {
-                var roleIds = x.Value;
-                return string.Join('-', roleIds);
-            }).ToList();
-            
-            // Asser not null
-            Assert.NotNull(roleComboValues);
-            
-            Assert.Equal(roleComboValues.Count(), roleComboValues.Distinct().Count());
-        }
     }
 }

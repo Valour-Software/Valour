@@ -56,6 +56,11 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     /// The position of the role: Lower has more authority
     /// </summary>
     uint Position { get; set; }
+    
+    /// <summary>
+    /// The id of the role, local to the planet. Used for membership flags.
+    /// </summary>
+    int LocalId { get; set; }
 
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

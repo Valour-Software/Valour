@@ -35,7 +35,33 @@ public class PlanetMember : ISharedPlanetMember
     public string Nickname { get; set; }
     public string MemberAvatar { get; set; }
     public bool IsDeleted { get; set; }
-    public long RoleMembershipHash { get; set; }
+    
+    // Together, these role bits can be used to determine the roles of the member
+    public long Rf0 { get; set; }
+    public long Rf1 { get; set; }
+    public long Rf2 { get; set; }
+    public long Rf3 { get; set; }
+    
+    private MemberRoleFlags? _roleFlags;
+
+    public MemberRoleFlags RoleFlags
+    {
+        get
+        {
+            if (_roleFlags is null)
+                _roleFlags = new MemberRoleFlags(Rf0, Rf1, Rf2, Rf3);
+            
+            return _roleFlags.Value;
+        }
+        set
+        {
+            _roleFlags = value;
+            Rf0 = value.Rf0;
+            Rf1 = value.Rf1;
+            Rf2 = value.Rf2;
+            Rf3 = value.Rf3;
+        }
+    }
 
     /// <summary>
     /// Configures the entity model for the `PlanetMember` class using fluent configuration.
@@ -70,8 +96,17 @@ public class PlanetMember : ISharedPlanetMember
             e.Property(x => x.IsDeleted)
                 .HasColumnName("is_deleted");
             
-            e.Property(x => x.RoleMembershipHash)
-                .HasColumnName("role_hash_key");
+            e.Property(x => x.Rf0)
+                .HasColumnName("rf0");
+            
+            e.Property(x => x.Rf1)
+                .HasColumnName("rf1");
+            
+            e.Property(x => x.Rf2)
+                .HasColumnName("rf2");
+            
+            e.Property(x => x.Rf3)
+                .HasColumnName("rf3");
             
             // Relationships
 
@@ -94,10 +129,14 @@ public class PlanetMember : ISharedPlanetMember
             // Indices
             e.HasIndex(x => new { x.UserId, x.PlanetId })
                 .IsUnique();
-
-            e.HasIndex(x => x.UserId);
-            e.HasIndex(x => x.PlanetId);
-            e.HasIndex(x => x.RoleMembershipHash);
+            
+            e.HasIndex(x => new
+            {
+                x.Rf0,
+                x.Rf1,
+                x.Rf2,
+                x.Rf3
+            });
         });
     }
 }

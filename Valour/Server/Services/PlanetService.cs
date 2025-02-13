@@ -234,7 +234,6 @@ public class PlanetService
         
         data.Channels = channels?.List ?? [];
         data.Roles = hostedPlanet.Roles.List;
-        data.RoleCombinationMap = hostedPlanet.RoleMembershipCombos;
         
         return data;
     }

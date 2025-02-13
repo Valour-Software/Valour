@@ -17,10 +17,4 @@ public class InitialPlanetData
     /// All the roles in the planet
     /// </summary>
     public ImmutableList<PlanetRole> Roles { get; set; }
-    
-    /// <summary>
-    /// A map from role combo key to role ids, which can be used
-    /// to determine the roles a member has based on their role hash key
-    /// </summary>
-    public ImmutableDictionary<long, long[]> RoleCombinationMap { get; set; }
 }

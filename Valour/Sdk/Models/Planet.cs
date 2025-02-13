@@ -52,7 +52,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// A map from role hash key to the contained roles
     /// </summary>
-    public ConcurrentDictionary<long, ImmutableList<PlanetRole>> RoleMembershipHashToRoles { get; } = new(); 
+    public ConcurrentDictionary<MemberRoleFlags, ImmutableList<PlanetRole>> RoleFlagsToRoles { get; } = new(); 
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -292,43 +292,33 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         // Apply channels
         ApplyChannels(data.Channels);
         
-        // Apply role hash map
-        SetRoleMembershipHashMappings(data.RoleCombinationMap);
-
         return response;
     }
+    
+    public ImmutableList<PlanetRole> GetRolesFromRoleFlags(MemberRoleFlags flags)
+    {
+        if (RoleFlagsToRoles.TryGetValue(flags, out var roles))
+            return roles;
 
-    public void NotifyRoleMembershipHashesChange(RoleMembershipHashChange changes)
-    {
-        AddRoleMembershipHashMappings(changes.AddedHashes);
-    }
-    
-    /// <summary>
-    /// Clears and then applies the given role combination map to the planet
-    /// </summary>
-    public void SetRoleMembershipHashMappings(Dictionary<long, long[]> roleCombinationMap)
-    {
-        RoleMembershipHashToRoles.Clear();
-        AddRoleMembershipHashMappings(roleCombinationMap);
-    }
-    
-    /// <summary>
-    /// Adds the given role combination mappings to the planet
-    /// </summary>
-    public void AddRoleMembershipHashMappings(Dictionary<long, long[]> roleCombinationMap)
-    {
-        foreach (var pair in roleCombinationMap)
+        // Get local role ids
+        var roleIds = flags.GetRoleIds();
+        
+        // Get roles for each id
+        List<PlanetRole> roleList = new(roleIds.Count);
+
+        foreach (var id in roleIds)
         {
-            var roles = new List<PlanetRole>(pair.Value.Length);
-            for (int i = 0; i < pair.Value.Length; i++)
-            {
-                roles.Add(Roles.Get(pair.Value[i]));
-            }
-            
-            roles.Sort(ISortable.Comparer);
-            
-            RoleMembershipHashToRoles[pair.Key] = roles.ToImmutableList();
+            if (Roles.TryGet(id, out var role))
+                roleList.Add(role);
         }
+        
+        // Convert to immutable list
+        var result = roleList.ToImmutableList();
+        
+        // Add to cache
+        RoleFlagsToRoles[flags] = result;
+        
+        return result;
     }
 
     /// <summary>
@@ -648,9 +638,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Roles.Sort();
         
         // Resort role lists in key map
-        foreach (var pair in RoleMembershipHashToRoles)
+        foreach (var pair in RoleFlagsToRoles)
         {
-            RoleMembershipHashToRoles[pair.Key] = pair.Value.OrderBy(r => r.Position).ToImmutableList();
+            RoleFlagsToRoles[pair.Key] = pair.Value.OrderBy(r => r.Position).ToImmutableList();
         }
     }
 

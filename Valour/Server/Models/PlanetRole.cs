@@ -36,6 +36,11 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
     public uint Position { get; set; }
     
     /// <summary>
+    /// The id of the role, local to the planet. Used for membership flags.
+    /// </summary>
+    public int LocalId { get; set; }
+    
+    /// <summary>
     /// True if this is the default (everyone) role
     /// </summary>
     public bool IsDefault { get; set; }

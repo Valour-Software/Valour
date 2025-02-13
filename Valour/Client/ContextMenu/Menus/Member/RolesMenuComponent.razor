@@ -43,7 +43,7 @@
 
 	private void OnMemberUpdate(ModelUpdateEvent<PlanetMember> eventData)
 	{
-		if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleMembershipHash)))
+		if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleFlags)))
 		{
 			StateHasChanged();
 		}

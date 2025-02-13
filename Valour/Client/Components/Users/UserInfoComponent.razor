@@ -269,19 +269,19 @@
     {
         var render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(Member.MemberAvatar)))
+        if (eventData.PropsChanged.Contains(nameof(PlanetMember.MemberAvatar)))
         {
             render = true;
             CalculateAvatar();
         }
         
-        if (eventData.PropsChanged.Contains(nameof(Member.Nickname)))
+        if (eventData.PropsChanged.Contains(nameof(PlanetMember.Nickname)))
         {
             render = true;
             CalculateName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(Member.RoleMembershipHash)))
+        if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleFlags)))
         {
             // We can skip for update because it's the same role
             if (DetermineColorChange())

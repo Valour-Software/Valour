@@ -17,14 +17,6 @@ public class HostedPlanet : ServerModel<long>
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
     public readonly PlanetPermissionsCache PermissionCache = new();
-    
-    /// <summary>
-    /// Holds all the existing role combo keys and their roles
-    /// </summary>
-    private readonly ConcurrentDictionary<long, long[]> _roleComboCache = new();
-    private volatile ImmutableDictionary<long, long[]> _roleComboCacheSnapshot;
-    private readonly object _roleComboCacheLock = new object();
-    private volatile bool _cacheNeedsRebuild = true;
 
     private Channel _defaultChannel;
     private PlanetRole _defaultRole;
@@ -146,42 +138,4 @@ public class HostedPlanet : ServerModel<long>
 
     public ModelListSnapshot<PlanetRole, long> Roles
         => _roles.Snapshot;
-    
-    // Role combos //
-
-    public long[] GetRolesForCombo(long key)
-    {
-        if (_roleComboCache.TryGetValue(key, out var roles))
-        {
-            return roles;
-        }
-        
-        return [];
-    }
-    
-    public void SetRoleMembershipCombo(long key, long[] roleIds)
-    {
-        _roleComboCache[key] = roleIds;
-        _cacheNeedsRebuild = true;
-    }
-
-    public ImmutableDictionary<long, long[]> RoleMembershipCombos
-    {
-        get
-        {
-            if (_cacheNeedsRebuild)
-            {
-                lock (_roleComboCacheLock)
-                {
-                    if (_cacheNeedsRebuild)
-                    {
-                        _roleComboCacheSnapshot = ImmutableDictionary.CreateRange(_roleComboCache);
-                        _cacheNeedsRebuild = false;
-                    }
-                }
-            }
-
-            return _roleComboCacheSnapshot;
-        }
-    }
 }

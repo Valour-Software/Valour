@@ -29,10 +29,13 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     /// </summary>
     string MemberAvatar { get; set; }
     
-    /// <summary>
-    /// The hash representing the roles the user has within the planet
-    /// </summary>
-    long RoleMembershipHash { get; set; }
+    // Together, these role bits can be used to determine the roles of the member
+    public long Rf0 { get; set; }
+    public long Rf1 { get; set; }
+    public long Rf2 { get; set; }
+    public long Rf3 { get; set; }
+
+    public MemberRoleFlags RoleFlags { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

@@ -42,83 +42,22 @@ public class PlanetPermissionService
     }
 
     /// <summary>
-    /// Returns all the distinct role combinations that exist for an existing role on the planet.
-    /// This only returns combinations that are in use.
-    /// </summary>
-    public async Task<RoleComboInfo[]> GetPlanetRoleCombosForRole(long roleId)
-    {
-        var roleCombos = await _db.PlanetRoleMembers
-            .Where(x => x.RoleId == roleId)
-            .Select(x => x.Member)
-            .Include(m => m.RoleMembership)
-            .ThenInclude(rm => rm.Role)
-            .GroupBy(x => x.RoleMembershipHash)
-            .Select(g => g.First())
-            .Select(x => new RoleComboInfo()
-            {
-                RoleHashKey = x.RoleMembershipHash,
-                Roles = x.RoleMembership.Select(y => y.Role.Id).Order().ToArray()
-            })
-            .ToArrayAsync();
-
-        return roleCombos;
-    }
-
-    /// <summary>
-    /// Returns all the distinct role hash keys that exist for an existing role on the planet.
-    /// This only returns combinations that are in use.
-    /// </summary>
-    public async Task<long[]> GetPlanetRoleComboKeysForRole(long roleId)
-    {
-        var roleCombos = await _db.PlanetRoleMembers
-            .Where(x => x.RoleId == roleId)
-            .Select(x => x.Member)
-            .Include(m => m.RoleMembership)
-            .ThenInclude(rm => rm.Role)
-            .GroupBy(x => x.RoleMembershipHash)
-            .Select(g => g.First())
-            .Select(x => x.RoleMembershipHash)
-            .ToArrayAsync();
-
-        return roleCombos;
-    }
-
-    /// <summary>
-    /// Returns all the distinct role combinations that exist for an existing role on the planet.
-    /// THIS VERSION REMOVES THE ROLE ITSELF, GIVING THE NEW ROLE LISTS
-    /// This only returns combinations that are in use.
-    /// </summary>
-    public async Task<RoleComboInfo[]> GetPlanetRoleCombosForRoleDeletion(long roleId)
-    {
-        return await _db.PlanetRoleMembers
-            .Where(rm => rm.RoleId == roleId)
-            .GroupBy(rm => rm.Member.RoleMembershipHash)
-            .Select(g => new RoleComboInfo
-            {
-                RoleHashKey = g.Key,
-                Roles = g.SelectMany(rm => rm.Member.RoleMembership)
-                    .Where(rm => rm.RoleId != roleId)
-                    .Select(rm => rm.Role.Id)
-                    .Distinct()
-                    .OrderBy(id => id)
-                    .ToArray()
-            })
-            .ToArrayAsync();
-    }
-
-    /// <summary>
     /// Returns all the distinct role combination keys that exist on the planet.
     /// This only returns combinations that are in use.
     /// </summary>
-    public async Task<long[]> GetPlanetRoleComboKeysAsync(long planetId)
+    public async Task<MemberRoleFlags> GetAllUniqueRoleCombinationsForPlanet(long planetId)
     {
         var distinctRoleKeys = await _db.PlanetMembers
-            .Where(x => x.PlanetId == planetId)
-            .Select(x => x.RoleMembershipHash) // now safe to access .Value
-            .Distinct()
-            .ToArrayAsync();
-
-        return distinctRoleKeys;
+            .GroupBy(x => new
+            {
+                x.Rf0,
+                x.Rf1,
+                x.Rf2,
+                x.Rf3
+            })
+            .Select(g => g.First().RoleMembershipHash) // Select the RoleMembershipHash
+            .Distinct() // Ensure distinct RoleMembershipHash values
+            .ToListAsync();
     }
 
     /// <summary>
@@ -231,23 +170,6 @@ public class PlanetPermissionService
             .ToArrayAsync();
         
         var key = PlanetPermissionUtils.GenerateRoleMembershipHash(roleIds);
-
-        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-
-        if (!hostedPlanet.RoleMembershipCombos.ContainsKey(key))
-        {
-            // This is a new combination    
-            hostedPlanet.SetRoleMembershipCombo(key, roleIds);
-            
-            _coreHub.NotifyRoleMembershipHashChanges(new RoleMembershipHashChange()
-            {
-                PlanetId = planetId,
-                AddedHashes = new Dictionary<long, long[]>()
-                {
-                    { key, roleIds }
-                }
-            });
-        }
         
         return key;
     }
@@ -280,65 +202,6 @@ public class PlanetPermissionService
 
         await _db.SaveChangesAsync();
         _logger.LogInformation("Bulk role hash update: {Count} members updated - Finished", count);
-    }
-
-    /// <summary>
-    /// Returns all distinct role–hash keys (role combos) that have “view” permission for the given channel.
-    /// </summary>
-    public async Task<List<long>> GetRoleHashesThatCanAccessChannelAsync(long planetId, long channelId)
-    {
-        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-        var channel = hostedPlanet.GetChannel(channelId);
-        if (channel is null)
-            return new List<long>();
-
-        // Use the lazy cache to avoid duplicate computations.
-        var lazyResult = hostedPlanet.PermissionCache.ChannelAccessRoleComboCache.GetOrAdd(
-            channelId,
-            _ => new Lazy<Task<List<long>>>(() => ComputeAccessibleRoleCombosAsync(hostedPlanet, channel)));
-
-        try
-        {
-            var result = await lazyResult.Value;
-            return result;
-        }
-        catch
-        {
-            // In case of failure, remove the lazy entry.
-            hostedPlanet.PermissionCache.ChannelAccessRoleComboCache.TryRemove(channelId, out _);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Helper method that computes, by iterating over all known role–hash keys,
-    /// which ones grant view permission on the given channel.
-    /// </summary>
-    private async Task<List<long>> ComputeAccessibleRoleCombosAsync(HostedPlanet hostedPlanet, Channel channel)
-    {
-        // Get all distinct role combos in use.
-        var allRoleComboKeys = await GetPlanetRoleComboKeysAsync(hostedPlanet.Planet.Id);
-        var channelCache = hostedPlanet.PermissionCache.GetChannelCache(channel.ChannelType);
-        var accessibleRoleCombos = new List<long>();
-
-        foreach (var roleKey in allRoleComboKeys)
-        {
-            var combinedKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channel.Id);
-            long? perms = channelCache.GetChannelPermission(combinedKey);
-            if (perms == null)
-            {
-                var member = await _db.PlanetMembers
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(m => m.PlanetId == hostedPlanet.Planet.Id && m.RoleMembershipHash == roleKey);
-                if (member != null)
-                    perms = await GetChannelPermissionsAsync(member, channel, channel.ChannelType);
-            }
-
-            if (perms != null && Permission.HasPermission(perms.Value, ChannelPermissions.View))
-                accessibleRoleCombos.Add(roleKey);
-        }
-
-        return accessibleRoleCombos;
     }
 
     public async ValueTask<bool> HasChannelAccessAsync(long memberId, long channelId)
