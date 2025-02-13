@@ -14,13 +14,14 @@ public class NotificationService
     private readonly ILogger<NotificationService> _logger;
     private readonly PlanetPermissionService _permissionService;
     private readonly PushNotificationWorker _pushNotificationWorker;
+    private readonly HostedPlanetService _hostedService;
     
     public NotificationService(
         ValourDb db, 
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
         IServiceScopeFactory scopeFactory, 
-        ILogger<NotificationService> logger, PlanetPermissionService permissionService, PushNotificationWorker pushNotificationWorker)
+        ILogger<NotificationService> logger, PlanetPermissionService permissionService, PushNotificationWorker pushNotificationWorker, HostedPlanetService hostedService)
     {
         _db = db;
         _coreHub = coreHub;
@@ -29,6 +30,7 @@ public class NotificationService
         _logger = logger;
         _permissionService = permissionService;
         _pushNotificationWorker = pushNotificationWorker;
+        _hostedService = hostedService;
     }
     
     public async Task<Models.Notification> GetNotificationAsync(Guid id)
@@ -131,13 +133,18 @@ public class NotificationService
     
     public async Task SendRoleNotificationsAsync(long roleId, Models.Notification baseNotification)
     {
+        var hostedPlanet = await _hostedService.GetRequiredAsync(baseNotification.PlanetId!.Value);
+        var role = hostedPlanet.GetRoleByGlobalId(roleId);
+        if (role is null)
+            return;
+        
         // Create db notifications
         
         // TODO: this could be a lot of data to move. may want a sequence or something on the db
         // at some point to handle this.
-        var notifications = await _db.PlanetRoleMembers
+        var notifications = await _db.PlanetMembers
             .AsNoTracking()
-            .Where(x => x.RoleId == roleId)
+            .WithRoleByLocalId(hostedPlanet.Planet.Id,  role.LocalId)
             .Select(x => new Valour.Database.Notification()
             {
                 Id = Guid.NewGuid(),

@@ -27,11 +27,6 @@ namespace Valour.Database
         public virtual ICollection<PlanetMember> Membership { get; set; }
         
         /// <summary>
-        /// The role membership of this user in different planets.
-        /// </summary>
-        public virtual ICollection<PlanetRoleMember> RoleMemberships { get; set; }
-        
-        /// <summary>
         /// The membership of this user in different channels.
         /// </summary>
         public virtual ICollection<ChannelMember> ChannelMembership { get; set; }

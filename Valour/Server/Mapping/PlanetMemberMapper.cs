@@ -1,3 +1,5 @@
+using Valour.Shared.Models;
+
 namespace Valour.Server.Mapping;
 
 public static class PlanetMemberMapper
@@ -14,7 +16,7 @@ public static class PlanetMemberMapper
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
-            RoleMembershipHash = member.RoleMembershipHash,
+            RoleMembership = new PlanetRoleMembership(member.Rf0, member.Rf1, member.Rf2, member.Rf3),
             User = member.User.ToModel()
         };
     }
@@ -31,7 +33,11 @@ public static class PlanetMemberMapper
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
-            RoleMembershipHash = member.RoleMembershipHash
+            
+            Rf0 = member.RoleMembership.Rf0,
+            Rf1 = member.RoleMembership.Rf1,
+            Rf2 = member.RoleMembership.Rf2,
+            Rf3 = member.RoleMembership.Rf3,
         };
     }
 }

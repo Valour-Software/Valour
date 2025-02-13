@@ -37,7 +37,7 @@ public class PlanetRoleService
     public async ValueTask<PlanetRole> GetAsync(long planetId, long roleId)
     {
         var hosted = await _hostedService.GetRequiredAsync(planetId);
-        return hosted.GetRole(roleId);
+        return hosted.GetRoleByGlobalId(roleId);
     }
 
     private static readonly Regex _hexColorRegex = new Regex("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$");
@@ -144,7 +144,7 @@ public class PlanetRoleService
     public async Task<TaskResult> DeleteAsync(long planetId, long roleId)
     {
         var hostedPlanet = await _hostedService.GetRequiredAsync(planetId);
-        var role = hostedPlanet.GetRole(roleId);
+        var role = hostedPlanet.GetRoleByGlobalId(roleId);
         if (role is null) return new(false, "Role not found in hosted planet");
             
         if (role.IsDefault)
@@ -161,7 +161,7 @@ public class PlanetRoleService
             
             // Update role membership flags
 
-            var flagChanges = await _db.PlanetMembers.WithRoleFlag(role.PlanetId, role.LocalId)
+            var flagChanges = await _db.PlanetMembers.WithRoleByLocalId(role.PlanetId, role.LocalId)
                 .SetRoleFlag(role.LocalId, false);
             
             _logger.LogInformation("Role flag changes for deletion: {Changes}", flagChanges);

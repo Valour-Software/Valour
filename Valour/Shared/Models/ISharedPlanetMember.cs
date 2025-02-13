@@ -28,14 +28,8 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     /// The pfp to be used within the planet
     /// </summary>
     string MemberAvatar { get; set; }
-    
-    // Together, these role bits can be used to determine the roles of the member
-    public long Rf0 { get; set; }
-    public long Rf1 { get; set; }
-    public long Rf2 { get; set; }
-    public long Rf3 { get; set; }
 
-    public MemberRoleFlags RoleFlags { get; set; }
+    public PlanetRoleMembership RoleMembership { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

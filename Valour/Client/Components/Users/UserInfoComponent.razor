@@ -281,7 +281,7 @@
             CalculateName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleFlags)))
+        if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleMembership)))
         {
             // We can skip for update because it's the same role
             if (DetermineColorChange())

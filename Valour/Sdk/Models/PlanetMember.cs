@@ -44,7 +44,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     {
         get
         {
-            _roles ??= Planet.GetRolesFromRoleFlags(RoleFlags);
+            _roles ??= Planet.GetRolesFromRoleFlags(RoleMembership);
             return _roles;
         }
     }
@@ -95,36 +95,14 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public string MemberAvatar { get; set; }
     
-    // Together, these role bits can be used to determine the roles of the member
-    public long Rf0 { get; set; }
-    public long Rf1 { get; set; }
-    public long Rf2 { get; set; }
-    public long Rf3 { get; set; }
-    
-    private MemberRoleFlags? _roleFlags;
-
-    public MemberRoleFlags RoleFlags
-    {
-        get
-        {
-            if (_roleFlags is null)
-                _roleFlags = new MemberRoleFlags(Rf0, Rf1, Rf2, Rf3);
-            
-            return _roleFlags.Value;
-        }
-        set
-        {
-            _roleFlags = value;
-            Rf0 = value.Rf0;
-            Rf1 = value.Rf1;
-            Rf2 = value.Rf2;
-            Rf3 = value.Rf3;
-        }
-    }
+    /// <summary>
+    /// Flags representing the roles of the member
+    /// </summary>
+    public PlanetRoleMembership RoleMembership { get; set; }
     
     protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
     {
-        if (eventData.PropsChanged.Contains(nameof(RoleFlags)))
+        if (eventData.PropsChanged.Contains(nameof(RoleMembership)))
         {
             // Clear cached roles
             _roles = null;

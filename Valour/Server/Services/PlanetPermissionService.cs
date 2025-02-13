@@ -45,7 +45,7 @@ public class PlanetPermissionService
     /// Returns all the distinct role combination keys that exist on the planet.
     /// This only returns combinations that are in use.
     /// </summary>
-    public async Task<MemberRoleFlags> GetAllUniqueRoleCombinationsForPlanet(long planetId)
+    public async Task<PlanetRoleMembership> GetAllUniqueRoleCombinationsForPlanet(long planetId)
     {
         var distinctRoleKeys = await _db.PlanetMembers
             .GroupBy(x => new
@@ -266,7 +266,7 @@ public class PlanetPermissionService
         bool isAdmin = false;
         foreach (var roleId in roleMembership)
         {
-            var role = hostedPlanet.GetRole(roleId);
+            var role = hostedPlanet.GetRoleByGlobalId(roleId);
             if (role is null)
                 continue;
             hostedPlanet.PermissionCache.AddKnownComboToRole(roleId, member.RoleMembershipHash);
@@ -316,9 +316,17 @@ public class PlanetPermissionService
         return result;
     }
 
-    private async ValueTask<long> GetPlanetPermissionsAsync(Valour.Database.PlanetMember member)
+    public async ValueTask<bool> IsAdminAsync(ISharedPlanetMember member)
+    {
+        return await GetPlanetPermissionsAsync(member) == Permission.FULL_CONTROL;
+    }
+
+    private async ValueTask<long> GetPlanetPermissionsAsync(ISharedPlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        if (member.UserId == hostedPlanet.Planet.OwnerId)
+            return Permission.FULL_CONTROL;
+        
         var cached = hostedPlanet.PermissionCache.GetPlanetPermissions(member.RoleMembershipHash);
         if (cached is not null)
             return cached.Value;
@@ -331,7 +339,7 @@ public class PlanetPermissionService
         long permissions = 0;
         foreach (var roleId in roleMembership)
         {
-            var role = hostedPlanet.GetRole(roleId);
+            var role = hostedPlanet.GetRoleByGlobalId(roleId);
             if (role is null)
                 continue;
             hostedPlanet.PermissionCache.AddKnownComboToRole(roleId, member.RoleMembershipHash);
@@ -411,7 +419,7 @@ public class PlanetPermissionService
         var roles = RoleListPool.Get();
         foreach (var roleId in roleMembership)
         {
-            var role = hosted.GetRole(roleId);
+            var role = hosted.GetRoleByGlobalId(roleId);
             if (role is null)
                 throw new Exception("Role not found in hosted planet roles!");
             roles.Add(role);

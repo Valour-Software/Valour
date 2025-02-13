@@ -129,22 +129,6 @@ public class PlanetMemberApi
     }
     
 
-    [ValourRoute(HttpVerbs.Get, "api/members/{id}/roles")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetAllRolesForMember(
-        long id,
-        PlanetMemberService memberService)
-    {
-        var targetMember = await memberService.GetAsync(id);
-        if (targetMember is null)
-            return ValourResult.NotFound("Target member not found.");
-
-        if (!await memberService.CurrentExistsAsync(targetMember.PlanetId))
-            return ValourResult.NotPlanetMember();
-        
-        return Results.Json(await memberService.GetRoleIdsAsync(targetMember.Id));
-    }
-
     [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/members/{memberId}/roles/{roleId}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> AddRoleToMemberRouteAsync(
@@ -181,7 +165,7 @@ public class PlanetMemberApi
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
-        return Results.Json(result.Data);
+        return Results.Ok();
     }
 
 

@@ -20,9 +20,6 @@ public class PlanetMember : ISharedPlanetMember
     public virtual User User { get; set; }
     
     [JsonIgnore]
-    public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
-    
-    [JsonIgnore]
     public virtual ICollection<Message> Messages { get; set; }
     
     ///////////////////////
@@ -42,20 +39,11 @@ public class PlanetMember : ISharedPlanetMember
     public long Rf2 { get; set; }
     public long Rf3 { get; set; }
     
-    private MemberRoleFlags? _roleFlags;
-
-    public MemberRoleFlags RoleFlags
+    public PlanetRoleMembership RoleMembership
     {
-        get
-        {
-            if (_roleFlags is null)
-                _roleFlags = new MemberRoleFlags(Rf0, Rf1, Rf2, Rf3);
-            
-            return _roleFlags.Value;
-        }
+        get => new PlanetRoleMembership(Rf0, Rf1, Rf2, Rf3);
         set
         {
-            _roleFlags = value;
             Rf0 = value.Rf0;
             Rf1 = value.Rf1;
             Rf2 = value.Rf2;
@@ -117,10 +105,6 @@ public class PlanetMember : ISharedPlanetMember
             e.HasOne(x => x.User)
                 .WithMany(x => x.Membership)
                 .HasForeignKey(x => x.UserId);
-            
-            e.HasMany(x => x.RoleMembership)
-                .WithOne(x => x.Member)
-                .HasForeignKey(x => x.MemberId);
 
             e.HasMany(x => x.Messages)
                 .WithOne(x => x.AuthorMember)

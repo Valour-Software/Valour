@@ -36,4 +36,9 @@ public class PlanetMember : ServerModel<long>, ISharedPlanetMember
     /// The key representing the roles the user has within the planet
     /// </summary>
     public long RoleMembershipHash { get; set; }
+    
+    /// <summary>
+    /// Flags representing the roles of the member
+    /// </summary>
+    public PlanetRoleMembership RoleMembership { get; set; }
 }

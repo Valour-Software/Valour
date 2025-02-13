@@ -61,15 +61,6 @@ public class ServerModelList<TModel, TId> : IEnumerable<TModel>, IDisposable
     where TModel : ServerModel<TId>
     where TId : IEquatable<TId>
 {
-    // Pools for list and dictionary creation
-    private static readonly ObjectPool<List<TModel>> ListPool =
-        new DefaultObjectPool<List<TModel>>(new ListPooledObjectPolicy<TModel>());
-
-    private static readonly ObjectPool<Dictionary<TId, TModel>> IdMapPool =
-        new DefaultObjectPool<Dictionary<TId, TModel>>(
-            new DictionaryPooledObjectPolicy<TId, TModel>()
-        );
-
     protected readonly List<TModel> List;
     protected Dictionary<TId, TModel> IdMap;
 

@@ -13,9 +13,6 @@ public class Planet : ISharedPlanet
     
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetRole> Roles { get; set; }
-    
-    [InverseProperty("Planet")]
-    public virtual ICollection<PlanetRoleMember> RoleMembers { get; set; }
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetMember> Members { get; set; }

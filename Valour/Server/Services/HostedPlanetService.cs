@@ -66,18 +66,7 @@ public class HostedPlanetService
             .Select(r => r.ToModel())
             .ToListAsync();
         
-        // Get initial role combos
-        var combos = await _db.PlanetRoleMembers
-            .Where(x => x.PlanetId == planetId)
-            .GetUniquePlanetRoleComboInfo()
-            .ToArrayAsync();
-        
         var hostedPlanet = new HostedPlanet(planet, channels, roles);
-        
-        foreach (var combo in combos)
-        {
-            hostedPlanet.SetRoleMembershipCombo(combo.RoleHashKey, combo.Roles);
-        }
         
         _cache.HostedPlanets.Set(hostedPlanet);
         

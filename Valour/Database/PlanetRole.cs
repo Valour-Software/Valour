@@ -11,10 +11,7 @@ public class PlanetRole : ISharedPlanetRole
     ///////////////////////////
 
     public Planet Planet { get; set; }
-
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
-
-    public virtual ICollection<PlanetRoleMember> Members { get; set; }
 
     ///////////////////////
     // Entity Properties //
@@ -148,10 +145,6 @@ public class PlanetRole : ISharedPlanetRole
                 .HasForeignKey(x => x.PlanetId);
 
             entity.HasMany(x => x.PermissionNodes)
-                .WithOne(x => x.Role)
-                .HasForeignKey(x => x.RoleId);
-
-            entity.HasMany(x => x.Members)
                 .WithOne(x => x.Role)
                 .HasForeignKey(x => x.RoleId);
             

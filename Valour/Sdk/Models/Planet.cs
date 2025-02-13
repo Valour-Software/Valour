@@ -52,7 +52,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// A map from role hash key to the contained roles
     /// </summary>
-    public ConcurrentDictionary<MemberRoleFlags, ImmutableList<PlanetRole>> RoleFlagsToRoles { get; } = new(); 
+    public ConcurrentDictionary<PlanetRoleMembership, ImmutableList<PlanetRole>> RoleFlagsToRoles { get; } = new(); 
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -295,16 +295,16 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         return response;
     }
     
-    public ImmutableList<PlanetRole> GetRolesFromRoleFlags(MemberRoleFlags flags)
+    public ImmutableList<PlanetRole> GetRolesFromRoleFlags(PlanetRoleMembership membership)
     {
-        if (RoleFlagsToRoles.TryGetValue(flags, out var roles))
+        if (RoleFlagsToRoles.TryGetValue(membership, out var roles))
             return roles;
 
         // Get local role ids
-        var roleIds = flags.GetRoleIds();
+        var roleIds = membership.GetLocalRoleIds();
         
         // Get roles for each id
-        List<PlanetRole> roleList = new(roleIds.Count);
+        List<PlanetRole> roleList = new(roleIds.Length);
 
         foreach (var id in roleIds)
         {
@@ -316,7 +316,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         var result = roleList.ToImmutableList();
         
         // Add to cache
-        RoleFlagsToRoles[flags] = result;
+        RoleFlagsToRoles[membership] = result;
         
         return result;
     }

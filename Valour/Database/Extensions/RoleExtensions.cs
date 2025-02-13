@@ -5,7 +5,7 @@ namespace Valour.Database.Extensions;
 
 public static class RoleExtensions
 {
-    public static IQueryable<PlanetMember> WithRoleFlag(this IQueryable<PlanetMember> members, long planetId, int localRoleId)
+    public static IQueryable<PlanetMember> WithRoleByLocalId(this IQueryable<PlanetMember> members, long planetId, int localRoleId)
     {
 
         long searchKey;
