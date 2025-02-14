@@ -151,7 +151,6 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 
     protected override void OnDeleted()
     {
-        Planet.OnRoleDeleted(this);
     }
 
     // TODO: Model store

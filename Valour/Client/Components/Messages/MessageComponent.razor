@@ -572,13 +572,13 @@
     {
         bool render = false;
 
-        if (eventData.Changes.Contains(nameof(_user.Name)))
+        if (eventData.Changes.On(x => x.Name))
         {
             render = true;
             _name = GetAuthorName();
         }
 
-        if (eventData.Changes.Contains(nameof(_user.HasCustomAvatar)))
+        if (eventData.Changes.On(x => x.HasCustomAvatar))
         {
             render = true;
             _avatarUrl = GetAuthorAvatar();
@@ -599,13 +599,13 @@
     {
         var render = false;
         
-        if (eventData.Changes.Contains(nameof(_member.Nickname)))
+        if (eventData.Changes.On(x => x.Nickname))
         {
             render = true;
             _name = GetAuthorName();
         }
 
-        if (eventData.Changes.Contains(nameof(_member.MemberAvatar)))
+        if (eventData.Changes.On(x => x.MemberAvatar))
         {
             render = true;
             _avatarUrl = GetAuthorAvatar();
@@ -616,7 +616,7 @@
             }
         }
 
-        if (eventData.Changes.Contains(nameof(PlanetMember.RoleMembership)))
+        if (eventData.Changes.On(x => x.RoleMembership))
         {
             render = true;
             

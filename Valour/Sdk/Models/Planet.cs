@@ -224,8 +224,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             case ModelUpdatedEvent<PlanetRole> updated:
                 if (updated.Changes.On(x => x.FlagBitIndex, out var oldIndex, out var newIndex))
                 {
-                    _flagIndexToRole.TryRemove(oldIndex, out _);
-                    _flagIndexToRole[newIndex] = updated.Model;
+                    _flagIndexToRole.TryRemove(oldIndex, out _); // Remove old
+                    _flagIndexToRole[newIndex] = updated.Model; // Add new
                 }
                 break;
         }

@@ -130,7 +130,7 @@ else
         await InputComponent.OnStopEdit(cancel);
     }
     
-    public void OnChatChannelUpdate(ModelEvent<Channel> eventData)
+    public void OnChatChannelUpdate(ModelUpdatedEvent<Channel> eventData)
     {
         ReRender();
     }

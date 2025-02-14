@@ -229,31 +229,31 @@
         return old != _roleColor;
     }
 
-    private void OnUserUpdate(ModelEvent<User> eventData)
+    private void OnUserUpdate(ModelUpdatedEvent<User> eventData)
     {
         var render = false;
         
-        if (eventData.PropsChanged.Contains(nameof(User.HasCustomAvatar)))
+        if (eventData.Changes.On(x => x.HasAnimatedAvatar))
         {
             render = true;
             CalculateAvatar();
         }
-        if (eventData.PropsChanged.Contains(nameof(User.Name)))
+        if (eventData.Changes.On(x => x.Name))
         {
             render = true;
             CalculateName();
         }
-        if (eventData.PropsChanged.Contains(nameof(User.Tag)))
+        if (eventData.Changes.On(x => x.Tag))
         {
             render = true;
             CalculateTag();
         }
-        if (eventData.PropsChanged.Contains(nameof(User.Status)))
+        if (eventData.Changes.On(x => x.Status))
         {
             render = true;
             CalculateStatus();
         }
-        if (eventData.PropsChanged.Contains(nameof(User.UserStateCode)))
+        if (eventData.Changes.On(x => x.UserStateCode))
         {
             render = true;
             CalculateStatusCode();
@@ -265,23 +265,23 @@
         }
     }
  
-    private void OnMemberUpdate(ModelEvent<PlanetMember> eventData)
+    private void OnMemberUpdate(ModelUpdatedEvent<PlanetMember> eventData)
     {
         var render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(PlanetMember.MemberAvatar)))
+        if (eventData.Changes.On(x => x.MemberAvatar))
         {
             render = true;
             CalculateAvatar();
         }
         
-        if (eventData.PropsChanged.Contains(nameof(PlanetMember.Nickname)))
+        if (eventData.Changes.On(x => x.Nickname))
         {
             render = true;
             CalculateName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleMembership)))
+        if (eventData.Changes.On(x => x.RoleMembership))
         {
             // We can skip for update because it's the same role
             if (DetermineColorChange())

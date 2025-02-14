@@ -80,6 +80,19 @@ public class ModelChange<TModel>
     /// </summary>
     /// <typeparam name="TProperty">The property type.</typeparam>
     /// <param name="propertyExpression">The property expression.</param>
+    /// <returns>True if the property was changed; otherwise, false.</returns>
+    public bool On<TProperty>(Expression<Func<TModel, TProperty>> propertyExpression)
+    {
+        var propChg = Check(propertyExpression);
+        return (propChg.IsChanged && propChg.Change is not null);
+    }
+    
+    /// <summary>
+    /// Checks whether a property changed and (if it did) returns
+    /// the old and new values directly via out parameters.
+    /// </summary>
+    /// <typeparam name="TProperty">The property type.</typeparam>
+    /// <param name="propertyExpression">The property expression.</param>
     /// <param name="oldValue">Output the old value if changed.</param>
     /// <param name="newValue">Output the new value if changed.</param>
     /// <returns>True if the property was changed; otherwise, false.</returns>
