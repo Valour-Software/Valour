@@ -18,7 +18,7 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     /// </summary>
     public long UserId { get; set; }
 
-    public override ChannelMember AddToCacheOrReturnExisting()
+    public override ChannelMember AddToCache()
     {
         return Client.Cache.ChannelMembers.Put(Id, this);
     }

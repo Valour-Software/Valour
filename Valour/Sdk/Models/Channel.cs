@@ -162,7 +162,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     private DateTime _lastTypingUpdateSend = DateTime.UtcNow;
 
-    protected override void OnUpdated(ModelUpdateEvent<Channel> eventData)
+    protected override void OnUpdated(ModelEvent<Channel> eventData)
     {
         if (PlanetId is not null)
             Planet.OnChannelUpdated(eventData);
@@ -202,7 +202,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return await Planet.Node.DisconnectFromChannelRealtime(this);
     }
     
-    public override Channel AddToCacheOrReturnExisting()
+    public override Channel AddToCache()
     {
         // Add to direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)

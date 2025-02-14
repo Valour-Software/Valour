@@ -74,29 +74,58 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// Ran when this item is updated
     /// </summary>
     [IgnoreRealtimeChanges]
-    public HybridEvent<ModelUpdateEvent<TSelf>> Updated;
+    public HybridEvent<ModelUpdatedEvent<TSelf>> Updated;
 
     /// <summary>
     /// Custom logic on model update
     /// </summary>
-    protected virtual void OnUpdated(ModelUpdateEvent<TSelf> eventData) { }
+    protected virtual void OnUpdated(ModelUpdatedEvent<TSelf> eventData) { }
+
+    /// <summary>
+    /// Syncs the model, returning the master copy. 
+    /// </summary>
+    public virtual TSelf Sync(ValourClient client, bool skipEvents = false)
+    {
+        // Set the client
+        SetClient(client);
+        
+        // Sync the sub models
+        SyncSubModels(skipEvents);
+        
+        // Add to cache and return master copy of this model
+        return AddToCache(skipEvents);
+    }
     
     /// <summary>
-    /// Adds this item to the cache. If a copy already exists, it is returned to be updated.
+    /// Removes the model from cache, and optionally fires off event for the deletion.
     /// </summary>
-    public abstract TSelf AddToCacheOrReturnExisting();
+    public virtual void Destroy(ValourClient client, bool skipEvent = false)
+    {
+        // Set the client
+        // We need to do this because it may be a brand new model
+        SetClient(client);
+        TakeAndRemoveFromCache();
+    }
+    
+    /// <summary>
+    /// Syncs the sub models of this model
+    /// </summary>
+    public virtual void SyncSubModels(bool skipEvent = false) { }
 
+    /// <summary>
+    /// Adds this item to the cache
+    /// </summary>
+    public abstract TSelf AddToCache(bool skipEvents = false);
+    
     /// <summary>
     /// Returns and removes this item from the cache.
     /// </summary>
     public abstract TSelf TakeAndRemoveFromCache();
-    
-    public virtual void SyncSubModels(bool skipEvent = false, int flags = 0) { }
 
     /// <summary>
     /// Safely invokes the updated event
     /// </summary>
-    public void InvokeUpdatedEvent(ModelUpdateEvent<TSelf> eventData)
+    public void InvokeUpdatedEvent(ModelUpdatedEvent<TSelf> eventData)
     {
         OnUpdated(eventData);
         Updated?.Invoke(eventData);

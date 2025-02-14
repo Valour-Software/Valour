@@ -439,13 +439,13 @@ public class Node : ServiceBase // each node acts like a service
     private void OnModelUpdate<TModel>(TModel model, int flags)
         where TModel : ClientModel<TModel>
     {
-        Client.Cache.Sync(model, false, flags);
+        model.Sync(Client);
     }
 
     private void OnModelDelete<TModel>(TModel model)
         where TModel : ClientModel<TModel>
     {
-        Client.Cache.Delete(model);
+        model.Destroy(Client);
     }
 
     private static bool IsSubclassOfRawGeneric(Type genericBaseType, Type toCheck)

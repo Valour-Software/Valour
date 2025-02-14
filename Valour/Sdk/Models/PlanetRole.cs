@@ -12,7 +12,7 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
+public class PlanetRole : ClientPlanetModel<PlanetRole, int>, ISharedPlanetRole
 {
     public override string BaseRoute =>
         ISharedPlanetRole.GetBaseRoute(PlanetId);
@@ -33,7 +33,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     public static PlanetRole VictorRole = new PlanetRole()
     {
         Name = "Victor Class",
-        Id = long.MaxValue,
+        Id = 0,
         Position = int.MaxValue,
         PlanetId = 0,
         Color = "ff00ff",
@@ -43,7 +43,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     public static PlanetRole DefaultRole = new PlanetRole()
     {
         Name = "Default",
-        Id = long.MaxValue,
+        Id = 0,
         Position = int.MaxValue,
         PlanetId = 0,
         Color = "#ffffff",
@@ -67,11 +67,6 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     public uint Position { get; set; }
-    
-    /// <summary>
-    /// The id of the role, local to the planet. Used for membership flags.
-    /// </summary>
-    public int LocalId { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -126,21 +121,20 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         return new PlanetRole()
         {
             Name = "Default",
-            Id = long.MaxValue,
+            Id = 0,
             Position = int.MaxValue,
             PlanetId = planetId,
             Color = "#ffffff",
         };
     }
 
-    protected override void OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
+    protected override void OnUpdated(ModelEvent<PlanetRole> eventData)
     {
-        Planet.OnRoleUpdated(eventData);
     }
 
-    public override PlanetRole AddToCacheOrReturnExisting()
+    public override void Sync(bool skipEvents = false)
     {
-        return Client.Cache.PlanetRoles.Put(Id, this);
+        Planet.Roles.Put(this, skipEvents);
     }
 
     public override PlanetRole TakeAndRemoveFromCache()

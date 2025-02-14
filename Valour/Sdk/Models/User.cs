@@ -147,7 +147,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     public string GetFailedAvatar() =>
         ISharedUser.GetFailedAvatar(this);
 
-    public override User AddToCacheOrReturnExisting()
+    public override User AddToCache()
     {
         return Client.Cache.Users.Put(Id, this);
     }

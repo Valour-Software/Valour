@@ -114,7 +114,7 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
     public string GetBannerUrl(ThemeBannerFormat format) =>
         ISharedTheme.GetBannerUrl(this, format);
 
-    public override Theme AddToCacheOrReturnExisting()
+    public override Theme AddToCache()
     {
         return Client.Cache.Themes.Put(Id, this);
     }

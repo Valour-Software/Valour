@@ -415,7 +415,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public Task<TaskResult<Message>> PostAsync() => 
         CreateAsync();
 
-    public override Message AddToCacheOrReturnExisting()
+    public override Message AddToCache()
     {
         return Client.Cache.Messages.Put(Id, this);
     }

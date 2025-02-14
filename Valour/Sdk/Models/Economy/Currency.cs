@@ -51,7 +51,7 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
         return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
     }
 
-    public override Currency AddToCacheOrReturnExisting()
+    public override Currency AddToCache()
     {
         return Client.Cache.Currencies.Put(Id, this);
     }

@@ -90,7 +90,7 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     /// </summary>
     public PermissionsNodeKey GetCombinedKey() => new(TargetId, RoleId, TargetType);
     
-    public override PermissionsNode AddToCacheOrReturnExisting()
+    public override PermissionsNode AddToCache()
     {
         // Add key to id lookup
         var key = GetCombinedKey();

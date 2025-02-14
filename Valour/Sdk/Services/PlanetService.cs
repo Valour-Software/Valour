@@ -117,7 +117,7 @@ public class PlanetService : ServiceBase
 
         await planet.EnsureReadyAsync();
 
-        return _client.Cache.Sync(planet);
+        return planet.Sync(_client);
     }
     
     /// <summary>
@@ -432,20 +432,20 @@ public class PlanetService : ServiceBase
         return response.Data;
     }
 
-    public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)
+    public async ValueTask<PlanetRole> FetchRoleAsync(int id, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
         return await FetchRoleAsync(id, planet, skipCache);
     }
 
-    public async ValueTask<PlanetRole> FetchRoleAsync(long id, Planet planet, bool skipCache = false)
+    public async ValueTask<PlanetRole> FetchRoleAsync(int id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _client.Cache.PlanetRoles.TryGet(id, out var cached))
+        if (!skipCache && planet.Roles.TryGet(id, out var cached))
             return cached;
 
         var role = (await planet.Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.GetBaseRoute(planet.Id)}/{id}")).Data;
 
-        return _client.Cache.Sync(role);
+        return role.Sync(_client);
     }
 
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)

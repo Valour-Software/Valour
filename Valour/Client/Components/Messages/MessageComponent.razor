@@ -291,7 +291,7 @@
     }
 
 
-    private async Task OnEditReceived(ModelUpdateEvent<Message> eventData)
+    private async Task OnEditReceived(ModelUpdatedEvent<Message> eventData)
     {
         BuildMessage();
         await CloseEditMode();
@@ -568,7 +568,7 @@
         }
     }
 
-    public void OnUserUpdated(ModelUpdateEvent<User> eventData)
+    public void OnUserUpdated(ModelUpdatedEvent<User> eventData)
     {
         bool render = false;
 
@@ -595,7 +595,7 @@
         }
     }
 
-    private void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
+    private void OnMemberUpdated(ModelUpdatedEvent<PlanetMember> eventData)
     {
         var render = false;
         

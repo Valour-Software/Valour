@@ -229,7 +229,7 @@
         return old != _roleColor;
     }
 
-    private void OnUserUpdate(ModelUpdateEvent<User> eventData)
+    private void OnUserUpdate(ModelEvent<User> eventData)
     {
         var render = false;
         
@@ -265,7 +265,7 @@
         }
     }
  
-    private void OnMemberUpdate(ModelUpdateEvent<PlanetMember> eventData)
+    private void OnMemberUpdate(ModelEvent<PlanetMember> eventData)
     {
         var render = false;
 

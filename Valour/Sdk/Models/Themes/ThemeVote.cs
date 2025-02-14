@@ -12,7 +12,7 @@ public class ThemeVote : ClientModel<ThemeVote, long>, ISharedThemeVote
     public bool Sentiment { get; set; }
     public DateTime CreatedAt { get; set; }
     
-    public override ThemeVote AddToCacheOrReturnExisting()
+    public override ThemeVote AddToCache()
     {
         // we dont cache theme votes
         return this;

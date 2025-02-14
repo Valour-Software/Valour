@@ -1,0 +1,351 @@
+﻿#nullable  enable
+
+using System.Collections;
+using System.Runtime.CompilerServices;
+using Valour.Shared.Models;
+using Valour.Shared.Utilities;
+
+namespace Valour.Sdk.ModelLogic;
+
+public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
+    where TModel : ClientModel<TModel, TId>
+    where TId : IEquatable<TId>
+{
+    // Called for all changes
+    public HybridEvent<IModelEvent<TModel>>? Changed; // We don't assign because += and -= will do it
+    
+    // Specific events
+    public HybridEvent<ModelsSetEvent<TModel>>? ModelsSet;
+    public HybridEvent<ModelsClearedEvent<TModel>>? ModelsCleared;
+    public HybridEvent<ModelsOrderedEvent<TModel>>? ModelsReordered;
+    
+    public HybridEvent<ModelAddedEvent<TModel>>? ModelAdded;
+    public HybridEvent<ModelUpdatedEvent<TModel>>? ModelUpdated;
+    public HybridEvent<ModelRemovedEvent<TModel>>? ModelDeleted;
+    
+    protected readonly List<TModel> List;
+    protected readonly Dictionary<TId, TModel> IdMap;
+    
+    public int Count => List.Count;
+    
+    public ModelStore(List<TModel>? startingList = null)
+    {
+        List = startingList ?? new List<TModel>();
+        IdMap = List.ToDictionary(x => x.Id);
+    }
+    
+    // Make iterable
+    public TModel this[int index] => List[index];
+    public IEnumerator<TModel> GetEnumerator() => List.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => List.GetEnumerator();
+
+    private bool ValuesDiffer(object? a, object? b)
+    {
+        if (a is null)
+            return b is not null;
+        return b is null || !a.Equals(b);
+    }
+    
+    protected virtual void HandleChanges(ModelUpdatedEvent<TModel> data, TModel updated)
+    {
+        var existing = data.Model;
+        var type = existing.GetType();
+        var properties = ModelUpdateUtils.ModelPropertyCache[type];
+        var getters = ModelUpdateUtils.ModelGetterCache[type];
+        var setters = ModelUpdateUtils.ModelSetterCache[type];
+    
+        for (var i = 0; i < properties.Length; i++)
+        {
+            var a = getters[i](existing);
+            var b = getters[i](updated);
+        
+            if (ValuesDiffer(a, b))
+                data.PropsChanged.Add(properties[i].Name);
+            
+            // Apply the change to the existing model
+            setters[i](existing, b);
+        }
+    }
+    
+    public virtual IModelInsertionEvent<TModel>? Put(TModel? model, bool skipEvent = false)
+    {
+        if (model is null)
+            return null;
+        
+        IModelInsertionEvent<TModel>? result;
+        
+        if (IdMap.TryGetValue(model.Id, out var existing))
+        {
+            var modelEventData = new ModelUpdatedEvent<TModel>(existing, ModelUpdateUtils.HashSetPool.Get());
+            
+            // Add change markers to event data and apply changes
+            HandleChanges(modelEventData, model);
+            
+            // Check if nothing changed
+            if (modelEventData.PropsChanged.Count == 0)
+            {
+                modelEventData.Dispose();
+                return null;
+            }
+
+            if (!skipEvent)
+            {
+                existing.InvokeUpdatedEvent(modelEventData);
+                ModelUpdated?.Invoke(modelEventData);
+                Changed?.Invoke(modelEventData);
+            }
+            
+            result = modelEventData;
+        }
+        else
+        {
+            List.Add(model);
+            IdMap[model.Id] = model;
+            
+            var addedEvent = new ModelAddedEvent<TModel>(model);
+            ModelAdded?.Invoke(addedEvent);
+            Changed?.Invoke(addedEvent);
+            
+            result = addedEvent;
+        }
+
+        return result;
+    }
+    
+    public void Remove(TModel item, bool skipEvent = false)
+    {
+        Remove(item.Id, skipEvent);
+    }
+    
+    public void Remove(TId id, bool skipEvent = false)
+    {
+        if (!IdMap.ContainsKey(id))
+            return;
+        
+        IdMap.Remove(id);
+        
+        // Get index of item in list
+        var index = List.FindIndex(x => x.Id.Equals(id));
+        var item = List[index];
+        List.RemoveAt(index);
+        
+        if (!skipEvent)
+        {
+            item.InvokeDeletedEvent();
+            var storeEvent = new ModelRemovedEvent<TModel>(item);
+            ModelDeleted?.Invoke(storeEvent);
+            Changed?.Invoke(storeEvent);
+        }
+    }
+    
+    public virtual void Set(List<TModel> items, bool skipEvent = false)
+    {
+        // We clear rather than replace the list to ensure that the reference is maintained
+        // Because the reference may be used across the application.
+        List.Clear();
+        IdMap.Clear();
+        
+        List.AddRange(items);
+        
+        foreach (var item in items)
+            IdMap[item.Id] = item;
+
+        if (!skipEvent)
+        {
+            var storeEvent = new ModelsSetEvent<TModel>();
+            ModelsSet?.Invoke(storeEvent);
+            Changed?.Invoke(storeEvent);
+        }
+    }
+    
+    public virtual void Clear(bool skipEvent = false)
+    {
+        List.Clear();
+        IdMap.Clear();
+        if (!skipEvent)
+        {
+            var storeEvent = new ModelsClearedEvent<TModel>();
+            ModelsCleared?.Invoke(storeEvent);
+            Changed?.Invoke(storeEvent);
+        }
+    }
+    
+    public bool TryGet(TId id, out TModel? item)
+    {
+        return IdMap.TryGetValue(id, out item);
+    }
+    
+    public TModel? Get(TId id)
+    {
+        IdMap.TryGetValue(id, out var item);
+        return item;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Contains(TModel item)
+    {
+        return IdMap.ContainsKey(item.Id); // This is faster than List.Contains
+        // return List.Contains(item);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool ContainsId(TId id)
+    {
+        return IdMap.ContainsKey(id);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Sort(Comparison<TModel> comparison)
+    {
+        List.Sort(comparison);
+    }
+    
+    /// <summary>
+    /// Exists so that external full list changes can be notified.
+    /// </summary>
+    public void NotifySet()
+    {
+        var storeEvent = new ModelsSetEvent<TModel>();
+        ModelsSet?.Invoke(storeEvent);
+        Changed?.Invoke(storeEvent);
+    }
+    
+    public void Dispose()
+    {
+        Changed?.Dispose();
+        
+        ModelsSet?.Dispose();
+        ModelsCleared?.Dispose();
+        ModelsReordered?.Dispose();
+        
+        ModelAdded?.Dispose();
+        ModelUpdated?.Dispose();
+        ModelDeleted?.Dispose();
+        
+        Changed = null;
+        
+        List.Clear();
+        IdMap.Clear();
+    }
+}
+
+/// <summary>
+/// This version of the model store is ordered, and will automatically sort when items are added or updated.
+/// </summary>
+public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
+    where TModel : ClientModel<TModel, TId>, ISortable
+    where TId : IEquatable<TId>
+{
+    public SortedModelStore(List<TModel>? startingList = null) : base(startingList)
+    {
+    }
+
+    protected override void HandleChanges(ModelUpdatedEvent<TModel> data, TModel updated)
+    {
+        var oldPos = data.Model.GetSortPosition();
+        var newPos = updated.GetSortPosition();
+        
+        if (oldPos != newPos)
+        {
+            data.PositionChange = new PositionChange()
+            {
+                OldPosition = oldPos,
+                NewPosition = newPos
+            };
+        }
+        
+        base.HandleChanges(data, updated);
+    }
+
+    public override IModelInsertionEvent<TModel>? Put(TModel? model, bool skipEvent = false)
+    {
+        var baseResult = base.Put(model, true); // Do base put without event
+        if (baseResult is null)
+            return null;
+        
+        bool doRemoval = false;
+
+        ModelUpdatedEvent<TModel>? updateEvent = null;
+        ModelAddedEvent<TModel>? addEvent = null;
+
+        switch (baseResult)
+        {
+            case ModelUpdatedEvent<TModel> update:
+                updateEvent = update;
+                if (updateEvent.PositionChange is null)
+                    return baseResult; // No need to sort if no position change
+                else
+                    doRemoval = true; // We need to remove the existing item before re-inserting it
+                break;
+            case ModelAddedEvent<TModel> add:
+                addEvent = add;
+                break;
+        }
+        
+        var resultModel = baseResult.GetModel();
+
+        if (doRemoval)
+        {
+            // Get the index of the item
+            var index = List.FindIndex(x => x.Id.Equals(resultModel.Id));
+            // Remove the item from the list
+            List.RemoveAt(index);
+        }
+
+        // Find the new index
+        var newIndex = List.BinarySearch(resultModel, ISortable.Comparer);
+        if (newIndex < 0) newIndex = ~newIndex;
+
+        List.Insert(newIndex, resultModel);
+        
+        if (!skipEvent)
+        {
+            if (updateEvent is not null) 
+                ModelUpdated?.Invoke(updateEvent);
+            else if (addEvent is not null)
+                ModelAdded?.Invoke(addEvent.Value);
+            
+            Changed?.Invoke(baseResult);
+        }
+
+        return baseResult;
+    }
+
+
+    public void PutNoSort(TModel item, bool skipEvent = false)
+    {
+        base.Put(item, skipEvent);
+    }
+
+    public override void Set(List<TModel> items, bool skipEvent = false)
+    {
+        List.Clear();
+        IdMap.Clear();
+        
+        List.AddRange(items);
+        
+        foreach (var item in items)
+            IdMap[item.Id] = item;
+        
+        Sort(true);
+
+        if (!skipEvent)
+        {
+            var setEvent = new ModelsSetEvent<TModel>();
+            ModelsSet?.Invoke(setEvent);
+            Changed?.Invoke(setEvent);
+        }
+    }
+
+    public void Sort(bool skipEvent = false)
+    {
+        List.Sort(ISortable.Compare);
+
+        if (!skipEvent)
+        {
+            var reorderEvent = new ModelsOrderedEvent<TModel>();
+            ModelsReordered?.Invoke(reorderEvent);
+            Changed?.Invoke(reorderEvent);
+        }
+    }
+}

@@ -17,7 +17,15 @@ public class PlanetRole : ISharedPlanetRole
     // Entity Properties //
     ///////////////////////
 
-    public long Id { get; set; }
+    /// <summary>
+    /// The Id of the role in the database
+    /// </summary>
+    public long DbId { get; set; }
+    
+    /// <summary>
+    /// The Id of the role (within the planet)
+    /// </summary>
+    public int Id { get; set; }
 
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
@@ -33,11 +41,6 @@ public class PlanetRole : ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     public uint Position { get; set; }
-    
-    /// <summary>
-    /// The id of the role, local to the planet. Used for membership flags.
-    /// </summary>
-    public int LocalId { get; set; }
 
     /// <summary>
     /// True if this is the default (everyone) role
@@ -91,11 +94,14 @@ public class PlanetRole : ISharedPlanetRole
             entity.ToTable("planet_roles");
 
             // Key
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.DbId);
 
             // Properties
-            entity.Property(x => x.Id)
+            entity.Property(x => x.DbId)
                 .HasColumnName("id");
+            
+            entity.Property(x => x.Id)
+                .HasColumnName("local_id");
 
             entity.Property(x => x.IsAdmin)
                 .HasColumnName("is_admin");
@@ -105,9 +111,6 @@ public class PlanetRole : ISharedPlanetRole
 
             entity.Property(x => x.Position)
                 .HasColumnName("position");
-            
-            entity.Property(x => x.LocalId)
-                .HasColumnName("local_id");
 
             entity.Property(x => x.IsDefault)
                 .HasColumnName("is_default");
@@ -151,7 +154,7 @@ public class PlanetRole : ISharedPlanetRole
             // Indices
             entity.HasIndex(x => x.PlanetId);
             
-            entity.HasIndex(x => new { x.PlanetId, x.LocalId })
+            entity.HasIndex(x => new { x.PlanetId, x.Id })
                 .IsUnique();
         });
     }

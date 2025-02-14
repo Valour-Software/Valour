@@ -130,7 +130,7 @@
     public ChannelListItem ParentComponent { get; set; }
     
     [Parameter]
-    public SortedModelList<Channel,long> AllChannels { get; set; }
+    public SortedModelStore<Channel,long> AllChannels { get; set; }
     
     [Parameter]
     public Channel Channel { get; set; }
@@ -168,8 +168,9 @@
     
     protected override void OnInitialized()
     {
-        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
-        ModelObserver<Channel>.AnyDeleted += OnChannelDeletion;
+        // TODO: Deal with
+        // ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
+        // ModelObserver<Channel>.AnyDeleted += OnChannelDeletion;
 
         ChannelService.ChannelConnected += OnChannelConnectionChange;
         ChannelService.ChannelDisconnected += OnChannelConnectionChange;
@@ -264,7 +265,7 @@
     
     #region Event Handlers
     
-    private Task OnChannelUpdate(ModelUpdateEvent<Channel> eventData)
+    private Task OnChannelUpdate(ModelUpdatedEvent<Channel> eventData)
     {
         var updated = eventData.Model;
         
@@ -514,8 +515,8 @@
     
     public void Dispose()
     {
-        ModelObserver<Channel>.AnyUpdated -= OnChannelUpdate;
-        ModelObserver<Channel>.AnyDeleted -= OnChannelDeletion;
+        //ModelObserver<Channel>.AnyUpdated -= OnChannelUpdate;
+        //ModelObserver<Channel>.AnyDeleted -= OnChannelDeletion;
         
         NotificationService.NotificationReceived -= OnNotification;
         ChannelStateService.ChannelStateUpdated -= OnChannelStateUpdate;

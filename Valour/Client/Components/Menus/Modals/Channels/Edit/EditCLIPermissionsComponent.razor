@@ -283,15 +283,32 @@
 
         await RefreshButtons();
 
-        ModelObserver<PermissionsNode>.AnyUpdated += OnPermissionNodeUpdate;
+        Target.Planet.PermissionsNodes.Changed += OnPermissionNodeUpdate;
     }
 
-    private async Task OnPermissionNodeUpdate(ModelUpdateEvent<PermissionsNode> eventData)
+    private async Task OnPermissionNodeUpdate(IModelEvent<PermissionsNode> eventData)
     {
-        var node = eventData.Model;
-        if (node.TargetId == Target.Id) {
-            await OnRoleChange(await PlanetService.FetchRoleAsync(node.RoleId, Target.Planet));
-        }
+        switch (eventData)
+        {
+            case ModelAddedEvent<PermissionsNode> added:
+            {
+                if (added.Model.TargetId == Target.Id)
+                {
+                    await OnRoleChange(await PlanetService.FetchRoleAsync(added.Model.RoleId, Target.Planet));
+                }
+
+                break;
+            }
+            case ModelUpdatedEvent<PermissionsNode> updated:
+            {
+                if (updated.Model.TargetId == Target.Id)
+                {
+                    await OnRoleChange(await PlanetService.FetchRoleAsync(updated.Model.RoleId, Target.Planet));
+                }
+
+                break;
+            }
+         }
     }
 
     private async Task OnRoleSelect(ChangeEventArgs e)

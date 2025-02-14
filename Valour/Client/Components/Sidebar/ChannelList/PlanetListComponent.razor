@@ -81,11 +81,11 @@
         // Initialize collections
         TopChannels = new List<Channel>();
 
+        // TODO
         // Handle list change
-        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
-
+        //ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
         // Handle Deletions
-        ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
+        //ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
 
         ChannelService.CategoryReordered += OnOrderUpdate;
         
@@ -131,7 +131,7 @@
         return Task.CompletedTask;
     }
 
-    private Task OnChannelUpdate(ModelUpdateEvent<Channel> eventData)
+    private Task OnChannelUpdate(ModelUpdatedEvent<Channel> eventData)
     {
         if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
             eventData.Model.ParentId is not null) // We only render top level

@@ -38,7 +38,7 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
     /// </summary>
     public string RedirectUrl { get; set; }
 
-    public override OauthApp AddToCacheOrReturnExisting()
+    public override OauthApp AddToCache()
     {
         return Client.Cache.OauthApps.Put(Id, this);
     }

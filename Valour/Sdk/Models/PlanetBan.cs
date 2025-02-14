@@ -43,7 +43,7 @@ public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
     /// </summary>
     public bool Permanent => TimeExpires == null;
 
-    public override PlanetBan AddToCacheOrReturnExisting()
+    public override PlanetBan AddToCache()
     {
         return Client.Cache.PlanetBans.Put(Id, this);
     }

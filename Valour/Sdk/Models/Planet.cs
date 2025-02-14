@@ -21,38 +21,65 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     private Node _node;
     
-    // Cached values
+    ////////////
+    // Caches //
+    ////////////
 
     // A note to future Spike:
     // These can be referred to and will *never* have their reference change.
     // The lists are updated in realtime which means UI watching the lists do not
     // need to get an updated list. Do not second guess this decision. It is correct.
     // - Spike, 10/05/2024
-    
+
     /// <summary>
     /// The channels in this planet
     /// </summary>
-    public SortedModelList<Channel, long> Channels { get; } = new();
+    public readonly SortedModelStore<Channel, long> Channels = new();
 
     /// <summary>
     /// The chat channels in this planet
     /// </summary>
-    public SortedModelList<Channel, long> ChatChannels { get; } = new();
+    public readonly SortedModelStore<Channel, long> ChatChannels = new();
 
     /// <summary>
     /// The voice channels in this planet
     /// </summary>
-    public SortedModelList<Channel, long> VoiceChannels { get; } = new();
+    public readonly SortedModelStore<Channel, long> VoiceChannels = new();
 
     /// <summary>
     /// The categories in this planet
     /// </summary>
-    public SortedModelList<Channel, long> Categories { get; } = new();
+    public readonly SortedModelStore<Channel, long> Categories = new();
     
     /// <summary>
-    /// A map from role hash key to the contained roles
+    /// The roles in this planet
     /// </summary>
-    public ConcurrentDictionary<PlanetRoleMembership, ImmutableList<PlanetRole>> RoleFlagsToRoles { get; } = new(); 
+    public readonly SortedModelStore<PlanetRole, int> Roles = new();
+    
+    /// <summary>
+    /// The loaded members of this planet. Will not contain all members.
+    /// </summary>
+    public readonly ModelStore<PlanetMember, long> Members = new();
+
+    /// <summary>
+    /// The loaded invites of this planet
+    /// </summary>
+    public readonly ModelStore<PlanetInvite, string> Invites = new();
+
+    /// <summary>
+    /// The loaded permission nodes of this planet
+    /// </summary>
+    public readonly ModelStore<PermissionsNode, long> PermissionsNodes = new();
+    
+    /// <summary>
+    /// The loaded bans of this planet
+    /// </summary>
+    public readonly ModelStore<PlanetBan, long> Bans = new();
+    
+    /// <summary>
+    /// A map from role membership to the contained roles
+    /// </summary>
+    public readonly ConcurrentDictionary<PlanetRoleMembership, ImmutableList<PlanetRole>> RoleFlagsToRoles = new(); 
 
     /// <summary>
     /// The primary (default) chat channel of the planet
@@ -60,29 +87,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public Channel PrimaryChatChannel { get; private set; }
 
     /// <summary>
-    /// The roles in this planet
-    /// </summary>
-    public SortedModelList<PlanetRole, long> Roles { get; } = new();
-
-    /// <summary>
     /// The default (everyone) role of this planet
     /// </summary>
     public PlanetRole DefaultRole { get; private set; }
-
-    /// <summary>
-    /// The members of this planet
-    /// </summary>
-    public ModelList<PlanetMember, long> Members { get; } = new();
-
-    /// <summary>
-    /// The invites of this planet
-    /// </summary>
-    public ModelList<PlanetInvite, string> Invites { get; } = new();
-
-    /// <summary>
-    /// The permission nodes of this planet
-    /// </summary>
-    public ModelList<PermissionsNode, long> PermissionsNodes { get; } = new();
 
     /// <summary>
     /// The member for the current user in this planet. Can be null if not a member.
@@ -141,7 +148,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     #region Child Event Handlers
 
-    public void OnChannelUpdated(ModelUpdateEvent<Channel> eventData)
+    public void OnChannelUpdated(ModelEvent<Channel> eventData)
     {
         // We have our own method for this because there are
         // many channel lists to maintain
@@ -157,12 +164,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     }
 
 
-    public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
+    public void OnRoleUpdated(ModelEvent<PlanetRole> eventData)
     {
         if (eventData.Model.IsDefault)
             DefaultRole = eventData.Model;
 
-        Roles.Upsert(eventData);
+        Roles.Put(eventData);
     }
 
     public void OnRoleDeleted(PlanetRole role)
@@ -170,8 +177,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Roles.Remove(role);
     }
 
-    public void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData) =>
-        Members.Upsert(eventData.Model);
+    public void OnMemberUpdated(ModelEvent<PlanetMember> eventData) =>
+        Members.Put(eventData.Model);
 
     public void OnMemberDeleted(PlanetMember member) =>
         Members.Remove(member);
@@ -342,7 +349,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         return await _node.DisconnectFromPlanetRealtime(this);
     }
 
-    public override Planet AddToCacheOrReturnExisting()
+    public override Planet AddToCache()
     {
         Client.NodeService.SetKnownByPlanet(Id, NodeName);
         return Client.Cache.Planets.Put(Id, this);
@@ -384,13 +391,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     private void FastUpsertChannel(Channel channel)
     {
-        Channels.UpsertNoSort(channel, true);
+        Channels.PutNoSort(channel, true);
 
         switch (channel.ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
             {
-                ChatChannels.UpsertNoSort(channel, true);
+                ChatChannels.PutNoSort(channel, true);
 
                 if (channel.IsDefault)
                     PrimaryChatChannel = channel;
@@ -399,13 +406,13 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             }
             case ChannelTypeEnum.PlanetCategory:
             {
-                Categories.UpsertNoSort(channel, true);
+                Categories.PutNoSort(channel, true);
 
                 break;
             }
             case ChannelTypeEnum.PlanetVoice:
             {
-                VoiceChannels.UpsertNoSort(channel, true);
+                VoiceChannels.PutNoSort(channel, true);
 
                 break;
             }
@@ -419,15 +426,15 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// Version of UpsertChannel to be used directly with events
     /// </summary>
     /// <param name="eventData"></param>
-    private void UpsertChannel(ModelUpdateEvent<Channel> eventData)
+    private void UpsertChannel(ModelEvent<Channel> eventData)
     {
-        Channels.Upsert(eventData);
+        Channels.Put(eventData);
 
         switch (eventData.Model.ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
             {
-                ChatChannels.Upsert(eventData);
+                ChatChannels.Put(eventData);
 
                 if (eventData.Model.IsDefault)
                     PrimaryChatChannel = eventData.Model;
@@ -436,12 +443,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             }
             case ChannelTypeEnum.PlanetCategory:
             {
-                Categories.Upsert(eventData);
+                Categories.Put(eventData);
                 break;
             }
             case ChannelTypeEnum.PlanetVoice:
             {
-                VoiceChannels.Upsert(eventData);
+                VoiceChannels.Put(eventData);
                 break;
             }
             default:
@@ -496,8 +503,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         PrimaryChatChannel = channel;
         
-        Channels.Upsert(channel);
-        ChatChannels.Upsert(channel);
+        Channels.Put(channel);
+        ChatChannels.Put(channel);
         
         return channel;
     }
@@ -553,7 +560,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             // Set in cache
             // Skip event for bulk loading
             var cachedMember = Client.Cache.Sync(info.Member, true);
-            Members.Upsert(cachedMember, true);
+            Members.Put(cachedMember, true);
         }
 
         Members.NotifySet();
@@ -574,7 +581,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         {
             // Add or update in cache
             var cached = Client.Cache.Sync(permNode, true);
-            PermissionsNodes.Upsert(cached, true);
+            PermissionsNodes.Put(cached, true);
         }
 
         PermissionsNodes.NotifySet();
@@ -595,7 +602,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         foreach (var invite in invites)
         {
             var cached = Client.Cache.Sync(invite, true);
-            Invites.Upsert(cached, true);
+            Invites.Put(cached, true);
         }
 
         Invites.NotifySet();
@@ -617,7 +624,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         {
             // Skip event for bulk loading
             var cached = Client.Cache.Sync(role, true);
-            Roles.UpsertNoSort(cached, true);
+            Roles.PutNoSort(cached, true);
         }
 
         Roles.Sort();

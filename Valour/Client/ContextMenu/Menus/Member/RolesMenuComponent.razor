@@ -36,12 +36,12 @@
 		Member.Updated -= OnMemberUpdate;
 	}
 
-	private void OnRoleUpdate(ModelListChangeEvent<PlanetRole> eventData)
+	private void OnRoleUpdate(ModelStoreEvent<PlanetRole> eventData)
 	{
 		StateHasChanged();
 	}
 
-	private void OnMemberUpdate(ModelUpdateEvent<PlanetMember> eventData)
+	private void OnMemberUpdate(ModelEvent<PlanetMember> eventData)
 	{
 		if (eventData.PropsChanged.Contains(nameof(PlanetMember.RoleMembership)))
 		{

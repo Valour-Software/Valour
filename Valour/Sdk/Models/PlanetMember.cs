@@ -100,7 +100,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public PlanetRoleMembership RoleMembership { get; set; }
     
-    protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
+    protected override void OnUpdated(ModelEvent<PlanetMember> eventData)
     {
         if (eventData.PropsChanged.Contains(nameof(RoleMembership)))
         {
@@ -122,7 +122,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     public Task<TaskResult> RemoveRoleAsync(long roleId) =>
         Planet.RemoveMemberRoleAsync(Id, roleId);
     
-    public override PlanetMember AddToCacheOrReturnExisting()
+    public override PlanetMember AddToCache()
     {
         // Sync user first
         User = Client.Cache.Sync(User);

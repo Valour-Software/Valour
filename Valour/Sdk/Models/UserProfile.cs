@@ -57,7 +57,7 @@ public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
     /// </summary>
     public string BackgroundImage { get; set; }
 
-    public override UserProfile AddToCacheOrReturnExisting()
+    public override UserProfile AddToCache()
     {
         return Client.Cache.UserProfiles.Put(Id, this);
     }

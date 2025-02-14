@@ -63,7 +63,7 @@ public class Notification : ClientModel<Notification, Guid>, ISharedNotification
     /// </summary>
     public string ClickUrl { get; set; }
 
-    public override Notification AddToCacheOrReturnExisting()
+    public override Notification AddToCache()
     {
         return this;
     }

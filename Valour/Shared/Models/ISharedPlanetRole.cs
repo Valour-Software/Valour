@@ -2,7 +2,7 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
+public interface ISharedPlanetRole : ISharedPlanetModel<int>, ISortable
 {
     public static string GetBaseRoute(long planetId) => $"api/planet/{planetId}/roles";
     public static string GetIdRoute(long planetId, long id) => $"{GetBaseRoute(planetId)}/{id}";
@@ -56,11 +56,6 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     /// The position of the role: Lower has more authority
     /// </summary>
     uint Position { get; set; }
-    
-    /// <summary>
-    /// The id of the role, local to the planet. Used for membership flags.
-    /// </summary>
-    int LocalId { get; set; }
 
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

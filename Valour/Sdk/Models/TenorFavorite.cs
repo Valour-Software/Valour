@@ -20,7 +20,7 @@ public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavor
     /// </summary>
     public long UserId { get; set; }
 
-    public override TenorFavorite AddToCacheOrReturnExisting()
+    public override TenorFavorite AddToCache()
     {
         return this;
     }

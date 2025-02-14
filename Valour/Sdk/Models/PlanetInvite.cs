@@ -49,7 +49,7 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
 
     
 
-    public override PlanetInvite AddToCacheOrReturnExisting()
+    public override PlanetInvite AddToCache()
     {
         return Client.Cache.PlanetInvites.Put(Id, this);
     }

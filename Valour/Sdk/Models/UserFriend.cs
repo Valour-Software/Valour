@@ -30,7 +30,7 @@ public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
     /// </summary>
     public long FriendId { get; set; }
 
-    public override UserFriend AddToCacheOrReturnExisting()
+    public override UserFriend AddToCache()
     {
         return Client.Cache.UserFriends.Put(Id, this);
     }

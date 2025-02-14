@@ -197,14 +197,14 @@
         }
     }
 
-    public void OnMemberListChange(ModelListChangeEvent<PlanetMember> eventData)
+    public void OnMemberListChange(IModelEvent<PlanetMember> eventData)
     {
-        var member = eventData.Model;
-
-        switch (eventData.ChangeType)
+        switch (eventData)
         {
-            case ListChangeType.Added:
+            case ModelAddedEvent<PlanetMember> added:
             {
+                var member = added.Model;
+                
                 // Member is new - calculate their value and insert accordingly
                 var roleId = DetermineDisplayRoleId(member);
                 var roleList = _displayedRoleMembers[roleId];
@@ -216,13 +216,15 @@
                 
                 return;
             }
-            case ListChangeType.Updated:
+            case ModelUpdatedEvent<PlanetMember> updated:
             {
                 // TODO: handle name / whatever changes
                 return;
             }
-            case ListChangeType.Removed:
+            case ModelRemovedEvent<PlanetMember> deleted:
             {
+                var member = deleted.Model;
+                
                 // Member is removed (left planet), remove from display
                 var roleId = DetermineDisplayRoleId(member);
                 var roleList = _displayedRoleMembers[roleId];
@@ -233,20 +235,20 @@
         }
     }
     
-    private void OnPlanetRolesChange(ModelListChangeEvent<PlanetRole> eventData)
+    private void OnPlanetRolesChange(IModelEvent<PlanetRole> eventData)
     {
-        var role = eventData.Model;
-
-        switch (eventData.ChangeType)
+        switch (eventData)
         {
-            case ListChangeType.Set:
+            case ModelsSetEvent<PlanetRole>:
             {
                 // Reset
                 _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
                 return;
             }
-            case ListChangeType.Added:
+            case ModelAddedEvent<PlanetRole> added:
             {
+                var role = added.Model;
+                
                 if (role.HasPermission(PlanetPermissions.DisplayRole))
                 {
                     // Add as new displayed role
@@ -261,8 +263,10 @@
 
                 return;
             }
-            case ListChangeType.Updated:
+            case ModelUpdatedEvent<PlanetRole> updated:
             {
+                var role = updated.Model;
+                
                 // Check if it's a displayed role
                 if (_displayedRoleMembers.ContainsKey(role.Id))
                 {
@@ -306,8 +310,10 @@
 
                 return;
             }
-            case ListChangeType.Removed:
+            case ModelRemovedEvent<PlanetRole> removed:
             {
+                var role = removed.Model;
+                
                 if (role.PlanetId != WindowService.FocusedPlanet.Id)
                     return;
 
