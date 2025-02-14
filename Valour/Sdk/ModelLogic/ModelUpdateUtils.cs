@@ -32,10 +32,9 @@ public static class ModelUpdateUtils
     // (instance, value) => instance.Property = (PropertyType)value.
     public static readonly ImmutableDictionary<Type, Action<object, object>[]>
         ModelSetterCache;
-
-    // Pool for PropsChanged hashsets.
-    public static readonly ObjectPool<HashSet<string>> HashSetPool =
-        new DefaultObjectPoolProvider().Create(new HashSetPooledObjectPolicy<string>());
+    
+    public static readonly ObjectPool<Dictionary<string, object>> ChangeDictPool =
+        new DefaultObjectPoolProvider().Create(new DictPooledObjectPolicy<string, object>());
 
     static ModelUpdateUtils()
     {
@@ -174,17 +173,17 @@ public static class ModelUpdateUtils
     /// <summary>
     /// Returns the given hashset back to the pool.
     /// </summary>
-    public static void ReturnPropsChanged(HashSet<string> propsChanged)
+    public static void ReturnChangeDict(Dictionary<string, object> changes)
     {
-        HashSetPool.Return(propsChanged);
+        ChangeDictPool.Return(changes);
     }
 }
 
-public class HashSetPooledObjectPolicy<T> : PooledObjectPolicy<HashSet<T>>
+public class DictPooledObjectPolicy<TKey, TValue> : PooledObjectPolicy<Dictionary<TKey, TValue>>
 {
-    public override HashSet<T> Create() => new HashSet<T>();
+    public override Dictionary<TKey, TValue> Create() => new();
 
-    public override bool Return(HashSet<T> obj)
+    public override bool Return(Dictionary<TKey, TValue> obj)
     {
         obj.Clear();
         return true;

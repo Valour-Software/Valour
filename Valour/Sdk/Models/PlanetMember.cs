@@ -44,7 +44,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     {
         get
         {
-            _roles ??= Planet.GetRolesFromRoleFlags(RoleMembership);
+            _roles ??= Planet.GetRolesFromMembership(RoleMembership);
             return _roles;
         }
     }
@@ -133,7 +133,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
         return Client.Cache.PlanetMembers.Put(Id, this);
     }
 
-    public override PlanetMember TakeAndRemoveFromCache()
+    public override PlanetMember RemoveFromCache()
     {
         var key = new PlanetMemberKey(UserId, PlanetId);
         Client.Cache.MemberKeyToId.Remove(key);

@@ -119,7 +119,7 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
         return Client.Cache.Themes.Put(Id, this);
     }
 
-    public override Theme TakeAndRemoveFromCache()
+    public override Theme RemoveFromCache()
     {
         return Client.Cache.Themes.TakeAndRemove(Id);
     }

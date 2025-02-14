@@ -420,7 +420,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         return Client.Cache.Messages.Put(Id, this);
     }
 
-    public override Message TakeAndRemoveFromCache()
+    public override Message RemoveFromCache()
     {
         return Client.Cache.Messages.TakeAndRemove(Id);
     }

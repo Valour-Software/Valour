@@ -1,6 +1,5 @@
 ﻿namespace Valour.Sdk.ModelLogic;
 
-
 public struct PositionChange
 {
     public uint OldPosition;
@@ -36,48 +35,22 @@ public readonly struct ModelAddedEvent<TModel> : IModelInsertionEvent<TModel>
 public class ModelUpdatedEvent<TModel> : IModelInsertionEvent<TModel>, IDisposable
     where TModel : ClientModel
 {
-    private bool _disposed = false;
-    
-    public HashSet<string> PropsChanged;
+    public ModelChange<TModel> Changes;
     public PositionChange? PositionChange;
     public readonly TModel Model;
     
     public TModel GetModel() => Model;
     
-    public ModelUpdatedEvent(TModel model, HashSet<string> propsChanged, PositionChange? positionChange = null)
+    public ModelUpdatedEvent(TModel model, ModelChange<TModel> changes, PositionChange? positionChange = null)
     {
         Model = model;
-        PropsChanged = propsChanged;
+        Changes = changes;
         PositionChange = positionChange;
     }
     
-    // Cleanup: Return PropsChanged to pool
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
-        if (_disposed)
-            return;
-
-        if (disposing)
-        {
-            if (PropsChanged != null)
-            {
-                ModelUpdateUtils.ReturnPropsChanged(PropsChanged);
-                PropsChanged = null;
-            }
-        }
-        
-        _disposed = true;
-    }
-
-    ~ModelUpdatedEvent()
-    {
-        Dispose(false);
+        Changes.Dispose();
     }
 }
 

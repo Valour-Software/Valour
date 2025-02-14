@@ -18,7 +18,7 @@ public class ThemeVote : ClientModel<ThemeVote, long>, ISharedThemeVote
         return this;
     }
 
-    public override ThemeVote TakeAndRemoveFromCache()
+    public override ThemeVote RemoveFromCache()
     {
         // we dont cache theme votes
         return this;

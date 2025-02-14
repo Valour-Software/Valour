@@ -35,7 +35,7 @@ public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
         return Client.Cache.UserFriends.Put(Id, this);
     }
 
-    public override UserFriend TakeAndRemoveFromCache()
+    public override UserFriend RemoveFromCache()
     {
         return Client.Cache.UserFriends.TakeAndRemove(Id);
     }

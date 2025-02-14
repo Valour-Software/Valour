@@ -12,7 +12,7 @@ namespace Valour.Sdk.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : ClientPlanetModel<PlanetRole, int>, ISharedPlanetRole
+public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
     public override string BaseRoute =>
         ISharedPlanetRole.GetBaseRoute(PlanetId);
@@ -58,6 +58,12 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, int>, ISharedPlanetRole
     // Cached values
     private List<PermissionsNode> PermissionsNodes { get; set; }
 
+    /// <summary>
+    /// The index of the role in the membership flags.
+    /// Ex: 5 would be the 5th bit in the membership flags
+    /// </summary>
+    public int FlagBitIndex { get; set; }
+    
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
@@ -128,18 +134,19 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, int>, ISharedPlanetRole
         };
     }
 
-    protected override void OnUpdated(ModelEvent<PlanetRole> eventData)
+    protected override void OnUpdated(ModelUpdatedEvent<PlanetRole> eventData)
     {
     }
 
-    public override void Sync(bool skipEvents = false)
+    public override PlanetRole AddToCache(bool skipEvents = false)
     {
-        Planet.Roles.Put(this, skipEvents);
+        
+        return Planet.Roles.Put(this, skipEvents);
     }
 
-    public override PlanetRole TakeAndRemoveFromCache()
+    public override PlanetRole RemoveFromCache()
     {
-        return Client.Cache.PlanetRoles.TakeAndRemove(Id);
+        return Planet.Roles.Remove(this);
     }
 
     protected override void OnDeleted()

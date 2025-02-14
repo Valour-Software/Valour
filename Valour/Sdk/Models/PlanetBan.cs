@@ -48,7 +48,7 @@ public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
         return Client.Cache.PlanetBans.Put(Id, this);
     }
 
-    public override PlanetBan TakeAndRemoveFromCache()
+    public override PlanetBan RemoveFromCache()
     {
         return Client.Cache.PlanetBans.TakeAndRemove(Id);
     }

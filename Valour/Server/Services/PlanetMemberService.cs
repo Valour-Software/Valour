@@ -129,7 +129,7 @@ public class PlanetMemberService
     public async Task<List<PlanetRole>> GetRolesAsync(ISharedPlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
-        var localIds = member.RoleMembership.GetLocalRoleIds();
+        var localIds = member.RoleMembership.GetRoleMembershipFlagIndices();
 
         var roles = new List<PlanetRole>(localIds.Length);
         

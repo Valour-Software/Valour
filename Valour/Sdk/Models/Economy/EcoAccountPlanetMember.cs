@@ -15,10 +15,10 @@ public class EcoAccountPlanetMember : ClientModel<EcoAccountPlanetMember>
         return this;
     }
 
-    public override EcoAccountPlanetMember TakeAndRemoveFromCache()
+    public override EcoAccountPlanetMember RemoveFromCache()
     {
-        Account = Account.TakeAndRemoveFromCache();
-        Member = Member.TakeAndRemoveFromCache();
+        Account = Account.RemoveFromCache();
+        Member = Member.RemoveFromCache();
         
         return this;
     }

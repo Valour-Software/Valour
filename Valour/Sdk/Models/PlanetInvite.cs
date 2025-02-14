@@ -54,7 +54,7 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
         return Client.Cache.PlanetInvites.Put(Id, this);
     }
 
-    public override PlanetInvite TakeAndRemoveFromCache()
+    public override PlanetInvite RemoveFromCache()
     {
         return Client.Cache.PlanetInvites.TakeAndRemove(Id);
     }

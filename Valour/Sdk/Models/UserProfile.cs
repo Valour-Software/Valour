@@ -62,7 +62,7 @@ public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
         return Client.Cache.UserProfiles.Put(Id, this);
     }
     
-    public override UserProfile TakeAndRemoveFromCache()
+    public override UserProfile RemoveFromCache()
     {
         return Client.Cache.UserProfiles.TakeAndRemove(Id);
     }

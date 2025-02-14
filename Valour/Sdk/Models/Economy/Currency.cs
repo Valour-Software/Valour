@@ -56,7 +56,7 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
         return Client.Cache.Currencies.Put(Id, this);
     }
 
-    public override Currency TakeAndRemoveFromCache()
+    public override Currency RemoveFromCache()
     {
         return Client.Cache.Currencies.TakeAndRemove(Id);
     }

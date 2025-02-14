@@ -43,7 +43,7 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
         return Client.Cache.OauthApps.Put(Id, this);
     }
 
-    public override OauthApp TakeAndRemoveFromCache()
+    public override OauthApp RemoveFromCache()
     {
         return Client.Cache.OauthApps.TakeAndRemove(Id);
     }

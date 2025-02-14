@@ -152,7 +152,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
         return Client.Cache.Users.Put(Id, this);
     }
 
-    public override User TakeAndRemoveFromCache()
+    public override User RemoveFromCache()
     {
         return Client.Cache.Users.TakeAndRemove(Id);
     }

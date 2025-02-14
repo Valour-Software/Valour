@@ -69,7 +69,7 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
         return Client.Cache.EcoAccounts.Put(Id, this);
     }
 
-    public override EcoAccount TakeAndRemoveFromCache()
+    public override EcoAccount RemoveFromCache()
     {
         return Client.Cache.EcoAccounts.TakeAndRemove(Id);
     }

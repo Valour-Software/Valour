@@ -119,12 +119,31 @@ public class PlanetService : ServiceBase
 
         return planet.Sync(_client);
     }
+
+    /// <summary>
+    /// Fetches initial data for planet setup
+    /// </summary>
+    public async Task<TaskResult<InitialPlanetData>> FetchInitialPlanetDataAsync(long planetId)
+    {
+        var planet = await FetchPlanetAsync(planetId);
+        return await FetchInitialPlanetDataAsync(planet);
+    }
     
     /// <summary>
-    /// Returns initial data for planet setup
+    /// Fetches initial data for planet setup
     /// </summary>
-    public async Task<TaskResult<InitialPlanetData>> FetchInitialPlanetDataAsync(long planetId) =>
-        await _client.PrimaryNode.GetJsonAsync<InitialPlanetData>($"api/planets/{planetId}/initialData");
+    public async Task<TaskResult> FetchInitialPlanetDataAsync(Planet planet)
+    {
+        var result = await planet.Node.GetJsonAsync<InitialPlanetData>($"api/planets/{planet.Id}/initialData");
+        if (result.Success)
+        {
+            var data = result.Data;
+            data.Roles.SyncAll(_client);
+            data.Channels.SyncAll(_client);
+        }
+        
+        return result.WithoutData();
+    }
 
     /// <summary>
     /// Returns the invite for the given invite code (id)
@@ -251,7 +270,7 @@ public class PlanetService : ServiceBase
         if (!initialDataResult.Success)
         {
             HandlePlanetConnectionFailure(initialDataResult, planet, key);
-            return initialDataResult.WithoutData();
+            return initialDataResult;
         }
 
         sw.Stop();
@@ -432,13 +451,13 @@ public class PlanetService : ServiceBase
         return response.Data;
     }
 
-    public async ValueTask<PlanetRole> FetchRoleAsync(int id, long planetId, bool skipCache = false)
+    public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
         return await FetchRoleAsync(id, planet, skipCache);
     }
 
-    public async ValueTask<PlanetRole> FetchRoleAsync(int id, Planet planet, bool skipCache = false)
+    public async ValueTask<PlanetRole> FetchRoleAsync(long id, Planet planet, bool skipCache = false)
     {
         if (!skipCache && planet.Roles.TryGet(id, out var cached))
             return cached;

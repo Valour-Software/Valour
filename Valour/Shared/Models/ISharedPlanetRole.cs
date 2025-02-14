@@ -2,10 +2,16 @@
 
 namespace Valour.Shared.Models;
 
-public interface ISharedPlanetRole : ISharedPlanetModel<int>, ISortable
+public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 {
     public static string GetBaseRoute(long planetId) => $"api/planet/{planetId}/roles";
     public static string GetIdRoute(long planetId, long id) => $"{GetBaseRoute(planetId)}/{id}";
+    
+    /// <summary>
+    /// The index of the role in the membership flags.
+    /// Ex: 5 would be the 5th bit in the membership flags
+    /// </summary>
+    public int FlagBitIndex { get; set; }
     
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions

@@ -23,7 +23,7 @@ public class ChannelMember : ClientModel<ChannelMember, long>
         return Client.Cache.ChannelMembers.Put(Id, this);
     }
 
-    public override ChannelMember TakeAndRemoveFromCache()
+    public override ChannelMember RemoveFromCache()
     {
         return Client.Cache.ChannelMembers.TakeAndRemove(Id);
     }

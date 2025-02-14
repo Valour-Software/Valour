@@ -99,7 +99,7 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
         return Client.Cache.PermissionsNodes.Put(Id, this);
     }
 
-    public override PermissionsNode TakeAndRemoveFromCache()
+    public override PermissionsNode RemoveFromCache()
     {
         // Remove key from id lookup
         var key = GetCombinedKey();

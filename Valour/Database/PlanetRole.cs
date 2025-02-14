@@ -16,16 +16,17 @@ public class PlanetRole : ISharedPlanetRole
     ///////////////////////
     // Entity Properties //
     ///////////////////////
-
-    /// <summary>
-    /// The Id of the role in the database
-    /// </summary>
-    public long DbId { get; set; }
     
     /// <summary>
-    /// The Id of the role (within the planet)
+    /// The Id of the role
     /// </summary>
-    public int Id { get; set; }
+    public long Id { get; set; }
+    
+    /// <summary>
+    /// The index of the role in the membership flags.
+    /// Ex: 5 would be the 5th bit in the membership flags
+    /// </summary>
+    public int FlagBitIndex { get; set; }
 
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
@@ -94,11 +95,14 @@ public class PlanetRole : ISharedPlanetRole
             entity.ToTable("planet_roles");
 
             // Key
-            entity.HasKey(x => x.DbId);
+            entity.HasKey(x => x.Id);
 
             // Properties
-            entity.Property(x => x.DbId)
+            entity.Property(x => x.Id)
                 .HasColumnName("id");
+            
+            entity.Property(x => x.FlagBitIndex)
+                .HasColumnName("flag_bit_index");
             
             entity.Property(x => x.Id)
                 .HasColumnName("local_id");

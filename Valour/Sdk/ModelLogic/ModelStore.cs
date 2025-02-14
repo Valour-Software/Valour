@@ -46,9 +46,10 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         return b is null || !a.Equals(b);
     }
     
-    protected virtual void HandleChanges(ModelUpdatedEvent<TModel> data, TModel updated)
+    protected virtual ModelUpdatedEvent<TModel> HandleChanges(TModel existing, TModel updated)
     {
-        var existing = data.Model;
+        Dictionary<string, object> changes = null;
+        
         var type = existing.GetType();
         var properties = ModelUpdateUtils.ModelPropertyCache[type];
         var getters = ModelUpdateUtils.ModelGetterCache[type];
@@ -56,18 +57,36 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     
         for (var i = 0; i < properties.Length; i++)
         {
+            var prop = properties[i];
             var a = getters[i](existing);
             var b = getters[i](updated);
-        
+
             if (ValuesDiffer(a, b))
-                data.PropsChanged.Add(properties[i].Name);
-            
+            {
+                if (changes is null)
+                    changes = ModelUpdateUtils.ChangeDictPool.Get();
+                
+                var factory = ChangeFactoryCache.GetOrAddFactory(prop.PropertyType);
+                var change = factory(a, b);
+                changes[prop.Name] = change;
+            }
+
             // Apply the change to the existing model
             setters[i](existing, b);
         }
+        
+        return changes is null ? 
+            new ModelUpdatedEvent<TModel>(existing, null) :
+            new ModelUpdatedEvent<TModel>(existing, new ModelChange<TModel>(changes));
     }
     
-    public virtual IModelInsertionEvent<TModel>? Put(TModel? model, bool skipEvent = false)
+    public TModel? Put(TModel model, bool skipEvent = false)
+    {
+        var result = PutInternal(model, skipEvent);
+        return result?.GetModel();
+    }
+    
+    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, bool skipEvent = false)
     {
         if (model is null)
             return null;
@@ -76,13 +95,11 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         
         if (IdMap.TryGetValue(model.Id, out var existing))
         {
-            var modelEventData = new ModelUpdatedEvent<TModel>(existing, ModelUpdateUtils.HashSetPool.Get());
-            
             // Add change markers to event data and apply changes
-            HandleChanges(modelEventData, model);
+            var modelEventData = HandleChanges(existing, model);
             
             // Check if nothing changed
-            if (modelEventData.PropsChanged.Count == 0)
+            if (modelEventData.Changes is null)
             {
                 modelEventData.Dispose();
                 return null;
@@ -112,15 +129,15 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         return result;
     }
     
-    public void Remove(TModel item, bool skipEvent = false)
+    public TModel? Remove(TModel item, bool skipEvent = false)
     {
-        Remove(item.Id, skipEvent);
+        return Remove(item.Id, skipEvent);
     }
     
-    public void Remove(TId id, bool skipEvent = false)
+    public TModel? Remove(TId id, bool skipEvent = false)
     {
         if (!IdMap.ContainsKey(id))
-            return;
+            return null;
         
         IdMap.Remove(id);
         
@@ -136,6 +153,8 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             ModelDeleted?.Invoke(storeEvent);
             Changed?.Invoke(storeEvent);
         }
+        
+        return item;
     }
     
     public virtual void Set(List<TModel> items, bool skipEvent = false)
@@ -240,26 +259,28 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
     {
     }
 
-    protected override void HandleChanges(ModelUpdatedEvent<TModel> data, TModel updated)
+    protected override ModelUpdatedEvent<TModel> HandleChanges(TModel existing, TModel updated)
     {
-        var oldPos = data.Model.GetSortPosition();
+        var oldPos = existing.GetSortPosition();
         var newPos = updated.GetSortPosition();
+        
+        var baseResult = base.HandleChanges(existing, updated);
         
         if (oldPos != newPos)
         {
-            data.PositionChange = new PositionChange()
+            baseResult.PositionChange = new PositionChange()
             {
                 OldPosition = oldPos,
                 NewPosition = newPos
             };
         }
         
-        base.HandleChanges(data, updated);
+        return baseResult;
     }
 
-    public override IModelInsertionEvent<TModel>? Put(TModel? model, bool skipEvent = false)
+    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, bool skipEvent = false)
     {
-        var baseResult = base.Put(model, true); // Do base put without event
+        var baseResult = base.PutInternal(model, true); // Do base put without event
         if (baseResult is null)
             return null;
         
@@ -314,7 +335,7 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
 
     public void PutNoSort(TModel item, bool skipEvent = false)
     {
-        base.Put(item, skipEvent);
+        base.PutInternal(item, skipEvent);
     }
 
     public override void Set(List<TModel> items, bool skipEvent = false)

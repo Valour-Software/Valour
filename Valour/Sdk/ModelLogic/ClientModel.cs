@@ -104,7 +104,7 @@ public abstract class ClientModel<TSelf> : ClientModel
         // Set the client
         // We need to do this because it may be a brand new model
         SetClient(client);
-        TakeAndRemoveFromCache();
+        RemoveFromCache();
     }
     
     /// <summary>
@@ -120,7 +120,7 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// <summary>
     /// Returns and removes this item from the cache.
     /// </summary>
-    public abstract TSelf TakeAndRemoveFromCache();
+    public abstract TSelf RemoveFromCache();
 
     /// <summary>
     /// Safely invokes the updated event

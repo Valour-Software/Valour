@@ -25,7 +25,7 @@ public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavor
         return this;
     }
 
-    public override TenorFavorite TakeAndRemoveFromCache()
+    public override TenorFavorite RemoveFromCache()
     {
         return this;
     }

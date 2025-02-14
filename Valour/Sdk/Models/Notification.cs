@@ -68,7 +68,7 @@ public class Notification : ClientModel<Notification, Guid>, ISharedNotification
         return this;
     }
 
-    public override Notification TakeAndRemoveFromCache()
+    public override Notification RemoveFromCache()
     {
         return this;
     }

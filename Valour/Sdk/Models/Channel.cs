@@ -217,7 +217,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return Client.Cache.Channels.Put(Id, this);
     }
     
-    public override Channel TakeAndRemoveFromCache()
+    public override Channel RemoveFromCache()
     {
         // Remove from direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)
