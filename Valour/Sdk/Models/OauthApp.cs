@@ -38,13 +38,13 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
     /// </summary>
     public string RedirectUrl { get; set; }
 
-    public override OauthApp AddToCache()
+    public override OauthApp AddToCache(bool skipEvents = false, bool batched = false)
     {
-        return Client.Cache.OauthApps.Put(Id, this);
+        return Client.Cache.OauthApps.Put(this, skipEvents);
     }
 
-    public override OauthApp RemoveFromCache()
+    public override OauthApp RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.OauthApps.TakeAndRemove(Id);
+        return Client.Cache.OauthApps.Remove(this, skipEvents);
     }
 }

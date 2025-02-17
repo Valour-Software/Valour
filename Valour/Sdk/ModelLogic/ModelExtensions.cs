@@ -9,7 +9,7 @@ public static class ModelExtensions
     /// Syncs all items in the list to the cache and updates
     /// references in the list.
     /// </summary>
-    public static List<T> SyncAll<T>(this List<T> list, ValourClient client)
+    public static List<T> SyncAll<T>(this List<T> list, ValourClient client, ModelInsertFlags flags = ModelInsertFlags.None)
         where T : ClientModel<T>
     {
         if (list is null || list.Count == 0)
@@ -18,7 +18,7 @@ public static class ModelExtensions
         for (int i = 0; i < list.Count; i++)
         {
             var item = list[i];
-            list[i] = item.Sync(client);
+            list[i] = item.Sync(client, flags);
         }
         
         return list;
@@ -28,7 +28,7 @@ public static class ModelExtensions
     /// Syncs all items in the array to the cache and updates
     /// references in the array.
     /// </summary>
-    public static T[] SyncAll<T>(this T[] array, ValourClient client)
+    public static T[] SyncAll<T>(this T[] array, ValourClient client, ModelInsertFlags flags = ModelInsertFlags.None)
         where T : ClientModel<T>
     {
         if (array is null || array.Length == 0)
@@ -36,7 +36,7 @@ public static class ModelExtensions
     
         for (int i = 0; i < array.Length; i++)
         {
-            array[i] = array[i].Sync(client);
+            array[i] = array[i].Sync(client, flags);
         }
     
         return array;
@@ -47,7 +47,7 @@ public static class ModelExtensions
     /// references in the enumerable.
     /// </summary>
     public static IEnumerable<T> SyncAll<T>(
-        this IEnumerable<T> source, ValourClient client)
+        this IEnumerable<T> source, ValourClient client, ModelInsertFlags flags = ModelInsertFlags.None)
         where T : ClientModel<T>
     {
         if (source is null)
@@ -55,7 +55,7 @@ public static class ModelExtensions
 
         foreach (var item in source)
         {
-            yield return item.Sync(client);
+            yield return item.Sync(client, flags);
         }
     }
 }

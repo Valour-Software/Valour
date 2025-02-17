@@ -80,20 +80,23 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// Custom logic on model update
     /// </summary>
     protected virtual void OnUpdated(ModelUpdatedEvent<TSelf> eventData) { }
-
+    
     /// <summary>
     /// Syncs the model, returning the master copy. 
     /// </summary>
-    public virtual TSelf Sync(ValourClient client, bool skipEvents = false)
+    /// <param name="client">The ValourClient to sync to</param>
+    /// <param name="flags">Flags to control things like event handling and sorting</param>
+    /// <returns>The updated master copy of the model</returns>
+    public virtual TSelf Sync(ValourClient client, ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // Set the client
         SetClient(client);
         
         // Sync the sub models
-        SyncSubModels(skipEvents);
+        SyncSubModels(flags);
         
         // Add to cache and return master copy of this model
-        return AddToCache(skipEvents);
+        return AddToCache(flags);
     }
     
     /// <summary>
@@ -104,23 +107,23 @@ public abstract class ClientModel<TSelf> : ClientModel
         // Set the client
         // We need to do this because it may be a brand new model
         SetClient(client);
-        RemoveFromCache();
+        RemoveFromCache(skipEvent);
     }
     
     /// <summary>
     /// Syncs the sub models of this model
     /// </summary>
-    public virtual void SyncSubModels(bool skipEvent = false) { }
+    public virtual void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None) { }
 
     /// <summary>
     /// Adds this item to the cache
     /// </summary>
-    public abstract TSelf AddToCache(bool skipEvents = false);
+    public abstract TSelf AddToCache(ModelInsertFlags flags = ModelInsertFlags.None);
     
     /// <summary>
     /// Returns and removes this item from the cache.
     /// </summary>
-    public abstract TSelf RemoveFromCache();
+    public abstract TSelf RemoveFromCache(bool skipEvents = false);
 
     /// <summary>
     /// Safely invokes the updated event

@@ -198,7 +198,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return await Planet.Node.DisconnectFromChannelRealtime(this);
     }
     
-    public override Channel AddToCache(bool skipEvents = false)
+    public override Channel AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // Add to direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)
@@ -209,12 +209,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
                 Client.Cache.DmChannelKeyToId[key] = Id;
             }
         }
-        
-        return PlanetId is null ? Client.Cache.Channels.Put(this, skipEvents) : 
-                                        Planet.Channels.Put(this, skipEvents);
+
+        return PlanetId is null ? Client.Cache.Channels.Put(this, flags) : Planet.Channels.Put(this, flags);
     }
     
-    public override Channel RemoveFromCache()
+    public override Channel RemoveFromCache(bool skipEvents = false)
     {
         // Remove from direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)
@@ -226,7 +225,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             }
         }
         
-        Client.Cache.Channels.Remove(Id);
+        Client.Cache.Channels.Remove(Id, skipEvents);
         
         return this;
     }

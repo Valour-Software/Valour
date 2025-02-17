@@ -63,12 +63,12 @@ public class Notification : ClientModel<Notification, Guid>, ISharedNotification
     /// </summary>
     public string ClickUrl { get; set; }
 
-    public override Notification AddToCache()
+    public override Notification AddToCache(bool skipEvents = false, bool batched = false)
     {
         return this;
     }
 
-    public override Notification RemoveFromCache()
+    public override Notification RemoveFromCache(bool skipEvents = false)
     {
         return this;
     }

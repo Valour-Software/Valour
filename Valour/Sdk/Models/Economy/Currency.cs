@@ -51,13 +51,13 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
         return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
     }
 
-    public override Currency AddToCache()
+    public override Currency AddToCache(bool skipEvents = false, bool batched = false)
     {
-        return Client.Cache.Currencies.Put(Id, this);
+        return Client.Cache.Currencies.Put(this, skipEvents);
     }
 
-    public override Currency RemoveFromCache()
+    public override Currency RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.Currencies.TakeAndRemove(Id);
+        return Client.Cache.Currencies.Remove(this, skipEvents);
     }
 }

@@ -18,13 +18,13 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     /// </summary>
     public long UserId { get; set; }
 
-    public override ChannelMember AddToCache()
+    public override ChannelMember AddToCache(bool skipEvents = false, bool batched = false)
     {
-        return Client.Cache.ChannelMembers.Put(Id, this);
+        return Client.Cache.ChannelMembers.Put(this, skipEvents);
     }
 
-    public override ChannelMember RemoveFromCache()
+    public override ChannelMember RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.ChannelMembers.TakeAndRemove(Id);
+        return Client.Cache.ChannelMembers.Remove(this, skipEvents);
     }
 }

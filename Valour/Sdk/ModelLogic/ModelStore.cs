@@ -7,6 +7,18 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.ModelLogic;
 
+public enum ModelInsertFlags
+{
+    None =        0b0000,
+    SkipEvents =  0b0001,
+    SkipSorting = 0b0010,
+    
+    /// <summary>
+    /// Skips events and sorting
+    /// </summary>
+    Batched =     0b0011,
+}
+
 public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     where TModel : ClientModel<TModel, TId>
     where TId : IEquatable<TId>
@@ -80,13 +92,13 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             new ModelUpdatedEvent<TModel>(existing, new ModelChange<TModel>(changes));
     }
     
-    public TModel? Put(TModel model, bool skipEvent = false)
+    public TModel? Put(TModel model, ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        var result = PutInternal(model, skipEvent);
+        var result = PutInternal(model, flags);
         return result?.GetModel();
     }
     
-    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, bool skipEvent = false)
+    protected virtual IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags)
     {
         if (model is null)
             return null;
@@ -105,7 +117,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
                 return null;
             }
 
-            if (!skipEvent)
+            if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
             {
                 existing.InvokeUpdatedEvent(modelEventData);
                 ModelUpdated?.Invoke(modelEventData);
@@ -278,11 +290,15 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         return baseResult;
     }
 
-    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, bool skipEvent = false)
+    protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags)
     {
-        var baseResult = base.PutInternal(model, true); // Do base put without event
+        var baseResult = base.PutInternal(model, flags); // Do base put without event
         if (baseResult is null)
             return null;
+        
+        // Don't bother positioning the item properly if we're skipping sorting
+        if (flags.HasFlag(ModelInsertFlags.SkipSorting))
+            return baseResult;
         
         bool doRemoval = false;
 
@@ -319,7 +335,7 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
 
         List.Insert(newIndex, resultModel);
         
-        if (!skipEvent)
+        if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
         {
             if (updateEvent is not null) 
                 ModelUpdated?.Invoke(updateEvent);
@@ -330,12 +346,6 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         }
 
         return baseResult;
-    }
-
-
-    public void PutNoSort(TModel item, bool skipEvent = false)
-    {
-        base.PutInternal(item, skipEvent);
     }
 
     public override void Set(List<TModel> items, bool skipEvent = false)

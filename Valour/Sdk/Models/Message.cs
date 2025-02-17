@@ -415,18 +415,18 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public Task<TaskResult<Message>> PostAsync() => 
         CreateAsync();
 
-    public override Message AddToCache()
+    public override Message AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.Messages.Put(Id, this);
+        return Client.Cache.Messages.Put(this, flags);
     }
 
-    public override Message RemoveFromCache()
+    public override Message RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.Messages.TakeAndRemove(Id);
+        return Client.Cache.Messages.Remove(this, skipEvents);
     }
     
-    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
+    public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        ReplyTo = Client.Cache.Sync(ReplyTo);
+        ReplyTo = ReplyTo.Sync(Client, flags);
     }
 }

@@ -321,16 +321,15 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         return await _node.DisconnectFromPlanetRealtime(this);
     }
 
-    public override Planet AddToCache(bool skipEvent = false)
+    public override Planet AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         Client.NodeService.SetKnownByPlanet(Id, NodeName);
-        return Client.Cache.Planets.Put(this);
+        return Client.Cache.Planets.Put(this, flags);
     }
 
-    public override Planet RemoveFromCache()
+    public override Planet RemoveFromCache(bool skipEvents = false)
     {
-        Client.Cache.Planets.Remove(Id);
-        return this;
+        return Client.Cache.Planets.Remove(this, skipEvents);
     }
 
     /// <summary>
@@ -343,21 +342,22 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         if (newData is null)
             return;
 
-        newData.SyncAll(Client);
+        newData.SyncAll(Client, ModelInsertFlags.Batched);
+        
+        Channels.Sort();
+        Channels.NotifySet();
     }
     
     public async Task<Channel> FetchPrimaryChatChannelAsync()
     {
+        if (PrimaryChatChannel is not null)
+            return PrimaryChatChannel;
+        
         var channel = (await Node.GetJsonAsync<Channel>($"{IdRoute}/channels/primary")).Data;
         if (channel is null)
             return null;
-        
-        channel = Client.Cache.Sync(channel);
 
-        PrimaryChatChannel = channel;
-        
-        Channels.PutInternal(channel);
-        ChatChannels.PutInternal(channel);
+        channel.Sync(Client);
         
         return channel;
     }
@@ -404,16 +404,15 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             {
                 var result = task.Result.Data;
                 if (result is not null)
-                    allResults.AddRange(result.Members);x
+                    allResults.AddRange(result.Members);
             }
         }
-
+        
         foreach (var info in allResults)
         {
             // Set in cache
             // Skip event for bulk loading
-            var cachedMember = Client.Cache.Sync(info.Member, true);
-            Members.PutInternal(cachedMember, true);
+            var cachedMember = info.Member.Sync(Client, true);
         }
 
         Members.NotifySet();
@@ -433,8 +432,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         foreach (var permNode in permissionsNodes)
         {
             // Add or update in cache
-            var cached = Client.Cache.Sync(permNode, true);
-            PermissionsNodes.PutInternal(cached, true);
+            permNode.Sync(Client, true);
         }
 
         PermissionsNodes.NotifySet();
@@ -454,8 +452,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         foreach (var invite in invites)
         {
-            var cached = Client.Cache.Sync(invite, true);
-            Invites.PutInternal(cached, true);
+            invite.Sync(Client, true);
         }
 
         Invites.NotifySet();
@@ -473,11 +470,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         Roles.Clear();
 
+        roles.SyncAll(Client);
+
         foreach (var role in roles)
         {
             // Skip event for bulk loading
-            var cached = Client.Cache.Sync(role, true);
-            Roles.PutNoSort(cached, true);
+            role.Sync(Client, true, true);
         }
 
         Roles.Sort();

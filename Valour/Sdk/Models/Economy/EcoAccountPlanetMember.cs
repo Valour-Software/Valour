@@ -7,18 +7,18 @@ public class EcoAccountPlanetMember : ClientModel<EcoAccountPlanetMember>
     public EcoAccount Account { get; set; }
     public PlanetMember Member { get; set; }
     
-    public override EcoAccountPlanetMember AddToCache()
+    public override EcoAccountPlanetMember AddToCache(bool skipEvents = false, bool batched = false)
     {
-        Account = Account.AddToCache();
-        Member = Member.AddToCache();
+        Account = Account.AddToCache(skipEvents, batched);
+        Member = Member.AddToCache(skipEvents, batched);
         
         return this;
     }
 
-    public override EcoAccountPlanetMember RemoveFromCache()
+    public override EcoAccountPlanetMember RemoveFromCache(bool skipEvents = false)
     {
-        Account = Account.RemoveFromCache();
-        Member = Member.RemoveFromCache();
+        Account = Account.RemoveFromCache(skipEvents);
+        Member = Member.RemoveFromCache(skipEvents);
         
         return this;
     }
