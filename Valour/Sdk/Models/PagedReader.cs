@@ -281,6 +281,6 @@ public class PagedModelReader<TModel> : PagedReader<TModel, ModelQueryResponse<T
 
     public override void ProcessPage(ModelQueryResponse<TModel> page)
     {
-        page.Sync();
+        page.Sync(Node.Client);
     }
 }

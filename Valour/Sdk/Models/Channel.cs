@@ -162,16 +162,12 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     private DateTime _lastTypingUpdateSend = DateTime.UtcNow;
 
-    protected override void OnUpdated(ModelEvent<Channel> eventData)
+    protected override void OnUpdated(ModelUpdatedEvent<Channel> eventData)
     {
-        if (PlanetId is not null)
-            Planet.OnChannelUpdated(eventData);
     }
     
     protected override void OnDeleted()
     {
-        if (PlanetId is not null)
-            Planet.OnChannelDeleted(this);
     }
     
     /// <summary>
@@ -202,7 +198,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return await Planet.Node.DisconnectFromChannelRealtime(this);
     }
     
-    public override Channel AddToCache()
+    public override Channel AddToCache(bool skipEvents = false)
     {
         // Add to direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)
@@ -213,8 +209,9 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
                 Client.Cache.DmChannelKeyToId[key] = Id;
             }
         }
-
-        return Client.Cache.Channels.Put(Id, this);
+        
+        return PlanetId is null ? Client.Cache.Channels.Put(this, skipEvents) : 
+                                        Planet.Channels.Put(this, skipEvents);
     }
     
     public override Channel RemoveFromCache()
@@ -305,7 +302,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
         if (Client.Cache.PermNodeKeyToId.TryGetValue(key, out var nodeId))
         {
-            if (Client.Cache.PermissionsNodes.TryGet(nodeId, out var cached))
+            if (Planet.PermissionsNodes.TryGet(nodeId, out var cached))
             {
                 return cached;
             }
@@ -543,7 +540,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             return new List<Message>();
         }
 
-        result.Data.SyncAll(Client.Cache);
+        result.Data.SyncAll(Client);
 
         return result.Data;
     }

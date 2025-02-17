@@ -172,7 +172,7 @@ public class ModelQueryEngine<TModel>
         _totalCount = result.Data.TotalCount;
 
         // Sync to client cache and update references in list
-        result.Data.Sync();
+        result.Data.Sync(_node.Client);
 
         // Place fetched items into local sliding cache
         for (var i = 0; i < result.Data.Items.Count; i++)

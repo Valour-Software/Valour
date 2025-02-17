@@ -22,19 +22,17 @@ public class CacheService
     // Model Caches // 
     //////////////////
 
-    public readonly ModelCache<User, long> Users = new();
-    public readonly ModelCache<EcoAccount, long> EcoAccounts = new();
-    public readonly ModelCache<Currency, long> Currencies = new();
-    public readonly ModelCache<Channel, long> Channels = new();
-    public readonly ModelCache<UserFriend, long> UserFriends = new();
-    public readonly ModelCache<UserProfile, long> UserProfiles = new();
-    public readonly ModelCache<ChannelMember, long> ChannelMembers = new();
-    public readonly ModelCache<Theme, long> Themes = new();
-    public readonly ModelCache<OauthApp, long> OauthApps = new();
-    
-    public readonly ModelCache<Message, long> Messages = new();
-    
-    public readonly ModelCache<Planet, long> Planets = new();
+    public readonly ModelStore<User, long> Users = new();
+    public readonly ModelStore<EcoAccount, long> EcoAccounts = new();
+    public readonly ModelStore<Currency, long> Currencies = new();
+    public readonly ModelStore<Channel, long> Channels = new();
+    public readonly ModelStore<UserFriend, long> UserFriends = new();
+    public readonly ModelStore<UserProfile, long> UserProfiles = new();
+    public readonly ModelStore<ChannelMember, long> ChannelMembers = new();
+    public readonly ModelStore<Theme, long> Themes = new();
+    public readonly ModelStore<OauthApp, long> OauthApps = new();
+    public readonly ModelStore<Message, long> Messages = new();
+    public readonly ModelStore<Planet, long> Planets = new();
     
     private readonly ValourClient _client;
     
