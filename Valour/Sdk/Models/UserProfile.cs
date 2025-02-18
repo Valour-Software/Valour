@@ -57,13 +57,13 @@ public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
     /// </summary>
     public string BackgroundImage { get; set; }
 
-    public override UserProfile AddToCache()
+    public override UserProfile AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.UserProfiles.Put(Id, this);
+        return Client.Cache.UserProfiles.Put(this, flags);
     }
     
-    public override UserProfile RemoveFromCache()
+    public override UserProfile RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.UserProfiles.TakeAndRemove(Id);
+        return Client.Cache.UserProfiles.Remove(this, skipEvents);
     }
 }

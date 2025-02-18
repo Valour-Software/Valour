@@ -56,7 +56,7 @@ public class BotService : ServiceBase
         // Add to cache
         foreach (var planet in planets)
         {
-            var cached = _client.Cache.Sync(planet);
+            var cached = planet.Sync(_client);
             await planet.FetchChannelsAsync();
             
             planetTasks.Add(Task.Run(async () =>

@@ -135,7 +135,7 @@ public class AuthService : ServiceBase
         if (!response.Success)
             return response.WithoutData();
 
-        _client.Me = _client.Cache.Sync(response.Data);
+        _client.Me = response.Data.Sync(_client);
         
         LoggedIn?.Invoke(_client.Me);
 
