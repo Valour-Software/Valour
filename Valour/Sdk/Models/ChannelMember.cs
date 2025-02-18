@@ -18,9 +18,9 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     /// </summary>
     public long UserId { get; set; }
 
-    public override ChannelMember AddToCache(bool skipEvents = false, bool batched = false)
+    public override ChannelMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.ChannelMembers.Put(this, skipEvents);
+        return Client.Cache.ChannelMembers.Put(this, flags);
     }
 
     public override ChannelMember RemoveFromCache(bool skipEvents = false)

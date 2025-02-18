@@ -412,7 +412,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         {
             // Set in cache
             // Skip event for bulk loading
-            var cachedMember = info.Member.Sync(Client, true);
+            info.Member.Sync(Client, ModelInsertFlags.Batched);
         }
 
         Members.NotifySet();
@@ -429,12 +429,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         PermissionsNodes.Clear(true);
 
-        foreach (var permNode in permissionsNodes)
-        {
-            // Add or update in cache
-            permNode.Sync(Client, true);
-        }
-
+        permissionsNodes.SyncAll(Client, ModelInsertFlags.Batched);
+        
         PermissionsNodes.NotifySet();
     }
 
@@ -450,10 +446,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         Invites.Clear(true);
 
-        foreach (var invite in invites)
-        {
-            invite.Sync(Client, true);
-        }
+        invites.SyncAll(Client, ModelInsertFlags.Batched);
 
         Invites.NotifySet();
     }
@@ -470,13 +463,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
         Roles.Clear();
 
-        roles.SyncAll(Client);
-
-        foreach (var role in roles)
-        {
-            // Skip event for bulk loading
-            role.Sync(Client, true, true);
-        }
+        roles.SyncAll(Client, ModelInsertFlags.Batched);
 
         Roles.Sort();
 

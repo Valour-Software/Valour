@@ -147,14 +147,14 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     public string GetFailedAvatar() =>
         ISharedUser.GetFailedAvatar(this);
 
-    public override User AddToCache()
+    public override User AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.Users.Put(Id, this);
+        return Client.Cache.Users.Put(this, flags);
     }
 
-    public override User RemoveFromCache()
+    public override User RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.Users.TakeAndRemove(Id);
+        return Client.Cache.Users.Remove(this, skipEvents);
     }
 }
 

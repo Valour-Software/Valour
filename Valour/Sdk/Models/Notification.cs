@@ -63,7 +63,7 @@ public class Notification : ClientModel<Notification, Guid>, ISharedNotification
     /// </summary>
     public string ClickUrl { get; set; }
 
-    public override Notification AddToCache(bool skipEvents = false, bool batched = false)
+    public override Notification AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return this;
     }

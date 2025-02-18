@@ -138,15 +138,15 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     {
     }
 
-    public override PlanetRole AddToCache(bool skipEvents = false)
+    public override PlanetRole AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         
-        return Planet.Roles.Put(this, skipEvents);
+        return Planet.Roles.Put(this, flags);
     }
 
-    public override PlanetRole RemoveFromCache()
+    public override PlanetRole RemoveFromCache(bool skipEvents = false)
     {
-        return Planet.Roles.Remove(this);
+        return Planet.Roles.Remove(this, skipEvents);
     }
 
     protected override void OnDeleted()

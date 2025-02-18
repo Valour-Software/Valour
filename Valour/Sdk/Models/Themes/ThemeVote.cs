@@ -12,13 +12,13 @@ public class ThemeVote : ClientModel<ThemeVote, long>, ISharedThemeVote
     public bool Sentiment { get; set; }
     public DateTime CreatedAt { get; set; }
     
-    public override ThemeVote AddToCache()
+    public override ThemeVote AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // we dont cache theme votes
         return this;
     }
 
-    public override ThemeVote RemoveFromCache()
+    public override ThemeVote RemoveFromCache(bool skipEvents = false)
     {
         // we dont cache theme votes
         return this;

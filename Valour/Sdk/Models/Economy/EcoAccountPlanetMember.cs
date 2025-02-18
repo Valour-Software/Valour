@@ -7,10 +7,10 @@ public class EcoAccountPlanetMember : ClientModel<EcoAccountPlanetMember>
     public EcoAccount Account { get; set; }
     public PlanetMember Member { get; set; }
     
-    public override EcoAccountPlanetMember AddToCache(bool skipEvents = false, bool batched = false)
+    public override EcoAccountPlanetMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        Account = Account.AddToCache(skipEvents, batched);
-        Member = Member.AddToCache(skipEvents, batched);
+        Account = Account.AddToCache(flags);
+        Member = Member.AddToCache(flags);
         
         return this;
     }

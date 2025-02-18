@@ -30,13 +30,13 @@ public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
     /// </summary>
     public long FriendId { get; set; }
 
-    public override UserFriend AddToCache()
+    public override UserFriend AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.UserFriends.Put(Id, this);
+        return Client.Cache.UserFriends.Put(this, flags);
     }
 
-    public override UserFriend RemoveFromCache()
+    public override UserFriend RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.UserFriends.TakeAndRemove(Id);
+        return Client.Cache.UserFriends.Remove(this, skipEvents);
     }
 }

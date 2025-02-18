@@ -43,13 +43,13 @@ public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
     /// </summary>
     public bool Permanent => TimeExpires == null;
 
-    public override PlanetBan AddToCache(bool skipEvents = true, )
+    public override PlanetBan AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.PlanetBans.Put(Id, this);
+        return Planet.Bans.Put(this, flags);
     }
 
-    public override PlanetBan RemoveFromCache()
+    public override PlanetBan RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.PlanetBans.TakeAndRemove(Id);
+        return Planet.Bans.Remove(this, skipEvents);
     }
 }

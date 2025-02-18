@@ -38,9 +38,9 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
     /// </summary>
     public string RedirectUrl { get; set; }
 
-    public override OauthApp AddToCache(bool skipEvents = false, bool batched = false)
+    public override OauthApp AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.OauthApps.Put(this, skipEvents);
+        return Client.Cache.OauthApps.Put(this, flags);
     }
 
     public override OauthApp RemoveFromCache(bool skipEvents = false)

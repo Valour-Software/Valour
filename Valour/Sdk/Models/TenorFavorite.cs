@@ -20,12 +20,12 @@ public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavor
     /// </summary>
     public long UserId { get; set; }
 
-    public override TenorFavorite AddToCache()
+    public override TenorFavorite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return this;
     }
 
-    public override TenorFavorite RemoveFromCache()
+    public override TenorFavorite RemoveFromCache(bool skipEvents)
     {
         return this;
     }
