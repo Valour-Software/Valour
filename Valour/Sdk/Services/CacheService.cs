@@ -34,6 +34,9 @@ public class CacheService
     public readonly ModelStore<Message, long> Messages = new();
     public readonly ModelStore<Planet, long> Planets = new();
     
+    // For planets invites of planets the user is not a member of
+    public readonly ModelStore<PlanetInvite, string> OutsidePlanetInvites = new();
+    
     private readonly ValourClient _client;
     
     public CacheService(ValourClient client)

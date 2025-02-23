@@ -57,7 +57,7 @@ public class NotificationService
         // Add to cache
         foreach (var notification in notifications)
         {
-            var cached = _client.Cache.Sync(notification);
+            var cached = notification.Sync(_client);
             
             // Only add if unread
             if (notification.TimeRead is not null)
@@ -94,7 +94,7 @@ public class NotificationService
 
     public void OnNotificationReceived(Notification notification)
     {
-        var cached = _client.Cache.Sync(notification);   
+        var cached = notification.Sync(_client);
         
         if (cached.TimeRead is null)
         {

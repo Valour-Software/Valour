@@ -96,7 +96,7 @@ public class ChannelService : ServiceBase
 
         var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetDirectIdRoute(id))).Data;
 
-        return _cache.Sync(channel);
+        return channel.Sync(_client);
     }
 
     public async ValueTask<Channel> FetchPlanetChannelAsync(long id, long planetId, bool skipCache = false)
@@ -112,7 +112,7 @@ public class ChannelService : ServiceBase
 
         var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id))).Data;
 
-        return _cache.Sync(channel);
+        return channel.Sync(_client);
     }
 
     public Task<TaskResult<Channel>> CreatePlanetChannelAsync(Planet planet, CreateChannelRequest request)
@@ -137,7 +137,7 @@ public class ChannelService : ServiceBase
         var dmChannel = (await _client.PrimaryNode.GetJsonAsync<Channel>(
             $"{ISharedChannel.DirectBaseRoute}/byUser/{otherUserId}?create={create}")).Data;
 
-        return _cache.Sync(dmChannel);
+        return dmChannel.Sync(_client);
     }
     
     public async Task<List<PlanetMember>> FetchRecentChattersAsync(Channel channel)
@@ -148,7 +148,7 @@ public class ChannelService : ServiceBase
     public async Task<List<PlanetMember>> FetchRecentChattersAsync(long channelId, Planet planet)
     {
         var result = await planet.Node.GetJsonAsync<List<PlanetMember>>($"{ISharedChannel.GetPlanetIdRoute(planet.Id, channelId)}/recentChatters");
-        result.Data.SyncAll(_client.Cache);
+        result.Data.SyncAll(_client);
         return result.Data;
     }
     
@@ -189,7 +189,7 @@ public class ChannelService : ServiceBase
                 }
             }
 
-            var cached = _cache.Sync(channel);
+            var cached = channel.Sync(_client);
             _directChatChannels.Add(cached);
             _directChatChannelsLookup.Add(cached.Id, cached);
         }

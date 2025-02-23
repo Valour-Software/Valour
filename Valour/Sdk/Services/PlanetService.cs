@@ -83,14 +83,6 @@ public class PlanetService : ServiceBase
     {
         _client = client;
 
-        // Add victor dummy member
-        _client.Cache.PlanetMembers.PutReplace(long.MaxValue, new PlanetMember()
-        {
-            Nickname = "Victor",
-            Id = long.MaxValue,
-            MemberAvatar = "./_content/Valour.Client/media/logo/logo-256.webp"
-        });
-
         // Setup readonly collections
         JoinedPlanets = _joinedPlanets;
         ConnectedPlanets = _connectedPlanets;
@@ -123,7 +115,7 @@ public class PlanetService : ServiceBase
     /// <summary>
     /// Fetches initial data for planet setup
     /// </summary>
-    public async Task<TaskResult<InitialPlanetData>> FetchInitialPlanetDataAsync(long planetId)
+    public async Task<TaskResult> FetchInitialPlanetDataAsync(long planetId)
     {
         var planet = await FetchPlanetAsync(planetId);
         return await FetchInitialPlanetDataAsync(planet);
@@ -150,12 +142,12 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<PlanetInvite> FetchInviteAsync(string code, bool skipCache = false)
     {
-        if (_client.Cache.PlanetInvites.TryGet(code, out var cached))
+        if (_client.Cache.OutsidePlanetInvites.TryGet(code, out var cached))
             return cached;
 
         var invite = (await _client.PrimaryNode.GetJsonAsync<PlanetInvite>(ISharedPlanetInvite.GetIdRoute(code))).Data;
 
-        return _client.Cache.Sync(invite);
+        return invite.Sync(_client);
     }
 
     public async Task<InviteScreenModel> FetchInviteScreenData(string code) =>
@@ -175,7 +167,7 @@ public class PlanetService : ServiceBase
 
         _joinedPlanets.Clear();
 
-        planets.SyncAll(_client.Cache);
+        planets.SyncAll(_client);
 
         // Add to cache
         foreach (var planet in planets)
@@ -490,14 +482,14 @@ public class PlanetService : ServiceBase
         var key = new PlanetMemberKey(userId, planet.Id);
 
         if (!skipCache && _client.Cache.MemberKeyToId.TryGetValue(key, out var id) &&
-            _client.Cache.PlanetMembers.TryGet(id, out var cached))
+            planet.Members.TryGet(id, out var cached))
             return cached;
 
         var member =
             (await planet.Node.GetJsonAsync<PlanetMember>(
                 $"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
 
-        return _client.Cache.Sync(member);
+        return member.Sync(_client);
     }
 
     public async ValueTask<PlanetMember> FetchMemberAsync(long id, long planetId, bool skipCache = false)
@@ -508,12 +500,12 @@ public class PlanetService : ServiceBase
 
     public async ValueTask<PlanetMember> FetchMemberAsync(long id, Planet planet, bool skipCache = false)
     {
-        if (!skipCache && _client.Cache.PlanetMembers.TryGet(id, out var cached))
+        if (!skipCache && planet.Members.TryGet(id, out var cached))
             return cached;
 
         var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
 
-        return _client.Cache.Sync(member);
+        return member.Sync(_client);
     }
 
     public async Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)

@@ -203,6 +203,14 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public Planet()
     {
         Roles.Changed += OnRolesChanged;
+        
+        // Add victor dummy member
+        Members.Put(new PlanetMember()
+        {
+            Nickname = "Victor",
+            Id = long.MaxValue,
+            MemberAvatar = "./_content/Valour.Client/media/logo/logo-256.webp"
+        });
     }
 
     private void OnRolesChanged(IModelEvent<PlanetRole> changeEvent)

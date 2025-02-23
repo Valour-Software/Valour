@@ -51,6 +51,11 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
 
     public override PlanetInvite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
+        var planet = GetPlanet(false);
+        
+        if (planet is null)
+            return Client.Cache.OutsidePlanetInvites.Put(this, flags);
+        
         return Planet.Invites.Put(this, flags);
     }
 

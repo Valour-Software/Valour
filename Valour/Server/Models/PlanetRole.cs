@@ -75,6 +75,8 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
     public bool Italics { get; set; }
     public string Name { get; set; }
     
+    public int FlagBitIndex { get; set; }
+    
     public bool AnyoneCanMention { get; set; }
 
     public uint GetAuthority() =>

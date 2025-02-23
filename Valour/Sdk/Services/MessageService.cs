@@ -60,7 +60,7 @@ public class MessageService : ServiceBase
         
         var response = await _client.PrimaryNode.GetJsonAsync<Message>($"api/message/{id}");
 
-        return _client.Cache.Sync(response.Data);
+        return response.Data.Sync(_client);
     }
     
     public async ValueTask<Message> FetchMessageAsync(long id, Planet planet, bool skipCache = false)
@@ -70,7 +70,7 @@ public class MessageService : ServiceBase
         
         var response = await (planet?.Node ?? _client.PrimaryNode).GetJsonAsync<Message>($"api/message/{id}");
 
-        return _client.Cache.Sync(response.Data);
+        return response.Data.Sync(_client);
     }
     
     /// <summary>
@@ -84,19 +84,15 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnPlanetMessageReceived(Message message)
     {
-        var cached = _cache.Sync(message);
+        var cached = message.Sync(_client);
         
         Log($"[{cached.Node?.Name}]: Received planet message {cached.Id} for channel {cached.ChannelId}");
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = _cache.Sync(message.ReplyTo);
-        }
 
         MessageReceived?.Invoke(cached);
         
         if (_cache.Channels.TryGet(cached.ChannelId, out var channel))
         {
-            channel.NotifyMessageReceived(message);
+            channel?.NotifyMessageReceived(message);
         }
     }
     
@@ -106,18 +102,14 @@ public class MessageService : ServiceBase
     private void OnPlanetMessageEdited(Message message)
     {
         Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = _cache.Sync(message.ReplyTo);
-        }
 
-        var cached = _cache.Sync(message);
+        var cached = message.Sync(_client);
         
         MessageEdited?.Invoke(cached);
         
         if (_cache.Channels.TryGet(message.ChannelId, out var channel))
         {
-            channel.NotifyMessageEdited(message);
+            channel?.NotifyMessageEdited(message);
         }
     }
     
@@ -127,19 +119,14 @@ public class MessageService : ServiceBase
     private void OnDirectMessageReceived(Message message)
     {
         Log($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
-        
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = _cache.Sync(message.ReplyTo);
-        }
-        
-        var cached = _cache.Sync(message);
+
+        var cached = message.Sync(_client);
         
         MessageReceived?.Invoke(cached);
         
         if (_cache.Channels.TryGet(message.ChannelId, out var channel))
         {
-            channel.NotifyMessageReceived(message);
+            channel?.NotifyMessageReceived(message);
         }
     }
     
@@ -149,18 +136,14 @@ public class MessageService : ServiceBase
     private void OnDirectMessageEdited(Message message)
     {
         Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
-        if (message.ReplyTo is not null)
-        {
-            message.ReplyTo = _cache.Sync(message.ReplyTo);
-        }
-        
-        var cached = _cache.Sync(message);
+
+        var cached = message.Sync(_client);
         
         MessageEdited?.Invoke(cached);
         
         if (_cache.Channels.TryGet(message.ChannelId, out var channel))
         {
-            channel.NotifyMessageEdited(message);
+            channel?.NotifyMessageEdited(message);
         }
     }
 

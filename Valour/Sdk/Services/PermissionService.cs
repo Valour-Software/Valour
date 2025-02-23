@@ -33,19 +33,19 @@ public class PermissionService : ServiceBase
     {
         if (!skipCache && 
             _cache.PermNodeKeyToId.TryGetValue(key, out var id) &&
-            _cache.PermissionsNodes.TryGet(id, out var cached))
+            planet.PermissionsNodes.TryGet(id, out var cached))
             return cached;
         
         var permNode = (await planet.Node.GetJsonAsync<PermissionsNode>(
             ISharedPermissionsNode.GetIdRoute(key.TargetId, key.RoleId, key.TargetType), 
             true)).Data;
-        
-        return _cache.Sync(permNode);
+
+        return permNode.Sync(_client);
     }
     
     public async Task<List<PermissionsNode>> FetchPermissionsNodesByRoleAsync(long roleId, Planet planet)
     {
         var permissionNodes = (await planet.Node.GetJsonAsync<List<PermissionsNode>>($"{ISharedPlanetRole.GetIdRoute(planet.Id, roleId)}/nodes")).Data;
-        return permissionNodes.SyncAll(_cache);
+        return permissionNodes.SyncAll(_client);
     }
 }
