@@ -102,10 +102,7 @@ public class PlanetRole : ISharedPlanetRole
                 .HasColumnName("id");
             
             entity.Property(x => x.FlagBitIndex)
-                .HasColumnName("flag_bit_index");
-            
-            entity.Property(x => x.Id)
-                .HasColumnName("local_id");
+                .HasColumnName("local_index");
 
             entity.Property(x => x.IsAdmin)
                 .HasColumnName("is_admin");

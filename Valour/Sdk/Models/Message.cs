@@ -427,6 +427,6 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     
     public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        ReplyTo = ReplyTo.Sync(Client, flags);
+        ReplyTo = ReplyTo?.Sync(Client, flags);
     }
 }
