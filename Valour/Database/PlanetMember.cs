@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -39,17 +40,7 @@ public class PlanetMember : ISharedPlanetMember
     public long Rf2 { get; set; }
     public long Rf3 { get; set; }
     
-    public PlanetRoleMembership RoleMembership
-    {
-        get => new PlanetRoleMembership(Rf0, Rf1, Rf2, Rf3);
-        set
-        {
-            Rf0 = value.Rf0;
-            Rf1 = value.Rf1;
-            Rf2 = value.Rf2;
-            Rf3 = value.Rf3;
-        }
-    }
+    public PlanetRoleMembership RoleMembership { get; set; }
 
     /// <summary>
     /// Configures the entity model for the `PlanetMember` class using fluent configuration.
@@ -83,18 +74,21 @@ public class PlanetMember : ISharedPlanetMember
             
             e.Property(x => x.IsDeleted)
                 .HasColumnName("is_deleted");
-            
-            e.Property(x => x.Rf0)
-                .HasColumnName("rf0");
-            
-            e.Property(x => x.Rf1)
-                .HasColumnName("rf1");
-            
-            e.Property(x => x.Rf2)
-                .HasColumnName("rf2");
-            
-            e.Property(x => x.Rf3)
-                .HasColumnName("rf3");
+
+            e.ComplexProperty<PlanetRoleMembership>(x => x.RoleMembership, b =>
+            {
+                b.Property(x => x.Rf0)
+                    .HasColumnName("rf0");
+                
+                b.Property(x => x.Rf1)
+                    .HasColumnName("rf1");
+                
+                b.Property(x => x.Rf2)
+                    .HasColumnName("rf2");
+                
+                b.Property(x => x.Rf3)
+                    .HasColumnName("rf3");
+            });
             
             // Relationships
 

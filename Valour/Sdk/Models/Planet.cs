@@ -286,7 +286,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
             return roles;
 
         // Get role membership flags
-        var roleFlags = membership.GetRoleMembershipFlagIndices();
+        var roleFlags = membership.GetRoleIndices();
         
         // Get role for each flag
         List<PlanetRole> roleList = new(roleFlags.Length);

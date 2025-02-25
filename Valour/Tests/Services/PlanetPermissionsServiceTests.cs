@@ -111,8 +111,8 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, ISharedPlanet.ValourCentralId);
         Assert.NotNull(member); // New member should be a member of valour central
 
-        var oldRoleKey = member.RoleMembershipHash;
-        Assert.NotEqual(0, oldRoleKey); // Should have a role key
+        var oldRoleKey = member.RoleMembership;
+        Assert.NotEqual(new PlanetRoleMembership(), oldRoleKey); // Should have membership
         
         // Ensure they do NOT have planet permissions
         var canManage = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
@@ -191,7 +191,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         member = await _planetMemberService.GetAsync(member.Id);
         
         // Should have a new role key on the member
-        Assert.NotEqual(oldRoleKey, member.RoleMembershipHash);
+        Assert.NotEqual(oldRoleKey, member.RoleMembership);
         
         // Ensure the member now has manage permissions
         canManage = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
@@ -201,7 +201,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         await TestHasPermissionAllChannels(member);
         
         // Remove the admin role
-        var removeRoleResult = await _planetMemberService.RemoveRoleAsync(member.Id, adminRole.Id);
+        var removeRoleResult = await _planetMemberService.RemoveRoleAsync(member.PlanetId, member.Id, adminRole.Id);
         Assert.True(removeRoleResult.Success);
         
         // Ensure the member no longer has manage permissions

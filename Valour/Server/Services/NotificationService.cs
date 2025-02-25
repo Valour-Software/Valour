@@ -134,7 +134,7 @@ public class NotificationService
     public async Task SendRoleNotificationsAsync(long roleId, Models.Notification baseNotification)
     {
         var hostedPlanet = await _hostedService.GetRequiredAsync(baseNotification.PlanetId!.Value);
-        var role = hostedPlanet.GetRoleByGlobalId(roleId);
+        var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)
             return;
         
@@ -144,7 +144,7 @@ public class NotificationService
         // at some point to handle this.
         var notifications = await _db.PlanetMembers
             .AsNoTracking()
-            .WithRoleByLocalId(hostedPlanet.Planet.Id,  role.LocalId)
+            .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.LocalId)
             .Select(x => new Valour.Database.Notification()
             {
                 Id = Guid.NewGuid(),

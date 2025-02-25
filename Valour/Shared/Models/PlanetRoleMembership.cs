@@ -7,6 +7,11 @@ namespace Valour.Shared.Models;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
 {
+    /// <summary>
+    /// A default instance of PlanetRoleMembership with only the default role.
+    /// </summary>
+    public static readonly PlanetRoleMembership Default = new(0x01);
+    
     public readonly long Rf0;
     public readonly long Rf1;
     public readonly long Rf2;
@@ -32,7 +37,7 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
         BitOperations.PopCount((ulong)Rf2) +
         BitOperations.PopCount((ulong)Rf3);
 
-    public int[] GetRoleMembershipFlagIndices()
+    public int[] GetRoleIndices()
     {
         int total = GetRoleCount();
         var result = new int[total];
@@ -52,10 +57,10 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
         return result;
     }
 
-    public static PlanetRoleMembership FromLocalRoleIds(IEnumerable<int> roleIds)
+    public static PlanetRoleMembership FromRoleIndices(IEnumerable<int> roleIndices)
     {
         long rb0 = 0L, rb1 = 0L, rb2 = 0L, rb3 = 0L;
-        foreach (var roleId in roleIds)
+        foreach (var roleId in roleIndices)
         {
             int block = roleId >> 6;
             int offset = roleId & 63;
@@ -78,15 +83,116 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
         return new PlanetRoleMembership(rb0, rb1, rb2, rb3);
     }
 
-    public bool HasRole(int localId)
+    public bool HasRole(int index)
     {
-        if ((uint)localId >= 256)
+        if ((uint)index >= 256)
             return false;
 
-        int block = localId >> 6;   // localId / 64.
-        int offset = localId & 63;  // localId % 64.
+        int block = index >> 6;   // localId / 64.
+        int offset = index & 63;  // localId % 64.
 
         return (Fields[block] & (1L << offset)) != 0;
+    }
+    
+    public PlanetRoleMembership AddRole(ISharedPlanetRole role) =>
+        AddRoleByIndex(role.FlagBitIndex);
+
+    public PlanetRoleMembership AddRoleByIndex(int roleIndex)
+    {
+        // Copy the existing fields.
+        long rb0 = Rf0, rb1 = Rf1, rb2 = Rf2, rb3 = Rf3;
+        
+        // Calculate the block and offset.
+        int block = roleIndex >> 6;
+        int offset = roleIndex & 63;
+        
+        // Set the bit.
+        switch (block)
+        {
+            case 0:
+                rb0 |= 1L << offset;
+                break;
+            case 1:
+                rb1 |= 1L << offset;
+                break;
+            case 2:
+                rb2 |= 1L << offset;
+                break;
+            case 3:
+                rb3 |= 1L << offset;
+                break;
+        }
+        
+        return new PlanetRoleMembership(rb0, rb1, rb2, rb3);
+    }
+    
+    public PlanetRoleMembership RemoveRole(ISharedPlanetRole role) =>
+        RemoveRoleByIndex(role.FlagBitIndex);
+    
+    public PlanetRoleMembership RemoveRoleByIndex(int roleIndex)
+    {
+        // Copy the existing fields.
+        long rb0 = Rf0, rb1 = Rf1, rb2 = Rf2, rb3 = Rf3;
+        
+        // Calculate the block and offset.
+        int block = roleIndex >> 6;
+        int offset = roleIndex & 63;
+        
+        // Clear the bit.
+        switch (block)
+        {
+            case 0:
+                rb0 &= ~(1L << offset);
+                break;
+            case 1:
+                rb1 &= ~(1L << offset);
+                break;
+            case 2:
+                rb2 &= ~(1L << offset);
+                break;
+            case 3:
+                rb3 &= ~(1L << offset);
+                break;
+        }
+        
+        return new PlanetRoleMembership(rb0, rb1, rb2, rb3);
+    }
+    
+    /// <summary>
+    /// Allows enumerating the indices of all roles in the membership,
+    /// without allocating an array.
+    /// </summary>
+    public IEnumerable<int> EnumerateRoleIndices()
+    {
+        for (int block = 0; block < 4; block++)
+        {
+            var bits = Fields[block];
+            while (bits != 0)
+            {
+                var tzc = BitOperations.TrailingZeroCount((ulong)bits);
+                yield return (block << 6) + tzc;
+                bits &= ~(1L << tzc);
+            }
+        }
+    }
+    
+    public byte[] ToBinary()
+    {
+        var bytes = new byte[32]; // 4 longs * 8 bytes
+        MemoryMarshal.Write(bytes, ref Unsafe.AsRef(in Rf0));
+        return bytes;
+    }
+    
+    public static PlanetRoleMembership FromBinary(byte[] bytes)
+    {
+        if (bytes.Length < 32) 
+            return PlanetRoleMembership.Default;
+            
+        return new PlanetRoleMembership(
+            BitConverter.ToInt64(bytes, 0),
+            BitConverter.ToInt64(bytes, 8),
+            BitConverter.ToInt64(bytes, 16),
+            BitConverter.ToInt64(bytes, 24));
     }
 
     #region IEquatable<PlanetRoleMembership> Implementation

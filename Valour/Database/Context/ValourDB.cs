@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Valour.Config;
 using Valour.Config.Configs;
 using Valour.Database.Economy;
+using Valour.Database.Extensions;
 using Valour.Database.Themes;
+using Valour.Shared.Models;
 
 /*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2024 Valour Software LLC

@@ -749,10 +749,6 @@ public class UserService
             
             await _db.SaveChangesAsync();
 
-            // Remove membership stuff
-            var pRoles = _db.PlanetRoleMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.PlanetRoleMembers.RemoveRange(pRoles);
-
             // Remove planet membership
             var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PlanetMembers.RemoveRange(members);

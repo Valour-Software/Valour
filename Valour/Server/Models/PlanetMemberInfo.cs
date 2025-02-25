@@ -6,12 +6,5 @@ namespace Valour.Server.Models;
 public class PlanetMemberInfo
 {
     public int TotalCount { get; set; }
-    public List<PlanetMemberData> Members { get; set; }
+    public List<PlanetMember> Members { get; set; }
 }
-
-public class PlanetMemberData
-{
-    public PlanetMember Member { get; set; }
-    public List<long> RoleIds { get; set; }
-}
-

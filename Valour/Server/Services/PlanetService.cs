@@ -5,7 +5,6 @@ using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using PlanetRoleMember = Valour.Database.PlanetRoleMember;
 
 namespace Valour.Server.Services;
 
@@ -254,11 +253,7 @@ public class PlanetService
             .OrderBy(x => x.Id)
             .Skip(page * 100)
             .Take(100)
-            .Select(x => new PlanetMemberData
-            {
-                Member = x.ToModel(),
-                RoleIds = x.RoleMembership.OrderBy(rm => rm.Role.Position).Select(rm => rm.RoleId).ToList()
-            })
+            .Select(x => x.ToModel())
             .ToListAsync();
 
         return new PlanetMemberInfo()
@@ -270,17 +265,35 @@ public class PlanetService
     
     public async Task<Dictionary<long, int>> GetRoleMembershipCountsAsync(long planetId)
     {
-        var query = _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.PlanetId == planetId)
-            .GroupBy(x => x.RoleId)
-            .Select(x => new
-            {
-                RoleId = x.Key,
-                Count = x.Count()
-            });
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
         
-        return await query.ToDictionaryAsync(x => x.RoleId, x => x.Count);
+        var roleMemberships = _db.PlanetMembers.Where(x => x.PlanetId == planetId)
+            .Select(x => x.RoleMembership).AsAsyncEnumerable();
+
+        var counts = new byte[256];
+        
+        await foreach (var membership in roleMemberships)
+        {
+            foreach (var roleIndex in membership.EnumerateRoleIndices())
+            {
+                counts[roleIndex]++;
+            }
+        }
+        
+        var result = new Dictionary<long, int>();
+        
+        for (var i = 0; i < counts.Length; i++)
+        {
+            var count = counts[i];
+            
+            if (count > 0)
+            {
+                var roleId = hostedPlanet.GetRoleIdByIndex(i);
+                result.Add(roleId, count);
+            }
+        }
+        
+        return result;
     }
 
     /// <summary>
@@ -367,34 +380,12 @@ public class PlanetService
                 IsDefault = true,
                 AnyoneCanMention = false,
             };
-            
-            // Create the owner role
-            var ownerRole = new Valour.Database.PlanetRole()
-            {
-                Planet = planet,
-                Id = IdManager.Generate(),
-                Position = 0,
-                Color = "#bf06fd",
-                Name = "Owner",
-                Permissions = Permission.FULL_CONTROL,
-                ChatPermissions = Permission.FULL_CONTROL,
-                CategoryPermissions = Permission.FULL_CONTROL,
-                VoicePermissions = Permission.FULL_CONTROL,
-                IsAdmin = true,
-                AnyoneCanMention = true,
-                Bold = true,
-                IsDefault = false,
-            };
 
             planet.Roles = new List<Valour.Database.PlanetRole>()
             {
                 defaultRole,
-                ownerRole
             };
             
-            // Create role combo key (ids go up over time so we order them accordingly)
-            var rolesKey = PlanetPermissionUtils.GenerateRoleMembershipHash([defaultRole.Id, ownerRole.Id]);
-
             // Create owner member
             var member = new Valour.Database.PlanetMember()
             {
@@ -403,41 +394,14 @@ public class PlanetService
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
                 UserId = user.Id,
-                RoleMembershipHash = rolesKey
+                RoleMembership = new PlanetRoleMembership(0x01)
             };
 
             planet.Members = new List<Valour.Database.PlanetMember>()
             {
                 member
             };
-
-            // Create owner role membership
-            var defaultRoleMember = new Valour.Database.PlanetRoleMember()
-            {
-                Planet = planet,
-                Member = member,
-                Role = defaultRole,
-
-                Id = IdManager.Generate(),
-                UserId = user.Id,
-            };
             
-            var ownerRoleMember = new Valour.Database.PlanetRoleMember()
-            {
-                Planet = planet,
-                Member = member,
-                Role = ownerRole,
-
-                Id = IdManager.Generate(),
-                UserId = user.Id,
-            };
-
-            planet.RoleMembers = new List<PlanetRoleMember>()
-            {
-                defaultRoleMember,
-                ownerRoleMember
-            };
-
             _db.Planets.Add(planet);
             await _db.SaveChangesAsync();
             

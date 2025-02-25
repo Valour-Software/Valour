@@ -45,37 +45,49 @@ public class PlanetPermissionService
     /// Returns all the distinct role combination keys that exist on the planet.
     /// This only returns combinations that are in use.
     /// </summary>
-    public async Task<PlanetRoleMembership> GetAllUniqueRoleCombinationsForPlanet(long planetId)
+    public async Task<PlanetRoleMembership[]> GetAllUniqueRoleCombinationsForPlanet(long planetId)
     {
-        var distinctRoleKeys = await _db.PlanetMembers
-            .GroupBy(x => new
-            {
-                x.Rf0,
-                x.Rf1,
-                x.Rf2,
-                x.Rf3
-            })
-            .Select(g => g.First().RoleMembershipHash) // Select the RoleMembershipHash
-            .Distinct() // Ensure distinct RoleMembershipHash values
-            .ToListAsync();
+        return await _db.PlanetMembers
+            .Where(x => x.PlanetId == planetId)
+            .Select(x => x.RoleMembership)
+            .Distinct()
+            .ToArrayAsync();
     }
 
     /// <summary>
     /// Returns all the distinct role combinations that exist on the planet.
     /// This only returns combinations that are in use.
     /// </summary>
-    public async Task<Valour.Database.PlanetRole[][]> GetPlanetRoleCombosAsync(long planetId)
+    public async Task<PlanetRole[][]> GetPlanetRoleCombosAsync(long planetId)
     {
-        var roleCombos = await _db.PlanetMembers
-            .Where(x => x.PlanetId == planetId)
-            .Include(x => x.RoleMembership)
-            .ThenInclude(y => y.Role)
-            .GroupBy(x => x.RoleMembershipHash)
-            .Select(g => g.First())
-            .Select(x => x.RoleMembership.Select(y => y.Role).ToArray())
-            .ToArrayAsync();
+        var combos = await GetAllUniqueRoleCombinationsForPlanet(planetId);
+        
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
 
-        return roleCombos;
+        var roleArrs = new PlanetRole[][combos.Length];
+        
+        for (int i = 0; i < combos.Length; i++)
+        {
+            var combo = combos[i];
+            var roleIndices = combo.GetRoleIndices();
+            var roles = new PlanetRole[roleIndices.Length];
+            
+            for (int j = 0; j < roleIndices.Length; j++)
+            {
+                var role = hostedPlanet.GetRoleByIndex(roleIndices[j]);
+                if (role is null)
+                {
+                    _logger.LogWarning("Role not found for role index {RoleIndex} in planet {PlanetId}", roleIndices[j], planetId);
+                    continue;
+                }
+                
+                roles[j] = role;
+            }
+
+            roleArrs[i] = roles;
+        }
+
+        return roleArrs;
     }
 
     public async ValueTask<bool> HasPlanetPermissionAsync(long memberId, PlanetPermission permission)
@@ -143,67 +155,6 @@ public class PlanetPermissionService
         hostedPlanet.PermissionCache.ClearAllChannelAccessRoleComboCache();
     }
 
-    public async Task UpdateMemberRoleHashAsync(long memberId, bool saveChanges = true)
-    {
-        var member = await _db.PlanetMembers.FindAsync(memberId);
-        if (member is null)
-            return;
-
-        await UpdateMemberRoleHashAsync(member, saveChanges);
-    }
-
-    public async Task<long> GetOrUpdateRoleHashKeyAsync(ISharedPlanetMember member)
-    {
-        var roleKey = await CalculateRoleHashKeyAsync(member.PlanetId, member.Id);
-        member.RoleMembershipHash = roleKey;
-        await _db.PlanetMembers.Where(x => x.Id == member.Id)
-            .ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembershipHash, roleKey));
-        return roleKey;
-    }
-
-    public async Task<long> CalculateRoleHashKeyAsync(long planetId, long memberId)
-    {
-        var roleIds = await _db.PlanetRoleMembers
-            .Where(x => x.MemberId == memberId)
-            .Select(x => x.RoleId)
-            .OrderBy(x => x)
-            .ToArrayAsync();
-        
-        var key = PlanetPermissionUtils.GenerateRoleMembershipHash(roleIds);
-        
-        return key;
-    }
-
-    public async Task UpdateMemberRoleHashAsync(Valour.Database.PlanetMember member, bool saveChanges = true)
-    {
-        var roleKey = await CalculateRoleHashKeyAsync(member.PlanetId, member.Id);
-        member.RoleMembershipHash = roleKey;
-        
-        if (saveChanges)
-            await _db.SaveChangesAsync();
-    }
-
-    public async Task BulkUpdateMemberRoleHashesAsync(int saveInterval = 50)
-    {
-        var members = await _db.PlanetMembers.ToListAsync();
-        int count = 0;
-        foreach (var member in members)
-        {
-            if (member.RoleMembershipHash == 0)
-                await UpdateMemberRoleHashAsync(member.Id, false);
-            if (count % saveInterval == 0)
-            {
-                await _db.SaveChangesAsync();
-                _logger.LogInformation("Bulk role hash update: {Count} members updated", count);
-            }
-
-            count++;
-        }
-
-        await _db.SaveChangesAsync();
-        _logger.LogInformation("Bulk role hash update: {Count} members updated - Finished", count);
-    }
-
     public async ValueTask<bool> HasChannelAccessAsync(long memberId, long channelId)
     {
         var access = await GetChannelAccessAsync(memberId);
@@ -216,21 +167,23 @@ public class PlanetPermissionService
         if (hostedPlanet.Planet.OwnerId == member.UserId)
             return uint.MaxValue;
 
-        var roleHashKey = await GetOrUpdateRoleHashKeyAsync(member);
-        var cached = hostedPlanet.PermissionCache.GetAuthority(roleHashKey);
+        var cached = hostedPlanet.PermissionCache.GetAuthority(member.RoleMembership);
         if (cached is not null)
             return cached.Value;
+        
+        // Get all the roles the member has
+        PlanetRole? highestRole = null;
+        foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
+        {
+            var role = hostedPlanet.GetRoleByIndex(roleIndex);
+            if (role is null)
+                continue;
+            if (highestRole is null || role.Position > highestRole.Position)
+                highestRole = role;
+        }
 
-        var rolePos = await _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.MemberId == member.Id)
-            .Include(x => x.Role)
-            .OrderBy(x => x.Role.Position)
-            .Select(x => x.Role.Position)
-            .FirstAsync();
-
-        var authority = uint.MaxValue - rolePos;
-        hostedPlanet.PermissionCache.SetAuthority(roleHashKey, authority);
+        var authority = highestRole?.GetAuthority() ?? 0;
+        hostedPlanet.PermissionCache.SetAuthority(member.RoleMembership, authority);
         return authority;
     }
 
@@ -244,7 +197,7 @@ public class PlanetPermissionService
         if (member.UserId == hostedPlanet.Planet.OwnerId)
             return hostedPlanet.Channels;
 
-        var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleMembershipHash);
+        var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleMembership);
         if (cached is not null)
             return cached;
 
@@ -256,20 +209,17 @@ public class PlanetPermissionService
         Valour.Database.PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
-        var roleMembership = await _db.PlanetRoleMembers
-            .Where(x => x.MemberId == member.Id)
-            .Select(x => x.RoleId)
-            .ToListAsync();
-
+        
         var allChannels = hostedPlanet.Channels;
         var roles = RoleListPool.Get();
         bool isAdmin = false;
-        foreach (var roleId in roleMembership)
+        foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
         {
-            var role = hostedPlanet.GetRoleByGlobalId(roleId);
+            var role = hostedPlanet.GetRoleByIndex(roleIndex);
             if (role is null)
                 continue;
-            hostedPlanet.PermissionCache.AddKnownComboToRole(roleId, member.RoleMembershipHash);
+            
+            hostedPlanet.PermissionCache.AddKnownComboToRole(role.Id, member.RoleMembership);
             if (role.IsAdmin)
             {
                 isAdmin = true;
@@ -281,7 +231,7 @@ public class PlanetPermissionService
 
         if (isAdmin)
         {
-            var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembershipHash, allChannels.List);
+            var adminResult = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, allChannels.List);
             RoleListPool.Return(roles);
             return adminResult;
         }
@@ -298,11 +248,11 @@ public class PlanetPermissionService
 
             long? perms = channel.ChannelType switch
             {
-                ChannelTypeEnum.PlanetChat => await GenerateChannelPermissionsAsync(member.RoleMembershipHash, roles, channel,
+                ChannelTypeEnum.PlanetChat => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel,
                     hostedPlanet, ChannelTypeEnum.PlanetChat),
-                ChannelTypeEnum.PlanetCategory => await GenerateChannelPermissionsAsync(member.RoleMembershipHash, roles,
+                ChannelTypeEnum.PlanetCategory => await GenerateChannelPermissionsAsync(member.RoleMembership, roles,
                     channel, hostedPlanet, ChannelTypeEnum.PlanetCategory),
-                ChannelTypeEnum.PlanetVoice => await GenerateChannelPermissionsAsync(member.RoleMembershipHash, roles, channel,
+                ChannelTypeEnum.PlanetVoice => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel,
                     hostedPlanet, ChannelTypeEnum.PlanetVoice),
                 _ => throw new Exception("Invalid channel type!")
             };
@@ -312,7 +262,7 @@ public class PlanetPermissionService
         }
         
         RoleListPool.Return(roles);
-        var result = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembershipHash, access);
+        var result = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, access);
         return result;
     }
 
@@ -327,22 +277,18 @@ public class PlanetPermissionService
         if (member.UserId == hostedPlanet.Planet.OwnerId)
             return Permission.FULL_CONTROL;
         
-        var cached = hostedPlanet.PermissionCache.GetPlanetPermissions(member.RoleMembershipHash);
+        var cached = hostedPlanet.PermissionCache.GetPlanetPermissions(member.RoleMembership);
         if (cached is not null)
             return cached.Value;
 
-        var roleMembership = await _db.PlanetRoleMembers
-            .Where(x => x.MemberId == member.Id)
-            .Select(x => x.RoleId)
-            .ToListAsync();
-
         long permissions = 0;
-        foreach (var roleId in roleMembership)
+        foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
         {
-            var role = hostedPlanet.GetRoleByGlobalId(roleId);
+            var role = hostedPlanet.GetRoleByIndex(roleIndex);
             if (role is null)
                 continue;
-            hostedPlanet.PermissionCache.AddKnownComboToRole(roleId, member.RoleMembershipHash);
+            
+            hostedPlanet.PermissionCache.AddKnownComboToRole(role.Id, member.RoleMembership);
             if (role.IsAdmin)
             {
                 permissions = Permission.FULL_CONTROL;
@@ -352,7 +298,7 @@ public class PlanetPermissionService
             permissions |= role.Permissions;
         }
 
-        hostedPlanet.PermissionCache.SetPlanetPermissions(member.RoleMembershipHash, permissions);
+        hostedPlanet.PermissionCache.SetPlanetPermissions(member.RoleMembership, permissions);
         return permissions;
     }
 
@@ -405,41 +351,43 @@ public class PlanetPermissionService
             }
         }
 
-        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(member.RoleMembershipHash, channel.Id);
+        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(member.RoleMembership, channel.Id);
         var cache = hosted.PermissionCache.GetChannelCache(channel.ChannelType);
         var cachedPerms = cache.GetChannelPermission(channelKey);
         if (cachedPerms is not null)
             return cachedPerms.Value;
 
-        var roleMembership = await _db.PlanetRoleMembers
-            .Where(x => x.MemberId == member.Id)
-            .Select(x => x.RoleId)
-            .ToListAsync();
-
+        var roleIndices = member.RoleMembership.GetRoleIndices();
         var roles = RoleListPool.Get();
-        foreach (var roleId in roleMembership)
-        {
-            var role = hosted.GetRoleByGlobalId(roleId);
-            if (role is null)
-                throw new Exception("Role not found in hosted planet roles!");
-            roles.Add(role);
-        }
 
+        for (int i = 0; i < roleIndices.Length; i++)
+        {
+            var roleIndex = roleIndices[i];
+            var role = hosted.GetRoleByIndex(roleIndex);
+            if (role is null)
+                _logger.LogWarning("Role not found for role index {RoleIndex} in planet {PlanetId}", roleIndex, member.PlanetId);
+            
+            roles.Add(role!);
+        }
+        
         var computedPerms =
-            await GenerateChannelPermissionsAsync(member.RoleMembershipHash, roles, channel, hosted, targetType);
+            await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel, hosted, targetType);
+        
         RoleListPool.Return(roles);
-        cache.Set(member.RoleMembershipHash, channel.Id, computedPerms);
+        
+        cache.Set(member.RoleMembership, channel.Id, computedPerms);
+        
         return computedPerms;
     }
 
     private async ValueTask<long> GenerateChannelPermissionsAsync(
-        long roleKey,
+        PlanetRoleMembership roleMembership,
         List<PlanetRole> roles,
         ISharedChannel channel,
         HostedPlanet hostedPlanet,
         ChannelTypeEnum targetType)
     {
-        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleKey, channel.Id);
+        var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleMembership, channel.Id);
         var permCache = hostedPlanet.PermissionCache.GetChannelCache(channel.ChannelType);
 
         var cachedPerms = permCache.GetChannelPermission(channelKey);
@@ -448,7 +396,7 @@ public class PlanetPermissionService
 
         if (roles.Any(x => x.IsAdmin))
         {
-            permCache.Set(roleKey, channel.Id, Permission.FULL_CONTROL);
+            permCache.Set(roleMembership, channel.Id, Permission.FULL_CONTROL);
             return Permission.FULL_CONTROL;
         }
 
@@ -475,7 +423,7 @@ public class PlanetPermissionService
             permissions |= (node.Code & node.Mask);
         }
 
-        permCache.Set(roleKey, channel.Id, permissions);
+        permCache.Set(roleMembership, channel.Id, permissions);
         return permissions;
     }
 }

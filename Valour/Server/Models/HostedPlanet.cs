@@ -98,13 +98,13 @@ public class HostedPlanet : ServerModel<long>
     
     // Roles //
 
-    public PlanetRole? GetRoleByGlobalId(long id) => _roles.Get(id);
+    public PlanetRole? GetRoleById(long id) => _roles.Get(id);
     
     /// <summary>
     /// Returns the global role ID for a given local role id using a snapshot for fast access.
     /// If the snapshot is outdated (dirty), it is rebuilt under a write lock.
     /// </summary>
-    public long GetGlobalRoleIdByLocalId(int localId)
+    public long GetRoleIdByIndex(int localId)
     {
         if (_isLocalToGlobalRoleIdDirty)
         {
@@ -140,9 +140,9 @@ public class HostedPlanet : ServerModel<long>
         }
     }
     
-    public PlanetRole? GetRoleByLocalId(int localId)
+    public PlanetRole? GetRoleByIndex(int index)
     {
-        long globalId = GetGlobalRoleIdByLocalId(localId);
+        long globalId = GetRoleIdByIndex(index);
         return globalId == 0 ? null : _roles.Get(globalId);
     }
     

@@ -129,14 +129,14 @@ public class PlanetMemberService
     public async Task<List<PlanetRole>> GetRolesAsync(ISharedPlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
-        var localIds = member.RoleMembership.GetRoleMembershipFlagIndices();
+        var localIds = member.RoleMembership.GetRoleIndices();
 
         var roles = new List<PlanetRole>(localIds.Length);
         
         for (int i = 0; i < localIds.Length; i++)
         {
             var localId = localIds[i];
-            var role = hostedPlanet.GetRoleByLocalId(localId);
+            var role = hostedPlanet.GetRoleByIndex(localId);
             if (role is not null)
                 roles.Add(role);
         }
@@ -164,6 +164,17 @@ public class PlanetMemberService
     public async Task<uint> GetAuthorityAsync(PlanetMember member)
     {
         return await _permissionService.GetAuthorityAsync(member);
+    }
+    
+    public async ValueTask<bool> HasRoleAsync(ISharedPlanetMember member, long roleId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
+        var role = hostedPlanet.GetRoleById(roleId);
+        if (role is null)
+            return false;
+        
+        var index = role.FlagBitIndex;
+        return member.RoleMembership.HasRole(index);
     }
     
     /// <summary>
@@ -253,7 +264,7 @@ public class PlanetMemberService
                 UserId = user.Id,
                 User = user,
                 
-                Rf0 = 0x01, // First flag for first role (default)
+                Rf0 = 0x01, // First bit (position 0) is the default role
             };
         }
         
@@ -363,77 +374,58 @@ public class PlanetMemberService
         if (member is null)
             return new TaskResult(false, "Member not found.");
 
-        var role = hostedPlanet.GetRoleByGlobalId(roleId);
+        var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)
             return new TaskResult(false, "Role not found.");
         
         if (member.PlanetId != role.PlanetId)
             return new TaskResult(false, "Role and member are not in the same planet.");
 
-        if (await HasRoleAsync(memberId, roleId))
-            return new TaskResult<PlanetRoleMember>(false, "Member already has this role.");
-        
-        Valour.Database.PlanetRoleMember newRoleMember = new()
-        {
-            Id = IdManager.Generate(),
-            MemberId = memberId,
-            RoleId = roleId,
-            UserId = member.UserId,
-            PlanetId = member.PlanetId
-        };
+        if (await HasRoleAsync(member, roleId))
+            return new TaskResult(false, "Member already has this role.");
 
-        await using var trans = await _db.Database.BeginTransactionAsync();
-        
         try
         {
-            await _db.PlanetRoleMembers.AddAsync(newRoleMember);
+            // Add role to member
+            member.RoleMembership = member.RoleMembership.AddRole(role);
             await _db.SaveChangesAsync();
-
-            await _permissionService.UpdateMemberRoleHashAsync(member, false);
-            await _db.SaveChangesAsync();
-            
-            await trans.CommitAsync();
-        }
+        } 
         catch (Exception e)
         {
-            await trans.RollbackAsync();
-            return new TaskResult<PlanetRoleMember>(false, "An unexpected error occurred.");
+            return new TaskResult(false, "An unexpected error occurred.");
         }
-        
+
         _coreHub.NotifyPlanetItemChange(member.ToModel());
 
-        return new TaskResult<PlanetRoleMember>(true, "Success", newRoleMember.ToModel());
+        return new TaskResult(true, "Success");
     }
     
     public async Task<TaskResult> RemoveRoleAsync(long planetId, long memberId, long roleId)
     {
-        var roleMember = await _db.PlanetRoleMembers.Include(x => x.Role).FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
-        
-        if (roleMember is null)
-            return new TaskResult(false, "Member does not have this role.");
-        
-        if (roleMember.Role.IsDefault)
-            return new TaskResult(false, "Cannot remove the default role from members.");
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
         
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is null)
             return new TaskResult(false, "Member not found.");
+
+        var role = hostedPlanet.GetRoleById(roleId);
+        if (role is null)
+            return new TaskResult(false, "Role not found.");
         
-        await using var trans = await _db.Database.BeginTransactionAsync();
-        
+        if (role.IsDefault)
+            return new TaskResult(false, "Cannot remove the default role from members.");
+
+        if (member.PlanetId != role.PlanetId)
+            return new TaskResult(false, "Role and member are not in the same planet.");
+
         try
         {
-            _db.PlanetRoleMembers.Remove(roleMember);
+            // Remove role from member
+            member.RoleMembership = member.RoleMembership.RemoveRole(role);
             await _db.SaveChangesAsync();
-            
-            await _permissionService.UpdateMemberRoleHashAsync(member, false);
-            await _db.SaveChangesAsync();
-            
-            await trans.CommitAsync();
         }
         catch (Exception e)
         {
-            await trans.RollbackAsync();
             return new TaskResult(false, "An unexpected error occurred.");
         }
 
@@ -462,14 +454,11 @@ public class PlanetMemberService
         try
         {
             // Remove roles
-            var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == memberId);
-            _db.PlanetRoleMembers.RemoveRange(roles);
-            
             var channelStates = await _db.UserChannelStates.Where(x => x.UserId == dbMember.UserId && x.PlanetId == dbMember.PlanetId).ToListAsync();
             _db.UserChannelStates.RemoveRange(channelStates);
             
             dbMember.IsDeleted = true;
-            dbMember.RoleMembershipHash = 0;
+            dbMember.RoleMembership = PlanetRoleMembership.Default; // Default role
 
             await _db.SaveChangesAsync();
             

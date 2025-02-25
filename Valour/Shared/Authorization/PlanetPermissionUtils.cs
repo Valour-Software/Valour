@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Authorization;
+﻿using Valour.Shared.Models;
+
+namespace Valour.Shared.Authorization;
 
 public static class PlanetPermissionUtils
 {
@@ -10,18 +12,13 @@ public static class PlanetPermissionUtils
         return currentHash ^ ((roleId + MagicNumber) + (currentHash << 6) + (currentHash >> 2));
     }
 
-    public static long GetRoleChannelComboKey(long rolesKey, long channelId)
+    public static long GetRoleChannelComboKey(PlanetRoleMembership roleMembership, long channelId)
     {
         var hash = MixHash(Seed, channelId);
-        hash = MixHash(rolesKey, hash);
-        return hash;
-    }
-
-    public static long GenerateRoleMembershipHash(long[] sortedRoleIds)
-    {
-        long hash = Seed;
-        foreach (var roleId in sortedRoleIds)
-            hash = MixHash(hash, roleId);
+        hash = MixHash(roleMembership.Rf0, hash);
+        hash = MixHash(roleMembership.Rf1, hash);
+        hash = MixHash(roleMembership.Rf2, hash);
+        hash = MixHash(roleMembership.Rf3, hash);
         return hash;
     }
 }

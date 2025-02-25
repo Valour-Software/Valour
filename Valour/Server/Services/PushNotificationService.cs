@@ -13,18 +13,20 @@ public class PushNotificationService
 {
     private readonly ValourDb _db;
     private readonly ILogger<PushNotificationService> _logger;
-    private readonly PlanetPermissionService _permissionService;
+    private readonly HostedPlanetService _hostedService;
     private readonly WebPushClient _webPushClient;
     private readonly VapidDetails _vapidDetails;
     
     public PushNotificationService(
         ILogger<PushNotificationService> logger, 
         ValourDb db, 
-        PlanetPermissionService permissionService)
+        PlanetPermissionService permissionService, 
+        HostedPlanetService hostedService)
     {
         _logger = logger;
         _db = db;
-        _permissionService = permissionService;
+        _hostedService = hostedService;
+        
         _webPushClient = new WebPushClient();
         
         _vapidDetails = new VapidDetails()
@@ -186,10 +188,19 @@ public class PushNotificationService
     /// </summary>
     public async Task SendRolePushNotificationsAsync(long roleId, NotificationContent content)
     {
-        // Now get all the subscriptions for users with these role combos
-        var subscriptions = await _db.PlanetRoleMembers
+        var role = await _db.PlanetRoles
             .AsNoTracking()
-            .Where(x => x.RoleId == roleId)
+            .Select(x => new
+            {
+                Id = x.Id,
+                PlanetId = x.PlanetId,
+                FlagBitIndex = x.FlagBitIndex
+            })
+            .FirstOrDefaultAsync(x => x.Id == roleId);
+        
+        var subscriptions = await _db.PlanetMembers
+            .AsNoTracking()
+            .WithRoleByLocalIndex(role.PlanetId, role.FlagBitIndex)
             .Select(x => x.User.NotificationSubscriptions)
             // Flatten
             .SelectMany(x => x)
