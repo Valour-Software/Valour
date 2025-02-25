@@ -113,8 +113,7 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             // Check if nothing changed
             if (modelEventData.Changes is null)
             {
-                modelEventData.Dispose();
-                return null;
+                return modelEventData;
             }
 
             if (!flags.HasFlag(ModelInsertFlags.SkipEvents))

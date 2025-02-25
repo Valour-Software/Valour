@@ -263,18 +263,9 @@ public class FriendService : ServiceBase
 		if (!result.Success)
 			return null;
 		
-		for (int i = 0; i < result.Data.Added.Count; i++)
-		{
-			var user = result.Data.Added[i];
-			result.Data.Added[i] = user.Sync(_client);
-		}
-		
-		for (int i = 0; i < result.Data.AddedBy.Count; i++)
-		{
-			var user = result.Data.AddedBy[i];
-			result.Data.AddedBy[i] = user.Sync(_client);
-		}
-		
+		result.Data.Added.SyncAll(_client);
+		result.Data.AddedBy.SyncAll(_client);
+
 		return result.Data;
 	}
 }

@@ -50,7 +50,7 @@ public class ModelUpdatedEvent<TModel> : IModelInsertionEvent<TModel>, IDisposab
     
     public void Dispose()
     {
-        Changes.Dispose();
+        Changes?.Dispose();
     }
 }
 
