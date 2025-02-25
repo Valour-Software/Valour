@@ -64,7 +64,7 @@ public class PlanetPermissionService
         
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
 
-        var roleArrs = new PlanetRole[][combos.Length];
+        var roleArrs = new PlanetRole[combos.Length][];
         
         for (int i = 0; i < combos.Length; i++)
         {

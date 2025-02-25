@@ -48,6 +48,10 @@ public static class ModelUpdateUtils
         {
             if (modelType.IsSubclassOf(typeof(ClientModel)))
             {
+                // Ensure it's a concrete type and not a generic
+                if (modelType.IsGenericType || modelType.IsAbstract)
+                    continue;
+                
                 // Cache properties that are writable and not marked to ignore.
                 var props = modelType.GetProperties()
                     .Where(x => x.GetCustomAttribute<IgnoreRealtimeChangesAttribute>() is null &&

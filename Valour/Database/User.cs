@@ -59,11 +59,6 @@ namespace Valour.Database
         /// <summary>
         /// Rewards for this user.
         /// </summary>
-        public virtual ICollection<UserPrivateInfo> UserPrivateInfo { get; set; }
-        
-        /// <summary>
-        /// Rewards for this user.
-        /// </summary>
         public virtual ICollection<Referral> Referrals { get; set; }
         
         /// <summary>

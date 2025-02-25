@@ -88,11 +88,6 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
             e.Property(x => x.JoinSource)
                 .HasColumnName("join_source");
 
-            // Relationships
-
-            e.HasOne(x => x.User)
-                .WithOne(x => x.PrivateInfo);
-
             // Indices
 
             e.HasIndex(x => x.UserId)

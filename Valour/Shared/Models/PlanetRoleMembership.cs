@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
@@ -12,9 +13,13 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
     /// </summary>
     public static readonly PlanetRoleMembership Default = new(0x01);
     
+    [JsonInclude]
     public readonly long Rf0;
+    [JsonInclude]
     public readonly long Rf1;
+    [JsonInclude]
     public readonly long Rf2;
+    [JsonInclude]
     public readonly long Rf3;
 
     public PlanetRoleMembership(long rf0, long rf1 = 0, long rf2 = 0, long rf3 = 0)
@@ -28,6 +33,7 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
     /// <summary>
     /// Returns a read-only span over the four backing fields.
     /// </summary>
+    [JsonIgnore]
     public ReadOnlySpan<long> Fields =>
         MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in Rf0), 4);
 
