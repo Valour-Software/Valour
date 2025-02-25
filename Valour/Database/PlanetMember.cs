@@ -34,12 +34,6 @@ public class PlanetMember : ISharedPlanetMember
     public string MemberAvatar { get; set; }
     public bool IsDeleted { get; set; }
     
-    // Together, these role bits can be used to determine the roles of the member
-    public long Rf0 { get; set; }
-    public long Rf1 { get; set; }
-    public long Rf2 { get; set; }
-    public long Rf3 { get; set; }
-    
     public PlanetRoleMembership RoleMembership { get; set; }
 
     /// <summary>
@@ -108,13 +102,8 @@ public class PlanetMember : ISharedPlanetMember
             e.HasIndex(x => new { x.UserId, x.PlanetId })
                 .IsUnique();
             
-            e.HasIndex(x => new
-            {
-                x.Rf0,
-                x.Rf1,
-                x.Rf2,
-                x.Rf3
-            });
+            // TODO: Wait for EF to support this
+            // e.HasIndex("rf0", "rf1", "rf2", "rf3");
         });
     }
 }

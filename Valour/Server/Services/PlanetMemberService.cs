@@ -263,8 +263,7 @@ public class PlanetMemberService
                 PlanetId = planet.Id,
                 UserId = user.Id,
                 User = user,
-                
-                Rf0 = 0x01, // First bit (position 0) is the default role
+                RoleMembership = new PlanetRoleMembership(0x01) // First bit (position 0) is the default role
             };
         }
         
@@ -279,10 +278,7 @@ public class PlanetMemberService
                 member.IsDeleted = false;
                 
                 // Reset roles
-                member.Rf0 = 0x01;
-                member.Rf1 = 0;
-                member.Rf2 = 0;
-                member.Rf3 = 0;
+                member.RoleMembership = new PlanetRoleMembership(0x01);
                 
                 _db.PlanetMembers.Update(member);
             }

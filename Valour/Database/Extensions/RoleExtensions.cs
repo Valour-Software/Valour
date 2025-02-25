@@ -22,16 +22,16 @@ public static class RoleExtensions
         {
             case < 64:
                 searchKey = 1L << localRoleId;
-                return members.Where(x => x.PlanetId == planetId && (x.Rf0 & searchKey) != 0);
+                return members.Where(x => x.PlanetId == planetId && (x.RoleMembership.Rf0 & searchKey) != 0);
             case < 128:
                 searchKey = 1L << (localRoleId - 64);
-                return members.Where(x => x.PlanetId == planetId && (x.Rf1 & searchKey) != 0);
+                return members.Where(x => x.PlanetId == planetId && (x.RoleMembership.Rf1 & searchKey) != 0);
             case < 192:
                 searchKey = 1L << (localRoleId - 128);
-                return members.Where(x => x.PlanetId == planetId && (x.Rf2 & searchKey) != 0);
+                return members.Where(x => x.PlanetId == planetId && (x.RoleMembership.Rf2 & searchKey) != 0);
             default:
                 searchKey = 1L << (localRoleId - 192);
-                return members.Where(x => x.PlanetId == planetId && (x.Rf3 & searchKey) != 0);
+                return members.Where(x => x.PlanetId == planetId && (x.RoleMembership.Rf3 & searchKey) != 0);
         }
     }
     
@@ -47,16 +47,16 @@ public static class RoleExtensions
             {
                 case < 64:
                     mask = 1L << roleIndex;
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf0, p => p.Rf0 | mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf0, p => p.RoleMembership.Rf0 | mask));
                 case < 128:
                     mask = 1L << (roleIndex - 64);
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf1, p => p.Rf1 | mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf1, p => p.RoleMembership.Rf1 | mask));
                 case < 192:
                     mask = 1L << (roleIndex - 128);
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf2, p => p.Rf2 | mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf2, p => p.RoleMembership.Rf2 | mask));
                 default:
                     mask = 1L << (roleIndex - 192);
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf3, p => p.Rf3 | mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf3, p => p.RoleMembership.Rf3 | mask));
             }
         }
         // Set bit to 0
@@ -67,16 +67,16 @@ public static class RoleExtensions
             {
                 case < 64:
                     mask = ~(1L << roleIndex);
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf0, p => p.Rf0 & mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf0, p => p.RoleMembership.Rf0 & mask));
                 case < 128:
                     mask = ~(1L << (roleIndex - 64));
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf1, p => p.Rf1 & mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf1, p => p.RoleMembership.Rf1 & mask));
                 case < 192:
                     mask = ~(1L << (roleIndex - 128));
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf2, p => p.Rf2 & mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf2, p => p.RoleMembership.Rf2 & mask));
                 default:
                     mask = ~(1L << (roleIndex - 192));
-                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.Rf3, p => p.Rf3 & mask));
+                    return await members.Where(x => x.PlanetId == planetId).ExecuteUpdateAsync(x => x.SetProperty(p => p.RoleMembership.Rf3, p => p.RoleMembership.Rf3 & mask));
             }
         }
     }
