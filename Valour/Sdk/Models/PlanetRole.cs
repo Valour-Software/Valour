@@ -140,12 +140,13 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 
     public override PlanetRole AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        
+        Planet.SetRoleByIndex(this.FlagBitIndex, this);
         return Planet.Roles.Put(this, flags);
     }
 
     public override PlanetRole RemoveFromCache(bool skipEvents = false)
     {
+        Planet.SetRoleByIndex(this.FlagBitIndex, null);
         return Planet.Roles.Remove(this, skipEvents);
     }
 

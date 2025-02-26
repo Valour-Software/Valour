@@ -52,7 +52,10 @@ public class MigrationWorker : IHostedService
 
                 for (int i = 0; i < roles.Count; i++)
                 {
-                    roles[i].FlagBitIndex = i;
+                    var role = roles[i];
+                    
+                    await db.PlanetRoles.Where(x => x.Id == role.Id)
+                        .ExecuteUpdateAsync(x => x.SetProperty(x => x.FlagBitIndex, i));
                 }
 
                 await db.SaveChangesAsync();

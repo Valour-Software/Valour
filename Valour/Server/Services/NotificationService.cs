@@ -144,7 +144,7 @@ public class NotificationService
         // at some point to handle this.
         var notifications = await _db.PlanetMembers
             .AsNoTracking()
-            .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.LocalId)
+            .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
             .Select(x => new Valour.Database.Notification()
             {
                 Id = Guid.NewGuid(),

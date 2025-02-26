@@ -286,6 +286,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         return role;
     }
     
+    public void SetRoleByIndex(int index, PlanetRole role)
+    {
+        _indexToRole[index] = role;
+    }
+    
     public ImmutableList<PlanetRole> GetRolesFromMembership(PlanetRoleMembership membership)
     {
         if (_membershipToRoles.TryGetValue(membership, out var roles))

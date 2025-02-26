@@ -162,9 +162,9 @@ public class HostedPlanet : ServerModel<long>
                     _defaultRole = role;
                 }
                 // Ensure local role ID is within the fixed array range.
-                if (role.LocalId >= 0 && role.LocalId < _localToGlobalRoleId.Length)
+                if (role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
                 {
-                    _localToGlobalRoleId[role.LocalId] = role.Id;
+                    _localToGlobalRoleId[role.FlagBitIndex] = role.Id;
                 }
             }
             _isLocalToGlobalRoleIdDirty = true; // Mark snapshot as stale.
@@ -186,9 +186,9 @@ public class HostedPlanet : ServerModel<long>
         _localToGlobalRoleLock.EnterWriteLock();
         try
         {
-            if (role.LocalId >= 0 && role.LocalId < _localToGlobalRoleId.Length)
+            if (role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
             {
-                _localToGlobalRoleId[role.LocalId] = role.Id;
+                _localToGlobalRoleId[role.FlagBitIndex] = role.Id;
                 _isLocalToGlobalRoleIdDirty = true;
             }
         }
@@ -204,10 +204,10 @@ public class HostedPlanet : ServerModel<long>
         try
         {
             var role = _roles.Get(id);
-            if (role != null && role.LocalId >= 0 && role.LocalId < _localToGlobalRoleId.Length)
+            if (role != null && role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
             {
                 // Reset the mapping for this local role id.
-                _localToGlobalRoleId[role.LocalId] = 0;
+                _localToGlobalRoleId[role.FlagBitIndex] = 0;
             }
             _isLocalToGlobalRoleIdDirty = true;
         }

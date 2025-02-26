@@ -21,7 +21,8 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
     public readonly long Rf2;
     [JsonInclude]
     public readonly long Rf3;
-
+    
+    [JsonConstructor]
     public PlanetRoleMembership(long rf0, long rf1 = 0, long rf2 = 0, long rf3 = 0)
     {
         Rf0 = rf0;

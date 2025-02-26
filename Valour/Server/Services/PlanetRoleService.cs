@@ -161,8 +161,8 @@ public class PlanetRoleService
             
             // Update role membership flags
 
-            var flagChanges = await _db.PlanetMembers.WithRoleByLocalIndex(role.PlanetId, role.LocalId)
-                .BulkSetRoleFlag(role.PlanetId, role.LocalId, false);
+            var flagChanges = await _db.PlanetMembers.WithRoleByLocalIndex(role.PlanetId, role.FlagBitIndex)
+                .BulkSetRoleFlag(role.PlanetId, role.FlagBitIndex, false);
             
             _logger.LogInformation("Role flag changes for deletion: {Changes}", flagChanges);
 
