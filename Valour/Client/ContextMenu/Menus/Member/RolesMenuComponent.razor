@@ -6,11 +6,11 @@
 		var cRole = role;
 		var hasRole = Member.Roles.Any(x => x.Id == role.Id);
 
-		<ContextMenuItem>
+		<ContextMenuItem @key="@role.Id">
 			<div class="role-row" @onpointerdown="@(() => OnRoleClick(cRole, !hasRole))">
 				<div class="v-checkmark-wrapper">
 					<input class="role-checkbox" type="checkbox"
-                				       checked="@hasRole" disabled />
+					       checked="@hasRole" disabled/>
 					<span class="v-checkmark" style="@(hasRole ? $"background-color: {role.Color};" : "")"></span>
 					<i class="bi bi-check v-checkmark-fill"></i>
 				</div>

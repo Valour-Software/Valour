@@ -315,6 +315,7 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
                 break;
             case ModelAddedEvent<TModel> add:
                 addEvent = add;
+                doRemoval = true;
                 break;
         }
         
