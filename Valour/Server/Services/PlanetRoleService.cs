@@ -55,6 +55,30 @@ public class PlanetRoleService
         role.Position = await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId && !x.IsDefault);
         role.Id = IdManager.Generate();
         
+        // The index should be the next free index
+        var roles = await _db.PlanetRoles.Where(x => x.PlanetId == role.PlanetId)
+            .OrderBy(x => x.FlagBitIndex)
+            .ToListAsync();
+
+        // Below, we find the first free space in the role indices. There may be a gap due to
+        // a deletion, in which case we want to use that space first.
+        
+        var indiceArr = new int[256];
+        foreach (var r in roles)
+        {
+            indiceArr[r.FlagBitIndex] = 1;
+        }
+        
+        // Walk array and look for first 0
+        for (int i = 0; i < indiceArr.Length; i++)
+        {
+            if (indiceArr[i] == 0)
+            {
+                role.FlagBitIndex = i;
+                break;
+            }
+        }
+        
         try
         {
             await _db.AddAsync(role.ToDatabase());
