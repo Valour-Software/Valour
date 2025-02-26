@@ -171,7 +171,7 @@ public class PlanetService
 
                     if (existingRole.Position != newPosition)
                     {
-                        existingRole.Position = (uint)newPosition;
+                        existingRole.Position = newPosition;
                         _db.PlanetRoles.Update(existingRole);
                     }
                 }

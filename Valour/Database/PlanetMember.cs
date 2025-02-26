@@ -23,6 +23,10 @@ public class PlanetMember : ISharedPlanetMember
     [JsonIgnore]
     public virtual ICollection<Message> Messages { get; set; }
     
+    [JsonIgnore]
+    [Obsolete("Use new RoleMembership!")]
+    public virtual ICollection<OldPlanetRoleMember> OldRoleMembers { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

@@ -94,6 +94,9 @@ public class Planet : ISharedPlanet
     /// </summary>
     [Column("nsfw")]
     public bool Nsfw { get; set; }
+    
+    [Column("version")]
+    public int Version { get; set; }
 
     // Only to fulfill contract
     [NotMapped]

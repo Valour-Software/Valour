@@ -71,7 +71,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// A map from role flag index to role
     /// </summary>
-    private readonly ConcurrentDictionary<int, PlanetRole> _flagIndexToRole = new();
+    private readonly ConcurrentDictionary<int, PlanetRole> _indexToRole = new();
     
     #endregion
 
@@ -224,16 +224,16 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         switch (changeEvent)
         {
             case ModelAddedEvent<PlanetRole> added:
-                _flagIndexToRole[added.Model.FlagBitIndex] = added.Model;
+                _indexToRole[added.Model.FlagBitIndex] = added.Model;
                 break;
             case ModelRemovedEvent<PlanetRole> removed:
-                _flagIndexToRole.TryRemove(removed.Model.FlagBitIndex, out _);
+                _indexToRole.TryRemove(removed.Model.FlagBitIndex, out _);
                 break;
             case ModelUpdatedEvent<PlanetRole> updated:
                 if (updated.Changes.On(x => x.FlagBitIndex, out var oldIndex, out var newIndex))
                 {
-                    _flagIndexToRole.TryRemove(oldIndex, out _); // Remove old
-                    _flagIndexToRole[newIndex] = updated.Model; // Add new
+                    _indexToRole.TryRemove(oldIndex, out _); // Remove old
+                    _indexToRole[newIndex] = updated.Model; // Add new
                 }
                 break;
         }
@@ -279,25 +279,31 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public Task<TaskResult> FetchInitialDataAsync() =>
         Client.PlanetService.FetchInitialPlanetDataAsync(this);
+
+    public PlanetRole GetRoleByIndex(int index)
+    {
+        _indexToRole.TryGetValue(index, out var role);
+        return role;
+    }
     
     public ImmutableList<PlanetRole> GetRolesFromMembership(PlanetRoleMembership membership)
     {
         if (_membershipToRoles.TryGetValue(membership, out var roles))
             return roles;
-
-        // Get role membership flags
-        var roleFlags = membership.GetRoleIndices();
         
         // Get role for each flag
-        List<PlanetRole> roleList = new(roleFlags.Length);
-
-        foreach (var id in roleFlags)
+        var roleList = new List<PlanetRole>(membership.GetRoleCount());
+        
+        foreach (var index in membership.EnumerateRoleIndices())
         {
-            if (_flagIndexToRole.TryGetValue(id, out var role))
+            if (_indexToRole.TryGetValue(index, out var role))
             {
                 roleList.Add(role);
             }
         }
+        
+        // Ensure sorted by position rather than index!
+        roleList.Sort(ISortable.Comparer);
         
         // Convert to immutable list
         var result = roleList.ToImmutableList();
@@ -484,7 +490,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         {
             if (Roles.TryGet(e.Order[i], out var role))
             {
-                role.Position = (uint)i;
+                role.Position = i;
             }
         }
         

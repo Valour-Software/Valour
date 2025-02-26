@@ -168,6 +168,8 @@ public partial class ValourDb : DbContext
     public DbSet<NodeStats> NodeStats { get; set; }
     
     public DbSet<Report> Reports { get; set; }
+    
+    public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
 
     ////////////////
     // Eco System //
@@ -242,6 +244,8 @@ public partial class ValourDb : DbContext
         UserPrivateInfo.SetupDbModel(modelBuilder);
         Referral.SetupDbModel(modelBuilder);
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
+        
+        OldPlanetRoleMember.SetupDbModel(modelBuilder);
     }
 }
 

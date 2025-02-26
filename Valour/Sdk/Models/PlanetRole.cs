@@ -72,7 +72,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    public int Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role

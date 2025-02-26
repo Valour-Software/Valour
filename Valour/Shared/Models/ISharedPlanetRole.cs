@@ -61,7 +61,7 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    uint Position { get; set; }
+    int Position { get; set; }
 
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
@@ -71,7 +71,7 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 
     public static uint GetAuthority(ISharedPlanetRole role)
     {
-        return uint.MaxValue - role.Position - 1;
+        return (uint)(int.MaxValue - role.Position - 1);
     }
 
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
@@ -84,7 +84,7 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 
     uint ISortable.GetSortPosition()
     {
-        return Position;
+        return (uint)Position;
     }
 }
 

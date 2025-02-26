@@ -33,7 +33,7 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    public int Position { get; set; }
     
     /// <summary>
     /// The id of the role, local to the planet. Used for membership flags.

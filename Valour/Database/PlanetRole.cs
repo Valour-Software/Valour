@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -12,6 +13,10 @@ public class PlanetRole : ISharedPlanetRole
 
     public Planet Planet { get; set; }
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
+    
+    [JsonIgnore]
+    [Obsolete("Use new RoleMembership!")]
+    public virtual ICollection<OldPlanetRoleMember> OldRoleMembers { get; set; }
 
     ///////////////////////
     // Entity Properties //
@@ -41,7 +46,7 @@ public class PlanetRole : ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    public int Position { get; set; }
 
     /// <summary>
     /// True if this is the default (everyone) role
@@ -81,6 +86,9 @@ public class PlanetRole : ISharedPlanetRole
     public string Name { get; set; }
 
     public bool AnyoneCanMention { get; set; }
+    
+    // Used for migrations
+    public int Version { get; set; }
 
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
@@ -90,72 +98,75 @@ public class PlanetRole : ISharedPlanetRole
 
     public static void SetupDbModel(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<PlanetRole>(entity =>
+        modelBuilder.Entity<PlanetRole>(e =>
         {
-            entity.ToTable("planet_roles");
+            e.ToTable("planet_roles");
 
             // Key
-            entity.HasKey(x => x.Id);
+            e.HasKey(x => x.Id);
 
             // Properties
-            entity.Property(x => x.Id)
+            e.Property(x => x.Id)
                 .HasColumnName("id");
             
-            entity.Property(x => x.FlagBitIndex)
+            e.Property(x => x.FlagBitIndex)
                 .HasColumnName("local_index");
 
-            entity.Property(x => x.IsAdmin)
+            e.Property(x => x.IsAdmin)
                 .HasColumnName("is_admin");
 
-            entity.Property(x => x.PlanetId)
+            e.Property(x => x.PlanetId)
                 .HasColumnName("planet_id");
 
-            entity.Property(x => x.Position)
+            e.Property(x => x.Position)
                 .HasColumnName("position");
 
-            entity.Property(x => x.IsDefault)
+            e.Property(x => x.IsDefault)
                 .HasColumnName("is_default");
 
-            entity.Property(x => x.Permissions)
+            e.Property(x => x.Permissions)
                 .HasColumnName("permissions");
 
-            entity.Property(x => x.ChatPermissions)
+            e.Property(x => x.ChatPermissions)
                 .HasColumnName("chat_perms");
 
-            entity.Property(x => x.CategoryPermissions)
+            e.Property(x => x.CategoryPermissions)
                 .HasColumnName("cat_perms");
 
-            entity.Property(x => x.VoicePermissions)
+            e.Property(x => x.VoicePermissions)
                 .HasColumnName("voice_perms");
 
-            entity.Property(x => x.Color)
+            e.Property(x => x.Color)
                 .HasColumnName("color");
 
-            entity.Property(x => x.Bold)
+            e.Property(x => x.Bold)
                 .HasColumnName("bold");
 
-            entity.Property(x => x.Italics)
+            e.Property(x => x.Italics)
                 .HasColumnName("italics");
 
-            entity.Property(x => x.Name)
+            e.Property(x => x.Name)
                 .HasColumnName("name");
 
-            entity.Property(x => x.AnyoneCanMention)
+            e.Property(x => x.AnyoneCanMention)
                 .HasColumnName("anyone_can_mention");
+            
+            e.Property(x => x.Version)
+                .HasColumnName("version");
 
             // Relationships
-            entity.HasOne(x => x.Planet)
+            e.HasOne(x => x.Planet)
                 .WithMany(x => x.Roles)
                 .HasForeignKey(x => x.PlanetId);
 
-            entity.HasMany(x => x.PermissionNodes)
+            e.HasMany(x => x.PermissionNodes)
                 .WithOne(x => x.Role)
                 .HasForeignKey(x => x.RoleId);
             
             // Indices
-            entity.HasIndex(x => x.PlanetId);
+            e.HasIndex(x => x.PlanetId);
             
-            entity.HasIndex(x => new { x.PlanetId, x.Id })
+            e.HasIndex(x => new { x.PlanetId, x.Id })
                 .IsUnique();
         });
     }
