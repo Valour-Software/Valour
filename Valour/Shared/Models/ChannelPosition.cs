@@ -51,34 +51,15 @@ public struct ChannelPosition
 
     public static uint GetDepth(uint position)
     {
-        // This is the planet
+        // Planet case
         if (position == 0)
             return 0;
-        
-        // Check if the third and fourth bytes (depth 3 and 4) are present
-        if ((position & 0x0000FFFFu) == 0)
-        {
-            // If they are not, we must be in the first or second layer
-            if ((position & 0x00FF0000u) == 0)
-            {
-                // If the second byte is also zero, it's in the first layer (top level)
-                return 1;
-            }
-            // Otherwise, it's in the second layer
-            return 2;
-        }
-        else
-        {
-            // Check the lowest byte first (fourth layer)
-            if ((position & 0x000000FFu) == 0)
-            {
-                // If the fourth byte is zero, it's in the third layer
-                return 3;
-            }
-            
-            // If none of the previous checks matched, it’s in the fourth layer
-            return 4;
-        }   
+    
+        // Check bytes from least significant to most significant
+        if ((position & 0x000000FFu) != 0) return 4; // Fourth byte is set
+        if ((position & 0x0000FF00u) != 0) return 3; // Third byte is set
+        if ((position & 0x00FF0000u) != 0) return 2; // Second byte is set
+        return 1; // Must be just in the first byte
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,18 +91,20 @@ public struct ChannelPosition
     public static uint AppendRelativePosition(uint parentPosition, uint relativePosition)
     {
         var depth = GetDepth(parentPosition);
-        return AppendRelativePosition(parentPosition, relativePosition, depth);
+        return AppendRelativePosition(parentPosition, relativePosition, depth + 1);
     }
     
     // Overload for if you already know the depth
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint AppendRelativePosition(uint parentPosition, uint relativePosition, uint depth)
+    // This version explicitly takes the target depth (where the result should be)
+    public static uint AppendRelativePosition(uint parentPosition, uint relativePosition, uint targetDepth)
     {
-        // use depth to determine amount to shift
-        var shift = 8 * (3 - depth);
-        // shift the relative position to the correct position
+        // For depth 1: shift by 24 bits (position in first byte)
+        // For depth 2: shift by 16 bits (position in second byte)  
+        // For depth 3: shift by 8 bits (position in third byte)
+        // For depth 4: shift by 0 bits (position in fourth byte)
+        var shift = 8 * (4 - targetDepth);
+    
         var shifted = relativePosition << (int)shift;
-        // now add the relative position to the parent position
         return parentPosition | shifted;
     }
     
@@ -155,7 +138,7 @@ public struct ChannelPosition
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetLowerBound(uint parentPosition, uint depth)
     {
-        return AppendRelativePosition(parentPosition, 1, depth);
+        return AppendRelativePosition(parentPosition, 1, depth + 1);
     }
     
     // This one is a bit more complex
@@ -170,12 +153,22 @@ public struct ChannelPosition
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetUpperBound(uint parentPosition, uint depth)
     {
-        var maxed = 0xFAFAFAFAu; // literally means 250-250-250-250
-        // maxed gets shifted right by 8 * (4 - depth)
-        var shift = 8 * depth; // so if depth = 1, shift = one byte, maxed = 0-250-250-250
-        var shifted = maxed >> (int)shift;
-        
-        return parentPosition | shifted;
+        if (depth >= 4)
+            return parentPosition; // No descendants beyond depth 4
+    
+        // Create a mask with FA in all positions after current depth
+        // For depth 0: 0xFAFAFAFA (all four bytes)
+        // For depth 1: 0x00FAFAFA (bytes 2,3,4)
+        // For depth 2: 0x0000FAFA (bytes 3,4)
+        // For depth 3: 0x000000FA (byte 4)
+        uint upperBoundMask = 0u;
+    
+        for (int i = (int)depth + 1; i <= 4; i++)
+        {
+            upperBoundMask |= (uint)0xFA << (8 * (4 - i));
+        }
+    
+        return parentPosition | upperBoundMask;
     }
     
     /// <summary>
@@ -184,7 +177,11 @@ public struct ChannelPosition
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetDirectChildMaskByDepth(uint depth)
     {
-        return (0xFFFFFFFFu >> (int)((depth + 1) * 8));
+        // For depth 0: Return 0xFF000000 (match first byte only)
+        // For depth 1: Return 0x00FF0000 (match second byte only)
+        // For depth 2: Return 0x0000FF00 (match third byte only)
+        // For depth 3: Return 0x000000FF (match fourth byte only)
+        return (uint)0xFF << (int)(8 * (3 - depth));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

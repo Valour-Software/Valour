@@ -50,13 +50,12 @@
 
             <div>
                 <!-- The Modal -->
-                @foreach (var channel in TopChannels)
+                @foreach (var channel in Planet.Channels)
                 {
                     <ChannelListItem @key="@channel.Id"
                                      PlanetComponent="@this"
                                      AllChannels="@Planet.Channels"
-                                     Channel="@channel"
-                                     IsTopLevel="@true" />
+                                     Channel="@channel" />
                 }
             </div>
         }
@@ -69,8 +68,6 @@
 
     public bool Open { get; set; } = true;
 
-    public List<Channel> TopChannels;
-
     private int _notifications;
     private bool _hasUnread;
     
@@ -78,9 +75,6 @@
 
     protected override void OnInitialized()
     {
-        // Initialize collections
-        TopChannels = new List<Channel>();
-
         // TODO
         // Handle list change
         //ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
@@ -92,8 +86,6 @@
         DetermineUnreadAndNotifications();
         
         DeterminePermissions();
-
-        GetTopLevelItems();
     }
 
     private void DeterminePermissions()
@@ -124,7 +116,6 @@
 
         if (eventData.CategoryId is null)
         {
-            GetTopLevelItems();
             StateHasChanged();
         }
 
@@ -136,12 +127,6 @@
         if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
             eventData.Model.ParentId is not null) // We only render top level
                 return Task.CompletedTask; 
-
-        // Add and sort new item
-        if (!TopChannels.Any(x => x.Id == eventData.Model.Id))
-            TopChannels.Add(eventData.Model);
-        
-        SortTopItems();
         
         StateHasChanged();
 
@@ -153,25 +138,10 @@
         if (channel.PlanetId != Planet.Id || // Don't care about other planets
             channel.ParentId != null) // We only render top level
             return Task.CompletedTask;
-
-        // Remove - don't need to sort when removing
-        TopChannels.RemoveAll(x => x.Id == channel.Id);
-        
         StateHasChanged();
 
         return Task.CompletedTask;
     }
-
-    private void SortTopItems()
-    {
-        TopChannels.Sort((x, y) =>
-        {
-            var a = x.RawPosition;
-            var b = y.RawPosition;
-            return a.CompareTo(b);
-        });
-    }
-
     public string GetCssClass() => 
         Open ? "planet is-open" : "planet";
 
@@ -192,22 +162,6 @@
         };
         
         ModalRoot.Instance.OpenModal<EditPlanetComponent>(data);
-    }
-
-    private void GetTopLevelItems()
-    {
-        TopChannels.Clear();
-        foreach (var channel in Planet.Channels)
-        {
-            if (channel.ParentId is null)
-            {
-                TopChannels.Add(channel);
-            }
-        }
-
-        SortTopItems();
-            
-        Console.WriteLine($"Found {TopChannels.Count} top level channels and categories");
     }
     
     private async Task OnClickPlanetInfo()

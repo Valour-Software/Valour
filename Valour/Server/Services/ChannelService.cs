@@ -736,14 +736,14 @@ public class ChannelService
 
     public async Task MigrateChannels()
     {
-        // From V0 -> V2, we convert the position to the new format
+        // From V0 -> V3, we convert the position to the new format
         
         // Non-planet channels just get updated to version 2
         await _db.Channels.Where(x => x.PlanetId == null)
-            .ExecuteUpdateAsync(u => u.SetProperty(c => c.Version, 2));
+            .ExecuteUpdateAsync(u => u.SetProperty(c => c.Version, 8));
         
         var rootChannels = await _db.Channels
-            .Where(x => x.Version < 2
+            .Where(x => x.Version < 8
                 && x.PlanetId != null
                 && x.ParentId == null)
             .ToListAsync();
@@ -762,10 +762,10 @@ public class ChannelService
             // Sort the root channels by position
             rootChannelsForPlanet.Sort((a, b) => a.RawPosition.CompareTo(b.RawPosition));
 
-            var ri = 0;
+            var ri = 1;
             foreach (var rootChannel in rootChannelsForPlanet)
             {
-                var rootPos = ChannelPosition.AppendRelativePosition(0, (uint)ri, 0);
+                var rootPos = ChannelPosition.AppendRelativePosition(0, (uint)ri, 1);
                 ri++;
                 
                 await MigrateChannel(rootChannel, rootPos);
@@ -780,7 +780,7 @@ public class ChannelService
     public async Task MigrateChannel(Valour.Database.Channel channel, uint newPosition)
     {
         channel.RawPosition = newPosition;
-        channel.Version = 2;
+        channel.Version = 8;
         
         _db.Channels.Update(channel);
         
@@ -792,7 +792,7 @@ public class ChannelService
             .OrderBy(x => x.RawPosition)
             .ToListAsync();
         
-        var ci = 0;
+        var ci = 1;
         foreach (var child in children)
         {
             var childPos = ChannelPosition.AppendRelativePosition(newPosition, (uint)ci);

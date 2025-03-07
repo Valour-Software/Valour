@@ -124,9 +124,9 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 // Moving within top level (planet)
                 if (targetChannel.ParentId == null)
                 {
-                    childrenOrder = target.PlanetComponent.TopChannels
-                        .Select(x => x.Id)
-                        .ToList();
+                    //childrenOrder = target.PlanetComponent.TopChannels
+                    //    .Select(x => x.Id)
+                    //    .ToList();
                 }
                 else
                 {
@@ -168,9 +168,9 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 
                 if (target.ParentComponent is null)
                 {
-                    childrenOrder = target.PlanetComponent.TopChannels
-                        .Select(x => x.Id)
-                        .ToList();
+                    // childrenOrder = target.PlanetComponent.TopChannels
+                    //    .Select(x => x.Id)
+                    //    .ToList();
                 }
                 else
                 {

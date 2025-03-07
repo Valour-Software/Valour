@@ -10,6 +10,7 @@
 @inject UnreadService UnreadService
 
 <div
+    style="margin-left: @(Depth * 20)px"
     class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
     draggable="true"
     depth="@Depth"
@@ -87,6 +88,7 @@
         </div>
     </div>
     
+@*
     @if (_children is not null && _isOpen)
     {
         @if (_children.Count > 0)
@@ -117,6 +119,7 @@
             </div>
         }
     }
+    *@
     
 </div>
 
@@ -135,11 +138,7 @@
     [Parameter]
     public Channel Channel { get; set; }
     
-    [Parameter]
-    public bool IsTopLevel { get; set; }
-    
-    [Parameter]
-    public int Depth { get; set; }
+    private uint Depth => Channel.Position.Depth;
     
     public Planet Planet { get; set; }
     
