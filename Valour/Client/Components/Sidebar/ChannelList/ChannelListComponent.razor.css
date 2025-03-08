@@ -117,14 +117,15 @@
 ::deep .channel {
     cursor: pointer;
     border-radius: 8px;
-    padding: 2px;
-    padding-left: 6px;
-    padding-right: 8px;
+    padding: 2px 8px 2px 6px;
     overflow: visible;
     white-space: nowrap;
-    /* width: max-content;*/
     min-width: 150px;
     position: relative;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
 }
 
 ::deep .channel-wrapper:hover > .channel {
@@ -185,13 +186,16 @@
 /* Icons */
 
 ::deep .channel-icon {
-    display: inline-block;
-    max-width: 16px;
+    display: inline-flex;
+    width: 14px;
     margin-right: 3px;
+    justify-content: center;
 }
 
 ::deep .channel-icon-holder {
-    display: inline-block;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
     position: relative;
 }
 
