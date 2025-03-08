@@ -52,10 +52,13 @@
                 <!-- The Modal -->
                 @foreach (var channel in Planet.Channels)
                 {
-                    <ChannelListItem @key="@channel.Id"
-                                     PlanetComponent="@this"
-                                     AllChannels="@Planet.Channels"
-                                     Channel="@channel" />
+                    if (DetermineChannelVisible(channel))
+                    {
+                        <ChannelListItem @key="@channel.Id"
+                                         PlanetComponent="@this"
+                                         AllChannels="@Planet.Channels"
+                                         Channel="@channel"/>
+                    }
                 }
             </div>
         }
@@ -63,6 +66,12 @@
 </div>
 
 @code {
+    /// <summary>
+    /// A hashset of all the categories which have been closed (minimized)
+    /// </summary>
+    public HashSet<long> ClosedCategories = new();
+    private Dictionary<long, bool> _visibilityCache = new();
+    
     [Parameter] 
     public Planet Planet { get; set; }
 
@@ -86,6 +95,42 @@
         DetermineUnreadAndNotifications();
         
         DeterminePermissions();
+    }
+    
+    public bool DetermineChannelVisible(Channel channel)
+    {
+        if (_visibilityCache.TryGetValue(channel.Id, out var cached))
+        {
+            return cached;
+        }
+
+        var visible = true;
+
+        if (channel.ParentId is not null)
+        {
+            var parent = Planet.Channels.Get(channel.ParentId.Value);
+            visible = DetermineChannelVisible(parent) && !ClosedCategories.Contains(channel.ParentId.Value);
+        }
+        
+        _visibilityCache.TryAdd(channel.Id, visible);
+        
+        return visible;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Clear visibility cache
+        _visibilityCache.Clear();
+    }
+
+    public void SetCategoryOpened(long categoryId, bool value)
+    {
+        if (value)
+            ClosedCategories.Add(categoryId);
+        else
+            ClosedCategories.Remove(categoryId);
+        
+        StateHasChanged();
     }
 
     private void DeterminePermissions()

@@ -202,5 +202,37 @@ public struct ChannelPosition
         // shift to right then invert to avoid long
         return position & ~(0xFFFFFFFFu >> (int)shift);
     }
+    
+    /// <summary>
+    /// Returns all ancestor positions, from immediate parent to root level
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ChannelPosition[] GetAncestorPositions(ChannelPosition position)
+    {
+        var depth = GetDepth(position.RawPosition);
+        if (depth <= 1)
+            return []; // No ancestors for planet or top-level channels
+        
+        // We'll have depth-1 ancestors (e.g., depth 4 has 3 ancestors)
+        var ancestors = new ChannelPosition[depth - 1];
+    
+        uint currentPos = position.RawPosition;
+        for (uint i = 0; i < depth - 1; i++)
+        {
+            // Get the parent of the current position
+            currentPos = GetParentPosition(currentPos);
+            ancestors[i] = new ChannelPosition(currentPos);
+        }
+    
+        return ancestors;
+    }
+
+    /// <summary>
+    /// Returns all ancestor positions, from immediate parent to root level
+    /// </summary>
+    public ChannelPosition[] GetAncestorPositions()
+    {
+        return GetAncestorPositions(this);
+    }
 
 }

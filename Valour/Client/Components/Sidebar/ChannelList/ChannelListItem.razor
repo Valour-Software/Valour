@@ -10,7 +10,7 @@
 @inject UnreadService UnreadService
 
 <div
-    style="margin-left: @(Depth * 20)px"
+    style="margin-left: @((Depth - 1) * 20)px"
     class="channel-wrapper @(Channel.ChannelType == ChannelTypeEnum.PlanetCategory ? "category" : "")"
     draggable="true"
     depth="@Depth"
@@ -235,6 +235,7 @@
         {
             _isOpen = !_isOpen;
             CategoryManager.SetOpen(Channel, _isOpen);
+            PlanetComponent.SetCategoryOpened(Channel.Id, !_isOpen);
         }
         
         Refresh();

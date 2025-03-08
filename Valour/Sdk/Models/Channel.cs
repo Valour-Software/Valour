@@ -210,7 +210,15 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             }
         }
 
-        return PlanetId is null ? Client.Cache.Channels.Put(this, flags) : Planet.Channels.Put(this, flags);
+        if (PlanetId is not null)
+        {
+            Planet.SetChannelByPosition(Position, this);
+            return Planet.Channels.Put(this, flags);
+        }
+        else
+        {
+            return Client.Cache.Channels.Put(this, flags);
+        }
     }
     
     public override Channel RemoveFromCache(bool skipEvents = false)

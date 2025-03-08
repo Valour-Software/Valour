@@ -73,6 +73,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     private readonly ConcurrentDictionary<int, PlanetRole> _indexToRole = new();
     
+    /// <summary>
+    /// A map from a channel position to the channel
+    /// </summary>
+    private readonly ConcurrentDictionary<ChannelPosition, Channel> _positionToChannel = new();
+    
     #endregion
 
     /// <summary>
@@ -506,6 +511,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         {
             _membershipToRoles[pair.Key] = pair.Value.OrderBy(r => r.Position).ToImmutableList();
         }
+    }
+    
+    public void SetChannelByPosition(ChannelPosition position, Channel channel)
+    {
+        _positionToChannel[position] = channel;
+    }
+    
+    public Channel GetChannelByPosition(ChannelPosition position)
+    {
+        _positionToChannel.TryGetValue(position, out var channel);
+        return channel;
     }
 
     public Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId) =>
