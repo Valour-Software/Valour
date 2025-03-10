@@ -28,8 +28,11 @@
     @oncontextpress="@OnContextMenu"
 
     @ondragleave:stopPropagation="true"
-    @ondragleave="@OnDragLeave">
-    
+    @ondragleave="@OnDragLeave"
+
+    @ondragend:stopPropagation="true"
+    @ondragend="@OnDragEnd"
+>
     <div class="channel-wrapper">
 
         @if (ListManager.DragOverId == Channel.Id &&
@@ -44,12 +47,12 @@
         <div
             class="@ChosenCss"
             id="@Channel.Id">
-            
+
             <div class="channel-icon-holder">
                 @{
                     var iconData = GetIconData();
                 }
-                
+
                 <i class="channel-icon bi-@iconData.Icon" style="font-size: @iconData.Size" aria-label="@iconData.AltText"></i>
 
                 @if (_notificationCount > 0)
@@ -78,19 +81,31 @@
                 ondragenter="return false;">
             </div>
         }
-        <div
-            class="drop top"
-            @ondragenter:stopPropagation="true"
-            @ondragenter="@OnDragEnterTop">
-        </div>
-        <div
-            class="drop bottom"
-            @ondragenter:stopPropagation="true"
-            @ondragenter="@OnDragEnterBottom">
-        </div>
+
+        @if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            <div
+                class="drop full"
+                @ondragenter:stopPropagation="true"
+                @ondragenter="@OnDragEnterBottom">
+            </div>
+        }
+        else
+        {
+            <div
+                class="drop top"
+                @ondragenter:stopPropagation="true"
+                @ondragenter="@OnDragEnterTop">
+            </div>
+            <div
+                class="drop bottom"
+                @ondragenter:stopPropagation="true"
+                @ondragenter="@OnDragEnterBottom">
+            </div>
+        }
     </div>
-    
-@*
+
+    @*
     @if (_children is not null && _isOpen)
     {
         @if (_children.Count > 0)
@@ -122,7 +137,7 @@
         }
     }
     *@
-    
+
 </div>
 
 
@@ -219,7 +234,7 @@
     
     private async Task OnClick()
     {
-        ListManager.OnItemClickInCategory(Channel, ParentComponent);
+        ListManager.OnItemClickInCategory(this);
 
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
@@ -514,7 +529,12 @@
     
     private void OnDragStart()
     {
-        ListManager.OnItemStartDragInCategory(Channel, ParentComponent);
+        ListManager.OnItemStartDragInCategory(this);
+    }
+
+    private void OnDragEnd()
+    {
+        ListManager.OnCancelDrag();
     }
 
     private void OnDragLeave()
@@ -524,7 +544,7 @@
 
     private async Task OnDropOn()
     {
-        await ListManager.OnItemDropOnItem(this);
+        await ListManager.OnItemDropOn(this);
         Refresh();
     }
     

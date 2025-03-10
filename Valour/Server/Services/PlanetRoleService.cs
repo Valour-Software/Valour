@@ -190,8 +190,13 @@ public class PlanetRoleService
             
             _logger.LogInformation("Role flag changes for deletion: {Changes}", flagChanges);
 
-            await _db.PlanetRoles.Where(x => x.Id == roleId)
+            var deleted = await _db.PlanetRoles.Where(x => x.Id == roleId)
                 .ExecuteDeleteAsync();
+
+            if (deleted == 0)
+            {
+                _logger.LogError("Executed delete on role but no rows affected: {RoleId}", roleId);
+            }
             
             await trans.CommitAsync();
 

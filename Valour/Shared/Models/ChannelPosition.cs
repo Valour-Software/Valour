@@ -234,5 +234,42 @@ public struct ChannelPosition
     {
         return GetAncestorPositions(this);
     }
+    
+    /// <summary>
+    /// Checks if the current position contains the specified position as a descendant
+    /// </summary>
+    /// <param name="potentialDescendant">The position to check</param>
+    /// <returns>True if the specified position is a descendant of this position</returns>
+    public bool ContainsPosition(ChannelPosition potentialDescendant)
+    {
+        return ContainsPosition(this.RawPosition, potentialDescendant.RawPosition);
+    }
 
+    /// <summary>
+    /// Checks if one position contains another position as a descendant
+    /// </summary>
+    /// <param name="parent">The potential parent position</param>
+    /// <param name="potentialDescendant">The potential descendant position</param>
+    /// <returns>True if the second position is a descendant of the first position</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool ContainsPosition(ChannelPosition parent, ChannelPosition potentialDescendant)
+    {
+        return ContainsPosition(parent.RawPosition, potentialDescendant.RawPosition);
+    }
+
+    /// <summary>
+    /// Checks if one position contains another position as a descendant
+    /// </summary>
+    /// <param name="parentPosition">The potential parent position</param>
+    /// <param name="potentialDescendantPosition">The potential descendant position</param>
+    /// <returns>True if the second position is a descendant of the first position</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool ContainsPosition(uint parentPosition, uint potentialDescendantPosition)
+    {
+        // Get the bounds of descendants for the parent position
+        var (lower, upper) = GetDescendentBounds(parentPosition);
+    
+        // A position is a descendant if it falls within these bounds
+        return potentialDescendantPosition >= lower && potentialDescendantPosition <= upper;
+    }
 }

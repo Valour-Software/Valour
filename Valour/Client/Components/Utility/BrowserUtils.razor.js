@@ -3,7 +3,11 @@ export const init = (dotnet) => {
         const dimensions = getWindowDimensions();
         await dotnet.invokeMethodAsync('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
     };
+    const onBlur = async () => {
+        await dotnet.invokeMethodAsync('NotifyBlur');
+    };
     window.addEventListener('resize', onResize);
+    window.addEventListener('blur', onBlur);
     // Check if Page Visibility API is supported
     const visibilityChangeEvent = "visibilitychange";
     const hiddenProperty = "hidden" in document ? "hidden" : undefined;

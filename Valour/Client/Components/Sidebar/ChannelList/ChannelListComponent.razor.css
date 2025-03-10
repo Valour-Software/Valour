@@ -114,6 +114,11 @@
     bottom: 0;
 }
 
+::deep .channel-wrapper .drop.full {
+    top: 0;
+    height: 100%;
+}
+
 ::deep .channel {
     cursor: pointer;
     border-radius: 8px;

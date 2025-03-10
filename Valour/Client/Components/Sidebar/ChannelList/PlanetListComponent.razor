@@ -49,15 +49,26 @@
             </div>
 
             <div>
-                <!-- The Modal -->
-                @foreach (var channel in Planet.Channels)
-                {
-                    if (DetermineChannelVisible(channel))
+                @{
+                    var channelCount = Planet.Channels.Count;
+                    
+                    @* Only rebuild array if the size has changed *@
+                    if (RenderedChannels is null || RenderedChannels.Length != channelCount)
+                        RenderedChannels = new ChannelListItem[channelCount];
+                    
+                    for (var i = 0; i < channelCount; i++)
                     {
-                        <ChannelListItem @key="@channel.Id"
-                                         PlanetComponent="@this"
-                                         AllChannels="@Planet.Channels"
-                                         Channel="@channel"/>
+                        var ii = i;
+                        var channel = Planet.Channels[ii];
+                        if (DetermineChannelVisible(channel))
+                        {
+                            <ChannelListItem @key="@channel.Id"
+                                             @ref="@RenderedChannels[ii]"
+                                             PlanetComponent="@this"
+                                             AllChannels="@Planet.Channels"
+                                             Channel="@channel"/>
+                        }
+                        
                     }
                 }
             </div>
@@ -71,6 +82,8 @@
     /// </summary>
     public HashSet<long> ClosedCategories = new();
     private Dictionary<long, bool> _visibilityCache = new();
+
+    public ChannelListItem[] RenderedChannels;
     
     [Parameter] 
     public Planet Planet { get; set; }
@@ -95,6 +108,17 @@
         DetermineUnreadAndNotifications();
         
         DeterminePermissions();
+    }
+
+    public void RefreshChannels()
+    {
+        if (RenderedChannels is null)
+            return;
+
+        for (int i = 0; i < RenderedChannels.Length; i++)
+        {
+            RenderedChannels[i]?.Refresh();
+        }
     }
     
     public bool DetermineChannelVisible(Channel channel)

@@ -261,7 +261,7 @@ namespace Valour.Tests.Services
             Assert.True(deleteResult.Success);
             
             // Verify it's gone from the database
-            var dbRole = await _db.PlanetRoles.FindAsync(createdRole.Id);
+            var dbRole = await _db.PlanetRoles.FirstOrDefaultAsync(x => x.Id == createdRole.Id);
             Assert.Null(dbRole);
         }
 

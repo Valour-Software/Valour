@@ -22,7 +22,12 @@ export const init = (dotnet: DotnetObject) => {
         await dotnet.invokeMethodAsync('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
     };
     
+    const onBlur = async () => {
+        await dotnet.invokeMethodAsync('NotifyBlur');
+    };
+    
     window.addEventListener('resize', onResize);
+    window.addEventListener('blur', onBlur);
 
     // Check if Page Visibility API is supported
     const visibilityChangeEvent = "visibilitychange";
