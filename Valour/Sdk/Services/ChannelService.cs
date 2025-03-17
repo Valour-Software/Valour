@@ -21,11 +21,6 @@ public class ChannelService : ServiceBase
     /// Run when SignalR closes a channel
     /// </summary>
     public HybridEvent<Channel> ChannelDisconnected;
-    
-    /// <summary>
-    /// Run when a category is reordered
-    /// </summary>
-    public HybridEvent<CategoryOrderEvent> CategoryReordered;
 
     /// <summary>
     /// Currently opened channels
@@ -334,29 +329,6 @@ public class ChannelService : ServiceBase
     /// </summary>
     public bool IsChannelConnected(long channelId) =>
         _connectedPlanetChannelsLookup.ContainsKey(channelId);
-
-    
-    // TODO: change
-    public void OnCategoryOrderUpdate(CategoryOrderEvent eventData)
-    {
-        // Update channels in cache
-        uint pos = 0;
-        foreach (var data in eventData.Order)
-        {
-            if (_client.Cache.Channels.TryGet(data.Id, out var channel))
-            {
-                // The parent can be changed in this event
-                channel.ParentId = eventData.CategoryId;
-
-                // Position can be changed in this event
-                channel.RawPosition = pos;
-            }
-
-            pos++;
-        }
-        
-        CategoryReordered?.Invoke(eventData);
-    }
     
     public void OnWatchingUpdate(ChannelWatchingUpdate update)
     {
@@ -373,10 +345,19 @@ public class ChannelService : ServiceBase
         
         channel.TypingUpdated?.Invoke(update);
     }
+    
+    public void OnChannelsMoved(ChannelsMovedEvent e)
+    {
+        var planet = _client.Cache.Planets.Get(e.PlanetId);
+        if (planet is null)
+            return;
+
+        planet.OnChannelsMoved(e);
+    }
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", OnCategoryOrderUpdate);
+        node.HubConnection.On<ChannelsMovedEvent>("Channels-Moved", OnChannelsMoved);
         node.HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", OnWatchingUpdate);
         node.HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", OnTypingUpdate);
     }

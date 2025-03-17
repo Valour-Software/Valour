@@ -97,17 +97,15 @@
 
     protected override void OnInitialized()
     {
-        // TODO
-        // Handle list change
-        //ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
-        // Handle Deletions
-        //ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
-
-        ChannelService.CategoryReordered += OnOrderUpdate;
+        Planet.Channels.Changed += OnChannelsChanged;
         
         DetermineUnreadAndNotifications();
-        
         DeterminePermissions();
+    }
+
+    private void OnChannelsChanged(IModelEvent<Channel> eventData)
+    {
+        StateHasChanged();
     }
 
     public void RefreshChannels()
@@ -177,40 +175,7 @@
             }
         );
     }
-
-    private Task OnOrderUpdate(CategoryOrderEvent eventData)
-    {
-        if (eventData.PlanetId != Planet.Id)
-            return Task.CompletedTask;
-
-        if (eventData.CategoryId is null)
-        {
-            StateHasChanged();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task OnChannelUpdate(ModelUpdatedEvent<Channel> eventData)
-    {
-        if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
-            eventData.Model.ParentId is not null) // We only render top level
-                return Task.CompletedTask; 
-        
-        StateHasChanged();
-
-        return Task.CompletedTask;
-    }
     
-    private Task OnChannelDelete(Channel channel)
-    {
-        if (channel.PlanetId != Planet.Id || // Don't care about other planets
-            channel.ParentId != null) // We only render top level
-            return Task.CompletedTask;
-        StateHasChanged();
-
-        return Task.CompletedTask;
-    }
     public string GetCssClass() => 
         Open ? "planet is-open" : "planet";
 

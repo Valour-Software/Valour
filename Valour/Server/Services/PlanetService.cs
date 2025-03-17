@@ -329,6 +329,9 @@ public class PlanetService
         {
             planet.Id = forceId ?? IdManager.Generate();
 
+            var position = new ChannelPosition();
+            position = position.Append(1); // Position 1
+            
             // Create general category
             var category = new Valour.Database.Channel()
             {
@@ -338,10 +341,13 @@ public class PlanetService
                 Name = "General",
                 ParentId = null,
                 Description = "General category",
-                RawPosition = 0,
+                RawPosition = position.RawPosition,
+                LocalPosition = 0,
                 
                 ChannelType = ChannelTypeEnum.PlanetCategory
             };
+            
+            position = position.Append(1); // Position 1 inside category
             
             // Create general chat channel
             var chatChannel = new Valour.Database.Channel()
@@ -352,7 +358,8 @@ public class PlanetService
                 Id = IdManager.Generate(),
                 Name = "General",
                 Description = "General chat channel",
-                RawPosition = 0,
+                RawPosition = position.RawPosition,
+                LocalPosition = 0,
                 IsDefault = true,
                 
                 ChannelType = ChannelTypeEnum.PlanetChat
@@ -500,7 +507,7 @@ public class PlanetService
 
         var children = await _db.Channels
             .Where(x => x.ParentId == categoryId && x.PlanetId == insert.PlanetId)
-            .OrderBy(x => x.RawPosition)
+            .OrderBy(x => x.LocalPosition)
             .Select(x =>
             new {
                 Id = x.Id, ChannelType = x.ChannelType
@@ -533,7 +540,7 @@ public class PlanetService
 
                 var oldCategoryChildren = await _db.Channels
                     .Where(x => x.ParentId == oldCategory.Id)
-                    .OrderBy(x => x.RawPosition)
+                    .OrderBy(x => x.LocalPosition)
                     .ToListAsync();
 
                 // Remove from old category
@@ -545,7 +552,7 @@ public class PlanetService
                 uint opos = 0;
                 foreach (var child in oldCategoryChildren)
                 {
-                    child.RawPosition = opos;
+                    child.LocalPosition = opos;
                     oldCategoryOrder.Add(new(child.Id, child.ChannelType));
                     opos++;
                 }
@@ -553,7 +560,7 @@ public class PlanetService
 
             insert.ParentId = categoryId;
             insert.PlanetId = insert.PlanetId;
-            insert.RawPosition = position;
+            insert.LocalPosition = position;
 
             var insertData = new
             {

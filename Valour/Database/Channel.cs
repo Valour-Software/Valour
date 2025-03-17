@@ -65,7 +65,7 @@ public class Channel : ISharedChannel
     public long? ParentId { get; set; }
 
     /// <summary>
-    /// The position of the channel in the channel list
+    /// The full position of the channel. Includes full hierarchy.
     /// </summary>
     public uint RawPosition { get; set; }
 

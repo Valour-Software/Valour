@@ -144,7 +144,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
             ChannelType = ChannelTypeEnum.PlanetChat,
             Description = "Admins only",
             InheritsPerms = false,
-            RawPosition = uint.MaxValue // Auto calculate position
+            RawPosition = 0
         }, new List<PermissionsNode>()
         {
             new PermissionsNode() // Sets no access for default

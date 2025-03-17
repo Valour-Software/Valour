@@ -21,7 +21,7 @@ public class ChannelListItem : DragListItem
 {
     public Channel Channel { get; set; }
     
-    public override uint Depth => Channel.Position.Depth;
+    public override uint Depth => ChannelPosition.GetDepth(Channel.RawPosition);
     public override uint Position => Channel.RawPosition;
     
     public ChannelListItem(Channel channel)

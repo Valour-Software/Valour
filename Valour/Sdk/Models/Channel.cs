@@ -1,11 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Sdk.Nodes;
-using Valour.Sdk.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
@@ -122,30 +118,15 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public long? ParentId { get; set; }
     
-    // Backing store for RawPosition
-    private uint _rawPosition;
+    /// <summary>
+    /// The full position of the channel. Includes full hierarchy.
+    /// </summary>
+    public uint RawPosition { get; set; }
     
     /// <summary>
-    /// The position of the channel. Works as the following:
-    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
-    /// Each 8 bits is a category, with the first category being the top level
-    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
-    /// [00000011]-[00000010]-[00000001]-[00000000]
-    /// This does limit the depth of categories to 4, and the highest position
-    /// to 254 (since 000 means no position)
+    /// The position of the channel within its parent. 0 is the top position.
     /// </summary>
-    public uint RawPosition
-    {
-        get => _rawPosition;
-        set
-        {
-            _rawPosition = value;
-            Position = new ChannelPosition(value);
-        }
-    }
-
-    [JsonIgnore]
-    public ChannelPosition Position { get; protected set; }
+    public byte LocalPosition { get; set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -212,7 +193,6 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
         if (PlanetId is not null)
         {
-            Planet.SetChannelByPosition(Position, this);
             return Planet.Channels.Put(this, flags);
         }
         else

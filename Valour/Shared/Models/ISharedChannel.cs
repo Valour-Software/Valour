@@ -94,15 +94,9 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     DateTime LastUpdateTime { get; set; }
     
     /// <summary>
-    /// The position of the channel. Works as the following:
-    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
-    /// Each 8 bits is a category, with the first category being the top level
-    /// So for example, the following would be a channel in the first position locally, the second position in its parent, and the third position in its grandparent
-    /// [00000011]-[00000010]-[00000001]-[00000000]
-    /// This does limit the depth of categories to 4, and the highest position
-    /// to 254 (since 000 means no position)
+    /// The full position of the channel. Includes full hierarchy.
     /// </summary>
-    public uint RawPosition { get; set; }
+    uint RawPosition { get; set; }
     
     uint ISortable.GetSortPosition()
     {

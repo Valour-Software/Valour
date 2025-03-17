@@ -1,4 +1,5 @@
 ﻿using Valour.Client.Components.Utility;
+using Valour.Client.Toast;
 using Valour.Sdk.Models;
 using Valour.Shared.Models;
 
@@ -75,10 +76,21 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
             if (draggedChannel.Id == droppedOnChannel.Id)
                 return;
+
+            var loop = ChannelPosition.ContainsPosition(draggedChannel.RawPosition, droppedOnChannel.RawPosition);
             
             // Ensure we aren't creating a loop
-            if (draggedChannel.Position.ContainsPosition(droppedOnChannel.Position))
+            if (loop)
+            {
+                ToastContainer.Instance.AddToast(new ToastData()
+                {
+                    Type = ToastProgressState.Failure,
+                    Title = "Failed to move channel",
+                    Message = "Move resulted in a loop",
+                });
+                
                 return;
+            }
 
             // When dropped on a category, it is appended to the end
             if (!DragIsTop)

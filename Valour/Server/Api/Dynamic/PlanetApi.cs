@@ -401,6 +401,80 @@ public class PlanetApi
         
         return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }
+
+    /*
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/move")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> MoveChannelAsync(
+        [FromBody] MoveChannelRequest request, 
+        long planetId,
+        PlanetMemberService memberService,
+        ChannelService channelService,)
+    {
+        if (request.PlanetId != planetId)
+            return ValourResult.BadRequest("PlanetId mismatch.");
+        
+        // Get member
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        // Either the target is the category, or it's within a category. Or, well, it's at the top level.
+        // We have to determine this.
+        if (request.DestinationChannel is not null)
+        {
+            var destination = await channelService.GetChannelAsync(planetId, request.DestinationChannel.Value);
+            if (destination is null)
+                return ValourResult.NotFound("Destination channel not found");
+
+            Channel category = null;
+            
+            if (destination.ChannelType == ChannelTypeEnum.PlanetCategory)
+            {
+                // In this case, the destination was the category
+                // ie: user dropped the channel directly on the category
+                category = destination;
+            }
+            else
+            {
+                // In this case, the destination was a channel within a category
+                // We have to go up a level to get the category
+                if (destination.ParentId is not null)
+                {
+                    category = await channelService.GetChannelAsync(planetId, destination.ParentId!.Value);
+                    
+                    // If the category is null in this case, something is wrong
+                    if (category is null)
+                        return ValourResult.BadRequest("Internal error - Parent category not found for destination");
+                }
+                
+                // There's a chance the destination's parent is null, which means it's a top level channel
+                // ie: a channel not within a category. This is fine.
+            }
+            
+            // If there is a category, ensure the member has permission to manage it
+            if (category is not null)
+            {
+                if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
+                    return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+            }
+            
+            // Get the channel being moved
+            var channel = await channelService.GetChannelAsync(planetId, request.MovingChannel);
+            
+            // Always ensure the member has permission to manage the channel being moved
+            if (!await memberService.HasPermissionAsync(member, channel, ChannelPermissions.Manage))
+                return ValourResult.LacksPermission(ChannelPermissions.Manage);
+
+            // Auth is finished. Toss down to the service to do the work.
+            // We already did some of the work, so we pass that down.
+            var result = await channelService.MoveChannelAsync(channel, category, destination);
+
+        }
+        
+        
+
+    }
     
     [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/insert")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
@@ -498,19 +572,6 @@ public class PlanetApi
             if (child.ParentId != model.CategoryId)
                 return ValourResult.BadRequest("Use the category insert route to change parent id");
             
-            // Change in position requires perms
-            /*
-             
-            Retrospect: This is silly. If someone has permissions to a category, they should be able to move channels in it
-             
-            if (child.Position != pos)
-            {
-                // Require permission for the child being moved
-                if (!await memberService.HasPermissionAsync(member, child, ChannelPermissions.Manage))
-                    return ValourResult.LacksPermission(ChannelPermissions.Manage);
-            }
-            */
-            
             //pos++;
         }
         
@@ -521,5 +582,7 @@ public class PlanetApi
 
         return Results.NoContent();
     }
+    
+    */
     
 }

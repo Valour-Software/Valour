@@ -101,11 +101,11 @@ public class CoreHubService
         _ = nodeLifecycleService.RelayUserEventAsync(userId, NodeLifecycleService.NodeEventType.NotificationsCleared, userId);
     }
     
+    public void NotifyChannelsMoved(ChannelsMovedEvent eventData) => 
+        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("Channels-Moved", eventData);
+    
     public void NotifyRoleMembershipHashChanges(RoleMembershipHashChange change) =>
         _ = _hub.Clients.Group($"p-{change.PlanetId}").SendAsync("RoleMembershipHash-Update", change);
-    
-    public void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
-        _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("CategoryOrder-Update", eventData);
     
     public void NotifyRoleOrderChange(RoleOrderEvent eventData) =>
         _ = _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("RoleOrder-Update", eventData);

@@ -218,6 +218,23 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         });
     }
 
+    public void OnChannelsMoved(ChannelsMovedEvent eventData)
+    {
+        foreach (var move in eventData.Moves)
+        {
+            var channel = Channels.Get(move.ChannelId);
+            if (channel is null)
+                continue;
+            
+            channel.ParentId = move.NewParentId;
+            channel.LocalPosition = move.NewLocalPosition;
+            channel.RawPosition = move.NewFullPosition;
+        }
+        
+        // Sort channels
+        Channels.Sort();
+    }
+
     private void OnRolesChanged(IModelEvent<PlanetRole> changeEvent)
     {
         // I think there's probably a smarter way to do this, but for the sake
@@ -530,11 +547,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public Task<TaskResult> RemoveMemberRoleAsync(long memberId, long roleId) =>
         Client.PlanetService.RemoveMemberRoleAsync(memberId, roleId, Id);
     
-    public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
-        await Node.PostAsync($"{IdRoute}/channels/order", model);
-
-    public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
-        await Node.PostAsync($"{IdRoute}/channels/insert", model);
+    
 
     public ModelQueryEngine<EcoAccount> GetSharedAccountQueryEngine() =>
         Client.EcoService.GetSharedAccountQueryEngine(this);

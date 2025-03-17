@@ -155,7 +155,7 @@
     [Parameter]
     public Channel Channel { get; set; }
     
-    private uint Depth => Channel.Position.Depth;
+    private uint Depth => ChannelPosition.GetDepth(Channel.RawPosition);
     
     public Planet Planet { get; set; }
     
@@ -190,7 +190,6 @@
 
         ChannelService.ChannelConnected += OnChannelConnectionChange;
         ChannelService.ChannelDisconnected += OnChannelConnectionChange;
-        ChannelService.CategoryReordered += OnCategoryOrderUpdate;
 
         NotificationService.NotificationReceived += OnNotification;
         ChannelStateService.ChannelStateUpdated += OnChannelStateUpdate;
@@ -334,24 +333,6 @@
             Refresh();
         }
         
-        return Task.CompletedTask;
-    }
-    
-    private Task OnCategoryOrderUpdate(CategoryOrderEvent eventData)
-    {
-        if (eventData.CategoryId != Channel.Id)
-            return Task.CompletedTask;
-
-        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
-        {
-            BuildChildren();
-            SortChildren();
-        }
-
-        DetermineNotifications();
-        DetermineUnread();
-        Refresh();
-
         return Task.CompletedTask;
     }
     
@@ -586,6 +567,5 @@
         
         ChannelService.ChannelConnected -= OnChannelConnectionChange;
         ChannelService.ChannelDisconnected -= OnChannelConnectionChange;
-        ChannelService.CategoryReordered -= OnCategoryOrderUpdate;
     }
 }
