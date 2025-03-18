@@ -105,9 +105,9 @@ public class ChannelServiceTests : IAsyncLifetime
         if (category is null)
             return;
         
-        var positionResult = await _channelService.TryGetNextChannelPositionFor(_valourCentralId, category.ToModel(), ChannelTypeEnum.PlanetChat);
+        var positionResult = await _channelService.TryGetNextChannelPositionFor(_valourCentralId, category.Id, ChannelTypeEnum.PlanetChat);
         
-        Assert.Equal(true, positionResult.Success);
+        Assert.True(positionResult.Success);
         
         // Ensure no other channel has this position
         var otherChannel = await _db.Channels.Where(x => x.PlanetId == _valourCentralId &&

@@ -586,7 +586,12 @@ public class ChannelService
             return TaskResult<byte>.FromFailure("Non-planet channels cannot be inserted.");
         }
         
-        var parent = inserting.ParentId is null ? null : await _db.Channels.FindAsync(inserting.ParentId);
+        return await TryGetNextChannelPositionFor(inserting.PlanetId.Value, inserting.ParentId, inserting.ChannelType);
+    }
+
+    public async Task<TaskResult<byte>> TryGetNextChannelPositionFor(long planetId, long? parentId, ChannelTypeEnum insertingType)
+    {
+        var parent = parentId is null ? null : await _db.Channels.FindAsync(parentId);
         
         if (parent is not null)
         {
@@ -597,7 +602,7 @@ public class ChannelService
             }
             
             // If the channel being inserted is a category, ensure that it's not too deeply nested
-            if (inserting.ChannelType == ChannelTypeEnum.PlanetCategory)
+            if (insertingType == ChannelTypeEnum.PlanetCategory)
             {
                 if (ChannelPosition.GetDepth(parent.RawPosition) > 2)
                 {

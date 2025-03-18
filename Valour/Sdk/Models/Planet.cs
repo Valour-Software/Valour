@@ -227,7 +227,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
                 continue;
             
             channel.ParentId = move.NewParentId;
-            channel.LocalPosition = move.NewLocalPosition;
             channel.RawPosition = move.NewRawPosition;
         }
         

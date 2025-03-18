@@ -342,7 +342,6 @@ public class PlanetService
                 ParentId = null,
                 Description = "General category",
                 RawPosition = position.RawPosition,
-                LocalPosition = 0,
                 
                 ChannelType = ChannelTypeEnum.PlanetCategory
             };
@@ -359,7 +358,6 @@ public class PlanetService
                 Name = "General",
                 Description = "General chat channel",
                 RawPosition = position.RawPosition,
-                LocalPosition = 0,
                 IsDefault = true,
                 
                 ChannelType = ChannelTypeEnum.PlanetChat
@@ -465,167 +463,6 @@ public class PlanetService
         _coreHub.NotifyPlanetChange(planet);
         
         return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
-    }
-    
-    public async Task<TaskResult> InsertChildAsync(long? categoryId, long insertId, int? inPosition = null)
-    {
-        if (categoryId == insertId)
-            return new TaskResult(false, "A category cannot contain itself. Nice try though.");
-        
-        Valour.Database.Channel category = null;
-        
-        if (categoryId is not null)
-        {
-            category = await _db.Channels.FindAsync(categoryId);
-            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
-                return new TaskResult(false, "Category not found.");
-        }
-
-        var insert = await _db.Channels.FindAsync(insertId);
-        if (insert is null)
-            return new TaskResult(false, "Child to insert not found.");
-        
-        if (insert.ParentId == categoryId)
-            return new TaskResult(false, "This child is already in the category.");
-        
-        // Ensure we are not putting a category into one of its own children
-        if (category is not null)
-        {
-            var parentId = category.ParentId;
-            while (parentId is not null)
-            {
-                var parent = await _db.Channels.FindAsync(parentId);
-                if (parent is null)
-                    return new TaskResult(false, "Error in hierarchy.");
-
-                if (parent.ParentId == insertId)
-                    return new TaskResult(false, "This would result in a circular hierarchy.");
-                
-                parentId = parent.ParentId;
-            }
-        }
-
-        var children = await _db.Channels
-            .Where(x => x.ParentId == categoryId && x.PlanetId == insert.PlanetId)
-            .OrderBy(x => x.LocalPosition)
-            .Select(x =>
-            new {
-                Id = x.Id, ChannelType = x.ChannelType
-            })
-            .ToListAsync();
-
-        var position = (uint)(inPosition ?? children.Count + 1);
-        
-        // If unspecified or too high, set to next position
-        if (position < 0 || position > children.Count)
-        {
-            position = (uint)(children.Count + 1);
-        }
-        
-        var oldCategoryId = insert.ParentId;
-        List<ChannelOrderData> oldCategoryOrder = null;
-        
-        // Positions for new category
-        List<ChannelOrderData> newCategoryOrder = new();
-        
-        await using var trans = await _db.Database.BeginTransactionAsync();
-        
-        try
-        {
-            if (oldCategoryId is not null)
-            {
-                var oldCategory = await _db.Channels.FindAsync(insert.ParentId);
-                if (oldCategory is null || oldCategory.ChannelType != ChannelTypeEnum.PlanetCategory)
-                    return new TaskResult(false, "Error getting old parent category.");
-
-                var oldCategoryChildren = await _db.Channels
-                    .Where(x => x.ParentId == oldCategory.Id)
-                    .OrderBy(x => x.LocalPosition)
-                    .ToListAsync();
-
-                // Remove from old category
-                oldCategoryChildren.RemoveAll(x => x.Id == insertId);
-
-                oldCategoryOrder = new();
-                
-                // Update all positions
-                uint opos = 0;
-                foreach (var child in oldCategoryChildren)
-                {
-                    child.LocalPosition = opos;
-                    oldCategoryOrder.Add(new(child.Id, child.ChannelType));
-                    opos++;
-                }
-            }
-
-            insert.ParentId = categoryId;
-            insert.PlanetId = insert.PlanetId;
-            insert.LocalPosition = position;
-
-            var insertData = new
-            {
-                insert.Id,
-                insert.ChannelType
-            };
-            
-            if (position >= children.Count)
-            {
-                children.Add(insertData);
-            }
-            else
-            {
-                children.Insert((int)position, insertData);
-            }
-            
-            // Update all positions
-            // var pos = 0;
-            foreach (var child in children)
-            {
-                // child.Position = pos;
-                newCategoryOrder.Add(new(child.Id, child.ChannelType));
-                // pos++;
-            }
-            
-            await _db.SaveChangesAsync();
-            
-            // Update channel access for inserted channel if it inherits from parent
-            if (insert.InheritsPerms)
-            {
-                await _permissionService.HandleChannelInheritanceChange(insert.ToModel());
-            }
-
-            await _db.SaveChangesAsync();
-
-            await trans.CommitAsync();
-        }
-        catch (Exception e)
-        {
-            await trans.RollbackAsync();
-            _logger.LogError(e, e.Message);
-            return new TaskResult(false, "Error saving changes. Please try again later.");
-        }
-        
-        // Fire off events for both modified categories (if applicable)
-        
-        // New parent
-        _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
-        {
-            PlanetId = insert.PlanetId!.Value,
-            CategoryId = categoryId,
-            Order = newCategoryOrder
-        });
-
-        if (oldCategoryId is not null)
-        {
-            _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
-            {
-                PlanetId = insert.PlanetId.Value,
-                CategoryId = oldCategoryId,
-                Order = oldCategoryOrder,
-            });
-        }
-
-        return new(true, "Success");
     }
     
     //////////////////////
