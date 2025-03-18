@@ -38,7 +38,7 @@ public class ValourClient
     public readonly MessageService MessageService;
     public readonly NodeService NodeService;
     public readonly PlanetService PlanetService;
-    public readonly ChannelService ChannelService;
+    public readonly ChannelService  ChannelService;
     public readonly PermissionService PermissionService;
     public readonly TenorService TenorService;
     public readonly SubscriptionService SubscriptionService;

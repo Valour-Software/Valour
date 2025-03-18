@@ -508,4 +508,21 @@ public class SortedServerModelList<TModel, TId> : ServerModelList<TModel, TId>
             Lock.ExitWriteLock();
         }
     }
+
+    /// <summary>
+    /// Forces the list to be sorted according to the sort order of the items.
+    /// </summary>
+    public void Sort()
+    {
+        Lock.EnterWriteLock();
+        try
+        {
+            List.Sort(ISortable.Comparer);
+            IsDirty = true;
+        }
+        finally
+        {
+            Lock.ExitWriteLock();
+        }
+    }
 }

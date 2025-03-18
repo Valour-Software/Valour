@@ -157,15 +157,15 @@ public struct ChannelPosition
             return parentPosition; // No descendants beyond depth 4
     
         // Create a mask with FA in all positions after current depth
-        // For depth 0: 0xFAFAFAFA (all four bytes)
-        // For depth 1: 0x00FAFAFA (bytes 2,3,4)
-        // For depth 2: 0x0000FAFA (bytes 3,4)
-        // For depth 3: 0x000000FA (byte 4)
+        // For depth 0: 0xFFFFFFFF (all four bytes)
+        // For depth 1: 0x00FFFFFF (bytes 2,3,4)
+        // For depth 2: 0x0000FFFF (bytes 3,4)
+        // For depth 3: 0x000000FF (byte 4)
         uint upperBoundMask = 0u;
     
         for (int i = (int)depth + 1; i <= 4; i++)
         {
-            upperBoundMask |= (uint)0xFA << (8 * (4 - i));
+            upperBoundMask |= (uint)0xFF << (8 * (4 - i));
         }
     
         return parentPosition | upperBoundMask;

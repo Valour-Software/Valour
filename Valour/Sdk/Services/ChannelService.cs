@@ -146,6 +146,27 @@ public class ChannelService : ServiceBase
         result.Data.SyncAll(_client);
         return result.Data;
     }
+
+    public async Task<TaskResult> MoveChannelAsync(Channel toMove, Channel? destination, bool placeBefore)
+    {
+        if (toMove.PlanetId is null)
+        {
+            LogError("Trying to move channel without a planet id!");
+            return TaskResult.FromFailure("Channel does not have a planet id!");
+        }
+        
+        var request = new MoveChannelRequest()
+        {
+            PlanetId = toMove.PlanetId!.Value,
+            DestinationChannel = destination?.Id,
+            MovingChannel = toMove.Id,
+            PlaceBefore = placeBefore
+        };
+        
+        var result = await toMove.Node.PostAsync($"api/planets/{toMove.PlanetId}/channels/move", request);
+
+        return result;
+    }
     
     public async Task LoadDmChannelsAsync()
     {

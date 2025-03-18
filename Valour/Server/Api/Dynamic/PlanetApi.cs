@@ -402,14 +402,14 @@ public class PlanetApi
         return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }
 
-    /*
+    
     [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/move")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> MoveChannelAsync(
         [FromBody] MoveChannelRequest request, 
         long planetId,
         PlanetMemberService memberService,
-        ChannelService channelService,)
+        ChannelService channelService)
     {
         if (request.PlanetId != planetId)
             return ValourResult.BadRequest("PlanetId mismatch.");
@@ -419,15 +419,16 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
         
+        Channel destination = null;
+        Channel category = null;
+        
         // Either the target is the category, or it's within a category. Or, well, it's at the top level.
         // We have to determine this.
         if (request.DestinationChannel is not null)
         {
-            var destination = await channelService.GetChannelAsync(planetId, request.DestinationChannel.Value);
+            destination = await channelService.GetChannelAsync(planetId, request.DestinationChannel.Value);
             if (destination is null)
                 return ValourResult.NotFound("Destination channel not found");
-
-            Channel category = null;
             
             if (destination.ChannelType == ChannelTypeEnum.PlanetCategory)
             {
@@ -458,131 +459,23 @@ public class PlanetApi
                 if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
                     return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
             }
-            
-            // Get the channel being moved
-            var channel = await channelService.GetChannelAsync(planetId, request.MovingChannel);
-            
-            // Always ensure the member has permission to manage the channel being moved
-            if (!await memberService.HasPermissionAsync(member, channel, ChannelPermissions.Manage))
-                return ValourResult.LacksPermission(ChannelPermissions.Manage);
-
-            // Auth is finished. Toss down to the service to do the work.
-            // We already did some of the work, so we pass that down.
-            var result = await channelService.MoveChannelAsync(channel, category, destination);
-
         }
         
-        
-
-    }
-    
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/insert")]
-    [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> InsertChildRouteAsync(
-        [FromBody] InsertChannelChildModel model,
-        long planetId,
-        PlanetMemberService memberService,
-        ChannelService channelService,
-        PlanetService planetService)
-    {
-        if (planetId != model.PlanetId)
-            return ValourResult.BadRequest("PlanetId mismatch.");
-
-        // Get member
-        var member = await memberService.GetCurrentAsync(planetId);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        if (model.ParentId is not null)
-        {
-            // Get the category
-            var category = await channelService.GetChannelAsync(planetId, model.ParentId.Value);
-            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
-                return ValourResult.NotFound("Category not found");
+        // Get the channel being moved
+        var channel = await channelService.GetChannelAsync(planetId, request.MovingChannel);
+        if (channel is null)
+            return ValourResult.NotFound("Channel to move not found");
             
-            if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
-                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-        }
+        // Always ensure the member has permission to manage the channel being moved
+        if (!await memberService.HasPermissionAsync(member, channel, ChannelPermissions.Manage))
+            return ValourResult.LacksPermission(ChannelPermissions.Manage);
+        
+        // Auth is finished. Toss down to the service to do the work.
+        var result = await channelService.MoveChannelAsync(channel.Id, destination?.Id, request.PlaceBefore);
 
-        // If the child currently belongs to another category (not planet), we need to check permissions for it
-        var inserting = await channelService.GetChannelAsync(planetId, model.InsertId);
-        if (inserting.ParentId == model.ParentId)
-            return ValourResult.BadRequest("Channel is already in this category.");
-        
-        // We need to get the old category and ensure we have permissions in it
-        if (inserting.ParentId is not null)
-        {
-            var oldCategory = await channelService.GetChannelAsync(planetId, inserting.ParentId.Value);
-            if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
-                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-        }
-        
-        // We have permission for the insert, the target category, and the old category if applicable.
-        // Actually do the changes.
-        var result = await planetService.InsertChildAsync(model.ParentId, inserting.Id, model.Position);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
         
-        return ValourResult.Ok("Success");
-    }
-    
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/order")]
-    [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> SetChildOrderRouteAsync(
-        [FromBody] OrderChannelsModel model,
-        long planetId,
-        PlanetMemberService memberService,
-        ChannelService channelService)
-    {
-        if (model.PlanetId != planetId)
-            return ValourResult.BadRequest("PlanetId mismatch.");
-        
-        // Get member
-        var member = await memberService.GetCurrentAsync(planetId);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-        
-        // Get the category
-        if (model.CategoryId is not null)
-        {
-            var category = await channelService.GetChannelAsync(planetId, model.CategoryId.Value);
-            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
-                return ValourResult.NotFound("Category not found");
-            
-            if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
-                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-        }
-        else
-        {
-            // Top level requires planet management perms
-            if (!await memberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage))
-                return ValourResult.LacksPermission(PlanetPermissions.Manage);
-        }
-
-        model.Order = model.Order.Distinct().ToList();
-
-        // We have to check permissions for ALL changes in this ordering. Fuuuuuuun!
-        //var pos = 0;
-        foreach (var childId in model.Order)
-        {
-            var child = await channelService.GetChannelAsync(planetId, childId);
-            if (child is null)
-                return ValourResult.NotFound($"Child {childId} not found");
-
-            if (child.ParentId != model.CategoryId)
-                return ValourResult.BadRequest("Use the category insert route to change parent id");
-            
-            //pos++;
-        }
-        
-        // Actually do the changes
-        var result = await channelService.SetChildOrderAsync(planetId, model.CategoryId, model.Order);
-        if (!result.Success)
-            return ValourResult.Problem(result.Message);
-
         return Results.NoContent();
     }
-    
-    */
-    
 }

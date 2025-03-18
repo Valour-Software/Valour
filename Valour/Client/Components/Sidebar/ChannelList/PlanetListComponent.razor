@@ -105,7 +105,9 @@
 
     private void OnChannelsChanged(IModelEvent<Channel> eventData)
     {
+        Console.WriteLine("Channels changed");
         StateHasChanged();
+        RefreshChannels();
     }
 
     public void RefreshChannels()

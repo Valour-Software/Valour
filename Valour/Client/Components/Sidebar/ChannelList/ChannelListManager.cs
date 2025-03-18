@@ -1,6 +1,7 @@
 ﻿using Valour.Client.Components.Utility;
 using Valour.Client.Toast;
 using Valour.Sdk.Models;
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Client.Components.Sidebar.ChannelList
@@ -92,16 +93,15 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 return;
             }
 
-            // When dropped on a category, it is appended to the end
-            if (!DragIsTop)
-            {
-                // Target to insert is simple the dropped on channel
-                
-            }
-            else
-            {
-                // Target to insert is whatever is *before* the dropped on channel
-            }
+            var task = draggedChannel.Client.ChannelService.MoveChannelAsync(draggedChannel, droppedOnChannel,
+                    DragIsTop);
+
+            await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+                "Moving channel",
+                "Waiting for server...",
+                task,
+                "Channel moved successfully"
+            ));
             
             Console.WriteLine($"Dropped {draggedChannel.Id} onto {droppedOnChannel.Id}");
         }

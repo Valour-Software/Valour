@@ -96,6 +96,11 @@ public class HostedPlanet : ServerModel<long>
         _channels.Remove(id);
     }
     
+    public void SortChannels()
+    {
+        _channels.Sort();
+    }
+    
     // Roles //
 
     public PlanetRole? GetRoleById(long id) => _roles.Get(id);
