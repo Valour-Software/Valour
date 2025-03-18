@@ -19,7 +19,6 @@ public static class ChannelMapper
             PlanetId = channel.PlanetId,
             ParentId = channel.ParentId,
             RawPosition = channel.RawPosition,
-            LocalPosition = channel.LocalPosition,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
             
@@ -42,7 +41,6 @@ public static class ChannelMapper
             PlanetId = channel.PlanetId,
             ParentId = channel.ParentId,
             RawPosition = channel.RawPosition,
-            LocalPosition = channel.LocalPosition,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
             Version = ISharedChannel.CurrentVersion,

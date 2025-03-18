@@ -105,7 +105,7 @@ public class ChannelService
                 LastUpdateTime = DateTime.UtcNow,
                 IsDeleted = false,
                 
-                LocalPosition = 0,
+                RawPosition = 0,
                 InheritsPerms = false,
                 IsDefault = false,
 
@@ -517,11 +517,11 @@ public class ChannelService
         // Auto determine position
         if (channel.RawPosition == 0)
         {
-            var nextPosResult = await TryGetNextChannelLocalPosition(channel.PlanetId, channel.ParentId, channel.ChannelType);
+            var nextPosResult = await TryGetNextChannelPositionFor(channel);
             if (!nextPosResult.Success)
                 return nextPosResult.WithoutData();
             
-            channel.LocalPosition = nextPosResult.Data;
+            channel.RawPosition = nextPosResult.Data;
         }
         else
         {
@@ -579,33 +579,38 @@ public class ChannelService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult<byte>> TryGetNextChannelLocalPosition(long planetId, long? parentId, bool isCategory)
+    public async Task<TaskResult<byte>> TryGetNextChannelPositionFor(ISharedChannel inserting)
     {
-        var parent = parentId is null ? null : await _db.Channels.FindAsync(parentId);
+        if (inserting.PlanetId is null)
+        {
+            return TaskResult<byte>.FromFailure("Non-planet channels cannot be inserted.");
+        }
+        
+        var parent = inserting.ParentId is null ? null : await _db.Channels.FindAsync(inserting.ParentId);
         
         if (parent is not null)
         {
             // Ensure the parent is a category
             if (parent.ChannelType != ChannelTypeEnum.PlanetCategory)
             {
-                return TaskResult<byte>.FromFailure("Parent is not a category.");
+                return TaskResult<byte>.FromFailure("Parent must be a category or null.");
             }
             
             // If the channel being inserted is a category, ensure that it's not too deeply nested
-            if (isCategory)
+            if (inserting.ChannelType == ChannelTypeEnum.PlanetCategory)
             {
                 if (ChannelPosition.GetDepth(parent.RawPosition) > 2)
                 {
-                    return TaskResult<byte>.FromFailure("Categories cannot be nested more than 2 levels deep.");
+                    return TaskResult<byte>.FromFailure("Categories cannot be nested more than 3 levels deep.");
                 }
             }
         }
         
         // Get the highest local position in the category
-        var max = await _db.Channels.Where(x => x.PlanetId == planetId && x.ParentId == parentId)
-            .MaxAsync(x => x.LocalPosition);
-
-        if (max == byte.MaxValue)
+        var max = await _db.Channels.DirectChildrenOf(parent).MaxAsync(x => x.RawPosition);
+        var localMax = ChannelPosition.GetLocalPosition(max);
+        
+        if (localMax == byte.MaxValue)
         {
             return TaskResult<byte>.FromFailure("Max position reached");
         }
@@ -648,6 +653,11 @@ public class ChannelService
         if (toMove.PlanetId is null)
             return TaskResult.FromFailure("Non-planet channels cannot be moved.");
         
+        var toMoveDb = await _db.Channels.FindAsync(toMove.Id);
+        
+        if (toMoveDb is null)
+            return TaskResult.FromFailure("ToMove Channel not found.");
+        
         var append = false;
         
         // There's a few cases. The easiest is appending to the end.
@@ -688,34 +698,68 @@ public class ChannelService
 
         try
         {
+            ChannelsMovedEvent eventData = new(toMove.PlanetId.Value);
 
+            // If we're moving to a new category, we need to handle siblings in the old category
+            if (toMove.ParentId != destinationCategory?.Id)
+            {
+                // Get old siblings
+                var oldSiblings = await _db.Channels.Where(x => 
+                        x.PlanetId == toMove.PlanetId && 
+                        x.ParentId == toMove.ParentId &&
+                        x.Id != toMove.Id)
+                    .OrderBy(x => x.RawPosition)
+                    .ToListAsync();
+
+                if (oldSiblings.Count > 0)
+                {
+                    // They should be ordered properly, so we rebuild the local positions
+                    // by just appending an iterated int to the new parent position
+                    var parentPos = destinationCategory is null ? 
+                        new ChannelPosition(0) : destinationCategory.Position;
+                    
+                    uint nextPos = 1;
+                    
+                    foreach (var sibling in oldSiblings)
+                    {
+                        var newPos = ChannelPosition.AppendRelativePosition(parentPos.RawPosition, nextPos);
+                        
+                        if (sibling.RawPosition != newPos)
+                        {
+                            sibling.RawPosition = newPos;
+                            _db.Channels.Update(sibling);
+                            
+                            eventData.Moves.Add(new ChannelMove()
+                            {
+                                ChannelId = sibling.Id,
+                                NewRawPosition = sibling.RawPosition,
+                                NewParentId = sibling.ParentId // Does not change
+                            });
+                        }
+                        
+                        nextPos++;
+                    }
+                }
+            }
+            
+            // Update the target channel's parent
+            toMove.ParentId = destinationCategory?.Id ?? null;
+            
             if (append)
             {
+                // Simpler case: no need to move any new siblings around. Just get the next position and stick it there.
+                
                 // Get the next position
-                var nextPosResult = await TryGetNextChannelLocalPosition(toMove.PlanetId.Value, destinationCategory);
+                var nextPosResult = await TryGetNextChannelPositionFor(toMove);
                 if (!nextPosResult.Success)
                     return nextPosResult.WithoutData();
-
-                // Get the old position so we can shift any siblings in the original category
-                var oldParent = await _db.Channels.FindAsync(toMove.ParentId);
-                var oldPos = toMove.LocalPosition;
-
-                // Move this channel to the new position
-                toMove.LocalPosition = nextPosResult.Data;
-
-                // Update the channel's parent
-                toMove.ParentId = destinationCategory?.Id ?? null;
-
-                // Shift any siblings that come *after* the removed position back by one
-                var shiftResult = await ShiftChannels(toMove.PlanetId.Value, oldParent?.Id, oldPos, -1);
-                if (!shiftResult.Success)
-                    return shiftResult;
+                
+                toMove.RawPosition = nextPosResult.Data;
             }
             else
             {
-                // We need to shift channels forward to make room for the new channel
-                // then insert the channel in the new position
-                // then shift the channels at the old position back by one
+                // More complicated, but we're doing it the easy way.
+                // Get the new siblings, slip in the channel, and recalculate the positions.
 
                 if (destinationChannel is null)
                 {
@@ -728,48 +772,75 @@ public class ChannelService
                     return TaskResult.SuccessResult;
                 }
                 
-                byte newPos = insertBefore ? destinationChannel!.LocalPosition : (byte)(destinationChannel!.LocalPosition + 1);
+                // Get the siblings the channel will have in the new category
+                var newSiblings = await _db.Channels.Where(x => 
+                        x.PlanetId == toMove.PlanetId && 
+                        x.ParentId == toMove.ParentId &&
+                        x.Id != toMove.Id)
+                    .OrderBy(x => x.RawPosition)
+                    .ToListAsync();
+
+                if (insertBefore)
+                {
+                    // Insert before the destination channel
+                    var destinationIndex = newSiblings.FindIndex(x => x.Id == destinationChannel.Id);
+                    if (destinationIndex == -1)
+                    {
+                        return TaskResult.FromFailure("Destination channel not found.");
+                    }
+
+                    newSiblings.Insert(destinationIndex, toMoveDb);
+                }
+                else
+                {
+                    // Insert after the destination channel
+                    var destinationIndex = newSiblings.FindIndex(x => x.Id == destinationChannel.Id);
+                    if (destinationIndex == -1)
+                    {
+                        return TaskResult.FromFailure("Destination channel not found.");
+                    }
+
+                    newSiblings.Insert(destinationIndex + 1, toMoveDb);
+                }
                 
-                // Shift forward by one after the new position
-                var shiftResult = await ShiftChannels(toMove.PlanetId.Value, destinationCategory?.Id, newPos, 1);
+                // Rebuild the local positions
+                var parentPos = destinationCategory is null ? 
+                    new ChannelPosition(0) : destinationCategory.Position;
                 
-                if (!shiftResult.Success)
-                    return shiftResult;
+                uint nextPos = 1;
                 
-                var oldParent = await _db.Channels.FindAsync(toMove.ParentId);
-                var oldPos = toMove.LocalPosition;
-                
-                // Move this channel to the new position
-                toMove.LocalPosition = newPos;
-                toMove.ParentId = destinationCategory?.Id ?? null;
-                
-                // Shift any siblings that come *after* the removed position back by one
-                var shiftResult2 = await ShiftChannels(toMove.PlanetId.Value, oldParent?.Id, oldPos, -1);
-                if (!shiftResult2.Success)
-                    return shiftResult2;
+                foreach (var sibling in newSiblings)
+                {
+                    var newPos = ChannelPosition.AppendRelativePosition(parentPos.RawPosition, nextPos);
+                    
+                    if (sibling.RawPosition != newPos)
+                    {
+                        sibling.RawPosition = newPos;
+                        _db.Channels.Update(sibling);
+                        
+                        eventData.Moves.Add(new ChannelMove()
+                        {
+                            ChannelId = sibling.Id,
+                            NewRawPosition = sibling.RawPosition,
+                            NewParentId = sibling.ParentId // Does not change
+                        });
+                    }
+                    
+                    nextPos++;
+                }
             }
             
-            var destId = destinationCategory?.Id ?? null;
-
-            // Get all the channels that may have changed
-            var changed = await _db.Channels.Where(x => 
-                x.PlanetId == toMove.PlanetId &&
-                (x.ParentId == toMove.ParentId || x.ParentId == destId))
-                .ToListAsync();
             
             var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(toMove.PlanetId.Value);
-
-            ChannelsMovedEvent eventData = new();
-            eventData.Moves = new ChannelMove [changed.Count];
             
             // Update channels in hosted planet
-            foreach (var change in changed)
+            foreach (var change in eventData.Moves)
             {
-                var hostedChannel = hostedPlanet.GetChannel(change.Id);
+                var hostedChannel = hostedPlanet.GetChannel(change.ChannelId);
                 if (hostedChannel is not null)
                 {
-                    hostedChannel.LocalPosition = change.LocalPosition;
-                    hostedChannel.ParentId = change.ParentId;
+                    hostedChannel.RawPosition = change.NewRawPosition;
+                    hostedChannel.ParentId = change.NewParentId;
                 }
             }
             
@@ -815,7 +886,7 @@ public class ChannelService
             var rootChannelsForPlanet = rootChannels.Where(x => x.PlanetId == planetId).ToList();
             
             // Sort the root channels by position
-            rootChannelsForPlanet.Sort((a, b) => a.LocalPosition.CompareTo(b.LocalPosition));
+            rootChannelsForPlanet.Sort((a, b) => a.RawPosition.CompareTo(b.RawPosition));
 
             var ri = 1;
             foreach (var rootChannel in rootChannelsForPlanet)
@@ -844,7 +915,7 @@ public class ChannelService
         // Migrate children
         var children = await _db.Channels
             .Where(x => x.ParentId == channel.Id)
-            .OrderBy(x => x.LocalPosition)
+            .OrderBy(x => x.RawPosition)
             .ToListAsync();
         
         var ci = 1;

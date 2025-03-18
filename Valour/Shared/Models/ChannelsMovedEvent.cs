@@ -10,12 +10,7 @@ public class ChannelMove
     /// <summary>
     /// The new full position of the channel
     /// </summary>
-    public uint NewFullPosition { get; set; }
-    
-    /// <summary>
-    /// The new local position of the channel
-    /// </summary>
-    public byte NewLocalPosition { get; set; }
+    public uint NewRawPosition { get; set; }
     
     /// <summary>
     /// The new parent of the channel
@@ -33,7 +28,7 @@ public class ChannelsMovedEvent
     /// <summary>
     /// The moves that are taking place
     /// </summary>
-    public ChannelMove[] Moves { get; set; }
+    public List<ChannelMove> Moves { get; set; }
     
     public ChannelsMovedEvent(long planetId)
     {
