@@ -3,6 +3,7 @@ using Valour.Client.Toast;
 using Valour.Sdk.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Client.Components.Sidebar.ChannelList
 {
@@ -11,6 +12,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
         public static ChannelListManager Instance;
 
+        public static HybridEvent<Channel?> ChannelDragChanged;
+
         public ChannelListManager()
         {
             Instance = this;
@@ -18,15 +21,17 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             // BrowserUtils.Focused += OnCancelDrag;
         }
         
-        private ChannelListItem _currentDragItem;
+        public static ChannelListItem CurrentDragItem;
 
         public void OnCancelDrag()
         {
             DragOverId = 0;
-            var dragItem = _currentDragItem;
-            _currentDragItem = null;
+            var dragItem = CurrentDragItem;
+            CurrentDragItem = null;
             
             dragItem.PlanetComponent.RefreshChannels();
+            
+            ChannelDragChanged?.Invoke(null);
         }
 
         /// <summary>
@@ -47,8 +52,12 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// <param name="parent">The parent category of the item that was clicked</param>
         public void OnItemStartDragInCategory(ChannelListItem item)
         {
+            var old = CurrentDragItem;
             SetTarget(item);
             Console.WriteLine($"Starting drag for {item.Channel.GetHumanReadableName()} {item.Channel.Name}");
+            
+            if (old?.Channel?.Id != item?.Channel?.Id)
+                ChannelDragChanged?.Invoke(item.Channel);
         }
 
         /// <summary>
@@ -58,7 +67,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// <param name="parent">The parent category</param>
         public void SetTarget(ChannelListItem item)
         {
-            _currentDragItem = item;
+            CurrentDragItem = item;
         }
         
         
@@ -72,7 +81,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             OnDragEnterItem(0, DragIsTop);
             droppedOn.Refresh();
 
-            var draggedChannel = _currentDragItem.Channel;
+            var draggedChannel = CurrentDragItem.Channel;
             var droppedOnChannel = droppedOn.Channel;
 
             if (draggedChannel.Id == droppedOnChannel.Id)
@@ -104,6 +113,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             ));
             
             Console.WriteLine($"Dropped {draggedChannel.Id} onto {droppedOnChannel.Id}");
+            
+            ChannelDragChanged?.Invoke(null);
         }
 
         public long DragOverId = 0;

@@ -20,6 +20,7 @@ export const init = (): WindowTargetService => {
             let newTarget: HTMLElement = null;
             
             document.elementsFromPoint(mouseX, mouseY).forEach((element) => {
+
                 if (element.classList.contains('w-drop-target')) {
                     newTarget = element as HTMLElement;
                 }

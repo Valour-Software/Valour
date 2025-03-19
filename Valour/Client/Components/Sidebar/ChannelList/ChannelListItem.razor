@@ -20,6 +20,9 @@
 
     @ondragstart:stopPropagation="true"
     @ondragstart="@OnDragStart"
+    
+    @ondrag:stopPropagation="true"
+    @ondrag="@OnDrag"
 
     @ondrop:stopPropagation="true"
     @ondrop="@OnDropOn"
@@ -507,13 +510,18 @@
         ListManager.OnDragEnterItem(Channel.Id, false);
         Refresh();
     }
+
+    private async Task OnDrag(MouseEventArgs e)
+    {
+        await WindowTargetScanner.ScanAsync((float)e.ClientX, (float)e.ClientY);
+    }
     
     private void OnDragStart()
     {
         ListManager.OnItemStartDragInCategory(this);
     }
 
-    private void OnDragEnd()
+    private async Task OnDragEnd(MouseEventArgs e)
     {
         ListManager.OnCancelDrag();
     }

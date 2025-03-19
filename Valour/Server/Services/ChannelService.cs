@@ -969,6 +969,7 @@ public class ChannelService
     {
         // From V0 -> V3, we convert the position to the new format
 
+        /*
         var channels = await _db.Channels.Where(x => x.PlanetId == ISharedPlanet.ValourCentralId).ToListAsync();
         var basePos = new ChannelPosition(0);
         for (var i = 0; i < channels.Count; i++)
@@ -979,7 +980,7 @@ public class ChannelService
             _db.Channels.Update(channel);
             await _db.SaveChangesAsync();
         }
-        
+        */
         
         // Non-planet channels just get updated to version 2
         await _db.Channels.Where(x => x.PlanetId == null)

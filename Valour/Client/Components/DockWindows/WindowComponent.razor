@@ -26,12 +26,9 @@
                 <div class="tab-buttons"
                      @onclick:stopPropagation="true"
                      @onmousedown:stopPropagation="true">
-                    @if (Layout is null || Layout.Tabs.Count > 1)
-                    {
-                        <span class="minus" @onclick="@OnClickMinus">
-                            <i class="bi bi-dash-circle-fill"></i>
-                        </span>
-                    }
+                    <span class="minus" @onclick="@OnClickMinus">
+                        <i class="bi bi-dash-circle-fill"></i>
+                    </span>
                 </div>
             </div>
             
@@ -57,11 +54,18 @@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
     </div>
     
-    @if (!IsFloating && // floating tabs don't have drop targets
-         WindowService.DraggingTab is not null && 
-         WindowService.DraggingTab != WindowTab)
+    
+    @if (!IsFloating) // floating tabs don't have drop targets
     {
-        <WindowDropTargets Window="@this" />
+        // Needs to be the visible tab on the layout
+        if (Layout?.FocusedTab == this.WindowTab) {
+            if ((WindowService.DraggingTab is not null &&
+              WindowService.DraggingTab != WindowTab) ||
+             ChannelListManager.CurrentDragItem is not null)
+            {
+                <WindowDropTargets Window="@this"/>
+            }
+        }
     }
 </div>
 
@@ -177,6 +181,7 @@
         WindowTab.Component = this;
         BrowserUtils.OnWindowResize += OnWindowResize;
         WindowService.OnTabDragging += OnGlobalTabDragging;
+        ChannelListManager.ChannelDragChanged += OnChannelDragChanged;
     }
 
     // Runs after every render
@@ -464,9 +469,15 @@
         ReRender();
     }
     
+    private void OnChannelDragChanged(Channel item)
+    {
+        ReRender();
+    }
+    
     public void Dispose()
     {
         BrowserUtils.OnWindowResize -= OnWindowResize;
         WindowService.OnTabDragging -= OnGlobalTabDragging;
+        ChannelListManager.ChannelDragChanged -= OnChannelDragChanged;
     }
 }

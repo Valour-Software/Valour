@@ -88,7 +88,6 @@ public class HostedPlanet : ServerModel<long>
         {
             _defaultChannel = result;
         }
-        // TODO: Update permissions cache
     }
     
     public void RemoveChannel(long id)

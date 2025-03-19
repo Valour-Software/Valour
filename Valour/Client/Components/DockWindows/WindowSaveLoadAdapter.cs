@@ -40,6 +40,8 @@ public class WindowLayoutState
     public WindowSplitState SplitState { get; set; }
     
     public List<WindowTabState> TabStates { get; set; }
+    
+    public int FocusedTabIndex { get; set; }
 }
 
 public class WindowSaveLoadAdapter
@@ -157,7 +159,8 @@ public class WindowSaveLoadAdapter
             ChildOne = Export(layout.ChildOne),
             ChildTwo = Export(layout.ChildTwo),
             SplitState = splitState,
-            TabStates = tabStates
+            TabStates = tabStates,
+            FocusedTabIndex = layout.Tabs.IndexOf(layout.FocusedTab)
         };
         
         return state;
@@ -201,7 +204,7 @@ public class WindowSaveLoadAdapter
             };
         }
         
-        var layout = new WindowLayout(childOne, childTwo, split, tabs);
+        var layout = new WindowLayout(childOne, childTwo, split, tabs, state.FocusedTabIndex);
         
         return layout;
     }

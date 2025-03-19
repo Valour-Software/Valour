@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization;
+using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Client.Components.Windows.HomeWindows;
+using Valour.Sdk.Models;
 
 namespace Valour.Client.Components.DockWindows;
 
@@ -104,7 +106,7 @@ public class WindowLayout
     }
     
     // For loading from serialized
-    public WindowLayout(WindowLayout childOne, WindowLayout childTwo, WindowSplit split, List<WindowTab> tabs)
+    public WindowLayout(WindowLayout childOne, WindowLayout childTwo, WindowSplit split, List<WindowTab> tabs, int focusedTabIndex = 0)
     {
         ChildOne = childOne;
         ChildTwo = childTwo;
@@ -112,7 +114,15 @@ public class WindowLayout
         Split = split;
         
         Tabs = tabs;
-        
+
+        if (Tabs is not null && Tabs.Count > 0)
+        {
+            if (focusedTabIndex >= tabs.Count)
+                focusedTabIndex = 0;
+            else
+                FocusedTab = Tabs[focusedTabIndex];
+        }
+
         // Set layout of everything to this
         childOne?.SetParentRaw(this);
         childTwo?.SetParentRaw(this);
@@ -320,6 +330,26 @@ public class WindowLayout
     {
         // Remove tab as floater
         await DockComponent.RemoveFloatingTab(tab);
+        
+        if (location == WindowDropTargets.DropLocation.Center)
+        {
+            await AddTab(tab);
+        }
+
+        // If we are split, we cannot split further. This event should have been handled by the child.
+        if (IsSplit)
+        {
+            Console.WriteLine("Tried to split a split layout. This should not happen.");
+        }
+
+        AddSplit(tab, location);
+    }
+    
+    public async Task OnChannelDropped(Channel channel, WindowDropTargets.DropLocation location)
+    {
+        // Create a new chat window
+        var chatWindow = await ChatWindowComponent.GetDefaultContent(channel);
+        var tab = new WindowTab(chatWindow);
         
         if (location == WindowDropTargets.DropLocation.Center)
         {
