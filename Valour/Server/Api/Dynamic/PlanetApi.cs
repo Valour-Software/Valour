@@ -471,7 +471,7 @@ public class PlanetApi
             return ValourResult.LacksPermission(ChannelPermissions.Manage);
         
         // Auth is finished. Toss down to the service to do the work.
-        var result = await channelService.MoveChannelAsync(channel.Id, destination?.Id, request.PlaceBefore);
+        var result = await channelService.MoveChannelAsync(channel.PlanetId!.Value, channel.Id, destination?.Id, request.PlaceBefore);
 
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);

@@ -28,7 +28,7 @@ public class ChannelsMovedEvent
     /// <summary>
     /// The moves that are taking place
     /// </summary>
-    public List<ChannelMove> Moves { get; set; } = new();
+    public Dictionary<long, ChannelMove> Moves { get; set; } = new();
     
     public ChannelsMovedEvent(long planetId)
     {

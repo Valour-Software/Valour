@@ -222,12 +222,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     {
         foreach (var move in eventData.Moves)
         {
-            var channel = Channels.Get(move.ChannelId);
+            var channel = Channels.Get(move.Key);
             if (channel is null)
                 continue;
             
-            channel.ParentId = move.NewParentId;
-            channel.RawPosition = move.NewRawPosition;
+            channel.ParentId = move.Value.NewParentId;
+            channel.RawPosition = move.Value.NewRawPosition;
         }
         
         // Sort channels
