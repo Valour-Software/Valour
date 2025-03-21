@@ -5,7 +5,7 @@
 @code {
     
     // Used for the root to identify tooltip triggers
-    public string TriggerId = Guid.NewGuid().ToString();
+    public readonly string TriggerId = Guid.NewGuid().ToString();
     
     public ElementReference OuterReference { get; set; }
     

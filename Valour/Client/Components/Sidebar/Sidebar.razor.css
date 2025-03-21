@@ -23,6 +23,10 @@
     min-height: 0;
 }
 
+.mobile .sidebar-content {
+    padding: 20px 20px 0 20px;
+}
+
 .tab-container {
     flex: auto;
     padding-bottom: 24px;

@@ -21,8 +21,9 @@ public class ChannelWatchingWorker : BackgroundService
                     using var scope = _serviceProvider.CreateScope();
                     var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
                     
+                    _ = hubService.UpdateChannelsWatching();
+                    
                     await Task.Delay(5000);
-                    hubService.UpdateChannelsWatching();
                 }
             });
 

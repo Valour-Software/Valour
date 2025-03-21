@@ -12,6 +12,7 @@
 }
 else
 {
+    <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
     <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
         <!-- Pushes messages to bottom -->
         <div class="pusher"></div>
@@ -498,7 +499,7 @@ else
     // Window State & Management //
     ///////////////////////////////
     
-        public class StateData
+    public class StateData
     {
         public long? PlanetId { get; set; }
         public long ChannelId { get; set; }

@@ -35,7 +35,7 @@ public class CurrentlyTypingService
 
             CurrentlyTyping[channelId] = usersTyping;
                 
-            _hubService.NotifyCurrentlyTyping(channelId, userId);
+            _ = _hubService.NotifyCurrentlyTyping(channelId, userId);
 
             return;
         }

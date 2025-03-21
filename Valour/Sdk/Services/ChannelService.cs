@@ -353,18 +353,46 @@ public class ChannelService : ServiceBase
     
     public void OnWatchingUpdate(ChannelWatchingUpdate update)
     {
-        if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
-            return;
-        
-        channel.WatchingUpdated?.Invoke(update);
+        if (update.PlanetId is not null)
+        {
+            // Get channel from planet
+            if (!_cache.Planets.TryGet(update.PlanetId.Value, out var planet))
+                return;
+            
+            if (!planet!.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.WatchingUpdated?.Invoke(update);
+        }
+        else
+        {
+            if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.WatchingUpdated?.Invoke(update);
+        }
     }
 
     public void OnTypingUpdate(ChannelTypingUpdate update)
     {
-        if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
-            return;
-        
-        channel.TypingUpdated?.Invoke(update);
+        if (update.PlanetId is not null)
+        {
+            // Get channel from planet
+            if (!_cache.Planets.TryGet(update.PlanetId.Value, out var planet))
+                return;
+            
+            if (!planet!.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.TypingUpdated?.Invoke(update);
+        }
+        else
+        {
+            if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.TypingUpdated?.Invoke(update);
+        }
     }
     
     public void OnChannelsMoved(ChannelsMovedEvent e)

@@ -507,4 +507,27 @@ public class MessageService
 
         return messages;
     }
+
+    public async Task<List<Message>> SearchChannelMessagesAsync(long? planetId, long channelId, string search, int count = 20)
+    {
+        var channel = await _channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return [];
+        
+        if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
+            return [];
+        
+        // Use postgres functions to search for the search string
+        var messages = await _db.Messages
+            .AsNoTracking()
+            .Where(x => x.ChannelId == channel.Id)
+            .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
+            .Include(x => x.ReplyToMessage)
+            .OrderByDescending(x => x.Id)
+            .Take(count)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+        
+        return messages;
+    }
 }

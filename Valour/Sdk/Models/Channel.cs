@@ -531,6 +531,31 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
         return result.Data;
     }
+    
+    public async Task<List<Message>> SearchMessagesAsync(string searchText, int count = 20)
+    {
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
+            return new List<Message>();
+
+        var request = new MessageSearchRequest()
+        {
+            SearchText = searchText,
+            Count = count
+        };
+        
+        var result = await Node.PostAsyncWithResponse<List<Message>>(
+            $"{IdRoute}/messages/search", request);
+        
+        if (!result.Success)
+        {
+            Client.Logger.Log("Channel",$"Failed to search messages in {Id}: {result.Message}", "Yellow");
+            return new List<Message>();
+        }
+
+        result.Data.SyncAll(Client);
+
+        return result.Data;
+    }
 
     public Task<List<PlanetMember>> FetchRecentChattersAsync() =>
         Client.ChannelService.FetchRecentChattersAsync(this);

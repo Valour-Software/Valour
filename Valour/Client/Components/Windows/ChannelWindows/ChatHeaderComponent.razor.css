@@ -1,0 +1,105 @@
+﻿.header-row {
+    width: 100%;
+    min-height: 32px;
+    max-height: 32px;
+    background-color: var(--main-3);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    
+    padding: 0 14px 0 14px;
+}
+
+.header-row .h-left {
+    
+}
+
+.header-row .h-center {
+    position: relative;
+}
+
+.header-row .h-center input {
+    line-height: 1;
+    transition: width 0.2s ease-in-out, padding-left 0.2s ease-in-out, padding-right 0.2s ease-in-out;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* Transition for all placeholder variants */
+.header-row .h-center input::placeholder {
+    transition: color 0.1s ease-in-out;
+}
+.header-row .h-center input::-webkit-input-placeholder {
+    transition: color 0.1s ease-in-out;
+}
+.header-row .h-center input:-ms-input-placeholder {
+    transition: color 0.1s ease-in-out;
+}
+.header-row .h-center input::-ms-input-placeholder {
+    transition: color 0.1s ease-in-out;
+}
+
+/* Transparent color for all placeholder variants when closed */
+.header-row .h-center input.closed::placeholder {
+    color: transparent !important;
+}
+.header-row .h-center input.closed::-webkit-input-placeholder {
+    color: transparent !important;
+}
+.header-row .h-center input.closed:-ms-input-placeholder {
+    color: transparent !important;
+}
+.header-row .h-center input.closed::-ms-input-placeholder {
+    color: transparent !important;
+}
+
+.header-row .h-center input.closed {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.header-row .h-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.members-btn {
+    cursor: pointer;
+    font-size: 20px;
+}
+
+/* Covers entire page behind results for unclick */
+.search-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 100;
+}
+
+.search-results {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(70vw, 400px);
+    background-color: var(--modal-medium);
+    z-index: 101;
+    border-radius: var(--main-radius);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+.results-scroll {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Round the scrollbar */
+.results-scroll::-webkit-scrollbar-track {
+    border-radius: var(--main-radius);
+}

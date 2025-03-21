@@ -171,42 +171,65 @@ public class CoreHubService
             await _hub.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Delete", user);
         }
     }
+
+    private readonly ConcurrentDictionary<long, long?> _channelToPlanetId = new();
     
-    public void UpdateChannelsWatching()
+    private async ValueTask<long?> GetPlanetIdForChannel(long channelId)
+    {
+        if (_channelToPlanetId.ContainsKey(channelId))
+            return null;
+        
+        var channel = await _db.Channels.AsNoTracking().Select(x => new { x.Id, x.PlanetId })
+            .FirstOrDefaultAsync(x => x.Id == channelId);
+        
+        if (channel == null)
+            return null;
+        
+        _channelToPlanetId[channel.Id] = channel.PlanetId;
+        
+        return channel.PlanetId;
+    }
+    
+    public async Task UpdateChannelsWatching()
+    {
+        foreach (var pair in ConnectionTracker.GroupUserIds)
         {
-            foreach (var pair in ConnectionTracker.GroupUserIds)
+            // Channel connections only
+            if (!pair.Key.StartsWith('c'))
+                continue;
+            
+            var channelId = long.Parse(pair.Key.Substring(2));
+            var planetId = await GetPlanetIdForChannel(channelId);
+            
+            // Send current active channel connection user ids
+
+            // no need to await these
+
+            _ = _hub.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
             {
-                // Channel connections only
-                if (!pair.Key.StartsWith('c'))
-                    continue;
-
-                // Send current active channel connection user ids
-
-                // no need to await these
-#pragma warning disable CS4014
-                var channelid = long.Parse(pair.Key.Substring(2));
-                _hub.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
-                {
-                    ChannelId = channelid,
-                    UserIds = pair.Value.Distinct().ToList()
-                });
-#pragma warning restore CS4014
-            }
-        }
-
-        public void NotifyCurrentlyTyping(long channelId, long userId)
-        {
-            _ = _hub.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate
-            {
+                PlanetId = planetId,
                 ChannelId = channelId,
-                UserId = userId
+                UserIds = pair.Value.Distinct().ToList()
             });
         }
+    }
 
-        public void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
+    public async Task NotifyCurrentlyTyping(long channelId, long userId)
+    {
+        var planetId = await GetPlanetIdForChannel(channelId);
+        
+        _ = _hub.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate
         {
-            _ = _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time, planetId));
-        }
+            PlanetId = planetId,
+            ChannelId = channelId,
+            UserId = userId
+        });
+    }
+
+    public void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
+    {
+        _ = _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time, planetId));
+    }
 
     ////////////////
     // Eco Events //

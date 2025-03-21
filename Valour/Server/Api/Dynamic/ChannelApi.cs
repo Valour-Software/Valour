@@ -360,6 +360,39 @@ public class ChannelApi
         
         return Results.Json(messages);
     }
+    
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{channelId}/messages/search")]
+    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/messages/search")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> SearchMessagesAsync(
+        [FromBody] MessageSearchRequest request,
+        long channelId,
+        long? planetId,
+        MessageService messageService,
+        ChannelService channelService,
+        TokenService tokenService)
+    {
+        if (request.Count > 20)
+            return Results.BadRequest("Maximum count is 20.");
+        
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        if (planetId is null && !token.HasScope(UserPermissions.DirectMessages))
+        {
+            return ValourResult.Forbid("Token lacks permission to view messages in this channel");
+        }
+        
+        var channel = await channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+        
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+        
+        var messages = await messageService.SearchChannelMessagesAsync(planetId, channelId, request.SearchText, request.Count);
+        
+        return Results.Json(messages);
+    }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/recentChatters")]
     public static async Task<IResult> GetRecentChatMembersAsync(
