@@ -25,7 +25,7 @@ public class Program
         builder.Services.AddBlazoredLocalStorage();
 
         var loggingService = new LoggingService(false);
-        var client = new ValourClient("https://localhost:5001", loggingService);
+        var client = new ValourClient("https://app.valour.gg", loggingService);
 
         var httpClient = new HttpClient
         {
