@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
@@ -95,6 +96,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// The member for the current user in this planet. Can be null if not a member.
     /// </summary>
+    [JsonIgnore]
     public PlanetMember MyMember { get; private set; }
 
     /// <summary>

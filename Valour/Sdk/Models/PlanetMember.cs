@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -40,6 +41,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     
     private ImmutableList<PlanetRole>? _roles = null;
     
+    [JsonIgnore]
     public ImmutableList<PlanetRole> Roles
     {
         get
