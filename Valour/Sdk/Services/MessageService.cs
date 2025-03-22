@@ -89,10 +89,25 @@ public class MessageService : ServiceBase
         Log($"[{cached.Node?.Name}]: Received planet message {cached.Id} for channel {cached.ChannelId}");
 
         MessageReceived?.Invoke(cached);
-        
-        if (_cache.Channels.TryGet(cached.ChannelId, out var channel))
+
+        if (message.PlanetId is not null)
         {
-            channel?.NotifyMessageReceived(message);
+            if (!_cache.Planets.TryGet(message.PlanetId.Value, out var planet))
+            {
+                return;
+            }
+            
+            if (planet!.Channels.TryGet(cached.ChannelId, out var channel))
+            {
+                channel?.NotifyMessageReceived(message);
+            }
+        }
+        else
+        {
+            if (_cache.Channels.TryGet(cached.ChannelId, out var channel))
+            {
+                channel?.NotifyMessageReceived(message);
+            }
         }
     }
     
@@ -107,9 +122,24 @@ public class MessageService : ServiceBase
         
         MessageEdited?.Invoke(cached);
         
-        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        if (message.PlanetId is not null)
         {
-            channel?.NotifyMessageEdited(message);
+            if (!_cache.Planets.TryGet(message.PlanetId.Value, out var planet))
+            {
+                return;
+            }
+            
+            if (planet!.Channels.TryGet(cached.ChannelId, out var channel))
+            {
+                channel?.NotifyMessageEdited(message);
+            }
+        }
+        else
+        {
+            if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+            {
+                channel?.NotifyMessageEdited(message);
+            }
         }
     }
     
@@ -151,9 +181,24 @@ public class MessageService : ServiceBase
     {
         MessageDeleted?.Invoke(message);
         
-        if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+        if (message.PlanetId is not null)
         {
-            channel.NotifyMessageDeleted(message);
+            if (!_cache.Planets.TryGet(message.PlanetId.Value, out var planet))
+            {
+                return;
+            }
+            
+            if (planet!.Channels.TryGet(message.ChannelId, out var channel))
+            {
+                channel?.NotifyMessageDeleted(message);
+            }
+        }
+        else
+        {
+            if (_cache.Channels.TryGet(message.ChannelId, out var channel))
+            {
+                channel?.NotifyMessageDeleted(message);
+            }
         }
     }
     
