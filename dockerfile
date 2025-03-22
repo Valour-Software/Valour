@@ -24,13 +24,13 @@ RUN dotnet workload restore
 RUN dotnet restore
 
 # Remove .js files that have corresponding .ts files
-RUN find . -name "*.ts" | while read tsfile; do \
-        jsfile="${tsfile%.ts}.js"; \
-        if [ -f "$jsfile" ]; then \
-            echo "Deleting $jsfile because $tsfile exists"; \
-            rm "$jsfile"; \
-        fi; \
-    done
+# RUN find . -name "*.ts" | while read tsfile; do \
+#        jsfile="${tsfile%.ts}.js"; \
+#        if [ -f "$jsfile" ]; then \
+#            echo "Deleting $jsfile because $tsfile exists"; \
+#            rm "$jsfile"; \
+#        fi; \
+#    done
 
 # Build the app
 RUN dotnet publish -c Release -o out
