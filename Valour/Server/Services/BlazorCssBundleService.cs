@@ -118,7 +118,14 @@ public class BlazorCssBundleService : IHostedService
         var host = _configuration["ServerHost"] ?? "localhost";
         var port = _configuration["ServerPort"] ?? "5000";
         var scheme = _configuration["ServerScheme"] ?? "http";
+        
+        host = host.Replace("0.0.0.0", "localhost");
 
+        // Temporary hack. TODO: Make more flexible
+        #if !DEBUG
+            return "https://app.valour.gg";
+        #endif
+        
         return $"{scheme}://{host}:{port}";
     }
 
