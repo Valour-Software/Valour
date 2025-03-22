@@ -87,17 +87,17 @@ jobs:
         encoding: 'utf8'
         path: '.'
 
-    - name: Delete .js files if corresponding .ts files exist
-      run: |
-        #!/bin/bash
-        SEARCH_DIR="./"
-        find "$SEARCH_DIR" -name "*.ts" | while read tsfile; do
-          jsfile="${tsfile%.ts}.js"
-          if [ -f "$jsfile" ]; then
-              echo "Deleting $jsfile because $tsfile exists"
-              rm "$jsfile"
-          fi
-        done
+    #- name: Delete .js files if corresponding .ts files exist
+    #  run: |
+    #    #!/bin/bash
+    #    SEARCH_DIR="./"
+    #    find "$SEARCH_DIR" -name "*.ts" | while read tsfile; do
+    #      jsfile="${tsfile%.ts}.js"
+    #      if [ -f "$jsfile" ]; then
+    #          echo "Deleting $jsfile because $tsfile exists"
+    #          rm "$jsfile"
+    #      fi
+    #    done
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
