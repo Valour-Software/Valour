@@ -106,27 +106,26 @@ public class BlazorCssBundleService : IHostedService
 
     private string GetServerAddress()
     {
+        if (_configuration["ServerHost"] != null)
+        {
+            var host = _configuration["ServerHost"] ?? "localhost";
+            var port = _configuration["ServerPort"] ?? "5000";
+            var scheme = _configuration["ServerScheme"] ?? "http";
+            
+            return $"{scheme}://{host}:{port}";
+        }
+        
         // First try to get from server addresses
         var addressFeature = _server.Features.Get<IServerAddressesFeature>();
         var address = addressFeature?.Addresses.FirstOrDefault();
+        
         if (!string.IsNullOrEmpty(address))
         {
             return address;
         }
-
-        // Fallback to configuration
-        var host = _configuration["ServerHost"] ?? "localhost";
-        var port = _configuration["ServerPort"] ?? "5000";
-        var scheme = _configuration["ServerScheme"] ?? "http";
         
-        host = host.Replace("0.0.0.0", "localhost");
-
-        // Temporary hack. TODO: Make more flexible
-        #if !DEBUG
-            return "https://app.valour.gg";
-        #endif
-        
-        return $"{scheme}://{host}:{port}";
+        // Fallback to localhost
+        return "http://localhost:5000";
     }
 
     private async Task GenerateBundle(string baseUrl, HttpClient client, CancellationToken cancellationToken)
