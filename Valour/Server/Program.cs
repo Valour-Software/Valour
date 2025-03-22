@@ -180,6 +180,9 @@ public partial class Program
 
         app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"); });
 
+        // Add CSS injector middleware
+        app.UseMiddleware<BlazorCssInjector>();
+        
         app.UseWebSockets();
 
         if (app.Configuration.GetSection("Sentry").Exists())

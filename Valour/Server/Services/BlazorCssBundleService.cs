@@ -9,6 +9,8 @@ namespace Valour.Server.Services;
 
 public class BlazorCssBundleService : IHostedService
 {
+    public static string GeneratedCss;
+    
     private static readonly string[] StaticCssFiles = new[]
     {
         // order matters!
@@ -196,7 +198,10 @@ public class BlazorCssBundleService : IHostedService
                 _logger.LogError("CSS minification error: {Error}", error);
             }
         }
-
+        
+        // Store generated CSS in format that can be served by the server
+        GeneratedCss = minified.Code;
+        
         // Write to file
         var wwwrootPath = GetWwwRootPath();
         var cssPath = Path.Combine(wwwrootPath, "css");

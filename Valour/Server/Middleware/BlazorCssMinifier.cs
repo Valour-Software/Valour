@@ -38,8 +38,8 @@ public class BlazorCssMinifier
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value;
-
-        if (path != null && path.Contains(".bundle.scp.css"))
+        
+        if (path is not null && path.Contains(".bundle.scp.css"))
         {
             // Handle 304 Not Modified
             var etag = context.Request.Headers.IfNoneMatch.ToString();
