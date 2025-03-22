@@ -23,13 +23,13 @@ public class PermissionService : ServiceBase
         SetupLogging(client.Logger, LogOptions);
     }
     
-    public async ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, long planetId, bool skipCache = false)
+    public async ValueTask<PermissionsNode?> FetchPermissionsNodeAsync(PermissionsNodeKey key, long planetId, bool skipCache = false)
     {
         var planet = await _client.PlanetService.FetchPlanetAsync(planetId, skipCache);
         return await FetchPermissionsNodeAsync(key, planet, skipCache);
     }
     
-    public async ValueTask<PermissionsNode> FetchPermissionsNodeAsync(PermissionsNodeKey key, Planet planet, bool skipCache = false)
+    public async ValueTask<PermissionsNode?> FetchPermissionsNodeAsync(PermissionsNodeKey key, Planet planet, bool skipCache = false)
     {
         if (!skipCache && 
             _cache.PermNodeKeyToId.TryGetValue(key, out var id) &&
@@ -39,6 +39,9 @@ public class PermissionService : ServiceBase
         var permNode = (await planet.Node.GetJsonAsync<PermissionsNode>(
             ISharedPermissionsNode.GetIdRoute(key.TargetId, key.RoleId, key.TargetType), 
             true)).Data;
+        
+        if (permNode is null)
+            return null;
 
         return permNode.Sync(_client);
     }
