@@ -13,14 +13,17 @@
 else
 {
     <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
-    <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
-        <!-- Pushes messages to bottom -->
-        <div class="pusher"></div>
+    <div class="chat-member-wrapper">
+        <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
+            <!-- Pushes messages to bottom -->
+            <div class="pusher"></div>
 
-        <!-- Actual messages -->
-        @MessagesFragment
+            <!-- Actual messages -->
+            @MessagesFragment
 
-        <div class="anchor"></div>
+            <div class="anchor"></div>
+        </div>
+        <MemberListComponent @ref="@MemberListComponent" Channel="@Channel" />
     </div>
 }
 
@@ -47,6 +50,7 @@ else
     
     // Child references
     public InputComponent InputComponent;
+    public MemberListComponent MemberListComponent;
     
     // Used for locking channel connection while window is open
     private readonly string _instanceId = Guid.NewGuid().ToString();
@@ -404,6 +408,11 @@ else
         }
 
         await ScrollToBottom();
+    }
+    
+    public void ToggleMembersList()
+    {
+        MemberListComponent.ToggleVisible();
     }
     
     /* This is called by the MessageComponent when it is rendered */

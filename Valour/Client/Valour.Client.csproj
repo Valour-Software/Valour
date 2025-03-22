@@ -45,6 +45,15 @@
   <ItemGroup>
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
   </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Components\Planets\MembersList\MemberListComponent.razor" />
+    <UpToDateCheckInput Remove="Components\Planets\MembersList\MembersWindowComponent.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Components\MembersList\MemberListComponent.razor" />
+  </ItemGroup>
   
   <!-- JS Cleanup script
   <Target Name="RunCustomBuildScripts" BeforeTargets="PrepareForBuild">

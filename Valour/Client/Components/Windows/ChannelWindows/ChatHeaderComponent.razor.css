@@ -99,6 +99,10 @@
     overflow-y: auto;
 }
 
+::deep .results-scroll .message {
+    margin-top: 6px;
+}
+
 /* Round the scrollbar */
 .results-scroll::-webkit-scrollbar-track {
     border-radius: var(--main-radius);

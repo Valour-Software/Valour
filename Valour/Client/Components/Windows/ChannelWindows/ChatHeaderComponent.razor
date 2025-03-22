@@ -27,7 +27,7 @@
         </TooltipTrigger>
         <TooltipTrigger Position="left">
             <ChildContent>
-                <div type="button" tabindex="0" class="members-btn">
+                <div @onclick="@OnClickMembers" type="button" tabindex="0" class="members-btn">
                     <i class="bi bi-people-fill"></i>
                 </div>
             </ChildContent>
@@ -46,6 +46,11 @@
     
     [Parameter]
     public ChatWindowComponent ChatComponent { get; set; }
+
+    private void OnClickMembers()
+    {
+        ChatComponent.ToggleMembersList();
+    }
     
     private void OnClickSearch()
     {

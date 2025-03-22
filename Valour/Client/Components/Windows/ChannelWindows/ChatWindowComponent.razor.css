@@ -1,3 +1,12 @@
+.chat-member-wrapper {
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    max-height: 100%;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
 .chat-holder {
     display: flex;
     flex-direction: column;
@@ -5,6 +14,7 @@
     flex-grow: 1;
     flex-shrink: 1;
     min-height: 0;
+    max-height: 100%;
 
     padding-right: 0.5rem;
     overflow-y: auto;
