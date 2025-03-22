@@ -190,7 +190,7 @@ public partial class Program
             app.UseSentryTracing();
         }
 
-        app.UseStartupWait();
+        // app.UseStartupWait();
 
         // app.UseBlazorCssMinifier();
         // app.UseWebOptimizer();

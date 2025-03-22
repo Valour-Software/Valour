@@ -202,6 +202,8 @@ public class BlazorCssBundleService : IHostedService
         // Store generated CSS in format that can be served by the server
         GeneratedCss = minified.Code;
         
+        /*
+        
         // Write to file
         var wwwrootPath = GetWwwRootPath();
         var cssPath = Path.Combine(wwwrootPath, "css");
@@ -223,6 +225,8 @@ public class BlazorCssBundleService : IHostedService
             "Successfully generated bundled CSS at: {Path}", 
             outputPath
         );
+        
+        */
     }
     
     private string GetWwwRootPath()
