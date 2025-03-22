@@ -11,10 +11,10 @@ public class InitialPlanetData
     /// <summary>
     /// Channels the user has access to
     /// </summary>
-    public ImmutableList<Channel> Channels { get; set; }
+    public IEnumerable<Channel> Channels { get; set; }
     
     /// <summary>
     /// All the roles in the planet
     /// </summary>
-    public ImmutableList<PlanetRole> Roles { get; set; }
+    public IEnumerable<PlanetRole> Roles { get; set; }
 }
