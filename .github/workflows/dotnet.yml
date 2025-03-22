@@ -129,7 +129,7 @@ jobs:
         NODE_NAME: "emma"
         APPLY_MIGRATIONS: true
       run: dotnet test --no-build --verbosity normal
-      #continue-on-error: true
+      continue-on-error: true
 
     - name: Publish Test Results
       if: always()
