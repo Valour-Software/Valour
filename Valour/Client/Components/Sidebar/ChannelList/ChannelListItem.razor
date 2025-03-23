@@ -243,8 +243,7 @@
         {
             var newWindowContent = await ChatWindowComponent.GetDefaultContent(Channel);
             
-            // Replace current window with new one
-            await WindowService.FocusedTab.SetContent(newWindowContent);
+            await WindowService.OpenWindowAtFocused(newWindowContent);
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {

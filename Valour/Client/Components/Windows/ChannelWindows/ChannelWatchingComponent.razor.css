@@ -12,7 +12,7 @@
 .watching-container .icons {
     display: flex;
     padding-left: 14px;
-    transition: padding-left 0.2s ease-in-out;
+    transition: padding-left 0.2s ease-in-out; 
 }
 
 .watching-title {

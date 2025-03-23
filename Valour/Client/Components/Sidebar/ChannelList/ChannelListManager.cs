@@ -12,6 +12,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
         public static ChannelListManager Instance;
 
+        public static bool Dragging;
+        
         public static HybridEvent<Channel?> ChannelDragChanged;
 
         public ChannelListManager()
@@ -25,6 +27,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
         public void OnCancelDrag()
         {
+            Dragging = false;
+            
             DragOverId = 0;
             var dragItem = CurrentDragItem;
             CurrentDragItem = null;
@@ -52,6 +56,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// <param name="parent">The parent category of the item that was clicked</param>
         public void OnItemStartDragInCategory(ChannelListItem item)
         {
+            Dragging = true;
+            
             var old = CurrentDragItem;
             SetTarget(item);
             Console.WriteLine($"Starting drag for {item.Channel.GetHumanReadableName()} {item.Channel.Name}");
@@ -73,6 +79,8 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         
         public async Task OnItemDropOn(ChannelListItem droppedOn)
         {
+            Dragging = false;
+            
             if (droppedOn is null)
                 return;
             

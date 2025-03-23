@@ -61,7 +61,7 @@
         if (Layout?.FocusedTab == this.WindowTab) {
             if ((WindowService.DraggingTab is not null &&
               WindowService.DraggingTab != WindowTab) ||
-             ChannelListManager.CurrentDragItem is not null)
+             ChannelListManager.Dragging)
             {
                 <WindowDropTargets Window="@this"/>
             }
