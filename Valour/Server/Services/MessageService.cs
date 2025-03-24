@@ -234,6 +234,9 @@ public class MessageService
         
         // Add to chat caches
         _chatCacheService.AddMessage(message);
+        
+        // Add member to recent chatters
+        _chatCacheService.AddChatPlanetMember(message.ChannelId, member.ToModel());
 
         if (planet is null)
         {
