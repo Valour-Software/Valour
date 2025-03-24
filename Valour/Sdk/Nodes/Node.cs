@@ -921,6 +921,60 @@ public class Node : ServiceBase // each node acts like a service
     }
 
     /// <summary>
+/// Posts multipart form data to the specified URI and returns the deserialized response.
+/// </summary>
+public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, MultipartFormDataContent content, int retries = 0)
+{
+    if (retries > 3)
+    {
+        LogError($"Failed 3 retries - POST {uri}");
+        return TaskResult<T>.FromFailure("Failed after 3 retries.");
+    }
+
+    try
+    {
+        // Use the MultipartFormDataContent directly without converting to JSON
+        var response = await HttpClient.PostAsync(Client.BaseAddress + uri, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // For string responses, just read the content as string instead of deserializing
+            if (typeof(T) == typeof(string))
+            {
+                var stringContent = await response.Content.ReadAsStringAsync();
+                return TaskResult<T>.FromData((T)(object)stringContent);
+            }
+            else
+            {
+                // For other types, use the regular deserialization
+                return await TryDeserializeResponse<T>(response, uri);
+            }
+        }
+
+        // Wrong node! it returned the correct node name so we can actually forward this.
+        if (response.StatusCode == HttpStatusCode.MisdirectedRequest)
+        {
+            var correctNode = await HandleMisdirect(response, "POST", uri);
+            if (correctNode is not null)
+                return await correctNode.PostMultipartDataWithResponse<T>(uri, content, retries + 1);
+
+            return TaskResult<T>.FromFailure("Failed to find correct node.");
+        }
+
+        var msg = await response.Content.ReadAsStringAsync();
+        LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+
+        return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+    }
+    catch (HttpRequestException ex)
+    {
+        LogError($"Critical HTTP Failure - POST {uri}:", ex);
+        return TaskResult<T>.FromFailure(ex);
+    }
+}
+
+    
+    /// <summary>
     /// Puts a JSON resource in the specified URI and returns the response message.
     /// </summary>
     public async Task<TaskResult> PutAsync(string uri, string content, int retries = 0)

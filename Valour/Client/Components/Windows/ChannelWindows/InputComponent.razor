@@ -480,7 +480,7 @@
             Attachment = newAttachment,
             OnConfirm = async () => 
             {
-                var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/{path}{plusRoute}", content);
+                var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{path}{plusRoute}", content);
 
                 if (result.Success)
                 {
