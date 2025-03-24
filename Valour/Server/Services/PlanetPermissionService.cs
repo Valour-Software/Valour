@@ -400,7 +400,7 @@ public class PlanetPermissionService
             return Permission.FULL_CONTROL;
         }
 
-        var targetRoleIds = roles.Select(r => r.Id).ToArray();
+        var targetRoleIds = roles.Select(r => r.Id).ToList();
         var permNodes = await _db.PermissionsNodes.AsNoTracking()
             .Where(x =>
                 x.TargetType == targetType &&
