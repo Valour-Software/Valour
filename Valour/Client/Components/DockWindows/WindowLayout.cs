@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Client.Components.Windows.HomeWindows;
+using Valour.Client.Device;
 using Valour.Sdk.Models;
 
 namespace Valour.Client.Components.DockWindows;
@@ -108,6 +109,22 @@ public class WindowLayout
     // For loading from serialized
     public WindowLayout(WindowLayout childOne, WindowLayout childTwo, WindowSplit split, List<WindowTab> tabs, int focusedTabIndex = 0)
     {
+        // If mobile, this needs to be a simple layout. No splits and only one tab.
+        if (DeviceInfo.IsMobile)
+        {
+            if (tabs.Count > 1)
+            {
+                tabs = new List<WindowTab>()
+                {
+                    tabs[focusedTabIndex]
+                };
+            }
+            
+            ChildOne = null;
+            ChildTwo = null;
+            Split = null;
+        }
+        
         ChildOne = childOne;
         ChildTwo = childTwo;
         
@@ -316,6 +333,10 @@ public class WindowLayout
                 Parent?.RemoveChild(this);
             }
         }
+        
+        // Set the last tab as focused
+        await SetFocusedTab(Tabs.Last());
+        
 
         if (render)
         {
