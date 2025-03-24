@@ -238,7 +238,7 @@
 
     private async Task OnClickUploadAsync()
     {
-        await _jsCtx.InvokeVoidAsync("openUploadFile", _inputFileRef);
+        await _jsCtx.InvokeVoidAsync("openUploadFile", _inputFileRef.Element);
     }
 
     private static Dictionary<long, string> _retainedInputCache = new();
