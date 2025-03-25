@@ -139,7 +139,7 @@ public class WindowLayout
 
         if (Tabs.Count > 0)
         {
-            if (focusedTabIndex >= tabs.Count)
+            if (focusedTabIndex >= Tabs.Count)
                 focusedTabIndex = 0;
             else
                 FocusedTab = Tabs[focusedTabIndex];
