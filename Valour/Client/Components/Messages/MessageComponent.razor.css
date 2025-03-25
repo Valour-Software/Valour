@@ -15,11 +15,13 @@
     padding-bottom: 0;
     padding-left: 4px;
     position: relative;
+    margin-top: 5px;
 }
 
 .message.minimal {
     margin-bottom: 0;
     min-height: auto;
+    margin-top: 0;
 }
 
 .message .content-holder {
