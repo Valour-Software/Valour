@@ -112,7 +112,7 @@ public class WindowLayout
         // If mobile, this needs to be a simple layout. No splits and only one tab.
         if (DeviceInfo.IsMobile)
         {
-            if (tabs.Count > 1)
+            if (tabs is not null && tabs.Count > 1)
             {
                 tabs = new List<WindowTab>()
                 {
@@ -132,7 +132,12 @@ public class WindowLayout
         
         Tabs = tabs;
 
-        if (Tabs is not null && Tabs.Count > 0)
+        if (Tabs is null)
+        {
+            Tabs = new List<WindowTab>();
+        }
+
+        if (Tabs.Count > 0)
         {
             if (focusedTabIndex >= tabs.Count)
                 focusedTabIndex = 0;
@@ -146,9 +151,9 @@ public class WindowLayout
         
         split?.SetLayoutRaw(this);
 
-        if (tabs is not null)
+        if (Tabs is not null)
         {
-            foreach (var tab in tabs)
+            foreach (var tab in Tabs)
             {
                 tab.SetLayoutRaw(this);
             }
@@ -333,10 +338,11 @@ public class WindowLayout
                 Parent?.RemoveChild(this);
             }
         }
-        
-        // Set the last tab as focused
-        await SetFocusedTab(Tabs.Last());
-        
+        else
+        {
+            // Set the last tab as focused
+            await SetFocusedTab(Tabs.Last());
+        }
 
         if (render)
         {

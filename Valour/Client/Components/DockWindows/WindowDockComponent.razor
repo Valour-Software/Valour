@@ -62,7 +62,7 @@
             catch (Exception e)
             {
                 Console.WriteLine("Failed to load saved layout: " + e.Message);
-                Reset();
+                await Reset();
             }
             
             loaded = true;
@@ -84,7 +84,7 @@
         
         if (!loaded)
         {
-            Reset();
+            await Reset();
         }
         else
         {
@@ -152,9 +152,9 @@
         // this HAS to happen first to prevent component re-initialization
         _floaters.Add(tab);
         
-        await tab.SetLayout(null);
-        
         tab.SetFloatingProps(floatingProps);
+        
+        await tab.SetLayout(null);
         
         NotifyLayoutChanged();
     }
@@ -177,14 +177,14 @@
         return Task.CompletedTask;
     }
 
-    public void Reset(bool notifyService = true, bool saveLayout = true)
+    public async Task Reset(bool notifyService = true, bool saveLayout = true)
     {
         _floaters.Clear();
         Tabs.Clear();
         Splits.Clear();
 
         Layout = new WindowLayout(this);
-        Layout.AddTab(HomeWindowComponent.DefaultContent);
+        await Layout.AddTab(HomeWindowComponent.DefaultContent);
         
         NotifyLayoutChanged(notifyService, saveLayout);
     }

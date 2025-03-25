@@ -87,7 +87,10 @@ public class WindowSaveLoadAdapter
         foreach (var tabState in tabStates)
         {
             var tab = await Import(tabState);
-            tabs.Add(tab);
+            if (tab.FloatingProps is not null)
+            {
+                tabs.Add(tab);
+            }
         }
         
         return tabs;
@@ -153,6 +156,12 @@ public class WindowSaveLoadAdapter
                 SplitRatio = layout.Split.SplitRatio
             };
         }
+
+        var focusedIndex = 0;
+        if (layout.Tabs is not null && layout.FocusedTab is not null)
+        {
+            focusedIndex = layout.Tabs.IndexOf(layout.FocusedTab);
+        }
         
         var state = new WindowLayoutState
         {
@@ -160,7 +169,7 @@ public class WindowSaveLoadAdapter
             ChildTwo = Export(layout.ChildTwo),
             SplitState = splitState,
             TabStates = tabStates,
-            FocusedTabIndex = layout.Tabs.IndexOf(layout.FocusedTab)
+            FocusedTabIndex = focusedIndex
         };
         
         return state;
