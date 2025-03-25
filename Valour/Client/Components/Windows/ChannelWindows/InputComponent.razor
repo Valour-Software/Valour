@@ -10,7 +10,7 @@
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")' style="@(_loading ? "pointer-events: none; opacity: 0.8" : string.Empty)">
     <div class="preview-message">
         @{
-            if (PreviewMessage is not null  && !PreviewMessage.IsEmpty())
+            if (PreviewMessage is not null && !PreviewMessage.IsEmpty())
             {
                 var messageParams = new MessageComponent.Params()
                 {
@@ -339,7 +339,11 @@
         EditingMessageComponent = component;
         PreviewMessage = message;
         EditingOriginalText = PreviewMessage.Content;
-        PreviewMessageComponent.SetMessage(PreviewMessage);
+
+        if (PreviewMessageComponent is not null)
+        {
+            PreviewMessageComponent.SetMessage(PreviewMessage);
+        }
 
         await OnChatboxUpdate(message.Content, message.Content.Split(' ').LastOrDefault());
 
@@ -358,7 +362,7 @@
             //EditingMessageComponent.MessageData.Clear();
             EditingMessageComponent.ParamData.Message.Content = EditingOriginalText;
         }
-
+        
         // Clear preview
         EditingMessageComponent = null;
         PreviewMessage = BuildNewMessage();
@@ -593,7 +597,7 @@
 
     public async Task SetReplyMessage(Message message)
     {
-        PreviewMessageComponent.ParamData.Message.ReplyTo = message;
+        PreviewMessage.ReplyTo = message;
         PreviewMessage.ReplyToId = message?.Id;
 
         RefreshPreviewMessage();
@@ -665,6 +669,8 @@
             {
                 PreviewMessage = BuildNewMessage();
                 PreviewMessageComponent.SetMessage(PreviewMessage);
+
+                await OnStopEdit();
             }
         }
     }

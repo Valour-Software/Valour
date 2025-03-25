@@ -359,6 +359,9 @@
     {
         if (firstRender)
         {
+            if (_message is null)
+                return;
+            
             // Clear notification if one exists for this message
             var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(_message.Id, out var notification);
             if (found && notification.TimeRead is null)
@@ -506,7 +509,13 @@
     /// </summary>
     private string GetAuthorName()
     {
-        return _member is not null ? _member.Name : _user.Name;
+        if (_member is not null)
+            return _member.Name;
+        
+        if (_user is not null)
+            return _user.Name;
+        
+        return "Unknown User";
     }
     
     private string GetAuthorRoleTag()
@@ -514,14 +523,18 @@
         // If there's a member, we use the member's planet role
         if (_member is not null) 
             return _member.PrimaryRole?.Name ?? "Unknown Role";
-        
-        // Bot always shows Bot
-        if (_user.Bot)
-            return "Bot";
-        
-        // Otherwise, we use their relationship with the user
-        if (_user.Id == Client.Me.Id)
-            return "You";
+
+        if (_user is not null)
+        {
+
+            // Bot always shows Bot
+            if (_user.Bot)
+                return "Bot";
+
+            // Otherwise, we use their relationship with the user
+            if (_user.Id == Client.Me.Id)
+                return "You";
+        }
 
         return Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "Friend" : "User";
     }
@@ -536,16 +549,31 @@
         _author?.GetAvatar(AvatarFormat.Webp128);
     
     public string GetAuthorAvatarAnimated()
-    {   
-        // TODO: Tweak when member avatars are implemented
-        if (!_user.HasAnimatedAvatar)
-            return null;
+    {
+        if (_user is not null)
+        {
+            // TODO: Tweak when member avatars are implemented
+            if (!_user.HasAnimatedAvatar)
+                return null;
+        }
 
-        return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+        if (_author is not null)
+        {
+            return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+        }
+
+        return ISharedUser.DefaultAvatar;
     }
-    
-    public string GetAuthorAvatarUrlFallback() =>
-        _author.GetFailedAvatar();
+
+    public string GetAuthorAvatarUrlFallback()
+    {
+        if (_author is not null)
+        {
+            _author.GetFailedAvatar();
+        }
+        
+        return ISharedUser.DefaultAvatar;
+    }
 
     private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
     {

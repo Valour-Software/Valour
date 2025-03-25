@@ -100,8 +100,9 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
         },
 
         focus() {
+            const el = this.inputEl;
             setTimeout(function() {
-                this.inputEl.focus();
+                el.focus();
             }, 0);
         },
         

@@ -52,8 +52,9 @@ export function init(dotnet, inputEl) {
             uploadEl.click();
         },
         focus() {
+            const el = this.inputEl;
             setTimeout(function () {
-                this.inputEl.focus();
+                el.focus();
             }, 0);
         },
         setInputContent(content) {

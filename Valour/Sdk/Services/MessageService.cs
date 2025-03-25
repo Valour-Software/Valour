@@ -84,11 +84,11 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnPlanetMessageReceived(Message message)
     {
-        var cached = message.Sync(_client);
+        message = message.Sync(_client);
         
-        Log($"[{cached.Node?.Name}]: Received planet message {cached.Id} for channel {cached.ChannelId}");
+        Log($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
 
-        MessageReceived?.Invoke(cached);
+        MessageReceived?.Invoke(message);
 
         if (message.PlanetId is not null)
         {
@@ -97,14 +97,14 @@ public class MessageService : ServiceBase
                 return;
             }
             
-            if (planet!.Channels.TryGet(cached.ChannelId, out var channel))
+            if (planet!.Channels.TryGet(message.ChannelId, out var channel))
             {
                 channel?.NotifyMessageReceived(message);
             }
         }
         else
         {
-            if (_cache.Channels.TryGet(cached.ChannelId, out var channel))
+            if (_cache.Channels.TryGet(message.ChannelId, out var channel))
             {
                 channel?.NotifyMessageReceived(message);
             }
@@ -116,11 +116,11 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnPlanetMessageEdited(Message message)
     {
-        Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
-
-        var cached = message.Sync(_client);
+        message = message.Sync(_client);
         
-        MessageEdited?.Invoke(cached);
+        Log($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
+        
+        MessageEdited?.Invoke(message);
         
         if (message.PlanetId is not null)
         {
@@ -129,7 +129,7 @@ public class MessageService : ServiceBase
                 return;
             }
             
-            if (planet!.Channels.TryGet(cached.ChannelId, out var channel))
+            if (planet!.Channels.TryGet(message.ChannelId, out var channel))
             {
                 channel?.NotifyMessageEdited(message);
             }
@@ -148,11 +148,11 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnDirectMessageReceived(Message message)
     {
-        Log($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
-
-        var cached = message.Sync(_client);
+        message = message.Sync(_client);
         
-        MessageReceived?.Invoke(cached);
+        Log($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
+        
+        MessageReceived?.Invoke(message);
         
         if (_cache.Channels.TryGet(message.ChannelId, out var channel))
         {
@@ -165,11 +165,11 @@ public class MessageService : ServiceBase
     /// </summary>
     private void OnDirectMessageEdited(Message message)
     {
-        Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
-
-        var cached = message.Sync(_client);
+        message = message.Sync(_client);
         
-        MessageEdited?.Invoke(cached);
+        Log($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
+        
+        MessageEdited?.Invoke(message);
         
         if (_cache.Channels.TryGet(message.ChannelId, out var channel))
         {
