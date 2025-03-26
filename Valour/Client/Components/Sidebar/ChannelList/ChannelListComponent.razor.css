@@ -1,6 +1,6 @@
 /* Entire Thing */
 .full-channel-list {
-    padding: 8px;
+    padding: 0 8px 8px;
     overflow: auto;
 }
 
@@ -71,28 +71,43 @@
     background-color: rgba(0, 255, 255, 0.1);
 }
 
-::deep .category[depth="0"]:hover {
-    border-left-color: #00a4b3;
+::deep .channel.nested .path {
+    border-radius: 0 var(--main-radius);
+    border-left: 2px solid var(--v-cyan);
+    width: 7px;
+    height: 20px;
+    position: absolute;
+    border-bottom: 2px solid var(--v-cyan);
+    left: -3px;
+    top: -5px;
 }
 
-::deep .category[depth="1"]:hover {
-    border-left-color: #0024b3;
+::deep .channel.nested .path.str {
+    border-radius: 0;
+    border-left: 2px solid var(--v-cyan);
+    width: 7px;
+    height: 12px;
+    position: absolute;
+    left: -3px;
+    top: -17px;
+    border-bottom: none;
 }
 
-::deep .category[depth="2"]:hover {
-    border-left-color: #7700b3;
+::deep .channel.nested .path[depth="2"] {
+    border-color: var(--p-cyan);
 }
 
-::deep .category[depth="3"]:hover {
-    border-left-color: #b30033;
+::deep .channel.nested .path[depth="3"] {
+    border-color: var(--p-cyan-purple);
+    
 }
 
-::deep .category[depth="4"]:hover {
-    border-left-color: #b35300;
+::deep .channel.nested .path[depth="4"] {
+    border-color: var(--p-purple);
 }
 
-::deep .category[depth="5"]:hover {
-    border-left-color: #21b300;
+::deep .channel.nested .path[depth="5"] {
+    border-color: var(--p-red);
 }
 
 ::deep .channel-wrapper {
@@ -121,16 +136,14 @@
 
 ::deep .channel {
     cursor: pointer;
-    border-radius: 8px;
-    padding: 2px 8px 2px 6px;
-    overflow: visible;
-    white-space: nowrap;
     min-width: 150px;
     position: relative;
-    display: inline-flex;
     flex-direction: row;
-    align-items: center;
     gap: 4px;
+    max-width: 100%;
+    display: flex;
+    align-items: start;
+    padding: 6px 8px 4px 6px;
 }
 
 ::deep .channel-wrapper:hover > .channel {
@@ -150,13 +163,13 @@
 }
 
 ::deep .channel .name {
-    margin: 0;
-    font-family: Ubuntu, sans-serif;
+    font-family: Ubuntu,sans-serif;
     font-style: normal;
     font-weight: normal;
     font-size: 14px;
     color: var(--font-color);
     display: inline-block;
+    margin: 0 0 0 24px;
 }
 
 /*
@@ -191,10 +204,12 @@
 /* Icons */
 
 ::deep .channel-icon {
-    display: inline-flex;
-    width: 14px;
-    margin-right: 3px;
-    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 6px;
+    max-width: 20px;
+    background-color: var(--main-3);
+    z-index: 1;
 }
 
 ::deep .channel-icon-holder {

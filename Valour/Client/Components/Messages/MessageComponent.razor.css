@@ -201,17 +201,17 @@
     visibility: hidden;
 }
 
-.message:hover .time {
+.message:hover > .left-info > .time-container > .time {
     display: block;
 }
 
-.message.minimal:hover .time {
+.message.minimal:hover > .left-info > .time-container >  .time {
     visibility: visible;
 }
 
 
 
-.message:hover .left-info .author-avatar {
+.message:hover > .left-info .author-avatar {
     width: 30px;
     height: 30px;
     min-width: 30px;

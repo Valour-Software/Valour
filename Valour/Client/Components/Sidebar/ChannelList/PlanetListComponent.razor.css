@@ -39,10 +39,10 @@
 
 .planet-about-icon {
     display: inline-block;
-    max-width: 16px;
+    max-width: 18px;
     margin-right: 2px;
-    margin-left: -2px;
-    margin-bottom: 3px;
+    position: absolute;
+    top: 0;
 }
 
 .header-wrapper {
@@ -53,7 +53,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 6px;
+    padding: 8px;
     border-radius: 8px;
 }
 
@@ -102,12 +102,9 @@
 .planet-about {
     cursor: pointer;
     border-radius: 8px;
-    padding: 2px;
-    padding-left: 6px;
-    overflow: visible;
     white-space: nowrap;
     width: max-content;
-    padding-right: 24px;
+    padding: 2px 24px 2px 8px;
 }
 
 .planet .header:hover {
@@ -123,6 +120,9 @@
 }
 
 .channel-list .v-gradient-underline {
-    margin-left: 6px;
-    margin-right: 6px;
+}
+
+.list-wrapper {
+    padding-left: 2px;
+    padding-right: 2px;
 }
