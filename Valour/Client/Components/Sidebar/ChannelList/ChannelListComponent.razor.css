@@ -86,10 +86,10 @@
     border-radius: 0;
     border-left: 2px solid var(--v-cyan);
     width: 7px;
-    height: 12px;
+    height: 16px;
     position: absolute;
     left: -3px;
-    top: -17px;
+    top: -19px;
     border-bottom: none;
 }
 
