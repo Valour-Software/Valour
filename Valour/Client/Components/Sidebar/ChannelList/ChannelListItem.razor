@@ -10,7 +10,7 @@
 @inject UnreadService UnreadService
 
 <div
-    style="margin-left: @((Depth - 1) * 18)px"
+    style="margin-left: @(Depth > 1 ? 18 : 0)px"
     class="channel-wrapper"
     draggable="true"
     depth="@Depth"
@@ -59,7 +59,6 @@
 
             @if (IsNested)
             {
-                <div class="path str" depth="@Depth"></div>
                 <div class="path" depth="@Depth"></div>
             }
             
@@ -110,40 +109,31 @@
             </div>
         }
     </div>
+    
+    @{
+        if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
+        {
+            DetermineChildren();
 
-    @*
-    @if (_children is not null && _isOpen)
-    {
-        @if (_children.Count > 0)
-        {
-            <div class="sub-list" ondragover="event.preventDefault();">
-                @foreach (var child in _children)
+            if (_children is not null && _isOpen)
+            {
+                if (_children.Count > 0)
                 {
-                    <ChannelListItem @key="@($"{Channel.Id}-{child.Id}")"
-                                     PlanetComponent="@PlanetComponent"
-                                     ParentComponent="@this"
-                                     Channel="@child"
-                                     AllChannels="@AllChannels"
-                                     Depth="@(Depth + 1)"/>
+                    <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
+                        <div class="path str" depth="@(Depth + 1)"></div>
+                        @foreach (var child in _children)
+                        {
+                            <ChannelListItem @key="@child.Id"
+                                             PlanetComponent="@PlanetComponent"
+                                             ParentComponent="@this"
+                                             Channel="@child"
+                                             AllChannels="@AllChannels"/>
+                        }
+                    </div>
                 }
-            </div>
-        }
-        else
-        {
-            <!-- Makes it so you can insert into empty categories -->
-            <div
-                class="inner-drop @((ListManager.HighlightInner?.Channel?.Id ?? 0) == this.Channel.Id ? "highlight" : "")"
-                @ondrop:stopPropagation="true"
-                @ondrop="async () => await ListManager.OnItemDropIntoCategory(this)"
-                @ondragenter:stopPropagation="true"
-                @ondragenter="@OnDragEnterInnerDrop"
-                @ondragleave="@Refresh">
-                <span>Insert into @Channel.Name</span>
-            </div>
+            }
         }
     }
-    *@
-
 </div>
 
 
@@ -213,6 +203,18 @@
         BuildChildren();
         DetermineNotifications();
         DetermineUnread();
+    }
+
+    private void DetermineChildren()
+    {
+        _children.Clear();
+        foreach (var channel in AllChannels)
+        {
+            if (channel.ParentId == Channel.Id)
+            {
+                _children.Add(channel);
+            }
+        }
     }
 
     private void OnContextMenu(ContextPressEventArgs e)

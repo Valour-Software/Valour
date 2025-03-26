@@ -50,20 +50,18 @@
 
             <div class="list-wrapper">
                 @{
-                    var channelCount = Planet.Channels.Count;
+                    DetermineRootChannels();
+                    RootComponents = new ChannelListItem[RootChannels.Count];
                     
-                    @* Only rebuild array if the size has changed *@
-                    if (RenderedChannels is null || RenderedChannels.Length != channelCount)
-                        RenderedChannels = new ChannelListItem[channelCount];
-                    
-                    for (var i = 0; i < channelCount; i++)
+                    for (int i = 0; i < RootChannels.Count; i++)
                     {
                         var ii = i;
-                        var channel = Planet.Channels[ii];
+                        var channel = RootChannels[ii];
+
                         if (DetermineChannelVisible(channel))
                         {
                             <ChannelListItem @key="@channel.Id"
-                                             @ref="@RenderedChannels[ii]"
+                                             @ref="@RootComponents[ii]"
                                              PlanetComponent="@this"
                                              AllChannels="@Planet.Channels"
                                              Channel="@channel"/>
@@ -83,7 +81,8 @@
     public HashSet<long> ClosedCategories = new();
     private Dictionary<long, bool> _visibilityCache = new();
 
-    public ChannelListItem[] RenderedChannels;
+    public ChannelListItem[] RootComponents;
+    public List<Channel> RootChannels = new();
     
     [Parameter] 
     public Planet Planet { get; set; }
@@ -102,23 +101,21 @@
         DetermineUnreadAndNotifications();
         DeterminePermissions();
     }
+    
+    public void RefreshChannels()
+    {
+        
+    }
+    
+    private void DetermineRootChannels()
+    {
+        RootChannels = Planet.Channels.Where(x => (x.RawPosition & 0x00FFFFFF) == 0).ToList();
+    }
 
     private void OnChannelsChanged(IModelEvent<Channel> eventData)
     {
         Console.WriteLine("Channels changed");
         StateHasChanged();
-        RefreshChannels();
-    }
-
-    public void RefreshChannels()
-    {
-        if (RenderedChannels is null)
-            return;
-
-        for (int i = 0; i < RenderedChannels.Length; i++)
-        {
-            RenderedChannels[i]?.Refresh();
-        }
     }
     
     public bool DetermineChannelVisible(Channel channel)
