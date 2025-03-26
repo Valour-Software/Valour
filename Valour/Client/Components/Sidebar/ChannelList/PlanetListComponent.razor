@@ -79,7 +79,7 @@
     /// A hashset of all the categories which have been closed (minimized)
     /// </summary>
     public HashSet<long> ClosedCategories = new();
-    private Dictionary<long, bool> _visibilityCache = new();
+    private Dictionary<long, bool> VisibilityMap = new();
 
     public ChannelListItem[] RootComponents;
     public List<Channel> RootChannels = new();
@@ -104,7 +104,13 @@
     
     public void RefreshChannels()
     {
-        
+        if (RootComponents is not null)
+        {
+            foreach (var channel in RootComponents)
+            {
+                channel?.RefreshRecursive();
+            }
+        }
     }
     
     private void DetermineRootChannels()
@@ -115,12 +121,14 @@
     private void OnChannelsChanged(IModelEvent<Channel> eventData)
     {
         Console.WriteLine("Channels changed");
+        DetermineRootChannels();
         StateHasChanged();
+        RefreshChannels();
     }
     
     public bool DetermineChannelVisible(Channel channel)
     {
-        if (_visibilityCache.TryGetValue(channel.Id, out var cached))
+        if (VisibilityMap.TryGetValue(channel.Id, out var cached))
         {
             return cached;
         }
@@ -133,7 +141,7 @@
             visible = DetermineChannelVisible(parent) && !ClosedCategories.Contains(channel.ParentId.Value);
         }
         
-        _visibilityCache.TryAdd(channel.Id, visible);
+        VisibilityMap.TryAdd(channel.Id, visible);
         
         return visible;
     }
@@ -141,7 +149,7 @@
     protected override void OnAfterRender(bool firstRender)
     {
         // Clear visibility cache
-        _visibilityCache.Clear();
+        VisibilityMap.Clear();
     }
 
     public void SetCategoryOpened(long categoryId, bool value)

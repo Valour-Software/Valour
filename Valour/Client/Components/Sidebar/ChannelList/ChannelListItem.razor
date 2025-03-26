@@ -114,16 +114,23 @@
         if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
             DetermineChildren();
+            
+            _childComponents = new ChannelListItem[_children.Count];
 
             if (_children is not null && _isOpen)
             {
                 if (_children.Count > 0)
                 {
                     <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
-                        <div class="path str" depth="@(Depth + 1)"></div>
-                        @foreach (var child in _children)
+                        <div class="path str" style="height: @(GetLineLength() * 26.67f)px" depth="@(Depth + 1)"></div>
+                        
+                        @for (int i = 0; i < _children.Count; i++)
                         {
+                            var ii = i;
+                            var child = _children[ii];
+                            
                             <ChannelListItem @key="@child.Id"
+                                             @ref="@_childComponents[ii]"
                                              PlanetComponent="@PlanetComponent"
                                              ParentComponent="@this"
                                              Channel="@child"
@@ -179,7 +186,8 @@
     public bool IsPrivate  { get; set; }
     public bool IsUnread { get; set; }
     
-    private List<Channel> _children;
+    private ChannelListItem[] _childComponents;
+    private List<Channel> _children = new();
     private bool _isOpen;
     private int _notificationCount;
     
@@ -215,6 +223,19 @@
                 _children.Add(channel);
             }
         }
+    }
+
+    private int GetLineLength()
+    {
+        var lastDirectDescendant = AllChannels.LastOrDefault(x => x.ParentId == Channel.Id);
+        
+        if (lastDirectDescendant is null)
+            return 0;
+        
+        // Now count how many channels are after this and before the last direct descendant
+        var count = AllChannels.Count(x => x.RawPosition > Channel.RawPosition && x.RawPosition < lastDirectDescendant.RawPosition && PlanetComponent.DetermineChannelVisible(x));
+
+        return count;
     }
 
     private void OnContextMenu(ContextPressEventArgs e)
@@ -264,9 +285,32 @@
             _isOpen = !_isOpen;
             CategoryManager.SetOpen(Channel, _isOpen);
             PlanetComponent.SetCategoryOpened(Channel.Id, !_isOpen);
+            RefreshParentsRecursive();
         }
         
         Refresh();
+    }
+
+    public void RefreshParentsRecursive()
+    {
+        if (ParentComponent is not null){
+            ParentComponent.Refresh();
+            ParentComponent.RefreshParentsRecursive();
+        }
+    }
+    
+    public void RefreshRecursive()
+    {
+        DetermineChildren();
+        
+        Refresh();
+        if (_childComponents is not null)
+        {
+            foreach (var child in _childComponents)
+            {
+                child.RefreshRecursive();
+            }
+        }
     }
     
     private void DetermineUnread()
