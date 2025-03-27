@@ -93,6 +93,21 @@ public class UnreadService : ServiceBase
         {
             cache.Remove(channelId);
         }
+
+        Channel? channel = null;
+        
+        // Get the channel
+        if (planetId is not null && _client.Cache.Planets.TryGet(planetId.Value, out var planet))
+        {
+            planet!.Channels.TryGet(channelId, out channel);
+        }
+        else
+        {
+            _client.Cache.Channels.TryGet(channelId, out channel);
+        }
+        
+        // If we found the channel, mark it as read
+        channel?.MarkUnread(false);
     }
     
     public bool IsPlanetUnread(long planetId) => _unreadPlanets.Contains(planetId);

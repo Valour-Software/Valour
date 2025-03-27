@@ -193,6 +193,7 @@
         PlanetComponent.ChannelsNeedRefresh += BuildSelf;
         Planet.Channels.Changed += OnChannelsChanged;
         Channel.Updated += OnChannelsChanged;
+        Channel.UnreadStateChanged += OnUnreadChanged;
         
         ChannelService.ChannelConnected += OnChannelConnectionChange;
         ChannelService.ChannelDisconnected += OnChannelConnectionChange;
@@ -204,7 +205,18 @@
         BuildSelf();
     }
 
-    public void BuildSelf()
+    private void OnUnreadChanged(bool unread)
+    {
+        IsUnread = unread;
+        Refresh();
+        
+        if (ParentComponent is not null)
+        {
+            ParentComponent.NotifyChildUnreadChange();
+        }
+    }
+
+    private void BuildSelf()
     {
         _isOpen = CategoryManager.IsOpen(Channel);
 
@@ -291,10 +303,38 @@
     }
 
     private bool _needsRecursiveRefresh = false;
+
+    public void NotifyChildUnreadChange()
+    {
+        DetermineUnread();
+        Refresh();
+
+        if (ParentComponent is not null)
+        {
+            ParentComponent.NotifyChildUnreadChange();
+        }
+    }
     
     private void DetermineUnread()
     {
-        IsUnread = UnreadService.IsChannelUnread(Channel.PlanetId, Channel.Id);
+        if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
+        {
+            IsUnread = UnreadService.IsChannelUnread(Channel.PlanetId, Channel.Id);
+        }
+        else
+        {
+            var unread = false;
+            foreach (var child in _children)
+            {
+                if (UnreadService.IsChannelUnread(Planet.Id, child.Id))
+                {
+                    unread = true;
+                    break;
+                }
+            }
+            
+            IsUnread = unread;
+        }
     }
 
     private void DetermineNotifications()
@@ -443,7 +483,7 @@
         
         // Planet categories
         { new IconState(true, false, ChannelTypeEnum.PlanetCategory), new IconData("folder2-open", "Open category", "16px") },
-        { new IconState(true, true, ChannelTypeEnum.PlanetCategory), new IconData("folder2-open-fill", "Open category with unread messages", "16px") },
+        { new IconState(true, true, ChannelTypeEnum.PlanetCategory), new IconData("folder-fill", "Open category with unread messages", "16px") },
         { new IconState(false, false, ChannelTypeEnum.PlanetCategory), new IconData("folder", "Closed category", "16px") },
         { new IconState(false, true, ChannelTypeEnum.PlanetCategory), new IconData("folder-fill", "Closed category with unread messages", "16px") },
         

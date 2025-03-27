@@ -11,6 +11,8 @@ public static class UserChannelStateMapper
         {
             ChannelId = state.ChannelId,
             UserId = state.UserId,
+            PlanetId = state.PlanetId,
+            PlanetMemberId = state.PlanetMemberId,
             LastViewedTime = state.LastViewedTime
         };
     }
@@ -24,6 +26,8 @@ public static class UserChannelStateMapper
         {
             ChannelId = state.ChannelId,
             UserId = state.UserId,
+            PlanetId = state.PlanetId,
+            PlanetMemberId = state.PlanetMemberId,
             LastViewedTime = state.LastViewedTime
         };
     }

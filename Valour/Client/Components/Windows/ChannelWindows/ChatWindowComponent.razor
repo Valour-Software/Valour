@@ -122,6 +122,8 @@ else
             await ScrollToBottom(true);
         }
         
+        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
+        
         await base.OnAfterRenderAsync(firstRender);
     }
 
@@ -142,7 +144,7 @@ else
 
     public virtual async Task OnReceiveMessage(Message message)
     {
-    // Ignore messages not meant for this channel
+        // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
             return;
         

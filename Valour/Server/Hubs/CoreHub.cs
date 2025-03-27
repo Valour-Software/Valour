@@ -154,7 +154,9 @@ public class CoreHub : Hub
             channelState = new UserChannelState()
             {
                 UserId = authToken.UserId,
-                ChannelId = channelId
+                ChannelId = channelId,
+                PlanetMemberId = member?.Id,
+                PlanetId = member?.PlanetId
             }.ToDatabase();
 
             _db.UserChannelStates.Add(channelState);

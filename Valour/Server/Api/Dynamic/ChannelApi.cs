@@ -309,6 +309,7 @@ public class ChannelApi
         [FromBody] UpdateUserChannelStateRequest request,
         UnreadService stateService,
         ChannelService channelService,
+        PlanetMemberService memberService,
         TokenService tokenService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
@@ -322,7 +323,14 @@ public class ChannelApi
             return ValourResult.Forbid("You are not a member of this channel");
         }
 
-        var updated = await stateService.UpdateReadState(channelId, token.UserId, request.UpdateTime);
+        long? memberId = null;
+        if (channel.PlanetId is not null)
+        {
+            var planetMember = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+            memberId = planetMember?.Id;
+        }
+
+        var updated = await stateService.UpdateReadState(channelId, token.UserId, channel.PlanetId, memberId, request.UpdateTime);
 
         return ValourResult.Json(updated);
     }

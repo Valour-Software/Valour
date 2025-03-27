@@ -27,6 +27,9 @@ public class PlanetMember : ISharedPlanetMember
     [Obsolete("Use new RoleMembership!")]
     public virtual ICollection<OldPlanetRoleMember> OldRoleMembers { get; set; }
     
+    [JsonIgnore]
+    public virtual ICollection<UserChannelState> ChannelStates { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

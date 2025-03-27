@@ -81,9 +81,11 @@
     
     private static bool _canEdit;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Planet.Channels.Changed += OnChannelsChanged;
+
+        await UnreadService.FetchUnreadPlanetChannelsAsync(Planet.Id);
         
         DetermineUnreadAndNotifications();
         DeterminePermissions();

@@ -67,6 +67,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// Run when a message is deleted in this channel
     /// </summary>
     public HybridEvent<Message> MessageDeleted;
+
+    /// <summary>
+    /// Run when a channel's read state is changed
+    /// </summary>
+    public HybridEvent<bool> UnreadStateChanged;
     
     // Cached values
     // Will only be used for planet channels
@@ -694,6 +699,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             default:
                 break;
         }
+    }
+
+    public void MarkUnread(bool isUnread)
+    {
+        UnreadStateChanged?.Invoke(isUnread);
     }
 
     public void NotifyMessageReceived(Message message)

@@ -129,7 +129,6 @@
 ::deep .channel-wrapper {
     position: relative;
     background-color: transparent;
-    width: 100%;
 }
 
 ::deep .channel-wrapper .drop {
@@ -153,12 +152,7 @@
 
 ::deep .channel {
     cursor: pointer;
-    min-width: 150px;
     position: relative;
-    flex-direction: row;
-    gap: 4px;
-    max-width: 100%;
-    display: flex;
     align-items: start;
     padding: 6px 8px 4px 6px;
     height: 27px;
@@ -196,6 +190,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    max-width: calc(100% - 20px);
 }
 
 /*
@@ -223,7 +218,6 @@
 
 ::deep .sub-list {
     position: relative;
-    width: max-content;
 }
 
 /* Icons */

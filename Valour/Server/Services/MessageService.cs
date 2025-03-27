@@ -23,6 +23,7 @@ public class MessageService
     private readonly PlanetService _planetService;
     private readonly HttpClient _http;
     private readonly ChatCacheService _chatCacheService;
+    private readonly HostedPlanetService _hostedPlanetService;
 
     public MessageService(
         ILogger<MessageService> logger,
@@ -33,7 +34,7 @@ public class MessageService
         CoreHubService coreHubService, 
         ChannelService channelService, 
         PlanetService planetService, 
-        ChatCacheService chatCacheService)
+        ChatCacheService chatCacheService, HostedPlanetService hostedPlanetService)
     {
         _logger = logger;
         _db = db;
@@ -44,6 +45,7 @@ public class MessageService
         _channelService = channelService;
         _planetService = planetService;
         _chatCacheService = chatCacheService;
+        _hostedPlanetService = hostedPlanetService;
     }
     
     /// <summary>
@@ -84,19 +86,19 @@ public class MessageService
         if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return TaskResult<Message>.FromFailure("Channel is not a message channel.");
 
-        Planet planet = null;
-        Valour.Database.PlanetMember member = null;
+        HostedPlanet? hostedPlanet = null;
+        Planet? planet = null;
+        Valour.Database.PlanetMember? member = null;
         
         // Validation specifically for planet messages
         if (channel.PlanetId is not null)
         {
             if (channel.PlanetId != message.PlanetId)
                 return TaskResult<Message>.FromFailure("Invalid planet id. Must match channel's planet id.");
-
-            planet = await _planetService.GetAsync(channel.PlanetId.Value);
-            if (planet is null)
-                return TaskResult<Message>.FromFailure("Planet not found.");
             
+            hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
+            planet = hostedPlanet.Planet;
+
             if (!ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))
                 return TaskResult<Message>.FromFailure("Only planet channel messages can have a planet id.");
             
@@ -269,6 +271,14 @@ public class MessageService
         // Update channel state
         await _db.Channels.Where(x => x.Id == channel.Id)
             .ExecuteUpdateAsync(x => x.SetProperty(c => c.LastUpdateTime, DateTime.UtcNow));
+        
+        // Update in cached hosted planet
+        if (hostedPlanet is not null)
+        {
+            var cachedChannel = hostedPlanet.Channels.Get(channel.Id);
+            cachedChannel.LastUpdateTime = DateTime.UtcNow;
+        }
+
 
         if (channel.PlanetId is not null)
         {

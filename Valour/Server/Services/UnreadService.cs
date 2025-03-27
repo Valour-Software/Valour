@@ -21,9 +21,9 @@ public class UnreadService
     {
         return await _db.Channels
             .AsNoTracking()
-            .Where(c => c.PlanetId == planetId)
+            .Where(c => c.PlanetId == planetId && c.ChannelType != ChannelTypeEnum.PlanetCategory)
             .Where(c => !_db.UserChannelStates
-                .Where(s => s.UserId == userId)
+                .Where(s => s.UserId == userId && s.PlanetId == planetId)
                 .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
             )
             .Select(c => c.Id)
@@ -35,16 +35,23 @@ public class UnreadService
         return await _db.Channels
             .AsNoTracking()
             .Where(c => c.PlanetId != null)
-            .Where(c => !_db.UserChannelStates
-                .Where(s => s.UserId == userId)
-                .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
+            .GroupJoin(
+                _db.UserChannelStates.Where(s => s.UserId == userId),
+                channel => channel.Id,
+                state => state.ChannelId,
+                (channel, states) => new { channel, states }
             )
-            .Select(c => c.PlanetId.Value)
+            .SelectMany(
+                x => x.states.DefaultIfEmpty(),
+                (x, state) => new { x.channel, state }
+            )
+            .Where(x => x.state == null || x.state.LastViewedTime < x.channel.LastUpdateTime)
+            .Select(x => x.channel.PlanetId.Value)
             .Distinct()
             .ToArrayAsync();
     }
     
-    public async Task<UserChannelState> UpdateReadState(long channelId, long userId, DateTime? updateTime)
+    public async Task<UserChannelState> UpdateReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
     {
         updateTime ??= DateTime.UtcNow;
 
@@ -55,13 +62,19 @@ public class UnreadService
             channelState = new UserChannelState()
             {
                 UserId = userId,
-                ChannelId = channelId
+                ChannelId = channelId,
+                PlanetId = planetId,
+                PlanetMemberId = memberId,
+                LastViewedTime = updateTime.Value
             }.ToDatabase();
 
             _db.UserChannelStates.Add(channelState);
         }
-            
-        channelState.LastViewedTime = updateTime.Value;
+        else
+        {
+            channelState.LastViewedTime = updateTime.Value;
+        }
+        
         await _db.SaveChangesAsync();
 
         return channelState.ToModel();
