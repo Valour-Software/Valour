@@ -777,13 +777,6 @@ public class ChannelService
             }
         }
 
-        // Save the original position for moving descendents
-        uint? savedToMoveForCategory = null;
-        if (toMove.ChannelType == ChannelTypeEnum.PlanetCategory)
-        {
-            savedToMoveForCategory = toMove.RawPosition;
-        }
-
         await using var trans = await _db.Database.BeginTransactionAsync();
 
         try

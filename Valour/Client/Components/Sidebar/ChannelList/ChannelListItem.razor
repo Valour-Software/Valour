@@ -119,7 +119,7 @@
                 if (_children.Count > 0)
                 {
                     <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
-                        <div class="path str" style="height: @(GetLineLength() * 26.67f)px" depth="@(Depth + 1)"></div>
+                        <div class="path str" style="height: @(GetLineLength() * 27f)px" depth="@(Depth + 1)"></div>
                         
                         @for (int i = 0; i < _children.Count; i++)
                         {
@@ -162,7 +162,7 @@
         {
             var css = "channel";
 
-            if (WindowService.GlobalChatTabs.Any(x => x.Channel.Id == Channel.Id))
+            if (ChannelService.ConnectedPlanetChannels.Any(x => x.Id == Channel.Id))
                 css += " open";
 
             if (ListManager.DragOverId == Channel.Id)
@@ -192,6 +192,7 @@
         
         PlanetComponent.ChannelsNeedRefresh += BuildSelf;
         Planet.Channels.Changed += OnChannelsChanged;
+        Channel.Updated += OnChannelsChanged;
         
         ChannelService.ChannelConnected += OnChannelConnectionChange;
         ChannelService.ChannelDisconnected += OnChannelConnectionChange;

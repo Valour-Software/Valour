@@ -168,10 +168,12 @@ public class CoreHub : Hub
         return new TaskResult(true, "Connected to channel " + channelId);
     }
 
-    public async Task LeaveChannel(long channelId) {
+    public async Task<TaskResult> LeaveChannel(long channelId) {
         var groupId = $"c-{channelId}";
         ConnectionTracker.UntrackGroupMembership(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+
+        return TaskResult.SuccessResult;
     }
 
 

@@ -503,9 +503,9 @@ public class PlanetService : ServiceBase
         if (!skipCache && planet.Members.TryGet(id, out var cached))
             return cached;
 
-        var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}")).Data;
+        var member = (await planet.Node.GetJsonAsync<PlanetMember>($"{ISharedPlanetMember.BaseRoute}/{id}", true)).Data;
 
-        return member.Sync(_client);
+        return member?.Sync(_client);
     }
 
     public async Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)

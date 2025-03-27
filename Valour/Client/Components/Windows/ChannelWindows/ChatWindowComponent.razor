@@ -220,28 +220,6 @@ else
 
         return chatters;
     }
-
-    public async ValueTask DisposeAsync()
-    {
-        await HandleWindowClose();
-
-        if (Channel.PlanetId is not null)
-        {
-            Channel.Planet.Deleted -= OnPlanetDeleted;
-            
-            if (Channel.Planet.MyMember is not null)
-                Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
-        }
-        
-        Channel.MessageReceived -= OnReceiveMessage;
-        
-        _thisRef.Dispose();
-    }
-
-    public async Task HandleWindowClose()
-    {
-        await Channel.Close(WindowChannelKey);
-    }
     
     ///////////////////////
     // Message Rendering //
@@ -625,6 +603,17 @@ else
         WindowCtx.Tab.OnStartFloating -= OnStartFloating;
         Client.NodeService.NodeReconnected -= OnNodeReconnect;
         
+        if (Channel.PlanetId is not null)
+        {
+            Channel.Planet.Deleted -= OnPlanetDeleted;
+            
+            if (Channel.Planet.MyMember is not null)
+                Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
+        }
+        
+        await Channel.Close(WindowChannelKey);
+        
+        _thisRef.Dispose();
         await _jsModule.DisposeAsync();
     }
 }
