@@ -1,4 +1,5 @@
 @using System.Text
+@using Valour.Shared.Utilities
 @implements IDisposable
 @inject ChannelListManager ListManager
 @inject ClientCategoryManager CategoryManager
@@ -113,10 +114,6 @@
     @{
         if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
-            DetermineChildren();
-            
-            _childComponents = new ChannelListItem[_children.Count];
-
             if (_children is not null && _isOpen)
             {
                 if (_children.Count > 0)
@@ -130,11 +127,9 @@
                             var child = _children[ii];
                             
                             <ChannelListItem @key="@child.Id"
-                                             @ref="@_childComponents[ii]"
                                              PlanetComponent="@PlanetComponent"
                                              ParentComponent="@this"
-                                             Channel="@child"
-                                             AllChannels="@AllChannels"/>
+                                             Channel="@child" />
                         }
                     </div>
                 }
@@ -151,9 +146,6 @@
     
     [Parameter]
     public ChannelListItem ParentComponent { get; set; }
-    
-    [Parameter]
-    public SortedModelStore<Channel,long> AllChannels { get; set; }
     
     [Parameter]
     public Channel Channel { get; set; }
@@ -186,7 +178,6 @@
     public bool IsPrivate  { get; set; }
     public bool IsUnread { get; set; }
     
-    private ChannelListItem[] _childComponents;
     private List<Channel> _children = new();
     private bool _isOpen;
     private int _notificationCount;
@@ -197,6 +188,11 @@
         // ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
         // ModelObserver<Channel>.AnyDeleted += OnChannelDeletion;
 
+        Planet = PlanetComponent.Planet;
+        
+        PlanetComponent.ChannelsNeedRefresh += BuildSelf;
+        Planet.Channels.Changed += OnChannelsChanged;
+        
         ChannelService.ChannelConnected += OnChannelConnectionChange;
         ChannelService.ChannelDisconnected += OnChannelConnectionChange;
 
@@ -204,36 +200,35 @@
         ChannelStateService.ChannelStateUpdated += OnChannelStateUpdate;
         ChannelStateService.UserChannelStateUpdated += OnUserChannelStateUpdate;
 
-        Planet = PlanetComponent.Planet;
+        BuildSelf();
+    }
 
+    public void BuildSelf()
+    {
         _isOpen = CategoryManager.IsOpen(Channel);
 
         BuildChildren();
         DetermineNotifications();
         DetermineUnread();
+        Refresh();
     }
-
-    private void DetermineChildren()
+    
+    private void OnChannelsChanged(IModelEvent<Channel> eventData)
     {
-        _children.Clear();
-        foreach (var channel in AllChannels)
-        {
-            if (channel.ParentId == Channel.Id)
-            {
-                _children.Add(channel);
-            }
-        }
+        BuildSelf();
+        BuildChildren();
+        Refresh();
     }
 
     private int GetLineLength()
     {
-        var lastDirectDescendant = AllChannels.LastOrDefault(x => x.ParentId == Channel.Id);
+        var lastDirectDescendant = Planet.Channels.LastOrDefault(x => x.ParentId == Channel.Id);
         
         if (lastDirectDescendant is null)
             return 0;
         
         // Now count how many channels are after this and before the last direct descendant
-        var count = AllChannels.Count(x => x.RawPosition > Channel.RawPosition && x.RawPosition < lastDirectDescendant.RawPosition && PlanetComponent.DetermineChannelVisible(x));
+        var count = Planet.Channels.Count(x => x.RawPosition > Channel.RawPosition && x.RawPosition < lastDirectDescendant.RawPosition && PlanetComponent.GetVisible(x));
 
         return count;
     }
@@ -251,18 +246,13 @@
         if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
             return;
         
-        _children = AllChannels.Where(x => x.ParentId == Channel.Id).ToList();
-        SortChildren();
-    }
-    
-    private void SortChildren()
-    {
-        _children.Sort((x, y) =>
+        _children.Clear();
+
+        foreach (var channel in Planet.Channels)
         {
-            var a = x.RawPosition;
-            var b = y.RawPosition;
-            return a.CompareTo(b);
-        });
+            if (channel.ParentId == Channel.Id)
+                _children.Add(channel);
+        }
     }
     
     private async Task OnClick()
@@ -298,20 +288,8 @@
             ParentComponent.RefreshParentsRecursive();
         }
     }
-    
-    public void RefreshRecursive()
-    {
-        DetermineChildren();
-        
-        Refresh();
-        if (_childComponents is not null)
-        {
-            foreach (var child in _childComponents)
-            {
-                child.RefreshRecursive();
-            }
-        }
-    }
+
+    private bool _needsRecursiveRefresh = false;
     
     private void DetermineUnread()
     {
@@ -336,61 +314,6 @@
     }
     
     #region Event Handlers
-    
-    private Task OnChannelUpdate(ModelUpdatedEvent<Channel> eventData)
-    {
-        var updated = eventData.Model;
-        
-        if (Channel.Id == updated.Id)
-        {
-            Refresh();
-        }
-        else if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
-        {
-            // If we contain the channel and its position or category changed we need to factor for that
-            var old = _children.FirstOrDefault(x => x.Id == updated.Id);
-            if (old != null)
-            {
-                // If removed from this category
-                if (updated.ParentId != Channel.Id)
-                {
-                    _children.Remove(old);
-                    BuildChildren();
-                    Refresh();
-                }
-            }
-            // In this case it was just added to this category
-            else if (updated.ParentId == Channel.Id)
-            {
-                // Insert
-                _children.Add(updated);
-                // Resort
-                BuildChildren();
-
-                Console.WriteLine($"Inserted {updated.Name} into {Channel.Name}");
-
-                Refresh();
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-    
-    private Task OnChannelDeletion(Channel channel)
-    {
-        if (Channel.ChannelType != ChannelTypeEnum.PlanetCategory)
-            return Task.CompletedTask;
-        
-        var old = _children.FirstOrDefault(x => x.Id == channel.Id);
-        if (old is not null)
-        {
-             _children.Remove(old);
-            BuildChildren();
-            Refresh();
-        }
-        
-        return Task.CompletedTask;
-    }
     
     private Task OnUserChannelStateUpdate(UserChannelState state)
     {
@@ -625,6 +548,9 @@
     {
         //ModelObserver<Channel>.AnyUpdated -= OnChannelUpdate;
         //ModelObserver<Channel>.AnyDeleted -= OnChannelDeletion;
+        
+        PlanetComponent.ChannelsNeedRefresh -= BuildSelf;
+        Planet.Channels.Changed -= OnChannelsChanged;
         
         NotificationService.NotificationReceived -= OnNotification;
         ChannelStateService.ChannelStateUpdated -= OnChannelStateUpdate;

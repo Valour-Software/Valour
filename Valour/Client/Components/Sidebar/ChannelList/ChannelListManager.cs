@@ -33,7 +33,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             var dragItem = CurrentDragItem;
             CurrentDragItem = null;
             
-            dragItem.PlanetComponent.RefreshChannels();
+            dragItem.PlanetComponent.ChannelsNeedRefresh?.Invoke();
             
             ChannelDragChanged?.Invoke(null);
         }

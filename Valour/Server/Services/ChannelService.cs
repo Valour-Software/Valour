@@ -682,25 +682,28 @@ public class ChannelService
         ChannelsMovedEvent eventData)
     {
         uint nextPos = 1;
-        foreach (var child in channel.Children)
+        if (channel.Children is not null)
         {
-            // Update child position
-            child.RawPosition = ChannelPosition.AppendRelativePosition(channel.RawPosition, nextPos);
-            _db.Channels.Update(child);
-            
-            eventData.Moves[child.Id] = new ChannelMove()
+            foreach (var child in channel.Children)
             {
-                ChannelId = child.Id,
-                NewRawPosition = child.RawPosition,
-                NewParentId = child.ParentId
-            };
-            
-            updatedChannels[child.Id] = child.ToModel();
-            
-            // Propagate to grandchildren
-            UpdateChildrenForPositionChange(child, updatedChannels, eventData);
-            
-            nextPos++;
+                // Update child position
+                child.RawPosition = ChannelPosition.AppendRelativePosition(channel.RawPosition, nextPos);
+                _db.Channels.Update(child);
+
+                eventData.Moves[child.Id] = new ChannelMove()
+                {
+                    ChannelId = child.Id,
+                    NewRawPosition = child.RawPosition,
+                    NewParentId = child.ParentId
+                };
+
+                updatedChannels[child.Id] = child.ToModel();
+
+                // Propagate to grandchildren
+                UpdateChildrenForPositionChange(child, updatedChannels, eventData);
+
+                nextPos++;
+            }
         }
     }
 

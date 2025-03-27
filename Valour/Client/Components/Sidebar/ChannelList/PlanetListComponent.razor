@@ -1,4 +1,5 @@
-﻿@inject ChannelListManager ListManager
+﻿@using Valour.Shared.Utilities
+@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
 @inject ChannelService ChannelService
 @inject UnreadService UnreadService
@@ -49,39 +50,25 @@
             </div>
 
             <div class="list-wrapper">
-                @{
-                    DetermineRootChannels();
-                    RootComponents = new ChannelListItem[RootChannels.Count];
-                    
-                    for (int i = 0; i < RootChannels.Count; i++)
-                    {
-                        var ii = i;
-                        var channel = RootChannels[ii];
-
-                        if (DetermineChannelVisible(channel))
-                        {
-                            <ChannelListItem @key="@channel.Id"
-                                             @ref="@RootComponents[ii]"
-                                             PlanetComponent="@this"
-                                             AllChannels="@Planet.Channels"
-                                             Channel="@channel"/>
-                        }
-                        
-                    }
+                @foreach (var root in RootChannels)
+                {
+                    <ChannelListItem @key="@root.Id"
+                                     PlanetComponent="@this"
+                                     Channel="@root"/>
                 }
             </div>
         }
     </div>
 </div>
-
+ 
 @code {
+    public HybridEvent ChannelsNeedRefresh;
+    
     /// <summary>
     /// A hashset of all the categories which have been closed (minimized)
     /// </summary>
     public HashSet<long> ClosedCategories = new();
-    private Dictionary<long, bool> VisibilityMap = new();
-
-    public ChannelListItem[] RootComponents;
+    
     public List<Channel> RootChannels = new();
     
     [Parameter] 
@@ -100,17 +87,9 @@
         
         DetermineUnreadAndNotifications();
         DeterminePermissions();
-    }
-    
-    public void RefreshChannels()
-    {
-        if (RootComponents is not null)
-        {
-            foreach (var channel in RootComponents)
-            {
-                channel?.RefreshRecursive();
-            }
-        }
+        DetermineRootChannels();
+        
+        StateHasChanged();
     }
     
     private void DetermineRootChannels()
@@ -123,33 +102,27 @@
         Console.WriteLine("Channels changed");
         DetermineRootChannels();
         StateHasChanged();
-        RefreshChannels();
     }
     
-    public bool DetermineChannelVisible(Channel channel)
+    public bool GetVisible(Channel channel)
     {
-        if (VisibilityMap.TryGetValue(channel.Id, out var cached))
-        {
-            return cached;
-        }
-
-        var visible = true;
-
         if (channel.ParentId is not null)
         {
+            if (ClosedCategories.Contains(channel.ParentId.Value))
+            {
+                return false;
+            }
+            
             var parent = Planet.Channels.Get(channel.ParentId.Value);
-            visible = DetermineChannelVisible(parent) && !ClosedCategories.Contains(channel.ParentId.Value);
+            if (parent is null)
+                return true;
+            
+            return GetVisible(parent);
         }
-        
-        VisibilityMap.TryAdd(channel.Id, visible);
-        
-        return visible;
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        // Clear visibility cache
-        VisibilityMap.Clear();
+        else
+        {
+            return true;
+        }
     }
 
     public void SetCategoryOpened(long categoryId, bool value)
