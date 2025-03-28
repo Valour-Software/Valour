@@ -179,7 +179,9 @@ public class CoreHubService
         if (_channelToPlanetId.ContainsKey(channelId))
             return null;
         
-        var channel = await _db.Channels.AsNoTracking().Select(x => new { x.Id, x.PlanetId })
+        // TODO: Something funky getting LOTS of commands
+        var channel = await _db.Channels.AsNoTracking()
+            .Select(x => new { x.Id, x.PlanetId})
             .FirstOrDefaultAsync(x => x.Id == channelId);
         
         if (channel == null)
