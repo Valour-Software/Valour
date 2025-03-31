@@ -140,10 +140,16 @@ public class ChatCacheService
                 .Take(50)
                 .Select(m => m.AuthorMember.ToModel())
                 .ToArrayAsync();
+
+            HashSet<long> added = new();
             
-            foreach (var member in members.DistinctBy(m => m.Id))
+            foreach (var member in members)
             {
-                cache.Enqueue(member);
+                if (member is not null && !added.Contains(member.Id))
+                {
+                    cache.Enqueue(member);
+                    added.Add(member.Id);
+                }
             }
             
             var snapshot = cache.ToListAscending();
