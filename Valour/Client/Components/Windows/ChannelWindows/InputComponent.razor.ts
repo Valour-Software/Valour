@@ -367,7 +367,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
         },
 
         // Handles content being pasted into the input
-        pasteHandler(e: ClipboardEvent) {
+        async pasteHandler(e: ClipboardEvent) {
             e.preventDefault();
 
             // Get plain text representation
@@ -377,6 +377,8 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
             insertTextAtCursor(text);
 
             this.currentWord = this.getCurrentWord(0);
+
+            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(inputEl), ctx.currentWord ?? '');
         },
         
         clickHandler() {
