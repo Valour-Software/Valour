@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using System.Net;
+using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 using Valour.Shared.Authorization;
 using Valour.Shared;
 using Valour.Server.Hubs;
+using Valour.Shared.Models;
+using Valour.Shared.Models.Calls;
 
 /*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2024 Valour Software LLC
@@ -20,6 +23,8 @@ public class CoreHub : Hub
     private readonly CoreHubService _hubService;
     private readonly UserOnlineService _onlineService;
     private readonly PlanetMemberService _memberService;
+    private readonly ChannelService _channelService;
+    private readonly CallService _callService;
     private readonly TokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
 
@@ -29,12 +34,16 @@ public class CoreHub : Hub
         UserOnlineService onlineService,
         PlanetMemberService memberService,
         TokenService tokenService,
-        IConnectionMultiplexer redis)
+        IConnectionMultiplexer redis, 
+        CallService callService, 
+        ChannelService channelService)
     {
         _db = db;
         _hubService = hubService;
         _onlineService = onlineService;
         _redis = redis;
+        _callService = callService;
+        _channelService = channelService;
         _memberService = memberService;
         _tokenService = tokenService;
     }
@@ -210,5 +219,45 @@ public class CoreHub : Hub
         
         return "pong";
     }
+
+    public AuthToken GetCurrentToken()
+    {
+        return ConnectionTracker.GetToken(Context.ConnectionId);
+    }
+    
+    ///////////
+    // Calls //
+    ///////////
+
+    #region Calls
+
+    public async Task<TaskResult<LiveCallModel>> JoinPlanetLiveCall(long planetId, long channelId)
+    {
+        var authToken = GetCurrentToken();
+        if (authToken == null) return TaskResult<LiveCallModel>.FromFailure("Unauthorized", HttpStatusCode.Unauthorized);
+        
+        // Check if the user is a member of the planet
+        var member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (member == null)
+            return TaskResult<LiveCallModel>.FromFailure("You are not a member of this planet.", HttpStatusCode.Forbidden);
+
+        var channel = await _channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return TaskResult<LiveCallModel>.FromFailure("Channel not found.", HttpStatusCode.NotFound);
+        
+        if (channel.ChannelType != ChannelTypeEnum.PlanetVoice)
+            return TaskResult<LiveCallModel>.FromFailure("Channel is not a voice channel.", HttpStatusCode.BadRequest);
+
+        // Check if the user has permission to join the channel
+        if (!await _channelService.HasPermissionAsync(channel, member, VoiceChannelPermissions.Join))
+            return TaskResult<LiveCallModel>.FromFailure("You do not have permission to join this channel.", HttpStatusCode.Forbidden);
+        
+        // Now use service
+        var result = await _callService.JoinPlanetLiveCallAsync(channel, member);
+
+        return result;
+    }
+
+    #endregion
 }
 

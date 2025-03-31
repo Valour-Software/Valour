@@ -1,7 +1,7 @@
 #nullable enable
 
-using System.Threading;
 using Valour.Server.Utilities;
+using Valour.Shared.Collections;
 using Valour.Shared.Extensions;
 
 namespace Valour.Server.Models;
@@ -15,21 +15,15 @@ public class HostedPlanet : ServerModel<long>
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
     
-    // Fixed-size array for local-to-global role mapping.
-    private readonly long[] _localToGlobalRoleId = new long[256];
-    private volatile long[]? _localToGlobalRoleIdSnapshot;
-    private volatile bool _isLocalToGlobalRoleIdDirty = true;
-    
-    // Lock for controlling access to the local-to-global array and snapshot.
-    private readonly ReaderWriterLockSlim _localToGlobalRoleLock =
-        new(LockRecursionPolicy.SupportsRecursion);
+    // Use SnapshotArray for the role mapping
+    private readonly SnapshotArray<long> _indexToRoleId = new(256);
     
     public readonly PlanetPermissionsCache PermissionCache = new();
 
-    private Channel _defaultChannel;
-    private PlanetRole _defaultRole;
+    private Channel _defaultChannel = null!;
+    private PlanetRole _defaultRole = null!;
     
-    // Planet lock (using your simple lock implementation)
+    // Planet lock
     private readonly Lock _lock = new();
     
     public Planet Planet { get; }
@@ -106,42 +100,11 @@ public class HostedPlanet : ServerModel<long>
     
     /// <summary>
     /// Returns the global role ID for a given local role id using a snapshot for fast access.
-    /// If the snapshot is outdated (dirty), it is rebuilt under a write lock.
     /// </summary>
     public long GetRoleIdByIndex(int localId)
     {
-        if (_isLocalToGlobalRoleIdDirty)
-        {
-            _localToGlobalRoleLock.EnterWriteLock();
-            try
-            {
-                if (_isLocalToGlobalRoleIdDirty)
-                {
-                    // Create a fresh snapshot of the fixed-size array.
-                    _localToGlobalRoleIdSnapshot = (long[])_localToGlobalRoleId.Clone();
-                    _isLocalToGlobalRoleIdDirty = false;
-                }
-            }
-            finally
-            {
-                _localToGlobalRoleLock.ExitWriteLock();
-            }
-        }
-        
-        _localToGlobalRoleLock.EnterReadLock();
-        try
-        {
-            if (_localToGlobalRoleIdSnapshot is null ||
-                localId < 0 || localId >= _localToGlobalRoleIdSnapshot.Length)
-            {
-                return 0;
-            }
-            return _localToGlobalRoleIdSnapshot[localId];
-        }
-        finally
-        {
-            _localToGlobalRoleLock.ExitReadLock();
-        }
+        // Use the safe method to avoid out-of-range exceptions
+        return _indexToRoleId.GetSafe(localId);
     }
     
     public PlanetRole? GetRoleByIndex(int index)
@@ -155,28 +118,27 @@ public class HostedPlanet : ServerModel<long>
     public void SetRoles(List<PlanetRole> roles)
     {
         _roles.Set(roles);
-        // Update default role and mapping under the write lock.
-        _localToGlobalRoleLock.EnterWriteLock();
-        try
+        
+        // First pass to find default role
+        foreach (var role in roles)
         {
+            if (role.IsDefault)
+            {
+                _defaultRole = role;
+                break;
+            }
+        }
+        
+        // Update the role mapping
+        _indexToRoleId.UpdateRange(array => {
             foreach (var role in roles)
             {
-                if (role.IsDefault)
+                if (role.FlagBitIndex >= 0 && role.FlagBitIndex < array.Length)
                 {
-                    _defaultRole = role;
-                }
-                // Ensure local role ID is within the fixed array range.
-                if (role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
-                {
-                    _localToGlobalRoleId[role.FlagBitIndex] = role.Id;
+                    array[role.FlagBitIndex] = role.Id;
                 }
             }
-            _isLocalToGlobalRoleIdDirty = true; // Mark snapshot as stale.
-        }
-        finally
-        {
-            _localToGlobalRoleLock.ExitWriteLock();
-        }
+        });
     }
     
     public void UpsertRole(PlanetRole role)
@@ -187,38 +149,20 @@ public class HostedPlanet : ServerModel<long>
             _defaultRole = result;
         }
         
-        _localToGlobalRoleLock.EnterWriteLock();
-        try
+        if (role.FlagBitIndex >= 0 && role.FlagBitIndex < 256)
         {
-            if (role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
-            {
-                _localToGlobalRoleId[role.FlagBitIndex] = role.Id;
-                _isLocalToGlobalRoleIdDirty = true;
-            }
-        }
-        finally
-        {
-            _localToGlobalRoleLock.ExitWriteLock();
+            _indexToRoleId.SetSafe(role.FlagBitIndex, role.Id);
         }
     }
     
     public void RemoveRole(long id)
     {
-        _localToGlobalRoleLock.EnterWriteLock();
-        try
+        var role = _roles.Get(id);
+        if (role != null && role.FlagBitIndex >= 0 && role.FlagBitIndex < 256)
         {
-            var role = _roles.Get(id);
-            if (role != null && role.FlagBitIndex >= 0 && role.FlagBitIndex < _localToGlobalRoleId.Length)
-            {
-                // Reset the mapping for this local role id.
-                _localToGlobalRoleId[role.FlagBitIndex] = 0;
-            }
-            _isLocalToGlobalRoleIdDirty = true;
+            _indexToRoleId.SetSafe(role.FlagBitIndex, 0);
         }
-        finally
-        {
-            _localToGlobalRoleLock.ExitWriteLock();
-        }
+        
         _roles.Remove(id);
     }
 
