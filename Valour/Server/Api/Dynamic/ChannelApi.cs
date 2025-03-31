@@ -403,6 +403,7 @@ public class ChannelApi
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/recentChatters")]
+    [UserRequired]
     public static async Task<IResult> GetRecentChatMembersAsync(
         long channelId,
         long? planetId,
@@ -430,6 +431,8 @@ public class ChannelApi
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
 
-        return Results.Json(await chatCacheService.GetCachedChatPlanetMembersAsync(channelId));
+        var lastChatters = await chatCacheService.GetCachedChatPlanetMembersAsync(channelId) ?? [];
+
+        return Results.Json(lastChatters);
     }
 }

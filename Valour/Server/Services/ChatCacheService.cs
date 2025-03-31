@@ -133,13 +133,14 @@ public class ChatCacheService
             // Get the last 50 messages' authors
             var members = await _db.Messages
                 .AsNoTracking()
-                .Where(m => m.ChannelId == channelId)
-                .Include(m => m.AuthorMember.User)
+                .Include(m => m.AuthorMember)
+                .ThenInclude(me => me.User)
+                .Where(m => m.ChannelId == channelId && m.AuthorMemberId != null)
                 .OrderByDescending(m => m.Id)
                 .Take(50)
                 .Select(m => m.AuthorMember.ToModel())
                 .ToArrayAsync();
-
+            
             foreach (var member in members.DistinctBy(m => m.Id))
             {
                 cache.Enqueue(member);

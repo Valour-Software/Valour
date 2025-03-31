@@ -230,6 +230,11 @@
 
     public async Task AddSiblingTab(WindowContent content)
     {
+        if (DeviceInfo.IsMobile)
+        {
+            await ReplaceAsync(content);
+        }
+        
        await Layout.AddTab(content);
     }
 

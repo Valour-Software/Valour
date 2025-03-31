@@ -67,21 +67,24 @@
             
             loaded = true;
         }
-        
-        var floatersJson = LocalStorage.GetItemAsString("coreFloaters");
-        if (!string.IsNullOrWhiteSpace(floatersJson))
+
+        if (!DeviceInfo.IsMobile)
         {
-            try
+            var floatersJson = LocalStorage.GetItemAsString("coreFloaters");
+            if (!string.IsNullOrWhiteSpace(floatersJson))
             {
-                _floaters = await _saveLoadAdapter.DeserializeFloaters(floatersJson);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Failed to load saved floaters: " + e.Message);
-                _floaters.Clear();
+                try
+                {
+                    _floaters = await _saveLoadAdapter.DeserializeFloaters(floatersJson);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to load saved floaters: " + e.Message);
+                    _floaters.Clear();
+                }
             }
         }
-        
+
         if (!loaded)
         {
             await Reset();
