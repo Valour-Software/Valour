@@ -418,8 +418,15 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<TaskResult> LeavePlanetAsync(Planet planet)
     {
-        // Get member
-        var result = await planet.MyMember.DeleteAsync();
+        // Get member (don't use Planet.MyMember because the planet may not be opened)
+        var myMember = await planet.FetchMemberByUserAsync(_client.Me.Id);
+        if (myMember == null)
+        {
+            LogError($"Failed to leave planet {planet.Name} ({planet.Id}): Not a member.");
+            return TaskResult.FromFailure("Membership not found.");
+        }
+        
+        var result = await myMember.DeleteAsync();
 
         if (result.Success)
             RemoveJoinedPlanet(planet);
