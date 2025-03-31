@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+﻿@implements IAsyncDisposable
 
 <div id="tab-@WindowTab.Id"
      class="window-wrapper @WindowWrapperClasses"
@@ -206,18 +206,12 @@
     
     public async Task ReplaceAsync(WindowContent content)
     {
-        await WindowTab.NotifyClose();
-        
         await WindowTab.SetContent(content);
-        await WindowTab.NotifyAdded();
-        
         ReRender();
     }
 
     public async Task CloseAsync()
     {
-        await WindowTab.NotifyClose();
-
         if (!IsFloating)
         {
             await Layout.RemoveTab(WindowTab);
@@ -479,10 +473,12 @@
         ReRender();
     }
     
-    public void Dispose()
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
         BrowserUtils.OnWindowResize -= OnWindowResize;
         WindowService.OnTabDragging -= OnGlobalTabDragging;
         ChannelListManager.ChannelDragChanged -= OnChannelDragChanged;
+        
+        return ValueTask.CompletedTask;
     }
 }

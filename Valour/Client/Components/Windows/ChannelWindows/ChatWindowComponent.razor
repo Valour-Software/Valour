@@ -54,7 +54,7 @@ else
     
     // Used for locking channel connection while window is open
     private readonly string _instanceId = Guid.NewGuid().ToString();
-    private string WindowChannelKey => WindowCtx.Id + _instanceId;
+    private string WindowChannelKey => _instanceId;
 
     // Runs when page is initialized
     protected override void OnInitialized()

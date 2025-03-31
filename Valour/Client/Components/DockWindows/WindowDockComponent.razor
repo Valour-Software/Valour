@@ -171,13 +171,13 @@
         }
     }
     
-    public Task RemoveFloatingTab(WindowTab tab)
+    public async Task RemoveFloatingTab(WindowTab tab)
     {
+        await tab.NotifyClose();
+        
         tab.SetFloatingProps(null);
         _floaters.Remove(tab);
         NotifyLayoutChanged();
-
-        return Task.CompletedTask;
     }
 
     public async Task Reset(bool notifyService = true, bool saveLayout = true)

@@ -314,7 +314,7 @@ public class ChannelService : ServiceBase
 
         // Close planet connection if no other channels are open
         await _client.PlanetService.TryClosePlanetConnection(channel.Planet, key);
-        
+
         return TaskResult.SuccessResult;
     }
     

@@ -46,7 +46,7 @@ public abstract class WindowContent
         if (PlanetId is not null)
         {
             var planetService = Tab.Component.Dock.Client.PlanetService;
-            await planetService.TryClosePlanetConnection(PlanetId.Value, Tab.Id);
+            await planetService.TryClosePlanetConnection(PlanetId.Value, Id);
         }
     }
     
@@ -251,15 +251,6 @@ public class WindowTab
     public void SetFloatingProps(FloatingWindowProps props)
     {
         FloatingProps = props;
-    }
-
-    public async Task NotifyAdded()
-    {
-        if (Content?.PlanetId is not null)
-        {
-            var planetService = Layout.DockComponent.Client.PlanetService;
-            await planetService.TryOpenPlanetConnection(Content.PlanetId.Value, Id);
-        }
     }
     
     public async Task NotifyFocused()

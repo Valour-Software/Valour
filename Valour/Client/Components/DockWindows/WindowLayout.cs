@@ -320,6 +320,8 @@ public class WindowLayout
     {
         if (!Tabs.Contains(tab))
             return;
+
+        await tab.NotifyClose();
         
         Tabs.Remove(tab);
         await tab.SetLayout(null, false);

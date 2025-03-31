@@ -119,10 +119,12 @@ public class CoreHub : Hub
         return new TaskResult(true, "Connected to planet " + planetId);
     }
 
-    public async Task LeavePlanet(long planetId) {
+    public async Task<TaskResult> LeavePlanet(long planetId) {
         var groupId = $"p-{planetId}";
         ConnectionTracker.UntrackGroupMembership(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+
+        return TaskResult.SuccessResult;
     }
 
 
