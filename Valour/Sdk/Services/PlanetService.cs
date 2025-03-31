@@ -388,19 +388,19 @@ public class PlanetService : ServiceBase
 
     public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(long planetId)
     {
-        var planet = await FetchPlanetAsync(planetId);
-        return await JoinPlanetAsync(planet);
-    }
-
-    /// <summary>
-    /// Attempts to join the given planet
-    /// </summary>
-    public async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
-    {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planet.Id}/discover");
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planetId}/discover");
 
         if (result.Success)
         {
+            // Get the planet
+            var planet = await FetchPlanetAsync(planetId);
+            if (planet == null)
+            {
+                // If we can't find the planet, return failure
+                return TaskResult<PlanetMember>.FromFailure("Planet not found after joining. Try a refresh.");
+            }
+
+            planet.Sync(_client);
             AddJoinedPlanet(planet);
         }
 
