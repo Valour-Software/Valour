@@ -24,23 +24,6 @@ if (embedded) {
 window["mobile"] = mobile;
 window["embedded"] = embedded;
 
-function FixClip() {
-    const html = document.querySelector('html');
-    html.classList.add('full-screen')
-    const body = document.querySelector('body');
-    body.classList.add('full-screen')
-}
-
-function FitMobile() {
-    const sidebarMenu = document.querySelector('.sidebar-menu');
-    const channel = document.querySelector('.channel-and-topbar');
-    if (!mobile) {
-        return;
-    }
-    console.log("Detected mobile.");
-    channel.classList.add("channel-and-topbar-mobile");
-}
-
 function IsMobile() {
     return mobile;
 }

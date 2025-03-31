@@ -425,11 +425,6 @@ body {
     overflow: hidden;
 }
 
-.channel-and-topbar-mobile {
-    flex: 0;
-    width: 100vw;
-    position: absolute;
-}
 
 .mainrow {
     width: 100%;

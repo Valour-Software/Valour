@@ -118,12 +118,6 @@
 
 	protected override async void OnAfterRender(bool firstRender)
 	{
-		if (firstRender)
-		{
-			await JsRuntime.InvokeVoidAsync("FixClip");
-			await JsRuntime.InvokeVoidAsync("FitMobile");
-			StateHasChanged();
-		}
 	}
 
 	private Task OnPlanetChange(Planet planet)
