@@ -49,14 +49,19 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
 
     
 
-    public override PlanetInvite AddToCacheOrReturnExisting()
+    public override PlanetInvite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.PlanetInvites.Put(Id, this);
+        var planet = GetPlanet(false);
+        
+        if (planet is null)
+            return Client.Cache.OutsidePlanetInvites.Put(this, flags);
+        
+        return Planet.Invites.Put(this, flags);
     }
 
-    public override PlanetInvite TakeAndRemoveFromCache()
+    public override PlanetInvite RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.PlanetInvites.TakeAndRemove(Id);
+        return Planet.Invites.Remove(this, skipEvents);
     }
 }
 

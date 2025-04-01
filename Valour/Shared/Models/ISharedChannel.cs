@@ -31,8 +31,13 @@ public static class SharedChannelNames
 
 public interface ISharedChannel : ISharedModel<long>, ISortable
 {
-    public const string BaseRoute = "api/channels";
-    public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";
+    public const byte CurrentVersion = 2;
+    public const string DirectBaseRoute = "api/channels/direct";
+    public static string GetBaseRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetBaseRoute(channel.PlanetId.Value) : DirectBaseRoute;
+    public static string GetIdRoute(ISharedChannel channel) => channel.PlanetId.HasValue ? GetPlanetIdRoute(channel.PlanetId.Value, channel.Id) : GetDirectIdRoute(channel.Id);
+    public static string GetDirectIdRoute(long id) => $"{DirectBaseRoute}/{id}";
+    public static string GetPlanetBaseRoute(long planetId) => $"{ISharedPlanet.BaseRoute}/{planetId}/channels";
+    public static string GetPlanetIdRoute(long planetId, long id) => $"{GetPlanetBaseRoute(planetId)}/{id}";
     
     public static string GetTypeName(ChannelTypeEnum type)
     {
@@ -89,15 +94,9 @@ public interface ISharedChannel : ISharedModel<long>, ISortable
     DateTime LastUpdateTime { get; set; }
     
     /// <summary>
-    /// The position of the channel. Works as the following:
-    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
-    /// Each 8 bits is a category, with the first category being the top level
-    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
-    /// [00000011]-[00000010]-[00000001]-[00000000]
-    /// This does limit the depth of categories to 4, and the highest position
-    /// to 254 (since 000 means no position)
+    /// The full position of the channel. Includes full hierarchy.
     /// </summary>
-    public uint RawPosition { get; set; }
+    uint RawPosition { get; set; }
     
     uint ISortable.GetSortPosition()
     {

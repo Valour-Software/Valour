@@ -52,8 +52,9 @@ export function init(dotnet, inputEl) {
             uploadEl.click();
         },
         focus() {
+            const el = this.inputEl;
             setTimeout(function () {
-                this.inputEl.focus();
+                el.focus();
             }, 0);
         },
         setInputContent(content) {
@@ -267,13 +268,14 @@ export function init(dotnet, inputEl) {
             await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(inputEl), ctx.currentWord ?? '');
         },
         // Handles content being pasted into the input
-        pasteHandler(e) {
+        async pasteHandler(e) {
             e.preventDefault();
             // Get plain text representation
             let text = e.clipboardData.getData('text/plain');
             // We need to put the pasted text in a span to keep the newlines
             insertTextAtCursor(text);
             this.currentWord = this.getCurrentWord(0);
+            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(inputEl), ctx.currentWord ?? '');
         },
         clickHandler() {
             this.caretMoveHandler();

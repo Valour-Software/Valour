@@ -36,6 +36,7 @@ public class PlanetInviteService
         invite.Id = await GenerateCodeAsync();
         invite.IssuerId = issuer.UserId;
         invite.TimeCreated = DateTime.UtcNow;
+        invite.PlanetId = issuer.PlanetId;
 
         try
         {

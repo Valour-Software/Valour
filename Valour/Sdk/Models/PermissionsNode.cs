@@ -90,23 +90,23 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     /// </summary>
     public PermissionsNodeKey GetCombinedKey() => new(TargetId, RoleId, TargetType);
     
-    public override PermissionsNode AddToCacheOrReturnExisting()
+    public override PermissionsNode AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // Add key to id lookup
         var key = GetCombinedKey();
         Client.Cache.PermNodeKeyToId[key] = Id;
-        
-        return Client.Cache.PermissionsNodes.Put(Id, this);
+
+        return Planet.PermissionsNodes.Put(this, flags);
     }
 
-    public override PermissionsNode TakeAndRemoveFromCache()
+    public override PermissionsNode RemoveFromCache(bool skipEvents = false)
     {
         // Remove key from id lookup
         var key = GetCombinedKey();
         
         Client.Cache.PermNodeKeyToId.Remove(key);
-        
-        return Client.Cache.PermissionsNodes.TakeAndRemove(Id);
+
+        return Planet.PermissionsNodes.Remove(this, skipEvents);
     }
 }
 

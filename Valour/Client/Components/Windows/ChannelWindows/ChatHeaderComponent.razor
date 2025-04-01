@@ -1,0 +1,142 @@
+﻿<div class="header-row">
+    <div class="h-left">
+        <ChannelWatchingComponent Channel="@Channel" ParentComponent="@ChatComponent" />
+    </div>
+    <div class="h-center">
+        <input @onmousedown="@OnClickSearchBar" @oninput="@OnSearchChange" type="search" class="form-control @(_searchVisible ? "open" : "closed")" placeholder="Search..." />
+        @if (_searchResults.Count > 0)
+        {
+            <div @onclick="@CloseSearch" class="search-backdrop"></div>
+            <div class="search-results glassy-modal">
+                <div class="results-scroll">
+                    @SearchMessagesFragment
+                </div>
+            </div>
+        }
+    </div>
+    <div class="h-right">
+        <TooltipTrigger Position="left">
+            <ChildContent>
+                <div @onclick="@OnClickSearch" type="button" tabindex="0" class="search-btn">
+                    <i class="bi bi-search"></i>
+                </div>
+            </ChildContent>
+            <TooltipContent>
+                Search
+            </TooltipContent>
+        </TooltipTrigger>
+        <TooltipTrigger Position="left">
+            <ChildContent>
+                <div @onclick="@OnClickMembers" type="button" tabindex="0" class="members-btn">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </ChildContent>
+            <TooltipContent>
+                Members
+            </TooltipContent>
+        </TooltipTrigger>
+    </div>
+</div>
+
+@code {
+    private bool _searchVisible = false;
+    
+    [Parameter]
+    public Channel Channel { get; set; }
+    
+    [Parameter]
+    public ChatWindowComponent ChatComponent { get; set; }
+
+    private void OnClickMembers()
+    {
+        ChatComponent.ToggleMembersList();
+    }
+    
+    private void OnClickSearch()
+    {
+        _searchVisible = !_searchVisible;
+        StateHasChanged();
+    }
+    
+    private string _search = "";
+    private string _storedSearch = "";
+    private bool _searchLoading = false;
+    private bool _searchQueued = false;
+
+    private List<Message> _searchResults = new();
+
+    private async Task OnSearchChange(ChangeEventArgs e)
+    {
+        await OnMessageSearch(e.Value.ToString());
+    }
+    
+    private async Task OnMessageSearch(string search)
+    {
+        _search = search;
+
+        if (string.IsNullOrWhiteSpace(_search))
+        {
+            _searchResults.Clear();
+            StateHasChanged();
+            
+            return;
+        }
+        
+        if (_searchLoading)
+        {
+            _searchQueued = true;
+            return;
+        }
+
+        do
+        {
+            _searchLoading = true;
+            _searchQueued = false;
+
+            _searchResults = await Channel.SearchMessagesAsync(_search, 20);
+            
+            StateHasChanged();
+            await Task.Delay(100); // Require at least 200ms between searches
+            _searchLoading = false;
+        } while (_searchQueued);
+    }
+    
+    private RenderFragment SearchMessagesFragment => builder =>
+    {
+        // Displayed messages
+        foreach (var message in _searchResults)
+        {
+            var messageParams = new MessageComponent.Params()
+            {
+                ChatComponent = ChatComponent,
+                Message = message,
+                IsInnerReply = false,
+                LastMessage = null,
+                Ghost = false,
+            };
+
+            builder.OpenComponent<MessageComponent>(0);
+            builder.AddAttribute(1, "ParamData", messageParams);
+            builder.SetKey(message.Id);
+            builder.CloseComponent();
+        }
+    };
+    
+    private void CloseSearch()
+    {
+        _searchVisible = false;
+        _storedSearch = _search;
+        _search = "";
+        _searchResults.Clear();
+        StateHasChanged();
+    }
+    
+    private async Task OnClickSearchBar()
+    {
+        // Restore search if it was cleared
+        if (string.IsNullOrWhiteSpace(_search) && !string.IsNullOrWhiteSpace(_storedSearch))
+        {
+            await OnMessageSearch(_storedSearch);
+        }
+    }
+}

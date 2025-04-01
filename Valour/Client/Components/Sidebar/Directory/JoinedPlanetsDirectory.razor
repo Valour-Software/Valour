@@ -1,0 +1,134 @@
+﻿@inherits ControlledRenderComponentBase
+@inject PlanetService PlanetService
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
+
+<div class="joined-planets">
+    <p class="subtitle mb-2">Joined Planets</p>
+    <div class="v-gradient-underline"></div>
+    
+    <input @oninput="@OnFilterInput" type="text" placeholder="Search..." class="form-control mb-2 v-bg-medium" />
+    <div class="list">
+        @foreach (var joinedPlanet in _renderPlanets)
+        {
+            <div class="directory" @onclick="@(async () => await OnPlanetClick(joinedPlanet.Planet))">
+                <div class="planet-row">
+                    <div class="left">
+                        <img alt="@joinedPlanet.Planet.Name Icon" src="@joinedPlanet.Planet.GetIconUrl(IconFormat.Webp64)"/>
+                        <span>@joinedPlanet.Planet.Name</span>
+                    </div>
+                    <div class="right">
+                        @if (joinedPlanet.Notifications > 0)
+                        {   
+                            <div class="unread-badge notification">
+                                <span>@joinedPlanet.Notifications</span>
+                            </div>
+                        } 
+                        else if (joinedPlanet.HasUnread)
+                        {
+                            <div class="unread-badge"></div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div style="display: flex; flex-direction: column; flex-grow: 1;"></div>
+    <button class="v-btn mt-2 v-bg-medium" @onclick="@OnClickExplore">Explore Planets</button>
+</div>
+
+@code {
+
+    public class JoinedPlanetRenderInfo
+    {
+        public Planet Planet { get; set; }
+        public bool HasUnread { get; set; }
+        public int Notifications { get; set; }
+    }
+
+    private List<JoinedPlanetRenderInfo> _renderPlanets = new();
+    private string _filterText;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        PlanetService.JoinedPlanetsUpdated += OnJoinedPlanetsUpdated;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.WhenAll(
+                [
+                    UnreadService.FetchUnreadPlanetsAsync(),
+                    NotificationService.LoadUnreadNotificationsAsync(),
+                ]
+            );
+            
+            OnJoinedPlanetsUpdated(); // Needs to rebuild render info
+            ReRender();
+        });
+        
+        OnJoinedPlanetsUpdated();
+    }
+    
+    
+    private void OnFilterInput(ChangeEventArgs e)
+    {
+        _filterText = e.Value?.ToString();
+        CalculatePlanets();
+        ReRender();
+    }
+    
+    private void OnJoinedPlanetsUpdated()
+    {
+        CalculatePlanets();
+        ReRender();
+    }
+
+    private void OnClickExplore()
+    {
+        
+    }
+
+    private void CalculatePlanets()
+    {
+        _renderPlanets.Clear();
+
+        var planets = PlanetService.JoinedPlanets;
+        if (!string.IsNullOrWhiteSpace(_filterText))
+        {
+            planets = planets.Where(p => p.Name.ToLower().Contains(_filterText.ToLower())).ToList();
+            
+            // Order first by if the planet starts with the filter text,
+            // then alphabetically
+            planets = planets.OrderBy(p => p.Name.StartsWith(_filterText) ? 0 : 1)
+                .ThenBy(p => p.Name).ToList();
+        }
+
+        foreach (var planet in planets)
+        {
+            _renderPlanets.Add(new JoinedPlanetRenderInfo()
+            {
+                Planet = planet,
+                HasUnread = UnreadService.IsPlanetUnread(planet.Id),
+                Notifications = NotificationService.GetPlanetNotifications(planet.Id)
+            });
+        }
+    }
+    
+    public async Task OnPlanetClick(Planet planet)
+    {
+        // Open default channel
+        var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(planet);
+        
+        if (newWindowContent is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData()
+            {
+                Title = "Failure loading planet",
+                Message = $"Error accessing {planet.Name}",
+                Type = ToastProgressState.Failure
+            });
+        }
+
+        await WindowService.TryAddFloatingWindow(newWindowContent);
+    }
+}

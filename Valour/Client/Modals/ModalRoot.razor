@@ -34,6 +34,8 @@
 
 
 @code { 
+    public static ModalRoot Instance { get; private set; }
+    
     private readonly TimeSpan _fadeDuration = TimeSpan.FromMilliseconds(300);
     
     private class ModalInstance
@@ -62,6 +64,8 @@
     protected override void OnInitialized()
     {
         KeyboardListener.KeyDown += OnKeyDown;
+        
+        Instance = this;
     }
     
     /// <summary>

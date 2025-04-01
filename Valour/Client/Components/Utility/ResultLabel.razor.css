@@ -1,3 +1,22 @@
 .info-icon {
     cursor: pointer;
+    color: #ffffff99;
+}
+
+/* Result messages */
+.result-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: var(--small-radius);
+    font-size: 0.9rem;
+}
+
+.result-message.success {
+    background-color: rgba(0, 250, 255, 0.1);
+    border-left: 3px solid var(--v-cyan);
+}
+
+.result-message.error {
+    background-color: rgba(205, 94, 94, 0.1);
+    border-left: 3px solid var(--p-red);
 }

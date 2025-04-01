@@ -3,7 +3,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Notification : ClientModel<Notification, long>, ISharedNotification
+public class Notification : ClientModel<Notification, Guid>, ISharedNotification
 {
     /// <summary>
     /// The user the notification was sent to
@@ -63,12 +63,12 @@ public class Notification : ClientModel<Notification, long>, ISharedNotification
     /// </summary>
     public string ClickUrl { get; set; }
 
-    public override Notification AddToCacheOrReturnExisting()
+    public override Notification AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return this;
     }
 
-    public override Notification TakeAndRemoveFromCache()
+    public override Notification RemoveFromCache(bool skipEvents = false)
     {
         return this;
     }

@@ -22,7 +22,8 @@ public static class PlanetRoleMapper
             Bold = role.Bold,
             Italics = role.Italics,
             Name = role.Name,
-            AnyoneCanMention = role.AnyoneCanMention
+            AnyoneCanMention = role.AnyoneCanMention,
+            FlagBitIndex = role.FlagBitIndex
         };
     }
     
@@ -46,7 +47,8 @@ public static class PlanetRoleMapper
             Italics = role.Italics,
             Name = role.Name,
             IsDefault = role.IsDefault,
-            AnyoneCanMention = role.AnyoneCanMention
+            AnyoneCanMention = role.AnyoneCanMention,
+            FlagBitIndex = role.FlagBitIndex
         };
     }
 }

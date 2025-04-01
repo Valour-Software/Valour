@@ -41,6 +41,11 @@
     border-radius: 1em;
 }
 
+.roles-wrapper {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
 .role-row {
     display: flex;
     flex-direction: row;

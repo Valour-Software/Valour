@@ -4,6 +4,7 @@
 @inject ValourClient Client
 @inject ChannelService ChannelService
 @inject ChannelStateService ChannelStateService
+@inject UnreadService UnreadService
 @inject NotificationService NotificationService
 
 <div id="flipper-friend-@Friend.Id-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-@Friend.Id-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-friend-@Friend.Id-@WindowCtx.Id', 240)" @onclick="OnClick"> 
@@ -82,7 +83,7 @@
         }
         else
         {
-            _isUnread = ChannelStateService.GetChannelUnreadState(channel.Id);
+            _isUnread = UnreadService.IsChannelUnread(channel.PlanetId, channel.Id);
             _notificationCount = NotificationService.GetChannelNotifications(channel.Id);
         }
         
@@ -105,7 +106,7 @@
         var channel = await ChannelService.FetchDmChannelAsync(Friend.Id, create: true);
 
         var newWindowContent = await ChatWindowComponent.GetDefaultContent(channel);
-        await WindowCtx.Tab.AddSiblingTab(newWindowContent);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
 
         Console.WriteLine($"Switching window {WindowCtx.Id} to direct chat channel {channel.Id}");
 

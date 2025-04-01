@@ -1,13 +1,8 @@
 ﻿.watching-container {
     z-index: 1;
     font-size: 12px;
-    padding: 8px;
-    background-color: var(--main-2);
-    border-radius: 8px;
     text-align: center;
     width: max-content;
-    position: absolute;
-    right: 0;
 }
 
 .watching-container:hover .icons {
@@ -15,9 +10,9 @@
 }
 
 .watching-container .icons {
-    display: inline-block;
+    display: flex;
     padding-left: 14px;
-    transition: padding-left 0.2s ease-in-out;
+    transition: padding-left 0.2s ease-in-out; 
 }
 
 .watching-title {

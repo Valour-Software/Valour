@@ -1,4 +1,4 @@
-﻿using Valour.Server.Config;
+﻿using Valour.Config.Configs;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Hubs;
 
@@ -26,27 +26,28 @@ namespace Valour.Server.API
         {
             app.MapGet("api/node/name", () => NodeConfig.Instance.Name);
             
-            app.MapGet("api/node/handshake", (NodeService service, HostedPlanetService hostedService) => new NodeHandshakeResponse()
+            app.MapGet("api/node/handshake", (NodeLifecycleService service, HostedPlanetService hostedService) => new NodeHandshakeResponse()
             {
                 Version = service.Version,
-                PlanetIds = hostedService.GetHostedPlanetIds()
+                PlanetIds = hostedService.GetHostedIds()
             });
             
-            app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeService service, long id) =>
+            app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeLifecycleService service, long id) =>
             {
                 if (!await planetService.ExistsAsync(id))
                     return ValourResult.NotFound("Planet does not exist");
                 
-                return ValourResult.Ok(await service.RequestPlanetNodeAsync(id));
+                return ValourResult.Ok(await service.GetActiveNodeForPlanetAsync(id));
             });
 
             app.MapGet("api/nodestats", (ValourDb db) => {
                 return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);
             });
 
-            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeService service, HostedPlanetService hostedService, ValourDb db) => {
+            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeLifecycleService service, HostedPlanetService hostedService, ValourDb db) =>
+            {
 
-                var hostedPlanetIds = hostedService.GetHostedPlanetIds();
+                var hostedPlanetIds = hostedService.GetHostedIds();
                 
                 DetailedNodeStats stats = new()
                 {

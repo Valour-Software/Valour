@@ -31,4 +31,9 @@ public class PlanetMember : ServerModel<long>, ISharedPlanetMember
     /// The in-planet profile picture of the member
     /// </summary>
     public string MemberAvatar { get; set; }
+    
+    /// <summary>
+    /// Flags representing the roles of the member
+    /// </summary>
+    public PlanetRoleMembership RoleMembership { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+﻿@implements IAsyncDisposable
 
 <div id="tab-@WindowTab.Id"
      class="window-wrapper @WindowWrapperClasses"
@@ -26,26 +26,24 @@
                 <div class="tab-buttons"
                      @onclick:stopPropagation="true"
                      @onmousedown:stopPropagation="true">
-                    @if (Type != typeof(HomeWindowComponent))
-                    {
-                        <span class="home" @onclick="@OnClickHome">
-                            <i class="bi bi-house-door-fill"></i>
-                        </span>
-                    }
-                    @if (Layout is not null)
-                    {
-                        <span class="plus" @onclick="@OnClickPlus">
-                            <i class="bi bi-plus-circle-fill"></i>
-                        </span>
-                    }
-                    @if (Layout is null || Layout.Tabs.Count > 1)
-                    {
-                        <span class="minus" @onclick="@OnClickMinus">
-                            <i class="bi bi-dash-circle-fill"></i>
-                        </span>
-                    }
+                    <span class="minus" @onclick="@OnClickMinus">
+                        <i class="bi bi-dash-circle-fill"></i>
+                    </span>
                 </div>
             </div>
+            
+            @if (IsLastTab)
+            {
+                <div 
+                    class="tab add" 
+                    @onclick="@OnClickPlus"
+                    @onclick:stopPropagation="true"
+                    @onmousedown:stopPropagation="true"
+                    @onmousedown:preventDefault="true"
+                >
+                    <i class="bi bi-plus-square"></i>
+                </div>
+            }
         }
     </div>
     <div class="window"
@@ -56,11 +54,18 @@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
     </div>
     
-    @if (!IsFloating && // floating tabs don't have drop targets
-         WindowService.DraggingTab is not null && 
-         WindowService.DraggingTab != WindowTab)
+    
+    @if (!IsFloating) // floating tabs don't have drop targets
     {
-        <WindowDropTargets Window="@this" />
+        // Needs to be the visible tab on the layout
+        if (Layout?.FocusedTab == this.WindowTab) {
+            if ((WindowService.DraggingTab is not null &&
+              WindowService.DraggingTab != WindowTab) ||
+             ChannelListManager.Dragging)
+            {
+                <WindowDropTargets Window="@this"/>
+            }
+        }
     }
 </div>
 
@@ -79,6 +84,7 @@
     public WindowLayout Layout => WindowTab.Layout;
     public bool IsActive => Layout?.FocusedTab == WindowTab;
     public bool IsFloating => WindowTab.IsFloating;
+    private bool IsLastTab => Layout is not null && (Layout.Tabs.Last().Id == WindowTab.Id);
 
     ///////////////////////
     // Private properties //
@@ -86,7 +92,7 @@
     
     private int ZIndex => IsFloating ? (IsActive ? 101 : 100) : (IsActive ? 2 : 1);
 
-    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: {GetTabWidth() * GetIndex()}%";
+    private string TabWrapperStyle => IsFloating ? string.Empty : $"width: {GetTabWidth()}%; margin-left: min({250 * GetIndex()}px, {GetTabWidth() * GetIndex()}%)";
 
     private string TabWrapperClasses
     {
@@ -175,6 +181,7 @@
         WindowTab.Component = this;
         BrowserUtils.OnWindowResize += OnWindowResize;
         WindowService.OnTabDragging += OnGlobalTabDragging;
+        ChannelListManager.ChannelDragChanged += OnChannelDragChanged;
     }
 
     // Runs after every render
@@ -199,18 +206,12 @@
     
     public async Task ReplaceAsync(WindowContent content)
     {
-        await WindowTab.NotifyClose();
-        
         await WindowTab.SetContent(content);
-        await WindowTab.NotifyAdded();
-        
         ReRender();
     }
 
     public async Task CloseAsync()
     {
-        await WindowTab.NotifyClose();
-
         if (!IsFloating)
         {
             await Layout.RemoveTab(WindowTab);
@@ -221,10 +222,14 @@
         }
     }
 
-    public Task AddSiblingTab(WindowContent content)
+    public async Task AddSiblingTab(WindowContent content)
     {
-        Layout.AddTab(content);
-        return Task.CompletedTask;
+        if (DeviceInfo.IsMobile)
+        {
+            await ReplaceAsync(content);
+        }
+        
+       await Layout.AddTab(content);
     }
 
     public void NotifyNeedsReRender()
@@ -463,9 +468,17 @@
         ReRender();
     }
     
-    public void Dispose()
+    private void OnChannelDragChanged(Channel item)
+    {
+        ReRender();
+    }
+    
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
         BrowserUtils.OnWindowResize -= OnWindowResize;
         WindowService.OnTabDragging -= OnGlobalTabDragging;
+        ChannelListManager.ChannelDragChanged -= OnChannelDragChanged;
+        
+        return ValueTask.CompletedTask;
     }
 }

@@ -64,13 +64,13 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     /// </summary>
     public decimal BalanceValue { get; set; }
 
-    public override EcoAccount AddToCacheOrReturnExisting()
+    public override EcoAccount AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.EcoAccounts.Put(Id, this);
+        return Client.Cache.EcoAccounts.Put(this, flags);
     }
 
-    public override EcoAccount TakeAndRemoveFromCache()
+    public override EcoAccount RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.EcoAccounts.TakeAndRemove(Id);
+        return Client.Cache.EcoAccounts.Remove(this, skipEvents);
     }
 }

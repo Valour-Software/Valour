@@ -1,9 +1,9 @@
-﻿using Valour.Sdk.Client;
+﻿using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Valour.Sdk.ModelLogic;
-using Valour.Sdk.Nodes;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
@@ -36,7 +36,20 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// The user of the member
     /// </summary>
+    [IgnoreRealtimeChanges]
     public User User { get; set; }
+    
+    private ImmutableList<PlanetRole>? _roles = null;
+    
+    [JsonIgnore]
+    public ImmutableList<PlanetRole> Roles
+    {
+        get
+        {
+            _roles ??= Planet.GetRolesFromMembership(RoleMembership);
+            return _roles;
+        }
+    }
     
     // User related properties //
     
@@ -57,11 +70,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
 
     protected override long? GetPlanetId()
         => PlanetId;
-
-    /// <summary>
-    /// The member's roles
-    /// </summary>
-    public readonly SortedModelList<PlanetRole, long> Roles = new();
     
     /// <summary>
     /// The primary role of the member
@@ -89,60 +97,49 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public string MemberAvatar { get; set; }
     
-    protected override void OnUpdated(ModelUpdateEvent<PlanetMember> eventData)
+    /// <summary>
+    /// Flags representing the roles of the member
+    /// </summary>
+    public PlanetRoleMembership RoleMembership { get; set; }
+    
+    protected override void OnUpdated(ModelUpdatedEvent<PlanetMember> eventData)
     {
-        Planet?.OnMemberUpdated(eventData);
+        if (eventData.Changes.On(x => x.RoleMembership))
+        {
+            // Clear cached roles
+            _roles = null;
+        }
     }
 
     protected override void OnDeleted()
     {
-        Planet?.OnMemberDeleted(this);
     }
     
-    public override PlanetMember AddToCacheOrReturnExisting()
+    public Task<TaskResult> AddRoleAsync(long roleId) =>
+        Planet.AddMemberRoleAsync(Id, roleId);
+    
+    public Task<TaskResult> RemoveRoleAsync(long roleId) =>
+        Planet.RemoveMemberRoleAsync(Id, roleId);
+    
+    public override PlanetMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        // Sync user first
-        User = Client.Cache.Sync(User);
-        
         var key = new PlanetMemberKey(UserId, PlanetId);
         Client.Cache.MemberKeyToId[key] = Id;
-        
-        return Client.Cache.PlanetMembers.Put(Id, this);
+
+        return Planet.Members.Put(this, flags);
     }
 
-    public override PlanetMember TakeAndRemoveFromCache()
+    public override PlanetMember RemoveFromCache(bool skipEvents = false)
     {
         var key = new PlanetMemberKey(UserId, PlanetId);
         Client.Cache.MemberKeyToId.Remove(key);
 
-        Client.Cache.PlanetMembers.Remove(Id);
-        return this;
+        return Planet.Members.Remove(this, skipEvents);
     }
 
-    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
+    public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        User = Client.Cache.Sync(User, skipEvent, flags);
-    }
-
-    public void OnRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
-    {
-        // If we have the role, update it
-        Roles.Update(eventData);
-    }
-
-    public void OnRoleDeleted(PlanetRole role)
-    {
-        Roles.Remove(role);
-    }
-    
-    public void OnRoleAdded(PlanetRole role)
-    {
-        Roles.Upsert(role);
-    }
-    
-    public void OnRoleRemoved(PlanetRole role)
-    {
-        Roles.Remove(role);
+        User = User.Sync(Client, flags);
     }
 
     /// <summary>
@@ -170,38 +167,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
 
         return PrimaryRole.HasPermission(permission);
     }
-
-    /// <summary>
-    /// Loads the member's role Ids from the server and loads associated roles into the Roles collection
-    /// </summary>
-    public async Task FetchRoleMembershipAsync(List<long> roleIds = null)
-    {
-        if (roleIds is null)
-            roleIds = (await Node.GetJsonAsync<List<long>>($"{IdRoute}/roles")).Data;
-        
-        Roles.Clear(true);
-        
-        foreach (var id in roleIds)
-        {
-            var role = await Planet.FetchRoleAsync(id);
-            if (role is not null)
-            {
-                Roles.UpsertNoSort(role);
-            }
-        }
-        
-        Roles.Sort();
-        Roles.NotifySet();
-    }
-
-    /// <summary>
-    /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
-    /// It will NOT change anything on the server.
-    /// </summary>
-    // TODO: this is weird, going to improve this
-    public async Task SetLocalRoleIds(List<long> ids) =>
-        await FetchRoleMembershipAsync(ids);
-
 
     /// <summary>
     /// Returns the role color of the member

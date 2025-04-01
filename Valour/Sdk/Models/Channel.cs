@@ -1,11 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
-using Valour.Sdk.Nodes;
-using Valour.Sdk.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Channels;
@@ -44,6 +40,9 @@ public readonly struct DirectChannelKey : IEquatable<DirectChannelKey>
 
 public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 {
+    public override string BaseRoute => ISharedChannel.GetBaseRoute(this);
+    public override string IdRoute => ISharedChannel.GetIdRoute(this);
+
     /// <summary>
     /// Run when a channel sends a watching update
     /// </summary>
@@ -68,6 +67,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// Run when a message is deleted in this channel
     /// </summary>
     public HybridEvent<Message> MessageDeleted;
+
+    /// <summary>
+    /// Run when a channel's read state is changed
+    /// </summary>
+    public HybridEvent<bool> UnreadStateChanged;
     
     // Cached values
     // Will only be used for planet channels
@@ -77,8 +81,6 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// Cached parent which should be linked when channels are received
     /// </summary>
     public Channel Parent { get; set; }
-    
-    public override string BaseRoute => ISharedChannel.BaseRoute;
 
     /////////////////////////////////
     // Shared between all channels //
@@ -121,30 +123,15 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     public long? ParentId { get; set; }
     
-    // Backing store for RawPosition
-    private uint _rawPosition;
+    /// <summary>
+    /// The full position of the channel. Includes full hierarchy.
+    /// </summary>
+    public uint RawPosition { get; set; }
     
     /// <summary>
-    /// The position of the channel. Works as the following:
-    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
-    /// Each 8 bits is a category, with the first category being the top level
-    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
-    /// [00000011]-[00000010]-[00000001]-[00000000]
-    /// This does limit the depth of categories to 4, and the highest position
-    /// to 254 (since 000 means no position)
+    /// The position of the channel within its parent. 0 is the top position.
     /// </summary>
-    public uint RawPosition
-    {
-        get => _rawPosition;
-        set
-        {
-            _rawPosition = value;
-            Position = new ChannelPosition(value);
-        }
-    }
-
-    [JsonIgnore]
-    public ChannelPosition Position { get; protected set; }
+    public byte LocalPosition { get; set; }
 
     /// <summary>
     /// If this channel inherits permissions from its parent
@@ -161,19 +148,43 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// </summary>
     private DateTime _lastTypingUpdateSend = DateTime.UtcNow;
 
-    protected override void OnUpdated(ModelUpdateEvent<Channel> eventData)
+    protected override void OnUpdated(ModelUpdatedEvent<Channel> eventData)
     {
-        if (PlanetId is not null)
-            Planet.OnChannelUpdated(eventData);
     }
     
     protected override void OnDeleted()
     {
-        if (PlanetId is not null)
-            Planet.OnChannelDeleted(this);
     }
     
-    public override Channel AddToCacheOrReturnExisting()
+    /// <summary>
+    /// Opens a connection to realtime planet channel data.
+    /// Do not use for non-planet channels!
+    /// </summary>
+    public async Task<TaskResult> ConnectToRealtime()
+    {
+        if (PlanetId is null)
+            return new TaskResult(false, "Cannot connect to realtime data for non-planet channels. The primary node handles this.");
+        
+        await Planet.EnsureReadyAsync();
+        return await Planet.Node.ConnectToPlanetChannelRealtime(this);
+    }
+    
+    /// <summary>
+    /// Disconnects from realtime planet channel data
+    /// </summary>
+    public async Task<TaskResult> DisconnectFromRealtime()
+    {
+        if (PlanetId is null)
+            return TaskResult.SuccessResult;
+        
+        // No node = no realtime
+        if (Planet.Node is null)
+            return TaskResult.SuccessResult;
+        
+        return await Planet.Node.DisconnectFromChannelRealtime(this);
+    }
+    
+    public override Channel AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         // Add to direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)
@@ -185,10 +196,17 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             }
         }
 
-        return Client.Cache.Channels.Put(Id, this);
+        if (PlanetId is not null)
+        {
+            return Planet.Channels.Put(this, flags);
+        }
+        else
+        {
+            return Client.Cache.Channels.Put(this, flags);
+        }
     }
     
-    public override Channel TakeAndRemoveFromCache()
+    public override Channel RemoveFromCache(bool skipEvents = false)
     {
         // Remove from direct channel lookup if needed
         if (ChannelType == ChannelTypeEnum.DirectChat)
@@ -200,7 +218,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             }
         }
         
-        Client.Cache.Channels.Remove(Id);
+        Client.Cache.Channels.Remove(Id, skipEvents);
         
         return this;
     }
@@ -218,7 +236,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
             return false;
 
-        return Client.ChannelStateService.GetChannelUnreadState(Id);
+        return Client.UnreadService.IsChannelUnread(PlanetId, Id);
     }
 
     /// <summary>
@@ -276,7 +294,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
         if (Client.Cache.PermNodeKeyToId.TryGetValue(key, out var nodeId))
         {
-            if (Client.Cache.PermissionsNodes.TryGet(nodeId, out var cached))
+            if (Planet.PermissionsNodes.TryGet(nodeId, out var cached))
             {
                 return cached;
             }
@@ -514,14 +532,41 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             return new List<Message>();
         }
 
-        result.Data.SyncAll(Client.Cache);
+        result.Data.SyncAll(Client);
+
+        return result.Data;
+    }
+    
+    public async Task<List<Message>> SearchMessagesAsync(string searchText, int count = 20)
+    {
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
+            return new List<Message>();
+
+        var request = new MessageSearchRequest()
+        {
+            SearchText = searchText,
+            Count = count
+        };
+        
+        var result = await Node.PostAsyncWithResponse<List<Message>>(
+            $"{IdRoute}/messages/search", request);
+        
+        if (!result.Success)
+        {
+            Client.Logger.Log("Channel",$"Failed to search messages in {Id}: {result.Message}", "Yellow");
+            return new List<Message>();
+        }
+
+        result.Data.SyncAll(Client);
 
         return result.Data;
     }
 
+    public Task<List<PlanetMember>> FetchRecentChattersAsync() =>
+        Client.ChannelService.FetchRecentChattersAsync(this);
+
     /// <summary>
-    /// Returns the list of users in the channel but DO NOT use this for
-    /// planet channels please we will figure that out soon
+    /// Returns the list of users in the channel
     /// </summary>
     public async Task<List<User>> GetChannelMemberUsersAsync(bool refresh = false)
     {
@@ -654,6 +699,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             default:
                 break;
         }
+    }
+
+    public void MarkUnread(bool isUnread)
+    {
+        UnreadStateChanged?.Invoke(isUnread);
     }
 
     public void NotifyMessageReceived(Message message)

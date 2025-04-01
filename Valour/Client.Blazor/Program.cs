@@ -63,6 +63,7 @@ public class Program
         builder.Services.AddSingleton(client.OauthService);
         builder.Services.AddSingleton(client.SafetyService);
         builder.Services.AddSingleton(client.ThemeService);
+        builder.Services.AddSingleton(client.UnreadService);
         
         // localization
         var defaultCulture = new CultureInfo("en-US"); // we can dynamically change this later if we want to extend to other languages

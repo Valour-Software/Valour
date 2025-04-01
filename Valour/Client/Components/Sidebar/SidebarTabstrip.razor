@@ -2,21 +2,22 @@
 @implements IDisposable
 
 <div class="tabstrip">
-    @{
-        var items = GetCurrentItems();
-    }
-    
-    @for (var i = 0; i < items.Length; i++)
+    @for (var i = 0; i < TabItems.Count; i++)
     {
-        var item = items[i];
+        var item = TabItems[i];
         var index = i;
 
         <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))">
-            <BasicTooltipComponent Placement="top" Title="@item.Name">
-                <div class="icon-holder">
-                    <img style="scale: @item.IconScale" class="icon" src="_content/Valour.Client/media/@item.IconUrl" alt="@item"/>
-                </div>
-            </BasicTooltipComponent>
+            <TooltipTrigger>
+                <ChildContent>
+                    <div class="icon-holder">
+                        <i aria-label="@item.Name" style="font-size: @(item.Size)px" class="bi bi-@item.Icon"></i>
+                    </div>
+                </ChildContent>
+                <TooltipContent>
+                    <span>@item.Name</span>
+                </TooltipContent>
+            </TooltipTrigger>
         </div>
     }
 </div>
@@ -30,159 +31,21 @@
     public bool Flip { get; set; }
     
     [Parameter]
-    public Func<TabStripItem, Task> OnSelected { get; set; }
-
-    private static TabStripItem _friendsItem = new()
-    {
-        Name = "Friends",
-        IconUrl = "tabstrip-friends-icon.svg",
-        IconScale = 1.5f
-    };
-    
-    private static TabStripItem _membersItem = new()
-    {
-        Name = "Members",
-        IconUrl = "tabstrip-members-icon.svg",
-        IconScale = 1.7f
-    };
-    
-    private static TabStripItem _channelsItem = new()
-    {
-        Name = "Channels",
-        IconUrl = "tabstrip-channels-icon.svg",
-        IconScale = 1.1f
-    };
-    
-    private static TabStripItem _notificationsItem = new()
-    {
-        Name = "Notifications",
-        IconUrl = "tabstrip-bell-icon.svg",
-        IconScale = 1.1f
-    };
-    
-    private static readonly Dictionary<string, int> _homeTabIndexes = new()
-    {
-        { "Friends", 0 },
-        { "Notifications", 1 }
-    };
-
-    private static readonly Dictionary<string, int> _planetTabIndexes = new()
-    {
-        { "Channels", 0 },
-        { "Members", 1 },
-        { "Friends", 2 },
-        { "Notifications", 3 }
-    };
-
-    private TabStripItem[] _homeItems = { _friendsItem, _notificationsItem };
-    private TabStripItem[] _planetItems = { _channelsItem, _membersItem, _friendsItem, _notificationsItem };
-    
-    private int _selectedTab = 0;
-
-    protected override async Task OnInitializedAsync()
-    {
-        WindowService.FocusedPlanetChanged += OnPlanetFocused;
-        await LoadStoredLayout(null);
-    }
+    public List<TabStripItem> TabItems { get; set; }
     
     void IDisposable.Dispose()
     {
-        WindowService.FocusedPlanetChanged -= OnPlanetFocused;
-    }
-
-    private async Task LoadStoredLayout(Planet planet)
-    {
-        if (planet is null)
-        {
-            if (Flip)
-            {
-                if (await LocalStorage.ContainKeyAsync("sidebar-home-right"))
-                {
-                    _selectedTab = _homeTabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar-home-right")];
-                }
-                else
-                {
-                    _selectedTab = 1;
-                }
-            }
-            else
-            {
-                if (await LocalStorage.ContainKeyAsync("sidebar-home-left"))
-                {
-                    _selectedTab = _homeTabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar-home-left")];
-                }
-                else
-                {
-                    _selectedTab = 0;
-                }
-            }
-        }
-        else
-        {
-            if (Flip)
-            {
-                if (await LocalStorage.ContainKeyAsync("sidebar-channel-right"))
-                {
-                    _selectedTab = _planetTabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar-channel-right")];
-                }
-                else
-                {
-                    _selectedTab = 1;
-                }
-            }
-            else
-            {
-                if (await LocalStorage.ContainKeyAsync("sidebar-channel-left"))
-                {
-                    _selectedTab = _planetTabIndexes[await LocalStorage.GetItemAsStringAsync("sidebar-channel-left")];
-                }
-                else
-                {
-                    _selectedTab = 0;
-                }
-            }
-        }
-    }
-    
-    private async Task OnPlanetFocused(Planet planet)
-    {
-        await LoadStoredLayout(planet);
-        
-        StateHasChanged();
-
-        if (planet is null)
-        {
-            if (OnSelected is not null)
-                await OnSelected.Invoke(_homeItems[_selectedTab]);
-        }
-        else
-        {   
-            if (OnSelected is not null)
-                await OnSelected.Invoke(_planetItems[_selectedTab]);
-        }
     }
 
     private async Task OnClick(int index, TabStripItem item)
     {
-        _selectedTab = index;
-        
-        if (OnSelected is not null)
-            await OnSelected.Invoke(item);
-        
+        await Sidebar.OnSelected(index, item);
         StateHasChanged();
-    }
-
-    private TabStripItem[] GetCurrentItems()
-    {
-        if (WindowService.FocusedPlanet is null)
-            return _homeItems;
-
-        return _planetItems;
     }
 
     private string GetItemClass(int index)
     {
-        return index == _selectedTab ? "item selected" : "item";
+        return index == Sidebar.SelectedTab ? "item selected" : "item";
     }
 
 }

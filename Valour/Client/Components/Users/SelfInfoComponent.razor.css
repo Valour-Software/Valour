@@ -17,15 +17,6 @@
     height: 100%;
     aspect-ratio: 1/1;
     border-radius: 5px;
-    
-    &:hover .settings-icon, &:focus .settings-icon {
-            transform: rotate(45deg) scale(1.1);
-    }
-    
-    &:active .settings-icon {
-        transform: rotate(45deg) scale(0.9);
-    }
-    
 }
  
 .settings-button:hover .settings-icon, .settings-button:focus .settings-icon { 

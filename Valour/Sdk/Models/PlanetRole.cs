@@ -15,10 +15,10 @@ namespace Valour.Sdk.Models;
 public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 {
     public override string BaseRoute =>
-        ISharedPlanetRole.BaseRoute;
+        ISharedPlanetRole.GetBaseRoute(PlanetId);
 
     public override string IdRoute => 
-        ISharedPlanetRole.GetIdRoute(Id);
+        ISharedPlanetRole.GetIdRoute(PlanetId, Id);
 
     /// <summary>
     /// The id of the planet this belongs to
@@ -33,7 +33,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     public static PlanetRole VictorRole = new PlanetRole()
     {
         Name = "Victor Class",
-        Id = long.MaxValue,
+        Id = 0,
         Position = int.MaxValue,
         PlanetId = 0,
         Color = "ff00ff",
@@ -43,7 +43,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     public static PlanetRole DefaultRole = new PlanetRole()
     {
         Name = "Default",
-        Id = long.MaxValue,
+        Id = 0,
         Position = int.MaxValue,
         PlanetId = 0,
         Color = "#ffffff",
@@ -52,11 +52,18 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
         VoicePermissions = VoiceChannelPermissions.Default,
         AnyoneCanMention = false,
+        IsDefault = true
     };
 
     // Cached values
     private List<PermissionsNode> PermissionsNodes { get; set; }
 
+    /// <summary>
+    /// The index of the role in the membership flags.
+    /// Ex: 5 would be the 5th bit in the membership flags
+    /// </summary>
+    public int FlagBitIndex { get; set; }
+    
     /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
@@ -65,7 +72,7 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    public int Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -120,31 +127,31 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
         return new PlanetRole()
         {
             Name = "Default",
-            Id = long.MaxValue,
+            Id = 0,
             Position = int.MaxValue,
             PlanetId = planetId,
             Color = "#ffffff",
         };
     }
 
-    protected override void OnUpdated(ModelUpdateEvent<PlanetRole> eventData)
+    protected override void OnUpdated(ModelUpdatedEvent<PlanetRole> eventData)
     {
-        Planet.OnRoleUpdated(eventData);
     }
 
-    public override PlanetRole AddToCacheOrReturnExisting()
+    public override PlanetRole AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.PlanetRoles.Put(Id, this);
+        Planet.SetRoleByIndex(this.FlagBitIndex, this);
+        return Planet.Roles.Put(this, flags);
     }
 
-    public override PlanetRole TakeAndRemoveFromCache()
+    public override PlanetRole RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.PlanetRoles.TakeAndRemove(Id);
+        Planet.SetRoleByIndex(this.FlagBitIndex, null);
+        return Planet.Roles.Remove(this, skipEvents);
     }
 
     protected override void OnDeleted()
     {
-        Planet.OnRoleDeleted(this);
     }
 
     // TODO: Model store

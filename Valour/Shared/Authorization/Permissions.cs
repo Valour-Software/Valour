@@ -125,9 +125,9 @@ public static class ChannelPermissions
     public const long ManageValue = 0x08;
     public const long PermissionsValue = 0x10;
     
-    public static readonly Permission View;
-    public static readonly Permission Manage;
-    public static readonly Permission ManagePermissions;
+    public static readonly ChannelPermission View;
+    public static readonly ChannelPermission Manage;
+    public static readonly ChannelPermission ManagePermissions;
     
     static ChannelPermissions() 
     {
@@ -152,7 +152,15 @@ public static class ChannelPermissions
     }
 }
 
-public class ChatChannelPermission : Permission
+public abstract class ChannelPermission : Permission
+{
+    public override ChannelTypeEnum TargetType => ChannelTypeEnum.Undefined;
+    public ChannelPermission(long value, string name, string description) : base(value, name, description)
+    {
+    }
+}
+
+public class ChatChannelPermission : ChannelPermission
 {
     public override ChannelTypeEnum TargetType => ChannelTypeEnum.PlanetChat;
     public override string ReadableName => "Chat Channel";
@@ -162,7 +170,7 @@ public class ChatChannelPermission : Permission
     }
 }
 
-public class CategoryPermission : Permission
+public class CategoryPermission : ChannelPermission
 {
     public override ChannelTypeEnum TargetType => ChannelTypeEnum.PlanetCategory;
     public override string ReadableName => "Category";
@@ -172,7 +180,7 @@ public class CategoryPermission : Permission
     }
 }
 
-public class VoiceChannelPermission : Permission
+public class VoiceChannelPermission : ChannelPermission
 {
     public override ChannelTypeEnum TargetType => ChannelTypeEnum.PlanetVoice;
     public override string ReadableName => "Voice Channel";

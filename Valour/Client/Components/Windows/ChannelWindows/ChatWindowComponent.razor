@@ -2,20 +2,30 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
-@inject MessageService MessageService
-@inject ChannelStateService ChannelStateService
+@inject UnreadService UnreadService
 @using Valour.Sdk.Nodes
 @using Channel = Valour.Sdk.Models.Channel
 
-<div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
-    <!-- Pushes messages to bottom -->
-    <div class="pusher"></div>
+@if (_loading)
+{
+    <Loading Title="Loading chat..." Spin="@true" />
+}
+else
+{
+    <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
+    <div class="chat-member-wrapper">
+        <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
+            <!-- Pushes messages to bottom -->
+            <div class="pusher"></div>
 
-    <!-- Actual messages -->
-    @MessagesFragment
+            <!-- Actual messages -->
+            @MessagesFragment
 
-    <div class="anchor"></div>
-</div>
+            <div class="anchor"></div>
+        </div>
+        <MemberListComponent @ref="@MemberListComponent" Channel="@Channel" />
+    </div>
+}
 
 <InputComponent @ref="@InputComponent" ChatComponent="@this" />
 
@@ -27,6 +37,7 @@
     public PermissionsNode ChannelPermissions { get; set; }
     
     // Stores for messages (Always initialized so don't bother null checking)
+    // TODO: Replace with CircularBuffer
     public List<Message> DisplayedMessages { get; set; } = new();
     public List<Message> QueuedMessages { get; set; } = new();
     public List<MessageComponent> RenderedMessages { get; set; } = new();
@@ -39,10 +50,11 @@
     
     // Child references
     public InputComponent InputComponent;
+    public MemberListComponent MemberListComponent;
     
     // Used for locking channel connection while window is open
     private readonly string _instanceId = Guid.NewGuid().ToString();
-    private string WindowChannelKey => WindowCtx.Id + _instanceId;
+    private string WindowChannelKey => _instanceId;
 
     // Runs when page is initialized
     protected override void OnInitialized()
@@ -70,6 +82,12 @@
     
     public async Task SetupNewChannelAsync()
     {
+        if (!_loading)
+        {
+            _loading = true;
+            ReRender();
+        }
+
         await Channel.Open(WindowChannelKey);
         
         // Planet stuff
@@ -87,6 +105,8 @@
         await Channel.UpdateUserState(DateTime.UtcNow);
         
         _loading = false;
+
+        await InputComponent.NotifyChannelLoadedAsync();
         
         ReRender();
     }
@@ -102,6 +122,8 @@
             await ScrollToBottom(true);
         }
         
+        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
+        
         await base.OnAfterRenderAsync(firstRender);
     }
 
@@ -115,18 +137,19 @@
         await InputComponent.OnStopEdit(cancel);
     }
     
-    public void OnChatChannelUpdate(ModelUpdateEvent<Channel> eventData)
+    public void OnChatChannelUpdate(ModelUpdatedEvent<Channel> eventData)
     {
         ReRender();
     }
 
     public virtual async Task OnReceiveMessage(Message message)
     {
-    // Ignore messages not meant for this channel
+        // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
             return;
         
-        ChannelStateService.SetChannelLastViewedState(Channel.Id, message.TimeSent);
+        // TODO: Eventually move to message render with a specific time of message sent
+        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
         
         await AddMessage(message);
         InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());
@@ -199,28 +222,6 @@
 
         return chatters;
     }
-
-    public async ValueTask DisposeAsync()
-    {
-        await HandleWindowClose();
-
-        if (Channel.PlanetId is not null)
-        {
-            Channel.Planet.Deleted -= OnPlanetDeleted;
-            
-            if (Channel.Planet.MyMember is not null)
-                Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
-        }
-        
-        Channel.MessageReceived -= OnReceiveMessage;
-        
-        _thisRef.Dispose();
-    }
-
-    public async Task HandleWindowClose()
-    {
-        await Channel.Close(WindowChannelKey);
-    }
     
     ///////////////////////
     // Message Rendering //
@@ -264,7 +265,7 @@
 
             builder.OpenComponent<MessageComponent>(0);
             builder.AddAttribute(1, "ParamData", messageParams);
-            builder.SetKey($"q-{message.Id}");
+            builder.SetKey($"q-{message.Fingerprint}"); // Use fingerprint because they don't have IDs assigned yet
             builder.CloseComponent();
 
             lastMessage = message;
@@ -389,6 +390,11 @@
         await ScrollToBottom();
     }
     
+    public void ToggleMembersList()
+    {
+        MemberListComponent.ToggleVisible();
+    }
+    
     /* This is called by the MessageComponent when it is rendered */
     public void AddRenderedMessage(MessageComponent message)
     {
@@ -482,7 +488,7 @@
     // Window State & Management //
     ///////////////////////////////
     
-        public class StateData
+    public class StateData
     {
         public long? PlanetId { get; set; }
         public long ChannelId { get; set; }
@@ -497,11 +503,12 @@
             if (imported.PlanetId is not null)
             {
                 var planet = await client.PlanetService.FetchPlanetAsync(imported.PlanetId!.Value);
+                await planet.EnsureReadyAsync();
                 Data = await planet.FetchChannelAsync(imported.ChannelId);
             }
             else
             {
-                Data = await client.ChannelService.FetchChannelAsync(imported.ChannelId);
+                Data = await client.ChannelService.FetchDirectChannelAsync(imported.ChannelId);
             }
         }
 
@@ -598,6 +605,17 @@
         WindowCtx.Tab.OnStartFloating -= OnStartFloating;
         Client.NodeService.NodeReconnected -= OnNodeReconnect;
         
+        if (Channel.PlanetId is not null)
+        {
+            Channel.Planet.Deleted -= OnPlanetDeleted;
+            
+            if (Channel.Planet.MyMember is not null)
+                Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
+        }
+        
+        await Channel.Close(WindowChannelKey);
+        
+        _thisRef.Dispose();
         await _jsModule.DisposeAsync();
     }
 }

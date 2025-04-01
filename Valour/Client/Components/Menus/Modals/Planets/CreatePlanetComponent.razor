@@ -93,8 +93,7 @@
 		
 		ModalRoot.CloseModal(ModalId);
 
-		var planet = result.Data;
-		Client.Cache.Sync(planet);
+		var planet = result.Data.Sync(Client);
 		PlanetService.AddJoinedPlanet(planet);
 
 		await planet.FetchChannelsAsync();

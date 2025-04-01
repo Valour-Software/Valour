@@ -1,5 +1,6 @@
 ﻿using System.Web;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
@@ -248,11 +249,10 @@ public class FriendService : ServiceBase
 	{
 		var result = await _client.PrimaryNode.GetJsonAsync<List<User>>($"{ISharedUser.GetIdRoute(userId)}/friends");
 
-		for (int i = 0; i < result.Data.Count; i++)
-		{
-			var user = result.Data[i];
-			result.Data[i] = _cache.Sync(user);
-		}
+		if (!result.Success)
+			return null;
+		
+		result.Data.SyncAll(_client);
 		
 		return result.Data;
 	}
@@ -263,18 +263,9 @@ public class FriendService : ServiceBase
 		if (!result.Success)
 			return null;
 		
-		for (int i = 0; i < result.Data.Added.Count; i++)
-		{
-			var user = result.Data.Added[i];
-			result.Data.Added[i] = _cache.Sync(user);
-		}
-		
-		for (int i = 0; i < result.Data.AddedBy.Count; i++)
-		{
-			var user = result.Data.AddedBy[i];
-			result.Data.AddedBy[i] = _cache.Sync(user);
-		}
-		
+		result.Data.Added.SyncAll(_client);
+		result.Data.AddedBy.SyncAll(_client);
+
 		return result.Data;
 	}
 }

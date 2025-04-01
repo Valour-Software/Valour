@@ -7,14 +7,26 @@ using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.ModelLogic;
 
+/// <summary>
+/// Marks a field or method as being ignored when checking for changes
+/// when a realtime update is received.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
+public class IgnoreRealtimeChangesAttribute : Attribute
+{
+    
+}
+
 public abstract class ClientModel
 {
+    [IgnoreRealtimeChanges]
     [JsonIgnore]
     public virtual string BaseRoute => $"api/{GetType().Name}";
     
     /// <summary>
     /// Ran when this item is deleted
     /// </summary>
+    [IgnoreRealtimeChanges]
     public HybridEvent Deleted;
 
     /// <summary>
@@ -26,12 +38,14 @@ public abstract class ClientModel
     /// The Valour Client this model belongs to
     /// </summary>
     [JsonIgnore]
+    [IgnoreRealtimeChanges]
     public ValourClient Client { get; private set; }
 
     /// <summary>
     /// The node this model belongs to
     /// </summary>
     [JsonIgnore]
+    [IgnoreRealtimeChanges]
     public virtual Node Node => Client?.PrimaryNode;
 
     /// <summary>
@@ -59,29 +73,62 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// <summary>
     /// Ran when this item is updated
     /// </summary>
-    public HybridEvent<ModelUpdateEvent<TSelf>> Updated;
+    [IgnoreRealtimeChanges]
+    public HybridEvent<ModelUpdatedEvent<TSelf>> Updated;
 
     /// <summary>
     /// Custom logic on model update
     /// </summary>
-    protected virtual void OnUpdated(ModelUpdateEvent<TSelf> eventData) { }
+    protected virtual void OnUpdated(ModelUpdatedEvent<TSelf> eventData) { }
     
     /// <summary>
-    /// Adds this item to the cache. If a copy already exists, it is returned to be updated.
+    /// Syncs the model, returning the master copy. 
     /// </summary>
-    public abstract TSelf AddToCacheOrReturnExisting();
+    /// <param name="client">The ValourClient to sync to</param>
+    /// <param name="flags">Flags to control things like event handling and sorting</param>
+    /// <returns>The updated master copy of the model</returns>
+    public virtual TSelf Sync(ValourClient client, ModelInsertFlags flags = ModelInsertFlags.None)
+    {
+        // Set the client
+        SetClient(client);
+        
+        // Sync the sub models
+        SyncSubModels(flags);
+        
+        // Add to cache and return master copy of this model
+        return AddToCache(flags);
+    }
+    
+    /// <summary>
+    /// Removes the model from cache, and optionally fires off event for the deletion.
+    /// </summary>
+    public virtual void Destroy(ValourClient client, bool skipEvent = false)
+    {
+        // Set the client
+        // We need to do this because it may be a brand new model
+        SetClient(client);
+        RemoveFromCache(skipEvent);
+    }
+    
+    /// <summary>
+    /// Syncs the sub models of this model
+    /// </summary>
+    public virtual void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None) { }
 
+    /// <summary>
+    /// Adds this item to the cache
+    /// </summary>
+    public abstract TSelf AddToCache(ModelInsertFlags flags = ModelInsertFlags.None);
+    
     /// <summary>
     /// Returns and removes this item from the cache.
     /// </summary>
-    public abstract TSelf TakeAndRemoveFromCache();
-    
-    public virtual void SyncSubModels(bool skipEvent = false, int flags = 0) { }
+    public abstract TSelf RemoveFromCache(bool skipEvents = false);
 
     /// <summary>
     /// Safely invokes the updated event
     /// </summary>
-    public void InvokeUpdatedEvent(ModelUpdateEvent<TSelf> eventData)
+    public void InvokeUpdatedEvent(ModelUpdatedEvent<TSelf> eventData)
     {
         OnUpdated(eventData);
         Updated?.Invoke(eventData);
@@ -97,6 +144,7 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
 {
     public TId Id { get; set; }
     
+    [IgnoreRealtimeChanges]
     [JsonIgnore]
     public virtual string IdRoute => $"{BaseRoute}/{Id}";
     

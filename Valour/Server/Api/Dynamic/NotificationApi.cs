@@ -1,9 +1,50 @@
-﻿using Valour.Shared.Authorization;
+﻿using System.Web.Http;
+using Valour.Server.Workers;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.Api.Dynamic;
 
 public class NotificationApi
 {
+    [ValourRoute(HttpVerbs.Post, "api/notifications/subscribe")]
+    [UserRequired]
+    public static async Task<IResult> SubscribeAsync(
+        [FromBody] PushNotificationSubscription subscription,
+        PushNotificationWorker pushWorker,
+        UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        
+        if (subscription.UserId != userId)
+            return ValourResult.Forbid("You do not have permission to subscribe on behalf of another user");
+
+        await pushWorker.QueueNotificationAction(new PushNotificationSubscribe()
+        {
+            Subscription = subscription
+        });
+
+        return ValourResult.Ok();
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/notifications/unsubscribe")]
+    [UserRequired]
+    public static async Task<IResult> UnsubscribeAsync(
+        [FromBody] PushNotificationSubscription subscription,
+        PushNotificationWorker pushWorker,
+        UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        if (subscription.UserId != userId)
+            return ValourResult.Forbid("You do not have permission to unsubscribe on behalf of another user");
+        
+        await pushWorker.QueueNotificationAction(new PushNotificationUnsubscribe()
+        {
+            Subscription = subscription
+        });
+
+        return ValourResult.Ok();
+    }
+    
     [ValourRoute(HttpVerbs.Get, "api/notifications/self/unread/all")]
     [UserRequired(UserPermissionsEnum.FullControl)] // Notifications could contain anything so we require all permissions
     public static async Task<IResult> GetAllUnreadNotificationsAsync(
@@ -18,7 +59,7 @@ public class NotificationApi
     [ValourRoute(HttpVerbs.Post, "api/notifications/self/{id}/read/{value}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> SetNotificationRead(
-        long id,
+        Guid id,
         bool value,
         UserService userService,
         NotificationService notificationService)

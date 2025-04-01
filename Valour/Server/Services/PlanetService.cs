@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Valour.Server.Database;
+using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using PlanetRoleMember = Valour.Database.PlanetRoleMember;
 
 namespace Valour.Server.Services;
 
@@ -12,24 +13,23 @@ public class PlanetService
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetService> _logger;
-    private readonly ChannelAccessService _accessService;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly PlanetPermissionService _permissionService;
     
     public PlanetService(
         ValourDb db,
         CoreHubService coreHub,
         ILogger<PlanetService> logger,
-        ChannelAccessService accessService,
-        NodeService nodeService,
-        HostedPlanetService hostedPlanetService)
+        NodeLifecycleService nodeLifecycleService,
+        HostedPlanetService hostedPlanetService, PlanetPermissionService permissionService)
     {
         _db = db;
         _coreHub = coreHub;
         _logger = logger;
-        _accessService = accessService;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _hostedPlanetService = hostedPlanetService;
+        _permissionService = permissionService;
     }
     
     /// <summary>
@@ -43,42 +43,27 @@ public class PlanetService
     /// </summary>
     public async Task<Planet> GetAsync(long id)
     {
-        var hosted = _hostedPlanetService.Get(id);
-        if (hosted is not null)
-            return hosted.Planet;
-        
-        // get planet from db
-        var planet = (await _db.Planets.FindAsync(id)).ToModel();
-        
-        // ensure that node name is set
-        var node = await _nodeService.GetNodeNameForPlanetAsync(id);
-        planet.NodeName = node;
-
-        return planet;
+        var hosted = await _hostedPlanetService.GetRequiredAsync(id);
+        return hosted.Planet;
     }
-
-    /// <summary>
-    /// Returns the primary channel for the given planet
-    /// </summary>
-    public async Task<Channel> GetPrimaryChannelAsync(long planetId) =>
-        (await _db.Channels.FirstOrDefaultAsync(x => 
-            x.PlanetId == planetId && x.IsDefault)).ToModel();
 
     /// <summary>
     /// Returns the default role for the given planet
     /// </summary>
-    public async Task<PlanetRole> GetDefaultRole(long planetId) =>
-        (await _db.PlanetRoles.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.IsDefault)).ToModel();
+    public async Task<PlanetRole> GetDefaultRole(long planetId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hostedPlanet.GetDefaultRole();
+    }
 
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
-        await _db.PlanetRoles.AsNoTracking()
-            .Where(x => x.PlanetId == planetId)
-            .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
-            .Select(x => x.ToModel())
-            .ToListAsync();
+    public async Task<ImmutableList<PlanetRole>> GetRolesAsync(long planetId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hostedPlanet.Roles.List;
+    }
 
     /// <summary>
     /// Returns the roles for the given planet id
@@ -159,89 +144,56 @@ public class PlanetService
     /// <summary>
     /// Sets the order of planet roles to the order in which role ids are provided
     /// </summary>
-    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<long> order)
+    public async Task<TaskResult> SetRoleOrderAsync(long planetId, long[] orderIn)
     {
-        var planetRoleIds = await GetRoleIdsAsync(planetId); 
-        if (planetRoleIds.Count != order.Count)
-            return new TaskResult(false, "Your order does not contain all the planet roles.");
-
-        var defaultRole = await GetDefaultRole(planetId);
-
-        foreach (var roleId in order)
-        {
-            if (!planetRoleIds.Contains(roleId))
-                return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
-        }
+        var planetRoles = await _db.PlanetRoles.Where(x => x.PlanetId == planetId).ToArrayAsync(); 
         
-        var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
-        if (totalRoles != order.Count)
-            return new TaskResult(false, "Your order does not contain all the planet roles.");
-
+        var order = new List<long>(orderIn.Length);
+        
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
         {
 
-            List<long> changedRoleIds = new();
-            
-            uint pos = 0;
+            var newPosition = 0;
+            foreach (var roleId in orderIn)
+            {
+                if (!order.Contains(roleId))
+                {
+                    var existingRole = planetRoles.FirstOrDefault(x => x.Id == roleId);
+                    if (existingRole is null)
+                        return new TaskResult(false, $"Role {roleId} does not belong to planet {planetId}");
 
-            foreach (var roleId in order)
-            {
-                if (roleId == defaultRole.Id)
-                {
-                    continue;
+                    if (existingRole.IsDefault && newPosition != orderIn.Length - 1)
+                        return new TaskResult(false, "Default role must be last in order.");
+
+                    order.Add(roleId);
+
+                    if (existingRole.Position != newPosition)
+                    {
+                        existingRole.Position = newPosition;
+                        _db.PlanetRoles.Update(existingRole);
+                    }
                 }
-                
-                // If position changed, add to list
-                if (planetRoleIds[(int)pos] != roleId)
+                else
                 {
-                    changedRoleIds.Add(roleId);
+                    return new TaskResult(false, "Role order contains duplicate role ids.");
                 }
-                
-                // Just update position in db
-                Valour.Database.PlanetRole newData = new()
-                {
-                    Id = roleId,
-                    Position = pos
-                };
-                
-                _db.PlanetRoles.Attach(newData);
-                _db.Entry(newData).Property(x => x.Position).IsModified = true;
-                
-                pos++;
-            }
-            
-            // Update default role
-            if (pos != defaultRole.Position)
-            {
-                Valour.Database.PlanetRole newData = new()
-                {
-                    Id = defaultRole.Id,
-                    Position = pos
-                };
-                
-                _db.PlanetRoles.Attach(newData);
-                _db.Entry(newData).Property(x => x.Position).IsModified = true;
-                
-                changedRoleIds.Add(defaultRole.Id);
-            }
-            
-            await _db.SaveChangesAsync();
-            
-            // Use saved change list to apply access changes
-            foreach (var roleId in changedRoleIds)
-            {
-                await _accessService.UpdateAllChannelAccessForMembersInRole(roleId);
+
+                newPosition++;
             }
 
-            await _db.SaveChangesAsync();
+            // Ensure all the roles are included in the order
+            if (order.Count != planetRoles.Length)
+                return new TaskResult(false, "Your order does not contain all the planet roles.");
             
+            await _db.SaveChangesAsync();
             await tran.CommitAsync();
-        }
-        catch (Exception)
+        } 
+        catch (Exception e)
         {
             await tran.RollbackAsync();
+            _logger.LogError("Error setting role order: {Error}", e.Message);
             return new TaskResult(false, "An unexpected error occured while saving the database changes.");
         }
         
@@ -253,96 +205,38 @@ public class PlanetService
         
         return TaskResult.SuccessResult;
     }
-    
-    #region Channel Retrieval
 
-    /// <summary>
-    /// Returns the channels for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllChannelsAsync(long planetId) =>
-        await _db.Channels.Where(x => x.PlanetId == planetId)
-            .Select(x => x.ToModel())
-            .ToListAsync();
+    public async ValueTask<Channel> GetPrimaryChannelAsync(long planetId)
+    {
+        var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hosted.GetDefaultChannel();
+    }
     
-    /// <summary>
-    /// Returns the chat channels for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllChatChannelsAsync(long planetId) =>
-        await _db.Channels.Where(x => 
-                x.PlanetId == planetId &&
-                x.ChannelType == ChannelTypeEnum.PlanetChat)
-            .Select(x => x.ToModel())
-            .ToListAsync();
+    public async ValueTask<ImmutableList<Channel>> GetAllChannelsAsync(long planetId)
+    {
+        var hosted = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return hosted.Channels.List;
+    }
 
-    /// <summary>
-    /// Returns the categories for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllCategoriesAsync(long planetId) =>
-        await _db.Channels.Where(x => 
-                x.PlanetId == planetId &&
-                x.ChannelType == ChannelTypeEnum.PlanetCategory)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-    
-    /// <summary>
-    /// Returns the voice channels for the given planet
-    /// </summary>
-    public async Task<List<Channel>> GetAllVoiceChannelsAsync(long planetId) =>
-        await _db.Channels.Where(x => 
-                x.PlanetId == planetId &&
-                x.ChannelType == ChannelTypeEnum.PlanetVoice)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-    
-    public async Task<Channel> GetPrimaryChatChannelAsync(long planetId) =>
-        (await _db.Channels.FirstOrDefaultAsync(x => 
-            x.PlanetId == planetId && x.IsDefault && x.ChannelType == ChannelTypeEnum.PlanetChat)).ToModel();
-    
     /// <summary>
     /// Returns the channels for the given planet that the given member can access
     /// </summary>
-    public async Task<List<Channel>> GetMemberChannelsAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
-    
-    /// <summary>
-    /// Returns the chat channels for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberChatChannelsAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId &&
-                x.Channel.ChannelType == ChannelTypeEnum.PlanetChat)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
+    public async Task<ModelListSnapshot<Channel,long>?> GetMemberChannelsAsync(long memberId) =>
+      await _permissionService.GetChannelAccessAsync(memberId);
 
-    /// <summary>
-    /// Returns the categories for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberCategoriesAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId &&
-                x.Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
+    public async Task<InitialPlanetData> GetInitialDataAsync(long planetId, long memberId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        
+        var data = new InitialPlanetData();
+        var channels = await GetMemberChannelsAsync(memberId);
+        
+        data.Channels = channels?.List ?? [];
+        data.Roles = hostedPlanet.Roles.List;
+        
+        return data;
+    }
     
-    /// <summary>
-    /// Returns the voice channels for the given planet that the given member can access
-    /// </summary>
-    public async Task<List<Channel>> GetMemberVoiceChannelsAsync(long planetId, long memberId) =>
-        await _db.MemberChannelAccess.Where(x => 
-                x.PlanetId == planetId &&
-                x.MemberId == memberId &&
-                x.Channel.ChannelType == ChannelTypeEnum.PlanetVoice)
-            .Select(x => x.Channel.ToModel())
-            .ToListAsync();
-    
-    #endregion
-
     /// <summary>
     /// Returns member info for the given planet, paged by the page index
     /// </summary>
@@ -359,11 +253,7 @@ public class PlanetService
             .OrderBy(x => x.Id)
             .Skip(page * 100)
             .Take(100)
-            .Select(x => new PlanetMemberData
-            {
-                Member = x.ToModel(),
-                RoleIds = x.RoleMembership.OrderBy(rm => rm.Role.Position).Select(rm => rm.RoleId).ToList()
-            })
+            .Select(x => x.ToModel())
             .ToListAsync();
 
         return new PlanetMemberInfo()
@@ -375,17 +265,35 @@ public class PlanetService
     
     public async Task<Dictionary<long, int>> GetRoleMembershipCountsAsync(long planetId)
     {
-        var query = _db.PlanetRoleMembers
-            .AsNoTracking()
-            .Where(x => x.PlanetId == planetId)
-            .GroupBy(x => x.RoleId)
-            .Select(x => new
-            {
-                RoleId = x.Key,
-                Count = x.Count()
-            });
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
         
-        return await query.ToDictionaryAsync(x => x.RoleId, x => x.Count);
+        var roleMemberships = _db.PlanetMembers.Where(x => x.PlanetId == planetId)
+            .Select(x => x.RoleMembership).AsAsyncEnumerable();
+
+        var counts = new byte[256];
+        
+        await foreach (var membership in roleMemberships)
+        {
+            foreach (var roleIndex in membership.EnumerateRoleIndices())
+            {
+                counts[roleIndex]++;
+            }
+        }
+        
+        var result = new Dictionary<long, int>();
+        
+        for (var i = 0; i < counts.Length; i++)
+        {
+            var count = counts[i];
+            
+            if (count > 0)
+            {
+                var roleId = hostedPlanet.GetRoleIdByIndex(i);
+                result.Add(roleId, count);
+            }
+        }
+        
+        return result;
     }
 
     /// <summary>
@@ -405,7 +313,7 @@ public class PlanetService
     /// <summary>
     /// Creates the given planet
     /// </summary>
-    public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user)
+    public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user, long? forceId = null)
     {
         var baseValid = await ValidateBasic(model);
         if (!baseValid.Success)
@@ -419,8 +327,11 @@ public class PlanetService
         
         try
         {
-            planet.Id = IdManager.Generate();
+            planet.Id = forceId ?? IdManager.Generate();
 
+            var position = new ChannelPosition();
+            position = position.Append(1); // Position 1
+            
             // Create general category
             var category = new Valour.Database.Channel()
             {
@@ -430,10 +341,12 @@ public class PlanetService
                 Name = "General",
                 ParentId = null,
                 Description = "General category",
-                RawPosition = 0,
+                RawPosition = position.RawPosition,
                 
                 ChannelType = ChannelTypeEnum.PlanetCategory
             };
+            
+            position = position.Append(1); // Position 1 inside category
             
             // Create general chat channel
             var chatChannel = new Valour.Database.Channel()
@@ -444,7 +357,7 @@ public class PlanetService
                 Id = IdManager.Generate(),
                 Name = "General",
                 Description = "General chat channel",
-                RawPosition = 0,
+                RawPosition = position.RawPosition,
                 IsDefault = true,
                 
                 ChannelType = ChannelTypeEnum.PlanetChat
@@ -475,9 +388,9 @@ public class PlanetService
 
             planet.Roles = new List<Valour.Database.PlanetRole>()
             {
-                defaultRole
+                defaultRole,
             };
-
+            
             // Create owner member
             var member = new Valour.Database.PlanetMember()
             {
@@ -485,35 +398,17 @@ public class PlanetService
                 
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
-                UserId = user.Id
+                UserId = user.Id,
+                RoleMembership = new PlanetRoleMembership(0x01)
             };
 
             planet.Members = new List<Valour.Database.PlanetMember>()
             {
                 member
             };
-
-            // Create owner role membership
-            var roleMember = new Valour.Database.PlanetRoleMember()
-            {
-                Planet = planet,
-                Member = member,
-                Role = defaultRole,
-
-                Id = IdManager.Generate(),
-                UserId = user.Id,
-            };
-
-            planet.RoleMembers = new List<PlanetRoleMember>()
-            {
-                roleMember,
-            };
-
+            
             _db.Planets.Add(planet);
             await _db.SaveChangesAsync();
-
-            // Ensure new owner has access to new channels
-            await _accessService.UpdateAllChannelAccessMember(member.Id);
             
             await tran.CommitAsync();
         }
@@ -568,167 +463,6 @@ public class PlanetService
         _coreHub.NotifyPlanetChange(planet);
         
         return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
-    }
-    
-    public async Task<TaskResult> InsertChildAsync(long? categoryId, long insertId, int? inPosition = null)
-    {
-        if (categoryId == insertId)
-            return new TaskResult(false, "A category cannot contain itself. Nice try though.");
-        
-        Valour.Database.Channel category = null;
-        
-        if (categoryId is not null)
-        {
-            category = await _db.Channels.FindAsync(categoryId);
-            if (category is null || category.ChannelType != ChannelTypeEnum.PlanetCategory)
-                return new TaskResult(false, "Category not found.");
-        }
-
-        var insert = await _db.Channels.FindAsync(insertId);
-        if (insert is null)
-            return new TaskResult(false, "Child to insert not found.");
-        
-        if (insert.ParentId == categoryId)
-            return new TaskResult(false, "This child is already in the category.");
-        
-        // Ensure we are not putting a category into one of its own children
-        if (category is not null)
-        {
-            var parentId = category.ParentId;
-            while (parentId is not null)
-            {
-                var parent = await _db.Channels.FindAsync(parentId);
-                if (parent is null)
-                    return new TaskResult(false, "Error in hierarchy.");
-
-                if (parent.ParentId == insertId)
-                    return new TaskResult(false, "This would result in a circular hierarchy.");
-                
-                parentId = parent.ParentId;
-            }
-        }
-
-        var children = await _db.Channels
-            .Where(x => x.ParentId == categoryId && x.PlanetId == insert.PlanetId)
-            .OrderBy(x => x.RawPosition)
-            .Select(x =>
-            new {
-                Id = x.Id, ChannelType = x.ChannelType
-            })
-            .ToListAsync();
-
-        var position = (uint)(inPosition ?? children.Count + 1);
-        
-        // If unspecified or too high, set to next position
-        if (position < 0 || position > children.Count)
-        {
-            position = (uint)(children.Count + 1);
-        }
-        
-        var oldCategoryId = insert.ParentId;
-        List<ChannelOrderData> oldCategoryOrder = null;
-        
-        // Positions for new category
-        List<ChannelOrderData> newCategoryOrder = new();
-        
-        await using var trans = await _db.Database.BeginTransactionAsync();
-        
-        try
-        {
-            if (oldCategoryId is not null)
-            {
-                var oldCategory = await _db.Channels.FindAsync(insert.ParentId);
-                if (oldCategory is null || oldCategory.ChannelType != ChannelTypeEnum.PlanetCategory)
-                    return new TaskResult(false, "Error getting old parent category.");
-
-                var oldCategoryChildren = await _db.Channels
-                    .Where(x => x.ParentId == oldCategory.Id)
-                    .OrderBy(x => x.RawPosition)
-                    .ToListAsync();
-
-                // Remove from old category
-                oldCategoryChildren.RemoveAll(x => x.Id == insertId);
-
-                oldCategoryOrder = new();
-                
-                // Update all positions
-                uint opos = 0;
-                foreach (var child in oldCategoryChildren)
-                {
-                    child.RawPosition = opos;
-                    oldCategoryOrder.Add(new(child.Id, child.ChannelType));
-                    opos++;
-                }
-            }
-
-            insert.ParentId = categoryId;
-            insert.PlanetId = insert.PlanetId;
-            insert.RawPosition = position;
-
-            var insertData = new
-            {
-                insert.Id,
-                insert.ChannelType
-            };
-            
-            if (position >= children.Count)
-            {
-                children.Add(insertData);
-            }
-            else
-            {
-                children.Insert((int)position, insertData);
-            }
-            
-            // Update all positions
-            // var pos = 0;
-            foreach (var child in children)
-            {
-                // child.Position = pos;
-                newCategoryOrder.Add(new(child.Id, child.ChannelType));
-                // pos++;
-            }
-            
-            await _db.SaveChangesAsync();
-            
-            // Update channel access for inserted channel if it inherits from parent
-            if (insert.InheritsPerms == true)
-            {
-                await _accessService.UpdateAllChannelAccessForChannel(insertId);
-            }
-
-            await _db.SaveChangesAsync();
-
-            await trans.CommitAsync();
-        }
-        catch (Exception e)
-        {
-            await trans.RollbackAsync();
-            _logger.LogError(e, e.Message);
-            return new TaskResult(false, "Error saving changes. Please try again later.");
-        }
-        
-        // Fire off events for both modified categories (if applicable)
-        
-        // New parent
-        _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
-        {
-            PlanetId = insert.PlanetId!.Value,
-            CategoryId = categoryId,
-            Order = newCategoryOrder
-        });
-
-        if (oldCategoryId is not null)
-        {
-            _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
-            {
-                PlanetId = insert.PlanetId.Value,
-                CategoryId = oldCategoryId,
-                Order = oldCategoryOrder,
-            });
-        }
-
-        return new(true, "Success");
     }
     
     //////////////////////

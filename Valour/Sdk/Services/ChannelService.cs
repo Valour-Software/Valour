@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
 using Valour.Shared;
@@ -20,11 +21,6 @@ public class ChannelService : ServiceBase
     /// Run when SignalR closes a channel
     /// </summary>
     public HybridEvent<Channel> ChannelDisconnected;
-    
-    /// <summary>
-    /// Run when a category is reordered
-    /// </summary>
-    public HybridEvent<CategoryOrderEvent> CategoryReordered;
 
     /// <summary>
     /// Currently opened channels
@@ -88,30 +84,30 @@ public class ChannelService : ServiceBase
     /// <summary>
     /// Given a channel id, returns the channel. Planet channels should be fetched via the Planet.
     /// </summary>
-    public async ValueTask<Channel> FetchChannelAsync(long id, bool skipCache = false)
+    public async ValueTask<Channel> FetchDirectChannelAsync(long id, bool skipCache = false)
     {
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
+        var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetDirectIdRoute(id))).Data;
 
-        return _cache.Sync(channel);
+        return channel.Sync(_client);
     }
 
-    public async ValueTask<Channel> FetchChannelAsync(long id, long planetId, bool skipCache = false)
+    public async ValueTask<Channel> FetchPlanetChannelAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await _client.PlanetService.FetchPlanetAsync(planetId, skipCache);
-        return await FetchChannelAsync(id, planet, skipCache);
+        return await FetchPlanetChannelAsync(id, planet, skipCache);
     }
     
-    public async ValueTask<Channel> FetchChannelAsync(long id, Planet planet, bool skipCache = false)
+    public async ValueTask<Channel> FetchPlanetChannelAsync(long id, Planet planet, bool skipCache = false)
     {
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetIdRoute(id))).Data;
+        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id))).Data;
 
-        return _cache.Sync(channel);
+        return channel.Sync(_client);
     }
 
     public Task<TaskResult<Channel>> CreatePlanetChannelAsync(Planet planet, CreateChannelRequest request)
@@ -134,9 +130,42 @@ public class ChannelService : ServiceBase
             return cached;
 
         var dmChannel = (await _client.PrimaryNode.GetJsonAsync<Channel>(
-            $"{ISharedChannel.BaseRoute}/direct/{otherUserId}?create={create}")).Data;
+            $"{ISharedChannel.DirectBaseRoute}/byUser/{otherUserId}?create={create}")).Data;
 
-        return _cache.Sync(dmChannel);
+        return dmChannel.Sync(_client);
+    }
+    
+    public async Task<List<PlanetMember>> FetchRecentChattersAsync(Channel channel)
+    {
+        return await FetchRecentChattersAsync(channel.Id, channel.Planet);
+    }
+
+    public async Task<List<PlanetMember>> FetchRecentChattersAsync(long channelId, Planet planet)
+    {
+        var result = await planet.Node.GetJsonAsync<List<PlanetMember>>($"{ISharedChannel.GetPlanetIdRoute(planet.Id, channelId)}/recentChatters");
+        result.Data.SyncAll(_client);
+        return result.Data;
+    }
+
+    public async Task<TaskResult> MoveChannelAsync(Channel toMove, Channel? destination, bool placeBefore)
+    {
+        if (toMove.PlanetId is null)
+        {
+            LogError("Trying to move channel without a planet id!");
+            return TaskResult.FromFailure("Channel does not have a planet id!");
+        }
+        
+        var request = new MoveChannelRequest()
+        {
+            PlanetId = toMove.PlanetId!.Value,
+            DestinationChannel = destination?.Id,
+            MovingChannel = toMove.Id,
+            PlaceBefore = placeBefore
+        };
+        
+        var result = await toMove.Node.PostAsync($"api/planets/{toMove.PlanetId}/channels/move", request);
+
+        return result;
     }
     
     public async Task LoadDmChannelsAsync()
@@ -176,7 +205,7 @@ public class ChannelService : ServiceBase
                 }
             }
 
-            var cached = _cache.Sync(channel);
+            var cached = channel.Sync(_client);
             _directChatChannels.Add(cached);
             _directChatChannelsLookup.Add(cached.Id, cached);
         }
@@ -213,9 +242,12 @@ public class ChannelService : ServiceBase
         var planetResult = await _client.PlanetService.TryOpenPlanetConnection(planet, key);
         if (!planetResult.Success)
             return planetResult;
+        
+        // Get recent chatter members
+        _ = await FetchRecentChattersAsync(channel);
 
         // Join channel SignalR group
-        var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
+        var result = await channel.ConnectToRealtime();
         
         if (!result.Success)
         {
@@ -270,7 +302,7 @@ public class ChannelService : ServiceBase
             return TaskResult.FromFailure("Channel is not open.");
 
         // Leaves channel SignalR group
-        await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
+        await channel.DisconnectFromRealtime();
 
         // Remove from open set
         _connectedPlanetChannels.Remove(channel);
@@ -282,7 +314,7 @@ public class ChannelService : ServiceBase
 
         // Close planet connection if no other channels are open
         await _client.PlanetService.TryClosePlanetConnection(channel.Planet, key);
-        
+
         return TaskResult.SuccessResult;
     }
     
@@ -318,49 +350,63 @@ public class ChannelService : ServiceBase
     /// </summary>
     public bool IsChannelConnected(long channelId) =>
         _connectedPlanetChannelsLookup.ContainsKey(channelId);
-
-    
-    // TODO: change
-    public void OnCategoryOrderUpdate(CategoryOrderEvent eventData)
-    {
-        // Update channels in cache
-        uint pos = 0;
-        foreach (var data in eventData.Order)
-        {
-            if (_client.Cache.Channels.TryGet(data.Id, out var channel))
-            {
-                // The parent can be changed in this event
-                channel.ParentId = eventData.CategoryId;
-
-                // Position can be changed in this event
-                channel.RawPosition = pos;
-            }
-
-            pos++;
-        }
-        
-        CategoryReordered?.Invoke(eventData);
-    }
     
     public void OnWatchingUpdate(ChannelWatchingUpdate update)
     {
-        if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
-            return;
-        
-        channel.WatchingUpdated?.Invoke(update);
+        if (update.PlanetId is not null)
+        {
+            // Get channel from planet
+            if (!_cache.Planets.TryGet(update.PlanetId.Value, out var planet))
+                return;
+            
+            if (!planet!.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.WatchingUpdated?.Invoke(update);
+        }
+        else
+        {
+            if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.WatchingUpdated?.Invoke(update);
+        }
     }
 
     public void OnTypingUpdate(ChannelTypingUpdate update)
     {
-        if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+        if (update.PlanetId is not null)
+        {
+            // Get channel from planet
+            if (!_cache.Planets.TryGet(update.PlanetId.Value, out var planet))
+                return;
+            
+            if (!planet!.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.TypingUpdated?.Invoke(update);
+        }
+        else
+        {
+            if (!_cache.Channels.TryGet(update.ChannelId, out var channel))
+                return;
+            
+            channel?.TypingUpdated?.Invoke(update);
+        }
+    }
+    
+    public void OnChannelsMoved(ChannelsMovedEvent e)
+    {
+        var planet = _client.Cache.Planets.Get(e.PlanetId);
+        if (planet is null)
             return;
-        
-        channel.TypingUpdated?.Invoke(update);
+
+        planet.OnChannelsMoved(e);
     }
 
     private void HookHubEvents(Node node)
     {
-        node.HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", OnCategoryOrderUpdate);
+        node.HubConnection.On<ChannelsMovedEvent>("Channels-Moved", OnChannelsMoved);
         node.HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", OnWatchingUpdate);
         node.HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", OnTypingUpdate);
     }

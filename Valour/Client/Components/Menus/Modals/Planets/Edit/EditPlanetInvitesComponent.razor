@@ -135,10 +135,9 @@
         StateHasChanged();
 
         Planet.Invites.Changed += OnPlanetInvitesChange;
-
     }
 
-    public void OnPlanetInvitesChange(ModelListChangeEvent<PlanetInvite> eventData)
+    public void OnPlanetInvitesChange(IModelEvent<PlanetInvite> eventData)
     {
         StateHasChanged();
     }

@@ -7,18 +7,18 @@ public class EcoAccountPlanetMember : ClientModel<EcoAccountPlanetMember>
     public EcoAccount Account { get; set; }
     public PlanetMember Member { get; set; }
     
-    public override EcoAccountPlanetMember AddToCacheOrReturnExisting()
+    public override EcoAccountPlanetMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        Account = Account.AddToCacheOrReturnExisting();
-        Member = Member.AddToCacheOrReturnExisting();
+        Account = Account.AddToCache(flags);
+        Member = Member.AddToCache(flags);
         
         return this;
     }
 
-    public override EcoAccountPlanetMember TakeAndRemoveFromCache()
+    public override EcoAccountPlanetMember RemoveFromCache(bool skipEvents = false)
     {
-        Account = Account.TakeAndRemoveFromCache();
-        Member = Member.TakeAndRemoveFromCache();
+        Account = Account.RemoveFromCache(skipEvents);
+        Member = Member.RemoveFromCache(skipEvents);
         
         return this;
     }

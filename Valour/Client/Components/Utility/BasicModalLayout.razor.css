@@ -1,0 +1,34 @@
+.basic-modal {
+    box-shadow: 0 0 8px black;
+    background-color: var(--main-2);
+    border-radius: 14px;
+}
+
+.basic-modal .content {
+    padding: 2em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    text-align: center;
+    max-height: calc(100vh - 8em);
+    overflow: auto;
+}
+
+.basic-modal .top {
+    background-color: var(--main-3);
+    padding: 0.5em;
+    border-radius: 14px 14px 0 0;
+    text-align: center;
+    font-size: 1em;
+    font-weight: 500;
+}
+
+.basic-modal .top .title {
+    margin-left: 0.5em;
+}
+
+.basic-modal .bottom {
+    background-color: var(--main-3);
+    padding: 0.5em;
+    border-radius: 0 0 14px 14px;
+}

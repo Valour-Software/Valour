@@ -189,7 +189,7 @@
         }
         else if (Mode == '#')
         {
-            _matches.AddRange(ChannelComponent.Channel.Planet.ChatChannels.Where(x => x.Name.ToLower().Contains(Text))
+            _matches.AddRange(ChannelComponent.Channel.Planet.Channels.Where(x => x.ChannelType == ChannelTypeEnum.PlanetChat && x.Name.ToLower().Contains(Text))
                              .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                              .ThenBy(x => x.Name.Length)
                              .Take(10)

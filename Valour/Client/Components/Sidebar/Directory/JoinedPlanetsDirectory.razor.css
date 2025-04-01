@@ -1,0 +1,96 @@
+.joined-planets {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1em;
+    padding: 0.5em;
+    height: 100%;
+}
+
+.joined-planets .list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-radius: 8px;
+    background-color: var(--main-3);
+}
+
+.joined-planets .list::-webkit-scrollbar {
+    
+}
+
+.joined-planets .list::-webkit-scrollbar-track {
+    border-radius: var(--main-radius);
+}
+
+.planet-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: center;
+    padding: 4px 0 4px 4px;
+    font-size: 14px;
+}
+
+.planet-row:hover {
+    cursor: pointer;
+    background-color: var(--main-4);
+}
+
+.planet-row .left {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    gap: 6px;
+    max-width: 90%;
+}
+
+.planet-row .left img {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--small-radius);
+}
+
+.planet-row .left span {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+}
+
+.planet-row .right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.planet-row .right .unread-badge {
+    background-color: var(--strong-tint);
+    border-radius: 8px 0 0 8px;
+    height: 13px;
+    min-width: 8px;
+    transition: min-width 0.2s ease-in-out;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.planet-row:hover .right .unread-badge {
+    min-width: 14px;
+}
+
+.planet-row .right .unread-badge.notification {
+    background-color: var(--p-red);
+}
+
+.unread-badge span {
+    font-size: 10px;
+    padding: 0;
+    margin-left: 3px;
+    margin-right: 2px;
+}
+
+.planet-row .right .edit {
+    cursor: pointer;
+}

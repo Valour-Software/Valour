@@ -13,9 +13,6 @@ public class Planet : ISharedPlanet
     
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetRole> Roles { get; set; }
-    
-    [InverseProperty("Planet")]
-    public virtual ICollection<PlanetRoleMember> RoleMembers { get; set; }
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetMember> Members { get; set; }
@@ -25,7 +22,11 @@ public class Planet : ISharedPlanet
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
-
+    
+    public virtual ICollection<Message> Messages { get; set; }
+    
+    public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
@@ -93,6 +94,9 @@ public class Planet : ISharedPlanet
     /// </summary>
     [Column("nsfw")]
     public bool Nsfw { get; set; }
+    
+    [Column("version")]
+    public int Version { get; set; }
 
     // Only to fulfill contract
     [NotMapped]

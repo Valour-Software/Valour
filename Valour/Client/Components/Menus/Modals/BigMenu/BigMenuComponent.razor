@@ -16,6 +16,9 @@
                         <div class="inner-rightside">
                             @RightSide
                         </div>
+                        <div class="close-button" @onclick="@CloseRightMenu">
+                            <span><i class="bi bi-arrow-left"></i> Go Back</span>
+                        </div>
                     </div>
                 }
             }
@@ -109,6 +112,13 @@
             ShowLeftSide = true;
             ShowRightSide = false;
         }
+    }
+    
+    private void CloseRightMenu()
+    {
+        ShowRightSide = false;
+        ShowLeftSide = true;
+        StateHasChanged();
     }
 
     public void Update()

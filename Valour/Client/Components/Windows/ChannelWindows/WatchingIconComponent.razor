@@ -1,6 +1,11 @@
-﻿<BasicTooltipComponent Title="@User.Name">
-    <img alt="@User.Name is watching" id="watching-icon-@User.Name" class="watching-icon" src='@_avatar' @onerror="@OnIconError" />
-</BasicTooltipComponent>
+﻿<TooltipTrigger Position="right">
+    <ChildContent>
+        <img alt="@User.Name is watching" id="watching-icon-@User.Name" class="watching-icon" src='@_avatar' @onerror="@OnIconError" />
+    </ChildContent>
+    <TooltipContent>
+        <span>@User.Name</span>
+    </TooltipContent>
+</TooltipTrigger>
 
 @code {
     

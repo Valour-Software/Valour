@@ -1,7 +1,7 @@
 ﻿namespace Valour.Server.EndpointFilters.Attributes;
 
 
-[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
 public class ValourRouteAttribute : Attribute
 {
     public readonly string Route;

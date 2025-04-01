@@ -91,7 +91,7 @@ public class PermissionsNodeApi
         if (oldNode.TargetType != node.TargetType)
             return Results.BadRequest("Cannot change TargetType");
 
-        var role = await roleService.GetAsync(node.RoleId);
+        var role = await roleService.GetAsync(node.PlanetId, node.RoleId);
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
@@ -132,11 +132,11 @@ public class PermissionsNodeApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var role = await roleService.GetAsync(node.RoleId);
+        var role = await roleService.GetAsync(node.PlanetId, node.RoleId);
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var target = await channelService.GetAsync(node.TargetId);
+        var target = await channelService.GetChannelAsync(node.PlanetId, node.TargetId);
         if (target is null)
             return ValourResult.NotFound<Channel>();
 

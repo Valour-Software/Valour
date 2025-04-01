@@ -44,8 +44,11 @@ public class CoreHub : Hub
         // Authenticate user
         var authToken = await _tokenService.GetAsync(token);
 
+        var result = new TaskResult(false, "Failed to authenticate connection.");
+        result.Code = 401;
+
         if (authToken is null)
-            return new TaskResult(false, "Failed to authenticate connection.");
+            return result;
 
         ConnectionTracker.ConnectionIdentities[Context.ConnectionId] = authToken;
 
@@ -116,10 +119,12 @@ public class CoreHub : Hub
         return new TaskResult(true, "Connected to planet " + planetId);
     }
 
-    public async Task LeavePlanet(long planetId) {
+    public async Task<TaskResult> LeavePlanet(long planetId) {
         var groupId = $"p-{planetId}";
         ConnectionTracker.UntrackGroupMembership(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+
+        return TaskResult.SuccessResult;
     }
 
 
@@ -151,7 +156,9 @@ public class CoreHub : Hub
             channelState = new UserChannelState()
             {
                 UserId = authToken.UserId,
-                ChannelId = channelId
+                ChannelId = channelId,
+                PlanetMemberId = member?.Id,
+                PlanetId = member?.PlanetId
             }.ToDatabase();
 
             _db.UserChannelStates.Add(channelState);
@@ -165,10 +172,12 @@ public class CoreHub : Hub
         return new TaskResult(true, "Connected to channel " + channelId);
     }
 
-    public async Task LeaveChannel(long channelId) {
+    public async Task<TaskResult> LeaveChannel(long channelId) {
         var groupId = $"c-{channelId}";
         ConnectionTracker.UntrackGroupMembership(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+
+        return TaskResult.SuccessResult;
     }
 
 

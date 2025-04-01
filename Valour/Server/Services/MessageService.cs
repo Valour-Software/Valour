@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Text.Json;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Messages.Embeds.Items;
@@ -14,38 +16,43 @@ public class MessageService
 {
     private readonly ILogger<MessageService> _logger;
     private readonly ValourDb _db;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ChannelService _channelService;
     private readonly NotificationService _notificationService;
-    private readonly ChannelStateService _stateService;
     private readonly CoreHubService _coreHubService;
+    private readonly PlanetService _planetService;
     private readonly HttpClient _http;
+    private readonly ChatCacheService _chatCacheService;
+    private readonly HostedPlanetService _hostedPlanetService;
 
     public MessageService(
         ILogger<MessageService> logger,
         ValourDb db, 
-        NodeService nodeService, 
+        NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService, 
-        ChannelStateService stateService,
         IHttpClientFactory http, 
         CoreHubService coreHubService, 
-        ChannelService channelService)
+        ChannelService channelService, 
+        PlanetService planetService, 
+        ChatCacheService chatCacheService, HostedPlanetService hostedPlanetService)
     {
         _logger = logger;
         _db = db;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
         _notificationService = notificationService;
-        _stateService = stateService;
         _http = http.CreateClient();
         _coreHubService = coreHubService;
         _channelService = channelService;
+        _planetService = planetService;
+        _chatCacheService = chatCacheService;
+        _hostedPlanetService = hostedPlanetService;
     }
     
     /// <summary>
     /// Returns the message with the given id
     /// Will include the reply to message if it exists
     /// </summary>
-    public async Task<Message> GetMessageAsync(long id)
+    public async Task<Message?> GetMessageAsync(long id)
     {
         var message = await _db.Messages.AsNoTracking()
             .Include(x => x.ReplyToMessage)
@@ -57,7 +64,7 @@ public class MessageService
     /// <summary>
     /// Returns the message with the given id (no reply!)
     /// </summary>
-    public async Task<Message> GetMessageNoReplyAsync(long id) =>
+    public async Task<Message?> GetMessageNoReplyAsync(long id) =>
         (await _db.Messages.FindAsync(id)).ToModel();
     
     /// <summary>
@@ -65,23 +72,11 @@ public class MessageService
     /// </summary>
     public async Task<TaskResult<Message>> PostMessageAsync(Message message)
     {
-        if (message is null)
-            return TaskResult<Message>.FromFailure("Include message");
-
-        // Handle node planet ownership
-        if (message.PlanetId is not null)
-        {
-            if (!await _nodeService.IsHostingPlanet(message.PlanetId.Value))
-            {
-                return TaskResult<Message>.FromFailure("Planet belongs to another node.");
-            }
-        }
-        
         var user = await _db.Users.FindAsync(message.AuthorUserId);
         if (user is null)
             return TaskResult<Message>.FromFailure("Author user not found.");
-        
-        var channel = await _db.Channels.FindAsync(message.ChannelId);
+
+        var channel = await _channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
         if (channel is null)
             return TaskResult<Message>.FromFailure("Channel not found.");
 
@@ -91,19 +86,19 @@ public class MessageService
         if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return TaskResult<Message>.FromFailure("Channel is not a message channel.");
 
-        Valour.Database.Planet planet = null;
-        Valour.Database.PlanetMember member = null;
+        HostedPlanet? hostedPlanet = null;
+        Planet? planet = null;
+        Valour.Database.PlanetMember? member = null;
         
         // Validation specifically for planet messages
         if (channel.PlanetId is not null)
         {
             if (channel.PlanetId != message.PlanetId)
                 return TaskResult<Message>.FromFailure("Invalid planet id. Must match channel's planet id.");
-
-            planet = await _db.Planets.FindAsync(channel.PlanetId);
-            if (planet is null)
-                return TaskResult<Message>.FromFailure("Planet not found.");
             
+            hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
+            planet = hostedPlanet.Planet;
+
             if (!ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))
                 return TaskResult<Message>.FromFailure("Only planet channel messages can have a planet id.");
             
@@ -238,6 +233,12 @@ public class MessageService
             // Serialize mentions to the message
             message.MentionsData = JsonSerializer.Serialize(mentions);
         }
+        
+        // Add to chat caches
+        _chatCacheService.AddMessage(message);
+        
+        // Add member to recent chatters
+        _chatCacheService.AddChatPlanetMember(message.ChannelId, member.ToModel());
 
         if (planet is null)
         {
@@ -253,7 +254,7 @@ public class MessageService
                 await _db.Messages.AddAsync(message.ToDatabase());
                 await _db.SaveChangesAsync();
 
-                await _coreHubService.RelayDirectMessage(message, _nodeService, channelMembers);
+                await _coreHubService.RelayDirectMessage(message, _nodeLifecycleService, channelMembers);
             }
             else
             {
@@ -268,7 +269,17 @@ public class MessageService
         StatWorker.IncreaseMessageCount();
         
         // Update channel state
-        _stateService.SetChannelStateTime(channel.Id, message.TimeSent, channel.PlanetId);
+        await _db.Channels.Where(x => x.Id == channel.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(c => c.LastUpdateTime, DateTime.UtcNow));
+        
+        // Update in cached hosted planet
+        if (hostedPlanet is not null)
+        {
+            var cachedChannel = hostedPlanet.Channels.Get(channel.Id);
+            cachedChannel.LastUpdateTime = DateTime.UtcNow;
+        }
+
+
         if (channel.PlanetId is not null)
         {
             _coreHubService.NotifyChannelStateUpdate(channel.PlanetId.Value, channel.Id, message.TimeSent);
@@ -387,6 +398,8 @@ public class MessageService
             }
         }
         
+        _chatCacheService.ReplaceMessage(updated);
+        
         // Handle events
 
         if (updated.PlanetId is not null)
@@ -401,7 +414,7 @@ public class MessageService
                 .Select(x => x.UserId)
                 .ToListAsync();
             
-            await _coreHubService.RelayDirectMessageEdit(updated, _nodeService, channelUserIds);
+            await _coreHubService.RelayDirectMessageEdit(updated, _nodeLifecycleService, channelUserIds);
         }
 
         return TaskResult<Message>.FromData(updated);
@@ -445,6 +458,8 @@ public class MessageService
             }
         }
         
+        _chatCacheService.RemoveMessage(message.ChannelId, messageId);
+        
         if (message.PlanetId is not null)
         {
             _coreHubService.NotifyMessageDeletion(message);
@@ -457,9 +472,9 @@ public class MessageService
         return TaskResult.SuccessResult;
     }
     
-    public async Task<List<Message>> GetChannelMessagesAsync(long channelId, int count = 50, long index = long.MaxValue)
+    public async Task<IEnumerable<Message>?> GetChannelMessagesAsync(long? planetId, long channelId, int count = 50, long index = long.MaxValue)
     {
-        var channel = await _channelService.GetAsync(channelId);
+        var channel = await _channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
             return null;
         
@@ -468,9 +483,18 @@ public class MessageService
 
         // Not sure why this request would even be made
         if (count < 1)
-            return new();
+            return [];
+        
+        if (count > 50)
+            count = 50;
+        
+        // For default latest messages, use the cache
+        if (index == long.MaxValue && count == 50)
+        {
+            return await _chatCacheService.GetLastMessagesAsync(channelId);
+        }
 
-        List<Message> staged = null;
+        List<Message>? staged = null;
 
         if (channel.ChannelType == ChannelTypeEnum.PlanetChat
             && index == long.MaxValue) // ONLY INCLUDE STAGED FOR LATEST
@@ -494,6 +518,29 @@ public class MessageService
             messages.AddRange(staged);
         }
 
+        return messages;
+    }
+
+    public async Task<List<Message>> SearchChannelMessagesAsync(long? planetId, long channelId, string search, int count = 20)
+    {
+        var channel = await _channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return [];
+        
+        if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
+            return [];
+        
+        // Use postgres functions to search for the search string
+        var messages = await _db.Messages
+            .AsNoTracking()
+            .Where(x => x.ChannelId == channel.Id)
+            .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
+            .Include(x => x.ReplyToMessage)
+            .OrderByDescending(x => x.Id)
+            .Take(count)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+        
         return messages;
     }
 }

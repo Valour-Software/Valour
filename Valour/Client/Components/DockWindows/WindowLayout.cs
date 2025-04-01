@@ -1,5 +1,8 @@
 ﻿using System.Text.Json.Serialization;
+using Valour.Client.Components.Windows.ChannelWindows;
 using Valour.Client.Components.Windows.HomeWindows;
+using Valour.Client.Device;
+using Valour.Sdk.Models;
 
 namespace Valour.Client.Components.DockWindows;
 
@@ -104,24 +107,53 @@ public class WindowLayout
     }
     
     // For loading from serialized
-    public WindowLayout(WindowLayout childOne, WindowLayout childTwo, WindowSplit split, List<WindowTab> tabs)
+    public WindowLayout(WindowLayout childOne, WindowLayout childTwo, WindowSplit split, List<WindowTab> tabs, int focusedTabIndex = 0)
     {
+        // If mobile, this needs to be a simple layout. No splits and only one tab.
+        if (DeviceInfo.IsMobile)
+        {
+            if (tabs is not null && tabs.Count > 1)
+            {
+                tabs = new List<WindowTab>()
+                {
+                    tabs[focusedTabIndex]
+                };
+            }
+            
+            ChildOne = null;
+            ChildTwo = null;
+            Split = null;
+        }
+        
         ChildOne = childOne;
         ChildTwo = childTwo;
         
         Split = split;
         
         Tabs = tabs;
-        
+
+        if (Tabs is null)
+        {
+            Tabs = new List<WindowTab>();
+        }
+
+        if (Tabs.Count > 0)
+        {
+            if (focusedTabIndex >= Tabs.Count)
+                focusedTabIndex = 0;
+            else
+                FocusedTab = Tabs[focusedTabIndex];
+        }
+
         // Set layout of everything to this
         childOne?.SetParentRaw(this);
         childTwo?.SetParentRaw(this);
         
         split?.SetLayoutRaw(this);
 
-        if (tabs is not null)
+        if (Tabs is not null)
         {
-            foreach (var tab in tabs)
+            foreach (var tab in Tabs)
             {
                 tab.SetLayoutRaw(this);
             }
@@ -180,10 +212,11 @@ public class WindowLayout
         }
     }
     
-    public Task AddTab(WindowContent content, bool render = true)
+    public async Task<WindowTab> AddTab(WindowContent content, bool render = true)
     {
         var tab = new WindowTab(content);
-        return AddTab(tab, render);
+        await AddTab(tab, render);
+        return tab;
     }
 
     public async Task AddTab(WindowTab tab, bool render = true)
@@ -287,6 +320,8 @@ public class WindowLayout
     {
         if (!Tabs.Contains(tab))
             return;
+
+        await tab.NotifyClose();
         
         Tabs.Remove(tab);
         await tab.SetLayout(null, false);
@@ -305,6 +340,11 @@ public class WindowLayout
                 Parent?.RemoveChild(this);
             }
         }
+        else
+        {
+            // Set the last tab as focused
+            await SetFocusedTab(Tabs.Last());
+        }
 
         if (render)
         {
@@ -319,6 +359,26 @@ public class WindowLayout
     {
         // Remove tab as floater
         await DockComponent.RemoveFloatingTab(tab);
+        
+        if (location == WindowDropTargets.DropLocation.Center)
+        {
+            await AddTab(tab);
+        }
+
+        // If we are split, we cannot split further. This event should have been handled by the child.
+        if (IsSplit)
+        {
+            Console.WriteLine("Tried to split a split layout. This should not happen.");
+        }
+
+        AddSplit(tab, location);
+    }
+    
+    public async Task OnChannelDropped(Channel channel, WindowDropTargets.DropLocation location)
+    {
+        // Create a new chat window
+        var chatWindow = await ChatWindowComponent.GetDefaultContent(channel);
+        var tab = new WindowTab(chatWindow);
         
         if (location == WindowDropTargets.DropLocation.Center)
         {

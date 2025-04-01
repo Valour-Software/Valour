@@ -15,25 +15,26 @@ public class ChannelWatchingWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            Task task = Task.Run(async () => {
-                while (!stoppingToken.IsCancellationRequested)
-                {
-                    using var scope = _serviceProvider.CreateScope();
-                    var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
-                    
-                    await Task.Delay(5000);
-                    hubService.UpdateChannelsWatching();
-                }
-            });
 
-            while (!task.IsCompleted)
+            var i = 0;
+            while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation($"Channel Watching Worker running at: {DateTimeOffset.Now.ToString()}");
-                await Task.Delay(30000, stoppingToken);
+                using var scope = _serviceProvider.CreateScope();
+                var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+                
+                _ = hubService.UpdateChannelsWatching();
+                
+                await Task.Delay(5000);
+                i++;
+
+                if (i % 5 == 0)
+                {
+                    _logger.LogInformation("Channel Watching Worker running at {Time}", DateTimeOffset.Now.ToString());
+                }
             }
 
-            _logger.LogInformation("Channel Watching task stopped at: {time}", DateTimeOffset.Now.ToString());
-            _logger.LogInformation("Restarting. {time}", DateTimeOffset.Now.ToString());
+            _logger.LogInformation("Channel Watching task stopped at {Time}", DateTimeOffset.Now.ToString());
+            _logger.LogInformation("Restarting at {Time}", DateTimeOffset.Now.ToString());
         }
     }
 }

@@ -1,4 +1,5 @@
 using Valour.Server.Database;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -10,39 +11,74 @@ public class PlanetRoleService
     private readonly ValourDb _db;
     private readonly ILogger<PlanetRoleService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly ChannelAccessService _accessService;
+    private readonly HostedPlanetService _hostedService;
+    private readonly PlanetPermissionService _permissionService;
+    private readonly PushNotificationWorker _pushNotificationWorker;
 
     public PlanetRoleService(
-        ValourDb db, 
-        ILogger<PlanetRoleService> logger, 
+        ValourDb db,
+        ILogger<PlanetRoleService> logger,
         CoreHubService coreHub,
-        ChannelAccessService accessService)
+        HostedPlanetService hostedService, 
+        PlanetPermissionService permissionService, 
+        PushNotificationWorker pushNotificationWorker)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
-        _accessService = accessService;
+        _hostedService = hostedService;
+        _permissionService = permissionService;
+        _pushNotificationWorker = pushNotificationWorker;
     }
 
     /// <summary>
-    /// Returns the planert role with the given id
+    /// Returns the planet role with the given id
     /// </summary>
-    public async ValueTask<PlanetRole> GetAsync(long id) =>
-        (await _db.PlanetRoles.FindAsync(id)).ToModel();
+    public async ValueTask<PlanetRole> GetAsync(long planetId, long roleId)
+    {
+        var hosted = await _hostedService.GetRequiredAsync(planetId);
+        return hosted.GetRoleById(roleId);
+    }
 
     private static readonly Regex _hexColorRegex = new Regex("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$");
-    
+
     public async Task<TaskResult<PlanetRole>> CreateAsync(PlanetRole role)
     {
+        var hostedPlanet = await _hostedService.GetRequiredAsync(role.PlanetId);
+        
         if (string.IsNullOrWhiteSpace(role.Color))
             role.Color = "#ffffff";
-        
+
         if (!_hexColorRegex.IsMatch(role.Color))
             return new TaskResult<PlanetRole>(false, "Invalid hex color");
 
-        role.Position = (uint)await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
+        role.Position = await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId && !x.IsDefault);
         role.Id = IdManager.Generate();
+        
+        // The index should be the next free index
+        var roles = await _db.PlanetRoles.Where(x => x.PlanetId == role.PlanetId)
+            .OrderBy(x => x.FlagBitIndex)
+            .ToListAsync();
 
+        // Below, we find the first free space in the role indices. There may be a gap due to
+        // a deletion, in which case we want to use that space first.
+        
+        var indiceArr = new int[256];
+        foreach (var r in roles)
+        {
+            indiceArr[r.FlagBitIndex] = 1;
+        }
+        
+        // Walk array and look for first 0
+        for (int i = 0; i < indiceArr.Length; i++)
+        {
+            if (indiceArr[i] == 0)
+            {
+                role.FlagBitIndex = i;
+                break;
+            }
+        }
+        
         try
         {
             await _db.AddAsync(role.ToDatabase());
@@ -50,9 +86,11 @@ public class PlanetRoleService
         }
         catch (System.Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError("Error saving role to database: {Error}", e.Message);
             return new(false, e.Message);
         }
+        
+        hostedPlanet.UpsertRole(role);
 
         _coreHub.NotifyPlanetItemChange(role);
 
@@ -61,6 +99,8 @@ public class PlanetRoleService
 
     public async Task<TaskResult<PlanetRole>> UpdateAsync(PlanetRole updatedRole)
     {
+        var hostedPlanet = await _hostedService.GetRequiredAsync(updatedRole.PlanetId);
+        
         var oldRole = await _db.PlanetRoles.FindAsync(updatedRole.Id);
         if (oldRole is null) return new(false, $"PlanetRole not found");
 
@@ -72,7 +112,7 @@ public class PlanetRoleService
 
         if (updatedRole.IsDefault != oldRole.IsDefault)
             return new TaskResult<PlanetRole>(false, "Cannot change default status of role.");
-
+        
         if (string.IsNullOrWhiteSpace(updatedRole.Color))
             updatedRole.Color = "#ffffff";
         
@@ -84,25 +124,17 @@ public class PlanetRoleService
         
         var trans = await _db.Database.BeginTransactionAsync();
 
+        // If any permissions or admin state changed, we need to recalculate permissions
+        var updatePerms = (updatedRole.IsAdmin != oldRole.IsAdmin ||
+                           updatedRole.Permissions != oldRole.Permissions ||
+                           updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
+                           updatedRole.ChatPermissions != oldRole.ChatPermissions ||
+                           updatedRole.VoicePermissions != oldRole.VoicePermissions);
+        
         try
         {
-            // If any permissions or admin state changed, we need to recalculate access
-            var updateAccess = (updatedRole.IsAdmin != oldRole.IsAdmin ||
-                                updatedRole.Permissions != oldRole.Permissions ||
-                                updatedRole.CategoryPermissions != oldRole.CategoryPermissions ||
-                                updatedRole.ChatPermissions != oldRole.ChatPermissions ||
-                                updatedRole.VoicePermissions != oldRole.VoicePermissions);
-            
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
             await _db.SaveChangesAsync();
-            
-            // Check if any permissions were changed
-            if (updateAccess)
-            {
-                // Recalculate access
-                await _accessService.UpdateAllChannelAccessForMembersInRole(oldRole.Id);
-                await _db.SaveChangesAsync();
-            }
 
             await trans.CommitAsync();
         }
@@ -111,6 +143,15 @@ public class PlanetRoleService
             await trans.RollbackAsync();
             _logger.LogError(e.Message);
             return new(false, e.Message);
+        }
+        
+        // Update in cache
+        hostedPlanet.UpsertRole(updatedRole);
+        
+        // If any permissions were changed
+        if (updatePerms)
+        {
+            await _permissionService.HandleRoleChange(updatedRole);
         }
 
         _coreHub.NotifyPlanetItemChange(updatedRole);
@@ -118,89 +159,60 @@ public class PlanetRoleService
         return new(true, "Success", updatedRole);
     }
 
-    public async Task<List<PermissionsNode>> GetNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
+    public async Task<List<PermissionsNode>> GetNodesAsync(long roleId) =>
+        await _db.PermissionsNodes.Where(x => x.RoleId == roleId).Select(x => x.ToModel()).ToListAsync();
 
-    public async Task<List<PermissionsNode>> GetChannelNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.TargetType == ChannelTypeEnum.PlanetChat &&
-                                          x.RoleId == role.Id)
-            .Select(x => x.ToModel())
-            .ToListAsync();
+    public Task<TaskResult> DeleteAsync(PlanetRole role) =>
+        DeleteAsync(role.PlanetId, role.Id);
 
-    public async Task<List<PermissionsNode>> GetCategoryNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.TargetType == ChannelTypeEnum.PlanetCategory &&
-                                          x.RoleId == role.Id)
-            .Select(x => x.ToModel())
-            .ToListAsync();
-
-    public async Task<PermissionsNode> GetChatChannelNodeAsync(Channel channel, PlanetRole role) =>
-        (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
-                                                           x.TargetType == ChannelTypeEnum.PlanetChat &&
-                                                           x.RoleId == role.Id)).ToModel();
-
-    public async Task<PermissionsNode> GetCategoryNodeAsync(Channel category, PlanetRole role) =>
-        (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                           x.TargetType == ChannelTypeEnum.PlanetCategory &&
-                                                           x.RoleId == role.Id)).ToModel();
-
-    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, long roleId) =>
-        (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == channelId).Select(x => x.ToModel()).FirstOrDefaultAsync())
-            .GetPermissionState(permission); 
-
-    public async Task<TaskResult> DeleteAsync(PlanetRole role)
+    public async Task<TaskResult> DeleteAsync(long planetId, long roleId)
     {
-        var dbRole = await _db.PlanetRoles.FindAsync(role.Id);
-        if (dbRole is null) return new(false, "Role not found");
+        var hostedPlanet = await _hostedService.GetRequiredAsync(planetId);
+        var role = hostedPlanet.GetRoleById(roleId);
+        if (role is null) return new(false, "Role not found in hosted planet");
             
-        if (dbRole.IsDefault)
+        if (role.IsDefault)
             return new (false, "Cannot delete default roles");
 
         await using var trans = await _db.Database.BeginTransactionAsync();
         
         try
         {
-            // This order is important. We recalculate access after removing permission nodes
-            // but BEFORE the role itself is removed. This is because the procedure to
-            // recalculate access needs the role members to be present.
-            
-            // We also set all the permissions to FALSE in the role so it acts like it doesn't exist
-            
-            // Set all permissions to false
-            dbRole.Permissions = 0;
-            dbRole.ChatPermissions = 0;
-            dbRole.CategoryPermissions = 0;
-            dbRole.VoicePermissions = 0;
-            
-            await _db.SaveChangesAsync();
-            
             // Remove role nodes
-            var nodes = _db.PermissionsNodes.Where(x => x.RoleId == role.Id);
-            _db.PermissionsNodes.RemoveRange(nodes);
-
-            await _db.SaveChangesAsync();
             
-            // Recalculate access
-            await _accessService.UpdateAllChannelAccessForMembersInRole(role.Id);
-            await _db.SaveChangesAsync();
+            await _db.PermissionsNodes.Where(x => x.RoleId == roleId)
+                .ExecuteDeleteAsync();
             
-            // Remove all members
-            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
-            _db.PlanetRoleMembers.RemoveRange(members);
-            await _db.SaveChangesAsync();
+            // Update role membership flags
 
-            // Remove the role
-            _db.PlanetRoles.Remove(dbRole);
+            var flagChanges = await _db.PlanetMembers.WithRoleByLocalIndex(role.PlanetId, role.FlagBitIndex)
+                .BulkSetRoleFlag(role.PlanetId, role.FlagBitIndex, false);
+            
+            _logger.LogInformation("Role flag changes for deletion: {Changes}", flagChanges);
 
-            await _db.SaveChangesAsync();
+            var deleted = await _db.PlanetRoles.Where(x => x.Id == roleId)
+                .ExecuteDeleteAsync();
+
+            if (deleted == 0)
+            {
+                _logger.LogError("Executed delete on role but no rows affected: {RoleId}", roleId);
+            }
+            
             await trans.CommitAsync();
 
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await trans.RollbackAsync();
-            _logger.LogError(e.Message);
+            _logger.LogError("DB Error removing role: {Error}", e.Message);
             return new(false, e.Message);
         }
+        
+        // Update permissions related to the role
+        await _permissionService.HandleRoleChange(role);
+        
+        // Remove from hosted cache
+        hostedPlanet.RemoveRole(role.Id);
         
         _coreHub.NotifyPlanetItemDelete(role);
 

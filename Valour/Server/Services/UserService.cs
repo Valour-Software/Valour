@@ -23,7 +23,7 @@ public class UserService
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
 
 
     /// <summary>
@@ -36,13 +36,13 @@ public class UserService
         TokenService tokenService,
         ILogger<UserService> logger,
         CoreHubService coreHub,
-        NodeService nodeService)
+        NodeLifecycleService nodeLifecycleService)
     {
         _db = db;
         _tokenService = tokenService;
         _logger = logger;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
     }
 
     public Task<int> GetUserCountAsync()
@@ -158,7 +158,7 @@ public class UserService
 
         foreach (var planet in planets)
         {
-            planet.NodeName = await _nodeService.GetNodeNameForPlanetAsync(planet.Id);
+            planet.NodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(planet.Id);
         }
 
         return planets;
@@ -203,12 +203,12 @@ public class UserService
         return friends;
     }
 
-    public async Task<UserPrivateInfo> GetUserEmailAsync(string email, bool makelowercase = true)
+    public async Task<UserPrivateInfo> GetUserPrivateInfoAsync(string email, bool makelowercase = true)
     {
         if (!makelowercase)
-            return (await _db.UserEmails.FindAsync(email)).ToModel();
+            return (await _db.PrivateInfos.FindAsync(email)).ToModel();
         else
-            return (await _db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
+            return (await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
     }
 
     public async Task<TaskResult> SendPasswordResetEmail(UserPrivateInfo userPrivateInfo, string email, HttpContext ctx)
@@ -316,7 +316,7 @@ public class UserService
         if (user is null)
             return new TaskResult(false, "User not found");
         
-        var userPrivateInfo = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == userId);
+        var userPrivateInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == userId);
         if (userPrivateInfo is null)
             return new TaskResult(false, "User info not found");
 
@@ -424,7 +424,7 @@ public class UserService
         
         try
         {
-            var email = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
+            var email = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
             email.Verified = true;
             
             _db.EmailConfirmCodes.Remove(confirmCode);
@@ -548,7 +548,7 @@ public class UserService
                     TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userId,
-                    IssuedAddress = ctx.Connection.RemoteIpAddress.ToString()
+                    IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN",
                 }.ToDatabase();
 
                 await _db.AuthTokens.AddAsync(token);
@@ -615,6 +615,12 @@ public class UserService
         // Verify new username is ACTUALLY NEW
         if (user.Name == newUsername)
             return new TaskResult(false, "New username matches your existing username.");
+        
+        // Verify username is allowed
+        var validResult = UserUtils.TestUsername(newUsername);
+        if (!validResult.Success)
+            return validResult;
+        
         // If user is a Stargazer, verify the new username/tag combo is unique
         if (user.SubscriptionType is not null)
         {
@@ -679,16 +685,6 @@ public class UserService
             // Channel states
             var states = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.UserChannelStates.RemoveRange(states);
-
-            await _db.SaveChangesAsync();
-
-            var memberIds = await _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id).Select(x => x.Id).ToListAsync();
-            foreach (var memberId in memberIds)
-            {
-                // Channel access
-                var access = _db.MemberChannelAccess.IgnoreQueryFilters().Where(x => x.MemberId == memberId);
-                _db.MemberChannelAccess.RemoveRange(access);
-            }
             
             await _db.SaveChangesAsync();
             
@@ -712,9 +708,6 @@ public class UserService
                 var st = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.UserChannelStates.RemoveRange(st);
                 
-                var pst = _db.ChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
-                _db.ChannelStates.RemoveRange(pst);
-                
                 // notifications
                 var dnots = _db.Notifications.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
                 _db.Notifications.RemoveRange(dnots);
@@ -722,8 +715,6 @@ public class UserService
                 await _db.SaveChangesAsync();
             }
             
-            
-
             _db.Channels.RemoveRange(dChannels);
             
             await _db.SaveChangesAsync();
@@ -737,8 +728,8 @@ public class UserService
             _db.EmailConfirmCodes.RemoveRange(codes);
             
             // Remove user emails
-            var emails = _db.UserEmails.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.UserEmails.RemoveRange(emails);
+            var emails = _db.PrivateInfos.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.PrivateInfos.RemoveRange(emails);
 
             // Remove credentials
             var creds = _db.Credentials.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -758,10 +749,6 @@ public class UserService
             
             await _db.SaveChangesAsync();
 
-            // Remove membership stuff
-            var pRoles = _db.PlanetRoleMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.PlanetRoleMembers.RemoveRange(pRoles);
-
             // Remove planet membership
             var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PlanetMembers.RemoveRange(members);
@@ -777,8 +764,8 @@ public class UserService
             _db.Referrals.RemoveRange(refer);
 
             // Notifications
-            var nots = _db.NotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.NotificationSubscriptions.RemoveRange(nots);
+            var nots = _db.PushNotificationSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.PushNotificationSubscriptions.RemoveRange(nots);
             
             // Also notifications
             var noots  = _db.Notifications.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);

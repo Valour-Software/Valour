@@ -1,0 +1,39 @@
+﻿.role-list {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: 100%;
+    padding: 1em;
+    min-width: 200px;
+}
+
+.role-title {
+    margin-top: 2em;
+    margin-bottom: 0.25em;
+    opacity: 100% !important;
+    font-size: 0.8em;
+}
+
+.role-list div:nth-child(2) .role-title {
+    margin-top: 0;
+}
+
+.mobile .role-list {
+    position: absolute;
+    right: 0;
+    z-index: 5;
+}
+
+.mobile .role-list:before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--modal-dark);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    box-shadow: #000 0 0 10px;
+    z-index: -1;
+}

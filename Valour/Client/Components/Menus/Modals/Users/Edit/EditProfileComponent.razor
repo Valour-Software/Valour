@@ -1,181 +1,195 @@
 @inject ValourClient Client
 @using System.Net.Http.Headers
+
 @if (_profile is null)
 {
-    <h4>Error loading profile.</h4>
-    <br/>
-    <p>Try again later?</p>
-
+    <div class="editor-section">
+        <h4>Error loading profile.</h4>
+        <p>Try again later?</p>
+    </div>
     return;
 }
 
-<section class="v-section v-inline v-bg-dark">
-    <span class="v-span m-1">Headline</span>
-    <input class="v-input" placeholder="A short blurb" @bind="@_profile.Headline"/>
-    <span class="v-span m-1">Bio</span>
-    <textarea class="v-input" cols="3" placeholder="A little bit about me..." @bind="@_profile.Bio"></textarea>
-    
-    @if (Client.Me.Subscription is null)
-    {
-        <div class="perm-list-item">
-            <div class="perm-list-name mb-1">
-                Use gradient borders
-            </div>
-            <div type="button" style="float:right">
-                <label class="switch">
-                    <input type="checkbox" @onclick="OnGradientClick" disabled>
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <div class="perm-list-desc mt-1">
-                You need a Valour Plus subscription to use this feature.
-            </div>
+<div class="profile-editor-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-pencil-square"></i>
+            Profile Details
+        </h3>
+        
+        <div class="form-group">
+            <label>Headline</label>
+            <input class="v-input" placeholder="A short blurb" @bind="@_profile.Headline"/>
         </div>
-    }
-    else
-    {
-        <div class="perm-list-item">
-            <div class="perm-list-name mb-1">
-                Use gradient borders
-            </div>
-            <div type="button" style="float:right">
-                <label class="switch">
-                    <input type="checkbox" @onclick="OnGradientClick" checked="@_isGradientEnabled" disabled="@_isGradientBlocked">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <div class="perm-list-desc mt-1">
-                Use three colors in a gradient as the border.
-            </div>
+        
+        <div class="form-group">
+            <label>Bio</label>
+            <textarea class="v-input" rows="4" placeholder="A little bit about me..." @bind="@_profile.Bio"></textarea>
         </div>
+
+        <div class="actions">
+            <button class="v-btn primary" @onclick="OnClickSaveAsync">Save Changes</button>
+        </div>
+
+        <ResultLabel Result="@_result" />
+    </div>
     
-        @if (_isGradientEnabled)
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-palette"></i>
+            Appearance
+        </h3>
+        
+        @if (Client.Me.Subscription is null)
         {
-            <div class="perm-list-item">
-                <div class="perm-list-name mb-1">
-                    Animate gradient borders
-                </div>
-                <div type="button" style="float:right">
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Gradient Borders</span>
                     <label class="switch">
-                        <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
+                        <input type="checkbox" disabled>
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <div class="perm-list-desc mt-1">
-                    Animate the gradient border.
-                </div>
-            </div>
-        }
-    }
-
-    <div>
-        @if (Client.Me.Subscription != null && _isGradientEnabled)
-        {
-            <div class="d-inline-block m-1">
-                <span class="v-span">Primary color</span>
-                <div class="m-1">
-                    <ColorPickerComponent StartColor="@_profile.PrimaryColor" OnColorChange="@(async (color) => { _profile.PrimaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
-                </div>
-            </div>
-            <div class="d-inline-block m-1">
-                <span class="v-span">Secondary color</span>
-                <div class="m-1">
-                    <ColorPickerComponent StartColor="@_profile.SecondaryColor" OnColorChange="@(async (color) => { _profile.SecondaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
-                </div>
-            </div>
-            <div class="d-inline-block m-1">
-                <span class="v-span">Tertiary color</span>
-                <div class="m-1">
-                    <ColorPickerComponent StartColor="@_profile.TertiaryColor" OnColorChange="@(async (color) => { _profile.TertiaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
-                </div>
+                <p class="toggle-description">You need a Valour Plus subscription to use this feature.</p>
             </div>
         }
         else
         {
-            <div class="d-inline-block m-1">
-                <span class="v-span">Border color</span>
-                <div class="m-1">
-                    <ColorPickerComponent StartColor="@_profile.BorderColor" OnColorChange="@(async (color) => { _profile.BorderColor = color; StateHasChanged(); })"></ColorPickerComponent>
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Gradient Borders</span>
+                    <label class="switch">
+                        <input type="checkbox" @onclick="OnGradientClick" checked="@_isGradientEnabled" disabled="@_isGradientBlocked">
+                        <span class="slider round"></span>
+                    </label>
                 </div>
+                <p class="toggle-description">Use three colors in a gradient as the border.</p>
+            
+                @if (_isGradientEnabled)
+                {
+                    <div class="toggle-content">
+                        <div class="toggle-item">
+                            <div class="toggle-header">
+                                <span class="toggle-title">Animate Gradient</span>
+                                <label class="switch">
+                                    <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <p class="toggle-description">Animate the gradient border.</p>
+                        </div>
+                    </div>
+                }
             </div>
         }
-        <div class="d-inline-block m-1">
-            <span class="v-span">Glow color</span>
-            <div class="m-1">
+        
+        <div class="color-pickers">
+            @if (Client.Me.Subscription != null && _isGradientEnabled)
+            {
+                <div class="color-picker-item">
+                    <span class="v-span">Primary color</span>
+                    <ColorPickerComponent StartColor="@_profile.PrimaryColor" OnColorChange="@(async (color) => { _profile.PrimaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+                <div class="color-picker-item">
+                    <span class="v-span">Secondary color</span>
+                    <ColorPickerComponent StartColor="@_profile.SecondaryColor" OnColorChange="@(async (color) => { _profile.SecondaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+                <div class="color-picker-item">
+                    <span class="v-span">Tertiary color</span>
+                    <ColorPickerComponent StartColor="@_profile.TertiaryColor" OnColorChange="@(async (color) => { _profile.TertiaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+            }
+            else
+            {
+                <div class="color-picker-item">
+                    <span class="v-span">Border color</span>
+                    <ColorPickerComponent StartColor="@_profile.BorderColor" OnColorChange="@(async (color) => { _profile.BorderColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+            }
+            <div class="color-picker-item">
+                <span class="v-span">Glow color</span>
                 <ColorPickerComponent StartColor="@_profile.GlowColor" OnColorChange="@(async (color) => { _profile.GlowColor = color; StateHasChanged(); })"></ColorPickerComponent>
             </div>
-        </div>
-        <div class="d-inline-block m-1">
-            <span class="v-span">Text color</span>
-            <div class="m-1">
+            <div class="color-picker-item">
+                <span class="v-span">Text color</span>
                 <ColorPickerComponent StartColor="@_profile.TextColor" OnColorChange="@(async (color) => { _profile.TextColor = color; StateHasChanged(); })"></ColorPickerComponent>
             </div>
         </div>
+
+        <div class="actions">
+            <button class="v-btn primary" @onclick="OnClickSaveAsync">Save Changes</button>
+        </div>
+
+        <ResultLabel Result="@_result" />
     </div>
     
-    @if (Client.Me.Subscription is null)
-    {
-        <div class="perm-list-item">
-            <div class="perm-list-name mb-1">
-                Custom Background Image
-            </div>
-            <div type="button" style="float:right">
-                <label class="switch">
-                    <input type="checkbox" disabled>
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <div class="perm-list-desc mt-1">
-                You need a Valour Plus subscription to use this feature.
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="perm-list-item">
-            <div class="perm-list-name mb-1">
-                Custom Background Image
-            </div>
-            <div type="button" style="float:right">
-                <label class="switch">
-                    <input type="checkbox" checked="@_isCustomBackgroundEnabled" @onclick="OnCustomBackgroundClick">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <div class="perm-list-desc mt-1">
-                Choose a custom (safe for work) 300x400 image as your background!
-            </div>
-            
-            @if (_isCustomBackgroundEnabled)
-            {
-                <div class="mt-4">
-                    <InputFile OnChange="LoadBackgroundImage" AdditionalAttributes="@_bgInputAttributes"></InputFile>
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-image"></i>
+            Background Image
+        </h3>
+        
+        @if (Client.Me.Subscription is null)
+        {
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Custom Background Image</span>
+                    <label class="switch">
+                        <input type="checkbox" disabled>
+                        <span class="slider round"></span>
+                    </label>
                 </div>
-            }
+                <p class="toggle-description">You need a Valour Plus subscription to use this feature.</p>
+            </div>
+        }
+        else
+        {
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Custom Background Image</span>
+                    <label class="switch">
+                        <input type="checkbox" checked="@_isCustomBackgroundEnabled" @onclick="OnCustomBackgroundClick">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="toggle-description">Choose a custom (safe for work) 300x400 image as your background!</p>
+                
+                @if (_isCustomBackgroundEnabled)
+                {
+                    <div class="toggle-content custom-file-input">
+                        <InputFile OnChange="LoadBackgroundImage" AdditionalAttributes="@_bgInputAttributes"></InputFile>
+                    </div>
+                }
+            </div>
+        }
+        
+        <div class="actions">
+            <button class="v-btn primary" @onclick="OnClickSaveAsync">Save Changes</button>
         </div>
-    }
-    
-    <button class="v-btn m-1" @onclick="OnClickSaveAsync">Save Changes</button>
-    
-    @if (!string.IsNullOrWhiteSpace(_errorSpan))
-    {
-        <span class="m-1 v-text-red">@_errorSpan</span>
-    }
-    @if (!string.IsNullOrWhiteSpace(_successSpan))
-    {
-        <span class="m-1 v-text-cyan">@_successSpan</span>
-    }
-    
-</section>
+        
+        <ResultLabel Result="@_result" />
+    </div>
+    <div class="profile-preview-container">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-eye"></i>
+                Preview
+            </h3>
 
-<ProfileCard
-    @ref="@_profileCard"
-    User="@Client.Me"
-    Profile="@_profile"
-    CssStyle="position: unset; margin-left: auto; margin-right: auto; padding-top: 20px; margin-bottom: 100px;">
-</ProfileCard>
+            <ProfileCard
+                @ref="@_profileCard"
+                User="@Client.Me"
+                Profile="@_profile"
+                CssStyle="position: relative; margin: 0 auto;">
+            </ProfileCard>
+        </div>
+    </div>
+</div>
+
 
 @code {
+
+    private ITaskResult _result;
     
     private Dictionary<string, object> _bgInputAttributes = new Dictionary<string, object>()
     {
@@ -256,14 +270,7 @@
 
         var result = await _profile.UpdateAsync();
 
-        if (result.Success)
-        {
-            _successSpan = "Saved successfully.";
-        }
-        else
-        {
-            _errorSpan = "An error occured. Sorry! Refresh and try again?";
-        }
+        _result = result;
         
         StateHasChanged();
     }
@@ -297,15 +304,12 @@
 
         var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/profilebg", content);
 
-        if (!result.Success)
-        {
-            _errorSpan = result.Message;
-        }
-        else
+        if (result.Success)
         {
             _profile.BackgroundImage = result.Data;
-            _successSpan = "Background image uploaded successfully.";
         }
+
+        _result = result;
 
         StateHasChanged();
     }

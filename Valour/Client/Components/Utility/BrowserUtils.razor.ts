@@ -22,7 +22,12 @@ export const init = (dotnet: DotnetObject) => {
         await dotnet.invokeMethodAsync('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
     };
     
+    const onBlur = async () => {
+        await dotnet.invokeMethodAsync('NotifyBlur');
+    };
+    
     window.addEventListener('resize', onResize);
+    window.addEventListener('blur', onBlur);
 
     // Check if Page Visibility API is supported
     const visibilityChangeEvent = "visibilitychange";
@@ -81,6 +86,10 @@ export const getElementPosition = (element: HTMLElement): { x: number, y: number
     const { left, top } = element.getBoundingClientRect();
     return { x: left, y: top };
 };
+
+export const getElementBoundingRect = (element: HTMLElement) => {
+    return element.getBoundingClientRect();
+}
 
 export const getWindowUri = (): UriLocation => {
     return {

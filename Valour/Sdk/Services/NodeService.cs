@@ -1,5 +1,6 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
+using Valour.Shared;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -39,7 +40,7 @@ public class NodeService : ServiceBase
         SetupLogging(client.Logger, LogOptions);
     }
     
-    public async Task SetupPrimaryNodeAsync()
+    public async Task<TaskResult> SetupPrimaryNodeAsync()
     {
         string nodeName = null;
 
@@ -61,7 +62,8 @@ public class NodeService : ServiceBase
         
         // Initialize primary node
         _client.PrimaryNode = new Node(_client);
-        await _client.PrimaryNode.InitializeAsync(nodeName, true);
+        
+        return await _client.PrimaryNode.InitializeAsync(nodeName, true);
     }
     
     

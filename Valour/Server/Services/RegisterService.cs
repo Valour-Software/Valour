@@ -1,5 +1,5 @@
 using SendGrid;
-using Valour.Server.Config;
+using Valour.Config.Configs;
 using Valour.Server.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
@@ -46,7 +46,7 @@ public class RegisterService
         _messageService = messageService;
     }
     
-    public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx)
+    public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
     {
         if (await _db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
             return new(false, "Username is taken");
@@ -58,7 +58,7 @@ public class RegisterService
         if (age < 13)
             return new TaskResult(false, "You must be 13 to use Valour. Sorry!");
         
-        if (await _db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
+        if (await _db.PrivateInfos.AnyAsync(x => x.Email.ToLower() == request.Email))
             return new(false, "This email has already been used");
 
         var emailValid = UserUtils.TestEmail(request.Email);
@@ -118,7 +118,7 @@ public class RegisterService
         {
             user = new()
             {
-                Id = IdManager.Generate(),
+                Id = forceId ?? IdManager.Generate(),
                 Name = request.Username,
                 Tag = await _userService.GetUniqueTag(request.Username),
                 TimeJoined = DateTime.UtcNow,
@@ -145,7 +145,7 @@ public class RegisterService
             UserPrivateInfo userPrivateInfo = new()
             {
                 Email = request.Email,
-                Verified = (EmailConfig.instance.ApiKey == "fake-value"),
+                Verified = skipEmail || (EmailConfig.Instance.ApiKey == "fake-value"),
                 UserId = user.Id,
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 Locality = request.Locality,
@@ -153,7 +153,7 @@ public class RegisterService
                 JoinSource = request.Source
             };
             
-            _db.UserEmails.Add(userPrivateInfo.ToDatabase());
+            _db.PrivateInfos.Add(userPrivateInfo.ToDatabase());
 
             Valour.Database.Credential cred = new()
             {
@@ -194,7 +194,7 @@ public class RegisterService
             await _db.SaveChangesAsync();
             
             // Helper for dev environment
-            if (EmailConfig.instance.ApiKey != "fake-value")
+            if (!skipEmail && EmailConfig.Instance.ApiKey != "fake-value")
             {
                 var emailCode = Guid.NewGuid().ToString();
                 EmailConfirmCode confirmCode = new()
@@ -253,7 +253,7 @@ public class RegisterService
             }
 
             // Send direct message from Victor to user
-            var victorDm = await _channelService.GetDirectChatAsync(user.Id, ISharedUser.VictorUserId, true);
+            var victorDm = await _channelService.GetDirectChannelByUsersAsync(user.Id, ISharedUser.VictorUserId, true);
 
             var victorMessage = await _messageService.PostMessageAsync(new Message()
             {

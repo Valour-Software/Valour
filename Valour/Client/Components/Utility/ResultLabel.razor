@@ -5,17 +5,16 @@
 
 @if (Result.Success)
 {
-    <p class="text-info" style="@Style">@(Result.Message ?? "Success!")</p>
+    <div class="result-message success">
+        <i class="bi bi-check-circle"></i> @(Result.Message ?? "Success!")
+    </div>
 }
 else
 {
-    <p class="text-danger" style="@Style">@(Result.Message ?? "An error occured.") 
-        @if (Result.Details is not null)
-        {
-            <span>&nbsp;</span>
-            <i class="bi bi-info-circle-fill info-icon" @onclick="@OnDetails"></i>
-        }
-    </p>
+    <div class="result-message error">
+        <i class="bi bi-exclamation-circle"></i> @(Result.Message ?? "An error occured.")
+        <i class="bi bi-info-circle-fill info-icon" @onclick="@OnDetails"></i>
+    </div>
 }
 
 @code {

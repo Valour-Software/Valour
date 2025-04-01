@@ -4,20 +4,22 @@
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-    padding: 16px;
+    padding: 8px;
     width: 100%;
     align-items: center;
 }
 
 .version .logo {
-    max-width: 40px;
-    max-height: 40px;
-    margin-right: 20px;
+    max-width: 30px;
+    max-height: 30px;
+    margin-right: 8px;
+    border-radius: var(--main-radius);
     cursor: pointer;
 }
 
 .version .text {
     margin: 0;
+    font-size: 13px;
 }
 
 .version-gap {

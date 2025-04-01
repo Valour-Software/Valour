@@ -15,11 +15,13 @@
     padding-bottom: 0;
     padding-left: 4px;
     position: relative;
+    margin-top: 5px;
 }
 
 .message.minimal {
     margin-bottom: 0;
     min-height: auto;
+    margin-top: 0;
 }
 
 .message .content-holder {
@@ -199,17 +201,17 @@
     visibility: hidden;
 }
 
-.message:hover .time {
+.message:hover > .left-info > .time-container > .time {
     display: block;
 }
 
-.message.minimal:hover .time {
+.message.minimal:hover > .left-info > .time-container >  .time {
     visibility: visible;
 }
 
 
 
-.message:hover .left-info .author-avatar {
+.message:hover > .left-info .author-avatar {
     width: 30px;
     height: 30px;
     min-width: 30px;

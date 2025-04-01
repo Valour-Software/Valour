@@ -101,5 +101,26 @@ public interface ISharedPermissionsNode : ISharedPlanetModel<long>
             node.Code &= ~perm.Value;
         }
     }
+
+    public static ChannelTypeEnum GetChannelTypeEnum<TPermissionType>()
+    where TPermissionType : ChannelPermission
+    {
+        if (typeof(TPermissionType) == typeof(ChatChannelPermission))
+        {
+            return ChannelTypeEnum.PlanetChat;
+        }
+        else if (typeof(TPermissionType) == typeof(CategoryPermission))
+        {
+            return ChannelTypeEnum.PlanetCategory;
+        }
+        else if (typeof(TPermissionType) == typeof(VoiceChannelPermission))
+        {
+            return ChannelTypeEnum.PlanetVoice;
+        }
+        else
+        {
+            throw new ArgumentException("Invalid permission type");
+        }
+    }
 }
 

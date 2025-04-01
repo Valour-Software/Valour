@@ -8,25 +8,19 @@ public class PermissionsNodeService
 {
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
-    private readonly TokenService _tokenService;
-    private readonly PlanetMemberService _memberService;
     private readonly ILogger<PermissionsNodeService> _logger;
-    private readonly ChannelAccessService _accessService;
+    private readonly PlanetPermissionService _permissionService;
 
     public PermissionsNodeService(
         ValourDb db,
         CoreHubService coreHub,
-        TokenService tokenService,
-        PlanetMemberService memberService,
-        ILogger<PermissionsNodeService> logger,
-        ChannelAccessService accessService)
+        ILogger<PermissionsNodeService> logger, 
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _coreHub = coreHub;
-        _tokenService = tokenService;
-        _memberService = memberService;
         _logger = logger;
-        _accessService = accessService;
+        _permissionService = permissionService;
     }
 
     /// <summary>
@@ -47,15 +41,10 @@ public class PermissionsNodeService
         
         try
         {
-            var _old = await _db.PermissionsNodes.FindAsync(newNode.Id);
+            var oldNode = await _db.PermissionsNodes.FindAsync(newNode.Id);
             
-            if (_old is null) return new(false, $"PermissionNode not found");
-            _db.Entry(_old).CurrentValues.SetValues(newNode);
-            await _db.SaveChangesAsync();
-            
-            // Recalculate access
-            await _accessService.UpdateAllChannelAccessForChannel(newNode.TargetId);
-
+            if (oldNode is null) return new(false, $"PermissionNode not found");
+            _db.Entry(oldNode).CurrentValues.SetValues(newNode);
             await _db.SaveChangesAsync();
 
             await trans.CommitAsync();
@@ -64,9 +53,12 @@ public class PermissionsNodeService
         catch (System.Exception e)
         {
             await trans.RollbackAsync();
-            _logger.LogError(e.Message);
+            _logger.LogError("Error updating permissions node in DB: {Error}", e.Message);
             return new(false, e.Message);
         }
+        
+        // Update permissions
+        await _permissionService.HandleNodeChange(newNode);
 
         _coreHub.NotifyPlanetItemChange(newNode);
 
@@ -84,9 +76,12 @@ public class PermissionsNodeService
         }
         catch (System.Exception e)
         {
-            _logger.LogError(e.Message);
+            _logger.LogError("Error saving permissions node to DB: {Error}", e.Message);
             return new(false, e.Message);
         }
+        
+        // Update permissions
+        await _permissionService.HandleNodeChange(node);
 
         _coreHub.NotifyPlanetItemChange(node);
 

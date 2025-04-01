@@ -55,6 +55,17 @@ export function reposition(){
     if(posY + height > windowHeight){
         posY = windowHeight - height;
     }
+    
+    // Check the top position of submenus. If above the screen, shift down with margin to fit.
+    // Use boundingbox to get actual position of the element
+    for (let i = 0; i < submenus.length; i++){
+        const boundingBox = submenus[i].getBoundingClientRect();
+        const subMenuHeight = submenus[i].offsetHeight;
+        
+        if (boundingBox.top < 0){
+            submenus[i].style.transform = `translateY(${Math.abs(boundingBox.top) + 10}px)`;
+        }
+    }
 
     // Set the position of the element
     currentMenu.style.left = posX + 'px';

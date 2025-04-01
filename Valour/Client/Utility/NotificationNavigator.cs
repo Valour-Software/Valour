@@ -23,7 +23,7 @@ public static class NotificationNavigator
                 if (planet is null)
                     break;
 
-                var channel = planet.ChatChannels.FirstOrDefault(x => x.Id == notification.ChannelId);
+                var channel = planet.Channels.FirstOrDefault(x => x.Id == notification.ChannelId);
                 if (channel is null)
                     break;
 
@@ -35,7 +35,7 @@ public static class NotificationNavigator
             case NotificationSource.DirectMention:
             case NotificationSource.DirectReply:
             {
-                var channel = await client.ChannelService.FetchChannelAsync(notification.ChannelId!.Value);
+                var channel = await client.ChannelService.FetchDirectChannelAsync(notification.ChannelId!.Value);
                 if (channel is null)
                     break;
                 

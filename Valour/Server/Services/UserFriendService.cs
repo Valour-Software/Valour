@@ -10,7 +10,7 @@ public class UserFriendService
     private readonly UserService _userService;
     private readonly NotificationService _notificationService;
     private readonly CoreHubService _coreHub;
-    private readonly NodeService _nodeService;
+    private readonly NodeLifecycleService _nodeLifecycleService;
     private readonly ILogger<UserFriendService> _logger;
 
     public UserFriendService(
@@ -18,7 +18,7 @@ public class UserFriendService
         UserService userService,
         NotificationService notificationService,
         CoreHubService coreHub,
-        NodeService nodeService,
+        NodeLifecycleService nodeLifecycleService,
         ILogger<UserFriendService> logger)
     {
         _db = db;
@@ -26,7 +26,7 @@ public class UserFriendService
         _userService = userService;
         _notificationService = notificationService;
         _coreHub = coreHub;
-        _nodeService = nodeService;
+        _nodeLifecycleService = nodeLifecycleService;
     }
 
     public async Task<UserFriend> GetAsync(long userId, long friendId) =>
@@ -55,7 +55,7 @@ public class UserFriendService
         {
             User = user.ToModel(),
             Type = FriendEventType.Removed
-        }, _nodeService);
+        }, _nodeLifecycleService);
 
         return new(true, "Succcess");
     }
@@ -95,13 +95,13 @@ public class UserFriendService
             ClickUrl = $"/friends"
         };
 
-        await _notificationService.AddNotificationAsync(notification);
+        await _notificationService.SendUserNotification(friendId, notification);
         
         await _coreHub.RelayFriendEvent(friendId, new FriendEventData()
         {
             User = user.ToModel(),
             Type = FriendEventType.Added
-        }, _nodeService);
+        }, _nodeLifecycleService);
 
         return new(true, "Success", newFriend);
     }
@@ -158,7 +158,7 @@ public class UserFriendService
         {
             User = user.ToModel(),
             Type = FriendEventType.Removed
-        }, _nodeService);
+        }, _nodeLifecycleService);
 
         return new(true, "Success");
     }

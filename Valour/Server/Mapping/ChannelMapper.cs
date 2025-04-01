@@ -1,3 +1,5 @@
+using Valour.Shared.Models;
+
 namespace Valour.Server.Mapping;
 
 public static class ChannelMapper
@@ -41,6 +43,7 @@ public static class ChannelMapper
             RawPosition = channel.RawPosition,
             InheritsPerms = channel.InheritsPerms,
             IsDefault = channel.IsDefault,
+            Version = ISharedChannel.CurrentVersion,
             
             Members = channel.Members?.Select(x => x.ToDatabase()).ToList()
         };

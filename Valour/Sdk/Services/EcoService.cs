@@ -50,7 +50,7 @@ public class EcoService : ServiceBase
         var planet = await _client.PlanetService.FetchPlanetAsync(ISharedPlanet.ValourCentralId);
         var account = (await planet.Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
 
-        return _client.Cache.Sync(account);
+        return account.Sync(_client);
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public class EcoService : ServiceBase
         
         var item = (await planet.Node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
 
-        return _cache.Sync(item);
+        return item.Sync(_client);
     }
     
     /// <summary>
@@ -153,7 +153,7 @@ public class EcoService : ServiceBase
         
         var item = (await _client.PrimaryNode.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
 
-        return _cache.Sync(item);
+        return item.Sync(_client);
     }
     
     public ValueTask<Currency> FetchGlobalCurrencyAsync() =>
@@ -177,7 +177,7 @@ public class EcoService : ServiceBase
     {
         var item = (await planet.Node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planet.Id}", true)).Data;
 
-        return _cache.Sync(item);
+        return item.Sync(_client);
     }
     
     /// <summary>
@@ -195,10 +195,13 @@ public class EcoService : ServiceBase
         };
         
         var response = (await node.PostAsyncWithResponse<List<EcoAccountSearchResult>>($"api/eco/accounts/planet/canSend", request)).Data;
-        
-        for (int i = 0; i < response.Count; i++)
+
+        if (response is not null)
         {
-            response[i].Account = _cache.Sync(response[i].Account);
+            for (int i = 0; i < response.Count; i++)
+            {
+                response[i].Account.Sync(_client);
+            }
         }
 
         return response;

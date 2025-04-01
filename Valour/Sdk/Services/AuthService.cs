@@ -45,12 +45,13 @@ public class AuthService : ServiceBase
     /// <summary>
     /// Gets the Token for the client
     /// </summary>
-    public async Task<TaskResult<string>> FetchToken(string email, string password)
+    public async Task<AuthResult> FetchToken(string email, string password, string multiFactorCode = null)
     {
         TokenRequest request = new()
         {
             Email = email,
-            Password = password
+            Password = password,
+            MultiFactorCode = multiFactorCode
         };
 
         var httpContent = JsonContent.Create(request);
@@ -59,13 +60,16 @@ public class AuthService : ServiceBase
         
         if (response.IsSuccessStatusCode)
         {
-            var token = await response.Content.ReadFromJsonAsync<AuthToken>();
-            _token = token.Id;
+            var result = await response.Content.ReadFromJsonAsync<AuthResult>();
 
-            return TaskResult<string>.FromData(_token);
+            if (result.Token is not null){
+                _token = result.Token.Id;
+            }
+
+            return result;
         }
 
-        return new TaskResult<string>()
+        return new AuthResult()
         {
             Success = false,
             Message = await response.Content.ReadAsStringAsync(),
@@ -78,13 +82,29 @@ public class AuthService : ServiceBase
         _token = token;
     }
 
-    public async Task<TaskResult> LoginAsync(string email, string password)
+    public async Task<AuthResult> LoginAsync(string email, string password, string multiFactorCode = null)
     {
-        var tokenResult = await FetchToken(email, password);
+        var tokenResult = await FetchToken(email, password, multiFactorCode);
         if (!tokenResult.Success)
-            return tokenResult.WithoutData();
-        
-        return await LoginAsync();
+        {
+            return tokenResult;
+        }
+
+        var loginResult = await LoginAsync();
+        if (!loginResult.Success)
+        {
+            return new AuthResult()
+            {
+                Success = false,
+                Message = loginResult.Message,
+            };
+        }
+
+        return new AuthResult()
+        {
+            Success = true,
+            Message = "Success"
+        };
     }
     
     public async Task<TaskResult> LoginAsync()
@@ -97,16 +117,25 @@ public class AuthService : ServiceBase
         
         // Add auth header to main http client so we never have to do that again
         _client.Http.DefaultRequestHeaders.Add("authorization", Token);
-        
+
         if (_client.PrimaryNode is null)
-            await _client.NodeService.SetupPrimaryNodeAsync();
-        
+        {
+            var nodeResult = await _client.NodeService.SetupPrimaryNodeAsync();
+            if (!nodeResult.Success)
+                return nodeResult;
+        }
+        else
+        {
+            // Update the token if it's already been set
+            _client.PrimaryNode.UpdateToken();
+        }
+
         var response = await _client.PrimaryNode!.GetJsonAsync<User>($"api/users/me");
 
         if (!response.Success)
             return response.WithoutData();
 
-        _client.Me = _client.Cache.Sync(response.Data);
+        _client.Me = response.Data.Sync(_client);
         
         LoggedIn?.Invoke(_client.Me);
 
@@ -131,5 +160,53 @@ public class AuthService : ServiceBase
         };
 
         return taskResult;
+    }
+    
+    /// <summary>
+    /// Returns all the multi-factor authentication methods available to the user
+    /// </summary>
+    public async Task<List<string>> GetMfaMethodsAsync()
+    {
+        var response = await _client.PrimaryNode.GetJsonAsync<List<string>>("api/users/me/multiauth");
+
+        if (!response.Success)
+        {
+            LogError($"Failed to get multi-auth methods: {response.Message}");
+            return [];
+        }
+        
+        return response.Data;
+    }
+    
+    
+    /// <summary>
+    /// Requests and sets up a multi-factor authentication key
+    /// </summary>
+    public async Task<TaskResult<CreateAppMultiAuthResponse>> SetupMfaAsync()
+    {
+        return await _client.PrimaryNode.PostAsyncWithResponse<CreateAppMultiAuthResponse>($"api/users/me/multiAuth", null);
+    }
+    
+    public async Task<TaskResult> VerifyMfaAsync(string code)
+    {
+        var result = await _client.PrimaryNode.PostAsyncWithResponse<bool>($"api/users/me/multiAuth/verify/{code}", null);
+        
+        if (!result.Success)
+            return new TaskResult(false, result.Message);
+        
+        if (!result.Data)
+            return new TaskResult(false, "Invalid code");
+
+        return TaskResult.SuccessResult;
+    }
+    
+    public async Task<TaskResult> RemoveMfaAsync(string password)
+    {
+        var request = new RemoveMfaRequest()
+        {
+            Password = password
+        };
+        
+        return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
     }
 }

@@ -52,9 +52,14 @@
                 <div class="dot-badge-holder">
                     @if (_user.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
                     {
-                        <BasicTooltipComponent Title="Stargazer" Placement="top">
-                            <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
-                        </BasicTooltipComponent>
+                        <TooltipTrigger>
+                            <ChildContent>
+                                <img alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg" />
+                            </ChildContent>
+                            <TooltipContent>
+                                <span>Stargazer</span>
+                            </TooltipContent>
+                        </TooltipTrigger>
                     }
                     @if (_user.Id <= 22113735421460480)
                     {
@@ -286,7 +291,7 @@
     }
 
 
-    private async Task OnEditReceived(ModelUpdateEvent<Message> eventData)
+    private async Task OnEditReceived(ModelUpdatedEvent<Message> eventData)
     {
         BuildMessage();
         await CloseEditMode();
@@ -354,6 +359,9 @@
     {
         if (firstRender)
         {
+            if (_message is null)
+                return;
+            
             // Clear notification if one exists for this message
             var found = Client.NotificationService.UnreadNotificationsLookupBySource.TryGetValue(_message.Id, out var notification);
             if (found && notification.TimeRead is null)
@@ -487,7 +495,6 @@
             // Hook events
             if (_member is not null) // There is a chance they were deleted
             {
-                _member.Roles.Changed += UpdateForRoleChange;
                 _member.Updated += OnMemberUpdated;
             }
         }
@@ -502,7 +509,13 @@
     /// </summary>
     private string GetAuthorName()
     {
-        return _member is not null ? _member.Name : _user.Name;
+        if (_member is not null)
+            return _member.Name;
+        
+        if (_user is not null)
+            return _user.Name;
+        
+        return "Unknown User";
     }
     
     private string GetAuthorRoleTag()
@@ -510,14 +523,18 @@
         // If there's a member, we use the member's planet role
         if (_member is not null) 
             return _member.PrimaryRole?.Name ?? "Unknown Role";
-        
-        // Bot always shows Bot
-        if (_user.Bot)
-            return "Bot";
-        
-        // Otherwise, we use their relationship with the user
-        if (_user.Id == Client.Me.Id)
-            return "You";
+
+        if (_user is not null)
+        {
+
+            // Bot always shows Bot
+            if (_user.Bot)
+                return "Bot";
+
+            // Otherwise, we use their relationship with the user
+            if (_user.Id == Client.Me.Id)
+                return "You";
+        }
 
         return Client.FriendService.FriendLookup.ContainsKey(ParamData.Message.AuthorUserId) ? "Friend" : "User";
     }
@@ -529,19 +546,34 @@
     }
     
     public string GetAuthorAvatar() =>
-        _author.GetAvatar(AvatarFormat.Webp128);
+        _author?.GetAvatar(AvatarFormat.Webp128);
     
     public string GetAuthorAvatarAnimated()
-    {   
-        // TODO: Tweak when member avatars are implemented
-        if (!_user.HasAnimatedAvatar)
-            return null;
+    {
+        if (_user is not null)
+        {
+            // TODO: Tweak when member avatars are implemented
+            if (!_user.HasAnimatedAvatar)
+                return null;
+        }
 
-        return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+        if (_author is not null)
+        {
+            return _author.GetAvatar(AvatarFormat.WebpAnimated128);
+        }
+
+        return ISharedUser.DefaultAvatar;
     }
-    
-    public string GetAuthorAvatarUrlFallback() =>
-        _author.GetFailedAvatar();
+
+    public string GetAuthorAvatarUrlFallback()
+    {
+        if (_author is not null)
+        {
+            _author.GetFailedAvatar();
+        }
+        
+        return ISharedUser.DefaultAvatar;
+    }
 
     private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
     {
@@ -564,17 +596,17 @@
         }
     }
 
-    public void OnUserUpdated(ModelUpdateEvent<User> eventData)
+    public void OnUserUpdated(ModelUpdatedEvent<User> eventData)
     {
         bool render = false;
 
-        if (eventData.PropsChanged.Contains(nameof(_user.Name)))
+        if (eventData.Changes.On(x => x.Name))
         {
             render = true;
             _name = GetAuthorName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(_user.HasCustomAvatar)))
+        if (eventData.Changes.On(x => x.HasCustomAvatar))
         {
             render = true;
             _avatarUrl = GetAuthorAvatar();
@@ -591,17 +623,17 @@
         }
     }
 
-    private void OnMemberUpdated(ModelUpdateEvent<PlanetMember> eventData)
+    private void OnMemberUpdated(ModelUpdatedEvent<PlanetMember> eventData)
     {
         var render = false;
         
-        if (eventData.PropsChanged.Contains(nameof(_member.Nickname)))
+        if (eventData.Changes.On(x => x.Nickname))
         {
             render = true;
             _name = GetAuthorName();
         }
 
-        if (eventData.PropsChanged.Contains(nameof(_member.MemberAvatar)))
+        if (eventData.Changes.On(x => x.MemberAvatar))
         {
             render = true;
             _avatarUrl = GetAuthorAvatar();
@@ -612,22 +644,20 @@
             }
         }
 
+        if (eventData.Changes.On(x => x.RoleMembership))
+        {
+            render = true;
+            
+            _nameTag = _member.PrimaryRole.Name;
+            _nameColor = _member.PrimaryRole.Color;
+        }
+
         if (render)
         {
             ReRender();
         }
     }
     
-    // Update for any role changes
-    private void UpdateForRoleChange(ModelListChangeEvent<PlanetRole> change)
-    {
-        // Cosmetic changes
-        _nameTag = _member.PrimaryRole.Name;
-        _nameColor = _member.PrimaryRole.Color;
-        
-        ReRender();
-    }
-
     public void CheckMinimal()
     {
         if (_lastMessage != null && _message != null)
@@ -668,7 +698,6 @@
         if (_member is not null)
         {
             _member.Updated -= OnMemberUpdated;
-            _member.Roles.Changed -= UpdateForRoleChange;
         }
     }
 

@@ -1,8 +1,5 @@
 namespace Valour.Server.Workers;
 
-/// <summary>
-/// Updates the node state in redis every 30 seconds
-/// </summary>
 public class SubscriptionWorker : IHostedService, IDisposable
 {
     private readonly IServiceProvider _serviceProvider;

@@ -28,6 +28,8 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     /// The pfp to be used within the planet
     /// </summary>
     string MemberAvatar { get; set; }
+
+    public PlanetRoleMembership RoleMembership { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

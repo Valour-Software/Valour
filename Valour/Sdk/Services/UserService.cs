@@ -33,7 +33,7 @@ public class UserService : ServiceBase
         
         var user = (await _client.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
 
-        return _client.Cache.Sync(user);
+        return user.Sync(_client);
     }
 
     public async ValueTask<UserProfile> FetchProfileAsync(long userid, bool skipCache)
@@ -42,7 +42,7 @@ public class UserService : ServiceBase
             return cached;
         
         var profile = (await _client.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{userid}")).Data;
-        
-        return _client.Cache.Sync(profile);
+
+        return profile.Sync(_client);
     }
 }

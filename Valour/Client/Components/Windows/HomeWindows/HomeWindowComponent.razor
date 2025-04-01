@@ -3,6 +3,7 @@
 @inject PlanetService PlanetService
 @inject FriendService FriendService
 @inject ChannelStateService ChannelStateService
+@inject UnreadService UnreadService
 
 <div class="inner-window @_mobileTag">
     <h6 class="mt-4 text-center icons-title">Your Planets</h6>
@@ -151,13 +152,31 @@
 
         Discoverables = await PlanetService.FetchDiscoverablePlanetsAsync();
 
-        await ChannelStateService.LoadChannelStatesAsync();
+        // Render planet and friend cards before unread is loaded
+        ReRender();
+        
+        var unreadPlanetsTask = FetchAndRerenderPlanetsAsync();
+        var unreadDirectChannelsTask = FetchAndRerenderDirectChannelsAsync();
 
-        if (OnRerenderFriendCards is not null)
-            await OnRerenderFriendCards.Invoke();
+        await Task.WhenAll(unreadPlanetsTask, unreadDirectChannelsTask);
+    }
+    
+    private async Task FetchAndRerenderPlanetsAsync()
+    {
+        await UnreadService.FetchUnreadPlanetsAsync();
 
         if (OnRerenderPlanetCards is not null)
             await OnRerenderPlanetCards.Invoke();
+
+        ReRender();
+    }
+
+    private async Task FetchAndRerenderDirectChannelsAsync()
+    {
+        await UnreadService.FetchUnreadDirectChannelsAsync();
+
+        if (OnRerenderFriendCards is not null)
+            await OnRerenderFriendCards.Invoke();
 
         ReRender();
     }

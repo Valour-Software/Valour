@@ -22,20 +22,25 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
     {
         get
         {
-            if (_planet is not null) // If the planet is already stored, return it
-                return _planet;
-            
-            var planetId = GetPlanetId(); // Get the planet id from the model
-            if (planetId is null || planetId == -1) // If the id is null or -1, the model is not associated with a planet
-                return null;
-            
-            Client.Cache.Planets.TryGet(planetId.Value, out _planet); // Try to assign from cache
-            if (_planet is null) // If it wasn't in cache, throw an exception. Should have loaded the planet first.
-                throw new PlanetNotLoadedException(planetId.Value, this);
-            
-            // Return the planet
-            return _planet;
+            return GetPlanet(true);
         }
+    }
+    
+    public Planet GetPlanet(bool throwIfNull = true)
+    {
+        if (_planet is not null) // If the planet is already stored, return it
+            return _planet;
+            
+        var planetId = GetPlanetId(); // Get the planet id from the model
+        if (planetId is null || planetId == -1) // If the id is null or -1, the model is not associated with a planet
+            return null;
+            
+        Client.Cache.Planets.TryGet(planetId.Value, out _planet); // Try to assign from cache
+        if (_planet is null  && throwIfNull) // If it wasn't in cache, throw an exception. Should have loaded the planet first.
+            throw new PlanetNotLoadedException(planetId.Value, this);
+            
+        // Return the planet
+        return _planet;
     }
 
     [JsonIgnore]

@@ -1,4 +1,5 @@
 ﻿using Valour.Client.Components.Windows.ChannelWindows;
+using Valour.Client.Device;
 using Valour.Sdk.Models;
 using Valour.Shared.Utilities;
 
@@ -98,14 +99,30 @@ public static class WindowService
     
     public static async Task OpenWindowAtFocused(WindowTab tab)
     {
-        if (FocusedTab is not null)
+        // If mobile, always replace the main window
+        // TODO: Mobile window history
+        if (DeviceInfo.IsMobile)
         {
-            await FocusedTab.Layout.AddTab(tab);
+            var mainWindow = MainDock.Tabs.FirstOrDefault();
+            
+            await MainDock.Layout.AddTab(tab, false);
+            
+            if (mainWindow is not null)
+            {
+                await MainDock.Layout.RemoveTab(mainWindow);
+            }
         }
         else
         {
-            await TryAddFloatingWindow(tab);
-        } 
+            if (FocusedTab is not null)
+            {
+                await FocusedTab.Layout.AddTab(tab);
+            }
+            else
+            {
+                await TryAddFloatingWindow(tab);
+            } 
+        }
     }
     
     /// <summary>

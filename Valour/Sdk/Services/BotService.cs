@@ -19,7 +19,7 @@ public class BotService : ServiceBase
     /// <summary>
     /// Logs in and prepares the bot's client for use
     /// </summary>
-    public async Task<TaskResult> InitializeBot(string email, string password)
+    public async Task<AuthResult> InitializeBot(string email, string password)
     {
         // Ensure client HTTP client is set
         _client.SetupHttpClient();
@@ -36,7 +36,11 @@ public class BotService : ServiceBase
 
         await JoinAllChannelsAsync();
 
-        return new TaskResult(true, "Success");
+        return new AuthResult()
+        {
+            Success = true,
+            Message = "Success"
+        };
     }
     
     /// <summary>
@@ -52,7 +56,7 @@ public class BotService : ServiceBase
         // Add to cache
         foreach (var planet in planets)
         {
-            var cached = _client.Cache.Sync(planet);
+            var cached = planet.Sync(_client);
             await planet.FetchChannelsAsync();
             
             planetTasks.Add(Task.Run(async () =>

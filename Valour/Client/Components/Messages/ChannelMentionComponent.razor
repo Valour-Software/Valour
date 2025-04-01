@@ -65,14 +65,7 @@
         switch (RenderContext)
         {
             case MessageComponent messageComponent:
-                if (messageComponent.ParamData.ChatComponent is not null)
-                {
-                    await messageComponent.ParamData.ChatComponent.WindowCtx.Tab.AddSiblingTab(windowContent);
-                }
-                else
-                {
-                    await WindowService.TryAddFloatingWindow(windowContent);
-                }
+                await WindowService.OpenWindowAtFocused(windowContent);
                 break;
             default:
                 Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");

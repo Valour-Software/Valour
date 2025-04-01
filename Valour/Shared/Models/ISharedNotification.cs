@@ -23,7 +23,7 @@ public enum NotificationSource
     TradeDeclined =          0x2000,
 }
 
-public interface ISharedNotification : ISharedModel<long>
+public interface ISharedNotification : ISharedModel<Guid>
 {
     /// <summary>
     /// The user the notification was sent to

@@ -1,21 +1,64 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Channels;
 
 namespace Valour.Database;
 
-[Table("user_channel_states")]
 public class UserChannelState : ISharedUserChannelState
 {
+    public virtual User User { get; set; }
+    public virtual Channel Channel { get; set; }
+    public virtual Planet Planet { get; set; }
+    public virtual PlanetMember PlanetMember { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
     
-    [Column("channel_id")]
     public long ChannelId { get; set; }
-
-    [Column("user_id")]
     public long UserId { get; set; }
-
-    [Column("last_viewed_time")]
+    public long? PlanetId { get; set; } 
+    public long? PlanetMemberId { get; set; } // Null if not a planet channel
     public DateTime LastViewedTime { get; set; }
+    
+    public static void SetupDbModel(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserChannelState>(e =>
+        {
+            e.ToTable("user_channel_states");
+            
+            e.HasKey(x => new { x.UserId, x.ChannelId });
+            
+            e.Property(x => x.ChannelId).HasColumnName("channel_id");
+            e.Property(x => x.UserId).HasColumnName("user_id");
+            e.Property(x => x.PlanetId).HasColumnName("planet_id");
+            e.Property(x => x.PlanetMemberId).HasColumnName("member_id");
+            e.Property(x => x.LastViewedTime)
+                .HasColumnName("last_viewed_time")
+                .HasConversion(
+                    x => x,
+                    x => new DateTime(x.Ticks, DateTimeKind.Utc)
+                );
+
+            e.HasOne(x => x.User)
+                .WithMany(x => x.ChannelStates)
+                .HasForeignKey(x => x.UserId);
+            
+            e.HasOne(x => x.Channel)
+                .WithMany(x => x.UserChannelStates)
+                .HasForeignKey(x => x.ChannelId);
+            
+            e.HasOne(x => x.Planet)
+                .WithMany(x => x.UserChannelStates)
+                .HasForeignKey(x => x.PlanetId);
+            
+            e.HasOne(x => x.PlanetMember)
+                .WithMany(x => x.ChannelStates)
+                .HasForeignKey(x => x.PlanetMemberId);
+
+            // Often queried by all
+            e.HasIndex(x => x.ChannelId);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.PlanetId);
+        });
+    }
 }

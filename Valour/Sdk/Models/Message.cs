@@ -168,7 +168,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public ValueTask<Channel> FetchChannelAsync()
     {
         if (PlanetId is null)
-            return Client.ChannelService.FetchChannelAsync(ChannelId);
+            return Client.ChannelService.FetchDirectChannelAsync(ChannelId);
         else
             return Planet.FetchChannelAsync(ChannelId);
     }
@@ -233,7 +233,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
                     if (PlanetId is null || Planet.MyMember is null)
                         continue;
                     
-                    if (Planet.MyMember.Roles.ContainsId(mention.TargetId))
+                    if (Planet.MyMember.Roles.Any(x => x.Id == mention.TargetId))
                         return true;
 
                     break;
@@ -415,18 +415,18 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public Task<TaskResult<Message>> PostAsync() => 
         CreateAsync();
 
-    public override Message AddToCacheOrReturnExisting()
+    public override Message AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        return Client.Cache.Messages.Put(Id, this);
+        return Client.Cache.Messages.Put(this, flags);
     }
 
-    public override Message TakeAndRemoveFromCache()
+    public override Message RemoveFromCache(bool skipEvents = false)
     {
-        return Client.Cache.Messages.TakeAndRemove(Id);
+        return Client.Cache.Messages.Remove(this, skipEvents);
     }
     
-    public override void SyncSubModels(bool skipEvent = false, int flags = 0)
+    public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)
     {
-        ReplyTo = Client.Cache.Sync(ReplyTo);
+        ReplyTo = ReplyTo?.Sync(Client, flags);
     }
 }

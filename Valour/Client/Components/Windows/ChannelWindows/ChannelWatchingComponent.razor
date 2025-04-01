@@ -3,34 +3,30 @@
 @inject ValourClient Client
 @inject UserService UserService
 
-<SmoothDraggable StartX="20" StartY="40" FromRight="true">
-    <div class="watching-container">
-        
-        <p class="watching-title">Watching:</p>
-        
-        <div class="icons">
-            @foreach (var user in DisplayData)
+<div class="watching-container">
+    
+    <div class="icons">
+        @foreach (var user in DisplayData)
+        {
+            if (user.UserStateCode != UserState.Offline.Value)
             {
-                if (user.UserStateCode != UserState.Offline.Value)
-                {
-                    <WatchingIconComponent @key='@user.Id' User="@user"/>
-                }
+                <WatchingIconComponent @key='@user.Id' User="@user"/>
             }
+        }
 
-            @{
-                // Amount we are *not* showing
-                int remaining = TotalCount - DisplayData.Count;
+        @{
+            // Amount we are *not* showing
+            int remaining = TotalCount - DisplayData.Count;
 
-                @if (remaining > 0)
-                {
-                    <div class="remainder-text">
-                        + @remaining watching
-                    </div>
-                }
+            @if (remaining > 0)
+            {
+                <div class="remainder-text">
+                    + @remaining watching
+                </div>
             }
-        </div>
+        }
     </div>
-</SmoothDraggable>
+</div>
 
 @code {
 

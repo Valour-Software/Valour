@@ -1,5 +1,6 @@
 using Valour.Sdk.Nodes;
 using Valour.Sdk.Services;
+using Valour.Sdk.Utility;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -37,7 +38,7 @@ public class ValourClient
     public readonly MessageService MessageService;
     public readonly NodeService NodeService;
     public readonly PlanetService PlanetService;
-    public readonly ChannelService ChannelService;
+    public readonly ChannelService  ChannelService;
     public readonly PermissionService PermissionService;
     public readonly TenorService TenorService;
     public readonly SubscriptionService SubscriptionService;
@@ -47,6 +48,7 @@ public class ValourClient
     public readonly OauthService OauthService;
     public readonly SafetyService SafetyService;
     public readonly ThemeService ThemeService;
+    public readonly UnreadService UnreadService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -77,15 +79,27 @@ public class ValourClient
     /// The primary node this client is connected to
     /// </summary>
     public Node PrimaryNode { get; set; }
+    
+    /// <summary>
+    /// Used mostly for testing, allows for a custom HttpClientProvider
+    /// </summary>
+    public HttpClientProvider HttpClientProvider { get; set; }
 
-    public ValourClient(string baseAddress, LoggingService logger = null)
+    public ValourClient(string baseAddress, LoggingService logger = null, HttpClientProvider httpProvider = null)
     {
         BaseAddress = baseAddress;
+        
+        if (!BaseAddress.EndsWith('/'))
+            BaseAddress += '/';
         
         if (logger is null)
             Logger = new LoggingService();
         else 
             Logger = logger;
+        
+        HttpClientProvider = httpProvider;
+        
+        Logger.Log("App", $"ValourClient Base address: {BaseAddress}", "magenta");
         
         Cache = new CacheService(this);
         AuthService = new AuthService(this);
@@ -105,6 +119,7 @@ public class ValourClient
         OauthService = new OauthService(this);
         SafetyService = new SafetyService(this);
         ThemeService = new ThemeService(this);
+        UnreadService = new UnreadService(this);
 
         var tenorHttpClient = new HttpClient();
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
@@ -117,6 +132,10 @@ public class ValourClient
     /// </summary>
     public void SetOrigin(string origin)
     {
+        // Cloudflare pages. Use main api endpoint.
+        if (origin.Contains(".valour.pages.dev"))
+            origin = "https://app.valour.gg";
+        
         BaseAddress = origin;
         _httpClient = new HttpClient()
         {
@@ -193,7 +212,12 @@ public class ValourClient
     public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password)
     {
         var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password };
-        return await PrimaryNode.PostAsync("api/users/me/username", model);
+        var result =  await PrimaryNode.PostAsync("api/users/me/username", model);
+
+        if (result.Success)
+            Me.Name = newUsername;
+        
+        return result;
     }
     
     // Sad zone

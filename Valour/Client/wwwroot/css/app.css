@@ -1,4 +1,242 @@
-﻿:root { font-family: 'Inter', sans-serif; }
+﻿/************************************/
+/* Replacements for Bootstrap stuff */
+/************************************/
+
+:root {
+    --spacing-0: 0;
+    --spacing-1: 0.25rem;  /* 4px */
+    --spacing-2: 0.5rem;   /* 8px */
+    --spacing-3: 1rem;     /* 16px */
+    --spacing-4: 1.5rem;   /* 24px */
+    --spacing-5: 3rem;     /* 48px */
+}
+
+/* Margin Classes */
+
+/* All sides margin */
+.m-0 { margin: var(--spacing-0); }
+.m-1 { margin: var(--spacing-1); }
+.m-2 { margin: var(--spacing-2); }
+.m-3 { margin: var(--spacing-3); }
+.m-4 { margin: var(--spacing-4); }
+.m-5 { margin: var(--spacing-5); }
+
+/* Horizontal margin */
+.mx-0 { margin-left: var(--spacing-0); margin-right: var(--spacing-0); }
+.mx-1 { margin-left: var(--spacing-1); margin-right: var(--spacing-1); }
+.mx-2 { margin-left: var(--spacing-2); margin-right: var(--spacing-2); }
+.mx-3 { margin-left: var(--spacing-3); margin-right: var(--spacing-3); }
+.mx-4 { margin-left: var(--spacing-4); margin-right: var(--spacing-4); }
+.mx-5 { margin-left: var(--spacing-5); margin-right: var(--spacing-5); }
+
+/* Vertical margin */
+.my-0 { margin-top: var(--spacing-0); margin-bottom: var(--spacing-0); }
+.my-1 { margin-top: var(--spacing-1); margin-bottom: var(--spacing-1); }
+.my-2 { margin-top: var(--spacing-2); margin-bottom: var(--spacing-2); }
+.my-3 { margin-top: var(--spacing-3); margin-bottom: var(--spacing-3); }
+.my-4 { margin-top: var(--spacing-4); margin-bottom: var(--spacing-4); }
+.my-5 { margin-top: var(--spacing-5); margin-bottom: var(--spacing-5); }
+
+/* Individual margins */
+.mt-0 { margin-top: var(--spacing-0); }
+.mt-1 { margin-top: var(--spacing-1); }
+.mt-2 { margin-top: var(--spacing-2); }
+.mt-3 { margin-top: var(--spacing-3); }
+.mt-4 { margin-top: var(--spacing-4); }
+.mt-5 { margin-top: var(--spacing-5); }
+
+.mb-0 { margin-bottom: var(--spacing-0); }
+.mb-1 { margin-bottom: var(--spacing-1); }
+.mb-2 { margin-bottom: var(--spacing-2); }
+.mb-3 { margin-bottom: var(--spacing-3); }
+.mb-4 { margin-bottom: var(--spacing-4); }
+.mb-5 { margin-bottom: var(--spacing-5); }
+
+.ml-0 { margin-left: var(--spacing-0); }
+.ml-1 { margin-left: var(--spacing-1); }
+.ml-2 { margin-left: var(--spacing-2); }
+.ml-3 { margin-left: var(--spacing-3); }
+.ml-4 { margin-left: var(--spacing-4); }
+.ml-5 { margin-left: var(--spacing-5); }
+
+.mr-0 { margin-right: var(--spacing-0); }
+.mr-1 { margin-right: var(--spacing-1); }
+.mr-2 { margin-right: var(--spacing-2); }
+.mr-3 { margin-right: var(--spacing-3); }
+.mr-4 { margin-right: var(--spacing-4); }
+.mr-5 { margin-right: var(--spacing-5); }
+
+/* Padding Classes */
+
+/* All sides padding */
+.p-0 { padding: var(--spacing-0); }
+.p-1 { padding: var(--spacing-1); }
+.p-2 { padding: var(--spacing-2); }
+.p-3 { padding: var(--spacing-3); }
+.p-4 { padding: var(--spacing-4); }
+.p-5 { padding: var(--spacing-5); }
+
+/* Horizontal padding */
+.px-0 { padding-left: var(--spacing-0); padding-right: var(--spacing-0); }
+.px-1 { padding-left: var(--spacing-1); padding-right: var(--spacing-1); }
+.px-2 { padding-left: var(--spacing-2); padding-right: var(--spacing-2); }
+.px-3 { padding-left: var(--spacing-3); padding-right: var(--spacing-3); }
+.px-4 { padding-left: var(--spacing-4); padding-right: var(--spacing-4); }
+.px-5 { padding-left: var(--spacing-5); padding-right: var(--spacing-5); }
+
+/* Vertical padding */
+.py-0 { padding-top: var(--spacing-0); padding-bottom: var(--spacing-0); }
+.py-1 { padding-top: var(--spacing-1); padding-bottom: var(--spacing-1); }
+.py-2 { padding-top: var(--spacing-2); padding-bottom: var(--spacing-2); }
+.py-3 { padding-top: var(--spacing-3); padding-bottom: var(--spacing-3); }
+.py-4 { padding-top: var(--spacing-4); padding-bottom: var(--spacing-4); }
+.py-5 { padding-top: var(--spacing-5); padding-bottom: var(--spacing-5); }
+
+/* Individual paddings */
+.pt-0 { padding-top: var(--spacing-0); }
+.pt-1 { padding-top: var(--spacing-1); }
+.pt-2 { padding-top: var(--spacing-2); }
+.pt-3 { padding-top: var(--spacing-3); }
+.pt-4 { padding-top: var(--spacing-4); }
+.pt-5 { padding-top: var(--spacing-5); }
+
+.pb-0 { padding-bottom: var(--spacing-0); }
+.pb-1 { padding-bottom: var(--spacing-1); }
+.pb-2 { padding-bottom: var(--spacing-2); }
+.pb-3 { padding-bottom: var(--spacing-3); }
+.pb-4 { padding-bottom: var(--spacing-4); }
+.pb-5 { padding-bottom: var(--spacing-5); }
+
+.pl-0 { padding-left: var(--spacing-0); }
+.pl-1 { padding-left: var(--spacing-1); }
+.pl-2 { padding-left: var(--spacing-2); }
+.pl-3 { padding-left: var(--spacing-3); }
+.pl-4 { padding-left: var(--spacing-4); }
+.pl-5 { padding-left: var(--spacing-5); }
+
+.pr-0 { padding-right: var(--spacing-0); }
+.pr-1 { padding-right: var(--spacing-1); }
+.pr-2 { padding-right: var(--spacing-2); }
+.pr-3 { padding-right: var(--spacing-3); }
+.pr-4 { padding-right: var(--spacing-4); }
+.pr-5 { padding-right: var(--spacing-5); }
+
+/* Auto margins */
+.m-auto { margin: auto; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.my-auto { margin-top: auto; margin-bottom: auto; }
+.mt-auto { margin-top: auto; }
+.mb-auto { margin-bottom: auto; }
+.ml-auto { margin-left: auto; }
+.mr-auto { margin-right: auto; }
+
+/* Typography (Headers) */
+h1, .h1 {
+    font-size: 2.5rem;      /* 40px */
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h2, .h2 {
+    font-size: 2rem;        /* 32px */
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h3, .h3 {
+    font-size: 1.75rem;     /* 28px */
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h4, .h4 {
+    font-size: 1.5rem;      /* 24px */
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h5, .h5 {
+    font-size: 1.25rem;     /* 20px */
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h6, .h6 {
+    font-size: 1rem;        /* 16px */
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+/* Form Classes */
+.form-group {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    display: block;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    color: #212529;
+    background-color: #fff;
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: #e9ecef;
+    opacity: 1;
+}
+
+.form-select {
+    /* Fix issue with icon repeating to the left */
+    background-size: 1em;
+    background-position: right 0.5em center;
+    background-repeat: no-repeat;
+    /* Hide default select arrow */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/****************************************/
+/* End Replacements for Bootstrap stuff */
+/****************************************/
+
+:root { font-family: 'Inter', sans-serif; }
 @supports (font-variation-settings: normal) {
     :root { font-family: 'Inter var', sans-serif; }
 }
@@ -83,10 +321,19 @@ label {
 }
 
 .form-control {
+    line-height: 1.5;
+    font-size: 14px;
     background-color: var(--slight-tint);
     border-width: 0;
-    border-radius: 1em;
+    border-radius: var(--main-radius);
+    padding: 0.25em 0.75rem;
     color: var(--font-color);
+}
+
+.form-control::placeholder {
+    color: var(--font-color) !important;
+    opacity: 0.65 !important;
+    font-style: italic;
 }
 
 .form-control:focus {
@@ -110,6 +357,22 @@ label {
 .form-select option {
     background-color: var(--main-3);
     padding-top: 1em !important;
+}
+
+.input-group {
+    display: flex;
+}
+
+.input-group .form-control {
+    border-radius: 0;
+}
+
+.input-group > *:first-child {
+    border-radius: var(--main-radius) 0 0 var(--main-radius) !important;
+}
+
+.input-group > *:last-child {
+    border-radius: 0 var(--main-radius) var(--main-radius) 0 !important;
 }
 
 body {
@@ -152,19 +415,6 @@ body {
     cursor: pointer;
 }
 
-.sidebar-2 {
-    margin: 0px;
-    background-color: var(--main-2);
-    z-index: 1;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    max-height: 100vh;
-    max-height: 100dvh;
-    min-height: 100vh;
-    min-height: 100dvh;
-}
-
 .channel-and-topbar {
     display: flex;
     margin: 0;
@@ -175,78 +425,12 @@ body {
     overflow: hidden;
 }
 
-.channel-and-topbar-mobile {
-    flex: 0;
-    width: 100vw;
-    position: absolute;
-}
-
-.sidebar-2 .channel-name {
-    display: inline-block;
-    margin: 0px;
-    margin-top: 5px;
-    margin-left: 3px;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 27.5px;
-    line-height: 32px;
-    color: #FFFFFF;
-}
-
-.sidebar-2 .top-bar {
-    width: 100%;
-    border-top: 3px solid var(--main-3);
-}
-
-.mobile .sidebar-2 .top-bar {
-    width: 100vw;
-}
-
-.sidebar-2 .channel-description {
-    font-family: Futura;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 11px;
-    line-height: 15px;
-    color: #9E9E9E;
-}
-
-.sidebar-2 .channel-name-plus-pin .pin {
-    display: inline-block;
-    margin: 0px;
-    margin-left: 18px;
-}
-
-
-.sidebar-2 .viewing-current-channel {
-    margin-left: 15px;
-}
-
-.sidebar-2 .viewing-current-channel .pfp {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    margin-left: -15px;
-}
-
-.sidebar-2 .current-channel-info {
-    padding-top: 16px;
-    margin-left: 16px;
-    height: 115px;
-}
 
 .mainrow {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: stretch;
-}
-
-.sidebar {
-    width: 64px;
-    padding: 5px;
-    transition: width ease-in-out .2s;
 }
 
 .sidebar-container {
@@ -257,6 +441,7 @@ body {
 
 .mobile .sidebar-container {
     position: absolute;
+    height: 100%;
 }
 
 .sidebar-container.sidebar-active {
@@ -527,22 +712,6 @@ app {
     cursor: pointer;
 }
 
-#window-0:focus {
-    outline: 2px solid var(--main5);
-}
-
-#window-1:focus {
-    outline: 2px solid var(--main5);
-}
-
-#window-2:focus {
-    outline: 2px solid var(--main5);
-}
-
-#window-3:focus {
-    outline: 2px solid var(--main5);
-}
-
 td, th {
     border: 1px solid #dddddd;
     text-align: left;
@@ -698,9 +867,15 @@ blockquote {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .loading-title {
+    margin-top: 8px;
     text-align: center;
     font-weight: 700;
     font-size: 24px;

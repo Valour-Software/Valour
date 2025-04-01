@@ -1,4 +1,13 @@
 ﻿.friend-container {
-    padding: 1em;
-    padding-top: 0;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-container .list {
+    overflow: auto;
+}
+
+.friend-container .list::-webkit-scrollbar {
+    display: none;
 }

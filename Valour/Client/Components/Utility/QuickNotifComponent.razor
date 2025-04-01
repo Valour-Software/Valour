@@ -7,16 +7,21 @@
     {
         var ii = i;
         
-        <BasicTooltipComponent Title="@_showing[ii].Notification.Title" Placement="left">
-            <div 
-                class="item @(_showing[ii].Animating ? "animate" : "")" 
-                @key="@_showing[ii].Notification.Id" 
-                @onmouseenter="@(() => OnMouseEnter(_showing[ii]))"
-                @onmousedown="@((e) => OnMouseDown(e, _showing[ii]))"
-            >
-                <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" @onerror="@(() => OnImageError(ii))" />
-            </div>
-        </BasicTooltipComponent>
+        <TooltipTrigger Position="left">
+            <ChildContent>
+                <div
+                    class="item @(_showing[ii].Animating ? "animate" : "")"
+                    @key="@_showing[ii].Notification.Id"
+                    @onmouseenter="@(() => OnMouseEnter(_showing[ii]))"
+                    @onmousedown="@((e) => OnMouseDown(e, _showing[ii]))"
+                >
+                    <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" @onerror="@(() => OnImageError(ii))" />
+                </div>
+            </ChildContent>
+            <TooltipContent>
+                <span>@_showing[ii].Notification.Title</span>
+            </TooltipContent>
+        </TooltipTrigger>
     }
 </div>
 

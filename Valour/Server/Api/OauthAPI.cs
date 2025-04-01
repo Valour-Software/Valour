@@ -3,8 +3,8 @@ using System.Security.Cryptography;
 using Valour.Shared.Models;
 using Valour.Server.Database;
 using System.Collections.Concurrent;
+using Valour.Config.Configs;
 using Valour.Shared.Authorization;
-using Valour.Server.Config;
 
 namespace Valour.Server.API;
 

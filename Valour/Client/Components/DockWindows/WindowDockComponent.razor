@@ -62,31 +62,32 @@
             catch (Exception e)
             {
                 Console.WriteLine("Failed to load saved layout: " + e.Message);
-                Reset();
-                throw;
+                await Reset();
             }
             
             loaded = true;
         }
-        
-        var floatersJson = LocalStorage.GetItemAsString("coreFloaters");
-        if (!string.IsNullOrWhiteSpace(floatersJson))
+
+        if (!DeviceInfo.IsMobile)
         {
-            try
+            var floatersJson = LocalStorage.GetItemAsString("coreFloaters");
+            if (!string.IsNullOrWhiteSpace(floatersJson))
             {
-                _floaters = await _saveLoadAdapter.DeserializeFloaters(floatersJson);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Failed to load saved floaters: " + e.Message);
-                _floaters.Clear();
-                throw;
+                try
+                {
+                    _floaters = await _saveLoadAdapter.DeserializeFloaters(floatersJson);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to load saved floaters: " + e.Message);
+                    _floaters.Clear();
+                }
             }
         }
-        
+
         if (!loaded)
         {
-            Reset();
+            await Reset();
         }
         else
         {
@@ -154,9 +155,9 @@
         // this HAS to happen first to prevent component re-initialization
         _floaters.Add(tab);
         
-        await tab.SetLayout(null);
-        
         tab.SetFloatingProps(floatingProps);
+        
+        await tab.SetLayout(null);
         
         NotifyLayoutChanged();
     }
@@ -170,23 +171,23 @@
         }
     }
     
-    public Task RemoveFloatingTab(WindowTab tab)
+    public async Task RemoveFloatingTab(WindowTab tab)
     {
+        await tab.NotifyClose();
+        
         tab.SetFloatingProps(null);
         _floaters.Remove(tab);
         NotifyLayoutChanged();
-
-        return Task.CompletedTask;
     }
 
-    public void Reset(bool notifyService = true, bool saveLayout = true)
+    public async Task Reset(bool notifyService = true, bool saveLayout = true)
     {
         _floaters.Clear();
         Tabs.Clear();
         Splits.Clear();
 
         Layout = new WindowLayout(this);
-        Layout.AddTab(HomeWindowComponent.DefaultContent);
+        await Layout.AddTab(HomeWindowComponent.DefaultContent);
         
         NotifyLayoutChanged(notifyService, saveLayout);
     }

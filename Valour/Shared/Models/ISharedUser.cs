@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Models;
 
-public interface ISharedUser : ISharedModel<long>
+public interface  ISharedUser : ISharedModel<long>
 {
     const string BaseRoute = "api/users";
     public static string GetIdRoute(long id) => $"{BaseRoute}/{id}";

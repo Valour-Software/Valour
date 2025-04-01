@@ -33,7 +33,7 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    public int Position { get; set; }
     
     /// <summary>
     /// True if this is the default (everyone) role
@@ -69,6 +69,8 @@ public class PlanetRole : ServerModel<long>, ISharedPlanetRole
     public bool Bold { get; set; }
     public bool Italics { get; set; }
     public string Name { get; set; }
+    
+    public int FlagBitIndex { get; set; }
     
     public bool AnyoneCanMention { get; set; }
 

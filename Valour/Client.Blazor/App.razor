@@ -10,6 +10,7 @@
 @using Valour.Client.Components.Theme
 @using Valour.Client.Components.DockWindows
 @using Valour.Sdk.Services
+@using Valour.Client.Components.Tooltips
 
 @inject ValourClient Client
 @inject LoggingService Logger
@@ -32,6 +33,8 @@
 
 <!-- Window Target helper -->
 <WindowTargetScanner />
+
+<TooltipRoot />
 
 @if (_triedInitialLogin)
 {
@@ -77,9 +80,6 @@ else
             "blazorFuncs.registerClient",
             DotNetObjectReference.Create(this)
         );
-
-        // Request notifications in background
-        _ = RequestNotificationSubscriptionAsync();
     }
 
     private Task OnBrowserReady()
@@ -101,40 +101,31 @@ else
             
             if (!Client.IsLoggedIn)
             {
-                var cookieToken = await JsRuntime.GetCookieAsync("token");
+                var localToken = await LocalStorage.GetItemAsStringAsync("token");
 
-                if (!string.IsNullOrWhiteSpace(cookieToken))
+                if (!string.IsNullOrWhiteSpace(localToken))
                 {
-                    var result = await Client.InitializeUser(cookieToken);
+                    var result = await Client.InitializeUser(localToken);
+
+                    if (result.Code == 401)
+                    {
+                        // Clear cookie
+                        await LocalStorage.RemoveItemAsync("token");
+                    }
 
                     if (result.Success) {
                         Log("App", $"Auto-logged user {Client.Me.Name}", "magenta");
                     }
-                }
+                } 
             }
 
             _triedInitialLogin = true;
+            Log("App", $"Tried initial login. Status: {Client.IsLoggedIn}", "magenta");
 
             StateHasChanged();
         }
     }
-
-    public async Task RequestNotificationSubscriptionAsync()
-    {
-        var subscription = await JsRuntime.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
-        if (subscription != null)
-        {
-            try
-            {
-                await Client.PrimaryNode.PostAsync($"api/notification/subscribe", subscription);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-    }
-
+    
     public void Log(string prefix, string msg, string color)
     {
         _ = JsRuntime.InvokeVoidAsync($"Log", $"[{prefix}] {msg}", color);

@@ -44,30 +44,16 @@ public class Channel : ServerModel<long>, ISharedChannel
     /// </summary>
     public long? ParentId { get; set; }
     
-    // Backing store for RawPosition
-    private uint _rawPosition;
-    
     /// <summary>
-    /// The position of the channel. Works as the following:
-    /// [8 bits]-[8 bits]-[8 bits]-[8 bits]
-    /// Each 8 bits is a category, with the first category being the top level
-    /// So for example, if a channel is in the 3rd category of the 2nd category of the 1st category,
-    /// [00000011]-[00000010]-[00000001]-[00000000]
-    /// This does limit the depth of categories to 4, and the highest position
-    /// to 254 (since 000 means no position)
+    /// The full position of the channel. Includes full hierarchy.
     /// </summary>
-    public uint RawPosition
-    {
-        get => _rawPosition;
-        set
-        {
-            _rawPosition = value;
-            Position = new ChannelPosition(value);
-        }
-    }
+    public uint RawPosition { get; set; }
 
-    [JsonIgnore]
-    public ChannelPosition Position { get; protected set; }
+    public ChannelPosition Position
+    {
+        get => new ChannelPosition(RawPosition);
+        set => RawPosition = value.RawPosition;
+    }
     
     /// <summary>
     /// If this channel inherits permissions from its parent

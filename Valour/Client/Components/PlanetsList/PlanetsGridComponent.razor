@@ -1,0 +1,167 @@
+﻿@inherits ControlledRenderComponentBase
+
+@using System.Text
+@inject PlanetService PlanetService
+
+<section class="outer-section">
+    <div class="section-header">
+        <p class="subtitle">My Planets</p>
+    </div>
+    <div class="grid-section" style="@Style">
+        @foreach (var planet in _renderData)
+        {
+            <div>
+                @_planetRenderFragment(planet)
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    
+    private RenderFragment<PlanetRenderData> _planetRenderFragment = (data) =>
+        @<TooltipTrigger>
+            <ChildContent>
+                <div class="planet">
+                    @if (!string.IsNullOrWhiteSpace(data.IconText))
+                    {
+                        <img alt="planet icon" src="@data.Planet.GetIconUrl(IconFormat.Webp128)" class="icon"/>
+
+                        <div class="icon-text-holder">
+                            <h1 class="icon-text" style="@data.IconTextStyle">@data.IconText</h1>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (data.Planet.HasAnimatedIcon)
+                        {
+                            <style>
+                                .planet-icon-@data.Planet.Id:hover {
+                                    background-image: url(@data.AnimatedIconUrl), url(@data.IconUrl), url(@data.FallbackIconUrl) !important;
+                                }
+                            </style>
+                        }
+
+                        <div class="icon planet-icon-@data.Planet.Id" style="background-image: url(@data.IconUrl), url(@data.FallbackIconUrl)"></div>
+                    }
+                </div>
+            </ChildContent>
+            <TooltipContent>
+                <span>@data.Planet.Name</span>
+            </TooltipContent>
+        </TooltipTrigger>;
+
+    private class PlanetRenderData
+    {
+        public readonly Planet Planet;
+        private readonly PlanetsGridComponent _grid;
+        
+        private const string DefaultImage = "_content/Valour.Client/media/logo-circle-icon.svg";
+    
+        public string IconText;
+        public string IconTextStyle = "";
+        public int IconImageColor;
+        
+        public string IconUrl = DefaultImage;
+        public string AnimatedIconUrl = "";
+        public string FallbackIconUrl = DefaultImage;
+
+        public PlanetRenderData(Planet planet, PlanetsGridComponent grid)
+        {
+            _grid = grid;
+            Planet = planet;
+
+            if (Planet.HasCustomIcon)
+            {
+                IconUrl = Planet.GetIconUrl(IconFormat.Webp128);
+                
+                if (Planet.HasAnimatedIcon)
+                    AnimatedIconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated128);
+            }
+            else
+            {
+                GenerateAutoGraphic();
+            }
+        }
+        
+        public string GetCommunityShortCode(string communityName)
+        {
+            if (communityName.Length < 5)
+            {
+                return communityName.ToUpper();
+            }
+
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < communityName.Length; i++)
+            {
+                if (i == 0)
+                {
+                    sb.Append(char.ToUpper(communityName[0]));
+                    continue;
+                }
+            
+                bool spaceFound = false;
+                char currentChar = communityName[i];
+
+                if (i > 0 && (communityName[i - 1] == ' ' || 
+                              (char.IsUpper(currentChar) && char.IsLower(communityName[i - 1]))))
+                {
+                    spaceFound = true;
+                }
+
+                if (spaceFound)
+                {
+                    sb.Append(char.ToUpper(currentChar));
+                }
+
+                if (sb.Length >= 4)
+                {
+                    break;
+                }
+            }
+
+            return sb.ToString();
+        }
+        
+        private void GenerateAutoGraphic()
+        {
+            IconUrl = DefaultImage;
+            IconText = GetCommunityShortCode(Planet.Name);
+            IconImageColor = Planet.Id.GetHashCode();
+            IconTextStyle = $"font-size: {60f / (IconText.Length + 1)}px;";
+        }
+    }
+    
+    private List<PlanetRenderData> _renderData = new();
+    
+    private int _columns = 3;
+    
+    // Generate grid style by columns
+    private string Style => 
+        $"grid-template-columns: repeat({_columns}, 1fr); gap: 5%;";
+    
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var planetResult = await PlanetService.FetchJoinedPlanetsAsync();
+
+        if (!planetResult.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData()
+            {
+                Title = "Error loading planets",
+                Message = "An unexpected error occured.",
+                Type = ToastProgressState.Failure
+            });
+        }
+        
+        // Build render data
+        foreach (var planet in PlanetService.JoinedPlanets)
+        {
+            _renderData.Add(new PlanetRenderData(planet, this));
+        }
+        
+        ReRender();
+    }
+}

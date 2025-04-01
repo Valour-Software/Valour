@@ -3,6 +3,7 @@
     flex-direction: column;
     
     transition: opacity 0.2s ease-in-out;
+    animation: windowZoomFadeIn 0.2s ease-in-out;
 }
 
 .window-wrapper.floating {
@@ -36,13 +37,20 @@
     display: flex;
     flex-direction: column;
     pointer-events: all;
-    background-color: var(--main-3);
+    background-color: var(--main-2);
     max-height: calc(100% - 30px);
     flex: 1 1 auto;
+    border-top: 4px solid var(--main-5);
 }
 
 .mobile .window {
     max-height: 100%;
+}
+
+.floating .window {
+    border: 4px solid var(--main-5);
+    border-radius: 0 0 1em 1em;
+    border-top: none;
 }
 
 .window.floating {
@@ -61,6 +69,11 @@
 .tab-wrapper {
     transition: transform, width, margin-left 0.2s ease-in-out;
     pointer-events: all;
+
+    width: 50%;
+    margin-left: 50%;
+    display: flex;
+    flex-direction: row;
 }
 
 .tab-wrapper.floating {
@@ -70,39 +83,48 @@
 
 .tab-wrapper.docked {
     padding-right: 5px;
+    max-width: 250px;
 }
 
 .tab-wrapper.last {
     padding-right: 0;
+    max-width: 282px;
+}
+
+.active .tab {
+    background-color: var(--main-5);
 }
 
 .tab {
     height: 30px;
     padding: 5px;
-    background-color: var(--main-5);
+    background-color: var(--main-4);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-radius: 1em 1em 0 0;
+    border-radius: var(--main-radius) var(--main-radius) 0 0;
     cursor: pointer;
     min-width: 150px;
     box-shadow: #000 0 0 5px;
+    flex-grow: 1;
 }
 
-.active .tab {
-    background-color: var(--p-cyan-purple);
+.tab.add {
+    max-width: 32px;
+    min-width: 32px;
+    margin-left: 4px;
+    background-color: transparent;
 }
 
-.active .tab:hover {
-    background-color: var(--p-purple);
+.tab.add i {
+    font-size: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    color: var(--strong-tint);
 }
 
 .tab:hover {
-    background-color: var(--p-cyan-purple);
-}
-
-.tab:active {
-    background-color: var(--p-purple);
+    background-color: var(--main-5);
 }
 
 .tab-info {

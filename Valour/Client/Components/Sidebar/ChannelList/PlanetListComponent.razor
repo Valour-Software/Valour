@@ -1,26 +1,47 @@
-﻿@inject ChannelListManager ListManager
+﻿@using Valour.Shared.Utilities
+@inject ChannelListManager ListManager
 @inject ContextMenuService ContextMenuService
 @inject ChannelService ChannelService
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
 
 <div 
     class="@GetCssClass()" 
     id="list-@Planet.Id"
     @oncontextpress="@OnContextPress">
-    <div style="cursor:pointer" id="list-inner-@Planet.Id">
-        <div @onclick='@OnClick'
-             class="header" ondragover="event.preventDefault();">
-            <img alt="planet dropdown arrow" class="arrow" src="_content/Valour.Client/media/channel-icons/category_unread.svg" style="@GetArrowStyle()">
-            <p class="planet-name">
-                @Planet.Name
-            </p>
-
-            <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon" />
+    <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
+        <div @onclick='@OnClick' class="header" ondragover="event.preventDefault();">
+            <div class="left">
+                <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon"/>
+                <p class="planet-name">
+                    @Planet.Name
+                </p>
+            </div>
+            <div class="right">
+                @if (_notifications > 0)
+                {
+                    <div class="unread-badge notification">
+                        <span>@_notifications</span>
+                    </div>
+                }
+                else if (_hasUnread)
+                {
+                    <div class="unread-badge"></div>
+                }
+                
+                @if (_canEdit)
+                {
+                    <div class="edit-button" @onclick:stopPropagation="true" @onclick="@OnClickEdit">
+                        <i class="bi bi bi-gear-fill"></i>
+                    </div>
+                }
+            </div>
         </div>
     </div>
     <div class="channel-list">
-        
         @if (Open)
         {
+            <div class="v-gradient-underline"></div>
             <div class="channel planet-about" @onclick="OnClickPlanetInfo">
                 <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
                 <p class="name">
@@ -28,43 +49,103 @@
                 </p>
             </div>
 
-            <div>
-                <!-- The Modal -->
-                @foreach (var channel in TopChannels)
+            <div class="list-wrapper">
+                @foreach (var root in RootChannels)
                 {
-                    <ChannelListItem @key="@channel.Id"
+                    <ChannelListItem @key="@root.Id"
                                      PlanetComponent="@this"
-                                     AllChannels="@Planet.Channels"
-                                     Channel="@channel"
-                                     IsTopLevel="@true" />
+                                     Channel="@root"/>
                 }
             </div>
         }
     </div>
 </div>
-
+ 
 @code {
-    [Parameter]
+    public HybridEvent ChannelsNeedRefresh;
+    
+    /// <summary>
+    /// A hashset of all the categories which have been closed (minimized)
+    /// </summary>
+    public HashSet<long> ClosedCategories = new();
+    
+    public List<Channel> RootChannels = new();
+    
+    [Parameter] 
     public Planet Planet { get; set; }
 
     public bool Open { get; set; } = true;
 
-    public List<Channel> TopChannels;
+    private int _notifications;
+    private bool _hasUnread;
+    
+    private static bool _canEdit;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Initialize collections
-        TopChannels = new List<Channel>();
+        Planet.Channels.Changed += OnChannelsChanged;
 
-        // Handle list change
-        ModelObserver<Channel>.AnyUpdated += OnChannelUpdate;
-
-        // Handle Deletions
-        ModelObserver<Channel>.AnyDeleted += OnChannelDelete;
-
-        ChannelService.CategoryReordered += OnOrderUpdate;
+        await UnreadService.FetchUnreadPlanetChannelsAsync(Planet.Id);
         
-        GetTopLevelItems();
+        DetermineUnreadAndNotifications();
+        DeterminePermissions();
+        DetermineRootChannels();
+        
+        StateHasChanged();
+    }
+    
+    private void DetermineRootChannels()
+    {
+        RootChannels = Planet.Channels.Where(x => (x.RawPosition & 0x00FFFFFF) == 0).ToList();
+    }
+
+    private void OnChannelsChanged(IModelEvent<Channel> eventData)
+    {
+        Console.WriteLine("Channels changed");
+        DetermineRootChannels();
+        StateHasChanged();
+    }
+    
+    public bool GetVisible(Channel channel)
+    {
+        if (channel.ParentId is not null)
+        {
+            if (ClosedCategories.Contains(channel.ParentId.Value))
+            {
+                return false;
+            }
+            
+            var parent = Planet.Channels.Get(channel.ParentId.Value);
+            if (parent is null)
+                return true;
+            
+            return GetVisible(parent);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    public void SetCategoryOpened(long categoryId, bool value)
+    {
+        if (value)
+            ClosedCategories.Add(categoryId);
+        else
+            ClosedCategories.Remove(categoryId);
+        
+        StateHasChanged();
+    }
+
+    private void DeterminePermissions()
+    {
+        _canEdit = Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
+    }
+
+    private void DetermineUnreadAndNotifications()
+    {
+        _hasUnread = UnreadService.IsPlanetUnread(Planet.Id);
+        _notifications = NotificationService.GetPlanetNotifications(Planet.Id);
     }
 
     private void OnContextPress(ContextPressEventArgs e)
@@ -76,62 +157,7 @@
             }
         );
     }
-
-    private Task OnOrderUpdate(CategoryOrderEvent eventData)
-    {
-        if (eventData.PlanetId != Planet.Id)
-            return Task.CompletedTask;
-
-        if (eventData.CategoryId is null)
-        {
-            GetTopLevelItems();
-            StateHasChanged();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task OnChannelUpdate(ModelUpdateEvent<Channel> eventData)
-    {
-        if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
-            eventData.Model.ParentId is not null) // We only render top level
-                return Task.CompletedTask; 
-
-        // Add and sort new item
-        if (!TopChannels.Any(x => x.Id == eventData.Model.Id))
-            TopChannels.Add(eventData.Model);
-        
-        SortTopItems();
-        
-        StateHasChanged();
-
-        return Task.CompletedTask;
-    }
     
-    private Task OnChannelDelete(Channel channel)
-    {
-        if (channel.PlanetId != Planet.Id || // Don't care about other planets
-            channel.ParentId != null) // We only render top level
-            return Task.CompletedTask;
-
-        // Remove - don't need to sort when removing
-        TopChannels.RemoveAll(x => x.Id == channel.Id);
-        
-        StateHasChanged();
-
-        return Task.CompletedTask;
-    }
-
-    private void SortTopItems()
-    {
-        TopChannels.Sort((x, y) =>
-        {
-            var a = x.RawPosition;
-            var b = y.RawPosition;
-            return a.CompareTo(b);
-        });
-    }
-
     public string GetCssClass() => 
         Open ? "planet is-open" : "planet";
 
@@ -143,21 +169,15 @@
         Open = !Open;
         StateHasChanged();
     }
-
-    private void GetTopLevelItems()
+    
+    private void OnClickEdit()
     {
-        TopChannels.Clear();
-        foreach (var channel in Planet.Channels)
+        var data = new EditPlanetComponent.ModalParams()
         {
-            if (channel.ParentId is null)
-            {
-                TopChannels.Add(channel);
-            }
-        }
-
-        SortTopItems();
-            
-        Console.WriteLine($"Found {TopChannels.Count} top level channels and categories");
+            Planet = Planet
+        };
+        
+        ModalRoot.Instance.OpenModal<EditPlanetComponent>(data);
     }
     
     private async Task OnClickPlanetInfo()

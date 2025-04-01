@@ -9,7 +9,12 @@ self.addEventListener('install', async event => {
 });
 
 self.addEventListener('push', event => {
+    
+    console.log('[Service Worker] Push Received.');
     const payload = event.data.json();
+    
+    console.log(payload);
+    
     event.waitUntil(
         self.registration.showNotification(payload.title, {
             body: payload.message,

@@ -1,101 +1,173 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
 
-[Table("planet_roles")]
 public class PlanetRole : ISharedPlanetRole
 {
     ///////////////////////////
     // Relational Properties //
     ///////////////////////////
-    
-    [ForeignKey("PlanetId")]
+
     public Planet Planet { get; set; }
-    
-    [InverseProperty("Role")]
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
     
+    [JsonIgnore]
+    [Obsolete("Use new RoleMembership!")]
+    public virtual ICollection<OldPlanetRoleMember> OldRoleMembers { get; set; }
+
     ///////////////////////
     // Entity Properties //
     ///////////////////////
     
-    [Key]
-    [Column("id")]
+    /// <summary>
+    /// The Id of the role
+    /// </summary>
     public long Id { get; set; }
     
     /// <summary>
+    /// The index of the role in the membership flags.
+    /// Ex: 5 would be the 5th bit in the membership flags
+    /// </summary>
+    public int FlagBitIndex { get; set; }
+
+    /// <summary>
     /// True if this is an admin role - meaning that it overrides all permissions
     /// </summary>
-    [Column("is_admin")]
     public bool IsAdmin { get; set; }
 
     /// <summary>
     /// The id of the planet this belongs to
     /// </summary>
-    [Column("planet_id")]
     public long PlanetId { get; set; }
 
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    [Column("position")]
-    public uint Position { get; set; }
-    
+    public int Position { get; set; }
+
     /// <summary>
     /// True if this is the default (everyone) role
     /// </summary>
-    [Column("is_default")]
     public bool IsDefault { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
-    [Column("permissions")]
     public long Permissions { get; set; }
 
     /// <summary>
     /// The chat channel permissions for the role
     /// </summary>
-    [Column("chat_perms")]
     public long ChatPermissions { get; set; }
 
     /// <summary>
     /// The category permissions for the role
     /// </summary>
-    [Column("cat_perms")]
     public long CategoryPermissions { get; set; }
 
     /// <summary>
     /// The voice channel permissions for the role
     /// </summary>
-    [Column("voice_perms")]
     public long VoicePermissions { get; set; }
 
     /// <summary>
     /// The hex color for the role
     /// </summary>
-    [Column("color")]
     public string Color { get; set; }
 
     // Formatting options
-    [Column("bold")]
     public bool Bold { get; set; }
 
-    [Column("italics")]
     public bool Italics { get; set; }
 
-    [Column("name")]
     public string Name { get; set; }
-    
-    [Column("anyone_can_mention")]
+
     public bool AnyoneCanMention { get; set; }
+    
+    // Used for migrations
+    public int Version { get; set; }
 
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
+
+    public static void SetupDbModel(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PlanetRole>(e =>
+        {
+            e.ToTable("planet_roles");
+
+            // Key
+            e.HasKey(x => x.Id);
+
+            // Properties
+            e.Property(x => x.Id)
+                .HasColumnName("id");
+            
+            e.Property(x => x.FlagBitIndex)
+                .HasColumnName("local_index");
+
+            e.Property(x => x.IsAdmin)
+                .HasColumnName("is_admin");
+
+            e.Property(x => x.PlanetId)
+                .HasColumnName("planet_id");
+
+            e.Property(x => x.Position)
+                .HasColumnName("position");
+
+            e.Property(x => x.IsDefault)
+                .HasColumnName("is_default");
+
+            e.Property(x => x.Permissions)
+                .HasColumnName("permissions");
+
+            e.Property(x => x.ChatPermissions)
+                .HasColumnName("chat_perms");
+
+            e.Property(x => x.CategoryPermissions)
+                .HasColumnName("cat_perms");
+
+            e.Property(x => x.VoicePermissions)
+                .HasColumnName("voice_perms");
+
+            e.Property(x => x.Color)
+                .HasColumnName("color");
+
+            e.Property(x => x.Bold)
+                .HasColumnName("bold");
+
+            e.Property(x => x.Italics)
+                .HasColumnName("italics");
+
+            e.Property(x => x.Name)
+                .HasColumnName("name");
+
+            e.Property(x => x.AnyoneCanMention)
+                .HasColumnName("anyone_can_mention");
+            
+            e.Property(x => x.Version)
+                .HasColumnName("version");
+
+            // Relationships
+            e.HasOne(x => x.Planet)
+                .WithMany(x => x.Roles)
+                .HasForeignKey(x => x.PlanetId);
+
+            e.HasMany(x => x.PermissionNodes)
+                .WithOne(x => x.Role)
+                .HasForeignKey(x => x.RoleId);
+            
+            // Indices
+            e.HasIndex(x => x.PlanetId);
+            
+            e.HasIndex(x => new { x.PlanetId, x.Id })
+                .IsUnique();
+        });
+    }
 }
