@@ -231,22 +231,51 @@ public class CoreHub : Hub
 
     #region Calls
 
-    public async Task<TaskResult<LiveCallModel>> JoinPlanetLiveCall(long planetId, long channelId)
+    public struct CallAuthResult
+    {
+        public Channel Channel;
+        public PlanetMember Member;
+        
+        public CallAuthResult(Channel channel, PlanetMember member)
+        {
+            Channel = channel;
+            Member = member;
+        }
+    }
+    
+    public async Task<TaskResult<CallAuthResult>> TryAuthorizeViewVoiceChannel(long planetId, long channelId)
     {
         var authToken = GetCurrentToken();
-        if (authToken == null) return TaskResult<LiveCallModel>.FromFailure("Unauthorized", HttpStatusCode.Unauthorized);
+        if (authToken == null) return TaskResult<CallAuthResult>.FromFailure("Unauthorized", HttpStatusCode.Unauthorized);
         
         // Check if the user is a member of the planet
         var member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
         if (member == null)
-            return TaskResult<LiveCallModel>.FromFailure("You are not a member of this planet.", HttpStatusCode.Forbidden);
+            return TaskResult<CallAuthResult>.FromFailure("You are not a member of this planet.", HttpStatusCode.Forbidden);
 
         var channel = await _channelService.GetChannelAsync(planetId, channelId);
         if (channel is null)
-            return TaskResult<LiveCallModel>.FromFailure("Channel not found.", HttpStatusCode.NotFound);
+            return TaskResult<CallAuthResult>.FromFailure("Channel not found.", HttpStatusCode.NotFound);
         
         if (channel.ChannelType != ChannelTypeEnum.PlanetVoice)
-            return TaskResult<LiveCallModel>.FromFailure("Channel is not a voice channel.", HttpStatusCode.BadRequest);
+            return TaskResult<CallAuthResult>.FromFailure("Channel is not a voice channel.", HttpStatusCode.BadRequest);
+
+        // Check if the user has permission to view the channel
+        if (!await _channelService.HasPermissionAsync(channel, member, VoiceChannelPermissions.View))
+            return TaskResult<CallAuthResult>.FromFailure("You do not have permission to view this channel.", HttpStatusCode.Forbidden);
+        
+        return TaskResult<CallAuthResult>.FromData(new (channel, member));
+    }
+
+    public async Task<TaskResult<LiveCallModel>> JoinPlanetLiveCall(long planetId, long channelId)
+    {
+        // Handles access to channel and returns the channel or failure
+        var auth = await TryAuthorizeViewVoiceChannel(planetId, channelId);
+        if (!auth.Success)
+            return TaskResult<LiveCallModel>.FromFailure(auth.Message, auth.Code);
+
+        var channel = auth.Data.Channel;
+        var member = auth.Data.Member;
 
         // Check if the user has permission to join the channel
         if (!await _channelService.HasPermissionAsync(channel, member, VoiceChannelPermissions.Join))
@@ -256,6 +285,21 @@ public class CoreHub : Hub
         var result = await _callService.JoinPlanetLiveCallAsync(channel, member);
 
         return result;
+    }
+
+    public async Task<TaskResult<IEnumerable<LiveCallParticipant>>> GetPlanetLiveCallParticipants(long planetId, long channelId)
+    {
+        // Handles access to channel and returns the channel or failure
+        var auth = await TryAuthorizeViewVoiceChannel(planetId, channelId);
+        if (!auth.Success)
+            return TaskResult<IEnumerable<LiveCallParticipant>>.FromFailure(auth.Message, auth.Code);
+
+        var channel = auth.Data.Channel;
+        var member = auth.Data.Member;
+        
+        var participants = await _callService.GetCallParticipantsAsync(channelId);
+        
+        return TaskResult<IEnumerable<LiveCallParticipant>>.FromData(participants);
     }
 
     #endregion
