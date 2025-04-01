@@ -468,7 +468,7 @@ public class SortedServerModelList<TModel, TId> : ServerModelList<TModel, TId>
                 else
                 {
                     List.Add(model);
-                    IdMap.Add(model.Id, model);
+                    IdMap[model.Id] = model;
                 }
             }
 
@@ -497,7 +497,7 @@ public class SortedServerModelList<TModel, TId> : ServerModelList<TModel, TId>
 
             foreach (var item in enumerated)
             {
-                IdMap.Add(item.Id, item);
+                IdMap[item.Id] = item;
             }
 
             List.Sort(ISortable.Comparer);
