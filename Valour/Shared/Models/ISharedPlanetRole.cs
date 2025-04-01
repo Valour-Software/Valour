@@ -61,7 +61,7 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    int Position { get; set; }
+    uint Position { get; set; }
 
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

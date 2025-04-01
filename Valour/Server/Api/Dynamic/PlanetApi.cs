@@ -239,7 +239,7 @@ public class PlanetApi
         return Results.Json(counts);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/roles/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetRoleOrderRouteAsync(
         [FromBody] long[] order,

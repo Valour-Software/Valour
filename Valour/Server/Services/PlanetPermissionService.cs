@@ -154,6 +154,15 @@ public class PlanetPermissionService
 
         hostedPlanet.PermissionCache.ClearAllChannelAccessRoleComboCache();
     }
+    
+    /// <summary>
+    /// When role order changes, nuke the entire permissions cache. Too much can change.
+    /// </summary>
+    public async Task HandleRoleOrderChange(long planetId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        hostedPlanet.PermissionCache.Clear();
+    }
 
     public async ValueTask<bool> HasChannelAccessAsync(long memberId, long channelId)
     {
@@ -172,17 +181,19 @@ public class PlanetPermissionService
             return cached.Value;
         
         // Get all the roles the member has
-        PlanetRole? highestRole = null;
+        PlanetRole? highestAuthorityRole = null;
         foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
         {
             var role = hostedPlanet.GetRoleByIndex(roleIndex);
             if (role is null)
                 continue;
-            if (highestRole is null || role.Position > highestRole.Position)
-                highestRole = role;
+            
+            // Remember: lower position = higher authority
+            if (highestAuthorityRole is null || role.Position < highestAuthorityRole.Position)
+                highestAuthorityRole = role;
         }
 
-        var authority = highestRole?.GetAuthority() ?? 0;
+        var authority = highestAuthorityRole?.GetAuthority() ?? 0;
         hostedPlanet.PermissionCache.SetAuthority(member.RoleMembership, authority);
         return authority;
     }

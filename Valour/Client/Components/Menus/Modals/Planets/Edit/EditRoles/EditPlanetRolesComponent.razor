@@ -215,10 +215,15 @@
         </div>
 
         <div class="roles-list">
-            @foreach (PlanetRole role in Planet.Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
+            @foreach (var role in Planet.Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
             {
                 // For magic lambda
                 var roleX = role;
+                var hasCount = false;
+                var count = 0;
+                
+                if (_roleMemberCounts is not null)
+                    _roleMemberCounts.TryGetValue(roleX.Id, out count);
 
                 <div  
                     @onpointerdown="@(e => OnRoleItemClick(roleX))" 
@@ -233,8 +238,11 @@
                         </p>
                     </div>
                     <div class="role-member-count-div">
-                        <p class="member-count">@_roleMemberCounts[role.Id]</p>
-                        <img alt="Person" class="member-icon" src="_content/Valour.Client/media/Person-Icon.svg" />
+                        @if (hasCount)
+                        {
+                            <p class="member-count">@count</p>
+                        }
+                        <img alt="Person" class="member-icon" src="_content/Valour.Client/media/Person-Icon.svg"/>
                     </div>
                 </div>
             }

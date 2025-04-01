@@ -33,7 +33,7 @@ public class MigrationWorker : IHostedService
         
         // Ensure all default roles are positioned correctly
         var defRowsUpdated = await db.PlanetRoles.Where(x => x.IsDefault)
-            .ExecuteUpdateAsync(x => x.SetProperty(x => x.Position, int.MaxValue));
+            .ExecuteUpdateAsync(x => x.SetProperty(x => x.Position, uint.MaxValue));
         
         _logger.LogInformation("Updated {Count} default roles", defRowsUpdated);
         

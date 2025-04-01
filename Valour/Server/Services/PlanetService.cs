@@ -146,16 +146,20 @@ public class PlanetService
     /// </summary>
     public async Task<TaskResult> SetRoleOrderAsync(long planetId, long[] orderIn)
     {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        
         var planetRoles = await _db.PlanetRoles.Where(x => x.PlanetId == planetId).ToArrayAsync(); 
         
         var order = new List<long>(orderIn.Length);
         
         await using var tran = await _db.Database.BeginTransactionAsync();
+        
+        var changedRoles = new List<PlanetRole>();
 
         try
         {
 
-            var newPosition = 0;
+            uint newPosition = 0;
             foreach (var roleId in orderIn)
             {
                 if (!order.Contains(roleId))
@@ -173,6 +177,8 @@ public class PlanetService
                     {
                         existingRole.Position = newPosition;
                         _db.PlanetRoles.Update(existingRole);
+                        
+                        changedRoles.Add(existingRole.ToModel());
                     }
                 }
                 else
@@ -196,6 +202,14 @@ public class PlanetService
             _logger.LogError("Error setting role order: {Error}", e.Message);
             return new TaskResult(false, "An unexpected error occured while saving the database changes.");
         }
+
+        foreach (var role in changedRoles)
+        {
+            hostedPlanet.UpsertRole(role);
+        }
+        
+        // We completely dump all permissions for the planet when roles are reordered
+        await _permissionService.HandleRoleOrderChange(planetId);
         
         _coreHub.NotifyRoleOrderChange(new RoleOrderEvent()
         {

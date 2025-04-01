@@ -518,7 +518,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         {
             if (Roles.TryGet(e.Order[i], out var role))
             {
-                role.Position = i;
+                role!.Position = (uint)i;
             }
         }
         
