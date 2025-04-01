@@ -56,6 +56,19 @@ section {
     min-width: 300px;
 }
 
+.rightside .close-button {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+    font-size: 18px;
+    background-color: var(--main-1);
+    padding: 4px 12px;
+    border: 1px solid var(--p-cyan);
+    border-radius: var(--main-radius);
+    box-shadow: 0 0 10px black;
+}
+
 .rightside::before {
     content: '';
     position: absolute;

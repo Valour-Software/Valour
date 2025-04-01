@@ -1,0 +1,142 @@
+/* Profile Editor Styling */
+.profile-editor-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.editor-section {
+    background-color: var(--main-3);
+    border-radius: var(--main-radius);
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border-left: 3px solid var(--p-cyan);
+    transition: box-shadow 0.2s ease;
+}
+
+.editor-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.editor-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--main-4);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-preview-container {
+    position: sticky;
+    top: 1rem;
+}
+
+/* Form controls */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.v-input {
+    width: 100%;
+    background-color: var(--main-4);
+    border: 1px solid var(--main-5);
+    border-radius: var(--small-radius);
+    padding: 0.6rem;
+    color: var(--font-color);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.v-input:focus {
+    border-color: var(--p-cyan);
+    box-shadow: 0 0 0 2px rgba(55, 164, 206, 0.25);
+}
+
+textarea.v-input {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Toggle item styling */
+.toggle-item {
+    background-color: var(--main-4);
+    border-radius: var(--small-radius);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.toggle-item:last-child {
+    margin-bottom: 0;
+}
+
+.toggle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.toggle-title {
+    font-weight: 500;
+}
+
+.toggle-description {
+    color: var(--font-alt-color);
+    font-size: 0.85rem;
+}
+
+.toggle-content {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--main-5);
+}
+
+/* Color picker section */
+.color-pickers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.color-picker-item {
+    margin-bottom: 1rem;
+}
+
+.color-picker-item .v-span {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Actions */
+.actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-start;
+    gap: 1rem;
+}
+
+.actions .v-btn {
+    min-width: 120px;
+}
+
+/* Custom file input */
+.custom-file-input {
+    margin-top: 1rem;
+}
+
+.custom-file-input input {
+    margin-top: 0.5rem;
+}

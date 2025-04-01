@@ -4,91 +4,101 @@
 @inject ValourClient Client
 @inject AuthService AuthService
 
-<div class="title-container">
-    <h3>Basic Info <i class="bi bi-info-circle-fill"></i></h3>
-    <p class="subtitle">Change your basic account settings</p>
-</div>
+<div class="settings-container">
+    <div class="settings-section">
+        <div class="title-container">
+            <h3>Basic Info <i class="bi bi-info-circle-fill"></i></h3>
+            <p class="subtitle">Change your basic account settings</p>
+        </div>
 
-<br/>
-<div class="preview">
-    <UserInfoComponent User="@Client.Me" @ref="@_infoPreview" />
-</div>
+        <div class="preview">
+            <UserInfoComponent User="@Client.Me" @ref="@_infoPreview" />
+        </div>
 
-<div class="mt-4 mb-4">
-    <label>Status Message</label>
-    <div class="input-group" style="max-width: 400px;">
-        <input class="form-control" placeholder="Choose a status..." @bind="_status" />
-        <button class="btn v-btn round-right" @onclick="OnStatusApply">Apply</button>
+        <div class="input-container">
+            <label>Status Message</label>
+            <div class="input-group" style="max-width: 400px;">
+                <input class="form-control" placeholder="Choose a status..." @bind="_status" />
+                <button class="btn v-btn round-right" @onclick="OnStatusApply">Apply</button>
+            </div>
+            <ResultLabel Result="@_statusChangeResult" />
+        </div>
+
+        <div class="input-container">
+            <label>Status Code</label>
+            <div class="input-group" style="max-width: 400px;">
+                <InputSelect class="form-select" @bind-Value="_statusCode">
+                    <option value="0">Automatic</option>
+                    <option value="4">Online</option>
+                    <option value="2">Away</option>
+                    <option value="3">Do Not Disturb</option>
+                    <option value="1">Offline</option>
+                </InputSelect>
+                <button class="btn v-btn round-right" @onclick="@OnStatusCodeApply">Apply</button>
+            </div>
+            <ResultLabel Result="@_statusCodeChangeResult" />
+        </div>
+
+        <div class="input-container">
+            <label>Tag</label>
+            <div class="input-group" style="max-width: 400px">
+                <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(Client.Me.Subscription is null)" />
+                <button class="btn v-btn round-right" @onclick="@OnTagApply" disabled="@(Client.Me.Subscription is null)">Apply</button>
+            </div>
+            @if (Client.Me.Subscription is null) {
+                <p class="helper-text">You need Stargazer to change your tag.</p>
+            }
+            <ResultLabel Result="@_tagChangeResult" />
+        </div>
+
+        <div class="avatar-container">
+            <label>Your Avatar</label>
+            <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
+            <p class="helper-text">Click the image to upload a new profile picture</p>
+            <ResultLabel Result="@_pfpChangeResult" />
+            <div style="display:none">
+                <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="avatar-upload"></InputFile>
+            </div>
+        </div>
     </div>
-    <ResultLabel Result="@_statusChangeResult" />
-</div>
 
-<div class="mb-4">
-    <label>Status Code</label>
-    <div class="input-group" style="max-width: 400px;">
-        <InputSelect class="form-select" @bind-Value="_statusCode">
-            <option value="0">Automatic</option>
-            <option value="4">Online</option>
-            <option value="2">Away</option>
-            <option value="3">Do Not Disturb</option>
-            <option value="1">Offline</option>
-        </InputSelect>
-        <button class="btn v-btn round-right" @onclick="@OnStatusCodeApply">Apply</button>
+    <div class="settings-section mfa">
+        <h3>Multi-Factor Authentication (MFA)</h3>
+
+        <div class="mfa-container">
+            @if (_multiAuthMethods is null) {
+                <div class="loading-indicator"></div>
+                <p>Loading...</p>
+            } else {
+                @if (_multiAuthMethods.Count > 0) {
+                    <div class="mfa-status enabled">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Multi-factor authentication is enabled</span>
+                    </div>
+                    <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
+                } else {
+                    <div class="mfa-status">
+                        <i class="bi bi-shield"></i>
+                        <span>Multi-factor authentication is not enabled</span>
+                    </div>
+                    <button @onclick="@OnClickMfA" class="v-btn blue">Setup MFA</button>
+                }
+            }
+        </div>
     </div>
-    <ResultLabel Result="@_statusCodeChangeResult" />
-</div>
 
-<div class="mb-4">
-    <label>Tag</label>
-    <div class="input-group" style="max-width: 400px">
-        <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(Client.Me.Subscription is null)"/>
-        <button class="btn v-btn round-right" @onclick="@OnTagApply" disabled="@(Client.Me.Subscription is null)">Apply</button>
-    </div>
-    @if (Client.Me.Subscription is null){
-        <label>You need Stargazer to change your tag.</label>
-    }
-    <ResultLabel Result="@_tagChangeResult" />
-</div>
-<div class="mt-4 mb-4">
-    <label>Profile Image (pfp)</label>
-    <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
-    <ResultLabel Result="@_pfpChangeResult" />
-    <div style="display:none">
-        <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="avatar-upload"></InputFile>
+    <div class="settings-section warning">
+        <h3><i>DANGER ZONE</i></h3>
+        <p class="helper-text">These actions can't be undone. Please proceed with caution.</p>
+
+        <div class="btn-row">
+            <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
+            <button class="btn v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
+            <button class="btn v-btn secondary" @onclick="@OnClickChangeUsername">Change Username</button>
+        </div>
     </div>
 </div>
 
-<br/>
-
-<h3>Multi-Factor Authentication (MFA)</h3>
-
-@if (_multiAuthMethods is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    if (_multiAuthMethods.Count > 0)
-    {
-        <p>Multi-factor codes enabled!</p>
-        <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
-    }
-    else
-    {
-        <button @onclick="@OnClickMfA" class="v-btn blue">Setup MFA</button>
-    }
-}
-
-<br/>
-
-<h3>DANGER ZONE</h3>
-<div class="btn-row">
-    <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
-    <button class="btn v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
-    <button class="btn v-btn secondary" onclick="@OnClickChangeUsername">Change Username</button>
-</div> 
-<br/>
-<br/>
 
 @code {
 
