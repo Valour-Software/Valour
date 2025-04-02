@@ -65,7 +65,7 @@
             
             @if (_notificationCount > 0)
             {
-                <p>@_notificationCount</p>
+                <p class="notif-count">@_notificationCount</p>
             }
 
             @if (IsPrivate)
@@ -170,6 +170,9 @@
 
             if (IsNested)
                 css += " nested";
+
+            if (_notificationCount > 0)
+                css += " has-notif";
             
             return css;
         }

@@ -131,6 +131,19 @@
     background-color: transparent;
 }
 
+::deep .channel .notif-count {
+    position: absolute;
+    left: 13px;
+    top: 9px;
+    z-index: 1;
+    font-size: 8px;
+    color: white;
+}
+
+::deep .channel.has-notif .channel-icon {
+    color: var(--v-purple);
+}
+
 ::deep .channel-wrapper .drop {
     height: 50%;
     width: 100%;
