@@ -269,7 +269,10 @@ public class EcoService
                 .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
                                                          x.PlanetMemberId != null)
                 .Include(x => x.PlanetMember)
-                .OrderByDescending(x => x.BalanceValue);
+                    .ThenInclude(x => x.User)
+                .Where(x => !x.PlanetMember.IsDeleted)
+                .OrderByDescending(x => x.BalanceValue)
+                    .ThenByDescending(x => x.Id);
         
         var total = await baseQuery.CountAsync();
         

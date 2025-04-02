@@ -18,7 +18,8 @@ public static class ModelExtensions
         for (int i = 0; i < list.Count; i++)
         {
             var item = list[i];
-            list[i] = item.Sync(client, flags);
+            if (item is not null)
+                list[i] = item.Sync(client, flags);
         }
         
         return list;
@@ -36,7 +37,9 @@ public static class ModelExtensions
     
         for (int i = 0; i < array.Length; i++)
         {
-            array[i] = array[i].Sync(client, flags);
+            var item = array[i];
+            if (item is not null)
+                array[i] = item.Sync(client, flags);
         }
     
         return array;
@@ -55,7 +58,8 @@ public static class ModelExtensions
 
         foreach (var item in source)
         {
-            yield return item.Sync(client, flags);
+            if (item is not null)
+                yield return item.Sync(client, flags);
         }
     }
 }

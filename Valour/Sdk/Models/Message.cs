@@ -11,7 +11,6 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public override string BaseRoute =>
         $"api/messages";
     
-    
     /// <summary>
     /// The planet (if any) this message belongs to
     /// </summary>

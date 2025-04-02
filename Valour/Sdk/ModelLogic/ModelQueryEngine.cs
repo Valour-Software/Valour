@@ -17,6 +17,10 @@ public class ModelQueryEngine<TModel>
     // Fixed-size array cache
     private readonly TModel[] _slidingCache;
     private int _cacheStartIndex; // The index in the dataset corresponding to _cache[0]
+    
+    // Track the range of populated data in the dataset
+    private int _populatedRangeStart; // First populated index in the dataset
+    private int _populatedRangeEnd;   // One past the last populated index in the dataset
 
     public ModelQueryEngine(Node node, string route, int cacheSize = 200)
     {
@@ -25,14 +29,16 @@ public class ModelQueryEngine<TModel>
         _cacheSize = cacheSize;
         _slidingCache = new TModel[_cacheSize];
         _cacheStartIndex = 0;
+        _populatedRangeStart = 0;
+        _populatedRangeEnd = 0; // Initially no data is populated (start == end means empty)
     }
 
     public async Task<ModelQueryResponse<TModel>> GetItemsAsync(int skip, int take)
     {
         var items = new List<TModel>(take);
 
-        // Check if requested range is within the current cache window
-        if (IsWithinCache(skip, take))
+        // Check if requested range is fully within the populated area
+        if (IsRangePopulated(skip, take))
         {
             // Retrieve items from cache
             var offset = skip - _cacheStartIndex;
@@ -44,13 +50,33 @@ public class ModelQueryEngine<TModel>
         else
         {
             // Adjust the cache window to include the requested range
-            await AdjustCacheWindow(skip, take);
-
-            // After adjusting, retrieve items from cache
-            var offset = skip - _cacheStartIndex;
-            for (var i = 0; i < take; i++)
+            bool fetchSuccess = await AdjustCacheWindow(skip, take);
+            
+            if (fetchSuccess)
             {
-                items.Add(_slidingCache[offset + i]);
+                // After adjusting, retrieve items from cache
+                var offset = skip - _cacheStartIndex;
+                for (var i = 0; i < take; i++)
+                {
+                    // Only add non-null items (might happen at edges of populated range)
+                    if (_slidingCache[offset + i] != null)
+                    {
+                        items.Add(_slidingCache[offset + i]);
+                    }
+                }
+            }
+            else
+            {
+                // If fetching failed, try to directly fetch the requested range
+                var result = await _node.GetJsonAsync<ModelQueryResponse<TModel>>(
+                    $"{_route}?skip={skip}&take={take}");
+                    
+                if (result.Success && result.Data.Items != null)
+                {
+                    result.Data.Sync(_node.Client);
+                    items.AddRange(result.Data.Items);
+                    _totalCount = result.Data.TotalCount;
+                }
             }
         }
 
@@ -65,8 +91,16 @@ public class ModelQueryEngine<TModel>
     {
         return skip >= _cacheStartIndex && (skip + take) <= (_cacheStartIndex + _cacheSize);
     }
+    
+    private bool IsRangePopulated(int skip, int take)
+    {
+        // Check if the entire requested range is within the populated range
+        return skip >= _populatedRangeStart && 
+               (skip + take) <= _populatedRangeEnd &&
+               IsWithinCache(skip, take);
+    }
 
-    private async Task AdjustCacheWindow(int skip, int take)
+    private async Task<bool> AdjustCacheWindow(int skip, int take)
     {
         int newStartIndex;
         if (take >= _cacheSize)
@@ -77,16 +111,39 @@ public class ModelQueryEngine<TModel>
         else if (skip < _cacheStartIndex)
         {
             // Scrolling backward
-            newStartIndex = Math.Max(skip - (_cacheSize - take), 0);
+            newStartIndex = Math.Max(skip - (_cacheSize - take) / 2, 0);
         }
         else
         {
             // Scrolling forward
-            newStartIndex = skip;
+            newStartIndex = Math.Max(skip - (_cacheSize - take) / 2, 0);
         }
 
         // Calculate how much to shift existing data
         int shift = _cacheStartIndex - newStartIndex;
+        
+        // Update populated range to reflect the shift
+        if (_populatedRangeEnd > _populatedRangeStart) // if we have populated data
+        {
+            _populatedRangeStart -= shift;
+            _populatedRangeEnd -= shift;
+            
+            // Clamp to valid range after shift
+            _populatedRangeStart = Math.Max(_populatedRangeStart, newStartIndex);
+            _populatedRangeEnd = Math.Min(_populatedRangeEnd, newStartIndex + _cacheSize);
+            
+            // Reset if invalid range
+            if (_populatedRangeStart >= _populatedRangeEnd)
+            {
+                _populatedRangeStart = _populatedRangeEnd = newStartIndex;
+            }
+        }
+        else
+        {
+            // No populated data yet
+            _populatedRangeStart = _populatedRangeEnd = newStartIndex;
+        }
+        
         if (shift != 0)
         {
             ShiftCache(shift);
@@ -95,7 +152,7 @@ public class ModelQueryEngine<TModel>
         _cacheStartIndex = newStartIndex;
 
         // Fetch missing data
-        await FetchMissingData();
+        return await FetchMissingData();
     }
 
     private void ShiftCache(int shift)
@@ -135,36 +192,54 @@ public class ModelQueryEngine<TModel>
     // Returns false if there was an error
     private async Task<bool> FetchMissingData()
     {
-        var min = int.MaxValue;
-        var max = -1; // -1 can't happen naturally, so we can use it to see if empty
+        // Calculate the range of data we need to fetch
+        int fetchStart, fetchEnd;
         
-        for (var i = 0; i < _cacheSize; i++)
+        // If we have no populated data yet
+        if (_populatedRangeStart >= _populatedRangeEnd)
         {
-            if (_slidingCache[i] == null)
+            fetchStart = _cacheStartIndex;
+            fetchEnd = _cacheStartIndex + _cacheSize;
+        }
+        else
+        {
+            // We need to fetch data before the populated range
+            if (_cacheStartIndex < _populatedRangeStart)
             {
-                var index = _cacheStartIndex + i;
-                if (index < min)
-                    min = index;
-                
-                if (index > max)
-                    max = index;
+                fetchStart = _cacheStartIndex;
+                fetchEnd = _populatedRangeStart;
+            }
+            // We need to fetch data after the populated range
+            else if (_cacheStartIndex + _cacheSize > _populatedRangeEnd)
+            {
+                fetchStart = _populatedRangeEnd;
+                fetchEnd = _cacheStartIndex + _cacheSize;
+            }
+            else
+            {
+                // No need to fetch data
+                return true;
             }
         }
         
-        // Nothing to fetch
-        if (max == -1)
-            return true;
-
+        // Trim to valid range
+        fetchStart = Math.Max(fetchStart, _cacheStartIndex);
+        fetchEnd = Math.Min(fetchEnd, _cacheStartIndex + _cacheSize);
         
-        var skip = min;
-        var take = max - skip + 1;
+        if (fetchStart >= fetchEnd)
+        {
+            // Nothing to fetch
+            return true;
+        }
+        
+        var skip = fetchStart;
+        var take = fetchEnd - fetchStart;
 
-        var result = await _node.GetJsonAsync<ModelQueryResponse<TModel>>($"{_route}?skip={skip}&take={take}");
+        var result = await _node.GetJsonAsync<ModelQueryResponse<TModel>>(
+            $"{_route}?skip={skip}&take={take}");
 
         if (!result.Success || result.Data.Items is null)
         {
-            // There will probably be a gap in the cache, but we can't do anything about it
-            // We'll return false so it can be handled.
             return false;
         }
 
@@ -184,6 +259,27 @@ public class ModelQueryEngine<TModel>
                 _slidingCache[cachePosition] = result.Data.Items[i];
             }
         }
+        
+        // Update populated range
+        int newPopulatedStart = Math.Min(_populatedRangeStart, skip);
+        int newPopulatedEnd = Math.Max(_populatedRangeEnd, skip + result.Data.Items.Count);
+        
+        // If ranges are adjacent or overlapping, merge them
+        if (newPopulatedStart <= _populatedRangeEnd && _populatedRangeStart <= newPopulatedEnd)
+        {
+            _populatedRangeStart = Math.Min(newPopulatedStart, _populatedRangeStart);
+            _populatedRangeEnd = Math.Max(newPopulatedEnd, _populatedRangeEnd);
+        }
+        // Otherwise, just use the newly fetched range
+        else if (result.Data.Items.Count > 0)
+        {
+            _populatedRangeStart = skip;
+            _populatedRangeEnd = skip + result.Data.Items.Count;
+        }
+        
+        // Clamp populated range to cache bounds
+        _populatedRangeStart = Math.Max(_populatedRangeStart, _cacheStartIndex);
+        _populatedRangeEnd = Math.Min(_populatedRangeEnd, _cacheStartIndex + _cacheSize);
      
         return true;
     }

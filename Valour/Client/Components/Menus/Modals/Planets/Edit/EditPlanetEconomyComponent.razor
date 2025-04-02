@@ -102,13 +102,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                    
-                    <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
-                        <tr @key="@context.Account.Id">
-                            <td><UserInfoComponent Member="@context.Member"/></td>
-                            <td>@Currency.Format(@context.Account.BalanceValue)</td>
-                        </tr>
-                    </Virtualize>
+                    @if (_userAccountProvider is not null)
+                    {
+                        <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
+                            <tr @key="@context.RenderId">
+                                <td><UserInfoComponent Member="@context.Member" /></td>
+                                <td>@Currency.Format(@context.Account.BalanceValue)</td>
+                            </tr>
+                        </Virtualize>
+                    }
                     </tbody>
                 </table>
             </TabTwo>

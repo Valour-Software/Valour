@@ -226,14 +226,24 @@ else
     ///////////////////////
     // Message Rendering //
     ///////////////////////
+
+    private HashSet<long> _messageSet = new();
     
     private RenderFragment MessagesFragment => builder =>
     {
+        _messageSet.Clear();
+        
         Message lastMessage = null;
 
         // Displayed messages
         foreach (var message in DisplayedMessages)
         {
+            if (_messageSet.Contains(message.Id))
+            {
+                Console.WriteLine("[SEVERE] Duplicate message detected: " + message.Id);
+                continue;
+            }
+
             var messageParams = new MessageComponent.Params()
             {
                 ChatComponent = this,
@@ -249,6 +259,8 @@ else
             builder.CloseComponent();
 
             lastMessage = message;
+            
+            _messageSet.Add(message.Id);
         }
         
         // Queued messages
