@@ -266,10 +266,10 @@ public class EcoService
         var baseQuery = 
             _db.EcoAccounts
                 .AsNoTracking()
-                .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
-                                                         x.PlanetMemberId != null)
                 .Include(x => x.PlanetMember)
                     .ThenInclude(x => x.User)
+                .Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
+                                                         x.PlanetMemberId != null)
                 .Where(x => !x.PlanetMember.IsDeleted)
                 .OrderByDescending(x => x.BalanceValue)
                     .ThenByDescending(x => x.Id);

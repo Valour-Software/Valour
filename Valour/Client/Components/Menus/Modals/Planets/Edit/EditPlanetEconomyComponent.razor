@@ -106,8 +106,26 @@
                     {
                         <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
                             <tr @key="@context.RenderId">
-                                <td><UserInfoComponent Member="@context.Member" /></td>
-                                <td>@Currency.Format(@context.Account.BalanceValue)</td>
+                                <td>
+                                    @if (context.Member is not null)
+                                    {
+                                        <UserInfoComponent Member="@context.Member"/>
+                                    }
+                                    else
+                                    {
+                                        <span>Unknown Member</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (context.Account is not null)
+                                    {
+                                        <span>@Currency.Format(@context.Account.BalanceValue)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>???</span>
+                                    }
+                                </td>
                             </tr>
                         </Virtualize>
                     }
