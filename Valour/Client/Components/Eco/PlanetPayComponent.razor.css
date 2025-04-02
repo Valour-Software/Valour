@@ -14,6 +14,14 @@
 
 .account-select {
     text-align: left;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    height: 45px;
+    align-items: center;
+    background-color: var(--main-3);
+    padding: 8px;
+    border-radius: var(--main-radius);
 }
 
 .account-select:hover {

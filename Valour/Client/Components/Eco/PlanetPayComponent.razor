@@ -248,7 +248,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Get planet that was focused when the modal was loaded
-        _focusedPlanet = WindowService.FocusedPlanet;
+        _focusedPlanet = Modal.Data.Input.ChatComponent.Channel.Planet;
 
         _planetCurrency = await EcoService.FetchCurrencyByPlanetAsync(_focusedPlanet.Id);
         if (_planetCurrency is null)
