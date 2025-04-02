@@ -1,4 +1,5 @@
 ﻿@inject PlanetService PlanetService
+@inject ValourClient Client
 
 @if (_loading)
 {
@@ -185,7 +186,7 @@
         // needs to be created on the server
         if (_nodes[(int)type] is null)
         {
-            _nodes[(int)type] = new()
+            _nodes[(int)type] = new(Client)
             {
                 TargetId = Target.Id,
                 PlanetId = Target.PlanetId!.Value,

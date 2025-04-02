@@ -47,7 +47,14 @@ public abstract class ClientModel
     [JsonIgnore]
     [IgnoreRealtimeChanges]
     public virtual Node Node => Client?.PrimaryNode;
-
+    
+    [JsonConstructor]
+    protected ClientModel() { }
+    public ClientModel(ValourClient client)
+    {
+        SetClient(client);
+    }
+    
     /// <summary>
     /// Safely invokes the deleted event
     /// </summary>
@@ -75,6 +82,10 @@ public abstract class ClientModel<TSelf> : ClientModel
     /// </summary>
     [IgnoreRealtimeChanges]
     public HybridEvent<ModelUpdatedEvent<TSelf>> Updated;
+    
+    [JsonConstructor]
+    protected ClientModel(): base() { }
+    public ClientModel(ValourClient client) : base(client) { }
 
     /// <summary>
     /// Custom logic on model update
@@ -147,6 +158,10 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
     [IgnoreRealtimeChanges]
     [JsonIgnore]
     public virtual string IdRoute => $"{BaseRoute}/{Id}";
+    
+    [JsonConstructor]
+    protected ClientModel(): base() { }
+    public ClientModel(ValourClient client) : base(client) { }
     
     /// <summary>
     /// Attempts to create this item on the server

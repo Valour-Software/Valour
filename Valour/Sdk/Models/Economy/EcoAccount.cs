@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Web;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
@@ -63,6 +64,10 @@ public class EcoAccount : ClientPlanetModel<EcoAccount, long>, ISharedEcoAccount
     /// This is just for mapping to the database.
     /// </summary>
     public decimal BalanceValue { get; set; }
+    
+    [JsonConstructor]
+    private EcoAccount() : base() {}
+    public EcoAccount(ValourClient client) : base(client) { }
 
     public override EcoAccount AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

@@ -375,7 +375,7 @@ else
     {
         _backupTheme = ThemeComponent.Instance.CurrentTheme;
         
-        _editingTheme = new Theme();
+        _editingTheme = new Theme(Client);
         ThemeComponent.Instance.CurrentTheme.CopyAllTo(_editingTheme);
         _editingTheme.Id = 0;
         _editingTheme.Name = "New Theme";

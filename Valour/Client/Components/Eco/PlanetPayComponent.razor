@@ -333,7 +333,7 @@ else
     {
         _errorSpan = null;
         
-        var account =new EcoAccount()
+        var account =new EcoAccount(Client)
         {
             PlanetId = _focusedPlanet.Id,
             UserId = Client.Me.Id,

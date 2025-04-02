@@ -1,3 +1,4 @@
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
@@ -56,6 +57,10 @@ public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
     /// The background image for the profile (should be 300x400)
     /// </summary>
     public string BackgroundImage { get; set; }
+    
+    [JsonConstructor]
+    private UserProfile() : base() {}
+    public UserProfile(ValourClient client) : base(client) { }
 
     public override UserProfile AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

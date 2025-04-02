@@ -1,3 +1,4 @@
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
@@ -37,6 +38,10 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
     /// The redirect for this app's authorization
     /// </summary>
     public string RedirectUrl { get; set; }
+    
+    [JsonConstructor]
+    private OauthApp(): base() {}
+    public OauthApp(ValourClient client) : base(client) { }
 
     public override OauthApp AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

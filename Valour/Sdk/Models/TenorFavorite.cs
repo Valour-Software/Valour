@@ -19,6 +19,10 @@ public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavor
     /// The Id of the user this favorite belongs to
     /// </summary>
     public long UserId { get; set; }
+    
+    [JsonConstructor]
+    private TenorFavorite(): base() {}
+    public TenorFavorite(ValourClient client) : base(client) { }
 
     public override TenorFavorite AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

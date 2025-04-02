@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Sdk.Nodes;
@@ -207,18 +208,30 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     #endregion
 
-    public Planet()
+    [JsonConstructor]
+    private Planet() : base()
+    {
+        SetupPlanet(null);
+    }
+    
+    public Planet(ValourClient client) : base(client)
+    {
+        SetupPlanet(client);
+    }
+
+    private void SetupPlanet(ValourClient? client)
     {
         Roles.Changed += OnRolesChanged;
         
         // Add victor dummy member
-        Members.Put(new PlanetMember()
+        Members.Put(new PlanetMember(client)
         {
             Nickname = "Victor",
             Id = long.MaxValue,
             MemberAvatar = "./_content/Valour.Client/media/logo/logo-256.webp"
         });
     }
+    
 
     public void OnChannelsMoved(ChannelsMovedEvent eventData)
     {

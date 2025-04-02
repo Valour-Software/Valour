@@ -1,5 +1,6 @@
 @inherits Modal<CreateChannelComponent.ModalParams>
 @inject ChannelService ChannelService
+@inject ValourClient Client
 
 <section>
     <img alt="escape" class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
@@ -148,7 +149,7 @@
 
         CreateChannelRequest createRequest = new()
         {
-            Channel = new()
+            Channel = new(Client)
             {
                 Name = _name,
                 Description = "A category",
@@ -175,7 +176,7 @@
 
             if (doCategory)
             {
-                PermissionsNode defCatNode = new()
+                PermissionsNode defCatNode = new(Client)
                 {
                     TargetId = 0,
                     PlanetId = planetId,
@@ -193,7 +194,7 @@
 
             if (doChat)
             {
-                PermissionsNode defChatNode = new()
+                PermissionsNode defChatNode = new(Client)
                 {
                     TargetId = 0,
                     PlanetId = planetId,
@@ -211,7 +212,7 @@
 
             if (doVoice)
             {
-                PermissionsNode defVoiceNode = new()
+                PermissionsNode defVoiceNode = new(Client)
                 {
                     TargetId = 0,
                     PlanetId = Data.Planet.Id,
@@ -238,7 +239,7 @@
 
                 if (doCategory)
                 {
-                    PermissionsNode catNode = new()
+                    PermissionsNode catNode = new(Client)
                     {
                         TargetId = 0,
                         PlanetId = planetId,
@@ -254,7 +255,7 @@
 
                 if (doChat)
                 {
-                    PermissionsNode chatNode = new()
+                    PermissionsNode chatNode = new(Client)
                     {
                         TargetId = 0,
                         PlanetId = planetId,
@@ -270,7 +271,7 @@
 
                 if (doVoice)
                 {
-                    var voiceNode = new PermissionsNode()
+                    var voiceNode = new PermissionsNode(Client)
                     {
                         TargetId = 0,
                         PlanetId = Data.Planet.Id,

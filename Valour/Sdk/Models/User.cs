@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
@@ -10,7 +11,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
             ISharedUser.BaseRoute;
 
     [JsonIgnore]
-    public static readonly User Victor = new User()
+    public static readonly User Victor = new User(null)
     {
         Bot = true,
         UserStateCode = 4,
@@ -21,7 +22,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     };
     
     [JsonIgnore]
-    public static readonly User NotFound = new User()
+    public static readonly User NotFound = new User(null)
     {
         Bot = true,
         UserStateCode = 4,
@@ -134,6 +135,10 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
         get => ISharedUser.GetUserState(this);
         set => ISharedUser.SetUserState(this, value);
     }
+    
+    [JsonConstructor]
+    private User() : base() { }
+    public User(ValourClient client) : base(client) { }
     
     public ValueTask<UserProfile> FetchProfileAsync(bool skipCache = false) =>
         Client.UserService.FetchProfileAsync(Id, skipCache);

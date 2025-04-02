@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic.Exceptions;
 using Valour.Sdk.Nodes;
 
@@ -10,6 +11,9 @@ public abstract class ClientPlanetModel<TSelf, TId> : ClientModel<TSelf, TId>
 {
     private Planet _planet;    
     protected abstract long? GetPlanetId();
+    
+    protected ClientPlanetModel() : base() {}
+    public ClientPlanetModel(ValourClient client) : base(client) { }
 
     /// <summary>
     /// The Planet this model belongs to.

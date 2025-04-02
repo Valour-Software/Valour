@@ -1,3 +1,4 @@
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 
 namespace Valour.Sdk.Models;
@@ -17,6 +18,9 @@ public class ChannelMember : ClientModel<ChannelMember, long>
     /// Id of the user that has this membership
     /// </summary>
     public long UserId { get; set; }
+    
+    private ChannelMember() {}
+    public ChannelMember(ValourClient client) : base(client) { }
 
     public override ChannelMember AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

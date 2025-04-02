@@ -66,6 +66,10 @@ public class PermissionsNode : ClientPlanetModel<PermissionsNode, long>, IShared
     public ChannelTypeEnum TargetType { get; set; }
 
     protected override long? GetPlanetId() => PlanetId;
+    
+    [JsonConstructor]
+    private PermissionsNode() : base() {}
+    public PermissionsNode(ValourClient client) : base(client) { }
 
     /// <summary>
     /// Returns the node code for this permission node

@@ -177,7 +177,7 @@ public class EcoService : ServiceBase
     {
         var item = (await planet.Node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planet.Id}", true)).Data;
 
-        return item.Sync(_client);
+        return item?.Sync(_client);
     }
     
     /// <summary>

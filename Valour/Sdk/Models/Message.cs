@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
@@ -134,12 +136,15 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     
     #endregion
     
-    public Message()
+    [JsonConstructor]
+    private Message() : base() {}
+    public Message(ValourClient client) : base(client)
     {
         
     }
 
-    public Message(string content, long? planetId, long? memberId, long userId, long channelId)
+    public Message(string content, long? planetId, long? memberId, long userId, long channelId, ValourClient client)
+        : base(client)
     {
         Content = content;
         PlanetId = planetId;

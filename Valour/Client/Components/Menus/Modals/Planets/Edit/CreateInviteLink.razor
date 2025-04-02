@@ -41,7 +41,7 @@
 
     public async Task OnSaveChanges()
     {
-        var invite = new PlanetInvite()
+        var invite = new PlanetInvite(Client)
         {
             PlanetId = Planet.Id,
             IssuerId = Client.Me.Id,

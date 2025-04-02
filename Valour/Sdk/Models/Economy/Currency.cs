@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models.Economy;
 
@@ -45,6 +47,10 @@ public class Currency : ClientPlanetModel<Currency, long>, ISharedCurrency
     /// The number of decimal places this currency supports
     /// </summary>
     public int DecimalPlaces { get; set; }
+    
+    [JsonConstructor]
+    private Currency(): base() {}
+    public Currency(ValourClient client) : base(client) { }
 
     public string Format(decimal amount)
     {

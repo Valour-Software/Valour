@@ -27,20 +27,8 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 
     protected override long? GetPlanetId()
         => PlanetId;
-    
-    // Coolest role on this damn platform.
-    // Fight me.
-    public static PlanetRole VictorRole = new PlanetRole()
-    {
-        Name = "Victor Class",
-        Id = 0,
-        Position = int.MaxValue,
-        PlanetId = 0,
-        Color = "ff00ff",
-        AnyoneCanMention = false,
-    };
 
-    public static PlanetRole DefaultRole = new PlanetRole()
+    public static PlanetRole DefaultRole = new PlanetRole(null)
     {
         Name = "Default",
         Id = 0,
@@ -121,18 +109,10 @@ public class PlanetRole : ClientPlanetModel<PlanetRole, long>, ISharedPlanetRole
 
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
-
-    public static PlanetRole GetDefault(long planetId)
-    {
-        return new PlanetRole()
-        {
-            Name = "Default",
-            Id = 0,
-            Position = int.MaxValue,
-            PlanetId = planetId,
-            Color = "#ffffff",
-        };
-    }
+    
+    [JsonConstructor]
+    private PlanetRole() : base() { }
+    public PlanetRole(ValourClient client) : base(client) { }
 
     protected override void OnUpdated(ModelUpdatedEvent<PlanetRole> eventData)
     {

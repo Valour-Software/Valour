@@ -184,7 +184,7 @@
         }
         else
         {
-            var vote = new ThemeVote()
+            var vote = new ThemeVote(Client)
             {
                 ThemeId = _theme.Id,
                 Sentiment = true,
@@ -237,7 +237,7 @@
         }
         else
         {
-            var vote = new ThemeVote()
+            var vote = new ThemeVote(Client)
             {
                 ThemeId = _theme.Id,
                 Sentiment = false,

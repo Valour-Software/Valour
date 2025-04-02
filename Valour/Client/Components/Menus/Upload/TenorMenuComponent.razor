@@ -90,7 +90,7 @@
 
     private async Task OnClickFavorite(TenorTwo.Models.Media media)
     {
-        var favorite = new TenorFavorite()
+        var favorite = new TenorFavorite(Client)
         {
             UserId = Client.Me.Id,
             TenorId = media.Id

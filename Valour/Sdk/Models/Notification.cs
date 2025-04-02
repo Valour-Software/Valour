@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.ModelLogic;
+﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -62,6 +63,10 @@ public class Notification : ClientModel<Notification, Guid>, ISharedNotification
     /// The url the user is brought to when the notification is clicked
     /// </summary>
     public string ClickUrl { get; set; }
+    
+    [JsonConstructor]
+    private Notification() : base() {}
+    public Notification(ValourClient client) : base(client) { }
 
     public override Notification AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

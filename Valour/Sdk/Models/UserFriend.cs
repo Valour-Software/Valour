@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.ModelLogic;
+﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -29,6 +30,10 @@ public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
     /// (friendzoned)
     /// </summary>
     public long FriendId { get; set; }
+    
+    [JsonConstructor]
+    private UserFriend() : base() {}
+    public UserFriend(ValourClient client) : base(client) { }
 
     public override UserFriend AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

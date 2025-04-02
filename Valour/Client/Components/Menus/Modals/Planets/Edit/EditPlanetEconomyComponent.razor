@@ -119,7 +119,7 @@
                                 <td>
                                     @if (context.Account is not null)
                                     {
-                                        <span>@Currency.Format(@context.Account.BalanceValue)</span>
+                                        <span>@Currency.Format(context.Account.BalanceValue)</span>
                                     }
                                     else
                                     {
@@ -184,7 +184,7 @@
 
     private void OnClickSetup()
     {
-        Currency = new Currency();
+        Currency = new Currency(Client);
         Currency.PlanetId = Planet.Id;
     }
 
@@ -216,7 +216,7 @@
 
     private async Task OnClickAddAccount()
     {
-        var newAccount = new EcoAccount()
+        var newAccount = new EcoAccount(Client)
         {
             UserId = Client.Me.Id,
             AccountType = AccountType.Shared,

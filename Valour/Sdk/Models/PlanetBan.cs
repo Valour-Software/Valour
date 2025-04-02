@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.ModelLogic;
+﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -42,6 +43,10 @@ public class PlanetBan : ClientPlanetModel<PlanetBan, long>, ISharedPlanetBan
     /// True if the ban never expires
     /// </summary>
     public bool Permanent => TimeExpires == null;
+    
+    [JsonConstructor]
+    private PlanetBan() : base() {}
+    public PlanetBan(ValourClient client) : base(client) { }
 
     public override PlanetBan AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {

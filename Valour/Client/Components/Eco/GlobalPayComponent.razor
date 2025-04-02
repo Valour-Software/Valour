@@ -159,7 +159,7 @@ else
     {
         _errorSpan = null;
 
-        var account = new EcoAccount()
+        var account = new EcoAccount(Client)
         {
             PlanetId = ISharedPlanet.ValourCentralId,
             UserId = Client.Me.Id,

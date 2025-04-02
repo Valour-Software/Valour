@@ -1,3 +1,4 @@
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 
 namespace Valour.Sdk.Models.Economy;
@@ -8,6 +9,9 @@ public class EcoAccountPlanetMember : ClientModel<EcoAccountPlanetMember>
     
     public EcoAccount Account { get; set; }
     public PlanetMember Member { get; set; }
+
+    private EcoAccountPlanetMember() : base() {}
+    public EcoAccountPlanetMember(ValourClient client) : base(client) { }
 
     public override void SyncSubModels(ModelInsertFlags flags = ModelInsertFlags.None)
     {

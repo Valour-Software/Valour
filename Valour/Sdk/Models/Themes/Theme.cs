@@ -11,7 +11,7 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
 {
     public override string BaseRoute => "api/themes";
 
-    public static Theme Default = new Theme()
+    public static Theme Default = new Theme(null)
     {
         Id = 0,
         AuthorId = ISharedUser.VictorUserId,
@@ -71,6 +71,8 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
     public string PastelRed { get; set; }
     
     public string CustomCss { get; set; }
+    
+    public Theme (ValourClient client) : base(client) {}
     
     public ThemeMeta ToMeta()
     {

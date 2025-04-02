@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using System.Text.Json;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared;
@@ -147,6 +147,12 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     /// Used to limit typing updates
     /// </summary>
     private DateTime _lastTypingUpdateSend = DateTime.UtcNow;
+    
+    [JsonConstructor]
+    private Channel() : base() { }
+    public Channel(ValourClient client) : base(client)
+    {
+    }
 
     protected override void OnUpdated(ModelUpdatedEvent<Channel> eventData)
     {
@@ -452,7 +458,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         var member = await Planet.FetchMemberAsync(memberId);
 
         // Start with no permissions
-        var dummyNode = new PermissionsNode()
+        var dummyNode = new PermissionsNode(Client)
         {
             // Full, since values should either be yes or no
             Mask = Permission.FULL_CONTROL,
@@ -648,7 +654,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         if (!IsChatChannel)
             return new TaskResult<Message>(false, "Cannot send messages to non-chat channels.");
         
-        var msg = new Message()
+        var msg = new Message(Client)
         {
             Content = content,
             ChannelId = Id,

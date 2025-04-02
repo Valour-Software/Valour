@@ -277,7 +277,7 @@
     {
         _retainedInputCache.TryGetValue(ChatComponent.Channel.Id, out var prevContent);
         
-        return new Message()
+        return new Message(Client)
         {
             AuthorUserId = Client.Me.Id,
             Content = prevContent,
@@ -627,7 +627,7 @@
             {
                 ChatComponent.RemoveQueuedMessage(message.Fingerprint);
 
-                Message errorMsg = new()
+                Message errorMsg = new(Client)
                 {
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
@@ -654,7 +654,7 @@
             var result = await message.UpdateAsync();
             if (!result.Success)
             {
-                Message errorMsg = new()
+                Message errorMsg = new(Client)
                 {
                     Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,

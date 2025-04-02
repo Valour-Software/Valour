@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -101,6 +102,8 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// Flags representing the roles of the member
     /// </summary>
     public PlanetRoleMembership RoleMembership { get; set; }
+    
+    public PlanetMember(ValourClient client) : base(client) { }
     
     protected override void OnUpdated(ModelUpdatedEvent<PlanetMember> eventData)
     {

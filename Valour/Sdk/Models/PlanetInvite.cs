@@ -1,4 +1,5 @@
-﻿using Valour.Sdk.ModelLogic;
+﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -31,6 +32,10 @@ public class PlanetInvite : ClientPlanetModel<PlanetInvite, string>, ISharedPlan
     
     public long PlanetId { get; set; }
     protected override long? GetPlanetId() => PlanetId;
+    
+    [JsonConstructor]
+    private PlanetInvite() : base() {}
+    public PlanetInvite(ValourClient client) : base(client) { }
 
     public bool IsPermanent() =>
         ISharedPlanetInvite.IsPermanent(this);

@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
+@inject ValourClient Client
 
 <h3>Edit Roles <i class="bi bi-tag-fill"></i></h3>
 <p class="subtitle">PLANET SETTINGS</p>
@@ -262,11 +263,7 @@
 
     // Stuff for role creation //
 
-    private PlanetRole _role = new PlanetRole()
-    {
-        Name = "New Role",
-        Color = "#ffffff"
-    };
+    private PlanetRole _role;
 
     private bool _editMode = false;
 
@@ -285,6 +282,15 @@
     private PlanetRole _selected;
 
     private PlanetRole _draggingRole;
+
+    protected override void OnInitialized()
+    {
+        _role = new PlanetRole(Client)
+        {
+            Name = "New Role",
+            Color = "#ffffff"
+        };
+    }
 
     private void OnRoleDrag(PlanetRole role){
         _draggingRole = role;
@@ -339,7 +345,7 @@
 
     private void GoBack() 
     {
-        _role = new PlanetRole()
+        _role = new PlanetRole(Client)
         {
             Name = "New Role",
             Bold = false,
@@ -400,7 +406,7 @@
 
     private void OnClickCreateMode()
     {
-        _role = new PlanetRole()
+        _role = new PlanetRole(Client)
         {
             Name = "New Role",
             Bold = false,
