@@ -128,7 +128,7 @@ public class ConcurrentCircularBuffer<T>
             {
                 int index = (_tail + i) % Capacity;
                 var item = _buffer[index];
-                
+            
                 if (item != null)
                 {
                     result.Add(item);
@@ -172,17 +172,29 @@ public class ConcurrentCircularBuffer<T>
     {
         lock (_syncRoot)
         {
+            // Create a new array with only the items that don't match
+            T[] newBuffer = new T[Capacity];
+            int newCount = 0;
+        
+            // Copy all non-matching items
             for (int i = 0; i < _count; i++)
             {
                 int index = (_tail + i) % Capacity;
                 var item = _buffer[index];
-                
-                if (item != null && match(item))
+            
+                if (item != null && !match(item))
                 {
-                    _buffer[index] = default!;
-                    _count--;
+                    newBuffer[newCount++] = item;
                 }
             }
+        
+            // Replace the buffer contents
+            Array.Copy(newBuffer, 0, _buffer, 0, Capacity);
+        
+            // Reset pointers
+            _head = newCount;
+            _tail = 0;
+            _count = newCount;
         }
     }
     
