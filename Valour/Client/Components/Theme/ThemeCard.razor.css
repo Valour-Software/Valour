@@ -3,8 +3,7 @@
     border-radius: 1em;
     overflow: hidden;
     display: inline-block;
-    max-width: 200px;
-    min-width: 150px;
+    width: 200px;
     background-color: var(--slight-tint);
     height: 300px;
     margin-left: 1em;

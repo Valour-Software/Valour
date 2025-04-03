@@ -230,11 +230,12 @@ else
     }
     else
     {
-        <VerticalExpander 
-            @ref="@_expander"
+        <Carousel
             TComponent="ThemeCard"
             GetItem="@GetPopularThemeParamsAsync"
             TotalItems="@_popularThemeCount"
+            VisibleItems="4"
+            InitialLoadCount="8"
         />
     }
     
@@ -242,10 +243,13 @@ else
     <h5>My Themes:</h5>
     @if (_myThemes is not null)
     {
-        <VerticalExpander
+        <Carousel
             TComponent="ThemeCard"
             GetItem="@GetMyThemeParamsAsync"
-            TotalItems="@_myThemes.Count"/>
+            TotalItems="@_myThemes.Count"
+            VisibleItems="4"
+            InitialLoadCount="8"
+        />
     }
 
     <br />

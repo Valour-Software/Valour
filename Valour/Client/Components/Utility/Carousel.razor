@@ -1,0 +1,162 @@
+﻿@typeparam TComponent
+
+<div class="carousel-container">
+    <button class="carousel-nav prev @(CanScrollLeft ? "" : "disabled")" @onclick="ScrollLeft" aria-label="Previous items">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <div class="carousel-viewport" @ref="_viewportElement">
+        <div class="carousel-track" style="transform: translateX(@($"{-_currentOffset}px"))">
+            @for (var i = 0; i < _loadedItems.Count; i++)
+            {
+                var index = i;
+                <div class="carousel-item" @key="index">
+                    <DynamicComponent Type="@typeof(TComponent)" Parameters="@_loadedItems[index]" />
+                </div>
+            }
+            
+            @if (_isLoading)
+            {
+                <div class="carousel-item loading">
+                    <div class="loading-indicator"></div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button class="carousel-nav next @(CanScrollRight ? "" : "disabled")" @onclick="ScrollRight" aria-label="Next items">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public int TotalItems { get; set; }
+    
+    [Parameter]
+    public int VisibleItems { get; set; } = 4;
+    
+    [Parameter]
+    public int InitialLoadCount { get; set; } = 8;
+    
+    [Parameter]
+    public int PreloadThreshold { get; set; } = 3;
+    
+    [Parameter]
+    public Func<int, Task<Dictionary<string, object>>> GetItem { get; set; }
+    
+    [Parameter]
+    public EventCallback OnSwipe { get; set; }
+    
+    [Parameter]
+    public bool AutoScroll { get; set; }
+    
+    [Parameter]
+    public int AutoScrollInterval { get; set; } = 5000;
+    
+    private ElementReference _viewportElement;
+    private List<Dictionary<string, object>> _loadedItems = new();
+    private int _currentIndex = 0;
+    private int _currentOffset = 0;
+    private int _itemWidth = 266; // 250px + 16px margin
+    private bool _isLoading = false;
+    private Timer _autoScrollTimer;
+    
+    public bool CanScrollLeft => _currentIndex > 0;
+    public bool CanScrollRight => _currentIndex + VisibleItems < _loadedItems.Count && _loadedItems.Count < TotalItems;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInitialItems();
+        
+        if (AutoScroll)
+        {
+            _autoScrollTimer = new Timer(async _ => await InvokeAsync(() => ScrollRight()), 
+                null, AutoScrollInterval, AutoScrollInterval);
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Option to get the actual item width from DOM if needed
+            // var width = await JSRuntime.InvokeAsync<double>("getCarouselItemWidth");
+            // if (width > 0) _itemWidth = (int)width;
+        }
+    }
+    
+    private async Task LoadInitialItems()
+    {
+        _isLoading = true;
+        
+        int count = Math.Min(InitialLoadCount, TotalItems);
+        for (int i = 0; i < count; i++)
+        {
+            var item = await GetItem(i);
+            if (item != null)
+                _loadedItems.Add(item);
+        }
+        
+        _isLoading = false;
+    }
+    
+    private async Task LoadMoreItems()
+    {
+        if (_isLoading || _loadedItems.Count >= TotalItems)
+            return;
+            
+        _isLoading = true;
+        StateHasChanged();
+        
+        int startIndex = _loadedItems.Count;
+        int count = Math.Min(InitialLoadCount, TotalItems - startIndex);
+        
+        for (int i = 0; i < count; i++)
+        {
+            var item = await GetItem(startIndex + i);
+            if (item != null)
+                _loadedItems.Add(item);
+        }
+        
+        _isLoading = false;
+        StateHasChanged();
+    }
+    
+    public async Task ScrollLeft()
+    {
+        if (!CanScrollLeft) return;
+        
+        _currentIndex = Math.Max(0, _currentIndex - 1);
+        _currentOffset = _currentIndex * _itemWidth;
+        
+        await OnSwipe.InvokeAsync();
+    }
+    
+    public async Task ScrollRight()
+    {
+        if (_currentIndex + VisibleItems >= _loadedItems.Count)
+        {
+            if (_loadedItems.Count < TotalItems)
+                await LoadMoreItems();
+            else
+                return;
+        }
+        
+        _currentIndex++;
+        _currentOffset = _currentIndex * _itemWidth;
+        
+        // Preload more items if we're nearing the end
+        if (_currentIndex + VisibleItems + PreloadThreshold >= _loadedItems.Count && _loadedItems.Count < TotalItems)
+        {
+            await LoadMoreItems();
+        }
+        
+        await OnSwipe.InvokeAsync();
+    }
+    
+    public void Dispose()
+    {
+        _autoScrollTimer?.Dispose();
+    }
+}

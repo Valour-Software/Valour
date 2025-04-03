@@ -1,0 +1,68 @@
+﻿.carousel-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+    margin: 20px 0;
+}
+
+.carousel-viewport {
+    flex: 1;
+    overflow: hidden;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.4s ease-out;
+}
+
+.carousel-item {
+    flex: 0 0 auto;
+    width: 250px;
+    margin-right: 16px;
+}
+
+.carousel-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--main-3);
+    color: var(--font-color);
+    border: none;
+    cursor: pointer;
+    z-index: 1;
+    margin: 0 8px;
+    transition: opacity 0.2s, background-color 0.2s;
+}
+
+.carousel-nav:hover {
+    background-color: var(--slight-tint);
+}
+
+.carousel-nav.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.carousel-item.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-indicator {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--slight-tint);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
