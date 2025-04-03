@@ -30,7 +30,7 @@
                             @foreach (var item in category.Items)
                             {
                                 <div class="v-menu-item @(ActiveItem == item ? "active" : "")"
-                                     @onclick="() => SelectItem(item)">
+                                     @onclick="async () => await SelectItem(item)">
                                     @if (!string.IsNullOrEmpty(item.Icon))
                                     {
                                         <i class="bi bi-@item.Icon" style="@(item.Color != null ? $"color:{item.Color}" : "")"></i>
@@ -151,12 +151,17 @@
         }
     }
 
-    private void SelectItem(MainMenu.MenuItem item)
+    private async Task SelectItem(MainMenu.MenuItem item)
     {
         ActiveItem = item;
         
         // On small screens, close the dropdown after selection
         IsDropdownOpen = false;
+
+        if (item.OnClick is not null)
+        {
+            await item.OnClick.Invoke();
+        }
     }
 
     private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)

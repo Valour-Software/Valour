@@ -103,6 +103,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// </summary>
     public PlanetRoleMembership RoleMembership { get; set; }
     
+    private PlanetMember() : base() {}
     public PlanetMember(ValourClient client) : base(client) { }
     
     protected override void OnUpdated(ModelUpdatedEvent<PlanetMember> eventData)

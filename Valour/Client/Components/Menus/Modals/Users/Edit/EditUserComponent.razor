@@ -101,7 +101,8 @@
                         Name = "Log Out",
                         Icon = "x-octagon-fill",
                         Color = "var(--p-red)",
-                        Content = LogOutContent
+                        Content = LogOutContent,
+                        OnClick = LogOut
                     }
                 }
             },
@@ -117,34 +118,6 @@
         public User User;
         public string StartCategory;
         public string StartItem;
-    }
-
-    private BigMenuComponent BigMenu { get; set; }
-
-    public void Dispose()
-    {
-        BigMenu.OnRefreshRightSide -= Refresh;
-    }
-
-    protected override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            BigMenu.OnRefreshRightSide += Refresh;
-        }
-        return base.OnAfterRenderAsync(firstRender);
-    }
-
-    private async void Refresh()
-    {
-        if (BigMenu.SelectedSubMenu?.Name == "Log Out")
-        {
-            await LogOut();
-        }
-        else
-        {
-            StateHasChanged();
-        }
     }
 
     private async Task LogOut()

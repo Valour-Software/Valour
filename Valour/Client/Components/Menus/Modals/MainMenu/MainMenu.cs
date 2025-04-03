@@ -18,5 +18,6 @@ public class MainMenu
         public string Color { get; set; }
         public string Description { get; set; }
         public RenderFragment Content { get; set; }
+        public Func<Task> OnClick { get; set; }
     }
 }

@@ -5,54 +5,61 @@
 @inject AuthService AuthService
 
 <div class="settings-container">
-    <div class="settings-section">
-        <div class="title-container">
-            <h3>Status <i class="bi bi-info-circle-fill"></i></h3>
-            <p class="subtitle">Modify your status</p>
-        </div>
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-badge"></i>
+            Status & Appearance
+        </h3>
+        <p class="subtitle">Customize how others see you</p>
 
         <div class="preview">
             <UserInfoComponent User="@Client.Me" @ref="@_infoPreview" />
         </div>
 
-        <div class="input-container">
+        <div class="form-group">
             <label>Status Message</label>
-            <div class="input-group" style="max-width: 400px;">
-                <input class="form-control" placeholder="Choose a status..." @bind="_status" />
-                <button class="btn v-btn round-right" @onclick="OnStatusApply">Apply</button>
+            <div class="input-group">
+                <input class="v-input" placeholder="Choose a status..." @bind="_status" />
+                <button class="v-btn primary" @onclick="OnStatusApply">Apply</button>
             </div>
             <ResultLabel Result="@_statusChangeResult" />
         </div>
 
-        <div class="input-container">
+        <div class="form-group">
             <label>Status Code</label>
-            <div class="input-group" style="max-width: 400px;">
-                <InputSelect class="form-select" @bind-Value="_statusCode">
+            <div class="input-group">
+                <InputSelect class="v-input" @bind-Value="_statusCode">
                     <option value="0">Automatic</option>
                     <option value="4">Online</option>
                     <option value="2">Away</option>
                     <option value="3">Do Not Disturb</option>
                     <option value="1">Offline</option>
                 </InputSelect>
-                <button class="btn v-btn round-right" @onclick="@OnStatusCodeApply">Apply</button>
+                <button class="v-btn primary" @onclick="@OnStatusCodeApply">Apply</button>
             </div>
             <ResultLabel Result="@_statusCodeChangeResult" />
         </div>
 
-        <div class="input-container">
+        <div class="form-group">
             <label>Tag</label>
-            <div class="input-group" style="max-width: 400px">
-                <input class="form-control" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(Client.Me.Subscription is null)" />
-                <button class="btn v-btn round-right" @onclick="@OnTagApply" disabled="@(Client.Me.Subscription is null)">Apply</button>
+            <div class="input-group">
+                <input class="v-input" placeholder="Tag" @bind="@_tag" maxlength="4" disabled="@(Client.Me.Subscription is null)" />
+                <button class="v-btn primary" @onclick="@OnTagApply" disabled="@(Client.Me.Subscription is null)">Apply</button>
             </div>
             @if (Client.Me.Subscription is null) {
                 <p class="helper-text">You need Stargazer to change your tag.</p>
             }
             <ResultLabel Result="@_tagChangeResult" />
         </div>
+    </div>
 
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-image"></i>
+            Avatar
+        </h3>
+        
         <div class="avatar-container">
-            <label>Your Avatar</label>
             <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
             <p class="helper-text">Click the image to upload a new profile picture</p>
             <ResultLabel Result="@_pfpChangeResult" />
@@ -62,50 +69,74 @@
         </div>
     </div>
 
-    <div class="settings-section mfa">
-        <h3>Multi-Factor Authentication (MFA)</h3>
+    <div class="editor-section security">
+        <h3 class="editor-section-title">
+            <i class="bi bi-shield-lock"></i>
+            Security
+        </h3>
 
-        <div class="mfa-container">
-            @if (_multiAuthMethods is null) {
-                <div class="loading-indicator"></div>
-                <p>Loading...</p>
-            } else {
-                @if (_multiAuthMethods.Count > 0) {
-                    <div class="mfa-status enabled">
-                        <i class="bi bi-shield-check"></i>
-                        <span>Multi-factor authentication is enabled</span>
-                    </div>
-                    <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Multi-Factor Authentication</span>
+                @if (_multiAuthMethods is null) {
+                    <div class="loading-indicator"></div>
+                } else if (_multiAuthMethods.Count > 0) {
+                    <span class="status-badge enabled">Enabled</span>
                 } else {
-                    <div class="mfa-status">
-                        <i class="bi bi-shield"></i>
-                        <span>Multi-factor authentication is not enabled</span>
-                    </div>
-                    <button @onclick="@OnClickMfA" class="v-btn blue">Setup MFA</button>
+                    <span class="status-badge">Disabled</span>
                 }
-            }
+            </div>
+            
+            <p class="toggle-description">Protect your account with an additional security layer</p>
+            
+            <div class="toggle-content">
+                @if (_multiAuthMethods is null) {
+                    <div class="loading-state">
+                        <div class="loading-indicator"></div>
+                        <p>Loading...</p>
+                    </div>
+                } else {
+                    @if (_multiAuthMethods.Count > 0) {
+                        <div class="mfa-status enabled">
+                            <i class="bi bi-shield-check"></i>
+                            <span>Your account is protected with multi-factor authentication</span>
+                        </div>
+                        <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
+                    } else {
+                        <div class="mfa-status">
+                            <i class="bi bi-shield-exclamation"></i>
+                            <span>Adding MFA greatly improves your account security</span>
+                        </div>
+                        <button @onclick="@OnClickMfA" class="v-btn primary">Setup MFA</button>
+                    }
+                }
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
         </div>
     </div>
 
-    <div class="settings-section warning">
-        <h3><i>DANGER ZONE</i></h3>
+    <div class="editor-section danger-zone">
+        <h3 class="editor-section-title">
+            <i class="bi bi-exclamation-triangle"></i>
+            Danger Zone
+        </h3>
         <p class="helper-text">These actions can't be undone. Please proceed with caution.</p>
 
-        <div class="btn-row">
-            <button class="btn v-btn danger" @onclick="@OnClickDeleteAccount">Delete my Account</button>
-            <button class="btn v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
-            <button class="btn v-btn secondary" @onclick="@OnClickChangeUsername">Change Username</button>
+        <div class="actions">
+            <button class="v-btn secondary" @onclick="@OnClickChangeUsername">Change Username</button>
+            <button class="v-btn danger" @onclick="@OnClickDeleteAccount">Delete Account</button>
         </div>
     </div>
 </div>
 
-
 @code {
-
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    [Parameter] 
+    [Parameter]
     public User User { get; set; }
 
     private UserInfoComponent _infoPreview;
@@ -123,14 +154,14 @@
     private ITaskResult _statusCodeChangeResult;
 
     private List<string> _multiAuthMethods;
-    
+
     private async Task OnStatusApply()
     {
         var oldStatus = User.Status;
         User.Status = _status;
 
         _statusChangeResult = await User.UpdateAsync();
-        
+
         // Rollback change if it failed
         if (!_statusChangeResult.Success)
         {
@@ -181,7 +212,7 @@
         User.UserStateCode = _statusCode;
 
         _statusCodeChangeResult = await User.UpdateAsync();
-        
+
         // Rollback change if it failed
         if (!_statusCodeChangeResult.Success)
         {
@@ -198,11 +229,11 @@
         _status = User.Status;
         _statusCode = User.UserStateCode;
         _tag = User.Tag;
-        
+
         StateHasChanged();
 
         _multiAuthMethods = await AuthService.GetMfaMethodsAsync();
-        
+
         StateHasChanged();
     }
 
@@ -257,7 +288,7 @@
     {
         ModalRoot.OpenModal<ChangeUsernameModal>();
     }
-    
+
     private void OnClickMfA()
     {
         ModalRoot.OpenModal<SetupMfaModal>(_multiAuthMethods);
@@ -277,13 +308,13 @@
                     Title = "Removing MFA",
                     Message = "Verifying password...",
                 });
-                
+
                 if (result.Success)
                 {
                     _multiAuthMethods = new List<string>();
                     StateHasChanged();
                 }
-                
+
                 return result;
             }
         });

@@ -1,12 +1,14 @@
 ﻿using System.Net;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Linq;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
-
-// TODO: IQueryableModel system
 
 public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnumerator<TItem>
     where TResponse : QueryResponse<TItem>, new()
@@ -100,7 +102,6 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
         catch (Exception ex)
         {
             Log($"Exception occurred while fetching page {_currentPageIndex}: {ex.Message}", "red");
-            // TODO: Retry?
             return new TResponse()
             {
                 Items = new List<TItem>(),
@@ -116,7 +117,7 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
     
     public virtual void ProcessPage(TResponse page)
     {
-        // Do nothing
+        // Do nothing by default
     }
 
     public async Task<TResponse> RefreshCurrentPageAsync()
@@ -173,20 +174,34 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
         if (index < 0)
             throw new IndexOutOfRangeException("Index cannot be negative.");
 
+        // Calculate target page
         int targetPageIndex = index / _pageSize;
-
-        if (targetPageIndex != _currentPageIndex)
+        int indexInPage = index % _pageSize;
+    
+        // Check if we need to load a new page
+        bool needToLoadPage = _currentPage == null || targetPageIndex != (_currentPageIndex - 1);
+    
+        if (needToLoadPage)
         {
+            // Reset and load the correct page
+            ResetReader();
             _currentPageIndex = targetPageIndex;
-            _currentIndex = index % _pageSize - 1; // Will be incremented in NextAsync
-            _currentPage = null;
+            _currentPage = await NextPageAsync();
+        
+            // If page loading failed or returned empty, return default
+            if (_currentPage == null || _currentPage.Items.Count == 0)
+            {
+                return default;
+            }
         }
-        else
+    
+        // Return the item at the calculated index if it exists
+        if (indexInPage < _currentPage.Items.Count)
         {
-            _currentIndex = index % _pageSize - 1; // Will be incremented in NextAsync
+            return _currentPage.Items[indexInPage];
         }
-
-        return await NextAsync();
+    
+        return default;
     }
 
     private string BuildQueryString()
@@ -205,7 +220,7 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
         return "?" + string.Join("&", queryParameters);
     }
 
-    private void ResetReader()
+    public void ResetReader()
     {
         _currentPageIndex = 0;
         _currentIndex = -1;
@@ -260,7 +275,7 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
     public ValueTask DisposeAsync()
     {
         // Dispose of any resources if necessary
-        return new ValueTask();
+        return ValueTask.CompletedTask;
     }
 }
 

@@ -499,7 +499,7 @@ public class Node : ServiceBase // each node acts like a service
                 var genericMethod = hookMethodInfo!.MakeGenericMethod(modelType);
 
                 // Create an instance of the model
-                var modelInstance = Activator.CreateInstance(modelType);
+                var modelInstance = Activator.CreateInstance(modelType, nonPublic: true);
 
                 // Invoke the generic method
                 genericMethod.Invoke(this, [modelInstance]);

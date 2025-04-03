@@ -72,6 +72,7 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
     
     public string CustomCss { get; set; }
     
+    private Theme() : base() {}
     public Theme (ValourClient client) : base(client) {}
     
     public ThemeMeta ToMeta()

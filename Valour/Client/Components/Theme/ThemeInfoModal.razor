@@ -99,6 +99,8 @@
         _theme = await ThemeService.FetchThemeAsync(Data.ThemeMeta.Id);
         if (_theme is null)
             return;
+
+        _theme = _theme.Sync(Client);
         
         var votes = await _theme.GetVoteTotals();
         _upvotes = votes.Upvotes;

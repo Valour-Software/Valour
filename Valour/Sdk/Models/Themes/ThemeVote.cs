@@ -13,6 +13,7 @@ public class ThemeVote : ClientModel<ThemeVote, long>, ISharedThemeVote
     public bool Sentiment { get; set; }
     public DateTime CreatedAt { get; set; }
     
+    private ThemeVote() : base() {}
     public ThemeVote(ValourClient client) : base(client) { }
     
     public override ThemeVote AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)

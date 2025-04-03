@@ -3,87 +3,82 @@
     max-width: 800px;
     margin: 0 auto;
     padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-.settings-section {
+.editor-section {
     background-color: var(--main-3);
     border-radius: var(--main-radius);
-    margin-bottom: 1.5rem;
     padding: 1.5rem;
-    border-left: 3px solid var(--p-cyan);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border-left: 3px solid var(--p-cyan);
     transition: box-shadow 0.2s ease;
 }
 
-.settings-section:hover {
+.editor-section:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.settings-section.warning {
-    border-left-color: var(--p-red);
-}
-
-.settings-section.mfa {
+.editor-section.security {
     border-left-color: var(--p-purple);
 }
 
-/* Title styling */
-.title-container {
-    margin-bottom: 1.25rem;
-    border-bottom: 1px solid var(--main-5);
-    padding-bottom: 0.75rem;
+.editor-section.danger-zone {
+    border-left-color: var(--p-red);
 }
 
-.title-container h3 {
-    font-size: 1.4rem;
+/* Section headings */
+.editor-section-title {
+    font-size: 1.2rem;
     font-weight: 600;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--main-4);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.25rem;
 }
 
-.title-container .subtitle {
+.subtitle {
     color: var(--font-alt-color);
     font-size: 0.9rem;
-    opacity: 1;
-    font-weight: normal;
+    margin-bottom: 1.25rem;
 }
 
 /* User preview styling */
 .preview {
     background-color: var(--main-4);
     display: inline-block;
-    padding: 0.1rem;
+    padding: 0.5rem;
     border-radius: var(--main-radius);
-    transform: scale(1.2);
     transform-origin: left center;
-    margin: 0.5rem 0 1.5rem 2rem;
+    margin: 0.5rem 0 1.5rem;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .preview:hover {
-    transform: scale(1.22);
+    transform: scale(1.02);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Form elements */
-.input-container {
+.form-group {
     margin-bottom: 1.25rem;
 }
 
-.input-container label {
+.form-group label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
     font-size: 0.9rem;
-    color: var(--font-color);
 }
 
 .input-group {
     display: flex;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
     border-radius: var(--main-radius);
     overflow: hidden;
     transition: box-shadow 0.2s ease;
@@ -93,21 +88,19 @@
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
-.input-group input,
-.input-group .form-select {
-    background-color: var(--main-4);
-    border: 1px solid var(--main-5);
-    color: var(--font-color);
-    padding: 0.6rem 0.8rem;
+.input-group .v-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
     flex: 1;
 }
 
-.input-group .btn {
-    font-weight: 500;
+.input-group .v-btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 .helper-text {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--font-alt-color);
     margin-top: 0.4rem;
 }
@@ -116,7 +109,7 @@
 .avatar-container {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     margin: 1rem 0;
 }
 
@@ -137,49 +130,71 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* MFA section */
-.mfa-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+/* Toggle item styling */
+.toggle-item {
+    background-color: var(--main-4);
+    border-radius: var(--small-radius);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
 }
 
+.toggle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.toggle-title {
+    font-weight: 500;
+}
+
+.toggle-description {
+    color: var(--font-alt-color);
+    font-size: 0.85rem;
+}
+
+.toggle-content {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--main-5);
+}
+
+/* Status badges */
+.status-badge {
+    background-color: var(--main-5);
+    border-radius: 20px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.enabled {
+    background-color: rgba(var(--p-cyan-rgb), 0.2);
+    color: var(--p-cyan);
+}
+
+/* MFA section */
 .mfa-status {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-weight: 500;
-}
-
-.mfa-status.enabled {
-    color: var(--p-cyan);
-}
-
-/* Danger zone */
-.danger-zone {
-    background-color: var(--main-3);
-    border-left: 3px solid var(--p-red);
-    padding: 1.25rem;
-    border-radius: var(--main-radius);
-    margin-top: 2rem;
-}
-
-.danger-zone h3 {
-    color: var(--p-red);
-    font-size: 1.25rem;
-    font-weight: 600;
+    padding: 0.75rem;
+    border-radius: var(--small-radius);
+    background-color: var(--main-5);
     margin-bottom: 1rem;
 }
 
-.btn-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+.mfa-status.enabled {
+    background-color: rgba(var(--p-cyan-rgb), 0.1);
+    color: var(--p-cyan);
 }
 
-.btn-row .btn {
-    min-width: 150px;
+.loading-state {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0;
 }
 
 /* Loading state */
@@ -199,33 +214,34 @@
     }
 }
 
-/* Result label styling */
-.result-label {
-    margin-top: 0.5rem;
-    font-size: 0.85rem;
+/* Action buttons */
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
 }
 
-.result-label.success {
-    color: var(--p-cyan);
-}
-
-.result-label.error {
-    color: var(--p-red);
+.v-btn {
+    min-width: 120px;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .preview {
-        transform: scale(1);
-        margin-left: 0;
-        width: 100%;
+    .input-group {
+        max-width: 100%;
     }
 
-    .btn-row {
+    .preview {
+        width: 100%;
+        text-align: center;
+    }
+
+    .actions {
         flex-direction: column;
     }
 
-    .btn-row .btn {
+    .actions .v-btn {
         width: 100%;
     }
 }
