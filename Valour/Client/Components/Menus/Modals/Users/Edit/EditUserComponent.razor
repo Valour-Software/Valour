@@ -12,79 +12,111 @@
     return;
 }
 
-<BigMenuComponent StartTopMenu="@Data.StartTopMenu" StartSubMenu="@Data.StartSubMenu" @ref="BigMenu">
-    <LeftSide>
-        <section>
-            <p class="user-settings">USER SETTINGS</p>
-
-            <div class="menu">
-                <BigMenuTopLevelMenuComponent Icon="gear-fill" Name="General Settings">
-                    <BigMenuSubMenuComponent Icon="info-circle-fill" Name="Info"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="person-fill" Name="Profile"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="person-heart" Name="Friends"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="palette-fill" Name="Themes"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="rocket-takeoff-fill" Name="Subscriptions"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="envelope-paper-heart-fill" Name="Referrals"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="sign-stop-lights-fill" Name="Permissions"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="phone-fill" Name="Device Preferences"></BigMenuSubMenuComponent>
-                    @if (Client.Me.ValourStaff)
-                    {
-                        <BigMenuSubMenuComponent OnClickOverride="OpenStaffTools" Icon="hammer" Name="Staff Tools"></BigMenuSubMenuComponent>
-                    }
-                    <BigMenuSubMenuComponent Icon="x-octagon-fill" Name="Log Out"></BigMenuSubMenuComponent>
-                </BigMenuTopLevelMenuComponent>
-            </div>
-        </section>
-    </LeftSide>
-    <RightSide>
-        @switch (BigMenu.SelectedTopLevelMenu?.Name)
-        {
-            case "General Settings":
-                switch (BigMenu.SelectedSubMenu.Name)
-                {
-                    case "Info":
-                        <EditUserInfoComponent User="@Data.User"></EditUserInfoComponent>
-                        break;
-                    case "Profile":
-                        <EditProfileComponent></EditProfileComponent>
-                        break;
-                    case "Themes":
-                        <EditThemeComponent></EditThemeComponent>
-                        break;
-                    case "Permissions":
-                        <EditUserNotificationsComponent></EditUserNotificationsComponent>
-                        break;
-                    case "Device Preferences":
-                        <EditDevicePreferencesComponent></EditDevicePreferencesComponent>
-                        break;
-                    case "Subscriptions":
-                        <EditSubscriptionsComponent></EditSubscriptionsComponent>
-                        break;
-                    case "Referrals":
-                        <EditReferralsComponent></EditReferralsComponent>
-                        break;
-                    case "Friends":
-                        <EditFriendsComponent></EditFriendsComponent>
-                        break;
-                    case "Log Out":
-                        <EditUserInfoComponent User="@Data.User"></EditUserInfoComponent>
-                        break;
-                }
-                break;
-        }
-    </RightSide>
-</BigMenuComponent>
+<MainMenuComponent DefaultCategory="@Data.StartCategory" DefaultItem="@Data.StartItem" MenuCategories="@_categories"  />
 
 @code {
     
     [CascadingParameter]
     public BrowserUtils DomWindow { get; set; }
+    
+    private RenderFragment InfoContent => @<EditUserInfoComponent User="@Data.User" />;
+    private RenderFragment ProfileContent => @<EditProfileComponent />;
+    private RenderFragment FriendsContent => @<EditFriendsComponent />;
+    private RenderFragment ThemesContent => @<EditThemeComponent />;
+    private RenderFragment SubscriptionsContent => @<EditSubscriptionsComponent />;
+    private RenderFragment ReferralsContent => @<EditReferralsComponent />;
+    private RenderFragment PermissionsContent => @<EditUserNotificationsComponent />;
+    private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
+    private RenderFragment LogOutContent => @<div></div>;
+    
+    private List<MainMenu.MenuCategory> _categories;
+    
+    private List<MainMenu.MenuCategory> BuildCategories() =>
+        new List<MainMenu.MenuCategory>()
+        {
+            new MainMenu.MenuCategory()
+            {
+                Name = "General Settings",
+                Icon = "gear-fill",
+                Items = new List<MainMenu.MenuItem>()
+                {
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Info",
+                        Icon = "info-circle-fill",
+                        Description = "Edit basic account information",
+                        Content = InfoContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Profile",
+                        Icon = "person-fill",
+                        Description = "Customize your profile in style",
+                        Content = ProfileContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Friends",
+                        Icon = "person-heart",
+                        Description = "Manage your friends and requests",
+                        Content = FriendsContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Themes",
+                        Icon = "palette-fill",
+                        Description = "Create and install custom themes",
+                        Content = ThemesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Subscriptions",
+                        Icon = "rocket-takeoff-fill",
+                        Description = "Upgrade your experience!",
+                        Content = SubscriptionsContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Referrals",
+                        Icon = "envelope-paper-heart-fill",
+                        Description = "Invite friends and earn rewards",
+                        Content = ReferralsContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Permissions",
+                        Icon = "sign-stop-lights-fill",
+                        Description = "Manage app permissions",
+                        Content = PermissionsContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Device Preferences",
+                        Icon = "phone-fill",
+                        Description = "Manage device preferences",
+                        Content = DevicePreferencesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Log Out",
+                        Icon = "x-octagon-fill",
+                        Color = "var(--p-red)",
+                        Content = LogOutContent
+                    }
+                }
+            },
+        };
+
+    protected override void OnInitialized()
+    {
+        _categories = BuildCategories();
+    }
 
     public class ModalParams
     {
         public User User;
-        public string StartTopMenu;
-        public string StartSubMenu;
+        public string StartCategory;
+        public string StartItem;
     }
 
     private BigMenuComponent BigMenu { get; set; }

@@ -1,46 +1,105 @@
-﻿.full-container {
-    border-radius: 1em;
-    /* background-color: rgba(255, 255, 255, 0.05); */
-    margin-bottom: 2em;
+﻿/* Tab Container Styling */
+.v-tab-container {
+    background-color: var(--main-3);
+    border-radius: var(--main-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
 }
 
-.tab-holder {
+/* Tab Header Bar */
+.v-tab-header {
     display: flex;
-    flex-direction: row;
+    position: relative;
+    background-color: var(--main-2);
+    padding: 0;
+    border-bottom: 1px solid var(--main-4);
 }
 
-.tab {
+/* Individual Tab Buttons */
+.v-tab {
     flex: 1;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    text-align: center;
+    font-weight: 500;
+    color: var(--font-alt-color);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+    user-select: none;
     display: flex;
     align-items: center;
-    justify-content: left;
-    background-color: rgba(255, 255, 255, 0.05);
-    cursor: pointer;
-    padding: 0.5em;
-    padding-left: 1em;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
-.tab:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+/* Tab Hover State */
+.v-tab:hover {
+    background-color: var(--slight-tint);
+    color: var(--font-color);
 }
 
-.tab.active {
-    background-color: rgba(255, 255, 255, 0.1);
+/* Active Tab Styling */
+.v-tab.active {
+    color: var(--font-color);
+    background-color: var(--main-3);
+    border-bottom: 2px solid var(--p-cyan);
 }
 
-.tab.left {
-    border-top-left-radius: 1em;
+/* First and Last Tab Border Radius */
+.v-tab.first {
+    border-top-left-radius: calc(var(--main-radius) - 2px);
 }
 
-.tab.right {
-    border-top-right-radius: 1em;
+.v-tab.last {
+    border-top-right-radius: calc(var(--main-radius) - 2px);
 }
 
-.tab.center {
-    
-}
-
-.tab-content {
-    padding: 0 0 1em 0;
+/* Tab Content Area */
+.v-tab-content {
+    padding: 1.25rem;
     overflow: auto;
+    background-color: var(--main-3);
+    transition: opacity 0.2s ease;
+    min-height: 100px;
+}
+
+/* Tab Content Animation */
+.v-tab-content-enter {
+    opacity: 0;
+    transform: translateY(5px);
+}
+
+.v-tab-content-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Tab Badge - for notifications or counts */
+.v-tab-badge {
+    background-color: var(--p-red);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 1rem;
+    margin-left: 0.5rem;
+}
+
+/* Tab Icon */
+.v-tab-icon {
+    font-size: 1rem;
+}
+
+/* Small Screen Adjustments */
+@media (max-width: 576px) {
+    .v-tab {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .v-tab-icon {
+        margin-right: 0;
+    }
 }

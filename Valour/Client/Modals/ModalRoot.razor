@@ -19,7 +19,7 @@
                     <!-- Outer wrapper covers entire screen with darken effect -->
                     <div id="@modal.Id" class="modal-bg" @key="@(modal.Id + "-bg")" @onclick="CloseTopModal">
                         <div @onclick:stopPropagation="true">
-                            <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data" />
+                            <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data"/>
                         </div>
                     </div>
                 }

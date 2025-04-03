@@ -1,0 +1,188 @@
+@implements IDisposable
+
+<div class="v-menu-container">
+    <!-- Close button -->
+    <button class="v-menu-close" @onclick="CloseMenu">
+        <i class="bi bi-x"></i>
+    </button>
+
+    <div class="v-menu-layout">
+        <!-- Sidebar (always present, visibility controlled by CSS) -->
+        <div class="v-menu-sidebar @(IsDropdownOpen ? "open" : "")">
+            <div class="v-menu-sidebar-toggle" @onclick="ToggleDropdown">
+                <span>@(ActiveCategory?.Name ?? "Menu")</span>
+                <i class="bi bi-chevron-@(IsDropdownOpen ? "up" : "down")"></i>
+            </div>
+            
+            <div class="v-menu-sidebar-content">
+                @foreach (var category in MenuCategories)
+                {
+                    <div class="v-menu-category @(ActiveCategory == category ? "active" : "")" 
+                         @onclick="() => SelectCategory(category)">
+                        <i class="bi bi-@category.Icon"></i>
+                        <span>@category.Name</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+
+                    @if (ActiveCategory == category)
+                    {
+                        <div class="v-menu-items">
+                            @foreach (var item in category.Items)
+                            {
+                                <div class="v-menu-item @(ActiveItem == item ? "active" : "")"
+                                     @onclick="() => SelectItem(item)">
+                                    @if (!string.IsNullOrEmpty(item.Icon))
+                                    {
+                                        <i class="bi bi-@item.Icon" style="@(item.Color != null ? $"color:{item.Color}" : "")"></i>
+                                    }
+                                    <span style="@(item.Color != null ? $"color:{item.Color}" : "")">@item.Name</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="v-menu-content">
+            @if (ActiveItem is not null)
+            {
+                <div class="v-menu-content-header">
+                    @if (ActiveItem.Icon is not null)
+                    {
+                        <p><i class="bi bi-@ActiveItem.Icon"></i> <h2>@ActiveItem.Name</h2></p>
+                    }
+                    else
+                    {
+                        <h2>@ActiveItem.Name</h2>
+                    }
+
+                    @if (ActiveItem.Description is not null)
+                    {
+                        <h3 class="subtitle">@ActiveItem.Description</h3>
+                    }
+                </div>
+
+                <div class="v-menu-content-body">
+                    @ActiveItem.Content
+                </div>
+            }
+            else
+            {
+                <div class="v-menu-placeholder">
+                    <i class="bi bi-arrow-left-circle"></i>
+                    <p>Select an item from the menu</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    [Parameter]
+    public List<MainMenu.MenuCategory> MenuCategories { get; set; }
+
+    [Parameter]
+    public string DefaultCategory { get; set; }
+
+    [Parameter]
+    public string DefaultItem { get; set; }
+
+    private MainMenu.MenuCategory ActiveCategory { get; set; }
+    private MainMenu.MenuItem ActiveItem { get; set; }
+    private bool IsDropdownOpen { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        if (MenuCategories != null && MenuCategories.Count > 0)
+        {
+            // Set default category
+            if (!string.IsNullOrEmpty(DefaultCategory))
+            {
+                ActiveCategory = MenuCategories.FirstOrDefault(c => c.Name == DefaultCategory);
+            }
+
+            // If no default category was specified or found, use the first category
+            if (ActiveCategory == null)
+            {
+                ActiveCategory = MenuCategories[0];
+            }
+
+            if (ActiveCategory != null && ActiveCategory.Items != null && ActiveCategory.Items.Count > 0)
+            {
+                // Set default item if specified
+                if (!string.IsNullOrEmpty(DefaultItem))
+                {
+                    ActiveItem = ActiveCategory.Items.FirstOrDefault(i => i.Name == DefaultItem);
+                }
+
+                // If no default item was specified or found, use the first item
+                if (ActiveItem == null)
+                {
+                    ActiveItem = ActiveCategory.Items[0];
+                }
+            }
+        }
+
+        KeyboardListener.KeyDown += OnKeyDown;
+    }
+
+    private void ToggleDropdown()
+    {
+        IsDropdownOpen = !IsDropdownOpen;
+    }
+
+    private void SelectCategory(MainMenu.MenuCategory category)
+    {
+        ActiveCategory = category;
+        
+        // Auto-select first item in the category
+        if (category.Items != null && category.Items.Count > 0)
+        {
+            ActiveItem = category.Items[0];
+        }
+        else
+        {
+            ActiveItem = null;
+        }
+    }
+
+    private void SelectItem(MainMenu.MenuItem item)
+    {
+        ActiveItem = item;
+        
+        // On small screens, close the dropdown after selection
+        IsDropdownOpen = false;
+    }
+
+    private async Task OnKeyDown(KeyboardListener.KeyboardEvent e)
+    {
+        if (e.Key == "Escape")
+        {
+            if (IsDropdownOpen)
+            {
+                // If dropdown is open, close it first
+                IsDropdownOpen = false;
+            }
+            else
+            {
+                // Otherwise close the modal
+                await CloseMenu();
+            }
+        }
+    }
+
+    private async Task CloseMenu()
+    {
+        await ModalRoot.CloseTopModal();
+    }
+
+    public void Dispose()
+    {
+        KeyboardListener.KeyDown -= OnKeyDown;
+    }
+}

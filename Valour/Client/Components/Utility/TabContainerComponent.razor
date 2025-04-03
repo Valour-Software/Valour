@@ -1,25 +1,49 @@
-﻿<div class="full-container">
-    <div class="tab-holder">
+﻿<div class="v-tab-container">
+    <div class="v-tab-header">
         @if (TabOne is not null)
         {
-            <div class="@_classOne @GetActive(0)" @onclick="() => OnClick(0)">
-                @_titleOne
+            <div class="v-tab @GetPositionClass(0) @GetActive(0)" @onclick="() => OnClick(0)">
+                @if (!string.IsNullOrEmpty(IconOne))
+                {
+                    <i class="bi bi-@IconOne v-tab-icon"></i>
+                }
+                <span>@_titleOne</span>
+                @if (BadgeOne.HasValue && BadgeOne.Value > 0)
+                {
+                    <span class="v-tab-badge">@BadgeOne</span>
+                }
             </div>
         }
         @if (TabTwo is not null)
         {
-            <div class="@_classTwo @GetActive(1)" @onclick="() => OnClick(1)">
-                @_titleTwo
+            <div class="v-tab @GetPositionClass(1) @GetActive(1)" @onclick="() => OnClick(1)">
+                @if (!string.IsNullOrEmpty(IconTwo))
+                {
+                    <i class="bi bi-@IconTwo v-tab-icon"></i>
+                }
+                <span>@_titleTwo</span>
+                @if (BadgeTwo.HasValue && BadgeTwo.Value > 0)
+                {
+                    <span class="v-tab-badge">@BadgeTwo</span>
+                }
             </div>
         }
         @if (TabThree is not null)
         {
-            <div class="@_classThree @GetActive(2)" @onclick="() => OnClick(2)">
-                @_titleThree
+            <div class="v-tab @GetPositionClass(2) @GetActive(2)" @onclick="() => OnClick(2)">
+                @if (!string.IsNullOrEmpty(IconThree))
+                {
+                    <i class="bi bi-@IconThree v-tab-icon"></i>
+                }
+                <span>@_titleThree</span>
+                @if (BadgeThree.HasValue && BadgeThree.Value > 0)
+                {
+                    <span class="v-tab-badge">@BadgeThree</span>
+                }
             </div>
         }
     </div>
-    <div class="tab-content" style="max-height: @MaxHeight; @ContentStyle">
+    <div class="v-tab-content" style="max-height: @MaxHeight; @ContentStyle">
         @switch (_active)
         {
             case 0:
@@ -34,6 +58,7 @@
         }
     </div>
 </div>
+
 
 @code {
 
@@ -50,6 +75,41 @@
     
     [Parameter]
     public string MaxHeight { get; set; } = "400px";
+    
+    [Parameter]
+    public string IconOne { get; set; }
+
+    [Parameter]
+    public string IconTwo { get; set; }
+
+    [Parameter]
+    public string IconThree { get; set; }
+
+    [Parameter]
+    public int? BadgeOne { get; set; }
+
+    [Parameter]
+    public int? BadgeTwo { get; set; }
+
+    [Parameter]
+    public int? BadgeThree { get; set; }
+
+    private string GetPositionClass(int index)
+    {
+        switch (_tabCount)
+        {
+            case 1:
+                return "first last";
+            case 2:
+                return index == 0 ? "first" : "last";
+            case 3:
+                if (index == 0) return "first";
+                if (index == 2) return "last";
+                return "";
+            default:
+                return "";
+        }
+    }
 
     // Cached so we don't have to keep recalculating
     private string _titleOne = "Tab One";

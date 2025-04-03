@@ -48,8 +48,8 @@ public static class NotificationNavigator
             {
                 var data = new EditUserComponent.ModalParams()
                 {
-                    StartTopMenu = "General Settings",
-                    StartSubMenu = "Friends",
+                    StartCategory = "General Settings",
+                    StartItem = "Friends",
                     User = client.Me
                 };
                 

@@ -162,8 +162,8 @@
         var data = new EditUserComponent.ModalParams()
         {
             User = Client.Me,
-            StartTopMenu = "General Settings",
-            StartSubMenu = "Device Preferences"
+            StartCategory = "General Settings",
+            StartItem = "Device Preferences"
         };
         
         ModalRoot.OpenModal<EditUserComponent>(data);
