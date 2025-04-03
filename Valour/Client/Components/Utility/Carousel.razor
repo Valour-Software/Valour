@@ -2,7 +2,7 @@
 
 <div class="carousel-container">
     <button class="carousel-nav prev @(CanScrollLeft ? "" : "disabled")" @onclick="ScrollLeft" aria-label="Previous items">
-        <i class="fas fa-chevron-left"></i>
+        <i class="bi bi-chevron-left"></i>
     </button>
 
     <div class="carousel-viewport" @ref="_viewportElement">
@@ -25,11 +25,14 @@
     </div>
 
     <button class="carousel-nav next @(CanScrollRight ? "" : "disabled")" @onclick="ScrollRight" aria-label="Next items">
-        <i class="fas fa-chevron-right"></i>
+        <i class="bi bi-chevron-right"></i>
     </button>
 </div>
 
 @code {
+    [Parameter]
+    public int ItemWidth { get; set; } = 216; // Default item width (200px + 16px margin)
+    
     [Parameter]
     public int TotalItems { get; set; }
     
@@ -58,7 +61,6 @@
     private List<Dictionary<string, object>> _loadedItems = new();
     private int _currentIndex = 0;
     private int _currentOffset = 0;
-    private int _itemWidth = 266; // 250px + 16px margin
     private bool _isLoading = false;
     private Timer _autoScrollTimer;
     
@@ -128,9 +130,11 @@
         if (!CanScrollLeft) return;
         
         _currentIndex = Math.Max(0, _currentIndex - 1);
-        _currentOffset = _currentIndex * _itemWidth;
+        _currentOffset = _currentIndex * ItemWidth;
         
         await OnSwipe.InvokeAsync();
+        
+        StateHasChanged();
     }
     
     public async Task ScrollRight()
@@ -144,7 +148,7 @@
         }
         
         _currentIndex++;
-        _currentOffset = _currentIndex * _itemWidth;
+        _currentOffset = _currentIndex * ItemWidth;
         
         // Preload more items if we're nearing the end
         if (_currentIndex + VisibleItems + PreloadThreshold >= _loadedItems.Count && _loadedItems.Count < TotalItems)
@@ -153,6 +157,8 @@
         }
         
         await OnSwipe.InvokeAsync();
+        
+        StateHasChanged();
     }
     
     public void Dispose()
