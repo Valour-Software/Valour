@@ -30,6 +30,9 @@ public class PlanetMember : ISharedPlanetMember
     [JsonIgnore]
     public virtual ICollection<UserChannelState> ChannelStates { get; set; }
     
+    [JsonIgnore]
+    public virtual ICollection<MessageReaction> MessageReactions { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////

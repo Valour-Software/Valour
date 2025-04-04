@@ -62,9 +62,14 @@ namespace Valour.Database
         public virtual ICollection<Referral> Referrals { get; set; }
         
         /// <summary>
-        /// Notification of Subscriptions for this user.
+        /// Notification subscription for this user.
         /// </summary>
         public virtual ICollection<PushNotificationSubscription> NotificationSubscriptions { get; set; }
+        
+        /// <summary>
+        /// (Reactions to messages) this user has sent
+        /// </summary>
+        public virtual ICollection<MessageReaction> MessageReactions { get; set; }
         
         ///////////////////////
         // Entity Properties //

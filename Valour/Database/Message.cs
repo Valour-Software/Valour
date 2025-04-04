@@ -17,7 +17,8 @@ public class Message : ISharedMessage
     public Message ReplyToMessage { get; set; }
     public Channel Channel { get; set; }
     
-    public ICollection<Message> Replies { get; set; }
+    public virtual ICollection<Message> Replies { get; set; }
+    public virtual ICollection<MessageReaction> Reactions { get; set; }
     
     ///////////////////////
     // Entity Properties //

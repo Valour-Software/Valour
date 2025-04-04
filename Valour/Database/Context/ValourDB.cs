@@ -170,6 +170,8 @@ public partial class ValourDb : DbContext
     public DbSet<Report> Reports { get; set; }
     
     public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
+    
+    public DbSet<MessageReaction> MessageReactions { get; set; }
 
     ////////////////
     // Eco System //
