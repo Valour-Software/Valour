@@ -32,9 +32,9 @@
         {
             return Window.Layout.OnTabDropped(WindowService.DraggingTab, location);
         }
-        else if (ChannelListManager.CurrentDragItem is not null && ChannelListManager.CurrentDragItem.Channel is not null)
+        else if (ChannelDragManager.CurrentDragItem is not null && ChannelDragManager.CurrentDragItem.Channel is not null)
         {
-            return Window.Layout.OnChannelDropped(ChannelListManager.CurrentDragItem.Channel, location);
+            return Window.Layout.OnChannelDropped(ChannelDragManager.CurrentDragItem.Channel, location);
         }
 
         return Task.CompletedTask;

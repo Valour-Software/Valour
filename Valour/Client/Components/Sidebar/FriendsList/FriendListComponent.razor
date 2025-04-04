@@ -3,21 +3,53 @@
 <div class="friend-container">
     <p class="subtitle mb-2">Friends</p>
     <div class="v-gradient-underline"></div>
+
+    <input @oninput="@OnFilterInput" type="text" placeholder="Search..." class="form-control mb-2 v-bg-medium friend-search" />
     <div class="list">
-        <Virtualize Items="@FriendService.Friends">
+        <Virtualize Items="@_renderFriends">
             <UserInfoComponent User="@context" @key="@context.Id" />
         </Virtualize>
     </div>
 </div>
 
 @code {
+    private List<User> _renderFriends = new();
+    private string _filterText;
+
     protected override void OnInitialized()
     {
         FriendService.FriendsChanged += OnFriendsListUpdate;
+        CalculateFriends();
+    }
+
+    private void OnFilterInput(ChangeEventArgs e)
+    {
+        _filterText = e.Value?.ToString();
+        CalculateFriends();
+        StateHasChanged();
     }
 
     private void OnFriendsListUpdate(FriendEventData e)
     {
+        CalculateFriends();
         StateHasChanged();
+    }
+
+    private void CalculateFriends()
+    {
+        _renderFriends.Clear();
+
+        var friends = FriendService.Friends;
+        if (!string.IsNullOrWhiteSpace(_filterText))
+        {
+            friends = friends.Where(f => f.Name.ToLower().Contains(_filterText.ToLower())).ToList();
+
+            // Order first by if the name starts with the filter text,
+            // then alphabetically
+            friends = friends.OrderBy(f => f.Name.StartsWith(_filterText, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(f => f.Name).ToList();
+        }
+
+        _renderFriends.AddRange(friends);
     }
 }

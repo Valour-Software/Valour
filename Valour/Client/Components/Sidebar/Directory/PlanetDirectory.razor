@@ -1,5 +1,5 @@
 ﻿@using Valour.Shared.Utilities
-@inject ChannelListManager ListManager
+@inject ChannelDragManager DragManager
 @inject ContextMenuService ContextMenuService
 @inject ChannelService ChannelService
 @inject UnreadService UnreadService
@@ -52,7 +52,7 @@
             <div class="list-wrapper">
                 @foreach (var root in RootChannels)
                 {
-                    <ChannelListItem @key="@root.Id"
+                    <ChannelDirectoryItem @key="@root.Id"
                                      PlanetComponent="@this"
                                      Channel="@root"/>
                 }

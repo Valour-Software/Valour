@@ -1,9 +1,8 @@
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.JSInterop;
 using Valour.Sdk.Client;
 using Valour.Client.Categories;
-using Valour.Client.Components.Sidebar.ChannelList;
+using Valour.Client.Components.Sidebar.Directory;
 using Valour.Client.ContextMenu;
 using Valour.Client.Sounds;
 using Valour.Sdk.Services;
@@ -37,7 +36,7 @@ public class Program
         
         // old services TODO!
         builder.Services.AddSingleton<ClientCategoryManager>();
-        builder.Services.AddSingleton<ChannelListManager>();
+        builder.Services.AddSingleton<ChannelDragManager>();
         builder.Services.AddSingleton<SoundManager>();
         builder.Services.AddSingleton<ContextMenuService>();
         

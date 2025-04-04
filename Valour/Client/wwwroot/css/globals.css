@@ -805,12 +805,15 @@
 .avatar {
     width: 128px;
     height: 128px;
-    border: 3px solid var(--main-5);
-    border-radius: var(--main-radius);
     cursor: pointer;
     object-fit: cover;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.avatar.bordered {
+    border: 3px solid var(--main-5);
+    border-radius: var(--main-radius);
 }
 
 .avatar:hover {

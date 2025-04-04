@@ -2,12 +2,21 @@
     max-height: 100%;
     display: flex;
     flex-direction: column;
+    max-width: 100%;
+    padding: 8px;
 }
 
 .friend-container .list {
     overflow: auto;
+    overflow-anchor: none;
+    background-color: var(--main-3);
+    border-radius: var(--main-radius);
 }
 
 .friend-container .list::-webkit-scrollbar {
     display: none;
+}
+
+.friend-search {
+
 }

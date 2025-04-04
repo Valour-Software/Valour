@@ -1,7 +1,7 @@
 @using System.Text
 @using Valour.Shared.Utilities
 @implements IDisposable
-@inject ChannelListManager ListManager
+@inject ChannelDragManager DragManager
 @inject ClientCategoryManager CategoryManager
 @inject ContextMenuService ContextMenuService
 @inject ValourClient Client
@@ -39,8 +39,8 @@
 >
     <div class="channel-wrapper">
 
-        @if (ListManager.DragOverId == Channel.Id &&
-             ListManager.DragIsTop)
+        @if (DragManager.DragOverId == Channel.Id &&
+             DragManager.DragIsTop)
         {
             <div
                 class="drop-line"
@@ -78,8 +78,8 @@
             </p>
 
         </div>
-        @if (ListManager.DragOverId == Channel.Id &&
-             !ListManager.DragIsTop)
+        @if (DragManager.DragOverId == Channel.Id &&
+             !DragManager.DragIsTop)
         {
             <div
                 class="drop-line"
@@ -126,7 +126,7 @@
                             var ii = i;
                             var child = _children[ii];
                             
-                            <ChannelListItem @key="@child.Id"
+                            <ChannelDirectoryItem @key="@child.Id"
                                              PlanetComponent="@PlanetComponent"
                                              ParentComponent="@this"
                                              Channel="@child" />
@@ -142,10 +142,10 @@
 
 @code {
     [Parameter]
-    public PlanetListComponent PlanetComponent { get; set; }
+    public PlanetDirectory PlanetComponent { get; set; }
     
     [Parameter]
-    public ChannelListItem ParentComponent { get; set; }
+    public ChannelDirectoryItem ParentComponent { get; set; }
     
     [Parameter]
     public Channel Channel { get; set; }
@@ -165,7 +165,7 @@
             if (ChannelService.ConnectedPlanetChannels.Any(x => x.Id == Channel.Id))
                 css += " open";
 
-            if (ListManager.DragOverId == Channel.Id)
+            if (DragManager.DragOverId == Channel.Id)
                 css += " drag-over";
 
             if (IsNested)
@@ -273,7 +273,7 @@
     
     private async Task OnClick()
     {
-        ListManager.OnItemClickInCategory(this);
+        DragManager.OnItemClickInCategory(this);
 
         // Chat channels
         if (ISharedChannel.ChatChannelTypes.Contains(Channel.ChannelType))
@@ -525,13 +525,13 @@
     
     private void OnDragEnterTop()
     {
-        ListManager.OnDragEnterItem(Channel.Id, true);
+        DragManager.OnDragEnterItem(Channel.Id, true);
         Refresh();
     }
     
     private void OnDragEnterBottom()
     {
-        ListManager.OnDragEnterItem(Channel.Id, false);
+        DragManager.OnDragEnterItem(Channel.Id, false);
         Refresh();
     }
 
@@ -542,12 +542,12 @@
     
     private void OnDragStart()
     {
-        ListManager.OnItemStartDragInCategory(this);
+        DragManager.OnItemStartDragInCategory(this);
     }
 
     private async Task OnDragEnd(MouseEventArgs e)
     {
-        ListManager.OnCancelDrag();
+        DragManager.OnCancelDrag();
     }
 
     private void OnDragLeave()
@@ -557,13 +557,13 @@
 
     private async Task OnDropOn()
     {
-        await ListManager.OnItemDropOn(this);
+        await DragManager.OnItemDropOn(this);
         Refresh();
     }
     
     private void OnDragEnterInnerDrop()
     {
-        ListManager.HighlightInner = this;
+        DragManager.HighlightInner = this;
         Refresh();
     }
     

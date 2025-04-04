@@ -61,7 +61,7 @@
         if (Layout?.FocusedTab == this.WindowTab) {
             if ((WindowService.DraggingTab is not null &&
               WindowService.DraggingTab != WindowTab) ||
-             ChannelListManager.Dragging)
+             ChannelDragManager.Dragging)
             {
                 <WindowDropTargets Window="@this"/>
             }
@@ -181,7 +181,7 @@
         WindowTab.Component = this;
         BrowserUtils.OnWindowResize += OnWindowResize;
         WindowService.OnTabDragging += OnGlobalTabDragging;
-        ChannelListManager.ChannelDragChanged += OnChannelDragChanged;
+        ChannelDragManager.ChannelDragChanged += OnChannelDragChanged;
     }
 
     // Runs after every render
@@ -477,7 +477,7 @@
     {
         BrowserUtils.OnWindowResize -= OnWindowResize;
         WindowService.OnTabDragging -= OnGlobalTabDragging;
-        ChannelListManager.ChannelDragChanged -= OnChannelDragChanged;
+        ChannelDragManager.ChannelDragChanged -= OnChannelDragChanged;
         
         return ValueTask.CompletedTask;
     }

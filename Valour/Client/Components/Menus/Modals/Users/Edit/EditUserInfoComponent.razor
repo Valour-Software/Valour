@@ -60,7 +60,7 @@
         </h3>
         
         <div class="avatar-container">
-            <img alt="Your profile picture" class="avatar" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
+            <img alt="Your profile picture" class="avatar bordered" src="@_pfpUrl" @onerror="@OnPfpError" onclick="document.getElementById('avatar-upload').click()" />
             <p class="helper-text">Click the image to upload a new profile picture</p>
             <ResultLabel Result="@_pfpChangeResult" />
             <div style="display:none">
