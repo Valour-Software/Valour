@@ -142,9 +142,27 @@ public class AuthService : ServiceBase
         return new TaskResult(true, "Success");
     }
 
-    public Task<TaskResult> RegisterAsync(RegisterUserRequest request)
+    public async Task<TaskResult> RegisterAsync(RegisterUserRequest request)
     {
-        return _client.PrimaryNode.PostAsync("api/users/register", request);
+        var content = JsonContent.Create(request);
+        var result = await _client.Http.PostAsync("api/users/register", content);
+
+        if (result.IsSuccessStatusCode)
+        {
+            return TaskResult.SuccessResult;
+        }
+        
+        var text = "";
+
+        try
+        {
+            text = await result.Content.ReadAsStringAsync();
+        } catch (Exception ex)
+        {
+            text = "Unknown error";
+        }
+        
+        return TaskResult.FromFailure(text, (int)result.StatusCode);
     }
     
     /// <summary>
