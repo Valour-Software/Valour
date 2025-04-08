@@ -239,6 +239,9 @@ public class PlanetPermissionService
 
             roles.Add(role);
         }
+        
+        // Ensure roles are sorted by position descending (weakest to strongest)
+        roles.Sort(ISortable.ComparerDescending);
 
         if (isAdmin)
         {
@@ -380,6 +383,9 @@ public class PlanetPermissionService
             
             roles.Add(role!);
         }
+        
+        // Roles need to be ordered by position descending (weakest to strongest)
+        roles.Sort(ISortable.ComparerDescending);
         
         var computedPerms =
             await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel, hosted, targetType);

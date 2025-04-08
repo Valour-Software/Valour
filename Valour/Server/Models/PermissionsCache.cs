@@ -185,6 +185,8 @@ public class PlanetPermissionsCache
 
         _accessCache.Clear();
         _authorityCache.Clear();
+        _planetPermissionsCache.Clear();
+        _rolesToCombos.Clear();
         ChannelAccessRoleComboCache.Clear();
     }
 

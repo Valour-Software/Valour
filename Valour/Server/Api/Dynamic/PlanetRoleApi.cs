@@ -51,6 +51,9 @@ public class PlanetRoleApi
         if (role.IsDefault)
             return ValourResult.BadRequest("You cannot create another default role.");
 
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
+        
         if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("You cannot create roles with higher authority than your own.");
 
