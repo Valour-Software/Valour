@@ -5,6 +5,7 @@
 
 /* Result messages */
 .result-message {
+    position: relative;
     margin-top: 1rem;
     padding: 0.75rem;
     border-radius: var(--small-radius);
@@ -16,7 +17,28 @@
     border-left: 3px solid var(--v-cyan);
 }
 
+
+.result-message.success > p {
+    margin-bottom: 0;
+}
+
 .result-message.error {
     background-color: rgba(205, 94, 94, 0.1);
     border-left: 3px solid var(--p-red);
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.result-message.error .details {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    cursor: pointer;
+}
+
+.result-message > p {
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 4px;
+    margin-bottom: 25px;
 }

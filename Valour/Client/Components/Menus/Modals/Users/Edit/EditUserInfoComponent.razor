@@ -260,7 +260,7 @@
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
         content.Add(streamContent, file.Name, file.Name);
 
-        var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/profile", content);
+        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/profile", content);
 
         _pfpChangeResult = result;
 

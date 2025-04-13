@@ -870,8 +870,8 @@ public class Node : ServiceBase // each node acts like a service
 
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
-
-            return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+            
+            return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
         catch (HttpRequestException ex)
         {
@@ -911,7 +911,7 @@ public class Node : ServiceBase // each node acts like a service
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
 
-            return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+            return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
         catch (HttpRequestException ex)
         {
@@ -964,7 +964,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
         var msg = await response.Content.ReadAsStringAsync();
         LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
 
-        return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+        return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
     }
     catch (HttpRequestException ex)
     {
@@ -1007,7 +1007,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
             LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
 
-            return TaskResult.FromFailure(msg, (int)response.StatusCode);
+            return TaskResult.FromFailure($"Error PUTing data to {uri}", (int)response.StatusCode, msg);
         }
         catch (HttpRequestException ex)
         {

@@ -3,7 +3,7 @@
 
 <section class="outer">
     <div class="title-container">
-    	<h3>Error Details <i class="bi bi-bug-fill"></i></h3>
+    	<h3>Error Details @CodeText <i class="bi bi-bug-fill"></i></h3>
     	<p class="subtitle">Send to us... or maybe <a href="https://github.com/Valour-Software/Valour">contribute?</a></p>
     </div>
     <pre class="inner">
@@ -20,6 +20,9 @@
     {
         public ITaskResult Result;
     }
+    
+    private string CodeText =>
+        Data.Result.Code is null ? "" : $"({Data.Result.Code})";
 
     private void OnClickClose() => Close();
     
