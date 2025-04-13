@@ -16,19 +16,22 @@ namespace Valour.Server.Services;
 public class CoreHubService
 {
     // Map of channelids to users typing from prev channel update
-    public static ConcurrentDictionary<long, List<long>> PrevCurrentlyTyping = new ConcurrentDictionary<long, List<long>>();
+    public static ConcurrentDictionary<long, List<long>> PrevCurrentlyTyping = new();
+    private static readonly ConcurrentDictionary<long, long?> ChannelToPlanetIdCache = new();
     
     private readonly IHubContext<CoreHub> _hub;
     private readonly ValourDb _db;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
+    private readonly SignalRConnectionService _connectionTracker;
 
-    public CoreHubService(ValourDb db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis)
+    public CoreHubService(ValourDb db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis, SignalRConnectionService connectionTracker)
     {
         _db = db;
         _hub = hub;
         _serviceProvider = serviceProvider;
         _redis = redis;
+        _connectionTracker = connectionTracker;
     }
     
     public async Task RelayMessage(Message message)
@@ -38,10 +41,11 @@ public class CoreHubService
         // Group we are sending messages to
         var group = _hub.Clients.Group(groupId);
 
-        if (ConnectionTracker.GroupConnections.ContainsKey(groupId)) {
-            // All of the connections to this group
-            var viewingIds = ConnectionTracker.GroupUserIds[groupId];
-            
+        // Get all user IDs in the group to update their channel state
+        var viewingIds = _connectionTracker.GetGroupUserIds(groupId);
+        
+        if (viewingIds.Length > 0)
+        {
             await _db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});", 
                 viewingIds, message.ChannelId, DateTime.UtcNow);
         }
@@ -171,44 +175,66 @@ public class CoreHubService
             await _hub.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Delete", user);
         }
     }
-
-    private readonly ConcurrentDictionary<long, long?> _channelToPlanetId = new();
     
     private async ValueTask<long?> GetPlanetIdForChannel(long channelId)
     {
-        if (_channelToPlanetId.ContainsKey(channelId))
+        if (ChannelToPlanetIdCache.TryGetValue(channelId, out var planetId))
+            return planetId;
+
+        var channel = await _db.Channels.Select(x => new { x.Id, x.PlanetId}).FirstOrDefaultAsync(x => x.Id == channelId);
+        
+        if (channel is null)
             return null;
         
-        var channel = await _db.Channels.FindAsync(channelId);
-        
-        if (channel == null)
-            return null;
-        
-        _channelToPlanetId[channel.Id] = channel.PlanetId;
+        ChannelToPlanetIdCache[channel.Id] = channel.PlanetId;
         
         return channel.PlanetId;
     }
     
     public async Task UpdateChannelsWatching()
     {
-        foreach (var pair in ConnectionTracker.GroupUserIds)
+        // Find all groups that start with 'c-' (channel groups)
+        Dictionary<string, long[]> channelGroups = new Dictionary<string, long[]>();
+        
+        // For each group in the registry
+        foreach (var groupId in _connectionTracker.GetAllGroups())
         {
-            // Channel connections only
-            if (!pair.Key.StartsWith('c'))
+            // Only process channel groups
+            if (!groupId.StartsWith("c-"))
                 continue;
+                
+            // Get the channel ID from the group name
+            var channelId = long.Parse(groupId.Substring(2));
             
-            var channelId = long.Parse(pair.Key.Substring(2));
+            // Get all user IDs in this group
+            var userIds = _connectionTracker.GetGroupUserIds(groupId);
+            
+            // If there are no users, skip
+            if (userIds.Length == 0)
+                continue;
+                
+            channelGroups[groupId] = userIds;
+        }
+        
+        // Process each channel group
+        foreach (var pair in channelGroups)
+        {
+            var groupId = pair.Key;
+            var userIds = pair.Value;
+            
+            // Get channel ID from group name
+            var channelId = long.Parse(groupId.Substring(2));
             var planetId = await GetPlanetIdForChannel(channelId);
             
-            // Send current active channel connection user ids
-
-            // no need to await these
-
-            _ = _hub.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
+            if (!planetId.HasValue)
+                continue;
+                
+            // Send the watching update
+            _ = _hub.Clients.Group(groupId).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
             {
                 PlanetId = planetId,
                 ChannelId = channelId,
-                UserIds = pair.Value.Distinct().ToList()
+                UserIds = userIds.Distinct().ToList()
             });
         }
     }

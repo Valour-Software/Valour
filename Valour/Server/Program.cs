@@ -302,6 +302,8 @@ public partial class Program
 
         services.AddRazorPages();
 
+        services.AddSingleton<SignalRConnectionService>();
+
         services.AddSingleton<CdnMemoryCache>();
         services.AddSingleton<ModelCacheService>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();

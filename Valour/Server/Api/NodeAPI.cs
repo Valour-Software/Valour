@@ -44,16 +44,19 @@ namespace Valour.Server.API
                 return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);
             });
 
-            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeLifecycleService service, HostedPlanetService hostedService, ValourDb db) =>
+            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, SignalRConnectionService connectionService, HostedPlanetService hostedService, ValourDb db) =>
             {
-
+                return "Working on it";
+                
+                /*
                 var hostedPlanetIds = hostedService.GetHostedIds();
                 
                 DetailedNodeStats stats = new()
                 {
                     Name = NodeConfig.Instance.Name,
-                    ConnectionCount = ConnectionTracker.ConnectionIdentities.Count,
-                    ConnectionGroupCount = ConnectionTracker.ConnectionGroups.Count,
+                    
+                    ConnectionCount = SignalRConnectionService.ConnectionIdentities.Count,
+                    ConnectionGroupCount = SignalRConnectionService.ConnectionGroups.Count,
                     PlanetCount = hostedPlanetIds.Count(),
 
                     GroupConnections = ConnectionTracker.GroupConnections,
@@ -71,14 +74,14 @@ namespace Valour.Server.API
 
                 await ctx.Response.WriteAsync($"<h4>Node: {NodeConfig.Instance.Name}</h4> \n" +
                                               $"<hr/><br/>" +
-                                              $"<h5>Connections: {ConnectionTracker.ConnectionIdentities.Count}</h5> \n" +
-                                              $"<h5>Groups: {ConnectionTracker.ConnectionGroups.Count}</h5> \n" +
+                                              $"<h5>Connections: {SignalRConnectionService.ConnectionIdentities.Count}</h5> \n" +
+                                              $"<h5>Groups: {SignalRConnectionService.ConnectionGroups.Count}</h5> \n" +
                                               $"<h5>HostedPlanets: {hostedPlanetIds.Count()}</h5> \n" +
                                               $"<br/>");
 
                 await ctx.Response.WriteAsync($"<h4>Group Connections:</h4> \n");
                 
-                foreach (var conn in ConnectionTracker.GroupConnections)
+                foreach (var conn in SignalRConnectionService.GroupConnections)
                 {
                     await ctx.Response.WriteAsync($"<div style='border: 1px solid salmon; padding: 20px;'>");
                     
@@ -98,7 +101,7 @@ namespace Valour.Server.API
                 
                 await ctx.Response.WriteAsync($"<h4>Group User Ids:</h4> \n");
 
-                foreach (var conn in ConnectionTracker.GroupUserIds)
+                foreach (var conn in SignalRConnectionService.GroupUserIds)
                 {
                     await ctx.Response.WriteAsync($"<div style='border: 1px solid salmon; padding: 20px;'>");
                     
@@ -118,7 +121,7 @@ namespace Valour.Server.API
                 
                 await ctx.Response.WriteAsync($"<h4>Connection Groups:</h4> \n");
                 
-                foreach (var conn in ConnectionTracker.ConnectionGroups)
+                foreach (var conn in SignalRConnectionService.ConnectionGroups)
                 {
                     await ctx.Response.WriteAsync($"<div style='border: 1px solid salmon; padding: 20px;'>");
                     
@@ -138,7 +141,7 @@ namespace Valour.Server.API
                 
                 await ctx.Response.WriteAsync($"<h4>User Id Groups:</h4> \n");
                 
-                foreach (var conn in ConnectionTracker.UserIdGroups)
+                foreach (var conn in SignalRConnectionService.UserIdGroups)
                 {
                     await ctx.Response.WriteAsync($"<div style='border: 1px solid salmon; padding: 20px;'>");
                     
@@ -155,6 +158,8 @@ namespace Valour.Server.API
                     
                     await ctx.Response.WriteAsync($"</div>");
                 }
+                
+                */
             });
         }
     }
