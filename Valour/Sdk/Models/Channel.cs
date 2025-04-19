@@ -223,6 +223,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
                 Client.Cache.DmChannelKeyToId.Remove(key);
             }
         }
+
+        if (PlanetId is not null)
+        {
+            Planet.Channels.Remove(Id, skipEvents);
+        }
         
         Client.Cache.Channels.Remove(Id, skipEvents);
         
