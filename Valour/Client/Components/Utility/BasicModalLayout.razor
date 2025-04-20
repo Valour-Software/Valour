@@ -7,7 +7,7 @@
         
         <span class="title">@Title</span>
     </div>
-    <div class="content">
+    <div class="content" style="@ContentStyles">
         @MainArea
     </div>
     <div class="bottom">
@@ -24,6 +24,9 @@
     
     [Parameter]
     public string Icon { get; set; }
+    
+    [Parameter]
+    public string ContentStyles { get; set; } = "";
     
     [Parameter]
     public RenderFragment MainArea { get; set; }
