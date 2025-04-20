@@ -20,6 +20,7 @@ public static class PlanetMapper
             Public = planet.Public,
             Discoverable = planet.Discoverable,
             Nsfw = planet.Nsfw,
+            Version = planet.Version
         };
     }
     
@@ -39,6 +40,7 @@ public static class PlanetMapper
             Public = planet.Public,
             Discoverable = planet.Discoverable,
             Nsfw = planet.Nsfw,
+            Version = planet.Version
         };
     }
 }

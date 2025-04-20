@@ -88,6 +88,11 @@ public class User : ServerModel<long>, ISharedUser
     /// The date and time the user last changed their username.
     /// </summary>
     public DateTime? NameChangeTime { get; set; }
+    
+    /// <summary>
+    /// The version of the user. Used for cache busting.
+    /// </summary>
+    public int Version { get; set; }
 
     /// <summary>
     /// The subscription the user currently has

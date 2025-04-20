@@ -120,7 +120,8 @@ public class PlanetService
                 Description = x.Description,
                 HasCustomIcon = x.HasCustomIcon,
                 HasAnimatedIcon = x.HasAnimatedIcon,
-                MemberCount = x.Members.Count()
+                MemberCount = x.Members.Count(),
+                Version = x.Version
             })
             .OrderByDescending(x => x.MemberCount)
             .Take(30)

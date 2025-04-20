@@ -126,27 +126,27 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(20480000)]
-    private static async Task<IResult> ImageRoutePlus(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ImageRoutePlus(HttpContext ctx, ValourDb db, TokenService tokenService, CdnBucketService bucketService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload images larger than 10MB");
         
-        return await ImageRoute(ctx, db, authToken, authorization);
+        return await ImageRoute(ctx, db, bucketService, authToken, authorization);
     }
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ImageRouteNonPlus(HttpContext ctx, ValourDb  db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ImageRouteNonPlus(HttpContext ctx, ValourDb  db, TokenService tokenService, CdnBucketService bucketService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
-        return await ImageRoute(ctx, db, authToken, authorization);
+        return await ImageRoute(ctx, db, bucketService, authToken, authorization);
     }
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDb db, Models.AuthToken authToken, string authorization)
+    private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDb db, CdnBucketService bucketService, Models.AuthToken authToken, string authorization)
     {
         if (authToken is null) return ValourResult.InvalidToken();
 
@@ -162,7 +162,7 @@ public class UploadApi
             return Results.BadRequest("Unable to process image. Check format and size.");
 
         using MemoryStream ms = imageData.Value.stream;
-        var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Image, db);
+        var bucketResult = await bucketService.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Image, db);
 
         if (bucketResult.Success)
         {
@@ -186,7 +186,8 @@ public class UploadApi
         HttpContext ctx, 
         ValourDb valourDb, 
         CoreHubService hubService, 
-        TokenService tokenService)
+        TokenService tokenService,
+        CdnBucketService bucketService)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -205,7 +206,7 @@ public class UploadApi
         
         HandleExif(image);
         
-        var result = await UploadPublicImageVariants(image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(bucketService, image, "avatars", authToken.UserId.ToString(), AvatarSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -215,10 +216,14 @@ public class UploadApi
 
         var animated = result.Data;
         
-        var user = new Valour.Database.User() { Id = authToken.UserId, HasCustomAvatar = true, HasAnimatedAvatar = animated };
-        valourDb.Users.Attach(user);
-        valourDb.Entry(user).Property(x => x.HasCustomAvatar).IsModified = true;
-        valourDb.Entry(user).Property(x => x.HasAnimatedAvatar).IsModified = true;
+        var user = await valourDb.Users.FindAsync(authToken.UserId);
+        if (user is null)
+            return ValourResult.NotFound("User not found");
+        
+        user.HasCustomAvatar = true;
+        user.HasAnimatedAvatar = animated;
+        user.Version++;
+        
         await valourDb.SaveChangesAsync();
         await hubService.NotifyUserChange(user.ToModel());
         
@@ -233,7 +238,13 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ThemeBannerRoute(HttpContext ctx, ValourDb db, TokenService tokenService, long themeId)
+    private static async Task<IResult> ThemeBannerRoute(
+        HttpContext ctx, 
+        ValourDb db, 
+        TokenService tokenService, 
+        CdnBucketService bucketService,
+        long themeId
+    )
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -261,7 +272,7 @@ public class UploadApi
         
         HandleExif(image);
         
-        var result = await UploadPublicImageVariants(image, "themeBanners", themeId.ToString(), ThemeBannerSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(bucketService, image, "themeBanners", themeId.ToString(), ThemeBannerSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -283,7 +294,13 @@ public class UploadApi
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> ProfileBackgroundImageRoute(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> ProfileBackgroundImageRoute(
+        HttpContext ctx, 
+        ValourDb db, 
+        TokenService tokenService, 
+        CdnBucketService bucketService,
+        [FromHeader] string authorization
+    )
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -306,7 +323,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadPublicImageVariants(image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
+        var result = await UploadPublicImageVariants(bucketService, image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -331,7 +348,8 @@ public class UploadApi
         CoreHubService hubService, 
         TokenService tokenService, 
         PlanetService planetService,
-        PlanetMemberService memberService, 
+        PlanetMemberService memberService,
+        CdnBucketService bucketService,
         long planetId, 
         [FromHeader] string authorization)
     {
@@ -359,7 +377,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadPublicImageVariants(image, "planets", planetId.ToString(), PlanetSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(bucketService, image, "planets", planetId.ToString(), PlanetSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -370,6 +388,7 @@ public class UploadApi
         var planet = await valourDb.Planets.FindAsync(planetId);
         planet!.HasCustomIcon = true;
         planet.HasAnimatedIcon = result.Data;
+        planet.Version++;
         
         await valourDb.SaveChangesAsync();
 
@@ -386,7 +405,13 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDb db, TokenService tokenService, long appId, [FromHeader] string authorization)
+    private static async Task<IResult> AppImageRoute(
+        HttpContext ctx, 
+        ValourDb db, 
+        TokenService tokenService, 
+        CdnBucketService bucketService, 
+        long appId, 
+        [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -412,7 +437,7 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadPublicImageVariants(image, "apps", appId.ToString(), AppSizes, 0, true, false);
+        var result = await UploadPublicImageVariants(bucketService, image, "apps", appId.ToString(), AppSizes, 0, true, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
@@ -423,7 +448,7 @@ public class UploadApi
         return ValourResult.Ok(fullPath);
     }
 
-    public static async Task<TaskResult<bool>> UploadPublicImageVariants(Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated, bool doTransparency)
+    public static async Task<TaskResult<bool>> UploadPublicImageVariants(CdnBucketService bucketService, Image image, string folder, string id, ImageSize[] sizes, int defaultSizeIndex, bool doAnimated, bool doTransparency)
     {
         // By default we use the high quality image as the main image
         var resultPath = $"{folder}/{id}/{sizes[defaultSizeIndex]}.webp";
@@ -461,7 +486,7 @@ public class UploadApi
 
                     await image.SaveAsync(ms, GifEncoder);
             
-                    var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.gif");
+                    var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.gif");
 
                     if (!result.Success)
                     {
@@ -480,7 +505,7 @@ public class UploadApi
                     var encoder = doTransparency ? WebpAnimatedEncoderTrans : WebpAnimatedEncoder;
                     await image.SaveAsync(ms, encoder);
             
-                    var result = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
+                    var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
 
                     if (!result.Success)
                     {
@@ -499,7 +524,7 @@ public class UploadApi
                 using MemoryStream ms = new();
                 await image.SaveAsync(ms, JpegEncoder);
 
-                var bucketResult = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
+                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
 
                 if (!bucketResult.Success)
                 {
@@ -517,7 +542,7 @@ public class UploadApi
                 var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
                 await image.SaveAsync(ms, encoder);
 
-                var bucketResult = await BucketManager.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
+                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
 
                 if (!bucketResult.Success)
                 {
@@ -541,25 +566,25 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(20480000)]
-    private static async Task<IResult> FileRoutePlus(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> FileRoutePlus(HttpContext ctx, ValourDb db, TokenService tokenService, CdnBucketService bucketService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
             return ValourResult.Forbid("You must be a Valour Plus subscriber to upload files larger than 10MB");
         
-        return await FileRoute(ctx, db, authToken, authorization);
+        return await FileRoute(ctx, db, bucketService, authToken, authorization);
     }
     
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]
-    private static async Task<IResult> FileRouteNonPlus(HttpContext ctx, ValourDb db, TokenService tokenService, [FromHeader] string authorization)
+    private static async Task<IResult> FileRouteNonPlus(HttpContext ctx, ValourDb db, TokenService tokenService, CdnBucketService bucketService, [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
-        return await FileRoute(ctx, db, authToken, authorization);
+        return await FileRoute(ctx, db, bucketService, authToken, authorization);
     }
     
-    private static async Task<IResult> FileRoute(HttpContext ctx, ValourDb db, Models.AuthToken authToken, string authorization)
+    private static async Task<IResult> FileRoute(HttpContext ctx, ValourDb db, CdnBucketService bucketService, Models.AuthToken authToken, string authorization)
     {
         if (authToken is null) return ValourResult.InvalidToken();
 
@@ -574,7 +599,7 @@ public class UploadApi
         using MemoryStream ms = new();
         await file.CopyToAsync(ms);
 
-        var bucketResult = await BucketManager.Upload(ms, file.FileName, ext, authToken.UserId, file.ContentType, ContentCategory.File, db);
+        var bucketResult = await bucketService.Upload(ms, file.FileName, ext, authToken.UserId, file.ContentType, ContentCategory.File, db);
 
         if (bucketResult.Success)
         {

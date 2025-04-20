@@ -50,12 +50,12 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// <summary>
     /// The name of this user
     /// </summary>
-    public required string Name { get; set; }
+    public string Name { get; set; }
     
     /// <summary>
     /// The tag (discriminator) of this user
     /// </summary>
-    public required string Tag { get; set; }
+    public string Tag { get; set; }
 
     /// <summary>
     /// True if the user is a bot
@@ -116,6 +116,11 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// The date and time the user last changed their username.
     /// </summary>
     public DateTime? NameChangeTime { get; set; }
+    
+    /// <summary>
+    /// The version of the user. Used for cache busting.
+    /// </summary>
+    public int Version { get; set; }
     
     /// <summary>
     /// The subscription the user currently has

@@ -233,7 +233,8 @@
     {
         var render = false;
         
-        if (eventData.Changes.On(x => x.HasAnimatedAvatar))
+        if (eventData.Changes.On(x => x.HasAnimatedAvatar) ||
+            eventData.Changes.On(x => x.Version))
         {
             render = true;
             CalculateAvatar();
