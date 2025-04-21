@@ -53,6 +53,7 @@ export function init(dotnet, inputEl) {
         },
         focus() {
             const el = this.inputEl;
+            el.focus();
             setTimeout(function () {
                 el.focus();
             }, 0);

@@ -101,6 +101,7 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
 
         focus() {
             const el = this.inputEl;
+            el.focus();
             setTimeout(function() {
                 el.focus();
             }, 0);
