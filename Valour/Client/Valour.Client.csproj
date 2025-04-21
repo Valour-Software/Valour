@@ -24,7 +24,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Valour.Markdig.Blazor" Version="1.1.0" />
+    <PackageReference Include="Valour.Markdig.Blazor" Version="1.1.1" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.1" />
   </ItemGroup>
 

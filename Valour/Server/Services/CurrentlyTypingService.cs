@@ -80,6 +80,6 @@ public class CurrentlyTypingService
         }
     
         // Now we send the update!
-        _hubService.NotifyCurrentlyTyping(channelId, userId);
+        _ = _hubService.NotifyCurrentlyTyping(channelId, userId);
     }
 }

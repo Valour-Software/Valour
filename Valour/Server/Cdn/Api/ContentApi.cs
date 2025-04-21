@@ -14,10 +14,11 @@ public class ContentApi : Controller
     public static void AddRoutes(WebApplication app)
     {
         app.MapGet("/content/{category}/{userId}/{hash}", GetRoute);
-        app.MapGet("/content/migrateAvatars", MigrateRoute);
-        app.MapGet("/content/migratePlanets", MigratePlanetsRoute);
+        //app.MapGet("/content/migrateAvatars", MigrateRoute);
+        //app.MapGet("/content/migratePlanets", MigratePlanetsRoute);
     }
     
+    /*
     private static async Task<IResult> MigrateRoute(TokenService tokenService, CdnMemoryCache cache, ValourDb db)
     {
         var token = await tokenService.GetCurrentTokenAsync();
@@ -52,7 +53,7 @@ public class ContentApi : Controller
                     BucketName = "valourmps",
                 };
                 
-                var response = await BucketManager.Client.GetObjectAsync(request);
+                var response = await CdnBucketService.Client.GetObjectAsync(request);
 
                 if (!IsSuccessStatusCode(response.HttpStatusCode))
                 {
@@ -97,7 +98,9 @@ public class ContentApi : Controller
 
         return Results.Ok();
     }
+    */
     
+    /*
     private static async Task<IResult> MigratePlanetsRoute(TokenService tokenService, CdnMemoryCache cache, ValourDb db)
     {
         var token = await tokenService.GetCurrentTokenAsync();
@@ -132,7 +135,7 @@ public class ContentApi : Controller
                     BucketName = "valourmps",
                 };
                 
-                var response = await BucketManager.Client.GetObjectAsync(request);
+                var response = await CdnBucketService.Client.GetObjectAsync(request);
 
                 if (!IsSuccessStatusCode(response.HttpStatusCode))
                 {
@@ -177,6 +180,7 @@ public class ContentApi : Controller
 
         return Results.Ok();
     }
+    */
 
     private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDb db,
          ContentCategory category, string hash, ulong userId)
@@ -203,7 +207,7 @@ public class ContentApi : Controller
                 BucketName = "valourmps",
             };
 
-            var response = await BucketManager.Client.GetObjectAsync(request);
+            var response = await CdnBucketService.Client.GetObjectAsync(request);
 
             if (!IsSuccessStatusCode(response.HttpStatusCode))
                 return Results.BadRequest("Failed to get object from bucket.");

@@ -13,6 +13,7 @@ public class PlanetListInfo
     public bool HasAnimatedIcon { get; set; }
     public bool Nsfw { get; set; }
     public int MemberCount { get; set; }
+    public int Version { get; set; }
     
     // planet unread/read state
     public bool HasUnread { get; set; }

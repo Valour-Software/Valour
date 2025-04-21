@@ -1,29 +1,35 @@
 ﻿@inject ValourClient Client
 @inherits Modal<ChangeUsernameModal.Params>
 
-<div class="col-md-12">
-    <section class="modal-bg">
-        <h3>Change your username</h3>
-        <h5>@_changeUsernameMessage</h5>
-		
-        <div class="form-group mt-2">
-            <label class="m-2">New Username</label>
-            <input id="new-username-input" type="text" autocomplete="off" class="form-control" @bind-value="@_newUsername" />
-            <label class="m-2">Password</label>
-            <input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" />
-        </div>
-        <br />
-        
-        <ResultLabel Result="@_result" />
-        
-        <br />
-        <div @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel</div>
+<BasicModalLayout Title="Change Username" Icon="person-fill" ContentStyles="padding: 1em">
+    <MainArea>
         @if (_canChangeUsername)
         {
-            <div @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</div>
+            <div class="form-group">
+                <label class="m-2">Password</label>
+                <input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password"/>
+                <label class="m-2">New Username</label>
+                <input id="new-username-input" type="text" autocomplete="off" class="form-control" @bind-value="@_newUsername"/>
+            </div>
         }
-    </section>
-</div>
+        else
+        {
+            <p>@_changeUsernameMessage</p>
+        }
+
+        <ResultLabel Result="@_result"/>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            
+            @if (_canChangeUsername)
+            {
+                <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
     public class Params {}
@@ -66,7 +72,7 @@
     private void SetChangeUsernameMessage()
     {
         var user = Client.Me;
-        double daysSinceLastChange = 0;
+        var daysSinceLastChange = double.MaxValue;
         if (user.NameChangeTime is not null)
         {
             daysSinceLastChange = (DateTime.UtcNow - user.NameChangeTime.Value).TotalDays;

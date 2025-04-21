@@ -71,7 +71,7 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 
     public static uint GetAuthority(ISharedPlanetRole role)
     {
-        return (uint)(int.MaxValue - role.Position - 1);
+        return (uint.MaxValue - role.Position - 1);
     }
 
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)

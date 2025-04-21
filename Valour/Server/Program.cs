@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
+using CloudFlare.Client;
 using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
@@ -99,7 +100,7 @@ public partial class Program
             };
 
             AmazonS3Client client = new(cred, config);
-            BucketManager.Client = client;
+            CdnBucketService.Client = client;
             
             // public bucket
             BasicAWSCredentials publicCred = new(CdnConfig.Current.PublicS3Access, CdnConfig.Current.PublicS3Secret);
@@ -109,7 +110,7 @@ public partial class Program
             };
             
             AmazonS3Client publicClient = new(publicCred, publicConfig);
-            BucketManager.PublicClient = publicClient;
+            CdnBucketService.PublicClient = publicClient;
         }
         else
         {
@@ -301,6 +302,16 @@ public partial class Program
         });
 
         services.AddRazorPages();
+
+        //if (!string.IsNullOrEmpty(CloudflareConfig.Instance?.ApiKey))
+        //{
+            services.AddSingleton<ICloudFlareClient>(provider =>
+                new CloudFlareClient(CloudflareConfig.Instance?.ApiKey ?? string.Empty));
+        //}
+
+        services.AddSingleton<CdnBucketService>();
+
+        services.AddSingleton<SignalRConnectionService>();
 
         services.AddSingleton<CdnMemoryCache>();
         services.AddSingleton<ModelCacheService>();

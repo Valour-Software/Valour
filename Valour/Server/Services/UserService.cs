@@ -624,12 +624,20 @@ public class UserService
         // If user is a Stargazer, verify the new username/tag combo is unique
         if (user.SubscriptionType is not null)
         {
+            // Ensure it's been 7 days since the last name change
+            if (user.NameChangeTime is not null && user.NameChangeTime.Value.AddDays(7) > DateTime.UtcNow)
+                return new TaskResult(false, "You can only change your username once every 7 days.");
+            
             if (await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == user.Tag))
                 return new TaskResult(false, "Username and tag already taken, please change the username or your tag and try again.");
         }
         // If user is NOT a Stargazer, assign new tag and verify it is unique with the new username
         if (user.SubscriptionType is null)
         {
+            // Ensure it's been 30 days since the last name change
+            if (user.NameChangeTime is not null && user.NameChangeTime.Value.AddDays(30) > DateTime.UtcNow)
+                return new TaskResult(false, "You can only change your username once every 30 days.");
+            
             var loop = true;
             while (loop)
             {

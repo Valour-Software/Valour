@@ -124,6 +124,11 @@ public interface  ISharedUser : ISharedModel<long>
     /// The date and time the user last changed their username.
     /// </summary>
     public DateTime? NameChangeTime { get; set; }
+    
+    /// <summary>
+    /// The version of the user. Used for cache busting.
+    /// </summary>
+    public int Version { get; set; }
 
     /// <summary>
     /// The subscription the user currently has
@@ -246,6 +251,6 @@ public interface  ISharedUser : ISharedModel<long>
         }
         
         var formatStr = AvatarFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/avatars/{user.Id}/{formatStr}";
+        return $"https://public-cdn.valour.gg/valour-public/avatars/{user.Id}/{formatStr}?v={user.Version}";
     }
 }

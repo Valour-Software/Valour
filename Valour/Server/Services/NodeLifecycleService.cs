@@ -24,6 +24,7 @@ public class NodeLifecycleService
     private readonly ISubscriber _redisChannel;
     private readonly IConnectionMultiplexer _redis;
     private readonly IHubContext<CoreHub> _hub;
+    private readonly SignalRConnectionService _connectionTracker;
     
     private readonly ModelCacheService _cache;
     
@@ -35,10 +36,11 @@ public class NodeLifecycleService
 
     // Hosted planets //
     
-    public NodeLifecycleService(IConnectionMultiplexer redis, ILogger<NodeLifecycleService> logger, IHubContext<CoreHub> hub, ModelCacheService cache)
+    public NodeLifecycleService(IConnectionMultiplexer redis, ILogger<NodeLifecycleService> logger, IHubContext<CoreHub> hub, ModelCacheService cache, SignalRConnectionService connectionTracker)
     {
         _hub = hub;
         _cache = cache;
+        _connectionTracker = connectionTracker;
         _logger = logger;
         _redis = redis;
         _nodeRecords = redis.GetDatabase(RedisDbTypes.Cluster);
@@ -248,7 +250,7 @@ public class NodeLifecycleService
     /// </summary>
     public async Task RelayUserEventAsync(long userId, NodeEventType eventType, object data)
     {
-        var userNodes = await ConnectionTracker.GetPrimaryNodeConnectionsAsync(userId, _redis);
+        var userNodes = await _connectionTracker.GetPrimaryNodeConnectionsAsync(userId, _redis);
         
         NodeRelayEventData eventData = new()
         {

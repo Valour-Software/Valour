@@ -223,6 +223,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
                 Client.Cache.DmChannelKeyToId.Remove(key);
             }
         }
+
+        if (PlanetId is not null)
+        {
+            Planet.Channels.Remove(Id, skipEvents);
+        }
         
         Client.Cache.Channels.Remove(Id, skipEvents);
         
@@ -251,7 +256,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
     public async Task SendIsTyping()
     {
         // Limit spam
-        if (_lastTypingUpdateSend.Subtract(DateTime.UtcNow).TotalSeconds < 5)
+        if (DateTime.UtcNow.Subtract(_lastTypingUpdateSend).TotalSeconds < 5)
         {
             return;
         }

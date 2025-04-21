@@ -102,7 +102,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await Planet.Node.PostAsyncWithResponse<string>($"upload/planet/{Planet.Id}", content);
+        var result = await Planet.Node.PostMultipartDataWithResponse<string>($"upload/planet/{Planet.Id}", content);
 
         if (result.Success)
         {

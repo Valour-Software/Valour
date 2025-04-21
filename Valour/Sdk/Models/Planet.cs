@@ -23,6 +23,22 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     private Node _node;
 
+    /// <summary>
+    /// In the case that the roles list for some reason has not loaded,
+    /// this provides a default role to fall back on
+    /// </summary>
+    private PlanetRole PlaceholderDefaultRole => new PlanetRole(Client)
+    {
+        PlanetId = Id,
+        Name = PlanetRole.DefaultRole.Name,
+        ChatPermissions = PlanetRole.DefaultRole.ChatPermissions,
+        VoicePermissions = PlanetRole.DefaultRole.VoicePermissions,
+        CategoryPermissions = PlanetRole.DefaultRole.CategoryPermissions,
+        FlagBitIndex = PlanetRole.DefaultRole.FlagBitIndex,
+        IsDefault = true,
+        IsAdmin = false,
+    };
+
     #region Model Caches
     
     ////////////
@@ -92,7 +108,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// The default (everyone) role of this planet
     /// </summary>
-    public PlanetRole DefaultRole => Roles.Last();
+    public PlanetRole DefaultRole => Roles.LastOrDefault() ?? PlaceholderDefaultRole;
 
     /// <summary>
     /// The member for the current user in this planet. Can be null if not a member.
@@ -144,6 +160,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     public bool Nsfw { get; set; }
+    
+    /// <summary>
+    /// The version of the planet. Used for cache busting.
+    /// </summary>
+    public int Version { get; set; }
 
     internal void SetMyMember(PlanetMember member)
     {

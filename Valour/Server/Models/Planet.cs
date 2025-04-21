@@ -49,6 +49,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// </summary>
     public bool Nsfw { get; set; }
     
+    /// <summary>
+    /// The version of the planet. Used for cache busting.
+    /// </summary>
+    public int Version { get; set; }
+    
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);
 }

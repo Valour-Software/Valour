@@ -2,17 +2,21 @@
     background-color: var(--main-3);
     border-radius: 1em;
     padding: 1em;
+    box-shadow: 0 0 10px red;
 }
 
 .inner {
     background-color: var(--main-1);
-    width: min(400px, 75vw);
+    width: max(400px,75vw);
     height: 400px;
     overflow-y: auto;
     padding: 1em;
-    color: white;
-    border-radius: 0.5em;
+    color: #fff;
+    border-radius: .5em;
     font-family: monospace;
+    word-wrap: break-word;
+    max-width: 100%;
+    white-space: pre-wrap;
 }
 
 .btns-wrapper {

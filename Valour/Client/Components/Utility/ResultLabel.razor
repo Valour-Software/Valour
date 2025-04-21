@@ -6,14 +6,18 @@
 @if (Result.Success)
 {
     <div class="result-message success">
-        <i class="bi bi-check-circle"></i> @(Result.Message ?? "Success!")
+        <p>
+            <i class="bi bi-check-circle"></i> @(Result.Message ?? "Success!")
+        </p>
     </div>
 }
 else
 {
     <div class="result-message error">
-        <i class="bi bi-exclamation-circle"></i> @(Result.Message ?? "An error occured.")
-        <i class="bi bi-info-circle-fill info-icon" @onclick="@OnDetails"></i>
+        <p>
+            <i class="bi bi-exclamation-circle"></i> @(Result.Message ?? "An error occured.")
+            <a class="details" @onclick="@OnDetails">Details</a>
+        </p>
     </div>
 }
 

@@ -40,6 +40,7 @@ namespace Valour.Shared
 
         public static TaskResult FromFailure(string message, int? errorCode = null) => new(false, message, errorCode: errorCode);
         public static TaskResult FromFailure(Exception ex, int? errorCode = null) => new(false, ex.Message, ex.StackTrace, errorCode);
+        public static TaskResult FromFailure(string message, int? code, string details) => new(false, message, details, errorCode: code);
 
         public static TaskResult FromSuccess(string message) => new(true, message);
         

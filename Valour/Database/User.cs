@@ -168,6 +168,11 @@ namespace Valour.Database
         /// The date and time the user last changed their username.
         /// </summary>
         public DateTime? NameChangeTime { get; set; }
+        
+        /// <summary>
+        /// The version of the user. Used for cache busting.
+        /// </summary>
+        public int Version { get; set; }
 
         /// <summary>
         /// Generates the avatar URL for this user based on the requested format.
@@ -254,6 +259,10 @@ namespace Valour.Database
                         x => x,
                         x => x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
                     );
+
+                e.Property(x => x.Version)
+                    .HasColumnName("version")
+                    .HasDefaultValue(0);
 
                 // Relationships
                 e.HasOne(x => x.PrivateInfo)

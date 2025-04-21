@@ -196,6 +196,7 @@
         PlanetComponent.ChannelsNeedRefresh += BuildSelf;
         Planet.Channels.Changed += OnChannelsChanged;
         Channel.Updated += OnChannelsChanged;
+        Channel.Deleted += OnChannelDeleted;
         Channel.UnreadStateChanged += OnUnreadChanged;
         
         ChannelService.ChannelConnected += OnChannelConnectionChange;
@@ -234,6 +235,11 @@
         BuildSelf();
         BuildChildren();
         Refresh();
+    }
+    
+    private void OnChannelDeleted()
+    {
+        RefreshParentsRecursive();
     }
 
     private int GetLineLength()

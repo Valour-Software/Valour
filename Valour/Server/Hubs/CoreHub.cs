@@ -22,6 +22,7 @@ public class CoreHub : Hub
     private readonly PlanetMemberService _memberService;
     private readonly TokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
+    private readonly SignalRConnectionService _connectionTracker;
 
     public CoreHub(
         ValourDb db, 
@@ -29,12 +30,14 @@ public class CoreHub : Hub
         UserOnlineService onlineService,
         PlanetMemberService memberService,
         TokenService tokenService,
-        IConnectionMultiplexer redis)
+        IConnectionMultiplexer redis, 
+        SignalRConnectionService connectionTracker)
     {
         _db = db;
         _hubService = hubService;
         _onlineService = onlineService;
         _redis = redis;
+        _connectionTracker = connectionTracker;
         _memberService = memberService;
         _tokenService = tokenService;
     }
@@ -50,15 +53,15 @@ public class CoreHub : Hub
         if (authToken is null)
             return result;
 
-        ConnectionTracker.ConnectionIdentities[Context.ConnectionId] = authToken;
+        _connectionTracker.AddConnectionIdentity(Context.ConnectionId, authToken);
 
         return new TaskResult(true, "Authenticated with SignalR hub successfully.");
     }
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
-        await ConnectionTracker.RemovePrimaryConnection(Context, _redis);
-        ConnectionTracker.RemoveAllMemberships(Context);
+        await _connectionTracker.RemovePrimaryConnectionAsync(Context, _redis);
+        await _connectionTracker.RemoveAllMembershipsAsync(Context);
 
         await base.OnDisconnectedAsync(exception);
     }
@@ -68,15 +71,15 @@ public class CoreHub : Hub
     /// </summary>
     public async Task<TaskResult> JoinUser(bool isPrimary)
     {
-        var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken == null) return new TaskResult(false, "Failed to connect to User: SignalR was not authenticated.");
 
         var groupId = $"u-{authToken.UserId}";
 
-        ConnectionTracker.TrackGroupMembership(groupId, Context);
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
         
         if (isPrimary)
-            await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _redis);
+            await _connectionTracker.AddPrimaryConnectionAsync(authToken.UserId, Context, _redis);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
 
@@ -85,20 +88,20 @@ public class CoreHub : Hub
     
     public async Task LeaveUser()
     {
-        var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken == null) return;
 
         var groupId = $"u-{authToken.UserId}";
 
-        ConnectionTracker.UntrackGroupMembership(groupId, Context);
-        await ConnectionTracker.RemovePrimaryConnection(Context, _redis);
+        await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
+        await _connectionTracker.RemovePrimaryConnectionAsync(Context, _redis);
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
     }
 
     public async Task<TaskResult> JoinPlanet(long planetId)
     {
-        var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken == null) return new TaskResult(false, "Failed to connect to Planet: SignalR was not authenticated.");
 
         PlanetMember member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
@@ -110,7 +113,7 @@ public class CoreHub : Hub
         }
         
         var groupId = $"p-{planetId}";
-        ConnectionTracker.TrackGroupMembership(groupId, Context);
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
 
         // Add to planet group
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
@@ -121,7 +124,7 @@ public class CoreHub : Hub
 
     public async Task<TaskResult> LeavePlanet(long planetId) {
         var groupId = $"p-{planetId}";
-        ConnectionTracker.UntrackGroupMembership(groupId, Context);
+        await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
 
         return TaskResult.SuccessResult;
@@ -130,7 +133,7 @@ public class CoreHub : Hub
 
     public async Task<TaskResult> JoinChannel(long channelId)
     {
-        var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken == null) return new TaskResult(false, "Failed to connect to Channel: SignalR was not authenticated.");
         
         // Grab channel
@@ -146,7 +149,7 @@ public class CoreHub : Hub
 
         var groupId = $"c-{channelId}";
 
-        ConnectionTracker.TrackGroupMembership(groupId, Context);
+        await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         
         var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
@@ -174,7 +177,7 @@ public class CoreHub : Hub
 
     public async Task<TaskResult> LeaveChannel(long channelId) {
         var groupId = $"c-{channelId}";
-        ConnectionTracker.UntrackGroupMembership(groupId, Context);
+        await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
 
         return TaskResult.SuccessResult;
@@ -183,7 +186,7 @@ public class CoreHub : Hub
 
     public async Task JoinInteractionGroup(long planetId)
     {
-        var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
         if (authToken == null) return;
 
         PlanetMember member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
@@ -203,7 +206,7 @@ public class CoreHub : Hub
     {
         if (userState)
         {
-            var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
+            var authToken = _connectionTracker.GetToken(Context.ConnectionId);
             if (authToken is null)
                 return "pong: not authenticated";
             

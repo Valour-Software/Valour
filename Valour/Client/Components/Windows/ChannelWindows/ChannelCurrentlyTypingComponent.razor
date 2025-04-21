@@ -127,7 +127,7 @@
     private async Task RefreshDisplay()
     {
         DisplayData.Clear();
-        
+
         var userIds = _typingUpdates.Keys.Where(x => x != Client.Me.Id).ToList();
         
         // Take first four where the userid does not equal our userid
