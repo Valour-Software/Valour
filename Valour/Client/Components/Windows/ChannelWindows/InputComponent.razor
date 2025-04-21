@@ -166,8 +166,6 @@
     /// </summary>
     public bool CanRenderFlag { get; set; }
 
-    private DateTime _lastTypingUpdateSent = DateTime.MinValue;
-
     private string _uploadMenuStyle = "display: none;";
 
     private EmojiMart _emojis;
@@ -743,12 +741,7 @@
         }
 
         await ChatComponent.ScrollToBottom();
-
-        if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
-        {
-            await ChatComponent.Channel.SendIsTyping();
-            _lastTypingUpdateSent = DateTime.UtcNow;
-        }
+        await ChatComponent.Channel.SendIsTyping();
 
         Refresh();
     }

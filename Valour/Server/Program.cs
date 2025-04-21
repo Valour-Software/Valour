@@ -303,11 +303,11 @@ public partial class Program
 
         services.AddRazorPages();
 
-        if (!string.IsNullOrEmpty(CloudflareConfig.Instance?.ApiKey))
-        {
+        //if (!string.IsNullOrEmpty(CloudflareConfig.Instance?.ApiKey))
+        //{
             services.AddSingleton<ICloudFlareClient>(provider =>
-                new CloudFlareClient(CloudflareConfig.Instance.ApiKey));
-        }
+                new CloudFlareClient(CloudflareConfig.Instance?.ApiKey ?? string.Empty));
+        //}
 
         services.AddSingleton<CdnBucketService>();
 
