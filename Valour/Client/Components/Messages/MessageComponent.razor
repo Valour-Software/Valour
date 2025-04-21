@@ -606,7 +606,8 @@
             _name = GetAuthorName();
         }
 
-        if (eventData.Changes.On(x => x.HasCustomAvatar))
+        if (eventData.Changes.On(x => x.HasCustomAvatar) ||
+            eventData.Changes.On(x => x.Version))
         {
             render = true;
             _avatarUrl = GetAuthorAvatar();

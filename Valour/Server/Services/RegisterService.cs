@@ -107,8 +107,8 @@ public class RegisterService
             };
         }
 
-        byte[] salt = PasswordManager.GenerateSalt();
-        byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
+        var salt = PasswordManager.GenerateSalt();
+        var hash = PasswordManager.GetHashForPassword(request.Password, salt);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -126,6 +126,7 @@ public class RegisterService
                 Compliance = true, // All new users should be compliant
                 HasAnimatedAvatar = false,
                 HasCustomAvatar = false,
+                Version = 0
             };
 
             _db.Users.Add(user.ToDatabase());

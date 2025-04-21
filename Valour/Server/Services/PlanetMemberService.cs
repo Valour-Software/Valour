@@ -20,7 +20,7 @@ public class PlanetMemberService
 
     /// <summary>
     /// A cached current member. It may not match the planet being requested (so check!) but it's
-    /// highly likely to be the same, so it makes sense to cache it.
+    /// highly likely to be the same, so it makes sense to cache it per request.
     /// </summary>
     private PlanetMember _currentMember;
     
@@ -45,6 +45,9 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetAsync(long id)
     {
+        if (id == _currentMember.Id) // High likelihood it's been cached already during this request
+            return _currentMember;
+        
         var member = await _db.PlanetMembers
             .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Id == id);

@@ -437,11 +437,6 @@ public class ChannelService
     ////////////////
     
     /// <summary>
-    /// The regex used for name validation
-    /// </summary>
-    public static readonly Regex NameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-    
-    /// <summary>
     /// Validates that a given name is allowable
     /// </summary>
     private static TaskResult ValidateName(string name)

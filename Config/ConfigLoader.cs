@@ -26,6 +26,7 @@ public static class ConfigLoader
         config.GetSection("Node").Get<NodeConfig>();
         config.GetSection("Redis").Get<RedisConfig>();
         config.GetSection("Paypal").Get<PaypalConfig>();
+        config.GetSection("Cloudflare").Get<CloudflareConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");

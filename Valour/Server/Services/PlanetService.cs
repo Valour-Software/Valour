@@ -120,7 +120,8 @@ public class PlanetService
                 Description = x.Description,
                 HasCustomIcon = x.HasCustomIcon,
                 HasAnimatedIcon = x.HasAnimatedIcon,
-                MemberCount = x.Members.Count()
+                MemberCount = x.Members.Count(),
+                Version = x.Version
             })
             .OrderByDescending(x => x.MemberCount)
             .Take(30)
@@ -483,8 +484,6 @@ public class PlanetService
     // Validation Logic //
     //////////////////////
 
-    private static readonly Regex NameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
-
     /// <summary>
     /// Common basic validation for planets
     /// </summary>
@@ -521,11 +520,6 @@ public class PlanetService
         if (name.Length > 32)
         {
             return new TaskResult(false, "Planet names must be 32 characters or less.");
-        }
-
-        if (!NameRegex.IsMatch(name))
-        {
-            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
         }
 
         return new TaskResult(true, "The given name is valid.");

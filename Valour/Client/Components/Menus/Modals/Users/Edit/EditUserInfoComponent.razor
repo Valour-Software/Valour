@@ -1,4 +1,5 @@
 ﻿@using System.Net.Http.Headers
+@using Valour.Shared.Extensions
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject ValourClient Client
@@ -267,7 +268,13 @@
         if (_pfpChangeResult.Success)
         {
             // We slightly modify the url to force a refresh
-            _pfpUrl = User.GetAvatar(AvatarFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
+
+            User newUser = new(Client);
+            User.CopyAllTo(newUser);
+            newUser.Version++;
+            Client.Cache.Users.Put(newUser);
+            
+            _pfpUrl = User.GetAvatar(AvatarFormat.WebpAnimated256);
         }
 
         StateHasChanged();

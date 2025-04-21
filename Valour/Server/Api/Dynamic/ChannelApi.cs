@@ -273,8 +273,8 @@ public class ChannelApi
         return Results.Json(await channelService.GetDirectChannelMembersAsync(channelId));
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{id}/typing")]
-    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{id}/typing")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/channels/{channelId}/typing")]
+    [ValourRoute(HttpVerbs.Post, "api/channels/direct/{channelId}/typing")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostTypingAsync(
         long? planetId,

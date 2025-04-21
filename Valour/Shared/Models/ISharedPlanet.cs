@@ -62,6 +62,11 @@ public interface ISharedPlanet : ISharedModel<long>
     /// </summary>
     bool Nsfw { get; set; }
     
+    /// <summary>
+    /// The version of the planet. Used for cache busting.
+    /// </summary>
+    public int Version { get; set; }
+    
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {
         { IconFormat.Webp64, "64.webp" },
@@ -118,7 +123,7 @@ public interface ISharedPlanet : ISharedModel<long>
         }
         
         string formatStr = IconFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}";
+        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}?v={planet.Version}";
     }
     
     public static string GetIconUrl(PlanetListInfo planet, IconFormat format)
@@ -138,7 +143,7 @@ public interface ISharedPlanet : ISharedModel<long>
         }
         
         string formatStr = IconFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}";
+        return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
     }
 }
 
