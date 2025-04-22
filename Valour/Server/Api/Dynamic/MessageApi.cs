@@ -1,8 +1,11 @@
+#nullable enable
+
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Models.MessageReactions;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -11,7 +14,7 @@ public class MessageApi
     [ValourRoute(HttpVerbs.Post, "api/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostMessageRouteAsync(
-        [FromBody] Message message, 
+        [FromBody] Message? message, 
         MessageService messageService,
         ChannelService channelService,
         PlanetMemberService memberService,
@@ -109,12 +112,15 @@ public class MessageApi
     [ValourRoute(HttpVerbs.Put, "api/messages/{id}")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> EditMessageRouteAsync(
-        [FromBody] Message message,
+        [FromBody] Message? message,
         long id,
         MessageService messageService,
         TokenService tokenService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
+        
+        if (message is null)
+            return ValourResult.BadRequest("Include message in body");
         
         if (message.PlanetId is null)
         {
@@ -228,5 +234,99 @@ public class MessageApi
         }
         
         return Results.Json(message);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/messages/{messageId}/reactions")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> AddReactionAsync(
+        [FromBody] AddMessageReactionRequest? request,
+        long messageId, 
+        MessageService messageService, 
+        ChannelService channelService,
+        PlanetMemberService memberService,
+        UserService userService,
+        TokenService tokenService)
+    {
+        if (request is null)
+            return ValourResult.BadRequest("Include reaction in body");
+        
+        if (string.IsNullOrWhiteSpace(request.Emoji))
+            return ValourResult.BadRequest("Include emoji in body");
+        
+        if (request.Emoji.Length > 32)
+            return ValourResult.BadRequest("Emoji is invalid");
+        
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        var message = await messageService.GetMessageAsync(messageId);
+        if (message is null)
+            return ValourResult.NotFound("Message not found");
+        
+        var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+        
+        // Permissions
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+
+        PlanetMember? member = null;
+
+        if (channel.PlanetId is not null)
+        {
+            // Get member
+            member = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+            if (member is null)
+                return ValourResult.NotPlanetMember();
+            
+            // Check for reaction permissions
+            if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.UseReactions))
+                return ValourResult.Forbid("You lack permission to react to messages in this channel");
+        }
+
+        // Use member user if available, otherwise fetch user
+        var user = member is null ? await userService.GetCurrentUserAsync() : member.User;
+        
+        // Add reaction
+        var result = await messageService.AddReactionAsync(user, member, message, request.Emoji);
+        
+        if (!result.Success)
+        {
+            return ValourResult.BadRequest(result.Message);
+        }
+
+        return ValourResult.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/messages/{messageId}/reactions")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> RemoveReactionAsync(
+        [FromBody] AddMessageReactionRequest? request,
+        long messageId,
+        MessageService messageService,
+        TokenService tokenService)
+    {
+        // If they posted the reaction, they can always remove it. We don't need to worry about
+        // channel permissions.
+
+        if (request is null)
+            return ValourResult.BadRequest("Include reaction in body");
+
+        if (string.IsNullOrWhiteSpace(request.Emoji))
+            return ValourResult.BadRequest("Include emoji in body");
+
+        if (request.Emoji.Length > 32)
+            return ValourResult.BadRequest("Emoji is invalid");
+
+        var token = await tokenService.GetCurrentTokenAsync();
+
+        var result = await messageService.RemoveReactionAsync(token.UserId, messageId, request.Emoji);
+        
+        if (!result.Success)
+        {
+            return ValourResult.BadRequest(result.Message);
+        }
+
+        return ValourResult.Ok();
     }
 }

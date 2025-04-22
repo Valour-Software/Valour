@@ -13,12 +13,12 @@ public class MessageReaction
     /// <summary>
     /// The message this reaction belongs to
     /// </summary>
-    public virtual required Message Message { get; set; }
+    public virtual Message? Message { get; set; }
     
     /// <summary>
     /// The user who reacted to this message
     /// </summary>
-    public virtual required User AuthorUser { get; set; }
+    public virtual User? AuthorUser { get; set; }
     
     /// <summary>
     /// If in a planet channel, the member who reacted to this message

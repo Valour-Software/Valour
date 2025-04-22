@@ -4,7 +4,6 @@ using System.Text.Json;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Messages.Embeds.Items;
 using Valour.Server.Cdn;
-using Valour.Server.Database;
 using Valour.Server.Utilities;
 using Valour.Server.Workers;
 using Valour.Shared;
@@ -172,7 +171,7 @@ public class MessageService
         if (message.Content is null)
             message.Content = "";
 
-        message.Id = IdManager.Generate();
+        message.Id = Valour.Server.Database.IdManager.Generate();
         message.TimeSent = DateTime.UtcNow;
         
         List<Valour.Sdk.Models.MessageAttachment> attachments = null;
@@ -544,8 +543,54 @@ public class MessageService
         return messages;
     }
 
-    public async Task AddReactionAsync(string reaction,  long messageId)
+    public async Task<TaskResult> AddReactionAsync(User user, PlanetMember? member, Message message, string emoji)
     {
+        if (await _db.MessageReactions.AnyAsync(x => x.MessageId == message.Id && x.Emoji == emoji && x.AuthorUserId == user.Id))
+            return TaskResult.FromFailure("Reaction already exists");
+
+        var reaction = new Valour.Database.MessageReaction()
+        {
+            Id = Valour.Server.Database.IdManager.Generate(),
+            Emoji = emoji,
+            MessageId = message.Id,
+            AuthorUserId = user.Id,
+            AuthorMemberId = member?.Id,
+            CreatedAt = DateTime.UtcNow,
+        };
         
+        try
+        {
+            await _db.MessageReactions.AddAsync(reaction);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to add reaction");
+            return TaskResult.FromFailure("Failed to add reaction to database.");
+        }
+        
+        return TaskResult.SuccessResult;
+    }
+    
+    public async Task<TaskResult> RemoveReactionAsync(long userId, long messageId, string emoji)
+    {
+        var reaction = await _db.MessageReactions
+            .FirstOrDefaultAsync(x => x.MessageId == messageId && x.Emoji == emoji && x.AuthorUserId == userId);
+        
+        if (reaction is null)
+            return TaskResult.FromFailure("Reaction not found");
+        
+        try
+        {
+            _db.MessageReactions.Remove(reaction);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to remove reaction");
+            return TaskResult.FromFailure("Failed to remove reaction from database.");
+        }
+        
+        return TaskResult.SuccessResult;
     }
 }

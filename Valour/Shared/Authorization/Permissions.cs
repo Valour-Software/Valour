@@ -321,6 +321,7 @@ public static class ChatChannelPermissions
     public static readonly ChatChannelPermission Embed;
     public static readonly ChatChannelPermission AttachContent;
     public static readonly ChatChannelPermission ManageMessages;
+    public static readonly ChatChannelPermission UseReactions;
 
 
     // Eco permissions
@@ -338,6 +339,7 @@ public static class ChatChannelPermissions
         AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to the channel.");
         ManageMessages = new ChatChannelPermission(0x80, "Manage Messages", "Allow members to delete and manage messages in the channel.");
         UseEconomy = new ChatChannelPermission(0x100, "Use Economy", "Allow members to use economic features in this channel.");
+        UseReactions = new ChatChannelPermission(0x200, "Use Reactions", "Allow members to use reactions in this channel.");
 
         Permissions = new ChatChannelPermission[]
         {
@@ -351,9 +353,10 @@ public static class ChatChannelPermissions
                 AttachContent,
                 ManageMessages,
                 UseEconomy,
+                UseReactions
         };
 
-        Default = Permission.CreateCode(View, ViewMessages, PostMessages);
+        Default = Permission.CreateCode(View, ViewMessages, PostMessages, UseReactions);
 
         ChannelPermissions.ChannelTypes[0] = new ChannelPermissionGroup()
         {
