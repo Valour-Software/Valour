@@ -71,8 +71,6 @@
     /// </summary>
     public virtual async Task OnWatchingUpdate(ChannelWatchingUpdate update)
     {
-        Console.WriteLine("Update!");
-        
         if (update.ChannelId != Channel.Id)
             return;
 

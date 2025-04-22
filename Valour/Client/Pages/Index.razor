@@ -1,6 +1,7 @@
 ﻿@page "/"
 @page "/planetchannels/{StartPlanetId:long}/{StartChannelId:long}/{StartMessageId:long}"
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
+@using Valour.Client.Emojis
 @using Valour.Sdk.Services
 
 @inject ValourClient Client
@@ -83,6 +84,8 @@
 
 	protected override async Task OnInitializedAsync()
 	{
+		await EmojiTrieBuilder.SetupTrieAsync(Client);
+		
 		if (NavigationManager.Uri.Contains("planetchannels"))
 		{
 			Start = StartScreen.PlanetChannel;

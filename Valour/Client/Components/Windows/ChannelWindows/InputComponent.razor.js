@@ -1,372 +1,99 @@
-export function init(dotnet, inputEl) {
-    const ctx = {
-        ////////////////
-        // Properties //
-        ////////////////
-        dotnet,
-        inputEl,
-        currentWord: '',
-        currentIndex: 0,
-        lastRange: null,
-        //////////////////////
-        // Helper Functions //
-        //////////////////////
-        getCursorPos() {
-            if (window.getSelection) {
-                const sel = window.getSelection();
-                if (sel.getRangeAt && sel.rangeCount) {
-                    const range = sel.getRangeAt(0);
-                    return range.startOffset;
-                }
-            }
-            return 0;
-        },
-        getCurrentWord(offset) {
-            let range = window.getSelection().getRangeAt(0);
-            // If it's a 'wide' selection (multiple characters)
-            if (!range.collapsed) {
-                return '';
-            }
-            const target = range.endContainer ?? range.startContainer ?? range.endContainer.lastChild ?? range.startContainer.lastChild;
-            if (target) {
-                return target.textContent.substring(0, range.startOffset - offset).split(/\s+/g).pop();
-            }
-            return '';
-        },
-        async caretMoveHandler(offset = 0) {
-            this.currentWord = this.getCurrentWord(offset);
-            this.currentIndex = this.getCursorPos();
-            await this.dotnet.invokeMethodAsync('OnCaretUpdate', this.currentWord ?? '');
-            if (document.activeElement !== this.inputEl) {
-                const sel = window.getSelection();
-                if (sel && sel.rangeCount > 0) {
-                    // Clone the range to save the caret position
-                    this.lastRange = sel.getRangeAt(0).cloneRange();
-                }
-            }
-        },
-        ///////////////////////
-        // Interop Functions //
-        ///////////////////////
-        openUploadFile(uploadEl) {
-            uploadEl.click();
-        },
-        focus() {
-            const el = this.inputEl;
-            el.focus();
-            setTimeout(function () {
-                el.focus();
-            }, 0);
-        },
-        setInputContent(content) {
-            this.inputEl.innerText = content;
-        },
-        async submitMessage(keepOpen = false) {
-            if (keepOpen) {
-                this.focus();
-            }
-            this.inputEl.innerHTML = '';
-            // Handle submission of message
-            await this.dotnet.invokeMethodAsync('OnChatboxSubmit');
-            await this.dotnet.invokeMethodAsync('OnCaretUpdate', '');
-        },
-        moveCursorToEnd() {
-            const range = document.createRange();
-            const selection = window.getSelection();
-            range.selectNodeContents(this.inputEl); // Select the entire content of the element
-            range.collapse(false); // Collapse the range to the end
-            selection?.removeAllRanges(); // Clear any existing selections
-            selection?.addRange(range); // Add the new range
-            this.focus(); // Focus the element
-        },
-        injectElement(text, coverText, classList, styleList, deleteCurrentWord = true) {
-            // Ensure the input element is focused
-            if (document.activeElement !== this.inputEl) {
-                this.focus();
-            }
-            // Get the current selection and range
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-                const caretRange = sel.getRangeAt(0);
-                // Ensure that the endContainer is a Text node
-                let endContainer = caretRange.endContainer;
-                let endOffset = caretRange.endOffset;
-                if (endContainer.nodeType !== Node.TEXT_NODE) {
-                    // Find a Text node within endContainer or its descendants
-                    const textNodeData = this.findTextNodeAndOffset(endContainer, endOffset);
-                    if (textNodeData) {
-                        endContainer = textNodeData.node;
-                        endOffset = textNodeData.offset;
-                    }
-                    else {
-                        console.error('No text node found at caret position');
-                        return;
-                    }
-                }
-                // Use your existing getCurrentWord function
-                this.currentWord = this.getCurrentWord(0);
-                // Create a new range for the current word
-                const range = document.createRange();
-                const wordLength = this.currentWord.length;
-                const startOffset = endOffset - wordLength;
-                range.setStart(endContainer, startOffset);
-                range.setEnd(endContainer, endOffset);
-                // Delete the current word
-                if (deleteCurrentWord) {
-                    range.deleteContents();
-                    // After deleting, the caret may have moved, adjust endOffset
-                    endOffset = startOffset;
-                }
-                // Create the new content
-                const node = document.createTextNode(text);
-                const cont = document.createElement('span'); // Use 'span' instead of 'p' for inline elements
-                cont.appendChild(node);
-                // Add classes
-                const classes = classList ? classList.split(' ') : [];
-                classes.push('input-magic');
-                cont.classList.add(...classes);
-                // Set styles
-                if (styleList) {
-                    cont.setAttribute('style', styleList);
-                }
-                // Make the container non-editable
-                cont.contentEditable = 'false';
-                // Set data-before attribute (if needed)
-                cont.setAttribute('data-before', coverText);
-                // Insert the new content at the caret position
-                range.insertNode(cont);
-                // Move the caret after the inserted content
-                range.setStartAfter(cont);
-                range.collapse(true);
-                // Update the selection
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
-            else {
-                console.error("No selection available");
-            }
-            this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(this.inputEl) ?? '', '');
-        },
-        async injectEmoji(text, native, unified, shortcodes) {
-            let sel = window.getSelection();
-            let range;
-            // Check if the input is focused and the selection is within the input
-            if (!this.inputEl.contains(sel?.anchorNode)) {
-                if (this.lastRange) {
-                    // Restore the saved caret position
-                    sel.removeAllRanges();
-                    range = this.lastRange.cloneRange();
-                    sel.addRange(range);
-                }
-                else {
-                    // If no saved range, move cursor to the end
-                    this.inputEl.focus();
-                    this.moveCursorToEnd();
-                    sel = window.getSelection();
-                    range = sel.getRangeAt(0);
-                }
-            }
-            else {
-                // Use the current selection
-                if (sel && sel.rangeCount > 0) {
-                    range = sel.getRangeAt(0);
-                }
-                else {
-                    console.error("No selection available");
-                    return;
-                }
-            }
-            // Delete any selected content
-            range.deleteContents();
-            // Create the emoji image element
-            const img = document.createElement('img');
-            img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
-            img.setAttribute('data-text', native);
-            img.alt = native;
-            img.classList.add('emoji');
-            img.style.width = '1em';
-            // Insert the emoji image at the caret position
-            range.insertNode(img);
-            // Move the caret after the inserted image
-            range.setStartAfter(img);
-            range.collapse(true);
-            // Update the selection
-            sel.removeAllRanges();
-            sel.addRange(range);
-            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(this.inputEl) ?? '', '');
-        },
-        ////////////
-        // Events //
-        ////////////
-        // Handles keys being pressed when the input is selected
-        async keyDownHandler(e) {
-            this.currentWord = this.getCurrentWord(0);
-            this.currentIndex = this.getCursorPos();
-            switch (e.code) {
-                // Down arrow
-                case "ArrowDown":
-                case "ArrowUp": {
-                    // Prevent up and down arrow from moving caret while
-                    // the mention menu is open; instead send an event to
-                    // the mention menu
-                    if (isMentionWord(ctx.currentWord)) {
-                        e.preventDefault();
-                        await ctx.dotnet.invokeMethodAsync('MoveMentionSelect', e.code === "ArrowDown" ? 1 : -1);
-                    }
-                    else {
-                        await this.caretMoveHandler();
-                    }
-                    break;
-                }
-                // Left and right arrows
-                case "ArrowLeft":
-                case "ArrowRight":
-                    await this.caretMoveHandler(e.code === "ArrowLeft" ? -1 : 1);
-                    break;
-                // Enter
-                case "Enter": {
-                    // If shift key is down, do not submit on enter
-                    if (e.shiftKey) {
-                        break;
-                    }
-                    // If the mention menu is open this sends off an event to select it rather
-                    // than submitting the message!
-                    if (isMentionWord(this.currentWord)) {
-                        e.preventDefault();
-                        await ctx.dotnet.invokeMethodAsync('MentionSubmit');
-                    }
-                    else {
-                        // Mobile uses submit button
-                        if (window["mobile"] && !window["embedded"]) {
-                            break;
-                        }
-                        // prevent default behavior
-                        e.preventDefault();
-                        await this.submitMessage();
-                    }
-                    break;
-                }
-                // Tab
-                case "Tab": {
-                    // If the mention menu is open this sends off an event to select it rather
-                    // than adding a tab!
-                    if (isMentionWord(this.currentWord)) {
-                        e.preventDefault();
-                        await this.dotnet.invokeMethodAsync('MentionSubmit');
-                    }
-                    break;
-                }
-                // Escape
-                case "Escape": {
-                    await this.dotnet.invokeMethodAsync('OnEscape');
-                    break;
-                }
-            }
-        },
-        // Handles input being input into the input (not confusing at all)
-        async inputHandler(e) {
-            this.currentWord = this.getCurrentWord(0);
-            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(inputEl), ctx.currentWord ?? '');
-        },
-        // Handles content being pasted into the input
-        async pasteHandler(e) {
-            e.preventDefault();
-            // Get plain text representation
-            let text = e.clipboardData.getData('text/plain');
-            // We need to put the pasted text in a span to keep the newlines
-            insertTextAtCursor(text);
-            this.currentWord = this.getCurrentWord(0);
-            await this.dotnet.invokeMethodAsync('OnChatboxUpdate', getElementText(inputEl), ctx.currentWord ?? '');
-        },
-        clickHandler() {
-            this.caretMoveHandler();
-        },
-        // Hooks events to the input element
-        hookEvents() {
-            this.inputEl.addEventListener('keydown', (e) => this.keyDownHandler(e));
-            this.inputEl.addEventListener('click', (e) => this.clickHandler());
-            this.inputEl.addEventListener('paste', (e) => this.pasteHandler(e));
-            this.inputEl.addEventListener('input', (e) => this.inputHandler(ctx, e));
-        },
-        // Frees events and resources
-        cleanup: () => {
-        }
-    };
-    // Hook events before returning reference
-    ctx.hookEvents();
-    return ctx;
-}
-;
 const blockLevelElements = new Set([
     'p', 'div', 'section', 'article', 'header', 'footer',
     'blockquote', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 ]);
 const excludedElements = new Set(['script', 'style']);
-function insertTextAtCursor(text) {
-    const selection = window.getSelection();
-    if (!selection.rangeCount)
-        return;
-    // Get the current range
-    const range = selection.getRangeAt(0);
-    // Create a span element to wrap the text
-    const span = document.createElement("span");
-    span.textContent = text.replace(/\n/g, "\n"); // Replace newlines if necessary
-    // Insert the span element at the current cursor position
-    range.deleteContents(); // Remove any selected text
-    range.insertNode(span);
-    // Move the cursor after the inserted content
-    range.setStartAfter(span);
-    range.setEndAfter(span);
-    selection.removeAllRanges();
-    selection.addRange(range);
+/**
+ * Removes all unpaired surrogates from a string.
+ */
+function safeForInterop(str) {
+    let result = '';
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        if (code >= 0xD800 && code <= 0xDBFF) { // High surrogate
+            if (i + 1 < str.length) {
+                const next = str.charCodeAt(i + 1);
+                if (next >= 0xDC00 && next <= 0xDFFF) {
+                    result += str[i] + str[i + 1];
+                    i++;
+                }
+            }
+        }
+        else if (code >= 0xDC00 && code <= 0xDFFF) {
+            // Unpaired low surrogate, skip
+        }
+        else {
+            result += str[i];
+        }
+    }
+    return result;
 }
+/**
+ * Debounce utility to limit function calls.
+ */
+function debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+        if (timer !== null)
+            clearTimeout(timer);
+        timer = window.setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+/**
+ * Recursively extracts text from a DOM node, handling emoji images and block elements.
+ */
 function getElementText(el) {
     let text = '';
     switch (el.nodeType) {
-        // Text node or CDATA section
         case Node.TEXT_NODE:
         case Node.CDATA_SECTION_NODE:
             return el.nodeValue || '';
-        // Element node
-        case Node.ELEMENT_NODE:
+        case Node.ELEMENT_NODE: {
             const element = el;
             const tagName = element.tagName.toLowerCase();
-            // Handle <img> elements with data-text attributes
             if (tagName === 'img') {
                 return element.dataset.text || element.getAttribute('data-text') || '';
             }
-            // Handle <br> elements as line breaks
             if (tagName === 'br') {
                 return '\n';
             }
-            // Add line breaks for block-level elements
             if (blockLevelElements.has(tagName)) {
                 text += '\n';
             }
-            // Traverse child nodes (skip excluded elements like <script> and <style>)
             if (!excludedElements.has(tagName)) {
                 for (const child of el.childNodes) {
                     text += getElementText(child);
                 }
             }
-            // Add closing line break for block-level elements
             if (blockLevelElements.has(tagName)) {
                 text += '\n';
             }
             break;
+        }
     }
     return text;
 }
 function isMentionWord(word) {
-    if (word == null || word.length == 0)
-        return false;
-    return (word[0] == '@' || word[0] == '#');
+    return !!word && (word[0] === '@' || word[0] === '#');
+}
+function insertTextAtCursor(text) {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount)
+        return;
+    const range = selection.getRangeAt(0);
+    const span = document.createElement("span");
+    span.textContent = text.replace(/\n/g, "\n");
+    range.deleteContents();
+    range.insertNode(span);
+    range.setStartAfter(span);
+    range.setEndAfter(span);
+    selection.removeAllRanges();
+    selection.addRange(range);
 }
 function findTextNodeAndOffset(node, offset) {
     if (node.nodeType === Node.TEXT_NODE) {
         return { node: node, offset };
     }
-    // If the node has child nodes, attempt to find a text node among them
     if (node.childNodes.length > 0) {
         let childNode = null;
         if (offset < node.childNodes.length) {
@@ -377,10 +104,9 @@ function findTextNodeAndOffset(node, offset) {
             offset = childNode.textContent ? childNode.textContent.length : 0;
         }
         if (childNode) {
-            return this.findTextNodeAndOffset(childNode, offset);
+            return findTextNodeAndOffset(childNode, offset);
         }
     }
-    // If the node has siblings, try to find a text node among them
     let sibling = node.previousSibling;
     while (sibling) {
         if (sibling.nodeType === Node.TEXT_NODE) {
@@ -389,11 +115,234 @@ function findTextNodeAndOffset(node, offset) {
         }
         sibling = sibling.previousSibling;
     }
-    // If all else fails, traverse up to the parent node
     if (node.parentNode) {
-        return this.findTextNodeAndOffset(node.parentNode, offset);
+        return findTextNodeAndOffset(node.parentNode, offset);
     }
-    // No text node found
     return null;
+}
+export function init(dotnet, inputEl) {
+    const ctx = {
+        dotnet,
+        inputEl,
+        currentWord: '',
+        currentIndex: 0,
+        lastRange: null,
+        getCursorPos: () => {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount) {
+                return sel.getRangeAt(0).startOffset;
+            }
+            return 0;
+        },
+        getCurrentWord: (offset) => {
+            const sel = window.getSelection();
+            if (!sel || !sel.rangeCount)
+                return '';
+            const range = sel.getRangeAt(0);
+            if (!range.collapsed)
+                return '';
+            const target = range.endContainer ?? range.startContainer;
+            if (target && target.textContent) {
+                return target.textContent.substring(0, range.startOffset - offset).split(/\s+/g).pop() || '';
+            }
+            return '';
+        },
+        caretMoveHandler: async (offset = 0) => {
+            ctx.currentWord = ctx.getCurrentWord(offset);
+            ctx.currentIndex = ctx.getCursorPos();
+            await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', safeForInterop(ctx.currentWord));
+            if (document.activeElement !== ctx.inputEl) {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    ctx.lastRange = sel.getRangeAt(0).cloneRange();
+                }
+            }
+        },
+        openUploadFile: (uploadEl) => uploadEl.click(),
+        focus: () => {
+            ctx.inputEl.focus();
+            setTimeout(() => ctx.inputEl.focus(), 0);
+        },
+        setInputContent: (content) => {
+            ctx.inputEl.innerText = content;
+        },
+        submitMessage: async (keepOpen = false) => {
+            if (keepOpen)
+                ctx.focus();
+            ctx.inputEl.innerHTML = '';
+            await ctx.dotnet.invokeMethodAsync('OnChatboxSubmit');
+            await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', '');
+        },
+        moveCursorToEnd: () => {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(ctx.inputEl);
+            range.collapse(false);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            ctx.focus();
+        },
+        injectElement: (text, coverText, classList, styleList, deleteCurrentWord = true) => {
+            if (document.activeElement !== ctx.inputEl)
+                ctx.focus();
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                let caretRange = sel.getRangeAt(0);
+                let endContainer = caretRange.endContainer;
+                let endOffset = caretRange.endOffset;
+                if (endContainer.nodeType !== Node.TEXT_NODE) {
+                    const textNodeData = findTextNodeAndOffset(endContainer, endOffset);
+                    if (textNodeData) {
+                        endContainer = textNodeData.node;
+                        endOffset = textNodeData.offset;
+                    }
+                    else {
+                        console.error('No text node found at caret position');
+                        return;
+                    }
+                }
+                ctx.currentWord = ctx.getCurrentWord(0);
+                const range = document.createRange();
+                const wordLength = ctx.currentWord.length;
+                const startOffset = endOffset - wordLength;
+                range.setStart(endContainer, startOffset);
+                range.setEnd(endContainer, endOffset);
+                if (deleteCurrentWord) {
+                    range.deleteContents();
+                    endOffset = startOffset;
+                }
+                const node = document.createTextNode(text);
+                const cont = document.createElement('span');
+                cont.appendChild(node);
+                const classes = classList ? classList.split(' ') : [];
+                classes.push('input-magic');
+                cont.classList.add(...classes);
+                if (styleList)
+                    cont.setAttribute('style', styleList);
+                cont.contentEditable = 'false';
+                cont.setAttribute('data-before', coverText);
+                range.insertNode(cont);
+                range.setStartAfter(cont);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+            else {
+                console.error("No selection available");
+            }
+            ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
+        },
+        injectEmoji: async (text, native, unified, shortcodes) => {
+            let sel = window.getSelection();
+            let range;
+            if (!ctx.inputEl.contains(sel?.anchorNode)) {
+                if (ctx.lastRange) {
+                    sel?.removeAllRanges();
+                    range = ctx.lastRange.cloneRange();
+                    sel?.addRange(range);
+                }
+                else {
+                    ctx.inputEl.focus();
+                    ctx.moveCursorToEnd();
+                    sel = window.getSelection();
+                    range = sel.getRangeAt(0);
+                }
+            }
+            else {
+                if (sel && sel.rangeCount > 0) {
+                    range = sel.getRangeAt(0);
+                }
+                else {
+                    console.error("No selection available");
+                    return;
+                }
+            }
+            range.deleteContents();
+            const img = document.createElement('img');
+            img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
+            img.setAttribute('data-text', native);
+            img.alt = native;
+            img.classList.add('emoji');
+            img.style.width = '1em';
+            range.insertNode(img);
+            range.setStartAfter(img);
+            range.collapse(true);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+            await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
+        },
+        keyDownHandler: async (e) => {
+            ctx.currentWord = ctx.getCurrentWord(0);
+            ctx.currentIndex = ctx.getCursorPos();
+            switch (e.code) {
+                case "ArrowDown":
+                case "ArrowUp":
+                    if (isMentionWord(ctx.currentWord)) {
+                        e.preventDefault();
+                        await ctx.dotnet.invokeMethodAsync('MoveMentionSelect', e.code === "ArrowDown" ? 1 : -1);
+                    }
+                    else {
+                        await ctx.caretMoveHandler();
+                    }
+                    break;
+                case "ArrowLeft":
+                case "ArrowRight":
+                    await ctx.caretMoveHandler(e.code === "ArrowLeft" ? -1 : 1);
+                    break;
+                case "Enter":
+                    if (e.shiftKey)
+                        break;
+                    if (isMentionWord(ctx.currentWord)) {
+                        e.preventDefault();
+                        await ctx.dotnet.invokeMethodAsync('MentionSubmit');
+                    }
+                    else {
+                        if (window["mobile"] && !window["embedded"])
+                            break;
+                        e.preventDefault();
+                        await ctx.submitMessage();
+                    }
+                    break;
+                case "Tab":
+                    if (isMentionWord(ctx.currentWord)) {
+                        e.preventDefault();
+                        await ctx.dotnet.invokeMethodAsync('MentionSubmit');
+                    }
+                    break;
+                case "Escape":
+                    await ctx.dotnet.invokeMethodAsync('OnEscape');
+                    break;
+            }
+        },
+        // Debounced input handler for performance
+        inputHandler: debounce(async (e) => {
+            ctx.currentWord = ctx.getCurrentWord(0);
+            await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
+        }, 50),
+        pasteHandler: async (e) => {
+            e.preventDefault();
+            const text = e.clipboardData?.getData('text/plain') ?? '';
+            insertTextAtCursor(text);
+            ctx.currentWord = ctx.getCurrentWord(0);
+            await ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
+        },
+        clickHandler: () => {
+            ctx.caretMoveHandler();
+        },
+        hookEvents: () => {
+            ctx.inputEl.addEventListener('keydown', ctx.keyDownHandler);
+            ctx.inputEl.addEventListener('click', ctx.clickHandler);
+            ctx.inputEl.addEventListener('paste', ctx.pasteHandler);
+            ctx.inputEl.addEventListener('input', ctx.inputHandler);
+        },
+        cleanup: () => {
+            ctx.inputEl.removeEventListener('keydown', ctx.keyDownHandler);
+            ctx.inputEl.removeEventListener('click', ctx.clickHandler);
+            ctx.inputEl.removeEventListener('paste', ctx.pasteHandler);
+            ctx.inputEl.removeEventListener('input', ctx.inputHandler);
+        }
+    };
+    ctx.hookEvents();
+    return ctx;
 }
 //# sourceMappingURL=InputComponent.razor.js.map

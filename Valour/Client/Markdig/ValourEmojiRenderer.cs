@@ -4,9 +4,17 @@ namespace Valour.Client.Markdig;
 
 public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
 {
+    private static Dictionary<string, string> _srcUrlCache = new();
+    
     public string GetSrcUrl(string emoji)
     {
-        return $"https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/{emoji}.png";
+        if (_srcUrlCache.TryGetValue(emoji, out string url))
+            return url;
+        
+        url = $"https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/{emoji}.png";
+        _srcUrlCache[emoji] = url;
+        
+        return url;
     }
     
     protected override void Write(BlazorRenderer renderer, ValourEmojiInline obj)

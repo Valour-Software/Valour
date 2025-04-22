@@ -543,4 +543,9 @@ public class MessageService
         
         return messages;
     }
+
+    public async Task AddReactionAsync(string reaction,  long messageId)
+    {
+        
+    }
 }
