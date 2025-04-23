@@ -14,7 +14,7 @@ else
 {
     <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
     <div class="chat-member-wrapper">
-        <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
+        <div @ref="@MessageWrapperEl" class="chat-holder mt-auto" @onmouseleave="@OnMouseLeaveMessageArea">
             <!-- Pushes messages to bottom -->
             <div class="pusher"></div>
 
@@ -22,6 +22,11 @@ else
             @MessagesFragment
 
             <div class="anchor"></div>
+            <RadialPalette @ref="@_hoverMenu"
+                           OptionSize="60"
+                           Scale="0.5"
+                           Radius="75"
+                           AnimationDelayStep="0.01"/>
         </div>
         <MemberListComponent @ref="@MemberListComponent" Channel="@Channel" />
     </div>
@@ -31,6 +36,13 @@ else
 
 
 @code {
+    
+    /* Used for palette */
+    private bool _showHoverMenu;
+    private RadialPalette _hoverMenu;
+    private string _hoverMenuTop;
+    private string _hoverMenuRight;
+    
     private bool _loading = true;
 
     public Channel Channel;
@@ -602,6 +614,30 @@ else
                 await LoadRecentMessages(64);
             }
         }
+    }
+    
+    public async Task NotifyMessageMouseEnter(MessageComponent message)
+    {
+        if (_hoverMenu is not null)
+        {
+            var bounds = await BrowserUtils.GetElementBoundingRectAsync(message.OuterRef);
+            
+            var distances = await BrowserUtils.GetVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
+            _hoverMenuTop = (distances.TopDistance + bounds.Top - 100) + "px";
+            _hoverMenuRight = "40px";
+        
+            var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
+
+            _showHoverMenu = true;
+            
+            _hoverMenu.SetPosition(_hoverMenuTop, rightPx: _hoverMenuRight);
+            _hoverMenu.SetVisible(true);
+        }
+    }
+    
+    public void OnMouseLeaveMessageArea()
+    {
+        //_hoverMenu.SetVisible(false);
     }
     
     /////////////

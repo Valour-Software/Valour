@@ -1,0 +1,63 @@
+﻿.  radial-palette {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    transition:
+            transform 0.4s cubic-bezier(.68,-0.55,.27,1.55),
+            opacity 0.4s;
+    z-index: 1000;
+    opacity: 0.7;
+}
+.radial-palette:hover {
+    opacity: 1;
+}
+.radial-palette .center-circle {
+    width: 60px;
+    height: 60px;
+    background: var(--main-5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: box-shadow 0.3s;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+.radial-palette .plus {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none;
+}
+.options-wrapper {
+    /* Size, position, and rotation are set dynamically in the style block */
+}
+.radial-palette .option {
+    position: absolute;
+    top: 50%; left: 50%;
+    background: var(--main-4);
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    z-index: 1;
+    pointer-events: auto;
+    /* All animation and transforms are handled by the generated style block */
+}
+
+.radial-palette .option:hover {
+    background: var(--main-5);
+}

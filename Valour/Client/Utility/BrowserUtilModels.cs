@@ -36,3 +36,9 @@ public struct WindowUri
     public string Search { get; set; }
     public string Hash { get; set; }
 }
+
+public struct VerticalContainerDistance
+{
+    public float TopDistance { get; set; }
+    public float BottomDistance { get; set; }
+}

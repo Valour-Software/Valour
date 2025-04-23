@@ -14,7 +14,9 @@
      tabindex="0"
      @oncontextpress="@OnContextMenu"
      @oncontextpress:stopPropagation="true"
-     @onpointerdown="@OnPointerDown">
+     @onpointerdown="@OnPointerDown"
+     @onmouseenter="@OnMouseEnter"
+     @ref="OuterRef">
     
     <div class="left-info">
         @if (!Minimal)
@@ -175,11 +177,13 @@
         builder.SetKey($"r-{_message.Id}-{_message.ReplyTo!.Id}");
         builder.CloseComponent();
     };
+    
+    public ElementReference OuterRef;
 
     /* Set Params */
     [Parameter]
     public Params ParamData { get; set; }
-
+    
     private ChatWindowComponent _chat;
     private Message _message;
     private Message _lastMessage;
@@ -726,6 +730,12 @@
         if (_ghost && _isInnerReply) return false;
 
         return ShouldRenderValue;
+    }
+    
+    private void OnMouseEnter()
+    {
+        if (ParamData.Ghost || ParamData.IsInnerReply) return;
+        _chat?.NotifyMessageMouseEnter(this);
     }
 
 }

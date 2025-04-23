@@ -1,0 +1,129 @@
+﻿@inherits ControlledRenderComponentBase
+
+@if (Show)
+{
+    <div class="radial-palette"
+         style="@PalettePositionStyle; transform: scale(@Scale);">
+        <style>
+        @RawOptionStyles
+    </style>
+        <div class="center-circle">
+            <span class="plus">+</span>
+        </div>
+        <div class="options-wrapper">
+            @for (int i = 0; i < Options.Count; i++)
+            {
+                <div class="option option-@i">
+                    @Options[i]
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; } = false;
+    [Parameter] public List<string> Options { get; set; } = new() { "✏️", "🗑️", "🔗", "⭐", "🔥", "🧨" };
+    [Parameter] public int Radius { get; set; } = 90;
+    [Parameter] public int OptionSize { get; set; } = 60;
+    [Parameter] public string TopPx { get; set; } = "100px";
+    [Parameter] public string? LeftPx { get; set; } = "100px";
+    [Parameter] public string? RightPx { get; set; } = null;
+    [Parameter] public double Scale { get; set; } = 1.0;
+    [Parameter] public double OrbitDegrees { get; set; } = 90;
+    [Parameter] public double AnimationDelayStep { get; set; } = 0.05;
+    
+    public void SetPosition(string topPx, string? leftPx = null, string? rightPx = null)
+    {
+        TopPx = topPx;
+        LeftPx = leftPx;
+        RightPx = rightPx;
+        ReRender();
+    }
+    
+    public void SetVisible(bool visible)
+    {
+        Show = visible;
+        ReRender();
+    }
+
+    private string PalettePositionStyle
+    {
+        get
+        {
+            var style = "";
+            if (!string.IsNullOrWhiteSpace(TopPx))
+                style += $"top:{TopPx};";
+            if (!string.IsNullOrWhiteSpace(RightPx))
+                style += $"right:{RightPx};";
+            else if (!string.IsNullOrWhiteSpace(LeftPx))
+                style += $"left:{LeftPx};";
+            return style;
+        }
+    }
+
+    private string RawOptionStyles => GenerateOptionStyles();
+
+    private string GenerateOptionStyles()
+    {
+        var sb = new System.Text.StringBuilder();
+        int n = Options.Count;
+        int wrapperSize = 2 * Radius + OptionSize;
+        for (int i = 0; i < n; i++)
+        {
+            double angle = 360.0 * i / n;
+            sb.AppendLine($@"
+.options-wrapper .option {{
+    width: {OptionSize}px;
+    height: {OptionSize}px;
+    margin: -{OptionSize / 2}px 0 0 -{OptionSize / 2}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: {OptionSize * 0.6}px;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}}
+.options-wrapper .option-{i} {{
+    transform: rotate({angle}deg) translate(0, 0) scale(0.5);
+    opacity: 0;
+    transition:
+        transform 0.5s cubic-bezier(.68,-0.55,.27,1.55),
+        opacity 0.3s;
+}}
+.radial-palette:hover .options-wrapper .option-{i} {{
+    transform: rotate({angle}deg) translate(0, -{Radius}px) scale(1);
+    opacity: 1;
+    transition-delay: {AnimationDelayStep * i:F2}s;
+}}
+");
+        }
+        // Animate the wrapper's rotation and set its size
+        sb.AppendLine($@"
+.options-wrapper {{
+    width: {wrapperSize}px;
+    height: {wrapperSize}px;
+    margin-left: -{wrapperSize / 2}px;
+    margin-top: -{wrapperSize / 2}px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: rotate({OrbitDegrees}deg);
+    transition: transform 0.6s cubic-bezier(.68,-0.55,.27,1.55);
+    pointer-events: auto;
+    /* Center the wrapper */
+    transform-origin: center center;
+}}
+.radial-palette:hover .options-wrapper {{
+    transform: rotate(0deg);
+}}
+");
+        return sb.ToString();
+    }
+}
