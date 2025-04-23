@@ -627,10 +627,12 @@ else
         if (_hoverMenu is not null)
         {
             var bounds = await BrowserUtils.GetElementBoundingRectAsync(_hoverMenu.OuterRef);
+            var wrapperBounds = await BrowserUtils.GetElementBoundingRectAsync(MessageWrapperEl);
             
             var distances = await BrowserUtils.GetVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
             _hoverMenuTop = (distances.TopDistance + (bounds.Height / 2) - 40) + "px";
-            _hoverMenuRight = "60px";
+            
+            _hoverMenuRight = (BrowserUtils.WindowDimensions.Width - wrapperBounds.Right + (bounds.Width / 2)) + "px"; //(wrapperBounds.Right - wrapperBounds.Width) + "px";
         
             var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
             
