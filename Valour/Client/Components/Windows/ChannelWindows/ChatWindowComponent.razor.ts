@@ -8,6 +8,7 @@ type Channel = {
     lastTopLoadPos: number;
     stickToBottom: boolean;
     scrollUpTimer: number;
+    scrollTimer: number;
     
     hookEvents(): void;
     cleanup(): void;
@@ -31,6 +32,7 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         lastTopLoadPos: 0,
         stickToBottom: true,
         scrollUpTimer: Date.now(),
+        scrollTimer: Date.now(),
         
         updateScrollPosition(){
             this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
@@ -74,6 +76,11 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
                 if (this.scrollTop < 2000 && channel.scrollUpTimer < (Date.now() - 500)) {
                     channel.scrollUpTimer = Date.now();
                     await channel.dotnet.invokeMethodAsync('OnScrollTopInvoke');
+                }
+                
+                // Normal scroll event
+                if (channel.scrollTimer < (Date.now() - 500)) {
+                    await channel.dotnet.invokeMethodAsync('OnDebouncedScroll');
                 }
             }
 

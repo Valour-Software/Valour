@@ -7,6 +7,7 @@ export function init(dotnet, messageWrapperEl) {
         lastTopLoadPos: 0,
         stickToBottom: true,
         scrollUpTimer: Date.now(),
+        scrollTimer: Date.now(),
         updateScrollPosition() {
             this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
             this.oldScrollTop = this.messageWrapperEl.scrollTop;
@@ -41,6 +42,10 @@ export function init(dotnet, messageWrapperEl) {
                 if (this.scrollTop < 2000 && channel.scrollUpTimer < (Date.now() - 500)) {
                     channel.scrollUpTimer = Date.now();
                     await channel.dotnet.invokeMethodAsync('OnScrollTopInvoke');
+                }
+                // Normal scroll event
+                if (channel.scrollTimer < (Date.now() - 500)) {
+                    await channel.dotnet.invokeMethodAsync('OnDebouncedScroll');
                 }
             }
             channel.checkBottomSticky();

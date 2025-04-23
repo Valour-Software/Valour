@@ -26,7 +26,7 @@ else
                            OptionSize="60"
                            Scale="0.5"
                            Radius="75"
-                           AnimationDelayStep="0.01"/>
+                           AnimationDelayStep="0.02"/>
         </div>
         <MemberListComponent @ref="@MemberListComponent" Channel="@Channel" />
     </div>
@@ -38,7 +38,6 @@ else
 @code {
     
     /* Used for palette */
-    private bool _showHoverMenu;
     private RadialPalette _hoverMenu;
     private string _hoverMenuTop;
     private string _hoverMenuRight;
@@ -483,6 +482,13 @@ else
 
     public ValueTask ScaleScrollPosition() => _jsService.InvokeVoidAsync("scaleScrollPosition");
 
+    [JSInvokable("OnDebouncedScroll")]
+    public void OnDebouncedScroll()
+    {
+        _hoverMenu.SetVisible(false);
+    }
+    
+
     [JSInvokable("OnScrollTopInvoke")]
     public async Task OnScrollTop()
     {
@@ -620,15 +626,13 @@ else
     {
         if (_hoverMenu is not null)
         {
-            var bounds = await BrowserUtils.GetElementBoundingRectAsync(message.OuterRef);
+            var bounds = await BrowserUtils.GetElementBoundingRectAsync(_hoverMenu.OuterRef);
             
             var distances = await BrowserUtils.GetVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
-            _hoverMenuTop = (distances.TopDistance + bounds.Top - 100) + "px";
-            _hoverMenuRight = "40px";
+            _hoverMenuTop = (distances.TopDistance + (bounds.Height / 2) - 40) + "px";
+            _hoverMenuRight = "60px";
         
             var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
-
-            _showHoverMenu = true;
             
             _hoverMenu.SetPosition(_hoverMenuTop, rightPx: _hoverMenuRight);
             _hoverMenu.SetVisible(true);
@@ -637,7 +641,7 @@ else
     
     public void OnMouseLeaveMessageArea()
     {
-        //_hoverMenu.SetVisible(false);
+        _hoverMenu.SetVisible(false);
     }
     
     /////////////

@@ -1,111 +1,145 @@
 ﻿@inherits ControlledRenderComponentBase
 
-@if (Show)
-{
-    <div class="radial-palette"
-         style="@PalettePositionStyle; transform: scale(@Scale);">
-        <style>
-        @RawOptionStyles
+<div class="radial-palette-container" style="@ContainerPositionStyle" @ref="OuterRef">
+    <style>
+        @RawDynamicStyles
     </style>
-        <div class="center-circle">
-            <span class="plus">+</span>
+    @if (Show)
+    {
+        <div class="radial-palette">
+            <div class="center-circle">
+                <span class="plus">+</span>
+            </div>
+            <div class="options-wrapper">
+                @for (int i = 0; i < Options.Count; i++)
+                {
+                    <div class="option option-@i">
+                        <div class="circle-pop">
+                            @Options[i]
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
-        <div class="options-wrapper">
-            @for (int i = 0; i < Options.Count; i++)
-            {
-                <div class="option option-@i">
-                    @Options[i]
-                </div>
-            }
-        </div>
-    </div>
-}
+    }
+</div>
 
 @code {
-    [Parameter] public bool Show { get; set; } = false;
+    [Parameter] public bool Show { get; set; } = true;
     [Parameter] public List<string> Options { get; set; } = new() { "✏️", "🗑️", "🔗", "⭐", "🔥", "🧨" };
     [Parameter] public int Radius { get; set; } = 90;
     [Parameter] public int OptionSize { get; set; } = 60;
-    [Parameter] public string TopPx { get; set; } = "100px";
-    [Parameter] public string? LeftPx { get; set; } = "100px";
-    [Parameter] public string? RightPx { get; set; } = null;
+    [Parameter] public string Top { get; set; } = "100px";
+    [Parameter] public string? Left { get; set; } = "100px";
+    [Parameter] public string? Right { get; set; } = null;
     [Parameter] public double Scale { get; set; } = 1.0;
     [Parameter] public double OrbitDegrees { get; set; } = 90;
     [Parameter] public double AnimationDelayStep { get; set; } = 0.05;
+    [Parameter] public double PopDelay { get; set; } = 0.18; // seconds, adjust as needed
     
+    public ElementReference OuterRef { get; set; }
+
     public void SetPosition(string topPx, string? leftPx = null, string? rightPx = null)
     {
-        TopPx = topPx;
-        LeftPx = leftPx;
-        RightPx = rightPx;
+        Top = topPx;
+        Left = leftPx;
+        Right = rightPx;
         ReRender();
     }
-    
+
     public void SetVisible(bool visible)
     {
         Show = visible;
         ReRender();
     }
 
-    private string PalettePositionStyle
+    private string ContainerPositionStyle
     {
         get
         {
+            int wrapperSize = 2 * Radius + OptionSize;
             var style = "";
-            if (!string.IsNullOrWhiteSpace(TopPx))
-                style += $"top:{TopPx};";
-            if (!string.IsNullOrWhiteSpace(RightPx))
-                style += $"right:{RightPx};";
-            else if (!string.IsNullOrWhiteSpace(LeftPx))
-                style += $"left:{LeftPx};";
+            if (!string.IsNullOrWhiteSpace(Top))
+                style += $"top:calc({Top} - {wrapperSize / 2}px);";
+            if (!string.IsNullOrWhiteSpace(Right))
+                style += $"right:calc({Right} - {wrapperSize / 2}px);";
+            else if (!string.IsNullOrWhiteSpace(Left))
+                style += $"left:calc({Left} - {wrapperSize / 2}px);";
+            style += $"width:{wrapperSize}px;height:{wrapperSize}px;";
             return style;
         }
     }
 
-    private string RawOptionStyles => GenerateOptionStyles();
+    private string RawDynamicStyles => GenerateDynamicStyles();
 
-    private string GenerateOptionStyles()
+    private string GenerateDynamicStyles()
     {
         var sb = new System.Text.StringBuilder();
         int n = Options.Count;
         int wrapperSize = 2 * Radius + OptionSize;
-        for (int i = 0; i < n; i++)
-        {
-            double angle = 360.0 * i / n;
-            sb.AppendLine($@"
-.options-wrapper .option {{
-    width: {OptionSize}px;
-    height: {OptionSize}px;
-    margin: -{OptionSize / 2}px 0 0 -{OptionSize / 2}px;
+
+        // Container
+        sb.AppendLine($@"
+.radial-palette-container {{
+    position: absolute;
+    z-index: 1000;
+    pointer-events: none;
+}}
+");
+
+        // Palette centering and scale
+        sb.AppendLine($@"
+.radial-palette {{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale({Scale});
+    width: {wrapperSize}px;
+    height: {wrapperSize}px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: {OptionSize * 0.6}px;
+    transform-origin: center center;
+    transition:
+        transform 0.4s cubic-bezier(.68,-0.55,.27,1.55),
+        opacity 0.4s;
+    opacity: 0.7;
+}}
+
+.radial-palette .options-wrapper:hover {{
+    opacity: 1;
+}}
+");
+
+        // Center circle
+        sb.AppendLine($@"
+.radial-palette .center-circle {{
+    width: {OptionSize}px;
+    height: {OptionSize}px;
+    background: var(--main-5, #3498db);
     border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: box-shadow 0.3s;
     position: absolute;
     top: 50%;
     left: 50%;
-    background: rgba(255,255,255,0.15);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transform: translate(-50%, -50%);
+    z-index: 2;
     cursor: pointer;
+}}
+.radial-palette .plus {{
+    color: #fff;
+    font-size: {OptionSize * 0.5}px;
+    font-weight: bold;
     user-select: none;
-    transition: background 0.2s;
-}}
-.options-wrapper .option-{i} {{
-    transform: rotate({angle}deg) translate(0, 0) scale(0.5);
-    opacity: 0;
-    transition:
-        transform 0.5s cubic-bezier(.68,-0.55,.27,1.55),
-        opacity 0.3s;
-}}
-.radial-palette:hover .options-wrapper .option-{i} {{
-    transform: rotate({angle}deg) translate(0, -{Radius}px) scale(1);
-    opacity: 1;
-    transition-delay: {AnimationDelayStep * i:F2}s;
+    pointer-events: none;
 }}
 ");
-        }
-        // Animate the wrapper's rotation and set its size
+
+        // Options wrapper: scale from 0 to 1 and rotate
         sb.AppendLine($@"
 .options-wrapper {{
     width: {wrapperSize}px;
@@ -114,16 +148,91 @@
     margin-top: -{wrapperSize / 2}px;
     position: absolute;
     top: 50%; left: 50%;
-    transform: rotate({OrbitDegrees}deg);
-    transition: transform 0.6s cubic-bezier(.68,-0.55,.27,1.55);
+    opacity: 0;
+    transform: scale(0.25) rotate({OrbitDegrees}deg);
+    transition:
+        opacity, transform 0.5s cubic-bezier(.68,-0.55,.27,1.55);
     pointer-events: auto;
-    /* Center the wrapper */
     transform-origin: center center;
+    z-index: 1000;
+    border-radius: 100%;
 }}
-.radial-palette:hover .options-wrapper {{
-    transform: rotate(0deg);
+
+.radial-palette .options-wrapper:hover {{
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
 }}
 ");
+
+        // Options and circle-pop
+        for (int i = 0; i < n; i++)
+        {
+            double angle = 360.0 * i / n;
+            double popDelay = AnimationDelayStep * i + PopDelay;
+            sb.AppendLine($@"
+.options-wrapper .option-{i} {{
+    transform: rotate({angle}deg) translate(0, 0);
+    opacity: 0;
+    transition:
+        transform 0.5s cubic-bezier(.68,-0.55,.27,1.55),
+        opacity 0.3s;
+}}
+
+.radial-palette .options-wrapper:hover .option-{i} {{
+    transform: rotate({angle}deg) translate(0, -{Radius}px);
+    opacity: 1;
+    transition-delay: {AnimationDelayStep * i:F2}s;
+}}
+.options-wrapper .option-{i} .circle-pop {{
+    transform: scale(0);
+    opacity: 0;
+    transition:
+        transform 0.25s cubic-bezier(.68,-0.55,.27,1.55) {popDelay:F2}s,
+        opacity 0.2s {popDelay:F2}s;
+}}
+
+.radial-palette .options-wrapper:hover .option-{i} .circle-pop {{
+    transform: scale(1);
+    opacity: 1;
+}}
+");
+        }
+
+        // Option base style
+        sb.AppendLine($@"
+.options-wrapper .option {{
+    width: {OptionSize}px;
+    height: {OptionSize}px;
+    margin: -{OptionSize / 2}px 0 0 -{OptionSize / 2}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    user-select: none;
+    z-index: 1;
+    pointer-events: auto;
+    opacity: 0;
+}}
+.options-wrapper .circle-pop {{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    font-size: {OptionSize * 0.6}px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.25s, opacity 0.2s;
+}}
+.options-wrapper .circle-pop:hover {{
+    background: var(--main-5, #3498db);
+}}
+");
+
         return sb.ToString();
     }
 }

@@ -21,6 +21,8 @@
     
     /* fade in on first render */
     animation: fadeIn 0.2s;
+    
+    height: 100%;
 }
 
 .chat-holder * {
@@ -30,7 +32,7 @@
 .chat-holder .pusher {
     flex-grow: 1; 
     flex-shrink: 1; 
-    height: 0
+    min-height: 0
 }
 
 .anchor {
