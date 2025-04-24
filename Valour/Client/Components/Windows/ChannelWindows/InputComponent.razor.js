@@ -213,6 +213,9 @@ export function init(dotnet, inputEl) {
                         await ctx.dotnet.invokeMethodAsync('MoveMentionSelect', e.code === "ArrowDown" ? 1 : -1);
                     }
                     else {
+                        if (e.code === "ArrowUp") {
+                            await ctx.dotnet.invokeMethodAsync('OnUpArrowNonMention');
+                        }
                         await this.caretMoveHandler();
                     }
                     break;
