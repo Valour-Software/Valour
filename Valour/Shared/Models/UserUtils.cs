@@ -37,11 +37,6 @@ public class UserUtils
             return new TaskResult(false, "That username is too long!");
         }
 
-        if (!UsernameRegex.IsMatch(username))
-        {
-            return new TaskResult(false, "Usernames must be alphanumeric plus underscores and dashes.");
-        }
-
         return new TaskResult(true, "The given username is valid.");
     }
 

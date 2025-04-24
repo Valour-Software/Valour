@@ -259,7 +259,6 @@ public class PlanetMemberService
             member = new Valour.Database.PlanetMember()
             {
                 Id = IdManager.Generate(),
-                Nickname = user.Name,
                 PlanetId = planet.Id,
                 UserId = user.Id,
                 User = user,
