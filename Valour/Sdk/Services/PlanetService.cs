@@ -107,9 +107,11 @@ public class PlanetService : ServiceBase
 
         var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
 
+        planet = planet.Sync(_client);
+        
         await planet.EnsureReadyAsync();
 
-        return planet.Sync(_client);
+        return planet;
     }
 
     /// <summary>

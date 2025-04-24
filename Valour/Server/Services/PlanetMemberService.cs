@@ -45,13 +45,10 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetAsync(long id)
     {
-        if (id == _currentMember.Id) // High likelihood it's been cached already during this request
-            return _currentMember;
-        
         var member = await _db.PlanetMembers
             .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Id == id);
-        
+
         return member.ToModel();
     }
 
