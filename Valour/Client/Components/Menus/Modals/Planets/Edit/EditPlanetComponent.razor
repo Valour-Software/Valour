@@ -4,69 +4,35 @@
 
 @if (Data.Planet is null)
 {
-    <h5>Loading planet details...</h5>
+    <div class="background">
+        <h5>Loading planet details...</h5>
+    </div>
     return;
 }
 
-<BigMenuComponent @ref="BigMenuComponent">
-    <LeftSide>
-        <EditPlanetMenuComponent Planet="@Data.Planet"></EditPlanetMenuComponent>
-    </LeftSide>
-    <RightSide>
-        @switch (BigMenuComponent.SelectedTopLevelMenu?.Name)
-        {
-            case "General Settings":
-                switch (BigMenuComponent.SelectedSubMenu.Name)
-                {
-                    case "Info":
-                        <EditPlanetInfoComponent Planet="@Data.Planet"></EditPlanetInfoComponent>
-                        break;
-                    case "Invites":
-                        <EditPlanetInvitesComponent Planet="@Data.Planet"></EditPlanetInvitesComponent>
-                        break;
-                    case "Members":
-                        <EditPlanetUsersComponent></EditPlanetUsersComponent>
-                        break;
-                    case "Bans":
-                        <EditPlanetBansComponent></EditPlanetBansComponent>
-                        break;
-                    case "Roles":
-                        <EditPlanetRolesComponent Planet="@Data.Planet"></EditPlanetRolesComponent>
-                        break;
-                    case "Economy":
-                        <EditPlanetEconomyComponent Planet="@Data.Planet"></EditPlanetEconomyComponent>
-                        break;
-                    case "Delete":
-                        break;
-                }
-                break;
-        }
-    </RightSide>
-</BigMenuComponent>
+<MainMenuComponent
+    DefaultCategory="@Data.StartCategory"
+    DefaultItem="@Data.StartItem"
+    MenuCategories="@_categories" />
 
 @code {
-
     public class ModalParams
     {
         public Planet Planet;
+        public string StartCategory;
+        public string StartItem;
     }
 
-    private BigMenuComponent BigMenuComponent { get; set; }
+    private List<MainMenu.MenuCategory> _categories;
 
-    public void Dispose()
-    {
-        BigMenuComponent.OnRefreshRightSide -= Refresh;
-    }
-
-    protected override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            BigMenuComponent.OnRefreshRightSide += Refresh;
-        }
-        
-        return base.OnAfterRenderAsync(firstRender);
-    }
+    // RenderFragments for each menu item
+    private RenderFragment InfoContent => @<EditPlanetInfoComponent Planet="@Data.Planet" />;
+    private RenderFragment InvitesContent => @<EditPlanetInvitesComponent Planet="@Data.Planet" />;
+    private RenderFragment MembersContent => @<EditPlanetUsersComponent />;
+    private RenderFragment BansContent => @<EditPlanetBansComponent />;
+    private RenderFragment RolesContent => @<EditPlanetRolesComponent Planet="@Data.Planet" />;
+    private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
+    private RenderFragment DeleteContent => @<div></div>;
 
     protected override void OnInitialized()
     {
@@ -77,25 +43,83 @@
             {
                 Planet = WindowService.FocusedPlanet
             };
-        } 
+        }
+
+        _categories = BuildCategories();
     }
 
-    private void Refresh()
+    private List<MainMenu.MenuCategory> BuildCategories() =>
+        new List<MainMenu.MenuCategory>()
+        {
+            new MainMenu.MenuCategory()
+            {
+                Name = "General Settings",
+                Icon = "gear-fill",
+                Items = new List<MainMenu.MenuItem>()
+                {
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Info",
+                        Icon = "info-circle-fill",
+                        Description = "Edit planet information",
+                        Content = InfoContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Invites",
+                        Icon = "envelope-paper-heart-fill",
+                        Description = "Manage planet invites",
+                        Content = InvitesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Members",
+                        Icon = "person-heart",
+                        Description = "Manage planet members",
+                        Content = MembersContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Bans",
+                        Icon = "sign-stop-lights-fill",
+                        Description = "Manage bans",
+                        Content = BansContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Roles",
+                        Icon = "person-fill",
+                        Description = "Manage roles and permissions",
+                        Content = RolesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Economy",
+                        Icon = "rocket-takeoff-fill",
+                        Description = "Manage planet economy",
+                        Content = EconomyContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Delete",
+                        Icon = "x-octagon-fill",
+                        Color = "var(--p-red)",
+                        Description = "Delete this planet",
+                        Content = DeleteContent,
+                        OnClick = OnClickDelete
+                    }
+                }
+            }
+        };
+
+    public void Dispose()
     {
-        if (BigMenuComponent.SelectedSubMenu?.Name == "Delete")
-        {
-            OnClickDelete();
-        }
-        else
-        {
-            StateHasChanged();
-        }
+
     }
 
-    private void OnClickDelete()
+    private async Task OnClickDelete()
     {
-        var modalData =
-        new ConfirmModalComponent.ModalParams(
+        var modalData = new ConfirmModalComponent.ModalParams(
             $"Delete {Data.Planet.Name}?",
             "Are you sure?",
             "Continue",
@@ -112,7 +136,7 @@
             },
             () => Task.CompletedTask
         );
-        
+
         ModalRoot.OpenModal<ConfirmModalComponent>(modalData);
     }
 }
