@@ -30,9 +30,9 @@
             <div style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@_user.Id" @onerror="OnAvatarError"></div>
         }
         <div class="time-container">
-            <p class="time" title="@_timeTitle">
+            <span class="time" title="@_timeTitle">
                 @_timeText
-            </p>
+            </span>
         </div>
     </div>
     <div class="content-holder">
@@ -67,9 +67,12 @@
                     }
                 </div>
 
-                <p class="role-name">
+                <span class="role-name">
                     &nbsp;- @_nameTag
-                </p>
+                </span>
+                <span class="time" title="@_timeTitle">
+                    (@_timeText)
+                </span>
             </div>
         }
 

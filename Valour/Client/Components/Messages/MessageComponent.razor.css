@@ -189,37 +189,22 @@
     font-style: normal;
     font-weight: normal;
     font-size: 11px;
-    line-height: 15px;
     color: #7A7A7A;
-    margin: 0px;
     display: none;
     text-align: center;
 }
 
 .message.minimal .time {
     margin-top: 8px;
-    visibility: hidden;
+    line-height: 15px;
 }
 
-.message:hover > .left-info > .time-container > .time {
+.message:hover > .content-holder > .name-role-holder > .time {
     display: block;
 }
 
-.message.minimal:hover > .left-info > .time-container >  .time {
-    visibility: visible;
-}
-
-
-
-.message:hover > .left-info .author-avatar {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    max-width: 30px;
-    max-height: 30px;
-    margin-left: 8px;
-    margin-right: 8px;
+.message.minimal:hover > .left-info > .time-container > .time {
+    display: block;
 }
 
 .message .dot-badge-holder {
