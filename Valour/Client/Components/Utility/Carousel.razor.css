@@ -15,12 +15,11 @@
 .carousel-track {
     display: flex;
     transition: transform 0.4s ease-out;
+    gap: 16px;
 }
-
 .carousel-item {
-    flex: 0 0 auto;
     width: 250px;
-    margin-right: 16px;
+    flex: 0 0 auto;
 }
 
 .carousel-nav {

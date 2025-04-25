@@ -6,12 +6,10 @@
     width: 200px;
     background-color: var(--slight-tint);
     height: 300px;
-    margin-left: 1em;
-    margin-right: 1em;
-    margin-bottom: 1em;
-    margin-top: 1em;
     flex: 1 1 auto;
     transition: scale 0.1s ease-in-out;
+    transition: box-shadow 0.2s, transform 0.2s;
+    margin: 15px;
 }
 
 .theme-container:hover {

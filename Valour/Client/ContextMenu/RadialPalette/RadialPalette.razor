@@ -25,7 +25,7 @@
 </div>
 
 @code {
-    [Parameter] public bool Show { get; set; } = true;
+    [Parameter] public bool Show { get; set; } = false;
     [Parameter] public List<string> Options { get; set; } = new() { "✏️", "🗑️", "🔗", "⭐", "🔥", "🧨" };
     [Parameter] public int Radius { get; set; } = 90;
     [Parameter] public int OptionSize { get; set; } = 60;

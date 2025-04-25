@@ -217,7 +217,7 @@ else
     
     <div class="search-title">
         <h5>Popular Themes:</h5>
-        <input class="form-control" placeholder="Search..." @onchange="@OnSearchChangeAsync" />
+        <input class="form-control" placeholder="Search..." @oninput="@OnSearchChangeAsync" />
     </div>
     
     @if (_popularThemeCount == -1)
@@ -231,11 +231,14 @@ else
     else
     {
         <Carousel
+            @ref="@_popularCarousel"
             TComponent="ThemeCard"
             GetItem="@GetPopularThemeParamsAsync"
             TotalItems="@_popularThemeCount"
             VisibleItems="3"
             InitialLoadCount="8"
+            ItemWidth="266"
+            Height="350"
         />
     }
     
@@ -244,11 +247,14 @@ else
     @if (_myThemes is not null)
     {
         <Carousel
+            @ref="@_myCarousel"
             TComponent="ThemeCard"
             GetItem="@GetMyThemeParamsAsync"
             TotalItems="@_myThemes.Count"
             VisibleItems="3"
             InitialLoadCount="8"
+            ItemWidth="266"
+            Height="350"
         />
     }
 
@@ -257,10 +263,11 @@ else
 }
 
 @code {
-    private VerticalExpander<ThemeCard> _expander;
-    
     private Theme _backupTheme;
     private Theme _editingTheme;
+    
+    private Carousel<ThemeCard> _popularCarousel;
+    private Carousel<ThemeCard> _myCarousel;
 
     private PagedReader<ThemeMeta> _popularThemes;
     private int _popularThemeCount = -1;
@@ -306,10 +313,9 @@ else
         Client.Logger.Log<EditThemeComponent>($"New search: {e.Value}", "cyan");
         
         _popularThemes.SetParameter("search", e.Value?.ToString());
-        if (_expander is not null)
+        if (_popularCarousel is not null)
         {
-            await _expander.Reset();
-            await _expander.Initialize();
+            await _popularCarousel.Reset();
         }
         
         StateHasChanged();
@@ -413,7 +419,7 @@ else
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(_uploadedImage.ContentType);
         content.Add(streamContent, _uploadedImage.Name, _uploadedImage.Name);
         
-        var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
+        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
         if (!result.Success)
         {
             Console.WriteLine("Failed to upload banner: " + result.Message);

@@ -31,6 +31,9 @@
 
 @code {
     [Parameter]
+    public int Height { get; set; } = 350; // Default height (300px)
+    
+    [Parameter]
     public int ItemWidth { get; set; } = 216; // Default item width (200px + 16px margin)
     
     [Parameter]
@@ -157,6 +160,18 @@
         }
         
         await OnSwipe.InvokeAsync();
+        
+        StateHasChanged();
+    }
+    
+    public async Task Reset()
+    {
+        _loadedItems.Clear();
+        _currentIndex = 0;
+        _currentOffset = 0;
+        _isLoading = false;
+        
+        await LoadInitialItems();
         
         StateHasChanged();
     }
