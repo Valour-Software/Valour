@@ -1,6 +1,6 @@
 ﻿<div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
     <img alt="avatar" class="icon" src="@_avatar" @onerror="OnAvatarError" />
-    <p class="title noselect" style="color:@_roleColor">@Member.Nickname</p>
+    <p class="title noselect" style="color:@_roleColor">@Member.Name</p>
 </div>
 
 @code {

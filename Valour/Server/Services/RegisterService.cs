@@ -48,9 +48,6 @@ public class RegisterService
     
     public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
     {
-        if (await _db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
-            return new(false, "Username is taken");
-        
         var now = DateTime.Today;
         var age = now.Year - request.DateOfBirth.Year;
         if (request.DateOfBirth > now.AddYears(-age)) age--;

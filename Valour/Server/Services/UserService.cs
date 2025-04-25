@@ -176,15 +176,23 @@ public class UserService
     public async Task<List<TenorFavorite>> GetTenorFavoritesAsync(long userId) =>
         await _db.TenorFavorites.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
 
-    public async Task<(List<User> added, List<User> addedBy)> GetFriendsDataAsync(long userId)
+    public async Task<(List<User> outgoing, List<User> incoming)> GetFriendsDataAsync(long userId)
     {
-        // Users added by this user as a friend (user -> other)
-        var added = await _db.UserFriends.Include(x => x.Friend).Where(x => x.UserId == userId).Select(x => x.Friend.ToModel()).ToListAsync();
+        // Outgoing: Users this user has sent a friend request to (user -> other)
+        var outgoing = await _db.UserFriends
+            .Include(x => x.Friend)
+            .Where(x => x.UserId == userId)
+            .Select(x => x.Friend.ToModel())
+            .ToListAsync();
 
-        // Users who added this user as a friend (other -> user)
-        var addedBy = await _db.UserFriends.Include(x => x.User).Where(x => x.FriendId == userId).Select(x => x.User.ToModel()).ToListAsync();
+        // Incoming: Users who have sent a friend request to this user (other -> user)
+        var incoming = await _db.UserFriends
+            .Include(x => x.User)
+            .Where(x => x.FriendId == userId)
+            .Select(x => x.User.ToModel())
+            .ToListAsync();
 
-        return (added, addedBy);
+        return (outgoing, incoming);
     }
 
     public async Task<List<User>> GetFriends(long userId)

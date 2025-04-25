@@ -147,9 +147,9 @@
                 else
                 {
                     // Get members which may match
-                    var members = ChannelComponent.Channel.Planet.Members.Where(x => x.Nickname.ToLower().Contains(Text))
-                                     .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
-                                     .ThenBy(x => x.Nickname.Length)
+                    var members = ChannelComponent.Channel.Planet.Members.Where(x => x.Name.ToLower().Contains(Text))
+                                     .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
+                                     .ThenBy(x => x.Name.Length)
                                      .Take(10)
                                      .Select(x => new MentionMatch() { Id = x.Id, Item = x });
 

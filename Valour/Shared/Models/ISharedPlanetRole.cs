@@ -71,6 +71,9 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
 
     public static uint GetAuthority(ISharedPlanetRole role)
     {
+        if (role.Position == uint.MaxValue)
+            return 0;
+        
         return (uint.MaxValue - role.Position - 1);
     }
 

@@ -206,14 +206,21 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', '');
         },
 
-        moveCursorToEnd: () => {
-            const range = document.createRange();
-            const selection = window.getSelection();
-            range.selectNodeContents(ctx.inputEl);
-            range.collapse(false);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            ctx.focus();
+        moveCursorToEnd() {
+            this.focus();
+
+            setTimeout(() => {
+                const range = document.createRange();
+                const selection = window.getSelection();
+
+                range.selectNodeContents(this.inputEl);
+                range.collapse(false);
+
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+
+                this.focus();
+            }, 50);
         },
 
         injectElement: (
@@ -320,8 +327,12 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
                     if (isMentionWord(ctx.currentWord)) {
                         e.preventDefault();
                         await ctx.dotnet.invokeMethodAsync('MoveMentionSelect', e.code === "ArrowDown" ? 1 : -1);
-                    } else {
-                        await ctx.caretMoveHandler();
+                    }
+                    else {
+                        if (e.code === "ArrowUp") {
+                            await ctx.dotnet.invokeMethodAsync('OnUpArrowNonMention');
+                        }
+                        await this.caretMoveHandler();
                     }
                     break;
                 case "ArrowLeft":

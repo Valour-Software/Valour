@@ -1,64 +1,74 @@
 ﻿@using System.Net.Http.Headers
 @inject ValourClient Client
 
-<h3>Planet Information</h3>
-<hr />
-<br />
+<div class="settings-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-globe2"></i>
+            Planet Info
+        </h3>
+        <p class="subtitle">Edit your planet's name and description</p>
 
-<span class="text-danger">@resultSpan</span>
-<br />
+        <div class="form-group">
+            <label>Name</label>
+            <input class="v-input" placeholder="Planet Name" @bind-value="nameValue" maxlength="32" />
+        </div>
 
-<div class="form-group mt-2 new-input-style">
-    <label>Name</label>
-    <input class="form-control" placeholder="Name" @bind-value="@nameValue" />
-</div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea class="v-input" placeholder="Description" @bind="descValue" @bind:event="oninput" maxlength="256"></textarea>
+        </div>
 
-<br />
+        <ResultLabel Result="@_mainResult" />
 
-<div class="form-group mt-2 new-input-style">
-    <label>Description </label>
-    <textarea class="form-control" placeholder="Description" @bind="@descValue" @bind:event="oninput"></textarea>
-</div>
+        <div class="actions mt-3">
+            <button class="v-btn primary" @onclick="OnSaveChanges">Save Changes</button>
+        </div>
+    </div>
 
-<br />
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-image"></i>
+            Planet Icon
+        </h3>
+        <p class="helper-text">Click the image to upload a new planet icon (max 8MB)</p>
 
-<p>Icon</p>
+        <div class="avatar-container">
+            <img alt="Planet icon"
+                 class="avatar bordered"
+                 src="@IconUrl"
+                 style="width:128px; border:solid 4px black; margin: 5px; border-radius: 50%; cursor:pointer"
+                 @onerror="OnPfpError"
+                 onclick="document.getElementById('icon-upload').click()" />
 
-<div>
-    <img @bind-src='IconUrl' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 50%;" @onerror="OnPfpError" />
-    <div style="display:inline-block">
-        <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
-        <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
-        <span id="error-span" style="display:block" class="text-danger">@Image_Error</span>
+            <InputFile @ref="fileInput"
+                       id="icon-upload"
+                       OnChange="LoadFiles"
+                       style="display:none"
+                       accept=".png,.jpg,.jpeg,.gif,.webp" />
+
+            <ResultLabel Result="@_imageResult" />
+        </div>
     </div>
 </div>
 
-<div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
-
 @code {
-
     [Parameter]
     public Planet Planet { get; set; }
 
     public string nameValue;
     public string descValue;
 
-    public string resultSpan;
-
-    // Image fields
     public string IconUrl;
-    public string Image_Output;
-    public string Image_Error;
 
-    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
-    {
-        { "accept", ".png,.jpg,.jpeg,.gif" },
-    };
+    private ITaskResult _mainResult;
+    private ITaskResult _imageResult;
+
+    private InputFile fileInput;
 
     protected Task OnPfpError()
     {
         IconUrl = "_content/Valour.Client/icon-512.webp";
-
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -68,33 +78,30 @@
         IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
         nameValue = Planet.Name;
         descValue = Planet.Description;
-
         StateHasChanged();
         return Task.CompletedTask;
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        Image_Output = "";
-        Image_Error = "";
-
-        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
-
         var file = e.File;
 
         if (file == null)
         {
-            Image_Error = "Could not load file as an image.";
+            _imageResult = new TaskResult(false, "Could not load file as an image.");
+            StateHasChanged();
+            return;
         }
 
         if (file.Size > 8388608)
         {
-            Image_Error = "Max planet image size is 8mb.";
+            _imageResult = new TaskResult(false, "Max planet image size is 8MB.");
+            StateHasChanged();
+            return;
         }
 
         byte[] data = new byte[file.Size];
-
-        await file.OpenReadStream(2621440).ReadAsync(data);
+        await file.OpenReadStream(8388608).ReadAsync(data);
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);
@@ -103,18 +110,12 @@
         content.Add(arrContent, file.Name, file.Name);
 
         var result = await Planet.Node.PostMultipartDataWithResponse<string>($"upload/planet/{Planet.Id}", content);
+        _imageResult = result;
 
         if (result.Success)
         {
-            // We slightly modify the url to force a refresh
+            // Force refresh
             IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
-            
-            Console.WriteLine("Response from CDN: " + result.Data);
-            Image_Output = "Successfully changed planet icon.";
-        }
-        else
-        {
-            Image_Error = result.Message;
         }
 
         StateHasChanged();
@@ -128,18 +129,9 @@
             Planet.Description = descValue;
 
             var result = await Planet.UpdateAsync();
-
-            if (result.Success)
-            {
-                resultSpan = "Updated successfully.";
-            }
-            else
-            {
-                resultSpan = "Something went wrong! Please try again.";
-            }
+            _mainResult = result;
         }
 
         StateHasChanged();
     }
-
 }

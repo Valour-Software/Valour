@@ -163,10 +163,6 @@
             </div>
         }
         
-        <div class="actions">
-            <button class="v-btn primary" @onclick="OnClickSaveAsync">Save Changes</button>
-        </div>
-        
         <ResultLabel Result="@_result" />
     </div>
     <div class="profile-preview-container">
@@ -302,7 +298,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await Client.PrimaryNode.PostAsyncWithResponse<string>($"upload/profilebg", content);
+        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/profilebg", content);
 
         if (result.Success)
         {

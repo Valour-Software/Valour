@@ -3,7 +3,7 @@
     overflow-x: hidden;
     height: 100%;
     padding: 1em;
-    min-width: 200px;
+    width: min(300px, 50vw);
 }
 
 .role-title {
@@ -18,12 +18,18 @@
 }
 
 .mobile .role-list {
+
+}
+
+.mobile .role-list-wrapper {
     position: absolute;
     right: 0;
+    bottom: 0;
+    top: 35px;
     z-index: 5;
 }
 
-.mobile .role-list:before {
+.mobile .role-list-wrapper:before {
     content: '';
     position: absolute;
     bottom: 0;

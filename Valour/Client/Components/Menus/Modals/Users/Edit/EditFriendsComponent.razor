@@ -2,156 +2,118 @@
 @inject ValourClient Client
 
 <div class="col-md-12 modal-bg">
-	<section>
-		<div class="title-container">
-			<h3>Friends <i class="bi bi-person-heart"></i></h3>
-			<p class="subtitle">ADD OR REMOVE FRIENDS</p>
+    <section>
+        <div class="title-container">
+            <h3>Friends <i class="bi bi-person-heart"></i></h3>
+            <p class="subtitle">ADD OR REMOVE FRIENDS</p>
         </div>
 
-		<hr />
+        <hr />
 
-		<h5>Added you</h5>
-		<div class="inner-scroll-box">
-			@foreach (var addedMe in Client.FriendService.FriendRequests)
-			{
-				<div class="request-row" @key="@addedMe.Id">
-					<UserInfoComponent User="@addedMe" />
+        <h5>Added you</h5>
+        <div class="inner-scroll-box">
+            @foreach (var addedMe in Client.FriendService.IncomingRequests)
+            {
+                <div class="request-row" @key="@addedMe.Id">
+                    <UserInfoComponent User="@addedMe" />
 
-					<div class="action-row" role="group" aria-label="Friend Accept or Deny">
-						<button @onclick="async () => await OnAcceptRequest(addedMe)" type="button" class="v-btn">Accept</button>
-						<button @onclick="async () => await OnDeclineRequest(addedMe)" type="button" class="v-btn">Decline</button>
-					</div>
-				</div>
-			}
-		</div>
-		<span class="text-danger mb-2">@_addedYouError</span>
+                    <div class="action-row" role="group" aria-label="Friend Accept or Deny">
+                        <button @onclick="async () => await OnAcceptRequest(addedMe)" type="button" class="v-btn">Accept</button>
+                        <button @onclick="async () => await OnDeclineRequest(addedMe)" type="button" class="v-btn">Decline</button>
+                    </div>
+                </div>
+            }
+        </div>
+        <ResultLabel Result="@_addedYouResult" />
 
-		<h5 style="margin-top: 20px">You added</h5>
-		<div class="inner-scroll-box">
-			@foreach (var added in Client.FriendService.FriendsRequested)
-			{
-				<div class="request-row" @key="@added.Id">
-					<UserInfoComponent User="@added" />
+        <h5 style="margin-top: 20px">You added</h5>
+        <div class="inner-scroll-box">
+            @foreach (var added in Client.FriendService.OutgoingRequests)
+            {
+                <div class="request-row" @key="@added.Id">
+                    <UserInfoComponent User="@added" />
 
-					<div class="action-row" role="group" aria-label="Friend Accept or Deny">
-						<button @onclick="async () => await OnCancelRequest(added)" type="button" class="v-btn">Cancel</button>
-					</div>
-				</div>
-			}
-		</div>
-		<span class="text-danger mb-2">@_addedError</span>
+                    <div class="action-row" role="group" aria-label="Friend Accept or Deny">
+                        <button @onclick="async () => await OnCancelRequest(added)" type="button" class="v-btn">Cancel</button>
+                    </div>
+                </div>
+            }
+        </div>
+        <ResultLabel Result="@_addedResult" />
 
+        <div asp-validation-summary="All" class="text-info"></div>
 
-		<div asp-validation-summary="All" class="text-info"></div>
-
-		<div class="form-group mt-4">
-			<label>Friend's Username</label>
-			<input class="form-control" @bind-value="@_name" />
-			<span id="name-span" style="color:#888888">@_nameSpan</span>
-		</div>
-
-
-		@if (!string.IsNullOrEmpty(_errorSpan))
-		{
-			<br />
-			<span class="text-danger mt-4 mb-4">@_errorSpan</span>
-		}
-
-		<div class="d-flex form-group mt-4" style="align-items: center">
-			<button class="v-btn mt-1 mb-2" @onclick="OnClickSubmit">Add Friend</button>
-			@if (!string.IsNullOrWhiteSpace(_successSpan))
-			{
-				<span class="text-info" style="display: inline-block; margin-left: 15px;">@_successSpan</span>
-			}
-		</div>
-	</section>
+        <div class="form-group mt-4">
+            <label>Friend's Username</label>
+            <input class="form-control" @bind-value="@_name" />
+            <span id="name-span" style="color:#888888">@_nameSpan</span>
+        </div>
+        
+        <ResultLabel Result="@_friendBoxResult" />
+    </section>
 </div>
 
 @code {
-	// Input fields
-	private string _name;
+    // Input fields
+    private string _name;
 
-	// Spans
-	private string _nameSpan = "The username of your friend";
+    // Spans
+    private string _nameSpan = "The username of your friend";
 
-	private string _errorSpan = null;
-	private string _successSpan = null;
+    private ITaskResult _addedYouResult = null;
+    private ITaskResult _addedResult = null;
+    private ITaskResult _friendBoxResult = null;
 
-	private string _addedYouError = null;
-	private string _addedError = null;
+    protected override void OnInitialized()
+    {
+        Client.FriendService.FriendsChanged += FriendEventHandler;
+    }
+    
+    void IDisposable.Dispose()
+    {
+        Client.FriendService.FriendsChanged -= FriendEventHandler;
+    }
 
-	protected override void OnInitialized()
-	{
-		Client.FriendService.FriendsChanged += FriendEventHandler;
-	}
-	
-	void IDisposable.Dispose()
-	{
-		Client.FriendService.FriendsChanged -= FriendEventHandler;
-	}
+    private Task FriendEventHandler(FriendEventData eventData)
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
 
-	private Task FriendEventHandler(FriendEventData eventData)
-	{
-		StateHasChanged();
-		return Task.CompletedTask;
-	}
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+        // Require a name
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _friendBoxResult = new TaskResult(false, "Please input a username.");
+            return;
+        }
 
-	private async Task OnClickSubmit(MouseEventArgs e)
-	{
-		// Require a name
-		if (string.IsNullOrWhiteSpace(_name))
-		{
-			_errorSpan = "Please input a username.";
-			return;
-		}
+        var response = await Client.FriendService.AddFriendAsync(_name);
+        _friendBoxResult = response;
+    }
 
-		var response = await Client.FriendService.AddFriendAsync(_name);
+    private async Task OnAcceptRequest(User user)
+    {
+        var result = await Client.FriendService.AddFriendAsync(user.NameAndTag);
+        _addedYouResult = result;
 
-		if (!response.Success)
-		{
-			_errorSpan = response.Message;
-			StateHasChanged();
-			return;
-		}
+        StateHasChanged();
+    }
 
-		_successSpan = "Added friend successfully.";
-	}
+    private async Task OnDeclineRequest(User user)
+    {
+        var result = await Client.FriendService.DeclineFriendAsync(user.NameAndTag);
+        _addedYouResult = result;
 
-	private async Task OnAcceptRequest(User user)
-	{
-		_addedYouError = "";
+        StateHasChanged();
+    }
 
-		var result = await Client.FriendService.AddFriendAsync(user.NameAndTag);
-		if (!result.Success){
-			_addedYouError = result.Message;
-		}
+    private async Task OnCancelRequest(User user)
+    {
+        var result = await Client.FriendService.CancelFriendAsync(user.NameAndTag);
+        _addedResult = result;
 
-		StateHasChanged();
-	}
-
-	private async Task OnDeclineRequest(User user)
-	{
-		_addedYouError = "";
-
-		var result = await Client.FriendService.DeclineFriendAsync(user.NameAndTag);
-		if (!result.Success)
-		{
-			_addedYouError = result.Message;
-		}
-
-		StateHasChanged();
-	}
-
-	private async Task OnCancelRequest(User user)
-	{
-		_addedError = "";
-
-		var result = await Client.FriendService.CancelFriendAsync(user.NameAndTag);
-		if (!result.Success)
-		{
-			_addedError = result.Message;
-		}
-
-		StateHasChanged();
-	}
+        StateHasChanged();
+    }
 }

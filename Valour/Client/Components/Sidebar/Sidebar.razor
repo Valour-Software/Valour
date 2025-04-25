@@ -64,6 +64,7 @@
 	
 	protected override async Task OnInitializedAsync()
 	{
+		_mainSidebar = this;
 		
 		if (await LocalStorage.ContainKeyAsync("sidebar"))
 		{
@@ -103,6 +104,13 @@
 			_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
 			_jsRef = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, _id);
 		}
+	}
+
+	public static Sidebar _mainSidebar;
+	
+	public static async Task ToggleSidebar()
+	{
+		await _mainSidebar._jsRef.InvokeVoidAsync("toggleOpen");
 	}
 
 	private async Task OnOpenTabClicked()

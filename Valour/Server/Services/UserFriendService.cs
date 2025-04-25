@@ -60,7 +60,7 @@ public class UserFriendService
         return new(true, "Succcess");
     }
 
-    public async Task<TaskResult<UserFriend>> AddFriendAsync(long friendId, long userId)
+    public async Task<TaskResult<UserFriend>> AddFriendAsync(long userId, long friendId)
     {
         var user = await _db.Users.FindAsync(userId);
         if (user is null)
@@ -112,7 +112,7 @@ public class UserFriendService
         if (friendUser is null)
             return new(false, $"User {friendUsername} was not found.");
 
-        return await AddFriendAsync(friendUser.Id, userId);
+        return await AddFriendAsync(userId, friendUser.Id);
     }
 
     public async Task<TaskResult> DeclineRequestAsync(string username, long userId)

@@ -155,7 +155,7 @@
 
     public Task LoadDetailsAsync()
     {
-        _isFriendRequested = FriendService.FriendsRequested.Any(x => x.Id == User.Id);
+        _isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == User.Id);
         _isFriend = FriendService.Friends.Any(x => x.Id == User.Id);
 
         _name = User.Name;

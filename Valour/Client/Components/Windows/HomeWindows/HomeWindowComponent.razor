@@ -61,10 +61,10 @@
         <div id="flipper-friend-add-@WindowCtx.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-add-@WindowCtx.Id', 240)" onmouseover="determineFlip('flipper-friend-add-@WindowCtx.Id', 240)" @onclick="OnClickAddFriend">
             <div class="outer-circle">
                 <div class="text-hide-circle" />
-                @if (FriendService.FriendRequests.Count > 0)
+                @if (FriendService.IncomingRequests.Count > 0)
                 {
                     <div class="noti friends">
-                        @FriendService.FriendRequests.Count
+                        @FriendService.IncomingRequests.Count
                     </div>
                 }
                 <svg class="icon create" style="border-radius: 0; transform: scale(0.7)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">

@@ -31,7 +31,7 @@ else
                 <tr>
                     <td>@referral.Name</td>
                     <td>@referral.Time.ToShortDateString() @referral.Time.ToShortTimeString()</td>
-                    <td>@referral.Reward</td>
+                    <td>@Math.Round(referral.Reward, 2)</td>
                 </tr>   
             }
             </tbody>

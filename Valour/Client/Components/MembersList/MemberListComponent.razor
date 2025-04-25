@@ -7,30 +7,59 @@
 }
 
 <CascadingValue Value="this">
-    <div class="role-list hide-scrollbar">
+    <div class="role-list-wrapper">
+        <div class="role-list hide-scrollbar">
 
-        @{
-            _mainDisplay = new();
-        }
+            @{
+                _mainDisplay = new();
+            }
 
-        @if (_planet?.Members is not null)
-        {
-            foreach (var role in _displayedRoles)
+            @if (_planet?.Members is not null)
             {
-                var members = _displayedRoleMembers[role.Id];
+                foreach (var role in _displayedRoles)
+                {
+                    var members = _displayedRoleMembers[role.Id];
 
-                if (members.Count > 0) {
+                    if (members.Count > 0)
+                    {
 
+                        _mainDisplay.Add(new()
+                        {
+                            TitleName = role.Name,
+                            TitleColor = role.Color,
+                            IsTitle = true,
+                            Key = role.Id
+                        });
+
+                        var c = 0;
+                        foreach (var member in members)
+                        {
+                            _mainDisplay.Add(new DisplayItem()
+                            {
+                                Member = member,
+                                IsTitle = false,
+                                Key = member.Id,
+                            });
+
+                            c++;
+                        }
+                    }
+                }
+
+                var online = _displayedRoleMembers[0];
+
+                if (online.Count > 0)
+                {
                     _mainDisplay.Add(new()
                     {
-                        TitleName = role.Name,
-                        TitleColor = role.Color,
+                        TitleName = "Online",
                         IsTitle = true,
-                        Key = role.Id
+                        TitleColor = "#fff",
+                        Key = "online"
                     });
 
                     var c = 0;
-                    foreach (var member in members)
+                    foreach (var member in online)
                     {
                         _mainDisplay.Add(new DisplayItem()
                         {
@@ -42,74 +71,49 @@
                         c++;
                     }
                 }
-            }
 
-            var online = _displayedRoleMembers[0];
+                var offline = _displayedRoleMembers[1];
 
-            if (online.Count > 0)
-            {
-                _mainDisplay.Add(new()
+                if (offline.Count > 0)
                 {
-                    TitleName = "Online",
-                    IsTitle = true,
-                    TitleColor = "#fff",
-                    Key = "online"
-                });
 
-                var c = 0;
-                foreach (var member in online)
-                {
-                    _mainDisplay.Add(new DisplayItem()
+                    _mainDisplay.Add(new()
                     {
-                        Member = member,
-                        IsTitle = false,
-                        Key = member.Id,
+                        TitleName = "Offline",
+                        IsTitle = true,
+                        TitleColor = "#fff",
+                        Key = "offline"
                     });
 
-                    c++;
-                }
-            }
-
-            var offline = _displayedRoleMembers[1];
-
-            if (offline.Count > 0) {
-
-                _mainDisplay.Add(new()
-                {
-                    TitleName = "Offline",
-                    IsTitle = true,
-                    TitleColor = "#fff",
-                    Key = "offline"
-                });
-
-                var c = 0;
-                foreach (var member in offline)
-                {
-                    _mainDisplay.Add(new DisplayItem()
+                    var c = 0;
+                    foreach (var member in offline)
                     {
-                        Member = member,
-                        IsTitle = false,
-                        Key = member.Id,
-                    });
+                        _mainDisplay.Add(new DisplayItem()
+                        {
+                            Member = member,
+                            IsTitle = false,
+                            Key = member.Id,
+                        });
 
-                    c++;
+                        c++;
+                    }
                 }
+
+                <Virtualize Items="_mainDisplay">
+                    @if (context.IsTitle)
+                    {
+                        <div>
+                            <p class="role-title subtitle" style="color: @context.TitleColor;">@context.TitleName</p>
+                            <div class="v-gradient-underline" style="background-image: linear-gradient(to right, @context.TitleColor, transparent);"></div>
+                        </div>
+                    }
+                    else
+                    {
+                        <UserInfoComponent Member="@context.Member" @key="@context.Key"/>
+                    }
+                </Virtualize>
             }
-
-            <Virtualize Items="_mainDisplay">
-                @if (context.IsTitle)
-                {
-                    <div>
-                        <p class="role-title subtitle" style="color: @context.TitleColor;">@context.TitleName</p>
-                        <div class="v-gradient-underline" style="background-image: linear-gradient(to right, @context.TitleColor, transparent);"></div>
-                    </div>
-                }
-                else
-                {
-                    <UserInfoComponent Member="@context.Member" @key="@context.Key" />
-                }
-            </Virtualize>
-        }
+        </div>
     </div>
 </CascadingValue>
 
