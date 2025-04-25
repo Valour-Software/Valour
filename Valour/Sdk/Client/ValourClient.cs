@@ -186,7 +186,7 @@ public class ValourClient
         var loadTasks = new List<Task>()
         {
             // LoadChannelStatesAsync(), this is already done by the Home component
-            FriendService.FetchesFriendsAsync(),
+            FriendService.FetchFriendsAsync(),
             PlanetService.FetchJoinedPlanetsAsync(),
             TenorService.LoadTenorFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),

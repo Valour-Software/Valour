@@ -108,7 +108,7 @@ else
 
 	protected override void OnInitialized()
 	{
-		_isFriendRequested = FriendService.FriendsRequested.Any(x => x.Id == Data.Member.UserId);
+		_isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == Data.Member.UserId);
 		_isFriend = FriendService.Friends.Any(x => x.Id == Data.Member.UserId);
 
 		_canKick = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Kick);

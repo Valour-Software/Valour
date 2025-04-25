@@ -386,8 +386,8 @@ public class UserApi
 
         return Results.Json(new
         {
-            added = result.added,
-            addedBy = result.addedBy
+            added = result.outgoing,
+            addedBy = result.incoming
         });
     }
     

@@ -56,6 +56,8 @@ else
 }
 
 @code{
+    const bool USE_PROD = true;
+    
     private bool _triedInitialLogin;
 
     protected override async Task OnInitializedAsync()
@@ -70,12 +72,19 @@ else
     {
         var uriData = await BrowserUtils.GetUriData();
         Logger.Log("App", $"Origin is {uriData.Origin}", "magenta");
-        
-        // Set the origin for the client
-        // We do this here because while the value is assumed in Program.cs here
-        // we have access to the JS runtime to get the actual value
-        Client.SetOrigin(uriData.Origin + "/");
-        
+
+        if (!USE_PROD)
+        {
+            // Set the origin for the client
+            // We do this here because while the value is assumed in Program.cs here
+            // we have access to the JS runtime to get the actual value
+            Client.SetOrigin(uriData.Origin + "/");
+        }
+        else
+        {
+            Client.SetOrigin("https://app.valour.gg/");
+        }
+
         _ = JsRuntime.InvokeAsync<object>(
             "blazorFuncs.registerClient",
             DotNetObjectReference.Create(this)
