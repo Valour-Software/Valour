@@ -166,6 +166,11 @@
     right: 0;
 }
 
+.mobile .upload-menu {
+    bottom: 60px;
+    right: 21px;
+}
+
 .upload-menu .content {
     background-color: var(--main-1);
     border-radius: 14px;
