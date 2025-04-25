@@ -194,6 +194,10 @@
     text-align: center;
 }
 
+.message .message .time {
+    padding-left: 10px;
+}
+
 .message.minimal .time {
     margin-top: 8px;
     line-height: 15px;
