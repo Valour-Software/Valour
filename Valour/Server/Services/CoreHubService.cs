@@ -204,7 +204,7 @@ public class CoreHubService
                 continue;
                 
             // Get the channel ID from the group name
-            var channelId = long.Parse(groupId.Substring(2));
+            // var channelId = long.Parse(groupId.Substring(2));
             
             // Get all user IDs in this group
             var userIds = _connectionTracker.GetGroupUserIds(groupId);
@@ -223,7 +223,11 @@ public class CoreHubService
             var userIds = pair.Value;
             
             // Get channel ID from group name
-            var channelId = long.Parse(groupId.Substring(2));
+            if (!long.TryParse(groupId.Substring(2), out var channelId))
+            {
+                continue;
+            }
+            
             var planetId = await GetPlanetIdForChannel(channelId);
             
             if (!planetId.HasValue)
