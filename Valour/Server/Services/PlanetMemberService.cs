@@ -223,8 +223,21 @@ public class PlanetMemberService
         if (user is null)
             return new TaskResult<PlanetMember>(false, "User not found.");
 
+        if (planet.Nsfw)
+        {
+            var userPrivateInfo = await _db.PrivateInfos.FindAsync(user.Id);
+            if (userPrivateInfo is null)
+                return new TaskResult<PlanetMember>(false, "An unexpected error occured.");
+
+            // Check if the user is 18+
+            if (userPrivateInfo.BirthDate.HasValue && userPrivateInfo.BirthDate.Value.AddYears(18) > DateTime.UtcNow)
+            {
+                return new TaskResult<PlanetMember>(false, "You must be 18+ to join this planet.");
+            }
+        }
+
         if (await _db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == planet.Id &&
-            (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
+                                               (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
         {
             return new TaskResult<PlanetMember>(false, "You are banned from this planet.");
         }
