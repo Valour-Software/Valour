@@ -287,6 +287,8 @@
             var newWindowContent = await ChatWindowComponent.GetDefaultContent(Channel);
             
             await WindowService.OpenWindowAtFocused(newWindowContent);
+
+            await Sidebar.ToggleSidebar();
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {

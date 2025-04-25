@@ -130,5 +130,7 @@
         }
 
         await WindowService.TryAddFloatingWindow(newWindowContent);
+
+        await Sidebar.ToggleMobileSidebar();
     }
 }

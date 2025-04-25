@@ -140,6 +140,14 @@ public static class WindowService
     /// </summary>
     public static async Task TryAddFloatingWindow(WindowContent content, FloatingWindowProps props = null)
     {
+        if (DeviceInfo.IsMobile)
+        {
+            // Mobile devices do not support floating windows
+            // Add the window to the main dock
+            await OpenWindowAtFocused(content);
+            return;
+        }
+        
         await MainDock.AddFloatingTab(content, props);
     }
 }
