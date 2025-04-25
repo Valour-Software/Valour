@@ -123,16 +123,20 @@ export function init(dotnet: DotnetObject, inputEl: HTMLInputElement): InputCont
         },
 
         moveCursorToEnd() {
-            const range = document.createRange();
-            const selection = window.getSelection();
+            this.focus();
 
-            range.selectNodeContents(this.inputEl); // Select the entire content of the element
-            range.collapse(false); // Collapse the range to the end
+            setTimeout(() => {
+                const range = document.createRange();
+                const selection = window.getSelection();
 
-            selection?.removeAllRanges(); // Clear any existing selections
-            selection?.addRange(range); // Add the new range
+                range.selectNodeContents(this.inputEl);
+                range.collapse(false);
 
-            this.focus(); // Focus the element
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+
+                this.focus();
+            }, 50);
         },
 
         injectElement(
