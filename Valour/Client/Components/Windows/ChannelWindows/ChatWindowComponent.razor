@@ -665,6 +665,8 @@ else
     public ValueTask UpdateScrollPosition() => _jsService.InvokeVoidAsync("updateScrollPosition");
 
     public ValueTask ScaleScrollPosition() => _jsService.InvokeVoidAsync("scaleScrollPosition");
+    
+    public ValueTask ShiftScrollPosition(float amount) => _jsService.InvokeVoidAsync("shiftScrollPosition", amount);
 
     [JSInvokable("OnDebouncedScroll")]
     public void OnDebouncedScroll()

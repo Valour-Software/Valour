@@ -15,6 +15,7 @@ type Channel = {
     
     updateScrollPosition(): void;
     scaleScrollPosition(): void;
+    shiftScrollPosition(amount: number): void;
     isAtBottom(): boolean;
     checkBottomSticky(): void;
     scrollToBottom(force: boolean): void;
@@ -41,6 +42,11 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         
         scaleScrollPosition(){
             this.messageWrapperEl.scrollTop = this.oldScrollTop + (this.messageWrapperEl.scrollHeight - this.oldScrollHeight);
+        },
+        
+        shiftScrollPosition(amount: number){
+            this.updateScrollPosition();
+            this.messageWrapperEl.scrollTop = this.oldScrollTop + amount;
         },
         
         isAtBottom(){

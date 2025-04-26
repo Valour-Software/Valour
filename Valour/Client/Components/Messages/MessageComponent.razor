@@ -134,14 +134,21 @@
     @if (_reactions is not null && _reactions.Count > 0)
     {
         <div class="reactions">
-            @foreach (var reaction in _reactions)
+            @foreach (var reaction in _reactionsToRender)
             {
-                var added = _myReactions.Contains(reaction.Key) ? "added" : "";
-                var newReaction = _newReactions != null && _newReactions.Contains(reaction.Key) ? "new" : "";
+                var added = _myReactions.Contains(reaction.emoji) ? "added" : "";
+                var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
                 
-                <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.Key)">
-                    <img class="emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(reaction.Key)" alt="@reaction.Key"/>
-                    <span class="reaction-count">@reaction.Value</span>
+                <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
+                    <img class="emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(reaction.emoji)" alt="@reaction.emoji"/>
+                    <span class="reaction-count">@reaction.count</span>
+                </div>
+            }
+
+            @if (_reactions.Count > 20)
+            {
+                <div class="show-all-reactions" @onclick="() => SetShowAllReactions(!_showAllReactions)">
+                    <a href="#">@(_showAllReactions ? "Show Less" : $"Show All (+{_reactions.Count - 20})")</a>
                 </div>
             }
         </div>
@@ -198,6 +205,7 @@
     };
     
     public ElementReference OuterRef;
+    public float FullHeight;
 
     /* Set Params */
     [Parameter]
@@ -249,9 +257,14 @@
     private Dictionary<string, int> _reactions;
     private HashSet<string> _myReactions;
     private HashSet<string> _newReactions;
+    private List<(string emoji, int count)> _reactionsToRender = new();
+    private bool _showAllReactions = false;
+    
     
     private void CalculateReactions()
     {
+        if (_ghost || _isInnerReply) return;
+        
         if (_message.Reactions is null || _message.Reactions.Count == 0)
         {
             _reactions = null;
@@ -281,10 +294,41 @@
                 _myReactions.Add(reaction.Emoji);
             }
         }
+
+        BuildReactionRenderList();
+    }
+
+    private void BuildReactionRenderList()
+    {
+        if (_ghost || _isInnerReply) return;
+        
+        if (_showAllReactions)
+        {
+            _reactionsToRender = _reactions.OrderByDescending(x => x.Value)
+                .Select(x => (x.Key, x.Value))
+                .ToList();
+        }
+        else
+        {
+            _reactionsToRender = _reactions.OrderByDescending(x => x.Value)
+                .Select(x => (x.Key, x.Value))
+                .Take(20)
+                .ToList();
+        }
+    }
+    
+    private void SetShowAllReactions(bool show)
+    {
+        _showAllReactions = show;
+        BuildReactionRenderList();
+        
+        ReRender();
     }
     
     private void OnReactionAdded(MessageReaction reaction)
     {
+        if (_ghost || _isInnerReply) return;
+        
         // Ensure reactions collections are initialized
         if (_reactions is null)
         {
@@ -311,12 +355,16 @@
             _myReactions.Add(reaction.Emoji);
         }
         
+        BuildReactionRenderList();
+        
         // Re-render the component to show the updated reactions
         ReRender();
     }
     
     private void OnReactionRemoved(MessageReaction reaction)
     {
+        if (_ghost || _isInnerReply) return;
+        
         if (_reactions is null)
             return;
 
@@ -336,6 +384,8 @@
         {
             _myReactions.Remove(reaction.Emoji);
         }
+        
+        BuildReactionRenderList();
 
         // Re-render the component to show the updated reactions
         ReRender();
@@ -343,8 +393,7 @@
     
     private async Task OnReactionClick(string emoji)
     {
-        if (_ghost)
-            return;
+        if (_ghost || _isInnerReply) return;
 
         if (_myReactions.Contains(emoji))
         {
@@ -506,6 +555,34 @@
                 await Client.NotificationService.MarkNotificationRead(notification, true);
             }
         }
+
+        await MonitorHeightChanges(firstRender);
+    }
+
+    private async Task MonitorHeightChanges(bool firstRender)
+    {
+        var dims = await BrowserUtils.GetElementDimensions(OuterRef);
+        var newHeight = dims.Height;
+
+        if (!firstRender)
+        {
+            var heightChange = Math.Abs(newHeight - FullHeight);
+            
+            // Check for a change in height
+            if (heightChange > 1)
+            {
+                // If it has changed, let the chat know to scroll down accordingly
+                if (_chat != null)
+                {
+                    await _chat.ShiftScrollPosition(heightChange);
+                }
+            }
+            
+            Console.WriteLine("Old height: " + FullHeight);
+            Console.WriteLine("New height: " + newHeight);
+        }
+        
+        FullHeight = dims.Height;
     }
 
     public async Task OpenEditMode()

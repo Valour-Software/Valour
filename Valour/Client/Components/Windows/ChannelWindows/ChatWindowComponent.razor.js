@@ -15,6 +15,10 @@ export function init(dotnet, messageWrapperEl) {
         scaleScrollPosition() {
             this.messageWrapperEl.scrollTop = this.oldScrollTop + (this.messageWrapperEl.scrollHeight - this.oldScrollHeight);
         },
+        shiftScrollPosition(amount) {
+            this.updateScrollPosition();
+            this.messageWrapperEl.scrollTop = this.oldScrollTop + amount;
+        },
         isAtBottom() {
             return (this.messageWrapperEl.scrollHeight - (this.messageWrapperEl.scrollTop + this.messageWrapperEl.getBoundingClientRect().height)) < 200;
         },
