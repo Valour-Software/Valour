@@ -68,6 +68,26 @@ public class CoreHubService
 
         _ = group.SendAsync("RelayEdit", message);
     }
+    
+    public void RelayMessageReactionAdded(long channelId, MessageReaction reaction)
+    {
+        var groupId = $"c-{channelId}";
+
+        // Group we are sending messages to
+        var group = _hub.Clients.Group(groupId);
+
+        _ = group.SendAsync("MessageReactionAdd", reaction);
+    }
+    
+    public void RelayMessageReactionRemoved(long channelId, MessageReaction reaction)
+    {
+        var groupId = $"c-{channelId}";
+
+        // Group we are sending messages to
+        var group = _hub.Clients.Group(groupId);
+
+        _ = group.SendAsync("MessageReactionRemove", reaction);
+    }
 
     public async Task RelayFriendEvent(long targetId, FriendEventData eventData, NodeLifecycleService nodeLifecycleService)
     {

@@ -18,6 +18,44 @@
     margin-top: 5px;
 }
 
+.message .reactions {
+    margin-left: 52px;
+    display: flex;
+    gap: 4px;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.message .reactions .reaction {
+    padding: 3px 6px;
+    border: 1px solid var(--main-4);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--main-radius);
+    cursor: pointer;
+    gap: 4px;
+    font-size: 16px;
+}
+
+.message .reactions .reaction * {
+    cursor: pointer !important;
+    user-select: none;
+}
+
+.message .reactions .reaction.added {
+    border-color: var(--p-cyan);
+}
+
+.message .reactions .reaction:hover {
+    border-color: var(--p-purple);
+}
+
+.message .reactions .reaction.new {
+    /* Pop-in animation */
+    animation: pop-in 0.2s ease-in-out;
+}
+
 .message.minimal {
     margin-bottom: 0;
     min-height: auto;

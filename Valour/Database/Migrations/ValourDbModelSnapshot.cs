@@ -513,6 +513,47 @@ namespace Valour.Database.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.MessageReaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AuthorMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_member_id");
+
+                    b.Property<long>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Emoji")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("emoji");
+
+                    b.Property<long>("MessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorMemberId");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("MessageId");
+
+                    b.ToTable("message_reactions", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.MultiAuth", b =>
                 {
                     b.Property<long>("Id")
@@ -1826,6 +1867,31 @@ namespace Valour.Database.Migrations
                     b.Navigation("ReplyToMessage");
                 });
 
+            modelBuilder.Entity("Valour.Database.MessageReaction", b =>
+                {
+                    b.HasOne("Valour.Database.PlanetMember", "AuthorMember")
+                        .WithMany("MessageReactions")
+                        .HasForeignKey("AuthorMemberId");
+
+                    b.HasOne("Valour.Database.User", "AuthorUser")
+                        .WithMany("MessageReactions")
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Valour.Database.Message", "Message")
+                        .WithMany("Reactions")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorMember");
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Message");
+                });
+
             modelBuilder.Entity("Valour.Database.MultiAuth", b =>
                 {
                     b.HasOne("Valour.Database.User", "User")
@@ -2104,6 +2170,8 @@ namespace Valour.Database.Migrations
 
             modelBuilder.Entity("Valour.Database.Message", b =>
                 {
+                    b.Navigation("Reactions");
+
                     b.Navigation("Replies");
                 });
 
@@ -2125,6 +2193,8 @@ namespace Valour.Database.Migrations
             modelBuilder.Entity("Valour.Database.PlanetMember", b =>
                 {
                     b.Navigation("ChannelStates");
+
+                    b.Navigation("MessageReactions");
 
                     b.Navigation("Messages");
 
@@ -2152,6 +2222,8 @@ namespace Valour.Database.Migrations
                     b.Navigation("ChannelStates");
 
                     b.Navigation("Membership");
+
+                    b.Navigation("MessageReactions");
 
                     b.Navigation("Messages");
 

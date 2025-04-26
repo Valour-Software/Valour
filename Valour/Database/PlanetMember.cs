@@ -108,6 +108,10 @@ public class PlanetMember : ISharedPlanetMember
                 .WithOne(x => x.AuthorMember)
                 .HasForeignKey(x => x.AuthorMemberId);
             
+            e.HasMany(x => x.MessageReactions)
+                .WithOne(x => x.AuthorMember)
+                .HasForeignKey(x => x.AuthorMemberId);
+            
             // Indices
             e.HasIndex(x => new { x.UserId, x.PlanetId })
                 .IsUnique();

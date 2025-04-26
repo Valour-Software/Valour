@@ -21,7 +21,8 @@ public static class MessageMapper
             MentionsData = message.MentionsData,
             AttachmentsData = message.AttachmentsData,
             EditedTime = message.EditedTime,
-            ReplyTo = message.ReplyToMessage?.ToModel()
+            ReplyTo = message.ReplyToMessage?.ToModel(),
+            Reactions = message.Reactions?.Select(x => x.ToModel()).ToList(),
         };
     }
     

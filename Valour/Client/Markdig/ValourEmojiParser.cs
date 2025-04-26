@@ -59,7 +59,7 @@ public class ValourEmojiParser : InlineParser
         if (emojiLength > 0)
         {
             // --- Profiling: Emoji string build ---
-            var swBuild = Stopwatch.StartNew();
+            //var swBuild = Stopwatch.StartNew();
             var sb = new StringBuilder();
             for (int i = 0; i < emojiLength; i++)
             {
@@ -81,7 +81,7 @@ public class ValourEmojiParser : InlineParser
                 ? _buffer.CodePointToCharIndex[cpIndex + emojiLength]
                 : _buffer.Text.Length;
             slice.Start = charEnd;
-            swBuild.Stop();
+            //swBuild.Stop();
 
             // swTotal.Stop();
             //LogTimings(swTotal.Elapsed, swBuffer.Elapsed, swCpIndex.Elapsed, swTrie.Elapsed, swBuild.Elapsed, "NativeEmoji");

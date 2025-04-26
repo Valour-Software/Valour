@@ -1,4 +1,5 @@
 ﻿@using global::Markdig.Blazor
+@using Valour.Client.Emojis
 @inject ValourClient Client
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
@@ -130,6 +131,21 @@
             }
         </div>
     </div>
+    @if (_reactions is not null && _reactions.Count > 0)
+    {
+        <div class="reactions">
+            @foreach (var reaction in _reactions)
+            {
+                var added = _myReactions.Contains(reaction.Key) ? "added" : "";
+                var newReaction = _newReactions != null && _newReactions.Contains(reaction.Key) ? "new" : "";
+                
+                <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.Key)">
+                    <img class="emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(reaction.Key)" alt="@reaction.Key"/>
+                    <span class="reaction-count">@reaction.Value</span>
+                </div>
+            }
+        </div>
+    }
 
     @if (_isInnerReply)
     {
@@ -193,7 +209,7 @@
     private bool _ghost;
     private bool _isInnerReply;
     /* End Set Params */
-
+    
     private IMessageAuthor _author;
 
     /* Planet Message Only */
@@ -226,7 +242,121 @@
 
     private string _class = "message";
     private string _style = string.Empty;
+
+    #region Reactions
+
+    /* Reaction data */
+    private Dictionary<string, int> _reactions;
+    private HashSet<string> _myReactions;
+    private HashSet<string> _newReactions;
     
+    private void CalculateReactions()
+    {
+        if (_message.Reactions is null || _message.Reactions.Count == 0)
+        {
+            _reactions = null;
+            return;
+        }
+        
+        if (_reactions is null)
+        {
+            _reactions = new Dictionary<string, int>();
+            _myReactions = new HashSet<string>();
+        }
+        else
+        {
+            _reactions.Clear();
+            _myReactions.Clear();
+        }
+        
+        foreach (var reaction in _message.Reactions)
+        {
+            if (!_reactions.TryAdd(reaction.Emoji, 1))
+            {
+                _reactions[reaction.Emoji]++;
+            }
+
+            if (reaction.AuthorUserId == Client.Me.Id)
+            {
+                _myReactions.Add(reaction.Emoji);
+            }
+        }
+    }
+    
+    private void OnReactionAdded(MessageReaction reaction)
+    {
+        // Ensure reactions collections are initialized
+        if (_reactions is null)
+        {
+            _reactions = new Dictionary<string, int>();
+            _myReactions = new HashSet<string>();
+        }
+        
+        if (!_reactions.TryAdd(reaction.Emoji, 1))
+        {
+            _reactions[reaction.Emoji]++;
+        }
+        else
+        {
+            if (_newReactions is null)
+            {
+                _newReactions = new HashSet<string>();
+            }
+            
+            _newReactions.Add(reaction.Emoji);
+        }
+        
+        if (reaction.AuthorUserId == Client.Me.Id)
+        {
+            _myReactions.Add(reaction.Emoji);
+        }
+        
+        // Re-render the component to show the updated reactions
+        ReRender();
+    }
+    
+    private void OnReactionRemoved(MessageReaction reaction)
+    {
+        if (_reactions is null)
+            return;
+
+        if (_reactions.TryGetValue(reaction.Emoji, out var count))
+        {
+            if (count == 1)
+            {
+                _reactions.Remove(reaction.Emoji);
+            }
+            else
+            {
+                _reactions[reaction.Emoji]--;
+            }
+        }
+
+        if (reaction.AuthorUserId == Client.Me.Id)
+        {
+            _myReactions.Remove(reaction.Emoji);
+        }
+
+        // Re-render the component to show the updated reactions
+        ReRender();
+    }
+    
+    private async Task OnReactionClick(string emoji)
+    {
+        if (_ghost)
+            return;
+
+        if (_myReactions.Contains(emoji))
+        {
+            await _message.RemoveReactionAsync(emoji);
+        }
+        else
+        {
+            await _message.AddReactionAsync(emoji);
+        }
+    }
+
+    #endregion
 
     private void CalculateClassAndStyles()
     {
@@ -426,6 +556,8 @@
     {
         if (_message == null)
             return;
+        
+        CalculateReactions();
 
         // Check if we are a minimal message
         CheckMinimal();
@@ -509,6 +641,9 @@
         _author = _member is not null ? _member : (_user ?? User.NotFound);
         
         BuildMessage(false);
+
+        _message.ReactionAdded += OnReactionAdded;
+        _message.ReactionRemoved += OnReactionRemoved;
     }
     
     /// <summary>

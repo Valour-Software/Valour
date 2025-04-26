@@ -55,6 +55,7 @@ public class MessageService
     {
         var message = await _db.Messages.AsNoTracking()
             .Include(x => x.ReplyToMessage)
+            .Include(x => x.Reactions)
             .FirstOrDefaultAsync(x => x.Id == id);
         
         return message?.ToModel();
@@ -64,7 +65,7 @@ public class MessageService
     /// Returns the message with the given id (no reply!)
     /// </summary>
     public async Task<Message?> GetMessageNoReplyAsync(long id) =>
-        (await _db.Messages.FindAsync(id)).ToModel();
+        (await _db.Messages.Include(x => x.Reactions).FirstOrDefaultAsync(x => x.Id == id)).ToModel();
     
     /// <summary>
     /// Used to post a message 
@@ -426,7 +427,10 @@ public class MessageService
     {
         Message message = null;
         
-        var dbMessage = await _db.Messages.FindAsync(messageId);
+        var dbMessage = await _db.Messages
+            .Include(x => x.Reactions)
+            .FirstOrDefaultAsync(x => x.Id == messageId);
+        
         if (dbMessage is null)
         {
             // Check staging
@@ -444,9 +448,14 @@ public class MessageService
         else
         {
             message = dbMessage.ToModel();
-            
+
             try
             {
+                if (dbMessage.Reactions.Count > 0){
+                    _db.MessageReactions.RemoveRange(dbMessage.Reactions);
+                    await _db.SaveChangesAsync();
+                }
+
                 _db.Messages.Remove(dbMessage);
                 await _db.SaveChangesAsync();
             }
@@ -505,6 +514,7 @@ public class MessageService
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id < index)
             .Include(x => x.ReplyToMessage)
+            .Include(x => x.Reactions)
             .OrderByDescending(x => x.Id)
             .Take(count)
             .Reverse()
@@ -535,6 +545,7 @@ public class MessageService
             .Where(x => x.ChannelId == channel.Id)
             .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
             .Include(x => x.ReplyToMessage)
+            .Include(x => x.Reactions)
             .OrderByDescending(x => x.Id)
             .Take(count)
             .Select(x => x.ToModel())
@@ -569,6 +580,14 @@ public class MessageService
             return TaskResult.FromFailure("Failed to add reaction to database.");
         }
         
+        // Add to message
+        message.Reactions.Add(reaction.ToModel());
+        
+        // Replace in message cache
+        _chatCacheService.ReplaceMessage(message);
+        
+        _coreHubService.RelayMessageReactionAdded(message.ChannelId, reaction.ToModel());
+        
         return TaskResult.SuccessResult;
     }
     
@@ -589,6 +608,15 @@ public class MessageService
         {
             _logger.LogError(e, "Failed to remove reaction");
             return TaskResult.FromFailure("Failed to remove reaction from database.");
+        }
+
+        var message = await GetMessageAsync(messageId);
+        if (message is not null)
+        {
+            message.Reactions.RemoveAll(x => x.Emoji == emoji && x.AuthorUserId == userId);
+            _chatCacheService.ReplaceMessage(message);
+            
+            _coreHubService.RelayMessageReactionRemoved(message.ChannelId, reaction.ToModel());
         }
         
         return TaskResult.SuccessResult;

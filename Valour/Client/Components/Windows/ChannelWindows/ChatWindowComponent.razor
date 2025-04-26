@@ -27,6 +27,12 @@ else
                            Scale="0.5"
                            Radius="75"
                            AnimationDelayStep="0.02"/>
+            
+            <ControlledRenderWrapper @ref="@_reactionSelectorRenderWrapper">
+                <div style="z-index: 60; position: absolute; bottom: @(_reactionSelectorTop); right: @(_reactionSelectorLeft);">
+                    <EmojiMart @ref="@_reactionSelector" EmojiSet="twitter" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
+                </div>
+            </ControlledRenderWrapper>
         </div>
         <MemberListComponent @ref="@MemberListComponent" Channel="@Channel" />
     </div>
@@ -36,11 +42,143 @@ else
 
 
 @code {
+
+    public List<RadialPalette.Option> GetHoverMenuOptions()
+    {
+        var options = new List<RadialPalette.Option>();
+
+        var message = _hoverMenuMessage?.ParamData?.Message;
+
+        if (message is null)
+            return [];
+        
+        // If owner, add edit
+        if (Client.Me.Id == message.AuthorUserId)
+        {
+            var edit = new RadialPalette.Option()
+            {
+                Id = "edit",
+                Icon = "pencil",
+                Name = "Edit",
+                Action = async (_) => await OpenEditMode(_hoverMenuMessage)
+            };
+            
+            options.Add(edit);
+        }
+        else
+        {
+            // Add report
+            var report = new RadialPalette.Option()
+            {
+                Id = "report",
+                Icon = "flag-fill",
+                Name = "Report",
+                Color = "var(--p-red)",
+                Action = (_) =>
+                {
+                    ShowReportModal(message);
+                    return Task.CompletedTask;
+                }
+            };
+            
+            options.Add(report);
+        }
+
+        if (Client.Me.Id == message.Id || 
+            ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages) == PermissionState.True)
+        {
+            var delete = new RadialPalette.Option()
+            {
+                Id = "delete",
+                Icon = "bi bi-trash",
+                Name = "Delete",
+                Color = "var(--p-red)",
+                Action = (_) =>
+                {
+                    ShowMessageDeleteModal(message);
+                    return Task.CompletedTask;
+                }
+            };
+            
+            options.Add(delete);
+        }
+        
+        // Always add reaction option
+        var reaction = new RadialPalette.Option()
+        {
+            Id = "reaction",
+            Icon = "emoji-smile",
+            Name = "React",
+            Action = (e) =>
+            {
+                _currentlyReactingMessage = message;
+                
+                // Reposition
+                _reactionSelectorLeft = (BrowserUtils.WindowDimensions.Width - e.ClientX) + "px";
+                _reactionSelectorTop = Math.Min(BrowserUtils.WindowDimensions.Height - e.ClientY, 350) + "px";
+                
+                // Re-render JUST the emoji selector
+                _reactionSelectorRenderWrapper.ReRender();
+                
+                _reactionSelector.ToggleVisible();
+                
+                // Close hover menu
+                _hoverMenu.SetVisible(false);
+                
+                return Task.CompletedTask;
+            }
+        };
+        
+        // Always add three most recent reactions
+        var reaction1 = new RadialPalette.Option()
+        {
+            Emoji = "😀",
+            Name = "😀",
+            Action = async (_) =>
+            {
+                await message.AddReactionAsync("😀");
+            }
+        };
+        
+        var reaction2 = new RadialPalette.Option()
+        {
+            Emoji = "💀",
+            Name = "💀",
+            Action = async (_) =>
+            {
+                await message.AddReactionAsync("💀");
+            }
+        };
+        
+        var reaction3 = new RadialPalette.Option()
+        {
+            Emoji = "🚀",
+            Name = "🚀",
+            Action = async (_) =>
+            {
+                await message.AddReactionAsync("🚀");
+            }
+        };
+        
+        options.Add(reaction);
+        options.Add(reaction1);
+        options.Add(reaction2);
+        options.Add(reaction3);
+        
+        return options;
+    }
     
     /* Used for palette */
     private RadialPalette _hoverMenu;
+    private MessageComponent _hoverMenuMessage;
     private string _hoverMenuTop;
     private string _hoverMenuRight;
+    
+    private EmojiMart _reactionSelector;
+    private ControlledRenderWrapper _reactionSelectorRenderWrapper;
+    private Message _currentlyReactingMessage;
+    private string _reactionSelectorLeft;
+    private string _reactionSelectorTop;
     
     private bool _loading = true;
 
@@ -89,6 +227,52 @@ else
         Channel.MessageDeleted += OnDeleteMessage;
         
         WindowCtx.Tab.OnStartFloating += OnStartFloating;
+    }
+    
+    private async Task OnReactionSelectedAsync(EmojiClickEvent e)
+    {
+        if (_currentlyReactingMessage is null) return;
+        await _currentlyReactingMessage.AddReactionAsync(e.Native);
+    }
+    
+    private Task OnClickOutsideReactionPicker(OutsidePickerClickEvent e)
+    {
+        if (e.Target.ToLower().Contains("option"))
+            return Task.CompletedTask;
+        
+        _reactionSelector.ToggleVisible();
+        return Task.CompletedTask;
+    }
+
+    private void ShowMessageDeleteModal(Message message)
+    {
+        var desc = message.Content.Length > 32 ? message.Content.Substring(0, 32) + "..." : message.Content;
+        
+        var data = new ConfirmModalComponent.ModalParams("Delete message?", desc, "Delete", "Cancel",
+            async () =>
+            {
+                await message.DeleteAsync();
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(data);
+    }
+
+    private void ShowReportModal(Message message)
+    {
+        var data = new ReportModalComponent.ModalParams()
+        {
+            Report = new Report()
+            {
+                ReportingUserId = Client.Me.Id,
+                MessageId = message.Id,
+                ChannelId = message.ChannelId,
+                PlanetId = message.PlanetId
+            }
+        };
+        
+        ModalRoot.Instance.OpenModal<ReportModalComponent>(data);
     }
     
     public async Task SetupNewChannelAsync()
@@ -626,6 +810,8 @@ else
     {
         if (_hoverMenu is not null)
         {
+            _hoverMenuMessage = message;
+            
             var bounds = await BrowserUtils.GetElementBoundingRectAsync(_hoverMenu.OuterRef);
             var wrapperBounds = await BrowserUtils.GetElementBoundingRectAsync(MessageWrapperEl);
             
@@ -636,6 +822,7 @@ else
         
             var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
             
+            _hoverMenu.SetOptions(GetHoverMenuOptions());
             _hoverMenu.SetPosition(_hoverMenuTop, rightPx: _hoverMenuRight);
             _hoverMenu.SetVisible(true);
         }

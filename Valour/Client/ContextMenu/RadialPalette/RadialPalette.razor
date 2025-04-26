@@ -1,4 +1,6 @@
-﻿@inherits ControlledRenderComponentBase
+﻿@using System.Text
+@using Valour.Client.Emojis
+@inherits ControlledRenderComponentBase
 
 <div class="radial-palette-container" style="@ContainerPositionStyle" @ref="OuterRef">
     <style>
@@ -13,9 +15,21 @@
             <div class="options-wrapper">
                 @for (int i = 0; i < Options.Count; i++)
                 {
+                    var option = Options[i];
+                    
                     <div class="option option-@i">
-                        <div class="circle-pop">
-                            @Options[i]
+                        <div id="option-circle-@i" class="circle-pop" @onclick="@option.Action">
+                            @{
+                                
+                                if (option.Icon is not null)
+                                {
+                                    <i id="option-@option.Id" class="bi bi-@option.Icon option-icon" style="color: @option.Color;"></i>
+                                }
+                                else
+                                {
+                                    <img id="option-@option.Id" alt="@option.Emoji" class="option-emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(option.Emoji)" /> 
+                                }
+                            }
                         </div>
                     </div>
                 }
@@ -25,8 +39,19 @@
 </div>
 
 @code {
+
+    public class Option
+    {
+        public string Id;
+        public string Name;
+        public string? Icon;
+        public string? Emoji;
+        public string Color = "#fff";
+        public Func<MouseEventArgs, Task> Action;
+    }
+    
     [Parameter] public bool Show { get; set; } = false;
-    [Parameter] public List<string> Options { get; set; } = new() { "✏️", "🗑️", "🔗", "⭐", "🔥", "🧨" };
+    [Parameter] public List<Option> Options { get; set; } = new() {};
     [Parameter] public int Radius { get; set; } = 90;
     [Parameter] public int OptionSize { get; set; } = 60;
     [Parameter] public string Top { get; set; } = "100px";
@@ -50,6 +75,12 @@
     public void SetVisible(bool visible)
     {
         Show = visible;
+        ReRender();
+    }
+    
+    public void SetOptions(List<Option> options)
+    {
+        Options = options;
         ReRender();
     }
 
@@ -162,6 +193,11 @@
     transform: scale(1) rotate(0deg);
     opacity: 1;
 }}
+
+.option-emoji {{
+    width: {OptionSize * 0.6}px;
+    height: {OptionSize * 0.6}px;
+}}
 ");
 
         // Options and circle-pop
@@ -171,7 +207,7 @@
             double popDelay = AnimationDelayStep * i + PopDelay;
             sb.AppendLine($@"
 .options-wrapper .option-{i} {{
-    transform: rotate({angle}deg) translate(0, 0);
+    transform: translate(0, 0);
     opacity: 0;
     transition:
         transform 0.5s cubic-bezier(.68,-0.55,.27,1.55),
@@ -184,7 +220,7 @@
     transition-delay: {AnimationDelayStep * i:F2}s;
 }}
 .options-wrapper .option-{i} .circle-pop {{
-    transform: scale(0);
+    transform: rotate({angle}deg) scale(0);
     opacity: 0;
     transition:
         transform 0.25s cubic-bezier(.68,-0.55,.27,1.55) {popDelay:F2}s,

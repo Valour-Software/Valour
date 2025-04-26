@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Valour.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class NewInitial : Migration
+    public partial class NewInitMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -93,8 +93,7 @@ namespace Valour.Database.Migrations
                 name: "notifications",
                 columns: table => new
                 {
-                    id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
                     user_id = table.Column<long>(type: "bigint", nullable: false),
                     planet_id = table.Column<long>(type: "bigint", nullable: true),
                     channel_id = table.Column<long>(type: "bigint", nullable: true),
@@ -127,7 +126,8 @@ namespace Valour.Database.Migrations
                     @public = table.Column<bool>(name: "public", type: "boolean", nullable: false),
                     discoverable = table.Column<bool>(type: "boolean", nullable: false),
                     is_deleted = table.Column<bool>(type: "boolean", nullable: false),
-                    nsfw = table.Column<bool>(type: "boolean", nullable: false)
+                    nsfw = table.Column<bool>(type: "boolean", nullable: false),
+                    version = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -231,7 +231,8 @@ namespace Valour.Database.Migrations
                     compliance = table.Column<bool>(type: "boolean", nullable: false),
                     subscription_type = table.Column<string>(type: "text", nullable: true),
                     prior_name = table.Column<string>(type: "text", nullable: true),
-                    name_change_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    name_change_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    version = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -254,7 +255,7 @@ namespace Valour.Database.Migrations
                     position = table.Column<long>(type: "bigint", nullable: false),
                     inherits_perms = table.Column<bool>(type: "boolean", nullable: false),
                     is_default = table.Column<bool>(type: "boolean", nullable: false),
-                    version = table.Column<byte>(type: "smallint", nullable: false)
+                    version = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -322,6 +323,7 @@ namespace Valour.Database.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    local_index = table.Column<int>(type: "integer", nullable: false),
                     is_admin = table.Column<bool>(type: "boolean", nullable: false),
                     planet_id = table.Column<long>(type: "bigint", nullable: false),
                     position = table.Column<long>(type: "bigint", nullable: false),
@@ -334,7 +336,8 @@ namespace Valour.Database.Migrations
                     bold = table.Column<bool>(type: "boolean", nullable: false),
                     italics = table.Column<bool>(type: "boolean", nullable: false),
                     name = table.Column<string>(type: "text", nullable: true),
-                    anyone_can_mention = table.Column<bool>(type: "boolean", nullable: false)
+                    anyone_can_mention = table.Column<bool>(type: "boolean", nullable: false),
+                    version = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -412,13 +415,38 @@ namespace Valour.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "notification_subscriptions",
+                name: "multi_auth",
                 columns: table => new
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     user_id = table.Column<long>(type: "bigint", nullable: false),
-                    endpoint = table.Column<string>(type: "text", nullable: true),
+                    type = table.Column<string>(type: "text", nullable: true),
+                    secret = table.Column<string>(type: "text", nullable: true),
+                    verified = table.Column<bool>(type: "boolean", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_multi_auth", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_multi_auth_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "notification_subscriptions",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    device_type = table.Column<int>(type: "integer", nullable: false),
+                    expires_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "(NOW() + INTERVAL '7 days')"),
+                    user_id = table.Column<long>(type: "bigint", nullable: false),
+                    endpoint = table.Column<string>(type: "text", nullable: false),
                     key = table.Column<string>(type: "text", nullable: true),
                     auth = table.Column<string>(type: "text", nullable: true)
                 },
@@ -486,7 +514,10 @@ namespace Valour.Database.Migrations
                     nickname = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
                     member_pfp = table.Column<string>(type: "text", nullable: true),
                     is_deleted = table.Column<bool>(type: "boolean", nullable: false),
-                    role_hash_key = table.Column<long>(type: "bigint", nullable: false)
+                    rf0 = table.Column<long>(type: "bigint", nullable: false),
+                    rf1 = table.Column<long>(type: "bigint", nullable: false),
+                    rf2 = table.Column<long>(type: "bigint", nullable: false),
+                    rf3 = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -672,37 +703,6 @@ namespace Valour.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "user_channel_states",
-                columns: table => new
-                {
-                    channel_id = table.Column<long>(type: "bigint", nullable: false),
-                    user_id = table.Column<long>(type: "bigint", nullable: false),
-                    planet_id = table.Column<long>(type: "bigint", nullable: true),
-                    last_viewed_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_user_channel_states", x => new { x.user_id, x.channel_id });
-                    table.ForeignKey(
-                        name: "FK_user_channel_states_channels_channel_id",
-                        column: x => x.channel_id,
-                        principalTable: "channels",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_user_channel_states_planets_planet_id",
-                        column: x => x.planet_id,
-                        principalTable: "planets",
-                        principalColumn: "id");
-                    table.ForeignKey(
-                        name: "FK_user_channel_states_users_user_id",
-                        column: x => x.user_id,
-                        principalTable: "users",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "permissions_nodes",
                 columns: table => new
                 {
@@ -825,10 +825,10 @@ namespace Valour.Database.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    planet_id = table.Column<long>(type: "bigint", nullable: false),
                     user_id = table.Column<long>(type: "bigint", nullable: false),
                     role_id = table.Column<long>(type: "bigint", nullable: false),
-                    member_id = table.Column<long>(type: "bigint", nullable: false)
+                    member_id = table.Column<long>(type: "bigint", nullable: false),
+                    planet_id = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -845,14 +845,39 @@ namespace Valour.Database.Migrations
                         principalTable: "planet_roles",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "user_channel_states",
+                columns: table => new
+                {
+                    channel_id = table.Column<long>(type: "bigint", nullable: false),
+                    user_id = table.Column<long>(type: "bigint", nullable: false),
+                    planet_id = table.Column<long>(type: "bigint", nullable: true),
+                    member_id = table.Column<long>(type: "bigint", nullable: true),
+                    last_viewed_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_channel_states", x => new { x.user_id, x.channel_id });
                     table.ForeignKey(
-                        name: "FK_planet_role_members_planets_planet_id",
-                        column: x => x.planet_id,
-                        principalTable: "planets",
+                        name: "FK_user_channel_states_channels_channel_id",
+                        column: x => x.channel_id,
+                        principalTable: "channels",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_planet_role_members_users_user_id",
+                        name: "FK_user_channel_states_planet_members_member_id",
+                        column: x => x.member_id,
+                        principalTable: "planet_members",
+                        principalColumn: "id");
+                    table.ForeignKey(
+                        name: "FK_user_channel_states_planets_planet_id",
+                        column: x => x.planet_id,
+                        principalTable: "planets",
+                        principalColumn: "id");
+                    table.ForeignKey(
+                        name: "FK_user_channel_states_users_user_id",
                         column: x => x.user_id,
                         principalTable: "users",
                         principalColumn: "id",
@@ -939,6 +964,40 @@ namespace Valour.Database.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "message_reactions",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    emoji = table.Column<string>(type: "text", nullable: false),
+                    message_id = table.Column<long>(type: "bigint", nullable: false),
+                    author_user_id = table.Column<long>(type: "bigint", nullable: false),
+                    author_member_id = table.Column<long>(type: "bigint", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_message_reactions", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_message_reactions_messages_message_id",
+                        column: x => x.message_id,
+                        principalTable: "messages",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_message_reactions_planet_members_author_member_id",
+                        column: x => x.author_member_id,
+                        principalTable: "planet_members",
+                        principalColumn: "id");
+                    table.ForeignKey(
+                        name: "FK_message_reactions_users_author_user_id",
+                        column: x => x.author_user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_auth_tokens_id",
                 table: "auth_tokens",
@@ -1007,6 +1066,21 @@ namespace Valour.Database.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_message_reactions_author_member_id",
+                table: "message_reactions",
+                column: "author_member_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_message_reactions_author_user_id",
+                table: "message_reactions",
+                column: "author_user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_message_reactions_message_id",
+                table: "message_reactions",
+                column: "message_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_messages_author_member_id",
                 table: "messages",
                 column: "author_member_id");
@@ -1030,6 +1104,11 @@ namespace Valour.Database.Migrations
                 name: "IX_messages_reply_to_id",
                 table: "messages",
                 column: "reply_to_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_multi_auth_user_id",
+                table: "multi_auth",
+                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_notification_subscriptions_user_id",
@@ -1088,16 +1167,6 @@ namespace Valour.Database.Migrations
                 column: "planet_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_planet_members_role_hash_key",
-                table: "planet_members",
-                column: "role_hash_key");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_planet_members_user_id",
-                table: "planet_members",
-                column: "user_id");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_planet_members_user_id_planet_id",
                 table: "planet_members",
                 columns: new[] { "user_id", "planet_id" },
@@ -1109,19 +1178,9 @@ namespace Valour.Database.Migrations
                 column: "member_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_planet_role_members_planet_id",
-                table: "planet_role_members",
-                column: "planet_id");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_planet_role_members_role_id",
                 table: "planet_role_members",
                 column: "role_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_planet_role_members_user_id",
-                table: "planet_role_members",
-                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_planet_roles_planet_id",
@@ -1129,9 +1188,20 @@ namespace Valour.Database.Migrations
                 column: "planet_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_planet_roles_planet_id_id",
+                table: "planet_roles",
+                columns: new[] { "planet_id", "id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_referrals_referrer_id",
                 table: "referrals",
                 column: "referrer_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_referrals_user_id",
+                table: "referrals",
+                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_reports_channel_id",
@@ -1199,6 +1269,11 @@ namespace Valour.Database.Migrations
                 column: "channel_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_user_channel_states_member_id",
+                table: "user_channel_states",
+                column: "member_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_channel_states_planet_id",
                 table: "user_channel_states",
                 column: "planet_id");
@@ -1207,6 +1282,26 @@ namespace Valour.Database.Migrations
                 name: "IX_user_channel_states_user_id",
                 table: "user_channel_states",
                 column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_emails_birth_date",
+                table: "user_emails",
+                column: "birth_date");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_emails_email",
+                table: "user_emails",
+                column: "email");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_emails_join_invite_code",
+                table: "user_emails",
+                column: "join_invite_code");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_emails_locality",
+                table: "user_emails",
+                column: "locality");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_emails_user_id",
@@ -1269,7 +1364,10 @@ namespace Valour.Database.Migrations
                 name: "email_confirm_codes");
 
             migrationBuilder.DropTable(
-                name: "messages");
+                name: "message_reactions");
+
+            migrationBuilder.DropTable(
+                name: "multi_auth");
 
             migrationBuilder.DropTable(
                 name: "node_stats");
@@ -1330,6 +1428,9 @@ namespace Valour.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "user_subscriptions");
+
+            migrationBuilder.DropTable(
+                name: "messages");
 
             migrationBuilder.DropTable(
                 name: "planet_roles");

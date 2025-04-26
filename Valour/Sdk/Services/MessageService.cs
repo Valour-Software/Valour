@@ -3,6 +3,7 @@ using Valour.Sdk.Client;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Nodes;
 using Valour.Shared;
+using Valour.Shared.Models.MessageReactions;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -78,6 +79,28 @@ public class MessageService : ServiceBase
     /// </summary>
     public Task<TaskResult<Message>> SendMessage(Message message)
         => message.PostAsync();
+
+    public async Task<TaskResult> AddMessageReactionAsync(long messageId, string emoji)
+    {
+        var request = new AddMessageReactionRequest()
+        {
+            Emoji = emoji
+        };
+        
+        var response = await _client.PrimaryNode.PostAsync($"api/messages/{messageId}/reactions/add", request);
+        return response;
+    }
+    
+    public async Task<TaskResult> RemoveMessageReactionAsync(long messageId, string emoji)
+    {
+        var request = new RemoveMessageReactionRequest()
+        {
+            Emoji = emoji
+        };
+        
+        var response = await _client.PrimaryNode.PostAsync($"api/messages/{messageId}/reactions/remove", request);
+        return response;
+    }
     
     /// <summary>
     /// Ran when a message is received
@@ -212,6 +235,22 @@ public class MessageService : ServiceBase
         ChannelEmbedUpdate?.Invoke(update);
     }
     
+    private void OnMessageReactionAdded(MessageReaction reaction)
+    {
+        if (_cache.Messages.TryGet(reaction.MessageId, out var message))
+        {
+            message?.NotifyReactionAdded(reaction);
+        }
+    }
+    
+    private void OnMessageReactionRemoved(MessageReaction reaction)
+    {
+        if (_cache.Messages.TryGet(reaction.MessageId, out var message))
+        {
+            message?.NotifyReactionRemoved(reaction);
+        }
+    }
+    
     private void HookHubEvents(Node node)
     {
         node.HubConnection.On<Message>("Relay", OnPlanetMessageReceived);
@@ -221,5 +260,7 @@ public class MessageService : ServiceBase
         node.HubConnection.On<Message>("DeleteMessage", _client.MessageService.OnMessageDeleted);
         node.HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", OnPersonalEmbedUpdate);
         node.HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", OnChannelEmbedUpdate);
+        node.HubConnection.On<MessageReaction>("MessageReactionAdd", OnMessageReactionAdded);
+        node.HubConnection.On<MessageReaction>("MessageReactionRemove", OnMessageReactionRemoved);
     }
 }

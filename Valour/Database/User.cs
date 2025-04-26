@@ -276,6 +276,10 @@ namespace Valour.Database
                 e.HasMany(x => x.Messages)
                     .WithOne(x => x.AuthorUser)
                     .HasForeignKey(x => x.AuthorUserId);
+                
+                e.HasMany(x => x.MessageReactions)
+                    .WithOne(x => x.AuthorUser)
+                    .HasForeignKey(x => x.AuthorUserId);
 
                 // Indices
                 e.HasIndex(x => new { x.Tag, x.Name })

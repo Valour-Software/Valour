@@ -230,6 +230,7 @@ public partial class ValourDb : DbContext
         
         //base.OnModelCreating(modelBuilder);
         
+        MessageReaction.SetupDbModel(modelBuilder);
         Message.SetupDbModel(modelBuilder);
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);
