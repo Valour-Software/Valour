@@ -14,27 +14,29 @@ else
 {
     <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
     <div class="chat-member-wrapper">
-        <div @ref="@MessageWrapperEl" class="chat-holder mt-auto" @onmouseleave="@OnMouseLeaveMessageArea">
-            <!-- Pushes messages to bottom -->
-            <div class="pusher"></div>
+        <div style="width: 100%; overflow: hidden" @onmouseleave="@OnMouseLeaveMessageArea">
+            <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
+                <!-- Pushes messages to bottom -->
+                <div class="pusher"></div>
 
-            <!-- Actual messages -->
-            @MessagesFragment
+                <!-- Actual messages -->
+                @MessagesFragment
 
-            <div class="anchor"></div>
+                <div class="anchor"></div>
+            </div>
             <RadialPalette @ref="@_hoverMenu"
                            OptionSize="60"
                            Scale="0.5"
                            Radius="75"
                            AnimationDelayStep="0.02"/>
-            
+
             <ControlledRenderWrapper @ref="@_reactionSelectorRenderWrapper">
-                <div style="z-index: 60; position: absolute; bottom: @(_reactionSelectorTop); right: @(_reactionSelectorLeft);">
+                <div class="reaction-selector-wrapper" style="bottom: @(_reactionSelectorTop); right: @(_reactionSelectorLeft);">
                     <EmojiMart @ref="@_reactionSelector" EmojiSet="twitter" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
                 </div>
             </ControlledRenderWrapper>
         </div>
-        <MemberListComponent @ref="@MemberListComponent" Channel="@Channel" />
+        <MemberListComponent @ref="@MemberListComponent" Channel="@Channel"/>
     </div>
 }
 
@@ -231,6 +233,9 @@ else
     
     private async Task OnReactionSelectedAsync(EmojiClickEvent e)
     {
+        // toggle visible
+        _reactionSelector.ToggleVisible();
+        
         if (_currentlyReactingMessage is null) return;
         await _currentlyReactingMessage.AddReactionAsync(e.Native);
     }
@@ -671,7 +676,7 @@ else
     [JSInvokable("OnDebouncedScroll")]
     public void OnDebouncedScroll()
     {
-        _hoverMenu.SetVisible(false);
+        //_hoverMenu.SetVisible(false);
     }
     
 
@@ -818,9 +823,9 @@ else
             var wrapperBounds = await BrowserUtils.GetElementBoundingRectAsync(MessageWrapperEl);
             
             var distances = await BrowserUtils.GetVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
-            _hoverMenuTop = (distances.TopDistance + (bounds.Height / 2) - 40) + "px";
+            _hoverMenuTop = (distances.TopDistance + (bounds.Height / 2) - (DeviceInfo.IsMobile ? 70 : 40)) + "px";
             
-            _hoverMenuRight = (BrowserUtils.WindowDimensions.Width - wrapperBounds.Right + (bounds.Width / 2)) + "px"; //(wrapperBounds.Right - wrapperBounds.Width) + "px";
+            _hoverMenuRight = (BrowserUtils.WindowDimensions.Width - wrapperBounds.Right + (bounds.Width / 2) - (DeviceInfo.IsMobile ? 24 : 0 )) + "px"; //(wrapperBounds.Right - wrapperBounds.Width) + "px";
         
             var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
             
