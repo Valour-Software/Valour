@@ -45,4 +45,9 @@ public class UserService : ServiceBase
 
         return profile.Sync(_client);
     }
+
+    public async Task<TaskResult> SetTutorialFinishedAsync(int id, bool value)
+    {
+        return await _client.PrimaryNode.PostAsync($"api/user/me/tutorial/{id}/{value}", null);
+    }
 }

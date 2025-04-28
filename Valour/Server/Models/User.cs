@@ -93,6 +93,11 @@ public class User : ServerModel<long>, ISharedUser
     /// The version of the user. Used for cache busting.
     /// </summary>
     public int Version { get; set; }
+    
+    /// <summary>
+    /// Bitmask representing tutorials the user has completed
+    /// </summary>
+    public long TutorialState { get; set; }
 
     /// <summary>
     /// The subscription the user currently has

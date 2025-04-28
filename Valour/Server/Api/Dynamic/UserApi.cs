@@ -559,4 +559,17 @@ public class UserApi
         var result = await userService.QueryUsersAsync(query.UsernameAndTag, page, take);
         return Results.Json(result);
     }
+    
+    [ValourRoute(HttpVerbs.Post, "api/user/me/tutorial/{id}/{value}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> SetTutorialFinishedAsync(
+        int id,
+        bool value,
+        UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await userService.SetTutorialStepFinishedAsync(userId, id, value);
+        return Results.Json(result);
+    }
+    
 }

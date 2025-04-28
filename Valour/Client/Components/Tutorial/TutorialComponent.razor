@@ -1,0 +1,49 @@
+﻿@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+@code {
+    
+    public static TutorialComponent Instance { get; private set; }
+    
+    private IJSInProcessObjectReference _jsModule;
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/ts/tutorial.js");
+            await ShowStartTutorial();
+        }
+    }
+
+    public async Task ShowStartTutorial()
+    {
+        if ((Client.Me.TutorialState & 0x01) == 0)
+        {
+            await _jsModule.InvokeVoidAsync("doStartDrive");
+
+            // Mark the tutorial as completed
+            await Client.UserService.SetTutorialFinishedAsync(0, true);
+                
+            Client.Me.TutorialState |= 0x01;
+        }
+    }
+
+    public async Task ShowChatTutorial()
+    {
+        if ((Client.Me.TutorialState & 0x02) == 0)
+        {
+            await _jsModule.InvokeVoidAsync("doChatDrive");
+
+            // Mark the tutorial as completed
+            await Client.UserService.SetTutorialFinishedAsync(1, true);
+                
+            Client.Me.TutorialState |= 0x02;
+        }
+    }
+}

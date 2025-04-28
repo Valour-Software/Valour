@@ -875,3 +875,11 @@
         width: 100%;
     }
 }
+
+/* Tutorial */
+
+.driver-popover.tutorial-popover {
+    background-color: var(--main-1);
+    color: var(--font-color);
+    border: 2px solid var(--p-cyan);
+}
