@@ -131,6 +131,8 @@ public class MessageService
                 return TaskResult<Message>.FromFailure("Cannot reply to a message from another channel.");
             
             message.ReplyTo = replyTo;
+            
+            await _notificationService.HandleReplyAsync(replyTo, planet, message, member, user, channel);
         }
         
         if (string.IsNullOrEmpty(message.Content) &&

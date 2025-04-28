@@ -1,4 +1,6 @@
-﻿using Valour.Server.Database;
+﻿#nullable  enable
+
+using Valour.Server.Database;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -10,9 +12,7 @@ public class NotificationService
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly NodeLifecycleService _nodeLifecycleService;
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<NotificationService> _logger;
-    private readonly PlanetPermissionService _permissionService;
     private readonly PushNotificationWorker _pushNotificationWorker;
     private readonly HostedPlanetService _hostedService;
     
@@ -20,15 +20,14 @@ public class NotificationService
         ValourDb db, 
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
-        IServiceScopeFactory scopeFactory, 
-        ILogger<NotificationService> logger, PlanetPermissionService permissionService, PushNotificationWorker pushNotificationWorker, HostedPlanetService hostedService)
+        ILogger<NotificationService> logger, 
+        PushNotificationWorker pushNotificationWorker, 
+        HostedPlanetService hostedService)
     {
         _db = db;
         _coreHub = coreHub;
         _nodeLifecycleService = nodeLifecycleService;
-        _scopeFactory = scopeFactory;
         _logger = logger;
-        _permissionService = permissionService;
         _pushNotificationWorker = pushNotificationWorker;
         _hostedService = hostedService;
     }
@@ -177,6 +176,31 @@ public class NotificationService
         });
     }
 
+    public async Task HandleReplyAsync(
+        ISharedMessage repliedToMessage,
+        ISharedPlanet? planet,
+        ISharedMessage message,
+        ISharedPlanetMember? member,
+        ISharedUser user,
+        ISharedChannel channel)
+    {
+        Models.Notification notification = new()
+        {
+            Title = (member is null ? user.Name : member.Name) + " in " + channel.Name + (planet is null ? "" : $" ({planet.Name})"),
+            Body = message.Content,
+            ImageUrl = member is null ? user.GetAvatar() : member.GetAvatar(),
+            ClickUrl = planet is null ? 
+                $"channels/direct/{channel.Id}/{message.Id}" : 
+                $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}",
+            ChannelId = channel.Id,
+            Source = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply,
+            SourceId = message.Id,
+            UserId = repliedToMessage.AuthorUserId,
+        };
+
+        await SendUserNotification(repliedToMessage.AuthorUserId, notification);
+    }
+
     public Task HandleMentionAsync(
         Mention mention, 
         ISharedPlanet planet, 
@@ -219,7 +243,7 @@ public class NotificationService
             Title = user.Name + " mentioned you in DMs",
             Body = content,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
-            ClickUrl = $"/channels/direct/{channel.Id}/{message.Id}",
+            ClickUrl = $"channels/direct/{channel.Id}/{message.Id}",
             ChannelId = channel.Id,
             Source = NotificationSource.DirectMention,
             SourceId = message.Id,

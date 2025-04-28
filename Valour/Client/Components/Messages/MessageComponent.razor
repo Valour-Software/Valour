@@ -6,7 +6,12 @@
 
 @if (_message == null || _message.IsEmpty() || !_isBuilt)
 {
+    _renderWasEmpty = true;
     return;
+}
+else
+{
+    _renderWasEmpty = false;
 }
 
 <div id="@Id"
@@ -214,6 +219,7 @@
     
     public ElementReference OuterRef;
     public float FullHeight;
+    private bool _renderWasEmpty = false;
 
     /* Set Params */
     [Parameter]
@@ -569,6 +575,8 @@
 
     private async Task MonitorHeightChanges(bool firstRender)
     {
+        if (_renderWasEmpty) return;
+        
         var dims = await BrowserUtils.GetElementDimensions(OuterRef);
         var newHeight = dims.Height;
 
@@ -586,8 +594,8 @@
                 }
             }
             
-            Console.WriteLine("Old height: " + FullHeight);
-            Console.WriteLine("New height: " + newHeight);
+            // Console.WriteLine("Old height: " + FullHeight);
+            // Console.WriteLine("New height: " + newHeight);
         }
         
         FullHeight = dims.Height;

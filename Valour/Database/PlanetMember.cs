@@ -19,6 +19,7 @@ public class PlanetMember : ISharedPlanetMember
     
     [JsonIgnore]
     public virtual User User { get; set; }
+    public ISharedUser GetSharedUser() => User;
     
     [JsonIgnore]
     public virtual ICollection<Message> Messages { get; set; }

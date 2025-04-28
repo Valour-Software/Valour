@@ -72,6 +72,9 @@ export const getWindowDimensions = (): Dimensions => {
 };
 
 export const getElementDimensions = (element: HTMLElement): Dimensions => {
+    if (!element)
+        return null;
+    
     const { clientWidth: width, clientHeight: height } = element;
     return { width, height };
 }
