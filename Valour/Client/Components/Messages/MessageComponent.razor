@@ -178,12 +178,20 @@
         
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
-        Markdown.RenderToFragment(
-            _message.Content, 
-            builder, 
-            MarkdownManager.Pipeline, 
-            MarkdownManager.Renderer,
-            this);
+        try
+        {
+            Markdown.RenderToFragment(
+                _message.Content,
+                builder,
+                MarkdownManager.Pipeline,
+                MarkdownManager.Renderer,
+                this);
+        } catch (Exception e)
+        {
+            Client.Logger.Log("Message", "Error rendering message: " + e.Message, "red");
+            builder.AddContent(2, _message.Content);
+        }
+
         builder.CloseElement();
     };
     
