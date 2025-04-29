@@ -312,7 +312,7 @@ public class NotificationService
         var baseNotification = new Notification()
         {
             Id = Guid.NewGuid(),
-            Title = member.Nickname + " in " + planet.Name,
+            Title = member.Name + " in " + planet.Name,
             Body = content,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
             PlanetId = planet.Id,
