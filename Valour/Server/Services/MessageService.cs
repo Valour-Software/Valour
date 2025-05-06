@@ -578,15 +578,20 @@ public class MessageService
             CreatedAt = DateTime.UtcNow,
         };
         
-        try
+        bool staged = PlanetMessageWorker.GetStagedMessage(message.Id) is not null;
+
+        if (!staged)
         {
-            await _db.MessageReactions.AddAsync(reaction);
-            await _db.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to add reaction");
-            return TaskResult.FromFailure("Failed to add reaction to database.");
+            try
+            {
+                await _db.MessageReactions.AddAsync(reaction);
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to add reaction");
+                return TaskResult.FromFailure("Failed to add reaction to database.");
+            }
         }
         
         // Add to message
