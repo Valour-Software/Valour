@@ -595,6 +595,9 @@ public class MessageService
         }
         
         // Add to message
+        if (message.Reactions is null)
+            message.Reactions = [];
+        
         message.Reactions.Add(reaction.ToModel());
         
         // Replace in message cache
