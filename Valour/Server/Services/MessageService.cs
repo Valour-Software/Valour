@@ -53,6 +53,13 @@ public class MessageService
     /// </summary>
     public async Task<Message?> GetMessageAsync(long id)
     {
+        // Check staged first
+        var staged = PlanetMessageWorker.GetStagedMessage(id);
+        if (staged is not null)
+        {
+            return staged;
+        }
+        
         var message = await _db.Messages.AsNoTracking()
             .Include(x => x.ReplyToMessage)
             .Include(x => x.Reactions)
