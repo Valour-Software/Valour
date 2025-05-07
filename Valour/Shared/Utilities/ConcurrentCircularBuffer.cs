@@ -175,24 +175,24 @@ public class ConcurrentCircularBuffer<T>
             // Create a new array with only the items that don't match
             T[] newBuffer = new T[Capacity];
             int newCount = 0;
-        
+    
             // Copy all non-matching items
             for (int i = 0; i < _count; i++)
             {
                 int index = (_tail + i) % Capacity;
                 var item = _buffer[index];
-            
+        
                 if (item != null && !match(item))
                 {
                     newBuffer[newCount++] = item;
                 }
             }
-        
+    
             // Replace the buffer contents
             Array.Copy(newBuffer, 0, _buffer, 0, Capacity);
-        
+    
             // Reset pointers
-            _head = newCount;
+            _head = newCount % Capacity; // Add modulo operation to ensure head stays in bounds
             _tail = 0;
             _count = newCount;
         }
