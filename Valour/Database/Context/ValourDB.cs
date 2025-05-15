@@ -58,6 +58,18 @@ public partial class ValourDb : DbContext
     public DbSet<UserProfile> UserProfiles { get; set; }
 
     /// <summary>
+    /// Table for Valour user crypto Nonces
+    /// </summary>
+    
+    public DbSet<UserCryptoNonce> UserCryptoNonces { get; set; }
+  
+    /// <summary>
+    /// Table for Valour user wallets
+    /// </summary>
+    /// 
+    public DbSet<UserCryptoWallet> UserCryptoWallets { get; set; }
+  
+    /// <summary>
     /// Table for Valour user friends
     /// </summary>
     public DbSet<UserFriend> UserFriends { get; set; }
@@ -172,6 +184,7 @@ public partial class ValourDb : DbContext
     public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
     
     public DbSet<MessageReaction> MessageReactions { get; set; }
+    
 
     ////////////////
     // Eco System //
@@ -221,6 +234,11 @@ public partial class ValourDb : DbContext
         modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
         
+        
+        modelBuilder.Entity<UserCryptoNonce>()
+            .Property(x => x.UserId)
+            .HasColumnType("bigint");
+
         // can only add query filters to root entities
         // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
         // modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
@@ -246,6 +264,9 @@ public partial class ValourDb : DbContext
         PushNotificationSubscription.SetUpDbModel(modelBuilder);
         UserPrivateInfo.SetupDbModel(modelBuilder);
         Referral.SetupDbModel(modelBuilder);
+        UserCryptoWallet.SetupDbModel(modelBuilder);
+        UserCryptoNonce.SetupDbModel(modelBuilder);
+      
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
         
         OldPlanetRoleMember.SetupDbModel(modelBuilder);

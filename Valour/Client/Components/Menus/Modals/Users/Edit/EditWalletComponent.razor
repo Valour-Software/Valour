@@ -1,0 +1,117 @@
+@using System.Net
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JS
+@inject WalletService WalletService
+
+<div class="wallet-editor-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-pencil-square"></i>
+            Solana
+        </h3>
+
+        <div class="form-group">
+            <label>
+                 <span class="@( _isSolConnected ? "danger" : "primary")"> Wallet @(!_isSolConnected ? "is not connected" : $"address is {publicKey}")</span>
+            </label>
+        </div>
+
+        <div class="actions">
+            <button class="v-btn @( _isSolConnected ? "danger" : "primary" )"
+                    @onclick="HandleWalletConnection">
+                @( _isSolConnected ? "Disconnect" : "Connect" )
+            </button>
+        </div>
+
+        @if (_result != null)
+        {
+            <ResultLabel Result="_result" />
+        }
+    </div>
+</div>
+
+<br />
+
+@code {
+    private bool _isSolConnected = false;
+    private string publicKey = "";
+    private ITaskResult _result;
+
+
+    private async Task HandleWalletConnection()
+    {
+        if (_isSolConnected)
+        {
+            await OnSolDisconnect();
+        }
+        else
+        {
+            await OnSolConnect();
+        }
+    }
+
+    private async Task OnSolConnect()
+    {
+            publicKey = await JS.InvokeAsync<string>("getPublicKeyFromWallet");
+            var retries = 0;
+            while (string.IsNullOrEmpty(publicKey) && retries < 10)
+            {
+                await Task.Delay(1000);
+                publicKey = await JS.InvokeAsync<string>("getPublicKeyFromWallet");
+                retries++;
+            }
+            _result = new TaskResult();
+             var alreadyRegistered = await WalletService.VerifyWallet(publicKey);
+            
+             if (alreadyRegistered == HttpStatusCode.OK)
+             {
+                 _result.Success = true;
+                 _result.Message = "You have successfully accessed your wallet.";
+                _isSolConnected = true;
+                 return;
+            }
+            
+            
+            var nonce = await WalletService.SyncWhitWallet(publicKey);
+            if (string.IsNullOrEmpty(nonce))
+            {
+                _result.Message = $"Nonce invalid: {nonce}";
+                return;
+            }
+            var signature = await JS.InvokeAsync<string>("signMessageWithWallet", nonce);
+            
+            if (string.IsNullOrEmpty(signature))
+            {
+                _result.Message = "Error signing the nonce";
+                return;
+            }
+
+            var verifyResponse = await WalletService.SignNonce(publicKey, nonce, signature);
+            if (verifyResponse != HttpStatusCode.OK)
+            {
+                _result.Message = $"Error : {verifyResponse}";
+            }
+
+            _isSolConnected = true;
+            _result.Success = true;
+            _result.Message = "Wallet connected and verified successfully";
+    }
+
+
+    private async Task OnSolDisconnect()
+    {
+        await JS.InvokeVoidAsync("disconnectWallet");
+
+        publicKey = "";
+        _isSolConnected = false;
+        await WalletService.DisconnectWallet(publicKey);
+        _result = new TaskResult
+        {
+            Success = true,
+            Message = "Wallet Disconnected successfully"
+        };
+
+        StateHasChanged();
+    }
+
+}
