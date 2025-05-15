@@ -26,7 +26,7 @@ window.signMessageWithWallet = async function (nonce) {
         return null;
     }
     try {
-        await window.solflare.connect();
+        await connectWhitSolflare();
         const encodedMessage = new TextEncoder().encode(nonce);
         const signed = await window.solflare.signMessage(encodedMessage, "utf8");
         const signatureBase58 = base58Encode(signed.signature);
@@ -50,9 +50,12 @@ window.disconnectWallet = async function () {
     }
 };
 
-
 window.getTokenBalance = async function (publicKeyBase58, tokenMintAddress) {
-    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+    const connection = new solanaWeb3.Connection(
+        'https://rpc.helius.xyz/?api-key=f322065c-de45-4e93-8e87-9ccd5c6e71aa',
+        'confirmed'
+    );
+
     const publicKey = new solanaWeb3.PublicKey(publicKeyBase58);
     const tokenMint = new solanaWeb3.PublicKey(tokenMintAddress);
 
@@ -62,15 +65,21 @@ window.getTokenBalance = async function (publicKeyBase58, tokenMintAddress) {
         });
 
         if (tokenAccounts.value.length === 0) {
-            return 0;
+            console.log("No token accounts found");
+            return "0";
         }
 
-        const tokenAccountInfo = tokenAccounts.value[0];
-        const accountData = solanaWeb3.AccountLayout.decode(tokenAccountInfo.account.data);
-        const amount = accountData.amount;
+        let totalAmount = new splToken.u64(0);
+        for (const acc of tokenAccounts.value) {
+            const accountData = splToken.AccountLayout.decode(acc.account.data);
+            totalAmount = totalAmount.add(accountData.amount);
+        }
+        
+        const mintAccount = await splToken.getMint(connection, tokenMint);
+        const decimals = mintAccount.decimals;
 
-        // Devuelve el balance (BigInt) como string
-        return amount.toString();
+        const readableAmount = totalAmount / (10 ** decimals);
+        return readableAmount.toString();
     } catch (error) {
         console.error("Error getting token balance:", error);
         return null;
@@ -81,6 +90,14 @@ window.getTokenBalance = async function (publicKeyBase58, tokenMintAddress) {
 
 
 
+
+window.connectWhitSolflare =async function(){
+    if (!window.solflare) {
+        console.warn("Solflare wallet is not available.");
+        return null;
+    }
+        await window.solflare.connect();
+}
 
 function base58Encode(bytes) {
     const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

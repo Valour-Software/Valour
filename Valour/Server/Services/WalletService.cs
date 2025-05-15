@@ -36,7 +36,7 @@ public class WalletService : IWalletService
         _logger = logger;
     }
 
-    public async Task<string> GenerateNonce(long userId, string publicKey)
+    public async Task<string> GenerateNonce(long userId)
     {
         var nonce = Guid.NewGuid();
         UserCryptoNonce entry = new UserCryptoNonce
@@ -53,25 +53,46 @@ public class WalletService : IWalletService
     }
 
     
-    public async Task<bool> RegisterWallet(long userId, string nonce, string publicKey, string signature)
+    public async Task<bool> RegisterWallet(long userId, string nonce, string publicKey, string signature,string vlrc)
     {
         
-        var nonceEntry = await _db.UserCryptoWallets
-            .Where(x => x.UserId == userId &&
-                        x.WalletPublic == publicKey)
-            .FirstOrDefaultAsync();
-        
-        var alreadyRegistered = await _db.UserCryptoWallets
-            .AnyAsync(x => x.WalletPublic == publicKey && x.UserId != userId);
+        var alreadyRegistered = await _db.UserCryptoWallets.AnyAsync(x => x.WalletPublic == publicKey 
+                                                                          && x.UserId != userId);
 
-        if (alreadyRegistered || nonceEntry != null)
+        var nonceEntry = await _db.UserCryptoNonces.FirstOrDefaultAsync(n => n.Nonce.ToString() == nonce);
+        
+        var walletExist = await _db.UserCryptoWallets.FirstOrDefaultAsync(u=>u.UserId == userId 
+                                                                        && u.WalletPublic == publicKey);
+        
+        
+        var vlrcLong = long.Parse(vlrc);
+        var messageBytes = Encoding.UTF8.GetBytes(nonce); 
+        var publicKeyBytes = Solnet.Wallet.Utilities.Encoders.Base58.DecodeData(publicKey); 
+        var signatureBytes = Solnet.Wallet.Utilities.Encoders.Base58.DecodeData(signature);
+        var age = DateTime.UtcNow - nonceEntry.CreatedAt;
+        
+        if (age > TimeSpan.FromMinutes(5))
+        {
+            _logger.LogWarning("Nonce has expired (was created {AgeMinutes} minutes ago)", age.TotalMinutes);
+            return false;
+        }
+        
+
+        if (alreadyRegistered)
         {
             _logger.LogWarning("This wallet is already in use");
             return false;
         }
-        var messageBytes = Encoding.UTF8.GetBytes(nonce); 
-        var publicKeyBytes = Solnet.Wallet.Utilities.Encoders.Base58.DecodeData(publicKey); 
-        var signatureBytes = Solnet.Wallet.Utilities.Encoders.Base58.DecodeData(signature);
+
+        if (walletExist != null)
+        {
+            walletExist.IsConnected = true;
+            _db.UserCryptoWallets.Update(walletExist);
+            await _db.SaveChangesAsync();
+            
+            return Ed25519.Verify(signatureBytes, messageBytes, publicKeyBytes);
+        }
+
         if (signatureBytes.Length != 64 || publicKeyBytes.Length != 32) 
         { 
             _logger.LogWarning("Invalid signature or public key length."); 
@@ -83,13 +104,14 @@ public class WalletService : IWalletService
             _logger.LogWarning("The signature does not match the provided nonce."); 
             return false;
         }
-
+        
+        
         var userWallet = new UserCryptoWallet
         { 
-            Id=signature, 
+            Id=Guid.NewGuid().ToString(), 
             UserId = userId, 
             WalletPublic = publicKey, 
-            LastVlrcBalance = 0, 
+            LastVlrcBalance = vlrcLong, 
             IsConnected = true, 
             WalletType="Solflare"
         };
@@ -98,38 +120,53 @@ public class WalletService : IWalletService
         return true;
     }
     
-    public async Task<bool> IsWalletRegistered(string publicKey, long userId)
+    public async Task<bool> IsWalletRegistered(string publicKey,long userId)
     {
-        var wallet = await _db.UserCryptoWallets
-            .FirstOrDefaultAsync(u => u.WalletPublic == publicKey && u.UserId == userId);
-
+        var wallet = await _db.UserCryptoWallets.FirstOrDefaultAsync(x => x.WalletPublic == publicKey
+                                                                          && x.UserId == userId);
         if (wallet == null) return false;
-        if (wallet.IsConnected) return true;
         wallet.IsConnected = true;
+        _db.UserCryptoWallets.Update(wallet);
         await _db.SaveChangesAsync();
         return true;
-
     }
 
 
     public async Task<bool> DisconnectWallet(string publicKey, long userId)
     {
-        var wallet = await _db.UserCryptoWallets.FirstOrDefaultAsync(x => x.WalletPublic == publicKey && x.UserId != userId);
+        var wallet = await _db.UserCryptoWallets.FirstOrDefaultAsync(x => x.WalletPublic == publicKey 
+                                                                          && x.UserId == userId);
         if (wallet == null) return false;
-        
-        wallet.IsConnected = false;
+         wallet.IsConnected = false;
+        _db.UserCryptoWallets.Update(wallet);
         await _db.SaveChangesAsync();
         return true;
 
+    }
+
+    public async Task<bool> IsConnected(string publicKey, long userId)
+    {
+        return await _db.UserCryptoWallets.AnyAsync(u=>u.WalletPublic == publicKey 
+                                                       && u.UserId == userId && u.IsConnected);
+    }
+
+    public async Task<long> VlrcBalance(string publicKey, long userId)
+    {
+        var wallet = await _db.UserCryptoWallets.FirstOrDefaultAsync(x => x.WalletPublic == publicKey 
+                                                                          && x.UserId == userId);
+        return wallet.LastVlrcBalance;
     }
 }
 
 
 public interface IWalletService
 {
-    Task<string> GenerateNonce(long userId, string publicKey);
-    Task<bool> RegisterWallet(long userId, string nonce, string publicKey, string signature);
+    Task<string> GenerateNonce(long userId);
+    Task<bool> RegisterWallet(long userId, string nonce, string publicKey, string signature,string vlrc);
     Task<bool> IsWalletRegistered(string publicKey, long userId); 
     Task<bool> DisconnectWallet(string publicKey, long userId);
+    Task<bool> IsConnected(string publicKey, long userId);
+
+    Task<long> VlrcBalance(string publicKey, long userId);
 }
 

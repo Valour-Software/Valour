@@ -10,25 +10,40 @@
             Solana
         </h3>
 
-        <div class="form-group">
-            <label>
-                 <span class="@( _isSolConnected ? "danger" : "primary")"> Wallet @(!_isSolConnected ? "is not connected" : $"address is {publicKey}")</span>
-            </label>
-        </div>
 
-        <div class="actions">
-            <button class="v-btn @( _isSolConnected ? "danger" : "primary" )"
-                    @onclick="HandleWalletConnection">
-                @( _isSolConnected ? "Disconnect" : "Connect" )
-            </button>
-        </div>
-
-        @if (_result != null)
+        @if (_isLoading)
         {
-            <ResultLabel Result="_result" />
+            <div class="text-muted">Loading wallet info...</div>
+        }
+        else
+        {
+            <div class="form-group">
+                <label>
+                    <span class="@( _isSolConnected ? "danger" : "primary")"> Wallet @(!_isSolConnected ? "is not connected" : $"address is {publicKey}")</span>
+                </label>
+                @if (_isSolConnected)
+                {
+                    <label>
+                        <span>VLRC Balance: @vlrcBalance</span>
+                    </label>
+                }
+            </div>
+
+            <div class="actions">
+                <button class="v-btn @( _isSolConnected ? "danger" : "primary" )"
+                        @onclick="HandleWalletConnection">
+                    @( _isSolConnected ? "Disconnect" : "Connect" )
+                </button>
+            </div>
+
+            @if (_result != null)
+            {
+                <ResultLabel Result="_result" />
+            }
         }
     </div>
 </div>
+
 
 <br />
 
@@ -36,8 +51,19 @@
     private bool _isSolConnected = false;
     private string publicKey = "";
     private ITaskResult _result;
+    private long vlrcBalance = 0;
+    private bool _isLoading = true;
+    
 
-
+     protected override async Task OnAfterRenderAsync(bool firstRender)
+     {
+         if (firstRender)
+         {
+             await VerifyIfSolConnect();
+            StateHasChanged();
+         }
+    }
+    
     private async Task HandleWalletConnection()
     {
         if (_isSolConnected)
@@ -47,6 +73,7 @@
         else
         {
             await OnSolConnect();
+             
         }
     }
 
@@ -60,19 +87,20 @@
                 publicKey = await JS.InvokeAsync<string>("getPublicKeyFromWallet");
                 retries++;
             }
+             await LocalStorage.SetItemAsync("publicKey",publicKey);
+             
             _result = new TaskResult();
-             var alreadyRegistered = await WalletService.VerifyWallet(publicKey);
-            
-             if (alreadyRegistered == HttpStatusCode.OK)
-             {
-                 _result.Success = true;
-                 _result.Message = "You have successfully accessed your wallet.";
-                _isSolConnected = true;
-                 return;
-            }
-            
-            
-            var nonce = await WalletService.SyncWhitWallet(publicKey);
+            //  var alreadyRegistered = await WalletService.UserHasWallet(publicKey);
+            //  if (alreadyRegistered)
+            //  {
+            //      _result.Success = true;
+            //      _result.Message = "You have successfully accessed your wallet.";
+            //     _isSolConnected = true;
+            //      StateHasChanged();
+            //      return;
+            // }
+             
+            var nonce = await WalletService.SyncWithWallet();
             if (string.IsNullOrEmpty(nonce))
             {
                 _result.Message = $"Nonce invalid: {nonce}";
@@ -86,31 +114,71 @@
                 return;
             }
 
-            var verifyResponse = await WalletService.SignNonce(publicKey, nonce, signature);
-            if (verifyResponse != HttpStatusCode.OK)
+            var vlrc = await JS.InvokeAsync<string>("getTokenBalance", publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
+          
+            var verifyResponse = await WalletService.SignNonce(publicKey, nonce, signature,vlrc);
+            if (verifyResponse)
             {
-                _result.Message = $"Error : {verifyResponse}";
+                _isSolConnected = true;
+                _result.Success = true;
+                _result.Message = "Wallet connected and verified successfully";
+                return;
             }
-
-            _isSolConnected = true;
-            _result.Success = true;
-            _result.Message = "Wallet connected and verified successfully";
+            
+            _result.Message = $"Error : Verification failed.";
     }
+            
+          
 
 
     private async Task OnSolDisconnect()
     {
         await JS.InvokeVoidAsync("disconnectWallet");
-
-        publicKey = "";
         _isSolConnected = false;
         await WalletService.DisconnectWallet(publicKey);
+        publicKey = "";
         _result = new TaskResult
         {
             Success = true,
             Message = "Wallet Disconnected successfully"
         };
 
+        StateHasChanged();
+    }
+    
+    private async Task VerifyIfSolConnect()
+    {
+        _isLoading = true; 
+        StateHasChanged();
+
+        publicKey = await LocalStorage.GetItemAsync<string>("publicKey");
+
+        if (!string.IsNullOrEmpty(publicKey))
+        {
+            var isConnectedResponse = await WalletService.CheckWalletConnection(publicKey);
+            if (isConnectedResponse)
+            { 
+                vlrcBalance = await WalletService.VlrcBalance(publicKey);
+                _isSolConnected = true;
+                _result = new TaskResult
+                {
+                    Success = true,
+                    Message = "Wallet is already connected"
+                };
+            }
+            else
+            {
+                await LocalStorage.RemoveItemAsync("publicKey");
+                publicKey = "";
+                _isSolConnected = false;
+            }
+        }
+        else
+        {
+            _isSolConnected = false;
+        }
+
+        _isLoading = false;
         StateHasChanged();
     }
 

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using Valour.Sdk.Client;
 
@@ -22,10 +23,10 @@ public class WalletService : ServiceBase
         SetupLogging(client.Logger, _logOptions);
     }
 
-    public async Task<string?> SyncWhitWallet(string publicKey)
+    public async Task<string?> SyncWithWallet()
     {
             var token = _client.AuthService.Token;
-            var request = new HttpRequestMessage(HttpMethod.Get, $"api/userWallet/nonce?publicKey={Uri.EscapeDataString(publicKey)}");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"api/userWallet/nonce");
             request.Headers.Authorization = new AuthenticationHeaderValue(token);
             var response = await _client.Http.SendAsync(request);
             
@@ -40,16 +41,17 @@ public class WalletService : ServiceBase
     }
 
     
-    public async Task<HttpStatusCode> SignNonce(string publicKey, string nonce, string signature)
+    public async Task<bool> SignNonce(string publicKey, string nonce, string signature,string vlrc)
     {
         if (string.IsNullOrEmpty(nonce) || string.IsNullOrEmpty(signature))
-            return HttpStatusCode.NoContent;
+            return false;
 
         var payload = new
         {
             PublicKey = publicKey,
             Nonce = nonce,
-            Signature = signature
+            Signature = signature,
+            Vlrc = vlrc
         };
 
         var token = _client.AuthService.Token;
@@ -62,25 +64,55 @@ public class WalletService : ServiceBase
         };
         request.Headers.Authorization = new AuthenticationHeaderValue(token);
         var response = await _client.Http.SendAsync(request);
-        return response.StatusCode;
+        var data = await response.Content.ReadFromJsonAsync<bool>();
+        return data;
     }
 
-    public async Task<HttpStatusCode> VerifyWallet(string publicKey)
+    public async Task<bool> UserHasWallet(string publicKey)
     {
         var token = _client.AuthService.Token;
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/userWallet/verify?publicKey={Uri.EscapeDataString(publicKey)}");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/userWallet/verifyWallet?publicKey={Uri.EscapeDataString(publicKey)}");
         request.Headers.Authorization = new AuthenticationHeaderValue(token);
         var response = await _client.Http.SendAsync(request);
-        return response.StatusCode;
+        var data = await response.Content.ReadFromJsonAsync<bool>();
+        return data;
     }
     
-    public async Task<HttpStatusCode> DisconnectWallet(string publicKey)
+    public async Task<HttpContent> DisconnectWallet(string publicKey)
     {
         var token = _client.AuthService.Token;
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/userWallet/disconnect?publicKey={Uri.EscapeDataString(publicKey)}");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/userWallet/disconnect?publicKey={Uri.EscapeDataString(publicKey)}");
         request.Headers.Authorization = new AuthenticationHeaderValue(token);
         var response = await _client.Http.SendAsync(request);
-        return response.StatusCode;
+        return response.Content;
     }
+
+    public async Task<bool> CheckWalletConnection(string publicKey)
+    {
+        var token = _client.AuthService.Token;
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/userWallet/isConnected?publicKey={Uri.EscapeDataString(publicKey)}");
+        request.Headers.Authorization = new AuthenticationHeaderValue(token);
+        var response = await _client.Http.SendAsync(request);
+        var data = await response.Content.ReadFromJsonAsync<bool>();
+        return data ;
+    }
+
+    public async Task<long> VlrcBalance(string publicKey)
+    {
+        var token = _client.AuthService.Token;
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/userWallet/vlrcBalance?publicKey={Uri.EscapeDataString(publicKey)}");
+        request.Headers.Authorization = new AuthenticationHeaderValue(token);
+        var response = await _client.Http.SendAsync(request);
+            
+        if (response.IsSuccessStatusCode)
+        {
+            var data = await response.Content.ReadAsStringAsync();
+            var vlrc = JsonSerializer.Deserialize<long>(data);
+            return vlrc;
+        }
+        Console.WriteLine("vlrc not found in response.");
+        return 0;
+    }
+    
     
 }
