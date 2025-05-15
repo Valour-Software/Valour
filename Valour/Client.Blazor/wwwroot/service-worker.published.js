@@ -5,6 +5,9 @@
 const COMMIT_HASH = '$(SHORTHASH)';
 
 self.importScripts('./service-worker-assets.js');
+self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js');
+
+
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));
 self.addEventListener('activate', event => event.waitUntil(onActivate(event)));
 self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
@@ -99,12 +102,18 @@ async function onFetch(event) {
 }
 
 self.addEventListener('push', event => {
+    console.log('[Service Worker] Push Received.');
+    
     const payload = event.data.json();
+
+    console.log(payload);
+    
     event.waitUntil(
         self.registration.showNotification(payload.title, {
             body: payload.message,
             icon: payload.iconUrl,
             vibrate: [100, 50, 100],
+            badge: "https://app.valour.gg/_content/Valour.Client/media/logo/logo-square-256.png",
         })
     );
 });
@@ -112,7 +121,3 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
     event.notification.close();
 });
-
-// You'll need to include localforage (or use IndexedDB directly)
-// Add this line at the top of your file:
-self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js');

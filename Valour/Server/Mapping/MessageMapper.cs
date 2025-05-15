@@ -45,6 +45,7 @@ public static class MessageMapper
             MentionsData = message.MentionsData,
             AttachmentsData = message.AttachmentsData,
             EditedTime = message.EditedTime,
+            Reactions = message.Reactions?.Select(x => x.ToDatabase()).ToList(),
         };
     }
 }

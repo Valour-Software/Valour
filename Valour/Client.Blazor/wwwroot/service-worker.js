@@ -23,6 +23,7 @@ self.addEventListener('push', event => {
             body: payload.message,
             icon: payload.iconUrl,
             vibrate: [100, 50, 100],
+            badge: "https://app.valour.gg/_content/Valour.Client/media/logo/logo-square-256.png",
             //data: { url: payload.url }
         })
     );

@@ -42,7 +42,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
     private readonly ILogger<PushNotificationWorker> _logger;
 
     // The unbounded channel for queuing notification actions.
-    private Channel<PushNotificationAction> _actionChannel =
+    private readonly Channel<PushNotificationAction> _actionChannel =
         ThreadChannel.CreateUnbounded<PushNotificationAction>();
 
     // Fields to manage the background processing task.

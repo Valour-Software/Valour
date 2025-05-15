@@ -11,6 +11,7 @@ public class PlanetMember : ServerModel<long>, ISharedPlanetMember
     /// The user of the member
     /// </summary>
     public User User { get; set; }
+    public ISharedUser GetSharedUser() => User;
     
     /// <summary>
     /// The user id of the member

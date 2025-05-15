@@ -196,8 +196,16 @@ public class ValourClient
         };
 
         // Load user data concurrently
-        await Task.WhenAll(loadTasks);
-        
+        try
+        {
+            await Task.WhenAll(loadTasks);
+        } 
+        catch (Exception e)
+        {
+            Logger.Log("App", "Critical error during startup: " + e.Message, "red");
+            return new TaskResult(false, "Critical error during startup: " + e.Message);
+        }
+
         return TaskResult.SuccessResult;
     }
         

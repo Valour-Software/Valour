@@ -238,6 +238,9 @@ public interface  ISharedUser : ISharedModel<long>
         return $"_content/Valour.Client/media/user-icons/icon-{var}.webp";
     }
     
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
+        => GetAvatar(this, format);
+    
     public static string GetAvatar(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
     {
         if (user is null)
