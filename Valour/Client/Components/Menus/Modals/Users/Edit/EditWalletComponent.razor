@@ -1,6 +1,6 @@
 @using System.Net
 @inject ILocalStorageService LocalStorage
-@inject IJSRuntime JS
+@inject IJSRuntime JsRuntime
 @inject WalletService WalletService
 
 <div class="wallet-editor-container">
@@ -19,12 +19,12 @@
         {
             <div class="form-group">
                 <label>
-                    <span class="@( _isSolConnected ? "danger" : "primary")"> Wallet @(!_isSolConnected ? "is not connected" : $"address is {publicKey}")</span>
+                    <span class="@( _isSolConnected ? "danger" : "primary")"> Wallet @(!_isSolConnected ? "is not connected" : $"address is {_publicKey}")</span>
                 </label>
                 @if (_isSolConnected)
                 {
                     <label>
-                        <span>VLRC Balance: @vlrcBalance</span>
+                        <span>VLRC Balance: @_vlrcBalance</span>
                     </label>
                 }
             </div>
@@ -49,9 +49,9 @@
 
 @code {
     private bool _isSolConnected = false;
-    private string publicKey = "";
+    private string _publicKey = "";
     private ITaskResult _result;
-    private long vlrcBalance = 0;
+    private long _vlrcBalance = 0;
     private bool _isLoading = true;
     
 
@@ -79,15 +79,15 @@
 
     private async Task OnSolConnect()
     {
-            publicKey = await JS.InvokeAsync<string>("getPublicKeyFromWallet");
+            _publicKey = await JsRuntime.InvokeAsync<string>("getPublicKeyFromWallet");
             var retries = 0;
-            while (string.IsNullOrEmpty(publicKey) && retries < 10)
+            while (string.IsNullOrEmpty(_publicKey) && retries < 10)
             {
                 await Task.Delay(1000);
-                publicKey = await JS.InvokeAsync<string>("getPublicKeyFromWallet");
+                _publicKey = await JsRuntime.InvokeAsync<string>("getPublicKeyFromWallet");
                 retries++;
             }
-             await LocalStorage.SetItemAsync("publicKey",publicKey);
+             await LocalStorage.SetItemAsync("publicKey",_publicKey);
              
             _result = new TaskResult();
             //  var alreadyRegistered = await WalletService.UserHasWallet(publicKey);
@@ -106,7 +106,7 @@
                 _result.Message = $"Nonce invalid: {nonce}";
                 return;
             }
-            var signature = await JS.InvokeAsync<string>("signMessageWithWallet", nonce);
+            var signature = await JsRuntime.InvokeAsync<string>("signMessageWithWallet", nonce);
             
             if (string.IsNullOrEmpty(signature))
             {
@@ -114,9 +114,9 @@
                 return;
             }
 
-            var vlrc = await JS.InvokeAsync<string>("getTokenBalance", publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
+            var vlrc = await JsRuntime.InvokeAsync<string>("getTokenBalance", _publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
           
-            var verifyResponse = await WalletService.SignNonce(publicKey, nonce, signature,vlrc);
+            var verifyResponse = await WalletService.SignNonce(_publicKey, nonce, signature,vlrc);
             if (verifyResponse)
             {
                 _isSolConnected = true;
@@ -133,10 +133,10 @@
 
     private async Task OnSolDisconnect()
     {
-        await JS.InvokeVoidAsync("disconnectWallet");
+        await JsRuntime.InvokeVoidAsync("disconnectWallet");
         _isSolConnected = false;
-        await WalletService.DisconnectWallet(publicKey);
-        publicKey = "";
+        await WalletService.DisconnectWallet(_publicKey);
+        _publicKey = "";
         _result = new TaskResult
         {
             Success = true,
@@ -151,14 +151,14 @@
         _isLoading = true; 
         StateHasChanged();
 
-        publicKey = await LocalStorage.GetItemAsync<string>("publicKey");
+        _publicKey = await LocalStorage.GetItemAsync<string>("publicKey");
 
-        if (!string.IsNullOrEmpty(publicKey))
+        if (!string.IsNullOrEmpty(_publicKey))
         {
-            var isConnectedResponse = await WalletService.CheckWalletConnection(publicKey);
+            var isConnectedResponse = await WalletService.CheckWalletConnection(_publicKey);
             if (isConnectedResponse)
             { 
-                vlrcBalance = await WalletService.VlrcBalance(publicKey);
+                _vlrcBalance = await WalletService.VlrcBalance(_publicKey);
                 _isSolConnected = true;
                 _result = new TaskResult
                 {
@@ -169,7 +169,7 @@
             else
             {
                 await LocalStorage.RemoveItemAsync("publicKey");
-                publicKey = "";
+                _publicKey = "";
                 _isSolConnected = false;
             }
         }

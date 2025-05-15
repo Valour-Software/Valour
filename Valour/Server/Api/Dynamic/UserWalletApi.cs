@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Authorization;
 
 
 namespace Valour.Server.Api.Dynamic;
@@ -7,6 +8,7 @@ namespace Valour.Server.Api.Dynamic;
 public class UserWalletApi
 {
     [ValourRoute(HttpVerbs.Post, "api/userWallet/nonce")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> GenerateNonce(
         IWalletService walletService,
         TokenService tokenService,
@@ -15,14 +17,6 @@ public class UserWalletApi
         try
         {
             var token = await tokenService.GetCurrentTokenAsync();
-
-            if (token == null)
-            {
-                logger.LogInformation("Token is null. User is probably not authenticated.");
-                return Results.Unauthorized();
-            }
-            
-
             var nonce = await walletService.GenerateNonce(token.UserId);
             logger.LogInformation("Generated nonce for user {UserId}", token.UserId);
 
