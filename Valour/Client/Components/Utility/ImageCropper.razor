@@ -1,0 +1,72 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@if (Visible)
+{
+    <div class="cropper-modal">
+        <div class="cropper-content">
+            <img id="@_imgId" class="cropper-image" src="@ImageDataUrl" />
+            <div class="cropper-actions">
+                <button class="v-btn" @onclick="OnCancelClicked">Cancel</button>
+                <button class="v-btn primary" @onclick="OnConfirmClicked">Crop</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string ImageDataUrl { get; set; }
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnCropped { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public double AspectRatio { get; set; } = 1d;
+
+    private IJSObjectReference _jsModule;
+    private string _imgId = $"cropper-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Visible && !_initialized)
+        {
+            _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/ImageCropper.razor.js");
+            await _jsModule.InvokeVoidAsync("initCropper", _imgId, AspectRatio);
+            _initialized = true;
+        }
+    }
+
+    private async Task OnConfirmClicked()
+    {
+        if (_jsModule is not null)
+        {
+            var dataUrl = await _jsModule.InvokeAsync<string>("getCroppedImage", _imgId);
+            await OnCropped.InvokeAsync(dataUrl);
+        }
+        await DisposeAsync();
+    }
+
+    private async Task OnCancelClicked()
+    {
+        await DisposeAsync();
+        if (OnCancel.HasDelegate)
+            await OnCancel.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_initialized && _jsModule is not null)
+        {
+            await _jsModule.InvokeVoidAsync("destroyCropper", _imgId);
+        }
+        _initialized = false;
+    }
+}
