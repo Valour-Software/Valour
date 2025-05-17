@@ -48,11 +48,15 @@ public class PlanetInviteApi
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetInvite invite,
+        long id,
         PlanetMemberService memberService,
         PlanetInviteService inviteService)
     {
         if (invite is null)
             return ValourResult.BadRequest("Include invite in body.");
+
+        if (invite.Id != id)
+            return ValourResult.BadRequest("Route id does not match invite id.");
 
         // Get member
         var member = await memberService.GetCurrentAsync(invite.PlanetId);
