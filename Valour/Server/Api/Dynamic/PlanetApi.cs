@@ -397,7 +397,7 @@ public class PlanetApi
         var result = await memberService.AddMemberAsync(planet.Id, user.Id);
 
         if (!result.Success)
-            return ValourResult.Problem(result.Message);
+            return ValourResult.BadRequest(result.Message);
         
         return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }

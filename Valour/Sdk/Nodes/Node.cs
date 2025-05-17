@@ -741,6 +741,12 @@ public class Node : ServiceBase // each node acts like a service
 
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+            
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+            
             return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
         }
         catch (HttpRequestException ex)
@@ -787,6 +793,12 @@ public class Node : ServiceBase // each node acts like a service
             }
 
             LogError($"{response.StatusCode} - GET {uri}: \n{msg}");
+            
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult<string>.FromFailure(msg, (int)response.StatusCode);
+            
             return TaskResult<string>.FromFailure(msg, (int)response.StatusCode);
         }
         catch (HttpRequestException ex)
@@ -828,6 +840,11 @@ public class Node : ServiceBase // each node acts like a service
 
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
+            
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
 
             return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
         }
@@ -871,6 +888,11 @@ public class Node : ServiceBase // each node acts like a service
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
             
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
+            
             return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
         catch (HttpRequestException ex)
@@ -910,6 +932,11 @@ public class Node : ServiceBase // each node acts like a service
 
             var msg = await response.Content.ReadAsStringAsync();
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+            
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
 
             return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
         }
@@ -963,6 +990,11 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
         var msg = await response.Content.ReadAsStringAsync();
         LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+        
+        // if it's a 400, we can use the msg as the error message
+        var s = (int)response.StatusCode;
+        if (s > 399 && s < 500)
+            return TaskResult<T>.FromFailure(msg, (int)response.StatusCode);
 
         return TaskResult<T>.FromFailure($"Error POSTing data to {uri}", (int)response.StatusCode, msg);
     }
@@ -1006,6 +1038,11 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             }
 
             LogError($"{response.StatusCode} - PUT {uri}: \n{msg}");
+            
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult.FromFailure(msg, (int)response.StatusCode);
 
             return TaskResult.FromFailure($"Error PUTing data to {uri}", (int)response.StatusCode, msg);
         }
@@ -1048,6 +1085,12 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
             }
 
             LogError($"{response.StatusCode} - POST {uri}: \n{msg}");
+            
+            // if it's a 400, we can use the msg as the error message
+            var s = (int)response.StatusCode;
+            if (s > 399 && s < 500)
+                return TaskResult.FromFailure(msg, (int)response.StatusCode);
+            
             return TaskResult.FromFailure(msg, (int)response.StatusCode);
         }
         catch (HttpRequestException ex)

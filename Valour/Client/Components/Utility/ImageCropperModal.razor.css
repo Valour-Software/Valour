@@ -1,0 +1,6 @@
+.cropper-image {
+    display: block;
+    margin: 0 auto;
+    max-width: min(400px, 90%);
+    max-height: min(400px, 90%);
+}

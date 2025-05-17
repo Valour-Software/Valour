@@ -318,7 +318,7 @@ public class UserService
         if (GetYearsOld(birthDate) < 13)
             return new TaskResult(false, "You must be 13 or older to use Valour. Sorry!");
 
-        birthDate = DateTime.SpecifyKind(birthDate, DateTimeKind.Utc);
+        birthDate = DateTime.SpecifyKind(birthDate, DateTimeKind.Utc); 
         
         var user = await _db.Users.FindAsync(userId);
         if (user is null)

@@ -6,6 +6,8 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>embedded</DebugType>
+    <RazorCompileOnBuild>true</RazorCompileOnBuild>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +36,7 @@
     <PackageReference Include="SendGrid" Version="9.29.3" />
     <PackageReference Include="Sentry" Version="5.0.1" />
     <PackageReference Include="Sentry.AspNetCore" Version="5.0.1" />
+    <PackageReference Include="Solnet.Wallet" Version="6.1.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="Swashbuckle" Version="5.6.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
