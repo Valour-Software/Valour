@@ -1,4 +1,5 @@
 @using Valour.Sdk.Nodes
+@using Valour.Sdk.ModelLogic
 @typeparam TModel where TModel : ClientModel<TModel>
 @inject ValourClient Client
 
@@ -8,7 +9,7 @@
     return;
 }
 
-@if (_pageItems is null)
+@if (!Infinite && _pageItems is null)
 {
     <h6>Loading...</h6>
     return;
@@ -19,8 +20,8 @@
     <input class="form-control mt-2 mb-2" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
 }
 
-<table class="table">
-    <thead>
+<table class="table" style="@(Infinite ? $"height:{Height}px; display:block; overflow-y:auto;" : null)">
+    <thead style="@(Infinite ? "position:sticky;top:0;" : null)">
     <tr>
         @foreach (var column in Columns)
         {
@@ -35,14 +36,28 @@
     </tr>
     </thead>
     <tbody>
-    @foreach (var item in _pageItems)
+    @if (Infinite)
     {
-        <tr>
-            @foreach (var column in Columns)
-            {
-                <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
-            }
-        </tr>
+        <Virtualize @ref="_virtualize" ItemsProvider="ProvideVirtualItems" OverscanCount="20" TItem="TModel">
+            <tr @key="context">
+                @foreach (var column in Columns)
+                {
+                    <td>@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</td>
+                }
+            </tr>
+        </Virtualize>
+    }
+    else
+    {
+        @foreach (var item in _pageItems)
+        {
+            <tr>
+                @foreach (var column in Columns)
+                {
+                    <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
+                }
+            </tr>
+        }
     }
     </tbody>
 </table>
@@ -75,9 +90,15 @@
     
     [Parameter]
     public QueryModel Model { get; set; }
-    
+
     [Parameter]
     public Dictionary<string, string> Parameters { get; set; }
+
+    [Parameter]
+    public bool Infinite { get; set; } = false;
+
+    [Parameter]
+    public int Height { get; set; } = 300;
 
     [Parameter]
     public bool ShowSearch { get; set; }
@@ -87,6 +108,8 @@
     
     private PagedModelReader<TModel> _reader;
     private List<TModel> _pageItems;
+    private ModelQueryEngine<TModel> _engine;
+    private Virtualize<TModel> _virtualize;
     private string _sortField;
     private bool _sortDescending;
     private string _searchTerm = string.Empty;
@@ -105,20 +128,39 @@
 
         if (Node is null)
             Node = Client.PrimaryNode;
-        
-        _reader = new PagedModelReader<TModel>(Node, Model.GetApiUrl(), PageSize);
+
+        if (Infinite)
+        {
+            _engine = new ModelQueryEngine<TModel>(Node, Model.GetApiUrl());
+        }
+        else
+        {
+            _reader = new PagedModelReader<TModel>(Node, Model.GetApiUrl(), PageSize);
+        }
 
         await Requery();
     }
 
     public async Task Requery()
     {
-        _reader.SetModel(Model);
-        _reader.SetParameters(Parameters);
-        
-        var response = await _reader.RefreshCurrentPageAsync();
-        _pageItems = response.Items;
-        
+        if (Infinite)
+        {
+            _engine.ClearFilters();
+            if (!string.IsNullOrEmpty(_searchTerm))
+                _engine.SetFilter("search", _searchTerm);
+            if (!string.IsNullOrEmpty(_sortField))
+                _engine.SetSort(_sortField, _sortDescending);
+            await _virtualize?.RefreshDataAsync();
+        }
+        else
+        {
+            _reader.SetModel(Model);
+            _reader.SetParameters(Parameters);
+
+            var response = await _reader.RefreshCurrentPageAsync();
+            _pageItems = response.Items;
+        }
+
         StateHasChanged();
     }
 
@@ -168,5 +210,10 @@
             Parameters["search"] = _searchTerm;
 
         await Requery();
+    }
+
+    private async ValueTask<ItemsProviderResult<TModel>> ProvideVirtualItems(ItemsProviderRequest request)
+    {
+        return await _engine.GetVirtualizedItemsAsync(request);
     }
 }

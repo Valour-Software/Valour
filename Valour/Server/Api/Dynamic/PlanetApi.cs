@@ -201,7 +201,10 @@ public class PlanetApi
         long id,
         PlanetMemberService memberService,
         int skip = 0,
-        int take = 50)
+        int take = 50,
+        string sortField = null,
+        bool sortDesc = false,
+        string search = null)
     {
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
@@ -210,7 +213,14 @@ public class PlanetApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
-        var members = await memberService.QueryPlanetMembersAsync(id, skip, take);
+        if (queryModel is not null)
+        {
+            sortField = queryModel.Sort?.Field ?? sortField;
+            sortDesc = queryModel.Sort?.Descending ?? sortDesc;
+            search = queryModel.Filter?.Search ?? search;
+        }
+
+        var members = await memberService.QueryPlanetMembersAsync(id, skip, take, search, sortField, sortDesc);
 
         return Results.Json(members);
     }
@@ -356,14 +366,19 @@ public class PlanetApi
         return Results.Json(inviteIds);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/bans")]
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/bans")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> GetBansRouteAsync(
+        [FromBody] PlanetBanQueryModel? queryModel,
         long id,
         PlanetMemberService memberService,
         PlanetBanService banService,
         int skip = 0,
-        int take = 50)
+        int take = 50,
+        string sortField = null,
+        bool sortDesc = false,
+        string search = null)
     {
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
@@ -372,7 +387,14 @@ public class PlanetApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
-        var bans = await banService.QueryPlanetBansAsync(id, skip, take);
+        if (queryModel is not null)
+        {
+            sortField = queryModel.Sort?.Field ?? sortField;
+            sortDesc = queryModel.Sort?.Descending ?? sortDesc;
+            search = queryModel.Filter?.Search ?? search;
+        }
+
+        var bans = await banService.QueryPlanetBansAsync(id, skip, take, search, sortField, sortDesc);
 
         return Results.Json(bans);
     }

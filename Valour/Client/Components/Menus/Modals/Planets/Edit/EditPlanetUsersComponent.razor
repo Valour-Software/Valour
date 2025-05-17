@@ -38,8 +38,8 @@
             },
             new()
             {
-                Name = "Role",
-                RenderFragment = row => @<span>@row.Row.PrimaryRole?.Name</span>
+                Name = "Roles",
+                RenderFragment = row => @<div class="role-tags">@foreach (var r in row.Row.Roles){<span class="role-pill" style="border-color:@r.Color">@r.Name</span>}</div>
             },
             new()
             {

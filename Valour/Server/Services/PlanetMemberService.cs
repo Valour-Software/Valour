@@ -193,20 +193,43 @@ public class PlanetMemberService
         return await _permissionService.HasPlanetPermissionAsync(member.Id, permission);
     }
 
-    public async Task<QueryResponse<PlanetMember>> QueryPlanetMembersAsync(long planetId, int skip = 0, int take = 50)
+    public async Task<QueryResponse<PlanetMember>> QueryPlanetMembersAsync(
+        long planetId,
+        int skip = 0,
+        int take = 50,
+        string search = null,
+        string sortField = null,
+        bool sortDesc = false)
     {
         if (take > 50)
             take = 50;
 
-        var baseQuery = _db.PlanetMembers
+        var query = _db.PlanetMembers
             .AsNoTracking()
             .Include(x => x.User)
-            .Where(x => x.PlanetId == planetId && !x.IsDeleted)
-            .OrderBy(x => x.Id);
+            .Where(x => x.PlanetId == planetId && !x.IsDeleted);
 
-        var total = await baseQuery.CountAsync();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(x =>
+                (!string.IsNullOrEmpty(x.Nickname) &&
+                 EF.Functions.ILike(x.Nickname.ToLower(), $"%{lowered}%")) ||
+                 EF.Functions.ILike((x.User.Name.ToLower() + "#" + x.User.Tag), $"%{lowered}%") ||
+                 EF.Functions.ILike(x.User.Name.ToLower(), $"%{lowered}%"));
+        }
 
-        var items = await baseQuery
+        query = sortField switch
+        {
+            "name" => sortDesc
+                ? query.OrderByDescending(x => x.User.Name)
+                : query.OrderBy(x => x.User.Name),
+            _ => query.OrderBy(x => x.Id)
+        };
+
+        var total = await query.CountAsync();
+
+        var items = await query
             .Skip(skip)
             .Take(take)
             .Select(x => x.ToModel())
