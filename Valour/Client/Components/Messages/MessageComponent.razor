@@ -1,11 +1,17 @@
 ﻿@using global::Markdig.Blazor
+@using Valour.Client.Emojis
 @inject ValourClient Client
 @inject ContextMenuService ContextMenuService
 @implements IDisposable
 
 @if (_message == null || _message.IsEmpty() || !_isBuilt)
 {
+    _renderWasEmpty = true;
     return;
+}
+else
+{
+    _renderWasEmpty = false;
 }
 
 <div id="@Id"
@@ -130,6 +136,28 @@
             }
         </div>
     </div>
+    @if (_reactions is not null && _reactions.Count > 0)
+    {
+        <div class="reactions">
+            @foreach (var reaction in _reactionsToRender)
+            {
+                var added = _myReactions.Contains(reaction.emoji) ? "added" : "";
+                var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
+                
+                <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
+                    <img class="emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(reaction.emoji)" alt="@reaction.emoji"/>
+                    <span class="reaction-count">@reaction.count</span>
+                </div>
+            }
+
+            @if (_reactions.Count > 20)
+            {
+                <div class="show-all-reactions" @onclick="() => SetShowAllReactions(!_showAllReactions)">
+                    <a href="#">@(_showAllReactions ? "Show Less" : $"Show All (+{_reactions.Count - 20})")</a>
+                </div>
+            }
+        </div>
+    }
 
     @if (_isInnerReply)
     {
@@ -155,12 +183,20 @@
         
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "fragments");
-        Markdown.RenderToFragment(
-            _message.Content, 
-            builder, 
-            MarkdownManager.Pipeline, 
-            MarkdownManager.Renderer,
-            this);
+        try
+        {
+            Markdown.RenderToFragment(
+                _message.Content,
+                builder,
+                MarkdownManager.Pipeline,
+                MarkdownManager.Renderer,
+                this);
+        } catch (Exception e)
+        {
+            Client.Logger.Log("Message", "Error rendering message: " + e.Message, "red");
+            builder.AddContent(2, _message.Content);
+        }
+
         builder.CloseElement();
     };
     
@@ -182,6 +218,8 @@
     };
     
     public ElementReference OuterRef;
+    public float FullHeight;
+    private bool _renderWasEmpty = false;
 
     /* Set Params */
     [Parameter]
@@ -193,7 +231,7 @@
     private bool _ghost;
     private bool _isInnerReply;
     /* End Set Params */
-
+    
     private IMessageAuthor _author;
 
     /* Planet Message Only */
@@ -226,7 +264,162 @@
 
     private string _class = "message";
     private string _style = string.Empty;
+
+    #region Reactions
+
+    /* Reaction data */
+    private Dictionary<string, int> _reactions;
+    private HashSet<string> _myReactions;
+    private HashSet<string> _newReactions;
+    private List<(string emoji, int count)> _reactionsToRender = new();
+    private bool _showAllReactions = false;
     
+    
+    private void CalculateReactions()
+    {
+        if (_ghost || _isInnerReply) return;
+        
+        if (_message.Reactions is null || _message.Reactions.Count == 0)
+        {
+            _reactions = null;
+            return;
+        }
+        
+        if (_reactions is null)
+        {
+            _reactions = new Dictionary<string, int>();
+            _myReactions = new HashSet<string>();
+        }
+        else
+        {
+            _reactions.Clear();
+            _myReactions.Clear();
+        }
+        
+        foreach (var reaction in _message.Reactions)
+        {
+            if (!_reactions.TryAdd(reaction.Emoji, 1))
+            {
+                _reactions[reaction.Emoji]++;
+            }
+
+            if (reaction.AuthorUserId == Client.Me.Id)
+            {
+                _myReactions.Add(reaction.Emoji);
+            }
+        }
+
+        BuildReactionRenderList();
+    }
+
+    private void BuildReactionRenderList()
+    {
+        if (_ghost || _isInnerReply) return;
+        
+        if (_showAllReactions)
+        {
+            _reactionsToRender = _reactions.OrderByDescending(x => x.Value)
+                .Select(x => (x.Key, x.Value))
+                .ToList();
+        }
+        else
+        {
+            _reactionsToRender = _reactions.OrderByDescending(x => x.Value)
+                .Select(x => (x.Key, x.Value))
+                .Take(20)
+                .ToList();
+        }
+    }
+    
+    private void SetShowAllReactions(bool show)
+    {
+        _showAllReactions = show;
+        BuildReactionRenderList();
+        
+        ReRender();
+    }
+    
+    private void OnReactionAdded(MessageReaction reaction)
+    {
+        if (_ghost || _isInnerReply) return;
+        
+        // Ensure reactions collections are initialized
+        if (_reactions is null)
+        {
+            _reactions = new Dictionary<string, int>();
+            _myReactions = new HashSet<string>();
+        }
+        
+        if (!_reactions.TryAdd(reaction.Emoji, 1))
+        {
+            _reactions[reaction.Emoji]++;
+        }
+        else
+        {
+            if (_newReactions is null)
+            {
+                _newReactions = new HashSet<string>();
+            }
+            
+            _newReactions.Add(reaction.Emoji);
+        }
+        
+        if (reaction.AuthorUserId == Client.Me.Id)
+        {
+            _myReactions.Add(reaction.Emoji);
+        }
+        
+        BuildReactionRenderList();
+        
+        // Re-render the component to show the updated reactions
+        ReRender();
+    }
+    
+    private void OnReactionRemoved(MessageReaction reaction)
+    {
+        if (_ghost || _isInnerReply) return;
+        
+        if (_reactions is null)
+            return;
+
+        if (_reactions.TryGetValue(reaction.Emoji, out var count))
+        {
+            if (count == 1)
+            {
+                _reactions.Remove(reaction.Emoji);
+            }
+            else
+            {
+                _reactions[reaction.Emoji]--;
+            }
+        }
+
+        if (reaction.AuthorUserId == Client.Me.Id)
+        {
+            _myReactions.Remove(reaction.Emoji);
+        }
+        
+        BuildReactionRenderList();
+
+        // Re-render the component to show the updated reactions
+        ReRender();
+    }
+    
+    private async Task OnReactionClick(string emoji)
+    {
+        if (_ghost || _isInnerReply) return;
+
+        if (_myReactions.Contains(emoji))
+        {
+            await _message.RemoveReactionAsync(emoji);
+        }
+        else
+        {
+            await _message.AddReactionAsync(emoji);
+        }
+    }
+
+    #endregion
 
     private void CalculateClassAndStyles()
     {
@@ -376,6 +569,36 @@
                 await Client.NotificationService.MarkNotificationRead(notification, true);
             }
         }
+
+        await MonitorHeightChanges(firstRender);
+    }
+
+    private async Task MonitorHeightChanges(bool firstRender)
+    {
+        if (_renderWasEmpty) return;
+        
+        var dims = await BrowserUtils.GetElementDimensions(OuterRef);
+        var newHeight = dims.Height;
+
+        if (!firstRender)
+        {
+            var heightChange = Math.Abs(newHeight - FullHeight);
+            
+            // Check for a change in height
+            if (heightChange > 1)
+            {
+                // If it has changed, let the chat know to scroll down accordingly
+                if (_chat != null)
+                {
+                    await _chat.ShiftScrollPosition(heightChange);
+                }
+            }
+            
+            // Console.WriteLine("Old height: " + FullHeight);
+            // Console.WriteLine("New height: " + newHeight);
+        }
+        
+        FullHeight = dims.Height;
     }
 
     public async Task OpenEditMode()
@@ -426,6 +649,8 @@
     {
         if (_message == null)
             return;
+        
+        CalculateReactions();
 
         // Check if we are a minimal message
         CheckMinimal();
@@ -509,6 +734,9 @@
         _author = _member is not null ? _member : (_user ?? User.NotFound);
         
         BuildMessage(false);
+
+        _message.ReactionAdded += OnReactionAdded;
+        _message.ReactionRemoved += OnReactionRemoved;
     }
     
     /// <summary>

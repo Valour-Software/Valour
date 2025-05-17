@@ -595,6 +595,17 @@
     }
 }
 
+@keyframes pop-in {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 @keyframes fadeIn {
     0% {
         opacity: 0;
@@ -863,4 +874,12 @@
     .actions .v-btn {
         width: 100%;
     }
+}
+
+/* Tutorial */
+
+.driver-popover.tutorial-popover {
+    background-color: var(--main-1);
+    color: var(--font-color);
+    border: 2px solid var(--p-cyan);
 }

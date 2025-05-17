@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using MessageReaction = Valour.Database.MessageReaction;
 
 namespace Valour.Server.Services;
 
@@ -47,6 +48,8 @@ public class ChatCacheService
         {
             var messages = await _db.Messages
                 .AsNoTracking()
+                .Include(x => x.ReplyToMessage)
+                .Include(x => x.Reactions)
                 .Where(m => m.ChannelId == channelId)
                 .OrderByDescending(m => m.Id)
                 .Take(50)

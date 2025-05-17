@@ -40,3 +40,13 @@
     height: 1px; 
     margin-top: -1px;
 }
+
+.reaction-selector-wrapper {
+    z-index: 60;
+    position: absolute;
+}
+
+.mobile .reaction-selector-wrapper {
+    right: 0 !important;
+    bottom: 89px !important;
+}

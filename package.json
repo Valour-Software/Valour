@@ -1,0 +1,17 @@
+{
+  "name": "valour",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Valour-Software/Valour"
+  },
+  "private": true,
+  "dependencies": {
+    "@solana/web3.js": "^1.98.2"
+  }
+}

@@ -26,7 +26,8 @@ public static class UserMapper
             SubscriptionType = user.SubscriptionType,
             PriorName = user.PriorName,
             NameChangeTime = user.NameChangeTime,
-            Version = user.Version
+            Version = user.Version,
+            TutorialState = user.TutorialState
         };
     }
     
@@ -54,7 +55,8 @@ public static class UserMapper
             SubscriptionType = user.SubscriptionType,
             PriorName = user.PriorName,
             NameChangeTime = user.NameChangeTime,
-            Version = user.Version
+            Version = user.Version,
+            TutorialState = user.TutorialState
         };
     }
 }

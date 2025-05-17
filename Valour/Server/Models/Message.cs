@@ -1,3 +1,4 @@
+using Valour.Database;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
@@ -5,6 +6,7 @@ namespace Valour.Server.Models;
 public class Message : ServerModel<long>, ISharedMessage
 {
     public Message ReplyTo { get; set; }
+    public List<MessageReaction> Reactions { get; set; }
 
     public Message AddReplyTo(Message replyTo)
     {

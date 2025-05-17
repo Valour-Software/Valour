@@ -25,7 +25,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.1.1" />
-    <PackageReference Include="Valour.TenorTwo" Version="1.0.1" />
+    <PackageReference Include="Valour.TenorTwo" Version="1.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +39,12 @@
 
   <ItemGroup>
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Components\Menus\Modals\Users\Edit\ConnectToWallet.js">
+      <DependentUpon>EditUserComponent.razor</DependentUpon>
+    </None>
   </ItemGroup>
   
   <!-- JS Cleanup script

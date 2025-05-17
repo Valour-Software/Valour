@@ -85,16 +85,31 @@ export function init(ref, id) {
     window.addEventListener('touchmove', onTouchMove, false);
     window.addEventListener('touchend', onTouchEnd, false);
     
-    return {
-        toggleOpen: () => {
-            if (open) {
-                sidebar.style.transform = null;
-                open = false;
-            } else {
-                sidebar.style.transform = `translateX(0px)`;
-                open = true;
-            }
+    const toggleOpen = () => {
+        if (open) {
+            sidebar.style.transform = null;
+            open = false;
+        } else {
+            sidebar.style.transform = `translateX(0px)`;
+            open = true;
         }
+    };
+    
+    const setSidebarOpen = (value) => {
+        if (!value) {
+            sidebar.style.transform = null;
+            open = false;
+        } else {
+            sidebar.style.transform = `translateX(0px)`;
+            open = true;
+        }
+    }
+    
+    window['toggleSidebar'] = toggleOpen;
+    window['setSidebarOpen'] = setSidebarOpen;
+    
+    return {
+        toggleOpen: toggleOpen,
     }
 }
 

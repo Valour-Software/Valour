@@ -33,12 +33,13 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
 {
     public override string BaseRoute =>
         ISharedPlanetMember.BaseRoute;
-    
+
     /// <summary>
     /// The user of the member
     /// </summary>
     [IgnoreRealtimeChanges]
     public User User { get; set; }
+    public ISharedUser GetSharedUser() => User;
     
     private ImmutableList<PlanetRole>? _roles = null;
     
@@ -182,13 +183,8 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
-    {
-        if (!string.IsNullOrWhiteSpace(MemberAvatar)) // TODO: do same thing as user
-            return MemberAvatar;
-
-        return User?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
-    }
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
+        ISharedPlanetMember.GetAvatar(this, format);
     
     public string GetFailedAvatar() =>
         User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;

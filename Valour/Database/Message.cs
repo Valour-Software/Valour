@@ -151,6 +151,10 @@ public class Message : ISharedMessage
                 .WithMany(x => x.Messages)
                 .HasForeignKey(x => x.ChannelId);
             
+            e.HasMany(x => x.Reactions)
+                .WithOne(x => x.Message)
+                .HasForeignKey(x => x.MessageId);
+            
             // Indices
             e.HasIndex(x => x.PlanetId);
             e.HasIndex(x => x.ChannelId);

@@ -5,11 +5,22 @@ using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
 using Valour.Sdk.ModelLogic;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Models;
 
 public class Message : ClientPlanetModel<Message, long>, ISharedMessage
 {
+    /// <summary>
+    /// Run when a reaction is added to this message
+    /// </summary>
+    public HybridEvent<MessageReaction> ReactionAdded;
+    
+    /// <summary>
+    /// Run when a reaction is removed from this message
+    /// </summary>
+    public HybridEvent<MessageReaction> ReactionRemoved;
+    
     public override string BaseRoute =>
         $"api/messages";
     
@@ -87,6 +98,11 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// </summary>
     public Message ReplyTo { get; set; }
     
+    /// <summary>
+    /// Reactions to this message
+    /// </summary>
+    public List<MessageReaction> Reactions { get; set; }
+    
     #region Generation
     
     /////////////////////////////////
@@ -153,6 +169,16 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         ChannelId = channelId;
         TimeSent = DateTime.UtcNow;
         Fingerprint = Guid.NewGuid().ToString();
+    }
+    
+    public void NotifyReactionAdded(MessageReaction reaction)
+    {
+        ReactionAdded?.Invoke(reaction);
+    }
+    
+    public void NotifyReactionRemoved(MessageReaction reaction)
+    {
+        ReactionRemoved?.Invoke(reaction);
     }
     
     /// <summary>
@@ -397,6 +423,16 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
             return false;
         
         return ReplyToId is null;
+    }
+    
+    public Task AddReactionAsync(string emoji)
+    {
+        return Client.MessageService.AddMessageReactionAsync(this.Id, emoji);
+    }
+    
+    public Task RemoveReactionAsync(string emoji)
+    {
+        return Client.MessageService.RemoveMessageReactionAsync(this.Id, emoji);
     }
     
     public void Clear()

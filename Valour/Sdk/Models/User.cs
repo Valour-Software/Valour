@@ -123,6 +123,11 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     public int Version { get; set; }
     
     /// <summary>
+    /// Bitmask representing tutorials the user has completed
+    /// </summary>
+    public long TutorialState { get; set; }
+    
+    /// <summary>
     /// The subscription the user currently has
     /// </summary>
     [JsonIgnore]

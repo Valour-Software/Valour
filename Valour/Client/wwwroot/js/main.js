@@ -113,9 +113,13 @@ function dummySound() {
 }
 
 function playSound(name) {
+    playSound(name, 0.4);
+}
+
+function playSound(name, volume) {
     const source = getAudioSource();
     source.loop = false;
-    source.volume = 0.4;
+    source.volume = volume;
     source.src = "./_content/Valour.Client/media/sounds/" + name;
     source.play();
 }

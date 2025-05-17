@@ -129,6 +129,11 @@ public interface  ISharedUser : ISharedModel<long>
     /// The version of the user. Used for cache busting.
     /// </summary>
     public int Version { get; set; }
+    
+    /// <summary>
+    /// Bitmask representing tutorials the user has completed
+    /// </summary>
+    public long TutorialState { get; set; }
 
     /// <summary>
     /// The subscription the user currently has
@@ -232,6 +237,9 @@ public interface  ISharedUser : ISharedModel<long>
         var var = (int)(user.Id % 5);
         return $"_content/Valour.Client/media/user-icons/icon-{var}.webp";
     }
+    
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256)
+        => GetAvatar(this, format);
     
     public static string GetAvatar(ISharedUser user, AvatarFormat format = AvatarFormat.Webp256)
     {

@@ -49,6 +49,7 @@ public class ValourClient
     public readonly SafetyService SafetyService;
     public readonly ThemeService ThemeService;
     public readonly UnreadService UnreadService;
+    public readonly WalletService WalletService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -120,6 +121,7 @@ public class ValourClient
         SafetyService = new SafetyService(this);
         ThemeService = new ThemeService(this);
         UnreadService = new UnreadService(this);
+        WalletService = new WalletService(this);
 
         var tenorHttpClient = new HttpClient();
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
@@ -194,8 +196,16 @@ public class ValourClient
         };
 
         // Load user data concurrently
-        await Task.WhenAll(loadTasks);
-        
+        try
+        {
+            await Task.WhenAll(loadTasks);
+        } 
+        catch (Exception e)
+        {
+            Logger.Log("App", "Critical error during startup: " + e.Message, "red");
+            return new TaskResult(false, "Critical error during startup: " + e.Message);
+        }
+
         return TaskResult.SuccessResult;
     }
         

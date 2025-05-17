@@ -19,6 +19,7 @@ public class PlanetMember : ISharedPlanetMember
     
     [JsonIgnore]
     public virtual User User { get; set; }
+    public ISharedUser GetSharedUser() => User;
     
     [JsonIgnore]
     public virtual ICollection<Message> Messages { get; set; }
@@ -105,6 +106,10 @@ public class PlanetMember : ISharedPlanetMember
                 .HasForeignKey(x => x.UserId);
 
             e.HasMany(x => x.Messages)
+                .WithOne(x => x.AuthorMember)
+                .HasForeignKey(x => x.AuthorMemberId);
+            
+            e.HasMany(x => x.MessageReactions)
                 .WithOne(x => x.AuthorMember)
                 .HasForeignKey(x => x.AuthorMemberId);
             

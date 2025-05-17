@@ -14,6 +14,8 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
 {
     const string BaseRoute = "api/members";
     
+    public ISharedUser GetSharedUser();
+    
     /// <summary>
     /// The user within the planet
     /// </summary>
@@ -36,6 +38,24 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
         // Ensure nickname is valid
         return member.Nickname.Length > 32 ? new TaskResult(false, "Maximum nickname is 32 characters.") : 
             TaskResult.SuccessResult;
+    }
+
+    public string Name => GetName(this);
+    
+    public static string GetName(ISharedPlanetMember member) =>
+        string.IsNullOrWhiteSpace(member.Nickname) ? 
+            (member.GetSharedUser()?.Name ?? "User not found") : 
+            member.Nickname;
+
+    public string GetAvatar(AvatarFormat format = AvatarFormat.Webp256) =>
+        GetAvatar(this, format);
+    
+    public static string GetAvatar(ISharedPlanetMember member, AvatarFormat format = AvatarFormat.Webp256)
+    {
+        if (!string.IsNullOrWhiteSpace(member.MemberAvatar)) // TODO: do same thing as user
+            return member.MemberAvatar;
+
+        return member.GetSharedUser()?.GetAvatar(format) ?? ISharedUser.DefaultAvatar;
     }
 }
 

@@ -173,6 +173,11 @@ namespace Valour.Database
         /// The version of the user. Used for cache busting.
         /// </summary>
         public int Version { get; set; }
+        
+        /// <summary>
+        /// Bitmask representing tutorials the user has completed
+        /// </summary>
+        public long TutorialState { get; set; }
 
         /// <summary>
         /// Generates the avatar URL for this user based on the requested format.
@@ -263,6 +268,10 @@ namespace Valour.Database
                 e.Property(x => x.Version)
                     .HasColumnName("version")
                     .HasDefaultValue(0);
+                
+                e.Property(x => x.TutorialState)
+                    .HasColumnName("tutorial_state")
+                    .HasDefaultValue(0);
 
                 // Relationships
                 e.HasOne(x => x.PrivateInfo)
@@ -274,6 +283,10 @@ namespace Valour.Database
                     .HasForeignKey(x => x.UserId);
 
                 e.HasMany(x => x.Messages)
+                    .WithOne(x => x.AuthorUser)
+                    .HasForeignKey(x => x.AuthorUserId);
+                
+                e.HasMany(x => x.MessageReactions)
                     .WithOne(x => x.AuthorUser)
                     .HasForeignKey(x => x.AuthorUserId);
 

@@ -64,9 +64,11 @@ public class NotificationService
                 continue;
             
             _unreadNotifications.Add(cached);
-            
+
             if (cached.SourceId is not null)
-                _unreadNotificationsLookupBySource.Add(notification.SourceId!.Value, notification);
+            {
+                _unreadNotificationsLookupBySource[notification.SourceId!.Value] = notification;
+            }
         }
     }
 

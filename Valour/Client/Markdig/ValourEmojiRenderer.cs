@@ -1,21 +1,11 @@
 using Markdig.Blazor;
+using Valour.Client.Emojis;
 
 namespace Valour.Client.Markdig;
 
 public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
 {
-    private static Dictionary<string, string> _srcUrlCache = new();
     
-    public string GetSrcUrl(string emoji)
-    {
-        if (_srcUrlCache.TryGetValue(emoji, out string url))
-            return url;
-        
-        url = $"https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/{emoji}.png";
-        _srcUrlCache[emoji] = url;
-        
-        return url;
-    }
     
     protected override void Write(BlazorRenderer renderer, ValourEmojiInline obj)
     {
@@ -41,7 +31,7 @@ public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
             .AddAttribute("draggable", "false")
             .AddAttribute("class", "emoji")
             .AddAttribute("alt", obj.Match)
-            .AddAttribute("src", GetSrcUrl(obj.Native))
+            .AddAttribute("src", EmojiSourceProvider.GetSrcUrlByCodePoints(obj.Native))
             .CloseElement();
     }
 }

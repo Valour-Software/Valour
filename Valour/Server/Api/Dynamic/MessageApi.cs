@@ -236,7 +236,7 @@ public class MessageApi
         return Results.Json(message);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/messages/{messageId}/reactions")]
+    [ValourRoute(HttpVerbs.Post, "api/messages/{messageId}/reactions/add")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> AddReactionAsync(
         [FromBody] AddMessageReactionRequest? request,
@@ -298,7 +298,7 @@ public class MessageApi
         return ValourResult.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/messages/{messageId}/reactions")]
+    [ValourRoute(HttpVerbs.Post, "api/messages/{messageId}/reactions/remove")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> RemoveReactionAsync(
         [FromBody] AddMessageReactionRequest? request,
