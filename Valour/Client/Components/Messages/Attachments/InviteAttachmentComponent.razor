@@ -1,0 +1,66 @@
+@inherits AttachmentComponent
+@inject PlanetService PlanetService
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+
+@if (_state == InviteState.Loading)
+{
+    <div class="invite-attachment loading">Loading invite...</div>
+}
+else if (_state == InviteState.Invalid)
+{
+    <div class="invite-attachment invalid">Invalid or expired invite</div>
+}
+else if (_state == InviteState.Error)
+{
+    <div class="invite-attachment invalid">Failed to load invite</div>
+}
+else
+{
+    <div class="invite-attachment">
+        <img class="icon" src="@_data.PlanetImageUrl" alt="@_data.PlanetName icon" @onerror="OnIconError" />
+        <span class="name">@_data.PlanetName</span>
+        <button class="v-btn" @onclick="OnJoin">Join</button>
+    </div>
+}
+
+@code {
+    private InviteScreenModel _data;
+
+    private enum InviteState { Loading, Ready, Invalid, Error }
+    private InviteState _state = InviteState.Loading;
+    private string _code;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _code = Attachment.Location.Split('/').Last();
+        _data = await PlanetService.FetchInviteScreenData(_code);
+        if (_data is null)
+        {
+            _state = InviteState.Error;
+            return;
+        }
+        if (_data.Expired)
+        {
+            _state = InviteState.Invalid;
+            return;
+        }
+        _state = InviteState.Ready;
+    }
+
+    private void OnIconError()
+    {
+        _data.PlanetImageUrl = "_content/Valour.Client/icon-512.png";
+    }
+
+    private async Task OnJoin()
+    {
+        if (_state != InviteState.Ready)
+            return;
+        await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<PlanetMember>>(
+            $"Joining {_data.PlanetName}",
+            "...",
+            PlanetService.JoinPlanetAsync(_data.PlanetId, _code),
+            "Joined successfully!"));
+    }
+}

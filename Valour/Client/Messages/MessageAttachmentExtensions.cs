@@ -12,7 +12,7 @@ public static class MessageAttachmentExtensions
         typeof(AudioAttachmentComponent), // Audio
         typeof(FileAttachmentComponent), // File
         null, // ValourMessage
-        null, // ValourInvite
+        typeof(InviteAttachmentComponent), // ValourInvite
         null, // ValourPlanet
         null, // ValourChannel
         null, // ValourItem
