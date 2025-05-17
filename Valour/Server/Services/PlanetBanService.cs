@@ -119,22 +119,46 @@ public class PlanetBanService
         return new(true, "Success", updatedban);
     }
 
-    public async Task<QueryResponse<PlanetBan>> QueryPlanetBansAsync(long planetId, int skip = 0, int take = 50)
+    public async Task<QueryResponse<PlanetBan>> QueryPlanetBansAsync(
+        long planetId,
+        int skip = 0,
+        int take = 50,
+        string search = null,
+        string sortField = null,
+        bool sortDesc = false)
     {
         if (take > 50)
             take = 50;
 
-        var baseQuery = _db.PlanetBans
+        var query = _db.PlanetBans
             .AsNoTracking()
             .Where(x => x.PlanetId == planetId)
-            .OrderByDescending(x => x.TimeCreated);
+            .Join(_db.Users.AsNoTracking(), b => b.TargetId, u => u.Id, (b, u) => new { Ban = b, Target = u });
 
-        var total = await baseQuery.CountAsync();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(x => EF.Functions.ILike((x.Target.Name.ToLower() + "#" + x.Target.Tag), $"%{lowered}%") ||
+                                      EF.Functions.ILike(x.Target.Name.ToLower(), $"%{lowered}%"));
+        }
 
-        var items = await baseQuery
+        query = sortField switch
+        {
+            "user" => sortDesc
+                ? query.OrderByDescending(x => x.Target.Name)
+                : query.OrderBy(x => x.Target.Name),
+            "created" => sortDesc
+                ? query.OrderByDescending(x => x.Ban.TimeCreated)
+                : query.OrderBy(x => x.Ban.TimeCreated),
+            _ => query.OrderByDescending(x => x.Ban.TimeCreated)
+        };
+
+        var total = await query.CountAsync();
+
+        var items = await query
             .Skip(skip)
             .Take(take)
-            .Select(x => x.ToModel())
+            .Select(x => x.Ban.ToModel())
             .ToListAsync();
 
         return new QueryResponse<PlanetBan>
