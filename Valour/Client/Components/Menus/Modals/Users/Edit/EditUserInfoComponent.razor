@@ -1,5 +1,7 @@
 ﻿@using System.Net.Http.Headers
 @using Valour.Shared.Extensions
+@using System.IO
+@using System.Net.Http.Headers
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject ValourClient Client
@@ -147,6 +149,8 @@
 
     private string _pfpUrl;
     private ITaskResult _pfpChangeResult;
+    private string _cropDataUrl;
+    private string _pendingImageType;
 
     private string _status;
     private ITaskResult _statusChangeResult;
@@ -256,10 +260,28 @@
             return;
         }
 
-        var streamContent = new StreamContent(file.OpenReadStream(10240000));
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(10240000).CopyToAsync(ms);
+        _pendingImageType = file.ContentType;
+        _cropDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+
+        var modalData = new ImageCropperModal.ModalParams
+        {
+            ImageDataUrl = _cropDataUrl,
+            AspectRatio = 1d,
+            OutputMimeType = _pendingImageType,
+            OnCropped = async (dataUrl) => await OnAvatarCropped(dataUrl),
+            OnCancel = OnCropCancel
+        };
+        ModalRoot.OpenModal<ImageCropperModal>(modalData);
+    }
+
+    private async Task UploadAvatar(byte[] data, string contentType)
+    {
+        var streamContent = new StreamContent(new MemoryStream(data));
         var content = new MultipartFormDataContent();
-        streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-        content.Add(streamContent, file.Name, file.Name);
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        content.Add(streamContent, "avatar", "avatar");
 
         var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/profile", content);
 
@@ -267,19 +289,26 @@
 
         if (_pfpChangeResult.Success)
         {
-            // We slightly modify the url to force a refresh
-
             User newUser = new(Client);
             User.CopyAllTo(newUser);
             newUser.Version++;
             Client.Cache.Users.Put(newUser);
-            
+
             _pfpUrl = User.GetAvatar(AvatarFormat.WebpAnimated256);
         }
 
         StateHasChanged();
         _infoPreview.UpdateAll();
     }
+
+    private async Task OnAvatarCropped(string dataUrl)
+    {
+        var base64 = dataUrl.Substring(dataUrl.IndexOf(',') + 1);
+        var bytes = Convert.FromBase64String(base64);
+        await UploadAvatar(bytes, _pendingImageType);
+    }
+
+    private void OnCropCancel() { }
 
     private void OnClickDeleteAccount()
     {
