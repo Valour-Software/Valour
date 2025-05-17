@@ -4,7 +4,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class SubscriptionApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/subscriptions/active/{userId}")]
+    [ValourRoute(HttpVerbs.Get, "api/subscriptions/active")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> GetActiveAsync(
         UserService userService, 

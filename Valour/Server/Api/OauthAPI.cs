@@ -20,7 +20,7 @@ public class OauthAPI : BaseAPI
         app.MapDelete("api/oauth/app/{app_id}", DeleteApp);
         app.MapGet("api/oauth/app/public/{app_id}", GetAppPublic);
 
-        app.MapGet("api/users/{userId}/apps", GetApps);
+        app.MapGet("api/users/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
         app.MapGet("api/oauth/token", Token);
