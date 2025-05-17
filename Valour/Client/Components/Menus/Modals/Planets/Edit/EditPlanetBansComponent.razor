@@ -3,47 +3,12 @@
 <h3>Bans <i class="bi bi-shield-fill-exclamation"></i></h3>
 <p class="subtitle">MANAGE BANS</p>
 
-<table class="v-table">
-    <thead>
-        <tr>
-            <th>User</th>
-            <th>Banned By</th>
-            <th>Created</th>
-            <th>Expires</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (_banCount == 0)
-        {
-            <tr class="empty-row">
-                <td colspan="5">
-                    <div class="empty-state">
-                        <i class="bi bi-hammer"></i>
-                        <span>No bans</span>
-                    </div>
-                </td>
-            </tr>
-        }
-        else
-        {
-            <Virtualize TItem="PlanetBan" ItemsProvider="@_banEngine.GetVirtualizedItemsAsync" Context="ban" OverscanCount="20">
-                <tr @key="ban.Id">
-                    <td><UserInfoComponent UserId="@ban.TargetId" /></td>
-                    <td><UserInfoComponent UserId="@ban.IssuerId" /></td>
-                    <td>@ban.TimeCreated.ToLocalTime().ToShortDateString()</td>
-                    <td>@(ban.Permanent ? "Never" : ban.TimeExpires?.ToLocalTime().ToShortDateString())</td>
-                    <td>
-                        <div class="button-row">
-                            <button class="v-btn secondary" @onclick="(() => OnEdit(ban))">Edit</button>
-                            <button class="v-btn danger" @onclick="(() => OnDelete(ban))">Delete</button>
-                        </div>
-                    </td>
-                </tr>
-            </Virtualize>
-        }
-    </tbody>
-</table>
+<QueryTable
+    @ref="_table"
+    Node="@Planet.Node"
+    TModel="PlanetBan"
+    Columns="@_columns"
+    Model="@_model" />
 
 <ResultLabel Result="@_result" />
 
@@ -55,15 +20,47 @@
     public ModalRoot ModalRoot { get; set; }
 
     private ITaskResult _result;
-    private ModelQueryEngine<PlanetBan> _banEngine;
-    private int _banCount = 0;
-
-    protected override async Task OnInitializedAsync()
+    private QueryTable<PlanetBan> _table;
+    private List<ColumnDefinition<PlanetBan>> _columns;
+    private PlanetBanQueryModel _model;
+    protected override void OnInitialized()
     {
         Planet ??= WindowService.FocusedPlanet;
-        _banEngine = Planet.GetBanQueryEngine();
-        var info = await _banEngine.GetItemsAsync(0, 1);
-        _banCount = info.TotalCount;
+        _model = new PlanetBanQueryModel { PlanetId = Planet.Id };
+
+        _columns = new()
+        {
+            new()
+            {
+                Name = "User",
+                SortField = "user",
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.TargetId" />
+            },
+            new()
+            {
+                Name = "Banned By",
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.IssuerId" />
+            },
+            new()
+            {
+                Name = "Created",
+                SortField = "created",
+                RenderFragment = row => @<span>@row.Row.TimeCreated.ToLocalTime().ToShortDateString()</span>
+            },
+            new()
+            {
+                Name = "Expires",
+                RenderFragment = row => @<span>@(row.Row.Permanent ? "Never" : row.Row.TimeExpires?.ToLocalTime().ToShortDateString())</span>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn secondary" @onclick="(() => OnEdit(row.Row))">Edit</button>
+                        <button class="v-btn danger" @onclick="(() => OnDelete(row.Row))">Delete</button>
+                    </div>
+            }
+        };
     }
 
     private void OnEdit(PlanetBan ban)

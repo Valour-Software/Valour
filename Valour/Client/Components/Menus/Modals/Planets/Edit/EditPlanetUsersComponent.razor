@@ -3,43 +3,14 @@
 <h3>Members <i class="bi bi-person-fill"></i></h3>
 <p class="subtitle">MANAGE MEMBERS</p>
 
-<table class="v-table">
-    <thead>
-        <tr>
-            <th>Member</th>
-            <th>Role</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (_memberCount == 0)
-        {
-            <tr class="empty-row">
-                <td colspan="3">
-                    <div class="empty-state">
-                        <i class="bi bi-people"></i>
-                        <span>No members</span>
-                    </div>
-                </td>
-            </tr>
-        }
-        else
-        {
-            <Virtualize TItem="PlanetMember" ItemsProvider="@_memberEngine.GetVirtualizedItemsAsync" Context="member" OverscanCount="20">
-                <tr @key="member.Id">
-                    <td><UserInfoComponent Member="@member" /></td>
-                    <td>@member.PrimaryRole?.Name</td>
-                    <td>
-                        <div class="button-row">
-                            <button class="v-btn secondary" @onclick="(() => OnKick(member))">Kick</button>
-                            <button class="v-btn danger" @onclick="(() => OnBan(member))">Ban</button>
-                        </div>
-                    </td>
-                </tr>
-            </Virtualize>
-        }
-    </tbody>
-</table>
+<QueryTable
+    @ref="_table"
+    Node="@Planet.Node"
+    TModel="PlanetMember"
+    Columns="@_columns"
+    Model="@_model"
+    ShowSearch="true"
+    SearchPlaceholder="Search name..." />
 
 @code {
     [Parameter]
@@ -48,16 +19,37 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
-    private ModelQueryEngine<PlanetMember> _memberEngine;
-    private int _memberCount = 0;
+    private QueryTable<PlanetMember> _table;
+    private List<ColumnDefinition<PlanetMember>> _columns;
+    private PlanetMemberQueryModel _model;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Planet ??= WindowService.FocusedPlanet;
+        _model = new PlanetMemberQueryModel { PlanetId = Planet.Id };
 
-        _memberEngine = Planet.GetMemberQueryEngine();
-        var info = await _memberEngine.GetItemsAsync(0, 1);
-        _memberCount = info.TotalCount;
+        _columns = new()
+        {
+            new()
+            {
+                Name = "Member",
+                SortField = "name",
+                RenderFragment = row => @<UserInfoComponent Member="@row.Row" />
+            },
+            new()
+            {
+                Name = "Role",
+                RenderFragment = row => @<span>@row.Row.PrimaryRole?.Name</span>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn secondary" @onclick="(() => OnKick(row.Row))">Kick</button>
+                        <button class="v-btn danger" @onclick="(() => OnBan(row.Row))">Ban</button>
+                    </div>
+            }
+        };
     }
 
     private void OnKick(PlanetMember member)
