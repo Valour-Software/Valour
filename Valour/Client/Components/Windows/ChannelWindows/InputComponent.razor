@@ -564,8 +564,8 @@
             var code = match.Groups[1].Value;
             attachments.Add(new MessageAttachment(MessageAttachmentType.ValourInvite)
             {
-                Location = $"https://app.valour.gg/api/invites/{code}/screen",
-                Inline = true
+                Location = $"https://app.valour.gg/i/{code}",
+                Inline = false
             });
         }
 

@@ -1,16 +1,18 @@
 .invite-attachment {
     background-color: var(--main-1);
-    border-radius: 1em;
-    padding: 0.5em;
+    border-radius: var(--small-radius);
+    border: 1px solid var(--strong-tint);
+    padding: 1em;
     display: flex;
     align-items: center;
     max-width: 100%;
+    gap: 2em;
+    margin-bottom: 0.5em;
 }
 .invite-attachment img.icon {
     width: 48px;
     height: 48px;
-    border-radius: 0.5em;
-    margin-right: 0.5em;
+    border-radius: var(--small-radius);
 }
 .invite-attachment.loading,
 .invite-attachment.invalid {
@@ -18,5 +20,4 @@
 }
 .invite-attachment .name {
     margin-right: auto;
-    margin-left: 0.5em;
 }

@@ -44,18 +44,18 @@ public class PlanetInviteApi
         return Results.Created($"api/invites/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/invites/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/invites/{code}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetInvite invite,
-        long id,
+        string code,
         PlanetMemberService memberService,
         PlanetInviteService inviteService)
     {
         if (invite is null)
             return ValourResult.BadRequest("Include invite in body.");
 
-        if (invite.Id != id)
+        if (invite.Id != code)
             return ValourResult.BadRequest("Route id does not match invite id.");
 
         // Get member
