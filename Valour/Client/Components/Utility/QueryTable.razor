@@ -14,12 +14,23 @@
     return;
 }
 
+@if (ShowSearch)
+{
+    <input class="form-control mt-2 mb-2" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
+}
+
 <table class="table">
     <thead>
     <tr>
         @foreach (var column in Columns)
         {
-            <th>@column.Name</th>
+            <th @onclick="(() => OnSort(column))" style="cursor:pointer">
+                @column.Name
+                @if (_sortField == column.SortField)
+                {
+                    <i class="bi bi-caret-@(_sortDescending ? "down" : "up")-fill"></i>
+                }
+            </th>
         }
     </tr>
     </thead>
@@ -67,9 +78,18 @@
     
     [Parameter]
     public Dictionary<string, string> Parameters { get; set; }
+
+    [Parameter]
+    public bool ShowSearch { get; set; }
+
+    [Parameter]
+    public string SearchPlaceholder { get; set; } = "Search...";
     
     private PagedReader<TModel> _reader;
     private List<TModel> _pageItems;
+    private string _sortField;
+    private bool _sortDescending;
+    private string _searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,5 +134,39 @@
         var results = await _reader.PreviousPageAsync();
         _pageItems = results.Items;
         StateHasChanged();
+    }
+
+    private async Task OnSort(ColumnDefinition<TModel> column)
+    {
+        if (string.IsNullOrEmpty(column.SortField))
+            return;
+
+        if (_sortField == column.SortField)
+        {
+            _sortDescending = !_sortDescending;
+        }
+        else
+        {
+            _sortField = column.SortField;
+            _sortDescending = false;
+        }
+
+        Parameters ??= new Dictionary<string, string>();
+        Parameters["sortField"] = _sortField;
+        Parameters["sortDesc"] = _sortDescending.ToString().ToLower();
+
+        await Requery();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? string.Empty;
+        Parameters ??= new Dictionary<string, string>();
+        if (string.IsNullOrEmpty(_searchTerm))
+            Parameters.Remove("search");
+        else
+            Parameters["search"] = _searchTerm;
+
+        await Requery();
     }
 }

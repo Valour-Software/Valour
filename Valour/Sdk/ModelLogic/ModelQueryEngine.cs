@@ -1,5 +1,7 @@
 ﻿using Valour.Sdk.Nodes;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 
 namespace Valour.Sdk.ModelLogic;
 
@@ -25,6 +27,11 @@ public class ModelQueryEngine<TModel>
     // Last request information for prefetching
     private int _lastRequestedStart = -1;
     private int _lastRequestedEnd = -1;
+
+    // Filter and sort options
+    private readonly Dictionary<string, string> _filters = new();
+    private string _sortField;
+    private bool _sortDescending;
     
     public ModelQueryEngine(Node node, string route, int cacheSize = 200)
     {
@@ -32,6 +39,24 @@ public class ModelQueryEngine<TModel>
         _node = node;
         _cacheSize = cacheSize;
         _cache = new TModel[_cacheSize];
+    }
+
+    public void SetFilter(string key, string value) => _filters[key] = value;
+
+    public void RemoveFilter(string key) => _filters.Remove(key);
+
+    public void ClearFilters() => _filters.Clear();
+
+    public void SetSort(string field, bool descending = false)
+    {
+        _sortField = field;
+        _sortDescending = descending;
+    }
+
+    public void ClearSort()
+    {
+        _sortField = null;
+        _sortDescending = false;
     }
 
     /// <summary>
@@ -424,9 +449,28 @@ public class ModelQueryEngine<TModel>
             return true;
         }
         
+        // Build query string with filters and sort
+        var queryParts = new List<string>
+        {
+            $"skip={start}",
+            $"take={count}"
+        };
+
+        foreach (var kvp in _filters)
+        {
+            queryParts.Add($"{kvp.Key}={WebUtility.UrlEncode(kvp.Value)}");
+        }
+
+        if (!string.IsNullOrEmpty(_sortField))
+        {
+            queryParts.Add($"sortField={WebUtility.UrlEncode(_sortField)}");
+            queryParts.Add($"sortDesc={_sortDescending.ToString().ToLower()}");
+        }
+
+        var url = $"{_route}?" + string.Join("&", queryParts);
+
         // Fetch from server
-        var result = await _node.GetJsonAsync<ModelQueryResponse<TModel>>(
-            $"{_route}?skip={start}&take={count}");
+        var result = await _node.GetJsonAsync<ModelQueryResponse<TModel>>(url);
             
         if (!result.Success || result.Data.Items == null)
         {
