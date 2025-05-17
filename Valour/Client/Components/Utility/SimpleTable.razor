@@ -1,0 +1,40 @@
+@typeparam TItem
+
+<table class="v-table">
+    <thead>
+        <tr>
+            @foreach (var header in Headers)
+            {
+                <th>@header</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @if (Items is not null && Items.Any())
+        {
+            @foreach (var item in Items)
+            {
+                @RowTemplate(item)
+            }
+        }
+        else
+        {
+            <tr class="empty-row">
+                <td colspan="@Headers.Length">
+                    <div class="empty-state">
+                        <i class="bi bi-@EmptyIcon"></i>
+                        <span>@EmptyText</span>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public IEnumerable<TItem> Items { get; set; }
+    [Parameter] public string[] Headers { get; set; }
+    [Parameter] public RenderFragment<TItem> RowTemplate { get; set; }
+    [Parameter] public string EmptyText { get; set; } = "No items";
+    [Parameter] public string EmptyIcon { get; set; } = "file-earmark";
+}

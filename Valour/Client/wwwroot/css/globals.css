@@ -70,6 +70,19 @@
     font-weight: 700;
 }
 
+/* Empty table state */
+.empty-state {
+    text-align: center;
+    padding: 1rem;
+    color: var(--font-alt-color);
+}
+
+.empty-state i {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
 /* Colors */
 .v-text-primary {
     color: var(--font-color);
