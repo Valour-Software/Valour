@@ -589,6 +589,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     
     public ModelQueryEngine<EcoAccountPlanetMember> GetUserAccountQueryEngine() =>
         Client.EcoService.GetUserAccountQueryEngine(this);
+
+    public ModelQueryEngine<PlanetMember> GetMemberQueryEngine() =>
+        Client.PlanetService.GetMemberQueryEngine(this);
+
+    public ModelQueryEngine<PlanetBan> GetBanQueryEngine() =>
+        Client.PlanetService.GetBanQueryEngine(this);
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);

@@ -193,6 +193,26 @@ public class PlanetApi
         return Results.Json(memberInfo);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/members")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> GetMembersRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        int skip = 0,
+        int take = 50)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var members = await memberService.QueryPlanetMembersAsync(id, skip, take);
+
+        return Results.Json(members);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRolesRouteAsync(
@@ -332,6 +352,27 @@ public class PlanetApi
 
         var inviteIds = await planetService.GetInviteIdsAsync(id);
         return Results.Json(inviteIds);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/bans")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> GetBansRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        PlanetBanService banService,
+        int skip = 0,
+        int take = 50)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var bans = await banService.QueryPlanetBansAsync(id, skip, take);
+
+        return Results.Json(bans);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]
