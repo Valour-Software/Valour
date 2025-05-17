@@ -10,10 +10,10 @@ export function initCropper(id, aspectRatio) {
     });
 }
 
-export function getCroppedImage(id) {
+export function getCroppedImage(id, mimeType) {
     const cropper = croppers[id];
     if (!cropper) return null;
-    return cropper.getCroppedCanvas().toDataURL('image/png');
+    return cropper.getCroppedCanvas().toDataURL(mimeType || 'image/png');
 }
 
 export function destroyCropper(id) {

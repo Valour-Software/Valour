@@ -4,13 +4,17 @@
 @if (Visible)
 {
     <div class="cropper-modal">
-        <div class="cropper-content">
-            <img id="@_imgId" class="cropper-image" src="@ImageDataUrl" />
-            <div class="cropper-actions">
-                <button class="v-btn" @onclick="OnCancelClicked">Cancel</button>
-                <button class="v-btn primary" @onclick="OnConfirmClicked">Crop</button>
-            </div>
-        </div>
+        <BasicModalLayout Title="Crop Image" Icon="crop" MaxWidth="450px">
+            <MainArea>
+                <img id="@_imgId" class="cropper-image" src="@ImageDataUrl" />
+            </MainArea>
+            <ButtonArea>
+                <div class="basic-modal-buttons">
+                    <button class="v-btn" @onclick="OnCancelClicked">Cancel</button>
+                    <button class="v-btn primary" @onclick="OnConfirmClicked">Crop</button>
+                </div>
+            </ButtonArea>
+        </BasicModalLayout>
     </div>
 }
 
@@ -30,6 +34,9 @@
     [Parameter]
     public double AspectRatio { get; set; } = 1d;
 
+    [Parameter]
+    public string OutputMimeType { get; set; } = "image/png";
+
     private IJSObjectReference _jsModule;
     private string _imgId = $"cropper-{Guid.NewGuid():N}";
     private bool _initialized;
@@ -48,7 +55,7 @@
     {
         if (_jsModule is not null)
         {
-            var dataUrl = await _jsModule.InvokeAsync<string>("getCroppedImage", _imgId);
+            var dataUrl = await _jsModule.InvokeAsync<string>("getCroppedImage", _imgId, OutputMimeType);
             await OnCropped.InvokeAsync(dataUrl);
         }
         await DisposeAsync();

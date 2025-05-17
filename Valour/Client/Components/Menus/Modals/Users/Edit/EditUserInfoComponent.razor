@@ -69,7 +69,7 @@
             <div style="display:none">
                 <InputFile OnChange="@LoadFiles" accept=".png,.jpg,.jpeg,.gif,.webp" id="avatar-upload"></InputFile>
             </div>
-            <ImageCropper ImageDataUrl="@_cropDataUrl" Visible="@_showCropper" OnCropped="OnAvatarCropped" OnCancel="OnCropCancel" />
+            <ImageCropper ImageDataUrl="@_cropDataUrl" Visible="@_showCropper" OutputMimeType="@_pendingImageType" OnCropped="OnAvatarCropped" OnCancel="OnCropCancel" />
         </div>
     </div>
 
@@ -298,14 +298,26 @@
     private async Task OnAvatarCropped(string dataUrl)
     {
         _showCropper = false;
-        var base64 = dataUrl.Substring(dataUrl.IndexOf(',') + 1);
-        var bytes = Convert.FromBase64String(base64);
-        await UploadAvatar(bytes, _pendingImageType);
+        if (!string.IsNullOrWhiteSpace(dataUrl))
+        {
+            var base64Index = dataUrl.IndexOf(',');
+            if (base64Index > -1)
+            {
+                var base64 = dataUrl[(base64Index + 1)..];
+                var bytes = Convert.FromBase64String(base64);
+                await UploadAvatar(bytes, _pendingImageType);
+            }
+        }
+        _pendingImageType = null;
+        _cropDataUrl = null;
+        StateHasChanged();
     }
 
     private void OnCropCancel()
     {
         _showCropper = false;
+        _pendingImageType = null;
+        _cropDataUrl = null;
         StateHasChanged();
     }
 
