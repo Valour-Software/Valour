@@ -1,5 +1,5 @@
 @using Valour.Sdk.Nodes
-@typeparam TModel
+@typeparam TModel where TModel : ClientModel<TModel>
 @inject ValourClient Client
 
 @if (Columns is null)
@@ -85,7 +85,7 @@
     [Parameter]
     public string SearchPlaceholder { get; set; } = "Search...";
     
-    private PagedReader<TModel> _reader;
+    private PagedModelReader<TModel> _reader;
     private List<TModel> _pageItems;
     private string _sortField;
     private bool _sortDescending;
@@ -106,7 +106,7 @@
         if (Node is null)
             Node = Client.PrimaryNode;
         
-        _reader = new PagedReader<TModel>(Node, Model.GetApiUrl(), PageSize);
+        _reader = new PagedModelReader<TModel>(Node, Model.GetApiUrl(), PageSize);
 
         await Requery();
     }

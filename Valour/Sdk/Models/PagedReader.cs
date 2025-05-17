@@ -61,7 +61,11 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        _parameters = new Dictionary<string, string>(parameters);
+        if (parameters is not null)
+            _parameters = new Dictionary<string, string>(parameters);
+        else
+            _parameters = new Dictionary<string, string>();
+        
         ResetReader();
     }
 

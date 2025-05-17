@@ -193,9 +193,11 @@ public class PlanetApi
         return Results.Json(memberInfo);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/members")]
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/members")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> GetMembersRouteAsync(
+        [FromBody] PlanetMemberQueryModel? queryModel,
         long id,
         PlanetMemberService memberService,
         int skip = 0,
