@@ -310,6 +310,32 @@
 
     private void OnCropCancel() { }
 
+    private async Task OnAvatarCropped(string dataUrl)
+    {
+        _showCropper = false;
+        if (!string.IsNullOrWhiteSpace(dataUrl))
+        {
+            var base64Index = dataUrl.IndexOf(',');
+            if (base64Index > -1)
+            {
+                var base64 = dataUrl[(base64Index + 1)..];
+                var bytes = Convert.FromBase64String(base64);
+                await UploadAvatar(bytes, _pendingImageType);
+            }
+        }
+        _pendingImageType = null;
+        _cropDataUrl = null;
+        StateHasChanged();
+    }
+
+    private void OnCropCancel()
+    {
+        _showCropper = false;
+        _pendingImageType = null;
+        _cropDataUrl = null;
+        StateHasChanged();
+    }
+
     private void OnClickDeleteAccount()
     {
         ModalRoot.OpenModal<DeleteAccountModal>();
