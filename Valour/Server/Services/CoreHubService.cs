@@ -162,7 +162,7 @@ public class CoreHubService
         foreach (var id in planetIds)
         {
             // TODO: This will not work with node scaling
-            await _hub.Clients.Group($"p-{planetIds}").SendAsync("User-Update", user, flags);
+            await _hub.Clients.Group($"p-{id}").SendAsync("User-Update", user, flags);
         }
     }
 
