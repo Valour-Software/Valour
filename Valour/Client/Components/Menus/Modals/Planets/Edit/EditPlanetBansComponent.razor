@@ -14,7 +14,7 @@
         </tr>
     </thead>
     <tbody>
-        @if (Planet?.Bans is null || Planet.Bans.Count == 0)
+        @if (_banCount == 0)
         {
             <tr class="empty-row">
                 <td colspan="5">
@@ -27,7 +27,7 @@
         }
         else
         {
-            <Virtualize Items="Planet.Bans" Context="ban">
+            <Virtualize TItem="PlanetBan" ItemsProvider="@_banEngine.GetVirtualizedItemsAsync" Context="ban" OverscanCount="20">
                 <tr @key="ban.Id">
                     <td><UserInfoComponent UserId="@ban.TargetId" /></td>
                     <td><UserInfoComponent UserId="@ban.IssuerId" /></td>
@@ -55,10 +55,15 @@
     public ModalRoot ModalRoot { get; set; }
 
     private ITaskResult _result;
+    private ModelQueryEngine<PlanetBan> _banEngine;
+    private int _banCount = 0;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Planet ??= WindowService.FocusedPlanet;
+        _banEngine = Planet.GetBanQueryEngine();
+        var info = await _banEngine.GetItemsAsync(0, 1);
+        _banCount = info.TotalCount;
     }
 
     private void OnEdit(PlanetBan ban)

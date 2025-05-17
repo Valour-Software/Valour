@@ -118,6 +118,31 @@ public class PlanetBanService
         return new(true, "Success", updatedban);
     }
 
+    public async Task<QueryResponse<PlanetBan>> QueryPlanetBansAsync(long planetId, int skip = 0, int take = 50)
+    {
+        if (take > 50)
+            take = 50;
+
+        var baseQuery = _db.PlanetBans
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
+            .OrderByDescending(x => x.TimeCreated);
+
+        var total = await baseQuery.CountAsync();
+
+        var items = await baseQuery
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+        return new QueryResponse<PlanetBan>
+        {
+            Items = items,
+            TotalCount = total
+        };
+    }
+
     /// <summary>
     /// Deletes the ban
     /// </summary>

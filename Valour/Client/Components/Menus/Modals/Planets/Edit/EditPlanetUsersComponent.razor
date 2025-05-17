@@ -12,7 +12,7 @@
         </tr>
     </thead>
     <tbody>
-        @if (Planet?.Members is null || Planet.Members.Count == 0)
+        @if (_memberCount == 0)
         {
             <tr class="empty-row">
                 <td colspan="3">
@@ -25,7 +25,7 @@
         }
         else
         {
-            <Virtualize Items="Planet.Members" Context="member">
+            <Virtualize TItem="PlanetMember" ItemsProvider="@_memberEngine.GetVirtualizedItemsAsync" Context="member" OverscanCount="20">
                 <tr @key="member.Id">
                     <td><UserInfoComponent Member="@member" /></td>
                     <td>@member.PrimaryRole?.Name</td>
@@ -48,12 +48,16 @@
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
 
+    private ModelQueryEngine<PlanetMember> _memberEngine;
+    private int _memberCount = 0;
+
     protected override async Task OnInitializedAsync()
     {
         Planet ??= WindowService.FocusedPlanet;
 
-        if (Planet.Members.Count == 0)
-            await Planet.FetchMemberDataAsync();
+        _memberEngine = Planet.GetMemberQueryEngine();
+        var info = await _memberEngine.GetItemsAsync(0, 1);
+        _memberCount = info.TotalCount;
     }
 
     private void OnKick(PlanetMember member)

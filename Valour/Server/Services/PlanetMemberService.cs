@@ -193,6 +193,32 @@ public class PlanetMemberService
         return await _permissionService.HasPlanetPermissionAsync(member.Id, permission);
     }
 
+    public async Task<QueryResponse<PlanetMember>> QueryPlanetMembersAsync(long planetId, int skip = 0, int take = 50)
+    {
+        if (take > 50)
+            take = 50;
+
+        var baseQuery = _db.PlanetMembers
+            .AsNoTracking()
+            .Include(x => x.User)
+            .Where(x => x.PlanetId == planetId && !x.IsDeleted)
+            .OrderBy(x => x.Id);
+
+        var total = await baseQuery.CountAsync();
+
+        var items = await baseQuery
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+        return new QueryResponse<PlanetMember>
+        {
+            Items = items,
+            TotalCount = total
+        };
+    }
+
     /// <summary>
     /// Returns if the member has the given channel permission
     /// </summary>
