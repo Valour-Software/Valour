@@ -67,7 +67,7 @@ public class PlanetRoleApi
         return Results.Created($"api/roles/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/planet/{planetId}/roles/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/planet/{planetId}/roles/{roleId}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetRole role,
@@ -104,7 +104,7 @@ public class PlanetRoleApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planet/{planetId}/roles/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/planet/{planetId}/roles/{roleId}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long planetId,
