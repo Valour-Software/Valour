@@ -12,5 +12,6 @@ public class RowData<TModel>
 public class ColumnDefinition<TModel>
 {
     public string Name { get; set; }
+    public string SortField { get; set; }
     public RenderFragment<RowData<TModel>> RenderFragment { get; set; }
 }
