@@ -1,5 +1,70 @@
-﻿<h3>EditPlanetUsersComponent</h3>
+@inject ValourClient Client
+
+<h3>Members <i class="bi bi-person-fill"></i></h3>
+<p class="subtitle">MANAGE MEMBERS</p>
+
+<table class="v-table">
+    <thead>
+        <tr>
+            <th>Member</th>
+            <th>Role</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Planet?.Members is null || Planet.Members.Count == 0)
+        {
+            <tr class="empty-row">
+                <td colspan="3">
+                    <div class="empty-state">
+                        <i class="bi bi-people"></i>
+                        <span>No members</span>
+                    </div>
+                </td>
+            </tr>
+        }
+        else
+        {
+            <Virtualize Items="Planet.Members" Context="member">
+                <tr @key="member.Id">
+                    <td><UserInfoComponent Member="@member" /></td>
+                    <td>@member.PrimaryRole?.Name</td>
+                    <td>
+                        <div class="button-row">
+                            <button class="v-btn secondary" @onclick="(() => OnKick(member))">Kick</button>
+                            <button class="v-btn danger" @onclick="(() => OnBan(member))">Ban</button>
+                        </div>
+                    </td>
+                </tr>
+            </Virtualize>
+        }
+    </tbody>
+</table>
 
 @code {
+    [Parameter]
+    public Planet Planet { get; set; }
 
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+
+        if (Planet.Members.Count == 0)
+            await Planet.FetchMemberDataAsync();
+    }
+
+    private void OnKick(PlanetMember member)
+    {
+        var modalData = new KickModal.KickModalParams { Member = member };
+        ModalRoot.OpenModal<KickModal>(modalData);
+    }
+
+    private void OnBan(PlanetMember member)
+    {
+        var modalData = new BanModal.BanModalProps { Member = member };
+        ModalRoot.OpenModal<BanModal>(modalData);
+    }
 }

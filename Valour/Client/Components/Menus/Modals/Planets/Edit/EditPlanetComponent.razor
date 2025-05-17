@@ -28,8 +28,8 @@
     // RenderFragments for each menu item
     private RenderFragment InfoContent => @<EditPlanetInfoComponent Planet="@Data.Planet" />;
     private RenderFragment InvitesContent => @<EditPlanetInvitesComponent Planet="@Data.Planet" />;
-    private RenderFragment MembersContent => @<EditPlanetUsersComponent />;
-    private RenderFragment BansContent => @<EditPlanetBansComponent />;
+    private RenderFragment MembersContent => @<EditPlanetUsersComponent Planet="@Data.Planet" />;
+    private RenderFragment BansContent => @<EditPlanetBansComponent Planet="@Data.Planet" />;
     private RenderFragment RolesContent => @<EditPlanetRolesComponent Planet="@Data.Planet" />;
     private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
