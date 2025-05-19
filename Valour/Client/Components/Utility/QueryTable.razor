@@ -49,11 +49,11 @@
         <tbody>
         @if (Infinite)
         {
-            <Virtualize @ref="_virtualize" ItemsProvider="ProvideVirtualItems" OverscanCount="20" TItem="TModel">
+            <Virtualize @ref="_virtualize" ItemsProvider="ProvideVirtualItems" OverscanCount="20" TItem="TModel" ItemSize="@(RowHeight + 16)">
                 <tr @key="context">
                     @foreach (var column in Columns)
                     {
-                        <td>@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</td>
+                        <td><div class="data-wrapper" style="max-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</div></td>
                     }
                 </tr>
             </Virtualize>
@@ -65,7 +65,7 @@
                 <tr @key="@item">
                     @foreach (var column in Columns)
                     {
-                        <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
+                        <td><div class="data-wrapper" style="max-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</div></td>
                     }
                 </tr>
             }
@@ -108,6 +108,9 @@
 
     [Parameter]
     public string Height { get; set; } = "auto";
+    
+    [Parameter]
+    public int RowHeight { get; set; } = 50;
 
     [Parameter]
     public bool ShowSearch { get; set; }

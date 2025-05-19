@@ -29,6 +29,10 @@ table th {
     z-index: 2;
 }
 
+td .data-wrapper {
+    overflow-y: auto;
+}
+
 .button-row {
     display: flex;
     flex-direction: row;
