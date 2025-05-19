@@ -27,73 +27,76 @@
     <input class="form-control mt-2 mb-2" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
 }
 
-<table class="table" style="@(Infinite ? $"height:{Height}px; display:block; overflow-y:auto;" : null)">
-    <thead style="@(Infinite ? "position:sticky;top:0;" : null)">
-    <tr>
-        @foreach (var column in Columns)
+<div class="table-wrapper" style="width:100%; overflow-x:auto; @(Infinite ? $"height:{Height}px;overflow-y:auto;" : null)">
+    <table class="table" style="min-width:@(TableMinWidth)px;">
+        <thead style="@(Infinite ? "position:sticky;top:0;z-index:2;" : null)">
+        <tr>
+            @foreach (var column in Columns)
+            {
+                <th @onclick="(() => OnSort(column))"
+                    style="cursor:@(column.Sortable ? "pointer" : "default"); white-space:nowrap; text-align: @column.TextAlign; width: @(column.Width ?? "auto")">
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <span>@column.Name</span>
+                            @if (column.Sortable && _sortField == column.SortField)
+                            {
+                                <i class="bi bi-caret-@(_sortDescending ? "down" : "up")-fill"></i>
+                            }
+                        </span>
+                </th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @if (Infinite)
         {
-            <th @onclick="(() => OnSort(column))" style="cursor:pointer">
-                @column.Name
-                @if (_sortField == column.SortField)
-                {
-                    <i class="bi bi-caret-@(_sortDescending ? "down" : "up")-fill"></i>
-                }
-            </th>
+            <Virtualize @ref="_virtualize" ItemsProvider="ProvideVirtualItems" OverscanCount="20" TItem="TModel">
+                <tr @key="context">
+                    @foreach (var column in Columns)
+                    {
+                        <td>@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</td>
+                    }
+                </tr>
+            </Virtualize>
         }
-    </tr>
-    </thead>
-    <tbody>
-    @if (Infinite)
-    {
-        <Virtualize @ref="_virtualize" ItemsProvider="ProvideVirtualItems" OverscanCount="20" TItem="TModel">
-            <tr @key="context">
-                @foreach (var column in Columns)
-                {
-                    <td>@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</td>
-                }
-            </tr>
-        </Virtualize>
-    }
-    else
-    {
-        @foreach (var item in _pageItems)
+        else
         {
-            <tr @key="@item">
-                @foreach (var column in Columns)
-                {
-                    <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
-                }
-            </tr>
+            @foreach (var item in _pageItems)
+            {
+                <tr @key="@item">
+                    @foreach (var column in Columns)
+                    {
+                        <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
+                    }
+                </tr>
+            }
         }
-    }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+</div>
+
 @if (!Infinite)
 {
     <div class="table-footer">
         <div class="button-row">
-            @if (Engine.IsFirstPage)
+            @if (!Engine.IsFirstPage)
             {
                 <button class="v-btn primary" @onclick="@LoadPreviousPageAsync">Previous</button>
             }
-
             @if (!Engine.IsLastPage)
             {
                 <button class="v-btn primary" @onclick="@LoadNextPageAsync">Next</button>
             }
         </div>
-        <span>Showing items @((Engine.CurrentPageIndex - 1) * PageSize)-@(Math.Min(Engine.CurrentPageIndex * PageSize, Engine.TotalCount)) of @Engine.TotalCount </span>
+        <span>
+            Showing items @((Engine.CurrentPageIndex - 1) * PageSize + 1)-@(Math.Min(Engine.CurrentPageIndex * PageSize, Engine.TotalCount)) of @Engine.TotalCount
+        </span>
     </div>
 }
 
-
 @code {
-    
-
-    
     [Parameter]
     public int PageSize { get; set; } = 50;
-    
+
     [Parameter]
     public ModelQueryEngine<TModel> Engine { get; set; }
 
@@ -111,7 +114,10 @@
 
     [Parameter]
     public string SearchPlaceholder { get; set; } = "Search...";
-    
+
+    [Parameter]
+    public int TableMinWidth { get; set; } = 500;
+
     private IReadOnlyList<TModel> _pageItems;
     private Virtualize<TModel> _virtualize;
     private string _sortField;
@@ -124,7 +130,6 @@
         {
             throw new ArgumentNullException(nameof(Columns));
         }
-        
         await Requery();
     }
 
@@ -135,12 +140,19 @@
             Console.WriteLine($"[QueryEngine ({typeof(TModel).Name})]: Engine is null, cannot requery.");
             return;
         }
-        
+
         Engine.SetFilter("search", _searchTerm, false);
         Engine.SetSort(_sortField, _sortDescending, true);
-        
-        if (_virtualize is not null)
-            await _virtualize.RefreshDataAsync();
+
+        if (Infinite)
+        {
+            if (_virtualize is not null)
+                await _virtualize.RefreshDataAsync();
+        }
+        else
+        {
+            _pageItems = await Engine.GetPageAsync(0, PageSize);
+        }
 
         StateHasChanged();
     }
@@ -151,7 +163,7 @@
         _pageItems = results;
         StateHasChanged();
     }
-    
+
     private async Task LoadPreviousPageAsync()
     {
         var results = await Engine.PreviousPageAsync();
@@ -161,7 +173,7 @@
 
     private async Task OnSort(ColumnDefinition<TModel> column)
     {
-        if (string.IsNullOrEmpty(column.SortField))
+        if (!column.Sortable || string.IsNullOrEmpty(column.SortField))
             return;
 
         if (_sortField == column.SortField)
@@ -173,7 +185,7 @@
             _sortField = column.SortField;
             _sortDescending = false;
         }
-        
+
         await Requery();
     }
 

@@ -16,5 +16,8 @@ public class ColumnDefinition<TModel>
 {
     public string Name { get; set; }
     public string SortField { get; set; }
+    public bool Sortable { get; set; } = false;
+    public string TextAlign { get; set; } = "left";
+    public string Width { get; set; } = "auto";
     public RenderFragment<RowData<TModel>> RenderFragment { get; set; }
 }

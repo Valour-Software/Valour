@@ -24,18 +24,6 @@ public class StaffService : ServiceBase
         SetupLogging(client.Logger, LogOptions);
     }
     
-    public ModelQueryEngine<Report> GetReportPagedReader(UserQueryModel model, int amount = 50)
-    {
-        // TODO
-        var engine =  new ModelQueryEngine<Report>(_client.PrimaryNode, "api/staff/reports", amount);
-        return engine;
-    }
-    
-    public ModelQueryEngine<User> GetUserQueryReader(UserQueryModel model, int amount = 50)
-    {
-        return new ModelQueryEngine<User>(_client.PrimaryNode, "api/users/query", amount);
-    }
-    
     public async Task<TaskResult> SetUserDisabledAsync(long userId, bool value)
     {
         var request = new DisableUserRequest()

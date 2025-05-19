@@ -1,23 +1,18 @@
 @using Valour.Sdk.ModelLogic.QueryEngines
 @inject ValourClient Client
 
-<h3>Members <i class="bi bi-person-fill"></i></h3>
-<p class="subtitle">MANAGE MEMBERS</p>
-
 <QueryTable
     @ref="_table"
     Columns="@_columns"
     Engine="@_engine"
     ShowSearch="true"
     Infinite="true"
+    TableMinWidth="600"
     SearchPlaceholder="Search name..." />
 
 @code {
     [Parameter]
     public Planet Planet { get; set; }
-
-    [CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
 
     private QueryTable<PlanetMember> _table;
     private List<ColumnDefinition<PlanetMember>> _columns;
@@ -47,7 +42,9 @@
                 RenderFragment = row => @<div class="button-row">
                         <button class="v-btn secondary" @onclick="(() => OnKick(row.Row))">Kick</button>
                         <button class="v-btn danger" @onclick="(() => OnBan(row.Row))">Ban</button>
-                    </div>
+                    </div>,
+                TextAlign = "right",
+                Width = "150px"
             }
         };
     }
@@ -55,12 +52,12 @@
     private void OnKick(PlanetMember member)
     {
         var modalData = new KickModal.KickModalParams { Member = member };
-        ModalRoot.OpenModal<KickModal>(modalData);
+        ModalRoot.Instance.OpenModal<KickModal>(modalData);
     }
 
     private void OnBan(PlanetMember member)
     {
         var modalData = new BanModal.BanModalProps { Member = member };
-        ModalRoot.OpenModal<BanModal>(modalData);
+        ModalRoot.Instance.OpenModal<BanModal>(modalData);
     }
 }

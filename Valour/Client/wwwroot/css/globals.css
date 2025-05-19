@@ -869,6 +869,15 @@
     padding: 1rem 0;
 }
 
+td .button-row {
+    display: flex;
+    gap: 0.5em;
+}
+
+td .button-row button {
+    flex-grow: 1;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
     .input-group {
