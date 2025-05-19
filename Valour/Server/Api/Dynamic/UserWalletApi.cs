@@ -68,7 +68,7 @@ public class UserWalletApi
     [ValourRoute(HttpVerbs.Post, "api/userWallet/verifyWallet")]
     [UserRequired(UserPermissionsEnum.View)]
     public static async Task<IResult> UserHasWallet([FromQuery] string publicKey,
-        IWalletService walletService,TokenService tokenService,
+        IWalletService walletService, TokenService tokenService,
         ILogger<UserWalletApi> logger)
     {
         var token = await tokenService.GetCurrentTokenAsync();
@@ -84,7 +84,7 @@ public class UserWalletApi
             return Results.BadRequest(new { error = "Missing publicKey" });
         }
         
-        var success = await walletService.IsWalletRegistered(publicKey, token.UserId);
+        var success = await walletService.IsConnected(publicKey, token.UserId);
         return Results.Ok(success);
     }
 

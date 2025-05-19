@@ -53,7 +53,6 @@
     private static IJSInProcessObjectReference _module;
     private static DotNetObjectReference<EditWalletComponent> _thisRef;
     private static IJSInProcessObjectReference _jsService;
-    private string _publicKey = "";
     private ITaskResult _result;
     private long _vlrcBalance = 0;
     private bool _isLoading = true;
@@ -87,55 +86,41 @@
 
     private async Task OnSolConnect()
     {
-            _publicKey = await JsRuntime.InvokeAsync<string>("getPublicKeyFromWallet");
-            var retries = 0;
-            while (string.IsNullOrEmpty(_publicKey) && retries < 10)
-            {
-                await Task.Delay(1000);
-                _publicKey = await JsRuntime.InvokeAsync<string>("getPublicKeyFromWallet");
-                retries++;
-            }
-             await LocalStorage.SetItemAsync("publicKey",_publicKey);
-             _publicKey = await _jsService.InvokeAsync<string>("getPublicKeyFromWallet");
-             var walletProvider = await _jsService.InvokeAsync<string>("getWalletName");
-             await LocalStorage.SetItemAsync("publicKey",_publicKey);
-             
-            _result = new TaskResult();
-            var nonce = await WalletService.SyncWithWallet();
-            if (string.IsNullOrEmpty(nonce))
-            {
-                _result.Message = $"Nonce invalid: {nonce}";
-                _result.Details = $"The nonce is empty";
-                return;
-            }
-            var signature = await JsRuntime.InvokeAsync<string>("signMessageWithWallet", nonce);
-            var signature = await _jsService.InvokeAsync<string>("signMessageWithWallet", nonce);
-            
-            if (string.IsNullOrEmpty(signature))
-            {
-                _result.Message = "Error signing the nonce";
-                _result.Details = "Error signing the nonce, the operation was likely rejected."; 
-                await _jsService.InvokeVoidAsync("disconnectWallet");
-                return;
-            }
-
-            var vlrc = await JsRuntime.InvokeAsync<string>("getTokenBalance", _publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
-            
-            var vlrc = await _jsService.InvokeAsync<string>("getTokenBalance", _publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
-          
-            var verifyResponse = await WalletService.SignNonce(_publicKey, nonce, signature,vlrc);
-            if (verifyResponse)
-            var verifyResponse = await WalletService.SignNonce(_publicKey, nonce, signature,vlrc,walletProvider);
-            if (verifyResponse.Success)
-            {
-                _isSolConnected = true;
-                _result.Success = true;
-                _result.Message = verifyResponse.Message;
-                _result.Details = verifyResponse.Details;
-                return;
-            }
+         _publicKey = await _jsService.InvokeAsync<string>("getPublicKeyFromWallet");
+         var walletProvider = await _jsService.InvokeAsync<string>("getWalletName");
+         await LocalStorage.SetItemAsync("publicKey",_publicKey);
+         
+        _result = new TaskResult();
+        var nonce = await WalletService.SyncWithWallet();
+        if (string.IsNullOrEmpty(nonce))
+        {
+            _result.Message = $"Nonce invalid: {nonce}";
+            _result.Details = $"The nonce is empty";
+            return;
+        }
+        var signature = await _jsService.InvokeAsync<string>("signMessageWithWallet", nonce);
+        
+        if (string.IsNullOrEmpty(signature))
+        {
+            _result.Message = "Error signing the nonce";
+            _result.Details = "Error signing the nonce, the operation was likely rejected."; 
+            await _jsService.InvokeVoidAsync("disconnectWallet");
+            return;
+        }
+        
+        var vlrc = await _jsService.InvokeAsync<string>("getTokenBalance", _publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
+      
+        var verifyResponse = await WalletService.SignNonce(_publicKey, nonce, signature, vlrc, walletProvider);
+        if (verifyResponse.Success)
+        {
+            _isSolConnected = true;
+            _result.Success = true;
             _result.Message = verifyResponse.Message;
             _result.Details = verifyResponse.Details;
+            return;
+        }
+        _result.Message = verifyResponse.Message;
+        _result.Details = verifyResponse.Details;
     }
             
           
@@ -143,7 +128,6 @@
 
     private async Task OnSolDisconnect()
     {
-        await JsRuntime.InvokeVoidAsync("disconnectWallet");
         await _jsService.InvokeVoidAsync("disconnectWallet");
         _isSolConnected = false;
         await WalletService.DisconnectWallet(_publicKey);
@@ -166,8 +150,6 @@
 
         if (!string.IsNullOrEmpty(_publicKey))
         {
-            var isConnectedResponse = await WalletService.CheckWalletConnection(_publicKey);
-            if (isConnectedResponse)
             var isConnectedResponse = await WalletService.CheckWalletConnection(_publicKey);
             if (isConnectedResponse.Success)
             { 
