@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -195,14 +196,15 @@ public class PlanetMemberService
 
     public async Task<QueryResponse<PlanetMember>> QueryPlanetMembersAsync(
         long planetId,
-        int skip = 0,
-        int take = 50,
-        string search = null,
-        string sortField = null,
-        bool sortDesc = false)
+        QueryRequest queryRequest)
     {
+        var take = queryRequest.Take;
         if (take > 50)
             take = 50;
+        
+        var skip = queryRequest.Skip;
+        
+        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
 
         var query = _db.PlanetMembers
             .AsNoTracking()
@@ -219,7 +221,8 @@ public class PlanetMemberService
                  EF.Functions.ILike(x.User.Name.ToLower(), $"%{lowered}%"));
         }
 
-        query = sortField switch
+        var sortDesc = queryRequest.Options?.Sort?.Descending ?? false;
+        query = queryRequest.Options?.Sort?.Field switch
         {
             "name" => sortDesc
                 ? query.OrderByDescending(x => x.User.Name)

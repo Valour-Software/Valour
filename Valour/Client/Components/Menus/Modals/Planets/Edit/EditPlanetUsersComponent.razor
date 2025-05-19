@@ -1,3 +1,4 @@
+@using Valour.Sdk.ModelLogic.QueryEngines
 @inject ValourClient Client
 
 <h3>Members <i class="bi bi-person-fill"></i></h3>
@@ -5,11 +6,10 @@
 
 <QueryTable
     @ref="_table"
-    Node="@Planet.Node"
-    TModel="PlanetMember"
     Columns="@_columns"
-    Model="@_model"
+    Engine="@_engine"
     ShowSearch="true"
+    Infinite="true"
     SearchPlaceholder="Search name..." />
 
 @code {
@@ -21,12 +21,12 @@
 
     private QueryTable<PlanetMember> _table;
     private List<ColumnDefinition<PlanetMember>> _columns;
-    private PlanetMemberQueryModel _model;
+    private PlanetMemberQueryEngine _engine;
 
     protected override void OnInitialized()
     {
         Planet ??= WindowService.FocusedPlanet;
-        _model = new PlanetMemberQueryModel { PlanetId = Planet.Id };
+        _engine = new PlanetMemberQueryEngine(Planet);
 
         _columns = new()
         {

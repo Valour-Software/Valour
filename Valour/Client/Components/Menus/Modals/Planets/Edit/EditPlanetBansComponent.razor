@@ -1,3 +1,4 @@
+@using Valour.Sdk.ModelLogic.QueryEngines
 @inject ValourClient Client
 
 <h3>Bans <i class="bi bi-shield-fill-exclamation"></i></h3>
@@ -5,10 +6,11 @@
 
 <QueryTable
     @ref="_table"
-    Node="@Planet.Node"
-    TModel="PlanetBan"
     Columns="@_columns"
-    Model="@_model" />
+    Engine="@_engine"
+    ShowSearch="true"
+    Infinite="true"
+    SearchPlaceholder="Search name..."/>
 
 <ResultLabel Result="@_result" />
 
@@ -22,11 +24,12 @@
     private ITaskResult _result;
     private QueryTable<PlanetBan> _table;
     private List<ColumnDefinition<PlanetBan>> _columns;
-    private PlanetBanQueryModel _model;
+    private PlanetBanQueryEngine _engine;
+    
     protected override void OnInitialized()
     {
         Planet ??= WindowService.FocusedPlanet;
-        _model = new PlanetBanQueryModel { PlanetId = Planet.Id };
+        _engine = new PlanetBanQueryEngine(Planet);
 
         _columns = new()
         {

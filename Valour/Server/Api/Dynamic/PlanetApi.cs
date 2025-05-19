@@ -1,7 +1,10 @@
+#nullable enable
+
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -193,19 +196,16 @@ public class PlanetApi
         return Results.Json(memberInfo);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/members")]
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/members")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/members/query")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> GetMembersRouteAsync(
-        [FromBody] PlanetMemberQueryModel? queryModel,
+    public static async Task<IResult> QueryMembersRouteAsync(
+        [FromBody] QueryRequest? queryRequest,
         long id,
-        PlanetMemberService memberService,
-        int skip = 0,
-        int take = 50,
-        string sortField = null,
-        bool sortDesc = false,
-        string search = null)
+        PlanetMemberService memberService)
     {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+        
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
             return ValourResult.NotPlanetMember();
@@ -213,14 +213,7 @@ public class PlanetApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
-        if (queryModel is not null)
-        {
-            sortField = queryModel.Sort?.Field ?? sortField;
-            sortDesc = queryModel.Sort?.Descending ?? sortDesc;
-            search = queryModel.Filter?.Search ?? search;
-        }
-
-        var members = await memberService.QueryPlanetMembersAsync(id, skip, take, search, sortField, sortDesc);
+        var members = await memberService.QueryPlanetMembersAsync(id, queryRequest);
 
         return Results.Json(members);
     }
@@ -366,35 +359,25 @@ public class PlanetApi
         return Results.Json(inviteIds);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/bans")]
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/bans")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/bans/query")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> GetBansRouteAsync(
-        [FromBody] PlanetBanQueryModel? queryModel,
-        long id,
+    public static async Task<IResult> QueryBansRouteAsync(
+        [FromBody] QueryRequest? queryRequest,
+        long planetId,
         PlanetMemberService memberService,
-        PlanetBanService banService,
-        int skip = 0,
-        int take = 50,
-        string sortField = null,
-        bool sortDesc = false,
-        string search = null)
+        PlanetBanService banService)
     {
-        var member = await memberService.GetCurrentAsync(id);
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+        
+        var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
-        if (queryModel is not null)
-        {
-            sortField = queryModel.Sort?.Field ?? sortField;
-            sortDesc = queryModel.Sort?.Descending ?? sortDesc;
-            search = queryModel.Filter?.Search ?? search;
-        }
-
-        var bans = await banService.QueryPlanetBansAsync(id, skip, take, search, sortField, sortDesc);
+        var bans = await banService.QueryPlanetBansAsync(planetId, queryRequest);
 
         return Results.Json(bans);
     }
