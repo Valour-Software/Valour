@@ -6,6 +6,7 @@
 
 <QueryTable
     @ref="_table"
+    TableMinWidth="1100"
     Columns="@_columns"
     Engine="@_engine"
     ShowSearch="true"
@@ -37,12 +38,14 @@
             {
                 Name = "User",
                 SortField = "user",
-                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.TargetId" />
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.TargetId" />,
+                Width = "250px"
             },
             new()
             {
                 Name = "Banned By",
-                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.IssuerId" />
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.IssuerId" />,
+                Width = "250px"
             },
             new()
             {
@@ -61,7 +64,8 @@
                 RenderFragment = row => @<div class="button-row">
                         <button class="v-btn secondary" @onclick="(() => OnEdit(row.Row))">Edit</button>
                         <button class="v-btn danger" @onclick="(() => OnDelete(row.Row))">Delete</button>
-                    </div>
+                    </div>,
+                Width = "150px",
             }
         };
     }
