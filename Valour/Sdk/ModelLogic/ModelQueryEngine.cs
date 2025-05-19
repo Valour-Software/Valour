@@ -111,6 +111,11 @@ public class ModelQueryEngine<TModel> : IModelQueryEngine<TModel>, IAsyncEnumera
         _currentPageIndex = 0;
         _currentPage = null;
         _totalCount = null;
+        
+        // Reset cache
+        _cacheStartIndex = 0;
+        Array.Clear(_cache, 0, _cacheSize);
+        _fetchedRanges.Clear();
     }
 
     // --- Paged API ---

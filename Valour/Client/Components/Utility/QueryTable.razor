@@ -27,7 +27,7 @@
     <input class="form-control mt-2 mb-2" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
 }
 
-<div class="table-wrapper" style="width:100%; overflow-x:auto; @(Infinite ? $"height:{Height}px;overflow-y:auto;" : null)">
+<div class="table-wrapper" style="width:100%; overflow-x:auto; @(Infinite ? $"height:{Height};overflow-y:auto;" : null)">
     <table class="table" style="min-width:@(TableMinWidth)px;">
         <thead style="@(Infinite ? "position:sticky;top:0;z-index:2;" : null)">
         <tr>
@@ -107,7 +107,7 @@
     public bool Infinite { get; set; } = false;
 
     [Parameter]
-    public int Height { get; set; } = 300;
+    public string Height { get; set; } = "auto";
 
     [Parameter]
     public bool ShowSearch { get; set; }
@@ -141,9 +141,12 @@
             return;
         }
 
+        Engine.ResetPaging();
         Engine.SetFilter("search", _searchTerm, false);
         Engine.SetSort(_sortField, _sortDescending, true);
-
+        
+        _pageItems = null;
+        
         if (Infinite)
         {
             if (_virtualize is not null)
