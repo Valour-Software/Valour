@@ -55,10 +55,14 @@ public class UserApi
     [ValourRoute(HttpVerbs.Put, "api/users/{id}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> PutRouteAsync(
-        [FromBody] User user, 
+        [FromBody] User user,
+        long id,
         UserService userService)
     {
         var currentUser = await userService.GetCurrentUserAsync();
+
+        if (user.Id != id)
+            return ValourResult.BadRequest("Route id does not match user id");
 
         // Unlike most other entities, we are just copying over a few fields here and
         // ignoring the rest. There are so many things that *should not* be touched by

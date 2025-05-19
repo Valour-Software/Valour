@@ -277,6 +277,7 @@ public class PlanetPermissionService
         
         RoleListPool.Return(roles);
         var result = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, access);
+        PlanetPermissionsCache.AccessListPool.Return(access);
         return result;
     }
 

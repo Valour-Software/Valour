@@ -37,7 +37,7 @@ public class UserWalletApi
             return Results.Problem("Problem");
         }
     }
-    
+
     [ValourRoute(HttpVerbs.Post, "api/userWallet/signature")]
     [UserRequired(UserPermissionsEnum.View)]
     public static async Task<IResult> GenerateSignature(
@@ -45,26 +45,49 @@ public class UserWalletApi
         IWalletService walletService,
         TokenService tokenService)
     {
-            if (!data.TryGetProperty("Nonce", out var nonceProp) ||
-                !data.TryGetProperty("PublicKey", out var publicKeyProp) ||
-                !data.TryGetProperty("Signature", out var signatureProp)||
-                !data.TryGetProperty("Vlrc", out var vlrcProp)|| 
-                !data.TryGetProperty("Provider", out var providerProp))
-            {
-                return Results.BadRequest(new { error = " Missing required fields." });
-            }
+        if (!data.TryGetProperty("Nonce", out var nonceProp) ||
+            !data.TryGetProperty("PublicKey", out var publicKeyProp) ||
+            !data.TryGetProperty("Signature", out var signatureProp) ||
+            !data.TryGetProperty("Vlrc", out var vlrcProp) ||
+            !data.TryGetProperty("Provider", out var providerProp))
+        {
+            return Results.BadRequest(new { error = " Missing required fields." });
+        }
 
-            var vlrc = vlrcProp.GetString();
-            var nonce = nonceProp.GetString();
-            var publicKey = publicKeyProp.GetString();
-            var signature = signatureProp.GetString();
-            var token = await tokenService.GetCurrentTokenAsync();
-            var provider = providerProp.GetString();
-            
-            var success = await walletService.RegisterWallet(token.UserId, nonce, publicKey, signature,vlrc,provider);
-            return Results.Ok(success);
+        var vlrc = vlrcProp.GetString();
+        var nonce = nonceProp.GetString();
+        var publicKey = publicKeyProp.GetString();
+        var signature = signatureProp.GetString();
+        var token = await tokenService.GetCurrentTokenAsync();
+        var provider = providerProp.GetString();
 
+        var success = await walletService.RegisterWallet(token.UserId, nonce, publicKey, signature, vlrc, provider);
+        return Results.Ok(success);
     }
+
+    [ValourRoute(HttpVerbs.Post, "api/userWallet/verifyWallet")]
+    [UserRequired(UserPermissionsEnum.View)]
+    public static async Task<IResult> UserHasWallet([FromQuery] string publicKey,
+        IWalletService walletService,TokenService tokenService,
+        ILogger<UserWalletApi> logger)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        if (token == null)
+        {
+            logger.LogInformation("Token is null. User is probably not authenticated.");
+            return Results.Unauthorized();
+        }
+
+        if (string.IsNullOrEmpty(publicKey))
+        {
+            logger.LogInformation("PublicKey was null or empty.");
+            return Results.BadRequest(new { error = "Missing publicKey" });
+        }
+        
+        var success = await walletService.IsWalletRegistered(publicKey, token.UserId);
+        return Results.Ok(success);
+    }
+
     
     [ValourRoute(HttpVerbs.Post, "api/userWallet/disconnect")]
     [UserRequired(UserPermissionsEnum.View)]
