@@ -3,7 +3,9 @@
 @inject ThemeService ThemeService
 
 @using System.Net.Http.Headers
+@using Valour.Sdk.ModelLogic.QueryEngines
 @using Valour.Shared.Extensions
+@using Valour.Shared.Queries
 
 @* Editing page *@
 @if (_editingTheme is not null)
@@ -269,7 +271,7 @@ else
     private Carousel<ThemeCard> _popularCarousel;
     private Carousel<ThemeCard> _myCarousel;
 
-    private PagedReader<ThemeMeta> _popularThemes;
+    private ThemeMetaQueryEngine _popularThemes;
     private int _popularThemeCount = -1;
     
     private List<ThemeMeta> _myThemes;
@@ -288,7 +290,7 @@ else
         
         // Load first page of popular themes
         var res = await _popularThemes.NextPageAsync();
-        _popularThemeCount = res.TotalCount;
+        _popularThemeCount = _popularThemes.TotalCount;
         
         StateHasChanged();
     }
@@ -312,7 +314,8 @@ else
     {
         Client.Logger.Log<EditThemeComponent>($"New search: {e.Value}", "cyan");
         
-        _popularThemes.SetParameter("search", e.Value?.ToString());
+        _popularThemes.SetFilter("name", e.Value?.ToString());
+
         if (_popularCarousel is not null)
         {
             await _popularCarousel.Reset();
@@ -340,7 +343,7 @@ else
 
     private async Task<Dictionary<string, object>> GetPopularThemeParamsAsync(int index)
     {
-        var theme = await _popularThemes.AtIndexAsync(index);
+        var theme = await _popularThemes.GetAtIndexAsync(index);
 
         return new Dictionary<string, object>()
         {

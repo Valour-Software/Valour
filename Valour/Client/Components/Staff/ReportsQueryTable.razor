@@ -1,9 +1,11 @@
+@using Valour.Sdk.ModelLogic.QueryEngines
+@inject ValourClient Client
 @inject StaffService StaffService
 
 <QueryTable
-    TModel="Report"
     Columns="@_columns"
-    Model="@_queryModel"
+    Engine="@_engine"
+    Infinite="true"
 />
 
 @code {
@@ -11,12 +13,14 @@
     [CascadingParameter]
     public ModalRoot Modal { get; set; }
 
-    private ReportQueryModel _queryModel = new();
+    private StaffReportQueryEngine _engine;
 
     private List<ColumnDefinition<Report>> _columns;
 
     protected override void OnInitialized()
     {
+        _engine = new StaffReportQueryEngine(Client.PrimaryNode);
+        
         _columns = new()
         {
             new ()

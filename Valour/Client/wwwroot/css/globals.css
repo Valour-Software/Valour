@@ -795,7 +795,6 @@
 /* Setting container */
 .settings-container {
     max-width: 800px;
-    margin: 0 auto;
     padding: 0.5rem;
     display: flex;
     flex-direction: column;
@@ -867,6 +866,15 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 0;
+}
+
+td .button-row {
+    display: flex;
+    gap: 0.5em;
+}
+
+td .button-row button {
+    flex-grow: 1;
 }
 
 /* Mobile responsiveness */

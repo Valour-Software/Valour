@@ -1,10 +1,11 @@
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
-public class Report : ISharedReport
+public class Report : ClientModel<Report, string>, ISharedReport
 {
     /// <summary>
     /// Guid Id of the report
@@ -50,4 +51,14 @@ public class Report : ISharedReport
     /// If the report has been reviewed by a moderator
     /// </summary>
     public bool Reviewed { get; set; }
+
+    public override Report AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
+    {
+        return this;
+    }
+    
+    public override Report RemoveFromCache(bool skipEvents = false)
+    {
+        return this;
+    }
 }

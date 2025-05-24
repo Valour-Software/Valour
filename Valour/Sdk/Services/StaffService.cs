@@ -1,4 +1,5 @@
 ﻿using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -21,16 +22,6 @@ public class StaffService : ServiceBase
     {
         _client = client;
         SetupLogging(client.Logger, LogOptions);
-    }
-    
-    public PagedReader<Report> GetReportPagedReader(ReportQueryModel model, int amount = 50)
-    {
-        return new PagedReader<Report>(_client.PrimaryNode, "api/staff/reports", amount, postData: model);
-    }
-    
-    public PagedReader<User> GetUserQueryReader(UserQueryModel model, int amount = 50)
-    {
-        return new PagedReader<User>(_client.PrimaryNode, "api/users/query", amount, postData: model);
     }
     
     public async Task<TaskResult> SetUserDisabledAsync(long userId, bool value)

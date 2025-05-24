@@ -65,7 +65,7 @@
                         <Virtualize @ref="_planetVirtualize" TItem="EcoAccount" ItemsProvider="@_sharedAccountProvider.GetVirtualizedItemsAsync" OverscanCount="20">
                             <tr @key="@context.Id">
                                 <td><input class="v-input" @bind="@context.Name"/></td>
-                                <td>@Currency.Format(@context.BalanceValue)</td>
+                                <td>@Currency.Format(@context.BalanceValue)</td> 
 
                                 <td>
                                     <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">

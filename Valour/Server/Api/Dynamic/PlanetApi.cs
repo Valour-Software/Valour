@@ -1,7 +1,10 @@
+#nullable enable
+
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -193,6 +196,28 @@ public class PlanetApi
         return Results.Json(memberInfo);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/members/query")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> QueryMembersRouteAsync(
+        [FromBody] QueryRequest? queryRequest,
+        long id,
+        PlanetMemberService memberService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+        
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var members = await memberService.QueryPlanetMembersAsync(id, queryRequest);
+
+        return Results.Json(members);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRolesRouteAsync(
@@ -332,6 +357,29 @@ public class PlanetApi
 
         var inviteIds = await planetService.GetInviteIdsAsync(id);
         return Results.Json(inviteIds);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/bans/query")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> QueryBansRouteAsync(
+        [FromBody] QueryRequest? queryRequest,
+        long planetId,
+        PlanetMemberService memberService,
+        PlanetBanService banService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+        
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var bans = await banService.QueryPlanetBansAsync(planetId, queryRequest);
+
+        return Results.Json(bans);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]

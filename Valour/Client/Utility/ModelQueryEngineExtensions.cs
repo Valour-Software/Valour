@@ -5,7 +5,7 @@ namespace Valour.Client.Utility;
 
 public static class ModelQueryEngineExtensions
 {
-    public static async ValueTask<ItemsProviderResult<TModel>> GetVirtualizedItemsAsync<TModel>(this ModelQueryEngine<TModel> engine, ItemsProviderRequest request)
+    public static async ValueTask<ItemsProviderResult<TModel>> GetVirtualizedItemsAsync<TModel>(this IModelQueryEngine<TModel> engine, ItemsProviderRequest request)
         where TModel : ClientModel<TModel>
     {
         var queryData = await engine.GetItemsAsync(request.StartIndex, request.Count);

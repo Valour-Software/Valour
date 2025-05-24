@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -191,6 +192,57 @@ public class PlanetMemberService
     public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
     {
         return await _permissionService.HasPlanetPermissionAsync(member.Id, permission);
+    }
+
+    public async Task<QueryResponse<PlanetMember>> QueryPlanetMembersAsync(
+        long planetId,
+        QueryRequest queryRequest)
+    {
+        var take = queryRequest.Take;
+        if (take > 50)
+            take = 50;
+        
+        var skip = queryRequest.Skip;
+        
+        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
+
+        var query = _db.PlanetMembers
+            .AsNoTracking()
+            .Include(x => x.User)
+            .Where(x => x.PlanetId == planetId && !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(x =>
+                (!string.IsNullOrEmpty(x.Nickname) &&
+                 EF.Functions.ILike(x.Nickname.ToLower(), $"%{lowered}%")) ||
+                 EF.Functions.ILike((x.User.Name.ToLower() + "#" + x.User.Tag), $"%{lowered}%") ||
+                 EF.Functions.ILike(x.User.Name.ToLower(), $"%{lowered}%"));
+        }
+
+        var sortDesc = queryRequest.Options?.Sort?.Descending ?? false;
+        query = queryRequest.Options?.Sort?.Field switch
+        {
+            "name" => sortDesc
+                ? query.OrderByDescending(x => x.User.Name)
+                : query.OrderBy(x => x.User.Name),
+            _ => query.OrderBy(x => x.Id)
+        };
+
+        var total = await query.CountAsync();
+
+        var items = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+        return new QueryResponse<PlanetMember>
+        {
+            Items = items,
+            TotalCount = total
+        };
     }
 
     /// <summary>
