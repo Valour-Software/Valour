@@ -28,4 +28,7 @@ public class AutomodService : ServiceBase
 
     public ModelQueryEngine<AutomodTrigger> GetTriggerQueryEngine(Planet planet) =>
         new ModelQueryEngine<AutomodTrigger>(planet.Node, $"api/planets/{planet.Id}/automod/triggers/query");
+
+    public ModelQueryEngine<AutomodAction> GetActionQueryEngine(Planet planet, Guid triggerId) =>
+        new ModelQueryEngine<AutomodAction>(planet.Node, $"api/planets/{planet.Id}/automod/triggers/{triggerId}/actions/query");
 }

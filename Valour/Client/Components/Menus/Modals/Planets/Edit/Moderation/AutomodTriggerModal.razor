@@ -1,0 +1,151 @@
+@inherits Modal<AutomodTriggerModal.ModalParams>
+@using Valour.Sdk.Models
+@using Valour.Shared.Models.Staff
+@inject ValourClient Client
+
+<BasicModalLayout Title="@(_isNew ? "Add Trigger" : "Edit Trigger")" Icon="shield-lock-fill" MaxWidth="600px">
+    <MainArea>
+        <div class="form-group mt-2">
+            <label>Name</label>
+            <input class="form-control" @bind="_trigger.Name" />
+        </div>
+        @if (ShowTriggerWords)
+        {
+            <div class="form-group mt-2">
+                <label>@TriggerWordsLabel</label>
+                <input class="form-control" @bind="_trigger.TriggerWords" />
+            </div>
+        }
+        <div class="form-group mt-2">
+            <label>Type</label>
+            <select class="form-control" @bind="_trigger.Type">
+                @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+        </div>
+
+        <p class="subtitle mt-3">ACTIONS</p>
+        <QueryTable
+            @ref="_actionTable"
+            Columns="@_actionColumns"
+            Engine="@_actionEngine"
+            Infinite="true"
+            Height="200px"
+            RowHeight="40" />
+
+        <button class="v-btn mt-2" @onclick="OnAddAction">Add Action</button>
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="Close">Cancel</button>
+            <button class="v-btn primary" @onclick="OnSave">Save</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public Planet Planet { get; set; }
+        public AutomodTrigger? Trigger { get; set; }
+    }
+
+    private AutomodTrigger _trigger;
+    private bool _isNew;
+    private ITaskResult _result;
+
+    private QueryTable<AutomodAction> _actionTable;
+    private List<ColumnDefinition<AutomodAction>> _actionColumns;
+    private ModelQueryEngine<AutomodAction> _actionEngine;
+
+    private bool ShowTriggerWords =>
+        _trigger.Type == AutomodTriggerType.Blacklist || _trigger.Type == AutomodTriggerType.Command;
+
+    private string TriggerWordsLabel => _trigger.Type switch
+    {
+        AutomodTriggerType.Blacklist => "Trigger Words (comma separated)",
+        AutomodTriggerType.Command => "Command Name",
+        _ => string.Empty
+    };
+
+    protected override void OnInitialized()
+    {
+        _isNew = Data.Trigger is null;
+        if (Data.Trigger is not null)
+        {
+            _trigger = Data.Trigger;
+            _actionEngine = Client.AutomodService.GetActionQueryEngine(Data.Planet, _trigger.Id);
+        }
+        else
+        {
+            _trigger = new AutomodTrigger(Client) { PlanetId = Data.Planet.Id };
+            _actionEngine = Client.AutomodService.GetActionQueryEngine(Data.Planet, _trigger.Id);
+        }
+
+        _actionColumns = new()
+        {
+            new()
+            {
+                Name = "Type",
+                RenderFragment = row => @<span>@row.Row.ActionType</span>
+            },
+            new()
+            {
+                Name = "Reason",
+                RenderFragment = row => @<span>@row.Row.Reason</span>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn danger" @onclick="(() => RemoveAction(row.Row))">Remove</button>
+                    </div>,
+                Width = "120px"
+            }
+        };
+    }
+
+    private async Task OnSave()
+    {
+        TaskResult<AutomodTrigger> res;
+        if (_isNew)
+        {
+            _trigger.PlanetId = Data.Planet.Id;
+            res = await Client.AutomodService.CreateTriggerAsync(_trigger);
+        }
+        else
+        {
+            res = await _trigger.UpdateAsync();
+        }
+        _result = res;
+        if (res.Success)
+            Close();
+    }
+
+    private void OnAddAction()
+    {
+        var data = new AutomodActionModal.ModalParams
+        {
+            Planet = Data.Planet,
+            Trigger = _trigger,
+            Action = null,
+            OnSaved = async () =>
+            {
+                if (_actionTable is not null)
+                    await _actionTable.Requery();
+            }
+        };
+        ModalRoot.OpenModal<Moderation.AutomodActionModal>(data);
+    }
+
+    private async Task RemoveAction(AutomodAction action)
+    {
+        var result = await action.DeleteAsync();
+        _result = result;
+        if (result.Success && _actionTable is not null)
+            await _actionTable.Requery();
+    }
+}
