@@ -87,6 +87,8 @@ public class AutomodService
         try
         {
             await _db.AutomodTriggers.AddAsync(trigger.ToDatabase());
+            await _db.SaveChangesAsync();
+            
             if (actions.Count > 0)
                 await _db.AutomodActions.AddRangeAsync(actions.Select(x => x.ToDatabase()));
             await _db.SaveChangesAsync();
