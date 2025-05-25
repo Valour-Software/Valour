@@ -23,6 +23,8 @@ public class MessageService
     private readonly HttpClient _http;
     private readonly ChatCacheService _chatCacheService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly AutomodService _automodService;
+    private readonly PlanetPermissionService _permissionService;
 
     public MessageService(
         ILogger<MessageService> logger,
@@ -30,10 +32,12 @@ public class MessageService
         NodeLifecycleService nodeLifecycleService, 
         NotificationService notificationService, 
         IHttpClientFactory http, 
-        CoreHubService coreHubService, 
-        ChannelService channelService, 
-        PlanetService planetService, 
-        ChatCacheService chatCacheService, HostedPlanetService hostedPlanetService)
+        CoreHubService coreHubService,
+        ChannelService channelService,
+        PlanetService planetService,
+        ChatCacheService chatCacheService, HostedPlanetService hostedPlanetService,
+        AutomodService automodService,
+        PlanetPermissionService permissionService)
     {
         _logger = logger;
         _db = db;
@@ -45,6 +49,8 @@ public class MessageService
         _planetService = planetService;
         _chatCacheService = chatCacheService;
         _hostedPlanetService = hostedPlanetService;
+        _automodService = automodService;
+        _permissionService = permissionService;
     }
     
     /// <summary>
@@ -238,11 +244,14 @@ public class MessageService
             {
                 await _notificationService.HandleMentionAsync(mention, planet, message, member, user, channel);
             }
-            
+
             // Serialize mentions to the message
             message.MentionsData = JsonSerializer.Serialize(mentions);
         }
-        
+
+        if (!await _automodService.ScanMessageAsync(message, member))
+            return TaskResult<Message>.FromFailure("Message blocked by automod.");
+
         // Add to chat caches
         _chatCacheService.AddMessage(message);
         

@@ -502,6 +502,7 @@ public enum PlanetPermissionsEnum
     ManageCurrency,
     ManageEcoAccounts,
     ForceTransactions,
+    BypassAutomod,
 }
 
 /// <summary>
@@ -537,8 +538,9 @@ public static class PlanetPermissions
                 ManageCurrency,
                 ManageEcoAccounts,
                 ForceTransactions,
-                
+
                 MentionAll,
+                BypassAutomod,
         };
     }
 
@@ -561,6 +563,7 @@ public static class PlanetPermissions
     public static readonly PlanetPermission ForceTransactions = new PlanetPermission(0x800, "Force Transactions", "Allow members to force transactions in the planet.");
 
     public static readonly PlanetPermission MentionAll = new PlanetPermission(0x1000, "Mention All", "Allow members to mention all roles.");
+    public static readonly PlanetPermission BypassAutomod = new PlanetPermission(0x2000, "Bypass Automod", "Ignore automod triggers for members with this role.");
 }
 
 public enum PermissionState

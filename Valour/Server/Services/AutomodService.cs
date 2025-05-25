@@ -1,8 +1,12 @@
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using Valour.Server.Database;
-using Valour.Shared;
-using Valour.Shared.Queries;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
+using Microsoft.Extensions.DependencyInjection;
+using Valour.Shared;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -11,15 +15,21 @@ public class AutomodService
     private readonly ValourDb _db;
     private readonly ILogger<AutomodService> _logger;
     private readonly CoreHubService _coreHub;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly PlanetPermissionService _permissionService;
 
     public AutomodService(
         ValourDb db,
         ILogger<AutomodService> logger,
-        CoreHubService coreHub)
+        CoreHubService coreHub,
+        IServiceProvider serviceProvider,
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
+        _serviceProvider = serviceProvider;
+        _permissionService = permissionService;
     }
 
     public async Task<AutomodTrigger?> GetTriggerAsync(Guid id) =>
@@ -98,5 +108,147 @@ public class AutomodService
 
         _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
         return new(true, "Success", action);
+    }
+
+    private readonly ConcurrentDictionary<long, List<AutomodTrigger>> _triggerCache = new();
+    private readonly ConcurrentDictionary<Guid, List<AutomodAction>> _actionCache = new();
+
+    private async Task<List<AutomodTrigger>> GetCachedTriggersAsync(long planetId)
+    {
+        if (_triggerCache.TryGetValue(planetId, out var cached))
+            return cached;
+
+        var triggers = await _db.AutomodTriggers.Where(x => x.PlanetId == planetId)
+            .Select(x => x.ToModel()).ToListAsync();
+        _triggerCache[planetId] = triggers;
+        return triggers;
+    }
+
+    private async Task<List<AutomodAction>> GetCachedActionsAsync(Guid triggerId)
+    {
+        if (_actionCache.TryGetValue(triggerId, out var cached))
+            return cached;
+
+        var actions = await _db.AutomodActions.Where(x => x.TriggerId == triggerId)
+            .Select(x => x.ToModel()).ToListAsync();
+        _actionCache[triggerId] = actions;
+        return actions;
+    }
+
+    private async Task RunActionsAsync(IEnumerable<AutomodAction> actions, PlanetMember member, Message? message)
+    {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var memberService = scope.ServiceProvider.GetRequiredService<PlanetMemberService>();
+        var banService = scope.ServiceProvider.GetRequiredService<PlanetBanService>();
+        var messageService = scope.ServiceProvider.GetRequiredService<MessageService>();
+
+        foreach (var action in actions)
+        {
+            switch (action.ActionType)
+            {
+                case AutomodActionType.Kick:
+                    await memberService.DeleteAsync(member.Id);
+                    break;
+                case AutomodActionType.Ban:
+                    var ban = new PlanetBan
+                    {
+                        Id = IdManager.Generate(),
+                        PlanetId = member.PlanetId,
+                        TargetId = member.UserId,
+                        IssuerId = action.MemberAddedBy,
+                        Reason = action.Reason,
+                        TimeCreated = DateTime.UtcNow,
+                        TimeExpires = action.Expires
+                    };
+                    await banService.CreateAsync(ban, member);
+                    break;
+                case AutomodActionType.AddRole:
+                    if (action.RoleId.HasValue)
+                        await memberService.AddRoleAsync(member.PlanetId, member.Id, action.RoleId.Value);
+                    break;
+                case AutomodActionType.RemoveRole:
+                    if (action.RoleId.HasValue)
+                        await memberService.RemoveRoleAsync(member.PlanetId, member.Id, action.RoleId.Value);
+                    break;
+                case AutomodActionType.DeleteMessage:
+                    if (message is not null)
+                        await messageService.DeleteMessageAsync(message.Id);
+                    break;
+            }
+        }
+    }
+
+    private static bool CheckTrigger(AutomodTrigger trigger, Message message, IList<Message> recentMessages)
+    {
+        switch (trigger.Type)
+        {
+            case AutomodTriggerType.Blacklist:
+                if (string.IsNullOrWhiteSpace(trigger.TriggerWords))
+                    return false;
+                foreach (var word in trigger.TriggerWords.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (message.Content?.Contains(word, StringComparison.OrdinalIgnoreCase) == true)
+                        return true;
+                }
+                break;
+            case AutomodTriggerType.Command:
+                if (string.IsNullOrWhiteSpace(trigger.TriggerWords) || string.IsNullOrWhiteSpace(message.Content))
+                    return false;
+                var trimmed = message.Content.Trim();
+                if (trimmed.StartsWith("/" + trigger.TriggerWords, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                break;
+            case AutomodTriggerType.Spam:
+                if (recentMessages is null)
+                    return false;
+                var now = DateTime.UtcNow;
+                var count = recentMessages.Count(m => m.AuthorMemberId == message.AuthorMemberId && (now - m.TimeSent).TotalSeconds < 10);
+                if (count >= 5)
+                    return true;
+                break;
+            case AutomodTriggerType.Join:
+                return true;
+        }
+        return false;
+    }
+
+    public async Task<bool> ScanMessageAsync(Message message, PlanetMember member)
+    {
+        if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
+            return true;
+
+        var triggers = await GetCachedTriggersAsync(member.PlanetId);
+        if (triggers.Count == 0)
+            return true;
+
+        var recent = await _serviceProvider.GetRequiredService<ChatCacheService>().GetLastMessagesAsync(message.ChannelId);
+        bool allow = true;
+
+        foreach (var trigger in triggers.Where(t => t.Type != AutomodTriggerType.Join))
+        {
+            if (!CheckTrigger(trigger, message, recent))
+                continue;
+
+            var actions = await GetCachedActionsAsync(trigger.Id);
+            await RunActionsAsync(actions, member, message);
+
+            if (actions.Any(a => a.ActionType == AutomodActionType.DeleteMessage))
+                allow = false;
+        }
+
+        return allow;
+    }
+
+    public async Task HandleMemberJoinAsync(PlanetMember member)
+    {
+        if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
+            return;
+
+        var triggers = await GetCachedTriggersAsync(member.PlanetId);
+        foreach (var trigger in triggers.Where(t => t.Type == AutomodTriggerType.Join))
+        {
+            var actions = await GetCachedActionsAsync(trigger.Id);
+            await RunActionsAsync(actions, member, null);
+        }
     }
 }
