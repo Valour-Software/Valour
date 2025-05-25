@@ -43,6 +43,7 @@ public class ValourClient
     public readonly TenorService TenorService;
     public readonly SubscriptionService SubscriptionService;
     public readonly NotificationService NotificationService;
+    public readonly AutomodService AutomodService;
     public readonly EcoService EcoService;
     public readonly StaffService StaffService;
     public readonly OauthService OauthService;
@@ -115,6 +116,7 @@ public class ValourClient
         BotService = new BotService(this);
         SubscriptionService = new SubscriptionService(this);
         NotificationService = new NotificationService(this);
+        AutomodService = new AutomodService(this);
         EcoService = new EcoService(this);
         StaffService = new StaffService(this);
         OauthService = new OauthService(this);
