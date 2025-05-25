@@ -1,6 +1,8 @@
 @inherits Modal<AutomodActionModal.ModalParams>
 @using Valour.Sdk.Models
 @using Valour.Shared.Models.Staff
+@using Valour.Shared
+@using System
 @inject ValourClient Client
 
 <BasicModalLayout Title="@(_isNew ? "Add Action" : "Edit Action")" Icon="lightning-fill" MaxWidth="400px">
@@ -69,6 +71,8 @@
         public AutomodTrigger Trigger { get; set; }
         public AutomodAction? Action { get; set; }
         public Func<Task>? OnSaved { get; set; }
+        public bool LocalOnly { get; set; } = false;
+        public Func<AutomodAction, Task>? OnSavedAction { get; set; }
     }
 
     private AutomodAction _action;
@@ -113,15 +117,34 @@
 
         TaskResult<AutomodAction> res;
         if (_isNew)
-            res = await Client.AutomodService.CreateActionAsync(_action);
+        {
+            if (Data.LocalOnly)
+            {
+                _action.Id = Guid.NewGuid();
+                res = TaskResult<AutomodAction>.FromData(_action);
+            }
+            else
+            {
+                res = await Client.AutomodService.CreateActionAsync(_action);
+            }
+        }
         else
+        {
             res = await _action.UpdateAsync();
+        }
 
         _result = res;
         if (res.Success)
         {
-            if (Data.OnSaved is not null)
+            if (Data.LocalOnly)
+            {
+                if (Data.OnSavedAction is not null)
+                    await Data.OnSavedAction.Invoke(_action);
+            }
+            else if (Data.OnSaved is not null)
+            {
                 await Data.OnSaved.Invoke();
+            }
             Close();
         }
     }
