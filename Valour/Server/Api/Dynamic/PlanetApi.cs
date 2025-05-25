@@ -406,6 +406,29 @@ public class PlanetApi
         return Results.Json(result);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/automod/triggers/{triggerId}/actions/query")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> QueryAutomodActionsAsync(
+        [FromBody] QueryRequest? queryRequest,
+        long planetId,
+        Guid triggerId,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await automodService.QueryTriggerActionsAsync(triggerId, queryRequest);
+        return Results.Json(result);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]
     public static async Task<IResult> GetDiscoverables(PlanetService planetService)
     {

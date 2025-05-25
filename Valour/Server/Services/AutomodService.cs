@@ -60,6 +60,20 @@ public class AutomodService
         };
     }
 
+    public async Task<QueryResponse<AutomodAction>> QueryTriggerActionsAsync(Guid triggerId, QueryRequest request)
+    {
+        var take = Math.Min(50, request.Take);
+        var skip = request.Skip;
+        var query = _db.AutomodActions.Where(x => x.TriggerId == triggerId).AsQueryable();
+        var total = await query.CountAsync();
+        var items = await query.Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
+        return new QueryResponse<AutomodAction>
+        {
+            Items = items,
+            TotalCount = total
+        };
+    }
+
     public async Task<TaskResult<AutomodTrigger>> CreateTriggerAsync(AutomodTrigger trigger)
     {
         trigger.Id = Guid.NewGuid();
