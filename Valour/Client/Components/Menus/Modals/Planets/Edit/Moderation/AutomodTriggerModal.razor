@@ -9,10 +9,13 @@
             <label>Name</label>
             <input class="form-control" @bind="_trigger.Name" />
         </div>
-        <div class="form-group mt-2">
-            <label>Trigger Words (comma separated)</label>
-            <input class="form-control" @bind="_trigger.TriggerWords" />
-        </div>
+        @if (ShowTriggerWords)
+        {
+            <div class="form-group mt-2">
+                <label>@TriggerWordsLabel</label>
+                <input class="form-control" @bind="_trigger.TriggerWords" />
+            </div>
+        }
         <div class="form-group mt-2">
             <label>Type</label>
             <select class="form-control" @bind="_trigger.Type">
@@ -57,6 +60,16 @@
     private QueryTable<AutomodAction> _actionTable;
     private List<ColumnDefinition<AutomodAction>> _actionColumns;
     private ModelQueryEngine<AutomodAction> _actionEngine;
+
+    private bool ShowTriggerWords =>
+        _trigger.Type == AutomodTriggerType.Blacklist || _trigger.Type == AutomodTriggerType.Command;
+
+    private string TriggerWordsLabel => _trigger.Type switch
+    {
+        AutomodTriggerType.Blacklist => "Trigger Words (comma separated)",
+        AutomodTriggerType.Command => "Command Name",
+        _ => string.Empty
+    };
 
     protected override void OnInitialized()
     {
@@ -114,7 +127,18 @@
 
     private void OnAddAction()
     {
-        // Placeholder for adding actions
+        var data = new AutomodActionModal.ModalParams
+        {
+            Planet = Data.Planet,
+            Trigger = _trigger,
+            Action = null,
+            OnSaved = async () =>
+            {
+                if (_actionTable is not null)
+                    await _actionTable.Requery();
+            }
+        };
+        ModalRoot.OpenModal<Moderation.AutomodActionModal>(data);
     }
 
     private async Task RemoveAction(AutomodAction action)
