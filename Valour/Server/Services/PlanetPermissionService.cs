@@ -104,6 +104,18 @@ public class PlanetPermissionService
         return Permission.HasPermission(perms, permission);
     }
 
+    public async ValueTask<bool> HasPlanetPermissionAsync(ISharedPlanetMember member, PlanetPermission permission)
+    {
+        if (member is null)
+            return false;
+
+        if (permission.Value == PlanetPermissions.View.Value)
+            return true;
+
+        var perms = await GetPlanetPermissionsAsync(member);
+        return Permission.HasPermission(perms, permission);
+    }
+
     /// <summary>
     /// When a channel’s inheritance settings change, clear its caches.
     /// </summary>

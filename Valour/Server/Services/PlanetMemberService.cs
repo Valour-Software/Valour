@@ -15,6 +15,7 @@ public class PlanetMemberService
     private readonly TokenService _tokenService;
     private readonly PlanetPermissionService _permissionService;
     private readonly HostedPlanetService _hostedPlanetService;
+    private readonly AutomodService _automodService;
     private readonly ILogger<PlanetMemberService> _logger;
     
     private static readonly ConcurrentDictionary<(long, long), long> MemberIdLookup = new();
@@ -29,9 +30,10 @@ public class PlanetMemberService
         ValourDb db,
         CoreHubService coreHub,
         TokenService tokenService,
-        ILogger<PlanetMemberService> logger, 
-        PlanetPermissionService permissionService, 
-        HostedPlanetService hostedPlanetService)
+        ILogger<PlanetMemberService> logger,
+        PlanetPermissionService permissionService,
+        HostedPlanetService hostedPlanetService,
+        AutomodService automodService)
     {
         _db = db;
         _coreHub = coreHub;
@@ -39,6 +41,7 @@ public class PlanetMemberService
         _logger = logger;
         _permissionService = permissionService;
         _hostedPlanetService = hostedPlanetService;
+        _automodService = automodService;
     }
 
     /// <summary>
@@ -375,6 +378,8 @@ public class PlanetMemberService
         var model = member.ToModel();
 
         _coreHub.NotifyPlanetItemChange(model);
+
+        await _automodService.HandleMemberJoinAsync(model);
 
         Console.WriteLine($"User {user.Name} ({user.Id}) has joined {planet.Name} ({planet.Id})");
 
