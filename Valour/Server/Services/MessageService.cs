@@ -248,15 +248,17 @@ public class MessageService
             // Serialize mentions to the message
             message.MentionsData = JsonSerializer.Serialize(mentions);
         }
+        
+        var memberModel = member?.ToModel();
 
-        if (!await _automodService.ScanMessageAsync(message, member))
+        if (!await _automodService.ScanMessageAsync(message, memberModel))
             return TaskResult<Message>.FromFailure("Message blocked by automod.");
 
         // Add to chat caches
         _chatCacheService.AddMessage(message);
         
         // Add member to recent chatters
-        _chatCacheService.AddChatPlanetMember(message.ChannelId, member.ToModel());
+        _chatCacheService.AddChatPlanetMember(message.ChannelId, memberModel);
 
         if (planet is null)
         {

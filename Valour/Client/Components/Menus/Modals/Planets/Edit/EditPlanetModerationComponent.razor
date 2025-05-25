@@ -29,8 +29,13 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    private AutomodTrigger _newTrigger = new();
+    private AutomodTrigger _newTrigger;
     private ITaskResult _result;
+
+    protected override void OnInitialized()
+    {
+        _newTrigger = new(Client);
+    }
 
     private async Task CreateTrigger()
     {
@@ -38,6 +43,6 @@
         var res = await Client.AutomodService.CreateTriggerAsync(_newTrigger);
         _result = res;
         if (res.Success)
-            _newTrigger = new AutomodTrigger();
+            _newTrigger = new AutomodTrigger(Client);
     }
 }

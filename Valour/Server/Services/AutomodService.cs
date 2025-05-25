@@ -6,6 +6,9 @@ using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Shared;
+using Valour.Shared.Authorization;
+using Valour.Shared.Models;
+using Valour.Shared.Models.Staff;
 using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
