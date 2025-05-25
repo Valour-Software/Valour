@@ -19,13 +19,11 @@ public class MessageService
     private readonly ChannelService _channelService;
     private readonly NotificationService _notificationService;
     private readonly CoreHubService _coreHubService;
-    private readonly PlanetService _planetService;
     private readonly HttpClient _http;
     private readonly ChatCacheService _chatCacheService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly AutomodService _automodService;
-    private readonly PlanetPermissionService _permissionService;
-
+    
     public MessageService(
         ILogger<MessageService> logger,
         ValourDb db, 
@@ -34,10 +32,9 @@ public class MessageService
         IHttpClientFactory http, 
         CoreHubService coreHubService,
         ChannelService channelService,
-        PlanetService planetService,
-        ChatCacheService chatCacheService, HostedPlanetService hostedPlanetService,
-        AutomodService automodService,
-        PlanetPermissionService permissionService)
+        ChatCacheService chatCacheService, 
+        HostedPlanetService hostedPlanetService,
+        AutomodService automodService)
     {
         _logger = logger;
         _db = db;
@@ -46,11 +43,9 @@ public class MessageService
         _http = http.CreateClient();
         _coreHubService = coreHubService;
         _channelService = channelService;
-        _planetService = planetService;
         _chatCacheService = chatCacheService;
         _hostedPlanetService = hostedPlanetService;
         _automodService = automodService;
-        _permissionService = permissionService;
     }
     
     /// <summary>

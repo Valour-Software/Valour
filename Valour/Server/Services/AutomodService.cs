@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
@@ -20,19 +21,22 @@ public class AutomodService
     private readonly CoreHubService _coreHub;
     private readonly IServiceProvider _serviceProvider;
     private readonly PlanetPermissionService _permissionService;
+    private readonly MessageService _messageService;
 
     public AutomodService(
         ValourDb db,
         ILogger<AutomodService> logger,
         CoreHubService coreHub,
         IServiceProvider serviceProvider,
-        PlanetPermissionService permissionService)
+        PlanetPermissionService permissionService, 
+        MessageService messageService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
         _serviceProvider = serviceProvider;
         _permissionService = permissionService;
+        _messageService = messageService;
     }
 
     public async Task<AutomodTrigger?> GetTriggerAsync(Guid id) =>
@@ -211,6 +215,28 @@ public class AutomodService
                     if (message is not null)
                         await messageService.DeleteMessageAsync(message.Id);
                     break;
+                case AutomodActionType.Respond:
+                    if (message is not null && message.AuthorMemberId is not null)
+                    {
+                        var response = new Message
+                        {
+                            Id = IdManager.Generate(),
+                            ChannelId = message.ChannelId,
+                            AuthorMemberId = null,
+                            AuthorUserId = ISharedUser.VictorUserId,
+                            Content = $"«@m-{message.AuthorMemberId}»"  + action.Message,
+                            TimeSent = DateTime.UtcNow,
+                            PlanetId = message.PlanetId,
+                            Fingerprint = Guid.NewGuid().ToString(),
+                            MentionsData = JsonSerializer.Serialize(new List<Mention>()
+                            {
+                                new Mention(){ TargetId = message.AuthorMemberId.Value, Type = MentionType.PlanetMember}
+                            })
+                        };
+
+                        await _messageService.PostMessageAsync(response);
+                    }
+                    break;
             }
         }
     }
@@ -251,8 +277,8 @@ public class AutomodService
 
     public async Task<bool> ScanMessageAsync(Message message, PlanetMember member)
     {
-        if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
-            return true;
+        //if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
+        //    return true;
 
         var triggers = await GetCachedTriggersAsync(member.PlanetId);
         if (triggers.Count == 0)
