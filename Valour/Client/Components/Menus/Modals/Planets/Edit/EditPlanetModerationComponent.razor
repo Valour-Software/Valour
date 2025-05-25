@@ -1,0 +1,43 @@
+@using Valour.Sdk.Models
+@using Valour.Shared.Models.Staff
+@inject ValourClient Client
+
+<h3>Moderation <i class="bi bi-shield-lock-fill"></i></h3>
+<p class="subtitle">AUTOMOD TRIGGERS</p>
+
+<div class="form-group mt-2">
+    <label>Name</label>
+    <input class="form-control" @bind="_newTrigger.Name" />
+</div>
+<div class="form-group mt-2">
+    <label>Trigger Words (comma separated)</label>
+    <input class="form-control" @bind="_newTrigger.TriggerWords" />
+</div>
+<div class="form-group mt-2">
+    <label>Type</label>
+    <select class="form-control" @bind="_newTrigger.Type">
+        @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
+        {
+            <option value="@t">@t</option>
+        }
+    </select>
+</div>
+<button class="v-btn secondary" @onclick="CreateTrigger">Create Trigger</button>
+<ResultLabel Result="@_result" />
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private AutomodTrigger _newTrigger = new();
+    private ITaskResult _result;
+
+    private async Task CreateTrigger()
+    {
+        _newTrigger.PlanetId = Planet.Id;
+        var res = await Client.AutomodService.CreateTriggerAsync(_newTrigger);
+        _result = res;
+        if (res.Success)
+            _newTrigger = new AutomodTrigger();
+    }
+}
