@@ -235,7 +235,7 @@ public class AutomodService
                             ChannelId = message.ChannelId,
                             AuthorMemberId = null,
                             AuthorUserId = ISharedUser.VictorUserId,
-                            Content = $"«@m-{message.AuthorMemberId}»"  + action.Message,
+                            Content = $"«@m-{message.AuthorMemberId}» "  + action.Message,
                             TimeSent = DateTime.UtcNow,
                             PlanetId = message.PlanetId,
                             Fingerprint = Guid.NewGuid().ToString(),
@@ -288,6 +288,9 @@ public class AutomodService
 
     public async Task<bool> ScanMessageAsync(Message message, PlanetMember member)
     {
+        if (message.AuthorUserId == ISharedUser.VictorUserId)
+            return true; // Don't scan messages from Victor -- this would create an infinite loop
+        
         //if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
         //    return true;
 

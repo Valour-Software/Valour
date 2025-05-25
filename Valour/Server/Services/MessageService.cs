@@ -109,16 +109,20 @@ public class MessageService
 
             if (!ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))
                 return TaskResult<Message>.FromFailure("Only planet channel messages can have a planet id.");
-            
-            if (message.AuthorMemberId is null)
-                return TaskResult<Message>.FromFailure("AuthorMemberId is required for planet channel messages.");
 
-            member = await _db.PlanetMembers.FindAsync(message.AuthorMemberId);
-            if (member is null)
-                return TaskResult<Message>.FromFailure("Member id does not exist or is invalid for this planet.");
-            
-            if (member.UserId != message.AuthorUserId)
-                return TaskResult<Message>.FromFailure("Mismatch between member's user id and message author user id.");
+            if (message.AuthorUserId != ISharedUser.VictorUserId) // Always allow system messages
+            {
+                if (message.AuthorMemberId is null)
+                    return TaskResult<Message>.FromFailure("AuthorMemberId is required for planet channel messages.");
+
+                member = await _db.PlanetMembers.FindAsync(message.AuthorMemberId);
+                if (member is null)
+                    return TaskResult<Message>.FromFailure("Member id does not exist or is invalid for this planet.");
+
+                if (member.UserId != message.AuthorUserId)
+                    return TaskResult<Message>.FromFailure(
+                        "Mismatch between member's user id and message author user id.");
+            }
         }
 
         // Handle replies
