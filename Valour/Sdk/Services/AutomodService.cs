@@ -1,5 +1,6 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Requests;
 using Valour.Shared;
 
 namespace Valour.Sdk.Services;
@@ -18,6 +19,12 @@ public class AutomodService : ServiceBase
     {
         var planet = await _client.PlanetService.FetchPlanetAsync(trigger.PlanetId);
         return await planet.Node.PostAsyncWithResponse<AutomodTrigger>(trigger.BaseRoute, trigger);
+    }
+
+    public async Task<TaskResult<AutomodTrigger>> CreateTriggerAsync(CreateAutomodTriggerRequest request)
+    {
+        var planet = await _client.PlanetService.FetchPlanetAsync(request.Trigger.PlanetId);
+        return await planet.Node.PostAsyncWithResponse<AutomodTrigger>($"{request.Trigger.BaseRoute}/full", request);
     }
 
     public async Task<TaskResult<AutomodAction>> CreateActionAsync(AutomodAction action)

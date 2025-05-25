@@ -1,6 +1,7 @@
 @inherits Modal<AutomodTriggerModal.ModalParams>
 @using Valour.Sdk.Models
 @using Valour.Shared.Models.Staff
+@using Valour.Sdk.Requests
 @inject ValourClient Client
 
 <BasicModalLayout Title="@(_isNew ? "Add Trigger" : "Edit Trigger")" Icon="shield-lock-fill" MaxWidth="600px">
@@ -27,13 +28,34 @@
         </div>
 
         <p class="subtitle mt-3">ACTIONS</p>
-        <QueryTable
-            @ref="_actionTable"
-            Columns="@_actionColumns"
-            Engine="@_actionEngine"
-            Infinite="true"
-            Height="200px"
-            RowHeight="40" />
+        @if (_isNew)
+        {
+            <table class="table">
+                <thead>
+                    <tr><th>Type</th><th>Reason</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var act in _newActions)
+                    {
+                        <tr>
+                            <td>@act.ActionType</td>
+                            <td>@act.Reason</td>
+                            <td><button class="v-btn danger" @onclick="(() => RemoveNewAction(act))">Remove</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <QueryTable
+                @ref="_actionTable"
+                Columns="@_actionColumns"
+                Engine="@_actionEngine"
+                Infinite="true"
+                Height="200px"
+                RowHeight="40" />
+        }
 
         <button class="v-btn mt-2" @onclick="OnAddAction">Add Action</button>
         <ResultLabel Result="@_result" />
@@ -60,6 +82,7 @@
     private QueryTable<AutomodAction> _actionTable;
     private List<ColumnDefinition<AutomodAction>> _actionColumns;
     private ModelQueryEngine<AutomodAction> _actionEngine;
+    private List<AutomodAction> _newActions;
 
     private bool ShowTriggerWords =>
         _trigger.Type == AutomodTriggerType.Blacklist || _trigger.Type == AutomodTriggerType.Command;
@@ -82,7 +105,7 @@
         else
         {
             _trigger = new AutomodTrigger(Client) { PlanetId = Data.Planet.Id };
-            _actionEngine = Client.AutomodService.GetActionQueryEngine(Data.Planet, _trigger.Id);
+            _newActions = new();
         }
 
         _actionColumns = new()
@@ -114,7 +137,12 @@
         if (_isNew)
         {
             _trigger.PlanetId = Data.Planet.Id;
-            res = await Client.AutomodService.CreateTriggerAsync(_trigger);
+            var req = new CreateAutomodTriggerRequest
+            {
+                Trigger = _trigger,
+                Actions = _newActions
+            };
+            res = await Client.AutomodService.CreateTriggerAsync(req);
         }
         else
         {
@@ -136,6 +164,12 @@
             {
                 if (_actionTable is not null)
                     await _actionTable.Requery();
+            },
+            LocalOnly = _isNew,
+            OnSavedAction = async act =>
+            {
+                _newActions.Add(act);
+                StateHasChanged();
             }
         };
         ModalRoot.OpenModal<Moderation.AutomodActionModal>(data);
@@ -143,9 +177,21 @@
 
     private async Task RemoveAction(AutomodAction action)
     {
+        if (_isNew)
+        {
+            RemoveNewAction(action);
+            StateHasChanged();
+            return;
+        }
+
         var result = await action.DeleteAsync();
         _result = result;
         if (result.Success && _actionTable is not null)
             await _actionTable.Requery();
+    }
+
+    private void RemoveNewAction(AutomodAction action)
+    {
+        _newActions.Remove(action);
     }
 }

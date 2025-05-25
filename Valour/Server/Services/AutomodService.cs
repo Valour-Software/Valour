@@ -74,6 +74,38 @@ public class AutomodService
         return new(true, "Success", trigger);
     }
 
+    public async Task<TaskResult<AutomodTrigger>> CreateTriggerWithActionsAsync(AutomodTrigger trigger, List<AutomodAction> actions)
+    {
+        trigger.Id = Guid.NewGuid();
+        foreach (var action in actions)
+        {
+            action.Id = Guid.NewGuid();
+            action.TriggerId = trigger.Id;
+        }
+
+        await using var tran = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            await _db.AutomodTriggers.AddAsync(trigger.ToDatabase());
+            if (actions.Count > 0)
+                await _db.AutomodActions.AddRangeAsync(actions.Select(x => x.ToDatabase()));
+            await _db.SaveChangesAsync();
+            await tran.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        _coreHub.NotifyPlanetItemChange(trigger);
+        foreach (var action in actions)
+            _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
+
+        return new(true, "Success", trigger);
+    }
+
     public async Task<TaskResult> DeleteTriggerAsync(AutomodTrigger trigger)
     {
         try

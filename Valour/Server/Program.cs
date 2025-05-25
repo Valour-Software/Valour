@@ -128,6 +128,7 @@ public partial class Program
             new DynamicAPI<PlanetInviteApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetBanApi>().RegisterRoutes(app),
             new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
+            new DynamicAPI<AutomodApi>().RegisterRoutes(app),
             new DynamicAPI<UserFriendApi>().RegisterRoutes(app),
             new DynamicAPI<OauthAppAPI>().RegisterRoutes(app),
             new DynamicAPI<TenorFavoriteApi>().RegisterRoutes(app),
