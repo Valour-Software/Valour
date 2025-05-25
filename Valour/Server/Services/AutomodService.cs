@@ -21,22 +21,19 @@ public class AutomodService
     private readonly CoreHubService _coreHub;
     private readonly IServiceProvider _serviceProvider;
     private readonly PlanetPermissionService _permissionService;
-    private readonly MessageService _messageService;
 
     public AutomodService(
         ValourDb db,
         ILogger<AutomodService> logger,
         CoreHubService coreHub,
         IServiceProvider serviceProvider,
-        PlanetPermissionService permissionService, 
-        MessageService messageService)
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
         _serviceProvider = serviceProvider;
         _permissionService = permissionService;
-        _messageService = messageService;
     }
 
     public async Task<AutomodTrigger?> GetTriggerAsync(Guid id) =>
@@ -234,7 +231,7 @@ public class AutomodService
                             })
                         };
 
-                        await _messageService.PostMessageAsync(response);
+                        await messageService.PostMessageAsync(response);
                     }
                     break;
             }
