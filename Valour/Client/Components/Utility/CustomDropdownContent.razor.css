@@ -39,6 +39,16 @@
     padding: 0.25em 0;
 }
 
+.dropdown-item.selected {
+    border: 1px solid var(--p-cyan);
+    border-radius: var(--small-radius);
+    padding: 0.25em;
+}
+
+.dropdown-item .check {
+    margin-left: auto;
+}
+
 .dropdown-item:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }

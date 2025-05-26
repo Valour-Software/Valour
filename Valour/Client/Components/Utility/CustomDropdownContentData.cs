@@ -8,4 +8,5 @@ public class CustomDropdownContentData
     public RenderFragment<object> ItemTemplate { get; set; }
     public Func<object, string, bool> SearchFunc { get; set; }
     public Func<object, Task> OnSelect { get; set; }
+    public object SelectedItem { get; set; }
 }
