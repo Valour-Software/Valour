@@ -321,7 +321,7 @@ public class AutomodService
 
             var actions = await GetCachedActionsAsync(trigger.Id);
 
-            var log = new AutomodLog
+            var log = new Valour.Database.AutomodLog
             {
                 Id = Guid.NewGuid(),
                 PlanetId = member.PlanetId,
@@ -352,7 +352,7 @@ public class AutomodService
         foreach (var trigger in triggers.Where(t => t.Type == AutomodTriggerType.Join))
         {
             var actions = await GetCachedActionsAsync(trigger.Id);
-            var log = new AutomodLog
+            var log = new Valour.Database.AutomodLog
             {
                 Id = Guid.NewGuid(),
                 PlanetId = member.PlanetId,

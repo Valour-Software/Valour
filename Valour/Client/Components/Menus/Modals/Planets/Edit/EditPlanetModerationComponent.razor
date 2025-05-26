@@ -3,8 +3,7 @@
 @using Valour.Sdk.ModelLogic
 @inject ValourClient Client
 
-<h3>Moderation <i class="bi bi-shield-lock-fill"></i></h3>
-<p class="subtitle">AUTOMOD TRIGGERS</p>
+<h5>Autmod Triggers</h5>
 
 <QueryTable
     @ref="_table"
@@ -12,6 +11,7 @@
     Engine="@_engine"
     ShowSearch="true"
     Infinite="true"
+    TableMinWidth="700"
     SearchPlaceholder="Search name..." />
 
 <button class="v-btn mt-2" @onclick="OpenCreateModal">Add Trigger</button>
@@ -62,7 +62,7 @@
                         <button class="v-btn secondary" @onclick="(() => ViewTrigger(row.Row))">View</button>
                         <button class="v-btn danger" @onclick="(() => DeleteTrigger(row.Row))">Remove</button>
                     </div>,
-                Width = "150px",
+                Width = "200px",
                 TextAlign = "right"
             }
         };

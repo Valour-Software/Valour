@@ -56,6 +56,7 @@
                 Engine="@_actionEngine"
                 Infinite="true"
                 Height="200px"
+                TableMinWidth="700"
                 RowHeight="40" />
         }
 
@@ -115,12 +116,14 @@
             new()
             {
                 Name = "Type",
-                RenderFragment = row => @<span>@row.Row.ActionType</span>
+                RenderFragment = row => @<span>@row.Row.ActionType</span>,
+                Width = "200px"
             },
             new()
             {
                 Name = "Message",
-                RenderFragment = row => @<span>@row.Row.Message</span>
+                RenderFragment = row => @<span>@row.Row.Message</span>,
+                Width = "250px"
             },
             new()
             {
