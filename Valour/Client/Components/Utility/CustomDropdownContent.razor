@@ -1,0 +1,110 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@if (!_hidden)
+{
+    <div class="custom-dropdown-overlay @(IsMobile ? "mobile" : string.Empty)" style="@_style" @onclick="Close">
+        <div class="custom-dropdown-content" @onclick:stopPropagation="true">
+            <input class="dropdown-search" placeholder="Search" @bind="_search" @oninput="OnSearch" />
+            <div class="dropdown-items">
+                @foreach (var item in _filteredItems)
+                {
+                    <div class="dropdown-item" @onclick="() => Select(item)">
+                        @_data.ItemTemplate(item)
+                    </div>
+                }
+            </div>
+            @if (IsMobile)
+            {
+                <button class="close-btn v-btn" @onclick="Close">Close</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    public static CustomDropdownContent Instance { get; private set; }
+
+    private bool _hidden = true;
+    private double _left;
+    private double _top;
+    private string _style => IsMobile ? string.Empty : $"position: fixed; left: {_left}px; top: {_top}px;";
+    private string _search = string.Empty;
+    private List<object> _filteredItems = new();
+    private CustomDropdownContentData _data;
+    private ElementReference _anchor;
+
+    private bool IsMobile => BrowserUtils.WindowDimensions.Width < 600;
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+        BrowserUtils.OnWindowResize += OnResize;
+    }
+
+    private async Task OnResize(ElementDimensions _)
+    {
+        if (!_hidden)
+        {
+            await UpdatePosition();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async Task ShowAsync(ElementReference anchor, CustomDropdownContentData data)
+    {
+        _data = data;
+        _anchor = anchor;
+        _hidden = false;
+        _search = string.Empty;
+        Filter();
+        await UpdatePosition();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdatePosition()
+    {
+        var rect = await BrowserUtils.GetElementBoundingRectAsync(_anchor);
+        _left = rect.Left;
+        _top = rect.Bottom;
+    }
+
+    private void Filter()
+    {
+        if (_data == null)
+            return;
+        if (string.IsNullOrWhiteSpace(_search))
+        {
+            _filteredItems = _data.Items.ToList();
+        }
+        else
+        {
+            _filteredItems = _data.Items.Where(i => _data.SearchFunc?.Invoke(i, _search) ?? true).ToList();
+        }
+    }
+
+    private void OnSearch(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? string.Empty;
+        Filter();
+    }
+
+    private async Task Select(object item)
+    {
+        if (_data?.OnSelect != null)
+            await _data.OnSelect(item);
+        await Close();
+    }
+
+    public async Task Close()
+    {
+        _hidden = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        BrowserUtils.OnWindowResize -= OnResize;
+        return ValueTask.CompletedTask;
+    }
+}
