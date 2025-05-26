@@ -1,0 +1,36 @@
+@using Valour.Sdk.Models
+
+<DropdownComponent @ref="_dropdown" Title="@Title" Style="width:100%" Alignment="DropdownComponent.DropdownAlignment.Right">
+    <div class="role-dropdown-content">
+        @foreach (var role in Roles)
+        {
+            <div class="role-option" @onmousedown:stopPropagation="true" @onclick="() => Select(role)">
+                <span class="role-pill" style="border-color:@role.Color">@role.Name</span>
+            </div>
+        }
+    </div>
+</DropdownComponent>
+
+@code {
+    private DropdownComponent _dropdown;
+
+    [Parameter]
+    public IEnumerable<PlanetRole> Roles { get; set; } = Array.Empty<PlanetRole>();
+
+    [Parameter]
+    public long Value { get; set; }
+
+    [Parameter]
+    public EventCallback<long> ValueChanged { get; set; }
+
+    private string Title => Roles.FirstOrDefault(r => r.Id == Value)?.Name ?? "Select Role";
+
+    private async Task Select(PlanetRole role)
+    {
+        Value = role.Id;
+        if (ValueChanged.HasDelegate)
+            await ValueChanged.InvokeAsync(role.Id);
+        _dropdown.SetVisible(false);
+        StateHasChanged();
+    }
+}

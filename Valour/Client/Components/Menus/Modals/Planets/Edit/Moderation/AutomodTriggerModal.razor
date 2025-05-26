@@ -4,71 +4,87 @@
 @using Valour.Sdk.Requests
 @inject ValourClient Client
 
-<BasicModalLayout Title="@(_isNew ? "Add Trigger" : "Edit Trigger")" Icon="shield-lock-fill" MaxWidth="600px">
+<BasicModalLayout Title="@ModalTitle" Icon="shield-lock-fill" MaxWidth="600px">
     <MainArea>
-        <div class="form-group mt-2">
-            <label>Name</label>
-            <input class="form-control" @bind="_trigger.Name" @oninput="OnChanged" />
-        </div>
-        @if (ShowTriggerWords)
+        @if (_step == 1)
         {
+            <p class="subtitle">Step 1: Details</p>
+            <p class="desc">Provide basic information for this trigger.</p>
             <div class="form-group mt-2">
-                <label>@TriggerWordsLabel</label>
-                <input class="form-control" @bind="_trigger.TriggerWords" @oninput="OnChanged" />
+                <label>Name</label>
+                <input class="form-control" @bind="_trigger.Name" @oninput="OnChanged" />
+            </div>
+            @if (ShowTriggerWords)
+            {
+                <div class="form-group mt-2">
+                    <label>@TriggerWordsLabel</label>
+                    <input class="form-control" @bind="_trigger.TriggerWords" @oninput="OnChanged" />
+                </div>
+            }
+            <div class="form-group mt-2">
+                <label>Type</label>
+                <select class="form-control" @bind="_trigger.Type" @onchange="OnChanged">
+                    @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
             </div>
         }
-        <div class="form-group mt-2">
-            <label>Type</label>
-            <select class="form-control" @bind="_trigger.Type" @onchange="OnChanged">
-                @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
-                {
-                    <option value="@t">@t</option>
-                }
-            </select>
-        </div>
-
-        <p class="subtitle mt-3">ACTIONS</p>
-        @if (_isNew)
+        else if (_step == 2)
         {
-            <table class="table">
-                <thead>
-                    <tr><th>Type</th><th>Message</th><th>Strikes</th><th>Global</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var act in _newActions)
-                    {
-                        <tr>
-                            <td>@act.ActionType</td>
-                            <td>@act.Message</td>
-                            <td>@act.Strikes</td>
-                            <td>@act.UseGlobalStrikes</td>
-                            <td><button class="v-btn danger" @onclick="(() => RemoveNewAction(act))">Remove</button></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <QueryTable
-                @ref="_actionTable"
-                Columns="@_actionColumns"
-                Engine="@_actionEngine"
-                Infinite="true"
-                Height="200px"
-                TableMinWidth="700"
-                RowHeight="40" />
-        }
+            <p class="subtitle">Step 2: Actions</p>
+            <p class="desc">Define what actions will occur when this trigger fires.</p>
+            @if (_isNew)
+            {
+                <table class="table">
+                    <thead>
+                        <tr><th>Type</th><th>Message</th><th>Strikes</th><th>Global</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var act in _newActions)
+                        {
+                            <tr>
+                                <td>@act.ActionType</td>
+                                <td>@act.Message</td>
+                                <td>@act.Strikes</td>
+                                <td>@act.UseGlobalStrikes</td>
+                                <td><button class="v-btn danger" @onclick="(() => RemoveNewAction(act))">Remove</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <QueryTable
+                    @ref="_actionTable"
+                    Columns="@_actionColumns"
+                    Engine="@_actionEngine"
+                    Infinite="true"
+                    Height="200px"
+                    TableMinWidth="700"
+                    RowHeight="40" />
+            }
 
-        <button class="v-btn mt-2" @onclick="OnAddAction">Add Action</button>
-        <ResultLabel Result="@_result" />
+            <button class="v-btn mt-2" @onclick="OnAddAction">Add Action</button>
+            <ResultLabel Result="@_result" />
+        }
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button class="v-btn" @onclick="Close">Cancel</button>
-            @if (_isNew || _changed)
+            @if (_step == 1)
             {
-                <button class="v-btn primary" @onclick="OnSave">Save</button>
+                <button class="v-btn primary" @onclick="NextStep">Next</button>
+            }
+            else
+            {
+                <button class="v-btn" @onclick="PrevStep">Back</button>
+                @if (_isNew || _changed)
+                {
+                    <button class="v-btn primary" @onclick="OnSave">Save</button>
+                }
             }
         </div>
     </ButtonArea>
@@ -84,6 +100,7 @@
     private AutomodTrigger _trigger;
     private bool _isNew;
     private ITaskResult _result;
+    private int _step = 1;
 
     private bool _changed;
 
@@ -91,7 +108,12 @@
     private List<ColumnDefinition<AutomodAction>> _actionColumns;
     private ModelQueryEngine<AutomodAction> _actionEngine;
     private List<AutomodAction> _newActions;
-    private bool _changed;
+
+    private string ModalTitle => $"{(_isNew ? "Add Trigger" : "Edit Trigger")} - Step {_step} of 2";
+
+    private void NextStep() => _step = Math.Min(2, _step + 1);
+
+    private void PrevStep() => _step = Math.Max(1, _step - 1);
 
     private bool ShowTriggerWords =>
         _trigger.Type == AutomodTriggerType.Blacklist || _trigger.Type == AutomodTriggerType.Command;
