@@ -38,13 +38,13 @@
         {
             <div class="form-group mt-2">
                 <label>Role</label>
-                <select class="form-control" @bind="_selectedRoleId">
-                    <option value="0">Select Role</option>
-                    @foreach (var role in Data.Planet.Roles)
-                    {
-                        <option value="@role.Id">@role.Name</option>
-                    }
-                </select>
+                <CustomDropdown TItem="PlanetRole"
+                                Items="Data.Planet.Roles"
+                                SelectedItem="_selectedRole"
+                                SelectedItemChanged="OnRoleChanged"
+                                ItemTemplate="RoleFragments.RolePill"
+                                SelectedItemTemplate="RoleFragments.RolePill"
+                                Placeholder="Select Role" />
             </div>
         }
 
@@ -80,7 +80,7 @@
     private AutomodAction _action;
     private bool _isNew;
     private int _duration;
-    private long _selectedRoleId;
+    private PlanetRole? _selectedRole;
     private ITaskResult _result;
 
 
@@ -90,7 +90,7 @@
         if (Data.Action is not null)
         {
             _action = Data.Action;
-            _selectedRoleId = _action.RoleId ?? 0;
+            _selectedRole = Data.Planet.Roles.FirstOrDefault(r => r.Id == (_action.RoleId ?? 0));
             _duration = _action.Expires.HasValue ?
                 (int)Math.Ceiling((_action.Expires.Value - DateTime.UtcNow).TotalMinutes) : 0;
         }
@@ -104,6 +104,7 @@
                 Strikes = 1,
                 UseGlobalStrikes = false
             };
+            _selectedRole = null;
         }
     }
 
@@ -111,10 +112,16 @@
     private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
     private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
 
+    private Task OnRoleChanged(PlanetRole role)
+    {
+        _selectedRole = role;
+        return Task.CompletedTask;
+    }
+
     private async Task OnSave()
     {
         if (ShowRole)
-            _action.RoleId = _selectedRoleId;
+            _action.RoleId = _selectedRole?.Id;
         if (ShowExpires)
             _action.Expires = _duration > 0 ? DateTime.UtcNow.AddMinutes(_duration) : null;
 
