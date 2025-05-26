@@ -58,7 +58,8 @@
                 if (SelectedItemChanged.HasDelegate)
                     await SelectedItemChanged.InvokeAsync((TItem)o);
                 StateHasChanged();
-            }
+            },
+            SelectedItem = SelectedItem
         };
 
         await CustomDropdownContent.Instance.ShowAsync(_ref, data);

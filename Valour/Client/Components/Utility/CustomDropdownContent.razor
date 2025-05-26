@@ -9,8 +9,13 @@
             <div class="dropdown-items">
                 @foreach (var item in _filteredItems)
                 {
-                    <div class="dropdown-item" @onclick="() => Select(item)">
+                    var selected = IsSelected(item);
+                    <div class="dropdown-item @(selected ? "selected" : string.Empty)" @onclick="() => Select(item)">
                         @_data.ItemTemplate(item)
+                        @if (selected)
+                        {
+                            <i class="bi bi-check check"></i>
+                        }
                     </div>
                 }
             </div>
@@ -94,6 +99,11 @@
         if (_data?.OnSelect != null)
             await _data.OnSelect(item);
         await Close();
+    }
+
+    private bool IsSelected(object item)
+    {
+        return _data?.SelectedItem != null && _data.SelectedItem.Equals(item);
     }
 
     public async Task Close()

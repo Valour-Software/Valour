@@ -1,8 +1,21 @@
 .custom-dropdown {
     cursor: pointer;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 0.25em;
+    background-color: var(--main-4);
+    border: 1px solid #1d1d1d;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 5px 9px;
+    font-size: 1em;
+    margin-bottom: 0.5em;
+    width: 100%;
+    min-width: 10em;
+}
+
+.custom-dropdown i {
+    margin-left: auto;
 }
 
 .placeholder {
