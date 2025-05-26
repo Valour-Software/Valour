@@ -38,12 +38,7 @@
         {
             <div class="form-group mt-2">
                 <label>Role</label>
-                <select class="form-control" @bind="_selectedRoleId">
-                    @foreach (var role in Data.Planet.Roles)
-                    {
-                        <option value="@role.Id">@role.Name</option>
-                    }
-                </select>
+                <RoleDropdown Roles="Data.Planet.Roles" Value="_selectedRoleId" ValueChanged="OnRoleChanged" />
             </div>
         }
 
@@ -81,6 +76,12 @@
     private int _duration;
     private long _selectedRoleId;
     private ITaskResult _result;
+
+    private Task OnRoleChanged(long roleId)
+    {
+        _selectedRoleId = roleId;
+        return Task.CompletedTask;
+    }
 
     protected override void OnInitialized()
     {
