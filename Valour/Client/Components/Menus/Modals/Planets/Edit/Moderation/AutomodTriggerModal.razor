@@ -8,18 +8,18 @@
     <MainArea>
         <div class="form-group mt-2">
             <label>Name</label>
-            <input class="form-control" @bind="_trigger.Name" />
+            <input class="form-control" @bind="_trigger.Name" @oninput="OnChanged" />
         </div>
         @if (ShowTriggerWords)
         {
             <div class="form-group mt-2">
                 <label>@TriggerWordsLabel</label>
-                <input class="form-control" @bind="_trigger.TriggerWords" />
+                <input class="form-control" @bind="_trigger.TriggerWords" @oninput="OnChanged" />
             </div>
         }
         <div class="form-group mt-2">
             <label>Type</label>
-            <select class="form-control" @bind="_trigger.Type">
+            <select class="form-control" @bind="_trigger.Type" @onchange="OnChanged">
                 @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
                 {
                     <option value="@t">@t</option>
@@ -66,7 +66,10 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button class="v-btn" @onclick="Close">Cancel</button>
-            <button class="v-btn primary" @onclick="OnSave">Save</button>
+            @if (_isNew || _changed)
+            {
+                <button class="v-btn primary" @onclick="OnSave">Save</button>
+            }
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -82,10 +85,13 @@
     private bool _isNew;
     private ITaskResult _result;
 
+    private bool _changed;
+
     private QueryTable<AutomodAction> _actionTable;
     private List<ColumnDefinition<AutomodAction>> _actionColumns;
     private ModelQueryEngine<AutomodAction> _actionEngine;
     private List<AutomodAction> _newActions;
+    private bool _changed;
 
     private bool ShowTriggerWords =>
         _trigger.Type == AutomodTriggerType.Blacklist || _trigger.Type == AutomodTriggerType.Command;
@@ -110,6 +116,8 @@
             _trigger = new AutomodTrigger(Client) { PlanetId = Data.Planet.Id };
             _newActions = new();
         }
+
+        _changed = false;
 
         _actionColumns = new()
         {
@@ -165,7 +173,10 @@
         }
         _result = res;
         if (res.Success)
+        {
+            _changed = false;
             Close();
+        }
     }
 
     private void OnAddAction()
@@ -208,5 +219,10 @@
     private void RemoveNewAction(AutomodAction action)
     {
         _newActions.Remove(action);
+    }
+
+    private void OnChanged(ChangeEventArgs _)
+    {
+        _changed = true;
     }
 }
