@@ -1,20 +1,21 @@
 @typeparam TItem
+
+@{
+    Console.WriteLine("SelectedItem is null: " + (_selectedItem is null));
+}
+
 <div class="custom-dropdown" @ref="_ref" @onclick="OnClick">
-    @if (SelectedItem is null)
+    @if (_selectedItem is null)
     {
         <span class="placeholder">@Placeholder</span>
     }
-    else if (SelectedItemTemplate is not null)
-    {
-        @SelectedItemTemplate(SelectedItem)
-    }
     else if (ItemTemplate is not null)
     {
-        @ItemTemplate(SelectedItem)
+        @ItemTemplate(_selectedItem)
     }
     else
     {
-        <span>@SelectedItem.ToString()</span>
+        <span>@_selectedItem.ToString()</span>
     }
     <i class="bi bi-chevron-down"></i>
 </div>
@@ -24,11 +25,17 @@
 
     [Parameter] public IEnumerable<TItem> Items { get; set; } = Array.Empty<TItem>();
     [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; }
-    [Parameter] public RenderFragment<TItem> SelectedItemTemplate { get; set; }
     [Parameter] public Func<TItem, string, bool> SearchFunc { get; set; }
-    [Parameter] public TItem SelectedItem { get; set; }
+    [Parameter] public TItem InitialItem { get; set; }
     [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
     [Parameter] public string Placeholder { get; set; } = "Select";
+
+    private TItem? _selectedItem;
+
+    protected override void OnInitialized()
+    {
+        _selectedItem = InitialItem;
+    }
 
     private async Task OnClick()
     {
@@ -54,12 +61,15 @@
                 new Func<object, string, bool>((o, s) => SearchFunc((TItem)o, s)),
             OnSelect = async o =>
             {
-                SelectedItem = (TItem)o;
+                Console.WriteLine("New selection");
+                
+                _selectedItem = (TItem)o;
                 if (SelectedItemChanged.HasDelegate)
                     await SelectedItemChanged.InvokeAsync((TItem)o);
-                StateHasChanged();
+
+                await InvokeAsync(StateHasChanged);
             },
-            SelectedItem = SelectedItem
+            SelectedItem = _selectedItem
         };
 
         await CustomDropdownContent.Instance.ShowAsync(_ref, data);

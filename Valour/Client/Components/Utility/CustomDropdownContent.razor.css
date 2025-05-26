@@ -36,13 +36,15 @@
 
 .dropdown-item {
     cursor: pointer;
-    padding: 0.25em 0;
+    padding: .25em;
+    margin: 0.25em 0;
 }
 
 .dropdown-item.selected {
-    border: 1px solid var(--p-cyan);
     border-radius: var(--small-radius);
-    padding: 0.25em;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 0 5px var(--v-cyan);
 }
 
 .dropdown-item .check {

@@ -112,11 +112,10 @@
                     <label>Role</label>
                     <CustomDropdown TItem="PlanetRole"
                                     Items="Data.Planet.Roles"
-                                    SelectedItem="SelectedRole"
                                     SelectedItemChanged="OnRoleChanged"
                                     ItemTemplate="RoleFragments.RolePill"
-                                    SelectedItemTemplate="RoleFragments.RolePill"
-                                    Placeholder="Select Role" />
+                                    Placeholder="Select Role"
+                                    SearchFunc="RoleSearchFunc"/>
                 </div>
             }
 
@@ -160,6 +159,11 @@
     private bool ShowExpires => _action.ActionType == AutomodActionType.Ban;
     private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
     private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
+    
+    private bool RoleSearchFunc(PlanetRole role, string search)
+    {
+        return role.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
+    }
     
     public class ModalParams
     {
@@ -222,11 +226,12 @@
     private bool _actionIsNew;
     private int _duration;
 
-    private PlanetRole? SelectedRole;
+    private PlanetRole? _selectedRole;
     private long _selectedRoleId;
     
     private void OnRoleChanged(PlanetRole role)
     {
+        _selectedRole = role;
         _selectedRoleId = role?.Id ?? 0;
         _changed = true;
     }
