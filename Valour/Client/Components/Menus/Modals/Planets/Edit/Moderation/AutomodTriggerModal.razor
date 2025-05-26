@@ -32,14 +32,16 @@
         {
             <table class="table">
                 <thead>
-                    <tr><th>Type</th><th>Reason</th><th></th></tr>
+                    <tr><th>Type</th><th>Message</th><th>Strikes</th><th>Global</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var act in _newActions)
                     {
                         <tr>
                             <td>@act.ActionType</td>
-                            <td>@act.Reason</td>
+                            <td>@act.Message</td>
+                            <td>@act.Strikes</td>
+                            <td>@act.UseGlobalStrikes</td>
                             <td><button class="v-btn danger" @onclick="(() => RemoveNewAction(act))">Remove</button></td>
                         </tr>
                     }
@@ -117,8 +119,18 @@
             },
             new()
             {
-                Name = "Reason",
-                RenderFragment = row => @<span>@row.Row.Reason</span>
+                Name = "Message",
+                RenderFragment = row => @<span>@row.Row.Message</span>
+            },
+            new()
+            {
+                Name = "Strikes",
+                RenderFragment = row => @<span>@row.Row.Strikes</span>
+            },
+            new()
+            {
+                Name = "Global",
+                RenderFragment = row => @<span>@row.Row.UseGlobalStrikes</span>
             },
             new()
             {

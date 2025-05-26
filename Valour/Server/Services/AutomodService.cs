@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,6 +6,7 @@ using System.Text.Json;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -208,7 +210,7 @@ public class AutomodService
                         PlanetId = member.PlanetId,
                         TargetId = member.UserId,
                         IssuerId = action.MemberAddedBy,
-                        Reason = action.Reason,
+                        Reason = action.Message,
                         TimeCreated = DateTime.UtcNow,
                         TimeExpires = action.Expires
                     };
@@ -250,6 +252,17 @@ public class AutomodService
                     break;
             }
         }
+    }
+
+    private async Task<List<AutomodAction>> FilterActionsByStrikesAsync(IEnumerable<AutomodAction> actions, PlanetMember member, Guid triggerId)
+    {
+        var globalCount = await _db.AutomodLogs.CountAsync(l => l.PlanetId == member.PlanetId && l.MemberId == member.Id);
+        var triggerCount = await _db.AutomodLogs.CountAsync(l => l.TriggerId == triggerId && l.MemberId == member.Id);
+
+        return actions.Where(a =>
+            a.Strikes <= 1 ||
+            (a.UseGlobalStrikes ? globalCount >= a.Strikes : triggerCount >= a.Strikes))
+            .ToList();
     }
 
     private static bool CheckTrigger(AutomodTrigger trigger, Message message, IList<Message> recentMessages)
@@ -307,6 +320,20 @@ public class AutomodService
                 continue;
 
             var actions = await GetCachedActionsAsync(trigger.Id);
+
+            var log = new AutomodLog
+            {
+                Id = Guid.NewGuid(),
+                PlanetId = member.PlanetId,
+                TriggerId = trigger.Id,
+                MemberId = member.Id,
+                MessageId = message.Id,
+                TimeTriggered = DateTime.UtcNow
+            };
+            await _db.AutomodLogs.AddAsync(log);
+            await _db.SaveChangesAsync();
+
+            actions = await FilterActionsByStrikesAsync(actions, member, trigger.Id);
             await RunActionsAsync(actions, member, message);
 
             if (actions.Any(a => a.ActionType == AutomodActionType.DeleteMessage))
@@ -325,6 +352,19 @@ public class AutomodService
         foreach (var trigger in triggers.Where(t => t.Type == AutomodTriggerType.Join))
         {
             var actions = await GetCachedActionsAsync(trigger.Id);
+            var log = new AutomodLog
+            {
+                Id = Guid.NewGuid(),
+                PlanetId = member.PlanetId,
+                TriggerId = trigger.Id,
+                MemberId = member.Id,
+                MessageId = null,
+                TimeTriggered = DateTime.UtcNow
+            };
+            await _db.AutomodLogs.AddAsync(log);
+            await _db.SaveChangesAsync();
+
+            actions = await FilterActionsByStrikesAsync(actions, member, trigger.Id);
             await RunActionsAsync(actions, member, null);
         }
     }

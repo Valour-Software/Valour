@@ -17,13 +17,14 @@
             </select>
         </div>
 
-        @if (ShowReason)
-        {
-            <div class="form-group mt-2">
-                <label>Reason</label>
-                <input class="form-control" @bind="_action.Reason" />
-            </div>
-        }
+        <div class="form-group mt-2">
+            <label>Strikes Required</label>
+            <InputNumber class="form-control" TValue="int" @bind-Value="_action.Strikes" />
+        </div>
+        <div class="form-group mt-2">
+            <label><input type="checkbox" @bind="_action.UseGlobalStrikes" /> Use Global Strikes</label>
+        </div>
+
 
         @if (ShowExpires)
         {
@@ -97,16 +98,16 @@
             {
                 PlanetId = Data.Planet.Id,
                 TriggerId = Data.Trigger.Id,
-                Reason = string.Empty,
-                Message = string.Empty
+                Message = string.Empty,
+                Strikes = 1,
+                UseGlobalStrikes = false
             };
         }
     }
 
-    private bool ShowReason => _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
     private bool ShowExpires => _action.ActionType == AutomodActionType.Ban;
     private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
-    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond;
+    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
 
     private async Task OnSave()
     {

@@ -9,7 +9,8 @@ public class AutomodAction : ClientPlanetModel<AutomodAction, Guid>, ISharedAuto
     public override string BaseRoute => $"api/planets/{PlanetId}/automod/triggers/{TriggerId}/actions";
     public override string IdRoute => $"{BaseRoute}/{Id}";
 
-    public Guid? PriorAction { get; set; }
+    public int Strikes { get; set; }
+    public bool UseGlobalStrikes { get; set; }
     public Guid TriggerId { get; set; }
     public long MemberAddedBy { get; set; }
     public AutomodActionType ActionType { get; set; }
@@ -18,7 +19,6 @@ public class AutomodAction : ClientPlanetModel<AutomodAction, Guid>, ISharedAuto
     public long? MessageId { get; set; }
     public long? RoleId { get; set; }
     public DateTime? Expires { get; set; }
-    public string Reason { get; set; }
     public string Message { get; set; }
 
     [JsonConstructor]
