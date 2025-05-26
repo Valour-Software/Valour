@@ -12,18 +12,18 @@
         {
             <p class="subtitle">Step 1: Details</p>
             <p class="desc">Provide basic information for this trigger.</p>
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Name</label>
                 <input class="form-control" @bind="TriggerName" @bind:event="oninput" />
             </div>
             @if (ShowTriggerWords)
             {
-                <div class="form-group mt-2">
+                <div class="form-group">
                     <label>@TriggerWordsLabel</label>
                     <input class="form-control" @bind="TriggerWords" @bind:event="oninput" />
                 </div>
             }
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Type</label>
                 <select class="form-control" @bind="TriggerType" >
                     @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
@@ -74,13 +74,13 @@
                     RowHeight="40" />
             }
 
-            <button class="v-btn mt-2" @onclick="OnAddAction">Add Action</button>
+            <button class="v-btn" @onclick="OnAddAction">Add Action</button>
             <ResultLabel Result="@_result" />
         }
         else if (_step == 3)
         {
             <p class="subtitle">@(_actionIsNew ? "Add Action" : "Edit Action")</p>
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Type</label>
                 <select class="form-control" @bind="_action.ActionType">
                     @foreach (AutomodActionType t in Enum.GetValues<AutomodActionType>())
@@ -90,17 +90,17 @@
                 </select>
             </div>
 
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Strikes Required</label>
                 <InputNumber class="form-control" TValue="int" @bind-Value="_action.Strikes" />
             </div>
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label><input type="checkbox" @bind="_action.UseGlobalStrikes" /> Use Global Strikes</label>
             </div>
 
             @if (ShowExpires)
             {
-                <div class="form-group mt-2">
+                <div class="form-group">
                     <label>Duration Minutes (0 for permanent)</label>
                     <InputNumber class="form-control" TValue="int" @bind-Value="_duration" />
                 </div>
@@ -108,7 +108,7 @@
 
             @if (ShowRole)
             {
-                <div class="form-group mt-2">
+                <div class="form-group">
                     <label>Role</label>
                     <select class="form-control" @bind="_selectedRoleId">
                         <option value="0">Select Role</option>
@@ -122,7 +122,7 @@
 
             @if (ShowMessage)
             {
-                <div class="form-group mt-2">
+                <div class="form-group">
                     <label>Message</label>
                     <textarea class="form-control" @bind="_action.Message"></textarea>
                 </div>
@@ -156,6 +156,11 @@
 </BasicModalLayout>
 
 @code {
+    
+    private bool ShowExpires => _action.ActionType == AutomodActionType.Ban;
+    private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
+    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
+    
     public class ModalParams
     {
         public Planet Planet { get; set; }
