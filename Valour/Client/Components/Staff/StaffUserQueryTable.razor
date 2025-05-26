@@ -1,29 +1,31 @@
+@using Valour.Sdk.ModelLogic.QueryEngines
+@inject ValourClient Client
 @inject StaffService StaffService
-
-<input class="form-control mt-2 mb-2" placeholder="Search name..." @onchange="@HandleNameSearch" />
 
 <QueryTable 
     @ref="@_table"
-    TModel="User"
     Columns="@_columns"
-    Model="@_userQueryModel"
+    Engine="@_engine"
+    ShowSearch="@true"
+    SearchPlaceholder="Search name..."
+    Infinite="@true"
 />
 
 @code {
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
-    
-    private QueryTable<User> _table { get; set; }
+
+    private QueryTable<User> _table;
 
     private List<ColumnDefinition<User>> _columns;
     
     private string _nameSearch = string.Empty;
 
-    private UserQueryModel _userQueryModel;
+    private StaffUserQueryEngine _engine;
 
     protected override void OnInitialized()
     {
-        _userQueryModel = new UserQueryModel();
+        _engine = new StaffUserQueryEngine(Client.PrimaryNode);
         
         _columns = new()
         {
@@ -57,12 +59,6 @@
                     </div>
             }
         };
-    }
-
-    private async Task HandleNameSearch(ChangeEventArgs e)
-    {
-        _userQueryModel.UsernameAndTag = e.Value.ToString();
-        await _table.Requery();
     }
     
     /* Staff Controls */

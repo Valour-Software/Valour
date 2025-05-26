@@ -5,6 +5,7 @@ using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 using AuthToken = Valour.Server.Models.AuthToken;
 using EmailConfirmCode = Valour.Server.Models.EmailConfirmCode;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
@@ -66,19 +67,28 @@ public class UserService
     /// <summary>
     /// Queries users by the given attributes and returns the results
     /// </summary>
-    public async Task<QueryResponse<User>> QueryUsersAsync(string usernameAndTag, int skip = 0, int take = 50)
+    public async Task<QueryResponse<User>> QueryUsersAsync(QueryRequest queryRequest)
     {
+        var take = queryRequest.Take;
         if (take > 50)
             take = 50;
+        
+        var skip = queryRequest.Skip;
 
         var query = _db.Users
-            .AsNoTracking()
-            .Where(x => EF.Functions.ILike((x.Name.ToLower() + "#" + x.Tag), "%" + usernameAndTag.ToLower() + "%"))
-            .OrderBy(x => x.Name);
+            .AsNoTracking();
+            
+        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x =>
+                EF.Functions.ILike((x.Name.ToLower() + "#" + x.Tag), "%" + search.ToLower() + "%"));
 
+        query = query.OrderBy(x => x.Name);
+        
         var totalCount = await query.CountAsync();
 
-        var users = await query.Take(take)
+        var users = await query.Skip(skip)
+            .Take(take)
             .Select(x => x.ToModel())
             .ToListAsync();
 

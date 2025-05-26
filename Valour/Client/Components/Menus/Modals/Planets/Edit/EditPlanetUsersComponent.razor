@@ -1,5 +1,64 @@
-﻿<h3>EditPlanetUsersComponent</h3>
+@using Valour.Sdk.ModelLogic.QueryEngines
+@inject ValourClient Client
+
+<QueryTable
+    @ref="_table"
+    Columns="@_columns"
+    Engine="@_engine"
+    ShowSearch="true"
+    Infinite="true"
+    TableMinWidth="600"
+    SearchPlaceholder="Search name..." />
 
 @code {
+    [Parameter]
+    public Planet Planet { get; set; }
 
+    private QueryTable<PlanetMember> _table;
+    private List<ColumnDefinition<PlanetMember>> _columns;
+    private PlanetMemberQueryEngine _engine;
+
+    protected override void OnInitialized()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+        _engine = new PlanetMemberQueryEngine(Planet);
+
+        _columns = new()
+        {
+            new()
+            {
+                Name = "Member",
+                SortField = "name",
+                Sortable = true,
+                RenderFragment = row => @<UserInfoComponent Member="@row.Row" />
+            },
+            new()
+            {
+                Name = "Roles",
+                RenderFragment = row => @<div class="role-tags">@foreach (var r in row.Row.Roles){<span class="role-pill" style="border-color:@r.Color">@r.Name</span>}</div>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn secondary" @onclick="(() => OnKick(row.Row))">Kick</button>
+                        <button class="v-btn danger" @onclick="(() => OnBan(row.Row))">Ban</button>
+                    </div>,
+                TextAlign = "right",
+                Width = "150px"
+            }
+        };
+    }
+
+    private void OnKick(PlanetMember member)
+    {
+        var modalData = new KickModal.KickModalParams { Member = member };
+        ModalRoot.Instance.OpenModal<KickModal>(modalData);
+    }
+
+    private void OnBan(PlanetMember member)
+    {
+        var modalData = new BanModal.BanModalProps { Member = member };
+        ModalRoot.Instance.OpenModal<BanModal>(modalData);
+    }
 }

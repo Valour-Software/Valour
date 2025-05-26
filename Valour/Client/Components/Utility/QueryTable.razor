@@ -1,6 +1,14 @@
 @using Valour.Sdk.Nodes
-@typeparam TModel
+@using Valour.Sdk.ModelLogic
+@typeparam TModel where TModel : ClientModel<TModel>
+
 @inject ValourClient Client
+
+@if (Engine is null)
+{
+    <h6>Waiting for query engine...</h6>
+    return;
+}
 
 @if (Columns is null)
 {
@@ -8,68 +16,116 @@
     return;
 }
 
-@if (_pageItems is null)
+@if (!Infinite && _pageItems is null)
 {
     <h6>Loading...</h6>
     return;
 }
 
-<table class="table">
-    <thead>
-    <tr>
-        @foreach (var column in Columns)
-        {
-            <th>@column.Name</th>
-        }
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var item in _pageItems)
-    {
+@if (ShowSearch)
+{
+    <input class="form-control mt-2 mb-2" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
+}
+
+<div class="table-wrapper" style="width:100%; overflow-x:auto; @(Infinite ? $"height:{Height};overflow-y:auto;" : null)">
+    <table class="table" style="min-width:@(TableMinWidth)px;">
+        <thead style="@(Infinite ? "position:sticky;top:0;z-index:2;" : null)">
         <tr>
             @foreach (var column in Columns)
             {
-                <td>@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</td>
+                <th @onclick="(() => OnSort(column))"
+                    style="cursor:@(column.Sortable ? "pointer" : "default"); white-space:nowrap; text-align: @column.TextAlign; width: @(column.Width ?? "auto")">
+                        <span style="display:flex; align-items:center; gap:4px;">
+                            <span>@column.Name</span>
+                            @if (column.Sortable && _sortField == column.SortField)
+                            {
+                                <i class="bi bi-caret-@(_sortDescending ? "down" : "up")-fill"></i>
+                            }
+                        </span>
+                </th>
             }
         </tr>
-    }
-    </tbody>
-</table>
-<div class="table-footer">
-    <div class="button-row">
-        @if (!_reader.IsFirstPage)
+        </thead>
+        <tbody>
+        @if (Infinite)
         {
-            <button class="v-btn primary" @onclick="@LoadPreviousPageAsync">Previous</button>
+            <Virtualize @ref="_virtualize" ItemsProvider="ProvideVirtualItems" OverscanCount="20" TItem="TModel" ItemSize="@(RowHeight + 16)">
+                <tr @key="context">
+                    @foreach (var column in Columns)
+                    {
+                        <td><div class="data-wrapper" style="max-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</div></td>
+                    }
+                </tr>
+            </Virtualize>
         }
-        
-        @if (!_reader.IsLastPage)
+        else
         {
-            <button class="v-btn primary" @onclick="@LoadNextPageAsync">Next</button>
+            @foreach (var item in _pageItems)
+            {
+                <tr @key="@item">
+                    @foreach (var column in Columns)
+                    {
+                        <td><div class="data-wrapper" style="max-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</div></td>
+                    }
+                </tr>
+            }
         }
-    </div>
-    <span>Showing items @((_reader.CurrentPageIndex - 1) * PageSize)-@(Math.Min(_reader.CurrentPageIndex * PageSize, _reader.TotalCount)) of @_reader.TotalCount </span>
+        </tbody>
+    </table>
 </div>
 
+@if (!Infinite)
+{
+    <div class="table-footer">
+        <div class="button-row">
+            @if (!Engine.IsFirstPage)
+            {
+                <button class="v-btn primary" @onclick="@LoadPreviousPageAsync">Previous</button>
+            }
+            @if (!Engine.IsLastPage)
+            {
+                <button class="v-btn primary" @onclick="@LoadNextPageAsync">Next</button>
+            }
+        </div>
+        <span>
+            Showing items @((Engine.CurrentPageIndex - 1) * PageSize + 1)-@(Math.Min(Engine.CurrentPageIndex * PageSize, Engine.TotalCount)) of @Engine.TotalCount
+        </span>
+    </div>
+}
 
 @code {
-    
-    [Parameter]
-    public Node Node { get; set; } 
-    
     [Parameter]
     public int PageSize { get; set; } = 50;
 
     [Parameter]
+    public ModelQueryEngine<TModel> Engine { get; set; }
+
+    [Parameter]
     public List<ColumnDefinition<TModel>> Columns { get; set; }
+
+    [Parameter]
+    public bool Infinite { get; set; } = false;
+
+    [Parameter]
+    public string Height { get; set; } = "auto";
     
     [Parameter]
-    public QueryModel Model { get; set; }
-    
+    public int RowHeight { get; set; } = 50;
+
     [Parameter]
-    public Dictionary<string, string> Parameters { get; set; }
-    
-    private PagedReader<TModel> _reader;
-    private List<TModel> _pageItems;
+    public bool ShowSearch { get; set; }
+
+    [Parameter]
+    public string SearchPlaceholder { get; set; } = "Search...";
+
+    [Parameter]
+    public int TableMinWidth { get; set; } = 500;
+
+    private IReadOnlyList<TModel> _pageItems;
+    private Virtualize<TModel> _virtualize;
+    private string _sortField;
+    private bool _sortDescending;
+    private string _searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,42 +133,76 @@
         {
             throw new ArgumentNullException(nameof(Columns));
         }
-        
-        if (Model is null)
-        {
-            throw new ArgumentNullException(nameof(Model));
-        }
-
-        if (Node is null)
-            Node = Client.PrimaryNode;
-        
-        _reader = new PagedReader<TModel>(Node, Model.GetApiUrl(), PageSize);
-
         await Requery();
     }
 
     public async Task Requery()
     {
-        _reader.SetModel(Model);
-        _reader.SetParameters(Parameters);
+        if (Engine is null)
+        {
+            Console.WriteLine($"[QueryEngine ({typeof(TModel).Name})]: Engine is null, cannot requery.");
+            return;
+        }
+
+        Engine.ResetPaging();
+        Engine.SetFilter("search", _searchTerm, false);
+        Engine.SetSort(_sortField, _sortDescending, true);
         
-        var response = await _reader.RefreshCurrentPageAsync();
-        _pageItems = response.Items;
+        _pageItems = null;
         
+        if (Infinite)
+        {
+            if (_virtualize is not null)
+                await _virtualize.RefreshDataAsync();
+        }
+        else
+        {
+            _pageItems = await Engine.GetPageAsync(0, PageSize);
+        }
+
         StateHasChanged();
     }
 
     private async Task LoadNextPageAsync()
     {
-        var results = await _reader.NextPageAsync();
-        _pageItems = results.Items;
+        var results = await Engine.NextPageAsync();
+        _pageItems = results;
         StateHasChanged();
     }
-    
+
     private async Task LoadPreviousPageAsync()
     {
-        var results = await _reader.PreviousPageAsync();
-        _pageItems = results.Items;
+        var results = await Engine.PreviousPageAsync();
+        _pageItems = results;
         StateHasChanged();
+    }
+
+    private async Task OnSort(ColumnDefinition<TModel> column)
+    {
+        if (!column.Sortable || string.IsNullOrEmpty(column.SortField))
+            return;
+
+        if (_sortField == column.SortField)
+        {
+            _sortDescending = !_sortDescending;
+        }
+        else
+        {
+            _sortField = column.SortField;
+            _sortDescending = false;
+        }
+
+        await Requery();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? string.Empty;
+        await Requery();
+    }
+
+    private async ValueTask<ItemsProviderResult<TModel>> ProvideVirtualItems(ItemsProviderRequest request)
+    {
+        return await Engine.GetVirtualizedItemsAsync(request);
     }
 }

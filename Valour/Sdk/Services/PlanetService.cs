@@ -7,6 +7,7 @@ using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Utilities;
+using Valour.Sdk.Models;
 
 namespace Valour.Sdk.Services;
 
@@ -528,6 +529,12 @@ public class PlanetService : ServiceBase
         var planet = await FetchPlanetAsync(planetId, skipCache);
         return await planet.Node.DeleteAsync($"api/planets/{planetId}/members/{memberId}/roles/{roleId}");
     }
+
+    public ModelQueryEngine<PlanetMember> GetMemberQueryEngine(Planet planet) =>
+        new ModelQueryEngine<PlanetMember>(planet.Node, $"api/planets/{planet.Id}/members");
+
+    public ModelQueryEngine<PlanetBan> GetBanQueryEngine(Planet planet) =>
+        new ModelQueryEngine<PlanetBan>(planet.Node, $"api/planets/{planet.Id}/bans");
     
     private void OnRoleOrderUpdate(RoleOrderEvent e)
     {

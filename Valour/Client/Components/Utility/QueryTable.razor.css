@@ -1,28 +1,36 @@
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
     color: var(--font-color);
+    table-layout: fixed;
 }
 
 table tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-/*
-table tr:nth-child(odd) {
-    background-color: rgba(0, 0, 0, 0.1);
-}
- */
-
 table td, table th {
     border: none;
     padding: 8px;
     text-align: left;
     vertical-align: middle;
-} 
+}
 
 table th {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: #222;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+td .data-wrapper {
+    overflow-y: auto;
 }
 
 .button-row {
@@ -36,4 +44,6 @@ table th {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
+    margin-top: 1em;
 }

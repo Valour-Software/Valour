@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valour.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using User = Valour.Server.Models.User;
 using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
@@ -551,16 +552,14 @@ public class UserApi
         return ValourResult.Ok("Deleted.");
     }
     
-    [ValourRoute(HttpVerbs.Post, "api/users/query")]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/query")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     [StaffRequired]
     public static async Task<IResult> QueryUsersAsync(
-        UserService userService,
-        [FromBody] UserQueryModel query,
-        [FromQuery] int take = 50,
-        [FromQuery] int page = 0)
+        [FromBody] QueryRequest queryRequest,
+        UserService userService)
     {
-        var result = await userService.QueryUsersAsync(query.UsernameAndTag, page, take);
+        var result = await userService.QueryUsersAsync(queryRequest);
         return Results.Json(result);
     }
     
