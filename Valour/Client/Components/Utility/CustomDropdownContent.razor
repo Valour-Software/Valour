@@ -3,9 +3,9 @@
 
 @if (!_hidden)
 {
-    <div class="custom-dropdown-overlay @(IsMobile ? "mobile" : string.Empty)" style="@_style" @onclick="Close">
-        <div class="custom-dropdown-content" @onclick:stopPropagation="true">
-            <input class="dropdown-search" placeholder="Search" @bind="_search" @oninput="OnSearch" />
+    <div class="custom-dropdown-overlay @(IsMobile ? "mobile" : string.Empty)" @onclick="Close">
+        <div class="custom-dropdown-content" style="@_style" @onclick:stopPropagation="true">
+            <input class="dropdown-search v-input" placeholder="Search" @bind="_search" @oninput="OnSearch" />
             <div class="dropdown-items">
                 @foreach (var item in _filteredItems)
                 {
@@ -28,7 +28,7 @@
     private bool _hidden = true;
     private double _left;
     private double _top;
-    private string _style => IsMobile ? string.Empty : $"position: fixed; left: {_left}px; top: {_top}px;";
+    private string _style => IsMobile ? string.Empty : $"position: absolute; left: {_left}px; top: {_top}px;";
     private string _search = string.Empty;
     private List<object> _filteredItems = new();
     private CustomDropdownContentData _data;
