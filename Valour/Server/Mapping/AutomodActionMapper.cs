@@ -9,7 +9,8 @@ public static class AutomodActionMapper
         return new AutomodAction
         {
             Id = action.Id,
-            PriorAction = action.PriorAction,
+            Strikes = action.Strikes,
+            UseGlobalStrikes = action.UseGlobalStrikes,
             TriggerId = action.TriggerId,
             MemberAddedBy = action.MemberAddedBy,
             ActionType = action.ActionType,
@@ -18,7 +19,6 @@ public static class AutomodActionMapper
             MessageId = action.MessageId,
             RoleId = action.RoleId,
             Expires = action.Expires,
-            Reason = action.Reason,
             Message = action.Message
         };
     }
@@ -30,7 +30,8 @@ public static class AutomodActionMapper
         return new Valour.Database.AutomodAction
         {
             Id = action.Id,
-            PriorAction = action.PriorAction,
+            Strikes = action.Strikes,
+            UseGlobalStrikes = action.UseGlobalStrikes,
             TriggerId = action.TriggerId,
             MemberAddedBy = action.MemberAddedBy,
             ActionType = action.ActionType,
@@ -39,7 +40,6 @@ public static class AutomodActionMapper
             MessageId = action.MessageId,
             RoleId = action.RoleId,
             Expires = action.Expires,
-            Reason = action.Reason,
             Message = action.Message
         };
     }
