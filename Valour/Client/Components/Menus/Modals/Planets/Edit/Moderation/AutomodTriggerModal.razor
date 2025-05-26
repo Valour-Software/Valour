@@ -12,18 +12,18 @@
             <p class="desc">Provide basic information for this trigger.</p>
             <div class="form-group mt-2">
                 <label>Name</label>
-                <input class="form-control" @bind="_trigger.Name" @oninput="OnChanged" />
+                <input class="form-control" @bind="TriggerName" @bind:event="oninput" />
             </div>
             @if (ShowTriggerWords)
             {
                 <div class="form-group mt-2">
                     <label>@TriggerWordsLabel</label>
-                    <input class="form-control" @bind="_trigger.TriggerWords" @oninput="OnChanged" />
+                    <input class="form-control" @bind="TriggerWords" @bind:event="oninput" />
                 </div>
             }
             <div class="form-group mt-2">
                 <label>Type</label>
-                <select class="form-control" @bind="_trigger.Type" @onchange="OnChanged">
+                <select class="form-control" @bind="TriggerType" >
                     @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
                     {
                         <option value="@t">@t</option>
@@ -99,6 +99,45 @@
 
     private AutomodTrigger _trigger;
     private bool _isNew;
+
+    private string TriggerName
+    {
+        get => _trigger.Name;
+        set
+        {
+            if (_trigger.Name != value)
+            {
+                _trigger.Name = value;
+                _changed = true;
+            }
+        }
+    }
+
+    private string? TriggerWords
+    {
+        get => _trigger.TriggerWords;
+        set
+        {
+            if (_trigger.TriggerWords != value)
+            {
+                _trigger.TriggerWords = value;
+                _changed = true;
+            }
+        }
+    }
+
+    private AutomodTriggerType TriggerType
+    {
+        get => _trigger.Type;
+        set
+        {
+            if (_trigger.Type != value)
+            {
+                _trigger.Type = value;
+                _changed = true;
+            }
+        }
+    }
     private ITaskResult _result;
     private int _step = 1;
 
@@ -243,8 +282,4 @@
         _newActions.Remove(action);
     }
 
-    private void OnChanged(ChangeEventArgs _)
-    {
-        _changed = true;
-    }
 }
