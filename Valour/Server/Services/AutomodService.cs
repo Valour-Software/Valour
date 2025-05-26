@@ -125,6 +125,33 @@ public class AutomodService
         return new(true, "Success", trigger);
     }
 
+    public async Task<TaskResult<AutomodTrigger>> UpdateTriggerAsync(AutomodTrigger trigger)
+    {
+        var existing = await _db.AutomodTriggers.FindAsync(trigger.Id);
+        if (existing is null)
+            return new(false, "Automod trigger not found");
+
+        if (existing.PlanetId != trigger.PlanetId)
+            return new(false, "PlanetId cannot be changed.");
+
+        if (existing.MemberAddedBy != trigger.MemberAddedBy)
+            return new(false, "MemberAddedBy cannot be changed.");
+
+        try
+        {
+            _db.Entry(existing).CurrentValues.SetValues(trigger.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        _coreHub.NotifyPlanetItemChange(trigger);
+        return new(true, "Success", trigger);
+    }
+
     public async Task<TaskResult> DeleteTriggerAsync(AutomodTrigger trigger)
     {
         try

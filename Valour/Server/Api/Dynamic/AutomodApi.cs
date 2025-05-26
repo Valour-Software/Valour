@@ -102,4 +102,36 @@ public class AutomodApi
 
         return Results.Created($"api/automod/actions/{result.Data.Id}", result.Data);
     }
+
+    [ValourRoute(HttpVerbs.Put, "api/planets/{planetId}/automod/triggers/{triggerId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> PutTriggerAsync(
+        long planetId,
+        Guid triggerId,
+        [FromBody] AutomodTrigger trigger,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        if (trigger is null)
+            return ValourResult.BadRequest("Include trigger in body.");
+
+        if (trigger.Id != triggerId)
+            return ValourResult.BadRequest("Id mismatch with body.");
+
+        if (trigger.PlanetId != planetId)
+            return ValourResult.BadRequest("PlanetId mismatch with route.");
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await automodService.UpdateTriggerAsync(trigger);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Json(result.Data);
+    }
 }
