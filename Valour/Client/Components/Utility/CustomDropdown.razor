@@ -1,0 +1,66 @@
+@typeparam TItem
+<div class="custom-dropdown" @ref="_ref" @onclick="OnClick">
+    @if (SelectedItem is null)
+    {
+        <span class="placeholder">@Placeholder</span>
+    }
+    else if (SelectedItemTemplate is not null)
+    {
+        @SelectedItemTemplate(SelectedItem)
+    }
+    else if (ItemTemplate is not null)
+    {
+        @ItemTemplate(SelectedItem)
+    }
+    else
+    {
+        <span>@SelectedItem.ToString()</span>
+    }
+    <i class="bi bi-chevron-down"></i>
+</div>
+
+@code {
+    private ElementReference _ref;
+
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = Array.Empty<TItem>();
+    [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; }
+    [Parameter] public RenderFragment<TItem> SelectedItemTemplate { get; set; }
+    [Parameter] public Func<TItem, string, bool> SearchFunc { get; set; }
+    [Parameter] public TItem SelectedItem { get; set; }
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Select";
+
+    private async Task OnClick()
+    {
+        if (CustomDropdownContent.Instance is null)
+            return;
+
+        var data = new CustomDropdownContentData
+        {
+            Items = Items.Cast<object>().ToList(),
+            ItemTemplate = item => builder =>
+            {
+                if (ItemTemplate is not null)
+                {
+                    builder.AddContent(0, ItemTemplate((TItem)item));
+                }
+                else
+                {
+                    builder.AddContent(0, item.ToString());
+                }
+            },
+            SearchFunc = SearchFunc is null ?
+                new Func<object, string, bool>((o, s) => o?.ToString()?.Contains(s, StringComparison.OrdinalIgnoreCase) == true) :
+                new Func<object, string, bool>((o, s) => SearchFunc((TItem)o, s)),
+            OnSelect = async o =>
+            {
+                SelectedItem = (TItem)o;
+                if (SelectedItemChanged.HasDelegate)
+                    await SelectedItemChanged.InvokeAsync((TItem)o);
+                StateHasChanged();
+            }
+        };
+
+        await CustomDropdownContent.Instance.ShowAsync(_ref, data);
+    }
+}
