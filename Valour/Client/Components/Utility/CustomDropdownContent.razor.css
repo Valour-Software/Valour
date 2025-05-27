@@ -12,26 +12,32 @@
     background-color: var(--main-1);
     border-radius: 0.5em;
     padding: 0.5em;
-    max-height: 300px;
-    overflow-y: auto;
 }
 
 .custom-dropdown-overlay.mobile {
-    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    height: 50dvh;
 }
 
 .custom-dropdown-overlay.mobile .custom-dropdown-content {
     width: 100%;
     height: 100%;
     border-radius: 0;
+    
+    max-height: unset;
 }
 
 .dropdown-search {
     width: 100%;
     margin-bottom: 0.5em;
+}
+
+.dropdown-items {
+    max-height: min(50dvh, 300px);
+    padding: 0.25em;
+    overflow-y: auto;
 }
 
 .dropdown-item {
