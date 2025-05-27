@@ -160,17 +160,23 @@ public class UserService
     
     public async Task<List<Planet>> GetJoinedPlanetInfo(long userId)
     {
-        var planets = await _db.PlanetMembers
+        var planetEntities = await _db.PlanetMembers
             .Where(x => x.UserId == userId)
             .Include(x => x.Planet)
-            .Select(x => x.Planet.ToModel())
+            .ThenInclude(p => p.Tags) 
+            .Select(x => x.Planet)
+            .AsNoTracking()
             .ToListAsync();
-
+    
+        var planets = planetEntities
+            .Select(p => p.ToModel())
+            .ToList();
+    
         foreach (var planet in planets)
         {
             planet.NodeName = await _nodeLifecycleService.GetActiveNodeForPlanetAsync(planet.Id);
         }
-
+    
         return planets;
     }
 

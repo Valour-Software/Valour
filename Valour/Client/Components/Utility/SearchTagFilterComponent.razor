@@ -1,0 +1,253 @@
+@inject TagService TagService
+
+<div class="search-container">
+    <div class="form-group position-relative">
+        <div class="input-with-button">
+            <input
+                @bind="_currentInput"
+                @bind:event="oninput"
+                @onkeydown="HandleKeyDown"
+                @onblur="HideDropdownWithDelay"
+                type="text"
+                class="form-control mb-2 v-bg-medium"
+                placeholder=@(ShowCreateButton ?"Search or Create your own #... ": "Search...")
+                aria-label="Search hashtags"/>
+            
+            @if (ShowCreateButton && _filteredTags.Count == 0)
+            {
+                <button class="toggle-btn  @( _isCheck ? "active" : "" )"
+                        style="background-color: @(_showError ? "var(--p-red)" : "var(--p-cyan)")"
+                        @onclick="@(async() => {await CreateNewTag();})">
+                    <span class="btn-text">@( _isCheck ? "Done" : "Create new #" )</span>
+                    <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            }
+        </div>
+
+        @if (!_tagsLoadedFromPlanets)
+        {
+            <SpinnerComponent/>
+        }
+
+        @if (_isDropdownVisible)
+        {
+            <div class="hashtag-dropdown" id="hashtagDropdown">
+                @foreach (var tag in _filteredTags)
+                {
+                    <div
+                        class="hashtag-item"
+                        tabindex="0"
+                        @onmousedown="() => HandleDropdownTagClick(tag)">
+                        @(tag.Created.Day != DateTime.Today.Day
+                            ? $"#{tag.Slug}"
+                            : $"[new] #{tag.Slug}")
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="selected-tags mt-3" id="selectedTags">
+        @foreach (var tag in _selectedTags)
+        {
+            <span class="selected-tag" id="@tag.Id">
+                @("#" + tag.Slug)
+                <button
+                    type="button"
+                    class="remove-tag"
+                    aria-label="Remove tag"
+                    @onclick="async () => await RemoveTag(tag)">x</button>
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly List<Tag> _allTags = new();
+    private List<Tag> _selectedTags { get; set; } = [];
+    private bool _isDropdownVisible { get; set; }
+    private bool _tagsLoadedFromApi = false;
+    private bool _tagsLoadedFromPlanets = false;
+    private bool _isCheck = false;
+    private bool _showError = false;
+    private string _currentInputBackingField = "";
+    private List<Tag> _filteredTags = [];
+    private string _currentInput
+    {
+        get => _currentInputBackingField;
+        set
+        {
+            if (_currentInputBackingField == value) return;
+            _currentInputBackingField = value;
+            _ = HandleTagInput();
+        }
+    }
+
+    [Parameter] public EventCallback<Tag> OnTagSelected { get; set; }
+    [Parameter] public EventCallback<(string SearchTerm, List<long> TagIds)> OnFilterChanged { get; set; }
+    [Parameter] public List<long> InitialTags { get; set; } = new();
+    [Parameter] public EventCallback<Tag> OnTagSelectToPlanet { get; set; }
+    [Parameter] public EventCallback<Tag> OnTagRemoveToPlanet { get; set; }
+    [Parameter] public bool ShowCreateButton { get; set; } = false;
+
+    
+    
+    
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var tagId in InitialTags)
+        {
+            _selectedTags.Add(await TagService.FetchTagByIdAsync(tagId));
+        }
+
+        _tagsLoadedFromPlanets = true;
+        await AddTags();
+    }
+
+    
+    private async Task AddTags()
+    {
+        if (_tagsLoadedFromApi) return;
+
+        try
+        {
+            var response = await TagService.FetchTagsAsync();
+            var tags = response.Data;
+
+            if (tags != null)
+            {
+                _allTags.Clear();
+                _allTags.AddRange(tags.Where(t => !string.IsNullOrWhiteSpace(t.Slug)));
+                _tagsLoadedFromApi = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tags: {ex.Message}");
+        }
+        StateHasChanged();
+    }
+    
+    private async Task CreateNewTag()
+    {
+        var name = _currentInput.Replace("#", "").Trim();
+       
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            _showError = true;
+            StateHasChanged();
+            await Task.Delay(1000);
+            _showError = false;
+            return;
+        }
+        var slug = name.ToLower();
+        var tag = new Tag { Name = name, Slug = slug };
+    
+        if (!await ValidateTag(tag))
+        {
+            _showError = true;
+            _isCheck = false;
+            StateHasChanged();
+            return;
+        }
+    
+        var result = await TagService.CreateTagAsync(tag);
+        if (!result.Success) return;
+    
+        _isCheck = true;
+        _currentInput = string.Empty;
+        _tagsLoadedFromApi = false;
+        await AddTags();
+        return;
+    }
+
+    private async Task<bool> ValidateTag(Tag tag)
+    {
+        if (string.IsNullOrEmpty(tag.Name) || string.IsNullOrWhiteSpace(tag.Slug))
+        {
+            return false;
+        }
+        var tags = await TagService.FetchTagsAsync();
+        return !tags.Data.Any(t => t.Name == tag.Name || t.Slug == tag.Slug);
+    }
+    
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _filteredTags.Count > 0)
+        {
+            await SelectTag(_filteredTags[0]);
+        }
+    }
+    
+    private async Task HandleDropdownTagClick(Tag tag)
+    {
+        await SelectTag(tag);
+    }
+
+    
+    private async Task HandleTagInput()
+    {
+        if (_currentInput.StartsWith("#"))
+        {
+            var searchTerm = _currentInput.Substring(1);
+            _filteredTags = _allTags
+                .Where(t => _selectedTags.All(s => s.Id != t.Id))
+                .Where(t => t.Slug.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            _isDropdownVisible = _filteredTags.Count > 0;
+            await OnFilterChanged.InvokeAsync((_currentInput, _selectedTags.Select(t => t.Id).ToList()));
+            StateHasChanged();
+            
+        }
+        else
+        {
+            _filteredTags.Clear();
+            _isDropdownVisible = false;
+            await OnFilterChanged.InvokeAsync((_currentInput, _selectedTags.Select(t => t.Id).ToList()));
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task SelectTag(Tag tag)
+    {
+        if (_selectedTags.Any(t => t.Id == tag.Id))
+            return;
+
+        _selectedTags.Add(tag);
+        _currentInput = "";
+        _filteredTags.Clear();
+        _isDropdownVisible = false;
+        
+        await OnTagSelectToPlanet.InvokeAsync(tag);
+        await OnFilterChanged.InvokeAsync(("", _selectedTags.Select(t => t.Id).ToList()));
+        StateHasChanged();
+    }
+
+
+    private async Task RemoveTag(Tag tag)
+    {
+        _selectedTags.Remove(tag);
+        await HandleTagInput();
+
+        await OnTagRemoveToPlanet.InvokeAsync(tag);
+        if (_selectedTags.Count == 0 && OnTagSelected.HasDelegate)
+        {
+            await OnTagSelected.InvokeAsync(null);
+        }
+    }
+
+    private async Task HideDropdownWithDelay()
+    {
+        await Task.Delay(50);
+        _isDropdownVisible = false;
+        StateHasChanged();
+    }
+}
