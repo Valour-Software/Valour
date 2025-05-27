@@ -64,7 +64,7 @@ public class Program
         builder.Services.AddSingleton(client.ThemeService);
         builder.Services.AddSingleton(client.UnreadService);
         builder.Services.AddSingleton(client.WalletService);
-        builder.Services.AddSingleton(client.TagService);
+        builder.Services.AddSingleton(client.PlanetTagService);
         
         var host = builder.Build();
         await host.RunAsync();

@@ -1,6 +1,6 @@
 using Valour.Database;
 using Valour.Shared;
-using Tag = Valour.Server.Models.Tag;
+using PlanetTag = Valour.Server.Models.PlanetTag;
 
 namespace Valour.Server.Services;
 
@@ -17,19 +17,19 @@ public class TagService : ITagService
     }
 
 
-    public async Task<List<Tag>> GetAllTagsList()
+    public async Task<List<PlanetTag>> GetAllTagsList()
     {
         var tags = await _db.Tags.ToListAsync();
-        var tagsDtoList = tags.Select(tag => TagMapper.ToModel(tag)).ToList();
+        var tagsDtoList = tags.Select(tag => PlanetTagMapper.ToModel(tag)).ToList();
         return tagsDtoList;
     }
 
-    public async Task<TaskResult<Tag>> CreateAsync(Tag model)
+    public async Task<TaskResult<PlanetTag>> CreateAsync(PlanetTag model)
     {
         var baseValidation= ValidateTag(model);
         
         if(!baseValidation.Success)
-            return new TaskResult<Tag>(false, baseValidation.Message);
+            return new TaskResult<PlanetTag>(false, baseValidation.Message);
         
         var tag = model.ToDatabase();
         tag.Created = DateTime.UtcNow;
@@ -41,33 +41,33 @@ public class TagService : ITagService
         }catch (Exception e)
         {
             _logger.LogError(e, "Failed to create tag");
-            return new TaskResult<Tag>(false, "Failed to create tag");
+            return new TaskResult<PlanetTag>(false, "Failed to create tag");
         }
         
         var returnModel = tag.ToModel();
-        return new TaskResult<Tag>(true, "Tag created successfully", returnModel);
+        return new TaskResult<PlanetTag>(true, "Tag created successfully", returnModel);
     }
 
-    public async Task<TaskResult<Tag>> FindAsync(long tagId)
+    public async Task<TaskResult<PlanetTag>> FindAsync(long tagId)
     {
         var dbTag = await _db.Tags.FindAsync(tagId);
         var tag = dbTag.ToModel();
         
         if(dbTag != null)
-            return new TaskResult<Tag>(true, "Tag found",tag);
+            return new TaskResult<PlanetTag>(true, "Tag found",tag);
         
-        return new TaskResult<Tag>(false, "Tag not found");
+        return new TaskResult<PlanetTag>(false, "Tag not found");
     }
 
-    private TaskResult ValidateTag(Tag tag)
+    private TaskResult ValidateTag(PlanetTag planetTag)
     {
         // Validate Name
-        var nameValid = ValidateName(tag.Name);
+        var nameValid = ValidateName(planetTag.Name);
         if (!nameValid.Success)
             return new TaskResult(false, nameValid.Message);
 
         // Validate Slug
-        var slugValid = ValidateSlug(tag.Slug);
+        var slugValid = ValidateSlug(planetTag.Slug);
         if (!slugValid.Success)
             return new TaskResult(false, slugValid.Message);
         
@@ -111,7 +111,7 @@ public class TagService : ITagService
 
 public interface ITagService
 {
-    public  Task<List<Tag>> GetAllTagsList();
-    public Task<TaskResult<Tag>> CreateAsync(Tag tag);
-    Task<TaskResult<Tag>> FindAsync(long tagId);
+    public  Task<List<PlanetTag>> GetAllTagsList();
+    public Task<TaskResult<PlanetTag>> CreateAsync(PlanetTag planetTag);
+    Task<TaskResult<PlanetTag>> FindAsync(long tagId);
 }

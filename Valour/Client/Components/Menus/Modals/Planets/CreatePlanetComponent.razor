@@ -57,7 +57,7 @@
 
     private string _name;
     private string _desc;
-    private readonly List<Tag> _selectedTags = [];
+    private readonly List<PlanetTag> _selectedTags = [];
 
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
@@ -113,15 +113,15 @@
     }
     
     
-    private async Task OnTagAdded(Tag tag)
+    private async Task OnTagAdded(PlanetTag planetTag)
     {
-     if (tag == null)
+     if (planetTag == null)
      {
       _selectedTags.Clear();
      }
-     else if (_selectedTags.All(t => t.Id != tag.Id))
+     else if (_selectedTags.All(t => t.Id != planetTag.Id))
      {
-      _selectedTags.Add(tag);
+      _selectedTags.Add(planetTag);
      }
      StateHasChanged();
     }

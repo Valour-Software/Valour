@@ -77,18 +77,18 @@
     }
     
     
-    private void OnTagSelected(Tag tag)
+    private void OnTagSelected(PlanetTag planetTag)
     {
-        if (tag != null && !_filterTagIds.Contains(tag.Id))
-            _filterTagIds.Add(tag.Id);
+        if (planetTag != null && !_filterTagIds.Contains(planetTag.Id))
+            _filterTagIds.Add(planetTag.Id);
         CalculatePlanets();
         ReRender();
     }
     
-    private void OnTagRemoved(Tag tag)
+    private void OnTagRemoved(PlanetTag planetTag)
     {
-        if (tag != null)
-            _filterTagIds.Remove(tag.Id);
+        if (planetTag != null)
+            _filterTagIds.Remove(planetTag.Id);
 
         CalculatePlanets();
         ReRender();

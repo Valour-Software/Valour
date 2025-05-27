@@ -191,7 +191,7 @@ public partial class ValourDb : DbContext
     /// Table for Tags
     /// </summary>
     
-    public DbSet<Tag> Tags { get; set; }
+    public DbSet<PlanetTag> Tags { get; set; }
     
     public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
@@ -289,7 +289,7 @@ public partial class ValourDb : DbContext
         Referral.SetupDbModel(modelBuilder);
         UserCryptoWallet.SetupDbModel(modelBuilder);
         UserCryptoNonce.SetupDbModel(modelBuilder);
-        Tag.SetupDbModel(modelBuilder);
+        PlanetTag.SetupDbModel(modelBuilder);
 
         AutomodTrigger.SetupDbModel(modelBuilder);
         AutomodAction.SetupDbModel(modelBuilder);

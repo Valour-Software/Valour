@@ -33,7 +33,7 @@ public class CacheService
     public readonly ModelStore<OauthApp, long> OauthApps = new();
     public readonly ModelStore<Message, long> Messages = new();
     public readonly ModelStore<Planet, long> Planets = new();
-    public readonly ModelStore<Tag, long> Tags = new();
+    public readonly ModelStore<PlanetTag, long> Tags = new();
     
     // For planets invites of planets the user is not a member of
     public readonly ModelStore<PlanetInvite, string> OutsidePlanetInvites = new();

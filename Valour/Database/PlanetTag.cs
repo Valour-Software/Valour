@@ -1,9 +1,10 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
-public class Tag
+public class PlanetTag : ISharedPlanetTag
 {
    ///////////////////////////
    // Relational Properties //
@@ -32,13 +33,10 @@ public class Tag
    /// </summary>
    
    public DateTime Created { get; set; }
- 
-   
-
 
    public static void SetupDbModel(ModelBuilder builder)
    {
-       builder.Entity<Tag>(e =>
+       builder.Entity<PlanetTag>(e =>
        {
            // Table
            e.ToTable("tags");
@@ -66,19 +64,19 @@ public class Tag
            
            
            e.HasData(
-               new Tag { Id = 1, Name = "Gaming", Slug = "gaming",Created = DateTime.Today},
-               new Tag { Id = 2, Name = "Anime", Slug = "anime",Created = DateTime.Today},
-               new Tag { Id = 3, Name = "Debates", Slug = "debates",Created = DateTime.Today},
-               new Tag { Id = 4, Name = "News", Slug = "news",Created = DateTime.Today},
-               new Tag { Id = 5, Name = "Strategy", Slug = "strategy",Created = DateTime.Today},
-               new Tag { Id = 6, Name = "Action", Slug = "action",Created = DateTime.Today},
-               new Tag { Id = 7, Name = "Manga", Slug = "manga",Created = DateTime.Today},
-               new Tag { Id = 8, Name = "Geek Culture", Slug = "geek-culture",Created = DateTime.Today},
-               new Tag { Id = 9, Name = "Events", Slug = "events",Created = DateTime.Today},
-               new Tag { Id = 10, Name = "Indie Games", Slug = "indie-games",Created = DateTime.Today}
+               new PlanetTag { Id = 1, Name = "Gaming", Slug = "gaming",Created = DateTime.Today},
+               new PlanetTag { Id = 2, Name = "Anime", Slug = "anime",Created = DateTime.Today},
+               new PlanetTag { Id = 3, Name = "Debates", Slug = "debates",Created = DateTime.Today},
+               new PlanetTag { Id = 4, Name = "News", Slug = "news",Created = DateTime.Today},
+               new PlanetTag { Id = 5, Name = "Strategy", Slug = "strategy",Created = DateTime.Today},
+               new PlanetTag { Id = 6, Name = "Action", Slug = "action",Created = DateTime.Today},
+               new PlanetTag { Id = 7, Name = "Manga", Slug = "manga",Created = DateTime.Today},
+               new PlanetTag { Id = 8, Name = "Geek Culture", Slug = "geek-culture",Created = DateTime.Today},
+               new PlanetTag { Id = 9, Name = "Events", Slug = "events",Created = DateTime.Today},
+               new PlanetTag { Id = 10, Name = "Indie Games", Slug = "indie-games",Created = DateTime.Today}
            );
 
-           builder.Entity<Tag>()
+           builder.Entity<PlanetTag>()
                .HasMany(t => t.Planets)
                .WithMany(p => p.Tags)
                .UsingEntity<Dictionary<string, object>>(
@@ -90,7 +88,7 @@ public class Tag
                        .HasConstraintName("fk_planet_tag_planet_id")
                        .OnDelete(DeleteBehavior.Cascade),
                    j => j
-                       .HasOne<Tag>()
+                       .HasOne<PlanetTag>()
                        .WithMany()
                        .HasForeignKey("tag_id")
                        .HasConstraintName("fk_planet_tag_tag_id")

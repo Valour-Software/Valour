@@ -2,7 +2,6 @@ using Valour.Database;
 using Valour.Server.Database;
 using Valour.Shared.Models;
 using Planet = Valour.Server.Models.Planet;
-using Tag = Valour.Server.Models.Tag;
 
 namespace Valour.Server.Mapping;
 

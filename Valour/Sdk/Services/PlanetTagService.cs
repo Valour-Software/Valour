@@ -3,7 +3,7 @@ using Valour.Shared;
 
 namespace Valour.Sdk.Services;
 
-public class TagService : ServiceBase
+public class PlanetTagService : ServiceBase
 {
     private readonly ValourClient _client;
     private readonly LogOptions _logOptions = new(
@@ -13,39 +13,39 @@ public class TagService : ServiceBase
         "#a39433"
     );
 
-    public TagService(ValourClient client)
+    public PlanetTagService(ValourClient client)
     {
         _client = client;
         SetupLogging(client.Logger, _logOptions);
     }
     
-    public async Task<TaskResult<List<Tag>>> FetchTagsAsync()
+    public async Task<TaskResult<List<PlanetTag>>> FetchTagsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<Tag>>("api/tags");
-        return !response.Success ? TaskResult<List<Tag>>.FromFailure(response.Message) : TaskResult<List<Tag>>.FromData(response.Data);
+        var response = await _client.PrimaryNode.GetJsonAsync<List<PlanetTag>>("api/tags");
+        return !response.Success ? TaskResult<List<PlanetTag>>.FromFailure(response.Message) : TaskResult<List<PlanetTag>>.FromData(response.Data);
     }
     
-    public async ValueTask<Tag> FetchTagByIdAsync(long id, bool skipCache = false)
+    public async ValueTask<PlanetTag> FetchTagByIdAsync(long id, bool skipCache = false)
     {
         if (!skipCache && _client.Cache.Tags.TryGet(id, out var cached))
             return cached;
 
-        var response = await _client.PrimaryNode.GetJsonAsync<Tag>($"api/tags/{id}");
+        var response = await _client.PrimaryNode.GetJsonAsync<PlanetTag>($"api/tags/{id}");
         
         return response.Success ? 
             response.Data : 
             null;
     }
     
-    public async Task<TaskResult<Tag>> CreateTagAsync(Tag tag)
+    public async Task<TaskResult<PlanetTag>> CreateTagAsync(PlanetTag planetTag)
     {
-        var response = await _client.PrimaryNode.PostAsyncWithResponse<Tag>("api/tags", tag);
+        var response = await _client.PrimaryNode.PostAsyncWithResponse<PlanetTag>("api/tags", planetTag);
 
         if (!response.Success)
-            return TaskResult<Tag>.FromFailure(response.Message);
+            return TaskResult<PlanetTag>.FromFailure(response.Message);
         
         var createdTag = response.Data;
-        return TaskResult<Tag>.FromData(createdTag);
+        return TaskResult<PlanetTag>.FromData(createdTag);
     }
 
     public async Task<TaskResult> DeleteTagAsync(long tagId)

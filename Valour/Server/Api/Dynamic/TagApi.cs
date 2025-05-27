@@ -17,12 +17,12 @@ public class TagApi
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> CreateAsync (
         ITagService tagService,
-        [FromBody] Tag tag)
+        [FromBody] PlanetTag planetTag)
     {
-        if(tag == null)
+        if(planetTag == null)
             return ValourResult.BadRequest("The tag cannot be null.");
         
-        var response = await tagService.CreateAsync(tag);
+        var response = await tagService.CreateAsync(planetTag);
 
         if (!response.Success)
         {

@@ -1,4 +1,4 @@
-@inject TagService TagService
+@inject PlanetTagService PlanetTagService
 
 <div class="search-container">
     <div class="form-group position-relative">
@@ -10,15 +10,15 @@
                 @onblur="HideDropdownWithDelay"
                 type="text"
                 class="form-control mb-2 v-bg-medium"
-                placeholder=@(ShowCreateButton ?"Search or Create your own #... ": "Search...")
-                aria-label="Search hashtags"/>
+                placeholder=@(ShowCreateButton ?"Search or Create your own tag... ": "Search...")
+                aria-label="Search tags"/>
             
             @if (ShowCreateButton && _filteredTags.Count == 0)
             {
                 <button class="toggle-btn  @( _isCheck ? "active" : "" )"
                         style="background-color: @(_showError ? "var(--p-red)" : "var(--p-cyan)")"
                         @onclick="@(async() => {await CreateNewTag();})">
-                    <span class="btn-text">@( _isCheck ? "Done" : "Create new #" )</span>
+                    <span class="btn-text">@( _isCheck ? "Done" : "Add Tag" )</span>
                     <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -69,15 +69,15 @@
 </div>
 
 @code {
-    private readonly List<Tag> _allTags = new();
-    private List<Tag> _selectedTags { get; set; } = [];
+    private readonly List<PlanetTag> _allTags = new();
+    private List<PlanetTag> _selectedTags { get; set; } = [];
     private bool _isDropdownVisible { get; set; }
     private bool _tagsLoadedFromApi = false;
     private bool _tagsLoadedFromPlanets = false;
     private bool _isCheck = false;
     private bool _showError = false;
     private string _currentInputBackingField = "";
-    private List<Tag> _filteredTags = [];
+    private List<PlanetTag> _filteredTags = [];
     private string _currentInput
     {
         get => _currentInputBackingField;
@@ -89,21 +89,18 @@
         }
     }
 
-    [Parameter] public EventCallback<Tag> OnTagSelected { get; set; }
+    [Parameter] public EventCallback<PlanetTag> OnTagSelected { get; set; }
     [Parameter] public EventCallback<(string SearchTerm, List<long> TagIds)> OnFilterChanged { get; set; }
     [Parameter] public List<long> InitialTags { get; set; } = new();
-    [Parameter] public EventCallback<Tag> OnTagSelectToPlanet { get; set; }
-    [Parameter] public EventCallback<Tag> OnTagRemoveToPlanet { get; set; }
+    [Parameter] public EventCallback<PlanetTag> OnTagSelectToPlanet { get; set; }
+    [Parameter] public EventCallback<PlanetTag> OnTagRemoveToPlanet { get; set; }
     [Parameter] public bool ShowCreateButton { get; set; } = false;
-
-    
-    
     
     protected override async Task OnInitializedAsync()
     {
         foreach (var tagId in InitialTags)
         {
-            _selectedTags.Add(await TagService.FetchTagByIdAsync(tagId));
+            _selectedTags.Add(await PlanetTagService.FetchTagByIdAsync(tagId));
         }
 
         _tagsLoadedFromPlanets = true;
@@ -117,7 +114,7 @@
 
         try
         {
-            var response = await TagService.FetchTagsAsync();
+            var response = await PlanetTagService.FetchTagsAsync();
             var tags = response.Data;
 
             if (tags != null)
@@ -131,6 +128,7 @@
         {
             Console.WriteLine($"Error loading tags: {ex.Message}");
         }
+        
         StateHasChanged();
     }
     
@@ -147,7 +145,7 @@
             return;
         }
         var slug = name.ToLower();
-        var tag = new Tag { Name = name, Slug = slug };
+        var tag = new PlanetTag { Name = name, Slug = slug };
     
         if (!await ValidateTag(tag))
         {
@@ -157,7 +155,7 @@
             return;
         }
     
-        var result = await TagService.CreateTagAsync(tag);
+        var result = await PlanetTagService.CreateTagAsync(tag);
         if (!result.Success) return;
     
         _isCheck = true;
@@ -167,14 +165,14 @@
         return;
     }
 
-    private async Task<bool> ValidateTag(Tag tag)
+    private async Task<bool> ValidateTag(PlanetTag planetTag)
     {
-        if (string.IsNullOrEmpty(tag.Name) || string.IsNullOrWhiteSpace(tag.Slug))
+        if (string.IsNullOrEmpty(planetTag.Name) || string.IsNullOrWhiteSpace(planetTag.Slug))
         {
             return false;
         }
-        var tags = await TagService.FetchTagsAsync();
-        return !tags.Data.Any(t => t.Name == tag.Name || t.Slug == tag.Slug);
+        var tags = await PlanetTagService.FetchTagsAsync();
+        return !tags.Data.Any(t => t.Name == planetTag.Name || t.Slug == planetTag.Slug);
     }
     
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -185,9 +183,9 @@
         }
     }
     
-    private async Task HandleDropdownTagClick(Tag tag)
+    private async Task HandleDropdownTagClick(PlanetTag planetTag)
     {
-        await SelectTag(tag);
+        await SelectTag(planetTag);
     }
 
     
@@ -216,28 +214,28 @@
     }
 
 
-    private async Task SelectTag(Tag tag)
+    private async Task SelectTag(PlanetTag planetTag)
     {
-        if (_selectedTags.Any(t => t.Id == tag.Id))
+        if (_selectedTags.Any(t => t.Id == planetTag.Id))
             return;
 
-        _selectedTags.Add(tag);
+        _selectedTags.Add(planetTag);
         _currentInput = "";
         _filteredTags.Clear();
         _isDropdownVisible = false;
         
-        await OnTagSelectToPlanet.InvokeAsync(tag);
+        await OnTagSelectToPlanet.InvokeAsync(planetTag);
         await OnFilterChanged.InvokeAsync(("", _selectedTags.Select(t => t.Id).ToList()));
         StateHasChanged();
     }
 
 
-    private async Task RemoveTag(Tag tag)
+    private async Task RemoveTag(PlanetTag planetTag)
     {
-        _selectedTags.Remove(tag);
+        _selectedTags.Remove(planetTag);
         await HandleTagInput();
 
-        await OnTagRemoveToPlanet.InvokeAsync(tag);
+        await OnTagRemoveToPlanet.InvokeAsync(planetTag);
         if (_selectedTags.Count == 0 && OnTagSelected.HasDelegate)
         {
             await OnTagSelected.InvokeAsync(null);

@@ -28,7 +28,7 @@ public class Planet : ISharedPlanet
     
     public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
    
-    public virtual ICollection<Tag> Tags { get; set; }
+    public virtual ICollection<PlanetTag> Tags { get; set; }
     
 
     
