@@ -53,7 +53,8 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 0;
+    margin-bottom: 8px;
     align-items: center;
 }
 
@@ -185,6 +186,10 @@
 .btn-text {
     font-size: 0.875rem;
     letter-spacing: 0.025em;
+}
+
+.search-group {
+    margin-bottom: 0;
 }
 
 @media (max-width: 768px) {

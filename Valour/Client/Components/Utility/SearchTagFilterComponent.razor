@@ -1,7 +1,7 @@
 @inject PlanetTagService PlanetTagService
 
 <div class="search-container">
-    <div class="form-group position-relative">
+    <div class="search-group form-group position-relative">
         <div class="input-with-button">
             <input
                 @bind="_currentInput"
@@ -37,6 +37,7 @@
 
         @if (_isDropdownVisible)
         {
+            Console.WriteLine("Egg");
             <div class="hashtag-dropdown" id="hashtagDropdown">
                 @foreach (var tag in _filteredTags)
                 {
@@ -53,19 +54,22 @@
         }
     </div>
 
-    <div class="selected-tags mt-3" id="selectedTags">
-        @foreach (var tag in _selectedTags)
-        {
-            <span class="selected-tag" id="@tag.Id">
-                @("#" + tag.Slug)
-                <button
-                    type="button"
-                    class="remove-tag"
-                    aria-label="Remove tag"
-                    @onclick="async () => await RemoveTag(tag)">x</button>
-            </span>
-        }
-    </div>
+    @if (_selectedTags is not null && _selectedTags.Count > 0)
+    {
+        <div class="selected-tags mt-3" id="selectedTags">
+            @foreach (var tag in _selectedTags)
+            {
+                <span class="selected-tag" id="@tag.Id">
+                    @("#" + tag.Slug)
+                    <button
+                        type="button"
+                        class="remove-tag"
+                        aria-label="Remove tag"
+                        @onclick="async () => await RemoveTag(tag)">x</button>
+                </span>
+            }
+        </div>
+    }
 </div>
 
 @code {
