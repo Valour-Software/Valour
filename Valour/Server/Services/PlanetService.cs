@@ -474,6 +474,10 @@ public class PlanetService
             _logger.LogError(e, e.Message);
             return new TaskResult<Planet>(false, "Error updating planet.");
         }
+        
+        // Copy changes to cached HostedPlanet!
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planet.Id);
+        hostedPlanet.Update(planet);
 
         _coreHub.NotifyPlanetChange(planet);
         
