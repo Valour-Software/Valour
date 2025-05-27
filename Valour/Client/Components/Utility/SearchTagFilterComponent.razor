@@ -10,7 +10,7 @@
                 @onblur="HideDropdownWithDelay"
                 type="text"
                 class="form-control mb-2 v-bg-medium"
-                placeholder=@(ShowCreateButton ?"Search or Create your own tag... ": "Search...")
+                placeholder=@(ShowCreateButton ?"Search or Create your own tag... ": "Search (# for tags)...")
                 aria-label="Search tags"/>
             
             @if (ShowCreateButton && _filteredTags.Count == 0)
