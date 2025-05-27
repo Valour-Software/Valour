@@ -51,6 +51,7 @@ public class ValourClient
     public readonly ThemeService ThemeService;
     public readonly UnreadService UnreadService;
     public readonly WalletService WalletService;
+    public readonly TagService TagService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -86,6 +87,7 @@ public class ValourClient
     /// Used mostly for testing, allows for a custom HttpClientProvider
     /// </summary>
     public HttpClientProvider HttpClientProvider { get; set; }
+    
 
     public ValourClient(string baseAddress, LoggingService logger = null, HttpClientProvider httpProvider = null)
     {
@@ -124,6 +126,7 @@ public class ValourClient
         ThemeService = new ThemeService(this);
         UnreadService = new UnreadService(this);
         WalletService = new WalletService(this);
+        TagService = new TagService(this);
 
         var tenorHttpClient = new HttpClient();
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");

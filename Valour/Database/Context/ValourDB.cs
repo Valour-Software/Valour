@@ -184,8 +184,15 @@ public partial class ValourDb : DbContext
     /// <summary>
     /// Table for Oauth apps
     /// </summary>
+    
     public DbSet<OauthApp> OauthApps { get; set; }
-
+    
+    /// <summary>
+    /// Table for Tags
+    /// </summary>
+    
+    public DbSet<Tag> Tags { get; set; }
+    
     public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
     public DbSet<PlanetRole> PlanetRoles { get; set; }
@@ -199,6 +206,7 @@ public partial class ValourDb : DbContext
     public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
     
     public DbSet<MessageReaction> MessageReactions { get; set; }
+    
     
 
     ////////////////
@@ -281,13 +289,13 @@ public partial class ValourDb : DbContext
         Referral.SetupDbModel(modelBuilder);
         UserCryptoWallet.SetupDbModel(modelBuilder);
         UserCryptoNonce.SetupDbModel(modelBuilder);
+        Tag.SetupDbModel(modelBuilder);
 
         AutomodTrigger.SetupDbModel(modelBuilder);
         AutomodAction.SetupDbModel(modelBuilder);
         AutomodLog.SetupDbModel(modelBuilder);
 
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
-        
         OldPlanetRoleMember.SetupDbModel(modelBuilder);
     }
 }
