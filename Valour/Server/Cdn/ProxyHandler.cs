@@ -213,7 +213,7 @@ public static class ProxyHandler
                 };
                 
                 // Check if we have already proxied this item
-                var item = await db.CdnProxyItems.FindAsync(hash);
+                var item = await db.CdnProxyItems.FindAsync(hash + ext);
                 if (item is null)
                 {
                     if (type == MessageAttachmentType.Image)

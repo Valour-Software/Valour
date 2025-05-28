@@ -2,7 +2,7 @@
 @inherits AttachmentComponent
 
 <div class="image-attachment-wrapper" style="@GetWrapperStyle()" @onclick="OnClick">
-    <img class="attached-image" style="@GetImageStyle()" alt="@Attachment.FileName" src="@_location" @onerror="@OnImageError" />
+    <img class="attached-image" style="@GetImageStyle()" alt="@Attachment.FileName" data-og-src="@Attachment.Location" src="@_location" @onerror="@OnImageError" />
 </div>
 
 @code {

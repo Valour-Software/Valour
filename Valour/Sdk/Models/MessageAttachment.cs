@@ -52,6 +52,12 @@ public class MessageAttachment : ISharedMessageAttachment
             location = location.Replace("https://cdn.valour.gg/", "");
         }
         
+        if (location.Contains("proxy/"))
+        {
+            // If the location is a proxy URL, we don't need to fetch a signed URL
+            return location;
+        }
+        
         if (_signedUrl is null)
         {
             // Fetch url from CDN
