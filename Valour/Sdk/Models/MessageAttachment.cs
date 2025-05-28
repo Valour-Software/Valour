@@ -19,40 +19,11 @@ public class MessageAttachment : ISharedMessageAttachment
     /// </summary>
     public bool Inline { get; set; } = false;
     
-    /* Oembed Attributes */
-    public string OType { get; set; }
-    public string OVersion { get; set; }
-    public string OTitle { get; set; }
-    public string OUrl { get; set; }
-    public string OAuthorName { get; set; }
-    public string OAuthorUrl { get; set; }
-    public string OProviderName { get; set; }
-    public string OProviderUrl { get; set; }
-    public string OCacheAge { get; set; }
-    
     public string Html { get; set; }
 
     public MessageAttachment(MessageAttachmentType type)
     {
         Type = type;
     }
-    
-    /*
-    public AttachmentType GetAttachmentType()
-    {
-        // Malformed
-        if (string.IsNullOrWhiteSpace(MimeType))
-            return AttachmentType.None;
-
-        if (MimeType.StartsWith("image"))
-            return AttachmentType.Image;
-        else if (MimeType.StartsWith("audio"))
-            return AttachmentType.Audio;
-        else if (MimeType.StartsWith("video"))
-            return AttachmentType.Video;
-
-        return AttachmentType.File;
-    }
-    */
 }
 
