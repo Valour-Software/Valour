@@ -482,6 +482,7 @@
         {
             Bytes = bytes,
             Attachment = newAttachment,
+            Message = PreviewMessage,
             OnConfirm = async () => 
             {
                 var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{path}{plusRoute}", content);

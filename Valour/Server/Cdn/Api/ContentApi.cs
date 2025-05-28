@@ -35,7 +35,7 @@ public class ContentApi : Controller
         // Check for cached url
         if (cache.Cache.TryGetValue(hash, out string cachedUrl))
         {
-            return Results.Ok(cachedUrl);
+            return ValourResult.Ok(cachedUrl);
         }
         
         // Generate a new pre-signed URL

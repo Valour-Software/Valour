@@ -12,24 +12,29 @@
 	<h6>Upload?</h6>
 
     <div class="attachment-holder">
-        @switch (Data.Attachment.Type){
-            case MessageAttachmentType.Image:
+        @if (_loaded)
+        {
+            switch (Data.Attachment.Type)
             {
-                if (_imageReady)
+                case MessageAttachmentType.Image:
                 {
-                    <ImageAttachmentComponent Attachment="@Data.Attachment"/>
+                    if (_imageReady)
+                    {
+                        <ImageAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                    }
+
+                    break;
                 }
-                break;
+                case MessageAttachmentType.Video:
+                    <VideoAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                    break;
+                case MessageAttachmentType.Audio:
+                    <AudioAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                    break;
+                default:
+                    <FileAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                    break;
             }
-            case MessageAttachmentType.Video:
-                <VideoAttachmentComponent Attachment="@Data.Attachment" />
-                break;
-            case MessageAttachmentType.Audio:
-                <AudioAttachmentComponent Attachment="@Data.Attachment" />
-                break;
-            default:
-                <FileAttachmentComponent Attachment="@Data.Attachment" />
-                break;
         }
     </div>
 
@@ -45,12 +50,14 @@
     {
         public byte[] Bytes { get; set; }
         public Func<Task> OnConfirm;
+        public Message Message;
         public MessageAttachment Attachment;
     }
 
     private DotNetObjectReference<FileUploadComponent> _thisRef;
 
     private bool _imageReady;
+    private bool _loaded = false;
 
     protected override async Task OnInitializedAsync(){
 
@@ -69,6 +76,8 @@
             _imageReady = false;
             await JsRuntime.InvokeVoidAsync("getImageSize", blobUrl, _thisRef);
         }
+        
+        _loaded = true;
     }
 
     [JSInvokable]
