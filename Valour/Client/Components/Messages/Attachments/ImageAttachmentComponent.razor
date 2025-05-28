@@ -38,12 +38,12 @@
 
     [Parameter]
     public string CustomStyle { get; set; }
-
+    
     private string _location;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _location = Attachment.Location;
+        _location = await GetSignedUrl();
         
         var width = Attachment.Width;
         var height = Attachment.Height;

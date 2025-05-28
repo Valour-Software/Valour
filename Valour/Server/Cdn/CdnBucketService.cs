@@ -98,7 +98,9 @@ public class CdnBucketService
             Hash = hash,
             MimeType = mime,
             UserId = userId,
-            FileName = fileName
+            FileName = fileName,
+            SizeBytes = (int)data.Length,
+            CreatedAt = DateTime.UtcNow
         };
 
         // Now we check if anyone else has already posted this file.

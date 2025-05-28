@@ -4,6 +4,12 @@ namespace Valour.Sdk.Models;
 
 public class MessageAttachment : ISharedMessageAttachment
 {
+    /// <summary>
+    /// True if this attachment is local to the client, meaning it has not been uploaded to the server yet
+    /// </summary>
+    [JsonIgnore]
+    public bool Local { get; set; } = false;
+    
     public string Location { get; set; }
     public string MimeType { get; set; }
     public string FileName { get; set; }

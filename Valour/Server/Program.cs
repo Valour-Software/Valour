@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
+using Amazon;
 using CloudFlare.Client;
 using StackExchange.Redis;
 using Valour.Server.API;
@@ -90,6 +91,8 @@ public partial class Program
         OauthAPI.AddRoutes(app);
         
         // s3 (r2) setup
+        
+        AWSConfigsS3.UseSignatureVersion4 = true;
 
         if (CdnConfig.Current is not null)
         {

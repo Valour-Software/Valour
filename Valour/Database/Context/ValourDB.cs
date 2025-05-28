@@ -297,6 +297,8 @@ public partial class ValourDb : DbContext
 
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
         OldPlanetRoleMember.SetupDbModel(modelBuilder);
+        
+        CdnBucketItem.SetupDbModel(modelBuilder);
     }
 }
 
