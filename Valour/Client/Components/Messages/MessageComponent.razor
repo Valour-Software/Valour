@@ -99,7 +99,7 @@ else
                     var par = new Dictionary<string, object>()
                     {
                         {"Attachment", attachment},
-                        {"MessageComponent", this}
+                        {"Message", _message}
                     };
 
                     <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">

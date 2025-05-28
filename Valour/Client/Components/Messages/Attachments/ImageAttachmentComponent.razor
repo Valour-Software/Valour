@@ -43,7 +43,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _location = await GetSignedUrl();
+        _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
         
         var width = Attachment.Width;
         var height = Attachment.Height;
@@ -81,7 +81,8 @@
         
         var modalParams = new AttachmentModal.ModalParams()
         {
-            Attachment = Attachment
+            Attachment = Attachment,
+            Message = Message
         };
         
         ModalRoot.OpenModal<AttachmentModal>(modalParams);

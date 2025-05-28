@@ -11,16 +11,16 @@
     <div class="attachment-holder">
         @switch (Data.Attachment.Type){
             case MessageAttachmentType.Image:
-                <ImageAttachmentComponent Attachment="Data.Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
+                <ImageAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
                 break;
             case MessageAttachmentType.Video:
-                <VideoAttachmentComponent Attachment="Data.Attachment" />
+                <VideoAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
                 break;
             case MessageAttachmentType.Audio:
-                <AudioAttachmentComponent Attachment="Data.Attachment" />
+                <AudioAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
                 break;
             default:
-                <FileAttachmentComponent Attachment="Data.Attachment" />
+                <FileAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
                 break;
         }
     </div>
@@ -36,6 +36,7 @@
 
     public class ModalParams
     {
+        public Message Message;
         public MessageAttachment Attachment;
     }
     
@@ -46,11 +47,13 @@
     
     private async Task OnClickCopyLink()
     {
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Attachment.Location);
+        var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
     }
 
     private async Task OnClickDownload()
     {
-        await JsRuntime.InvokeVoidAsync("open", Data.Attachment.Location, "_blank");
+        var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
+        await JsRuntime.InvokeVoidAsync("open", url, "_blank");
     }
 }
