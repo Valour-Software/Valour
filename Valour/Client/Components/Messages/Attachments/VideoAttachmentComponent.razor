@@ -1,9 +1,17 @@
 ﻿@inherits AttachmentComponent
 
-<video class="video-attachment" controls loop preload="metadata" playsinline src="@Attachment.Location#t=0.001" type="@Attachment.MimeType"></video>
+<video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
 
 @code {
     [Parameter]
     public string CustomStyle { get; set; }
+    
+    private string _location;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+    }
+
 }
 
