@@ -1,6 +1,6 @@
 ﻿@typeparam TComponent
 
-<div class="carousel-container">
+<div class="carousel-container" style="min-height: @(Height)px">
     <button class="carousel-nav prev @(CanScrollLeft ? "" : "disabled")" @onclick="ScrollLeft" aria-label="Previous items">
         <i class="bi bi-chevron-left"></i>
     </button>
@@ -68,7 +68,7 @@
     private Timer _autoScrollTimer;
     
     public bool CanScrollLeft => _currentIndex > 0;
-    public bool CanScrollRight => _currentIndex + VisibleItems < _loadedItems.Count && _loadedItems.Count < TotalItems;
+    public bool CanScrollRight => _currentIndex + VisibleItems < TotalItems;
     
     protected override async Task OnInitializedAsync()
     {

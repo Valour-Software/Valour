@@ -1,19 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Models.Themes;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Api.Dynamic;
 
 public class ThemeApi 
 {
-    [ValourRoute(HttpVerbs.Get, "api/themes")]
+    [ValourRoute(HttpVerbs.Post, "api/themes/query")]
     [UserRequired]
     public static async Task<IResult> GetThemes(
-        ThemeService themeService,
-        [FromQuery] int take = 20, 
-        [FromQuery] int skip = 0, 
-        [FromQuery] string search = null)
+        [FromBody] QueryRequest query,
+        ThemeService themeService)
     {
-        var themes = await themeService.GetThemes(skip, take, search);
+        var themes = await themeService.QueryThemesAsync(query);
         return Results.Json(themes);
     } 
     

@@ -8,7 +8,7 @@ namespace Valour.Sdk.ModelLogic.QueryEngines;
 public class ThemeMetaQueryEngine : ModelQueryEngine<ThemeMeta>
 {
     public ThemeMetaQueryEngine(Node node, int cacheSize = 100) : 
-        base(node, "api/themes", cacheSize)
+        base(node, "api/themes/query", cacheSize)
     {
     }
 }

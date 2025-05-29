@@ -199,11 +199,13 @@ else
     <h5>Current Theme:</h5>
     <br/>
     
-    <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
-    <div class="theme-container create">
-        <div class="inner">
-            <h5>Create a Theme!</h5>
-            <button class="btn v-btn primary inline" @onclick="@EnterEditorNewTheme">Enter Editor</button>
+    <div class="theme-row">
+        <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
+        <div class="theme-container create">
+            <div class="inner">
+                <h5>Create a Theme!</h5>
+                <button class="btn v-btn primary inline" @onclick="@EnterEditorNewTheme">Enter Editor</button>
+            </div>
         </div>
     </div>
     
@@ -289,7 +291,7 @@ else
         _myThemes = await ThemeService.GetMyThemes();
         
         // Load first page of popular themes
-        var res = await _popularThemes.NextPageAsync();
+        var res = await _popularThemes.GetPageAsync(0, 8);
         _popularThemeCount = _popularThemes.TotalCount;
         
         StateHasChanged();
