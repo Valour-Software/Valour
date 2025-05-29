@@ -136,14 +136,39 @@ namespace Valour.Server.Workers
                     StagedChannelMessages.Remove(channelId, out _);
                 }
             }
+
+            try
+            {
+                await db.Messages.AddRangeAsync(messages);
+                await db.SaveChangesAsync();
+            } 
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to save messages to database. Falling back to per-message save.");
+                
+                // If we fail to save all messages at once, we can try to save them one by one
+                // We will just dump any messages that fail to save
+                
+                foreach (var message in messages)
+                {
+                    try
+                    {
+                        await db.Messages.AddAsync(message);
+                        await db.SaveChangesAsync();
+                        BlockSet.Add(message.Id);
+                        StagedMessages.Remove(message.Id, out _);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to save message {MessageId} to database. Skipping.", message.Id);
+                    }
+                }
+            }
             
-            await db.Messages.AddRangeAsync(messages);
-            await db.SaveChangesAsync();
             BlockSet.Clear();
             StagedMessages.Clear();
             StagedChannelMessages.Clear();
             _logger.LogInformation($"Saved successfully.");
-            
         }
 
         /// <summary>
