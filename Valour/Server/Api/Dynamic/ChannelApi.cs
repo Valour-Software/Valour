@@ -294,9 +294,16 @@ public class ChannelApi
 
         if (!await channelService.HasAccessAsync(channel, token.UserId))
             return ValourResult.Forbid("You are not a member of this channel");
-        
-        typingService.AddCurrentlyTyping(channelId, token.UserId);
-        
+
+        try
+        {
+            await typingService.AddCurrentlyTyping(channelId, token.UserId);
+        } 
+        catch (Exception ex)
+        {
+            return ValourResult.Problem("Failed to update typing state");
+        }
+
         return Results.Ok();
     }
 
