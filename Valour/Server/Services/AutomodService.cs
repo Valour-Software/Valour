@@ -328,6 +328,9 @@ public class AutomodService
 
     public async Task<bool> ScanMessageAsync(Message message, PlanetMember member)
     {
+        if (message.PlanetId is null || member is null)
+            return true; // DMs are exempt
+        
         if (message.AuthorUserId == ISharedUser.VictorUserId)
             return true; // Don't scan messages from Victor -- this would create an infinite loop
         
