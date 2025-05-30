@@ -1,6 +1,8 @@
 @inherits Modal<AutomodActionModal.ModalParams>
 @using Valour.Sdk.Models
 @using Valour.Shared.Models.Staff
+@using Valour.Shared
+@using System
 @inject ValourClient Client
 
 <BasicModalLayout Title="@(_isNew ? "Add Action" : "Edit Action")" Icon="lightning-fill" MaxWidth="400px">
@@ -15,13 +17,14 @@
             </select>
         </div>
 
-        @if (ShowReason)
-        {
-            <div class="form-group mt-2">
-                <label>Reason</label>
-                <input class="form-control" @bind="_action.Reason" />
-            </div>
-        }
+        <div class="form-group mt-2">
+            <label>Strikes Required</label>
+            <InputNumber class="form-control" TValue="int" @bind-Value="_action.Strikes" />
+        </div>
+        <div class="form-group mt-2">
+            <label><input type="checkbox" @bind="_action.UseGlobalStrikes" /> Use Global Strikes</label>
+        </div>
+
 
         @if (ShowExpires)
         {
@@ -35,12 +38,13 @@
         {
             <div class="form-group mt-2">
                 <label>Role</label>
-                <select class="form-control" @bind="_selectedRoleId">
-                    @foreach (var role in Data.Planet.Roles)
-                    {
-                        <option value="@role.Id">@role.Name</option>
-                    }
-                </select>
+                <CustomDropdown TItem="PlanetRole"
+                                Items="Data.Planet.Roles"
+                                SelectedItem="_selectedRole"
+                                SelectedItemChanged="OnRoleChanged"
+                                ItemTemplate="RoleFragments.RolePill"
+                                SelectedItemTemplate="RoleFragments.RolePill"
+                                Placeholder="Select Role" />
             </div>
         }
 
@@ -69,13 +73,16 @@
         public AutomodTrigger Trigger { get; set; }
         public AutomodAction? Action { get; set; }
         public Func<Task>? OnSaved { get; set; }
+        public bool LocalOnly { get; set; } = false;
+        public Func<AutomodAction, Task>? OnSavedAction { get; set; }
     }
 
     private AutomodAction _action;
     private bool _isNew;
     private int _duration;
-    private long _selectedRoleId;
+    private PlanetRole? _selectedRole;
     private ITaskResult _result;
+
 
     protected override void OnInitialized()
     {
@@ -83,7 +90,7 @@
         if (Data.Action is not null)
         {
             _action = Data.Action;
-            _selectedRoleId = _action.RoleId ?? 0;
+            _selectedRole = Data.Planet.Roles.FirstOrDefault(r => r.Id == (_action.RoleId ?? 0));
             _duration = _action.Expires.HasValue ?
                 (int)Math.Ceiling((_action.Expires.Value - DateTime.UtcNow).TotalMinutes) : 0;
         }
@@ -93,35 +100,61 @@
             {
                 PlanetId = Data.Planet.Id,
                 TriggerId = Data.Trigger.Id,
-                Reason = string.Empty,
-                Message = string.Empty
+                Message = string.Empty,
+                Strikes = 1,
+                UseGlobalStrikes = false
             };
+            _selectedRole = null;
         }
     }
 
-    private bool ShowReason => _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
     private bool ShowExpires => _action.ActionType == AutomodActionType.Ban;
     private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
-    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond;
+    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
+
+    private Task OnRoleChanged(PlanetRole role)
+    {
+        _selectedRole = role;
+        return Task.CompletedTask;
+    }
 
     private async Task OnSave()
     {
         if (ShowRole)
-            _action.RoleId = _selectedRoleId;
+            _action.RoleId = _selectedRole?.Id;
         if (ShowExpires)
             _action.Expires = _duration > 0 ? DateTime.UtcNow.AddMinutes(_duration) : null;
 
         TaskResult<AutomodAction> res;
         if (_isNew)
-            res = await Client.AutomodService.CreateActionAsync(_action);
+        {
+            if (Data.LocalOnly)
+            {
+                _action.Id = Guid.NewGuid();
+                res = TaskResult<AutomodAction>.FromData(_action);
+            }
+            else
+            {
+                res = await Client.AutomodService.CreateActionAsync(_action);
+            }
+        }
         else
+        {
             res = await _action.UpdateAsync();
+        }
 
         _result = res;
         if (res.Success)
         {
-            if (Data.OnSaved is not null)
+            if (Data.LocalOnly)
+            {
+                if (Data.OnSavedAction is not null)
+                    await Data.OnSavedAction.Invoke(_action);
+            }
+            else if (Data.OnSaved is not null)
+            {
                 await Data.OnSaved.Invoke();
+            }
             Close();
         }
     }

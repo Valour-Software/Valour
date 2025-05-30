@@ -181,6 +181,9 @@ public class ChatCacheService
     
     public void AddChatPlanetMember(long channelId, PlanetMember member)
     {
+        if (member is null)
+            return;
+        
         // Add to the circular buffer, generate new snapshot
         if (_lastChattersCaches.TryGetValue(channelId, out var cache))
         {

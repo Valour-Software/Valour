@@ -1,0 +1,22 @@
+.role-dropdown-content {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+    padding: 0.5em;
+}
+
+.role-option {
+    cursor: pointer;
+}
+.role-option:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.role-pill {
+    padding: 2px 6px;
+    border-radius: 1em;
+    font-size: 12px;
+    border: 1px solid #ccc;
+}

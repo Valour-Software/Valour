@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -56,12 +59,87 @@ public class AutomodService
         };
     }
 
+    public async Task<QueryResponse<AutomodAction>> QueryTriggerActionsAsync(Guid triggerId, QueryRequest request)
+    {
+        var take = Math.Min(50, request.Take);
+        var skip = request.Skip;
+        var query = _db.AutomodActions.Where(x => x.TriggerId == triggerId).AsQueryable();
+        var total = await query.CountAsync();
+        var items = await query.Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
+        return new QueryResponse<AutomodAction>
+        {
+            Items = items,
+            TotalCount = total
+        };
+    }
+
     public async Task<TaskResult<AutomodTrigger>> CreateTriggerAsync(AutomodTrigger trigger)
     {
         trigger.Id = Guid.NewGuid();
         try
         {
             await _db.AutomodTriggers.AddAsync(trigger.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        _coreHub.NotifyPlanetItemChange(trigger);
+        return new(true, "Success", trigger);
+    }
+
+    public async Task<TaskResult<AutomodTrigger>> CreateTriggerWithActionsAsync(AutomodTrigger trigger, List<AutomodAction> actions)
+    {
+        trigger.Id = Guid.NewGuid();
+        foreach (var action in actions)
+        {
+            action.Id = Guid.NewGuid();
+            action.TriggerId = trigger.Id;
+        }
+
+        await using var tran = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            await _db.AutomodTriggers.AddAsync(trigger.ToDatabase());
+            await _db.SaveChangesAsync();
+            
+            if (actions.Count > 0)
+                await _db.AutomodActions.AddRangeAsync(actions.Select(x => x.ToDatabase()));
+            await _db.SaveChangesAsync();
+            await tran.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        _coreHub.NotifyPlanetItemChange(trigger);
+        foreach (var action in actions)
+            _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
+
+        return new(true, "Success", trigger);
+    }
+
+    public async Task<TaskResult<AutomodTrigger>> UpdateTriggerAsync(AutomodTrigger trigger)
+    {
+        var existing = await _db.AutomodTriggers.FindAsync(trigger.Id);
+        if (existing is null)
+            return new(false, "Automod trigger not found");
+
+        if (existing.PlanetId != trigger.PlanetId)
+            return new(false, "PlanetId cannot be changed.");
+
+        if (existing.MemberAddedBy != trigger.MemberAddedBy)
+            return new(false, "MemberAddedBy cannot be changed.");
+
+        try
+        {
+            _db.Entry(existing).CurrentValues.SetValues(trigger.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
@@ -159,7 +237,7 @@ public class AutomodService
                         PlanetId = member.PlanetId,
                         TargetId = member.UserId,
                         IssuerId = action.MemberAddedBy,
-                        Reason = action.Reason,
+                        Reason = action.Message,
                         TimeCreated = DateTime.UtcNow,
                         TimeExpires = action.Expires
                     };
@@ -177,8 +255,41 @@ public class AutomodService
                     if (message is not null)
                         await messageService.DeleteMessageAsync(message.Id);
                     break;
+                case AutomodActionType.Respond:
+                    if (message is not null && message.AuthorMemberId is not null)
+                    {
+                        var response = new Message
+                        {
+                            Id = IdManager.Generate(),
+                            ChannelId = message.ChannelId,
+                            AuthorMemberId = null,
+                            AuthorUserId = ISharedUser.VictorUserId,
+                            Content = $"«@m-{message.AuthorMemberId}» "  + action.Message,
+                            TimeSent = DateTime.UtcNow,
+                            PlanetId = message.PlanetId,
+                            Fingerprint = Guid.NewGuid().ToString(),
+                            MentionsData = JsonSerializer.Serialize(new List<Mention>()
+                            {
+                                new Mention(){ TargetId = message.AuthorMemberId.Value, Type = MentionType.PlanetMember}
+                            })
+                        };
+
+                        await messageService.PostMessageAsync(response);
+                    }
+                    break;
             }
         }
+    }
+
+    private async Task<List<AutomodAction>> FilterActionsByStrikesAsync(IEnumerable<AutomodAction> actions, PlanetMember member, Guid triggerId)
+    {
+        var globalCount = await _db.AutomodLogs.CountAsync(l => l.PlanetId == member.PlanetId && l.MemberId == member.Id);
+        var triggerCount = await _db.AutomodLogs.CountAsync(l => l.TriggerId == triggerId && l.MemberId == member.Id);
+
+        return actions.Where(a =>
+            a.Strikes <= 1 ||
+            (a.UseGlobalStrikes ? globalCount >= a.Strikes : triggerCount >= a.Strikes))
+            .ToList();
     }
 
     private static bool CheckTrigger(AutomodTrigger trigger, Message message, IList<Message> recentMessages)
@@ -217,8 +328,11 @@ public class AutomodService
 
     public async Task<bool> ScanMessageAsync(Message message, PlanetMember member)
     {
-        if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
-            return true;
+        if (message.AuthorUserId == ISharedUser.VictorUserId)
+            return true; // Don't scan messages from Victor -- this would create an infinite loop
+        
+        //if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
+        //    return true;
 
         var triggers = await GetCachedTriggersAsync(member.PlanetId);
         if (triggers.Count == 0)
@@ -233,6 +347,20 @@ public class AutomodService
                 continue;
 
             var actions = await GetCachedActionsAsync(trigger.Id);
+
+            var log = new Valour.Database.AutomodLog
+            {
+                Id = Guid.NewGuid(),
+                PlanetId = member.PlanetId,
+                TriggerId = trigger.Id,
+                MemberId = member.Id,
+                MessageId = message.Id,
+                TimeTriggered = DateTime.UtcNow
+            };
+            await _db.AutomodLogs.AddAsync(log);
+            await _db.SaveChangesAsync();
+
+            actions = await FilterActionsByStrikesAsync(actions, member, trigger.Id);
             await RunActionsAsync(actions, member, message);
 
             if (actions.Any(a => a.ActionType == AutomodActionType.DeleteMessage))
@@ -251,6 +379,19 @@ public class AutomodService
         foreach (var trigger in triggers.Where(t => t.Type == AutomodTriggerType.Join))
         {
             var actions = await GetCachedActionsAsync(trigger.Id);
+            var log = new Valour.Database.AutomodLog
+            {
+                Id = Guid.NewGuid(),
+                PlanetId = member.PlanetId,
+                TriggerId = trigger.Id,
+                MemberId = member.Id,
+                MessageId = null,
+                TimeTriggered = DateTime.UtcNow
+            };
+            await _db.AutomodLogs.AddAsync(log);
+            await _db.SaveChangesAsync();
+
+            actions = await FilterActionsByStrikesAsync(actions, member, trigger.Id);
             await RunActionsAsync(actions, member, null);
         }
     }

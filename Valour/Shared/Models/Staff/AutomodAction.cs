@@ -18,10 +18,14 @@ public interface ISharedAutomodAction
     public Guid Id { get; set; }
     
     /// <summary>
-    /// Optionally, the id of the action that should be taken before this one
-    /// For example, if this action is a kick, the prior action could be a mute
+    /// How many strikes a user must have before this action fires
     /// </summary>
-    public Guid? PriorAction { get; set; }
+    public int Strikes { get; set; }
+
+    /// <summary>
+    /// If true, strikes are counted across all triggers
+    /// </summary>
+    public bool UseGlobalStrikes { get; set; }
     
     /// <summary>
     /// The id of the trigger that runs this action
@@ -63,10 +67,6 @@ public interface ISharedAutomodAction
     /// </summary>
     public DateTime? Expires { get; set; }
     
-    /// <summary>
-    /// The reason for the action
-    /// </summary>
-    public string Reason { get; set; }
     
     /// <summary>
     /// The message to send to the chat, if applicable
