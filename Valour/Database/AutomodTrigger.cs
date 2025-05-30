@@ -1,3 +1,5 @@
+#nullable enable
+
 using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models.Staff;
 using Valour.Shared.Models;
@@ -6,6 +8,8 @@ namespace Valour.Database;
 
 public class AutomodTrigger : ISharedAutomodTrigger, ISharedPlanetModel<Guid>
 {
+    public virtual ICollection<AutomodAction> Actions { get; set; }
+    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
@@ -14,8 +18,8 @@ public class AutomodTrigger : ISharedAutomodTrigger, ISharedPlanetModel<Guid>
     public long PlanetId { get; set; }
     public long MemberAddedBy { get; set; }
     public AutomodTriggerType Type { get; set; }
-    public string Name { get; set; }
-    public string? TriggerWords { get; set; }
+    public string Name { get; set; } = "";
+    public string? TriggerWords { get; set; } = "";
 
     public static void SetupDbModel(ModelBuilder builder)
     {
@@ -30,6 +34,10 @@ public class AutomodTrigger : ISharedAutomodTrigger, ISharedPlanetModel<Guid>
             e.Property(x => x.Name).HasColumnName("name");
             e.Property(x => x.TriggerWords).HasColumnName("trigger_words");
             e.HasIndex(x => x.PlanetId);
+
+            e.HasMany(x => x.Actions)
+                .WithOne(x => x.Trigger)
+                .HasForeignKey(x => x.TriggerId);
         });
     }
 }

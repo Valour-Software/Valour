@@ -1,3 +1,5 @@
+#nullable enable
+
 using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Models.Staff;
 using Valour.Shared.Models;
@@ -6,6 +8,8 @@ namespace Valour.Database;
 
 public class AutomodAction : ISharedAutomodAction
 {
+    public virtual AutomodTrigger Trigger { get; set; }
+    
     public Guid Id { get; set; }
     public Guid? PriorAction { get; set; }
     public Guid TriggerId { get; set; }
@@ -16,8 +20,8 @@ public class AutomodAction : ISharedAutomodAction
     public long? MessageId { get; set; }
     public long? RoleId { get; set; }
     public DateTime? Expires { get; set; }
-    public string Reason { get; set; }
-    public string Message { get; set; }
+    public string Reason { get; set; } = "";
+    public string Message { get; set; } = "";
 
     public static void SetupDbModel(ModelBuilder builder)
     {
@@ -39,6 +43,10 @@ public class AutomodAction : ISharedAutomodAction
             e.Property(x => x.Message).HasColumnName("message");
             e.HasIndex(x => x.TriggerId);
             e.HasIndex(x => x.PlanetId);
+
+            e.HasOne(x => x.Trigger)
+                .WithMany(x => x.Actions)
+                .HasForeignKey(x => x.TriggerId);
         });
     }
 }
