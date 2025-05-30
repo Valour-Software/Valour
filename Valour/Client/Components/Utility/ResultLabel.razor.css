@@ -37,6 +37,7 @@
 }
 
 .result-message > p {
+    display: inline;
     max-height: 120px;
     overflow-y: auto;
     padding: 4px;
