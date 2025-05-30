@@ -870,7 +870,16 @@ else
         await Channel.Close(WindowChannelKey);
         
         _thisRef.Dispose();
-        await _jsModule.DisposeAsync();
+
+        if (_jsModule is not null)
+        {
+            await _jsModule.DisposeAsync();
+        }
+        
+        if (_jsService is not null)
+        {
+            await _jsService.DisposeAsync();
+        }
     }
 }
 
