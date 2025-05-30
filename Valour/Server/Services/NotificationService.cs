@@ -276,10 +276,14 @@ public class NotificationService
 
         var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
 
+        var title = user.Id == ISharedUser.VictorUserId
+            ? "Victor in " + planet.Name
+            : member.Nickname + " in " + planet.Name;
+        
         Models.Notification notification = new()
         {
             Id = Guid.NewGuid(),
-            Title = member.Nickname + " in " + planet.Name,
+            Title = title,
             Body = content,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
             UserId = targetMember.UserId,

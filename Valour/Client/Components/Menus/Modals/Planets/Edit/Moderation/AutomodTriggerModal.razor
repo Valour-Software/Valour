@@ -1,0 +1,433 @@
+@inherits Modal<AutomodTriggerModal.ModalParams>
+@using Valour.Sdk.Models
+@using Valour.Shared.Models.Staff
+@using Valour.Sdk.Requests
+@using Valour.Shared
+@using System
+@inject ValourClient Client
+
+<BasicModalLayout Title="@ModalTitle" Icon="shield-lock-fill" MaxWidth="600px" MinWidth="400px">
+    <MainArea>
+        @if (_step == 1)
+        {
+            <p class="subtitle">Step 1: Details</p>
+            <p class="desc">Provide basic information for this trigger.</p>
+            <div class="form-group">
+                <label>Name</label>
+                <input class="form-control" @bind="TriggerName" @bind:event="oninput" />
+            </div>
+            @if (ShowTriggerWords)
+            {
+                <div class="form-group">
+                    <label>@TriggerWordsLabel</label>
+                    <input class="form-control" @bind="TriggerWords" @bind:event="oninput" />
+                </div>
+            }
+            <div class="form-group">
+                <label>Type</label>
+                <select class="form-control" @bind="TriggerType" >
+                    @foreach (AutomodTriggerType t in Enum.GetValues<AutomodTriggerType>())
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </div>
+        }
+        else if (_step == 2)
+        {
+            <p class="subtitle">Step 2: Actions</p>
+            <p class="desc">Define what actions will occur when this trigger fires.</p>
+            @if (_isNew)
+            {
+                <table class="table">
+                    <thead>
+                        <tr><th>Type</th><th>Message</th><th>Strikes</th><th>Global</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var act in _newActions)
+                        {
+                            <tr>
+                                <td>@act.ActionType</td>
+                                <td>@act.Message</td>
+                                <td>@act.Strikes</td>
+                                <td>@act.UseGlobalStrikes</td>
+                                <td>
+                                    <div class="button-row">
+                                        <button class="v-btn" @onclick="(() => EditAction(act))">Edit</button>
+                                        <button class="v-btn danger" @onclick="(() => RemoveNewAction(act))">Remove</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <QueryTable
+                    @ref="_actionTable"
+                    Columns="@_actionColumns"
+                    Engine="@_actionEngine"
+                    Infinite="true"
+                    Height="200px"
+                    TableMinWidth="700"
+                    RowHeight="40" />
+            }
+
+            <button class="v-btn" @onclick="OnAddAction">Add Action</button>
+            <ResultLabel Result="@_result" />
+        }
+        else if (_step == 3)
+        {
+            <p class="subtitle">@(_actionIsNew ? "Add Action" : "Edit Action")</p>
+            <div class="form-group">
+                <label>Type</label>
+                <select class="form-control" @bind="_action.ActionType">
+                    @foreach (AutomodActionType t in Enum.GetValues<AutomodActionType>())
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Strikes Required</label>
+                <InputNumber class="form-control" TValue="int" @bind-Value="_action.Strikes" />
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" @bind="_action.UseGlobalStrikes" /> Use Global Strikes</label>
+            </div>
+
+            @if (ShowExpires)
+            {
+                <div class="form-group">
+                    <label>Duration Minutes (0 for permanent)</label>
+                    <InputNumber class="form-control" TValue="int" @bind-Value="_duration" />
+                </div>
+            }
+
+            @if (ShowRole)
+            {
+                <div class="form-group">
+                    <label>Role</label>
+                    <CustomDropdown TItem="PlanetRole"
+                                    Items="Data.Planet.Roles"
+                                    SelectedItemChanged="OnRoleChanged"
+                                    ItemTemplate="RoleFragments.RolePill"
+                                    Placeholder="Select Role"
+                                    SearchFunc="RoleSearchFunc"/>
+                </div>
+            }
+
+            @if (ShowMessage)
+            {
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea class="form-control" @bind="_action.Message"></textarea>
+                </div>
+            }
+
+            <ResultLabel Result="@_actionResult" />
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="Close">Cancel</button>
+            @if (_step == 1)
+            {
+                <button class="v-btn primary" @onclick="NextStep">Next</button>
+            }
+            else if (_step == 2)
+            {
+                <button class="v-btn" @onclick="PrevStep">Back</button>
+                @if (_isNew || _changed)
+                {
+                    <button class="v-btn primary" @onclick="OnSave">Save</button>
+                }
+            }
+            else if (_step == 3)
+            {
+                <button class="v-btn" @onclick="CancelAction">Back</button>
+                <button class="v-btn primary" @onclick="OnSaveAction">Save</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    
+    private bool ShowExpires => _action.ActionType == AutomodActionType.Ban;
+    private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
+    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
+    
+    private bool RoleSearchFunc(PlanetRole role, string search)
+    {
+        return role.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
+    }
+    
+    public class ModalParams
+    {
+        public Planet Planet { get; set; }
+        public AutomodTrigger? Trigger { get; set; }
+    }
+
+    private AutomodTrigger _trigger;
+    private bool _isNew;
+
+    private string TriggerName
+    {
+        get => _trigger.Name;
+        set
+        {
+            if (_trigger.Name != value)
+            {
+                _trigger.Name = value;
+                _changed = true;
+            }
+        }
+    }
+
+    private string? TriggerWords
+    {
+        get => _trigger.TriggerWords;
+        set
+        {
+            if (_trigger.TriggerWords != value)
+            {
+                _trigger.TriggerWords = value;
+                _changed = true;
+            }
+        }
+    }
+
+    private AutomodTriggerType TriggerType
+    {
+        get => _trigger.Type;
+        set
+        {
+            if (_trigger.Type != value)
+            {
+                _trigger.Type = value;
+                _changed = true;
+            }
+        }
+    }
+    private ITaskResult _result;
+    private int _step = 1;
+
+    private bool _changed;
+
+    private QueryTable<AutomodAction> _actionTable;
+    private List<ColumnDefinition<AutomodAction>> _actionColumns;
+    private ModelQueryEngine<AutomodAction> _actionEngine;
+    private List<AutomodAction> _newActions;
+
+    private AutomodAction _action;
+    private bool _actionIsNew;
+    private int _duration;
+
+    private PlanetRole? _selectedRole;
+    private long _selectedRoleId;
+    
+    private void OnRoleChanged(PlanetRole role)
+    {
+        _selectedRole = role;
+        _selectedRoleId = role?.Id ?? 0;
+        _changed = true;
+    }
+    
+    private ITaskResult _actionResult;
+
+    private string ModalTitle => _step == 3
+        ? (_actionIsNew ? "Add Action" : "Edit Action")
+        : $"{(_isNew ? "Add Trigger" : "Edit Trigger")} - Step {_step} of 2";
+
+    private void NextStep() => _step = Math.Min(2, _step + 1);
+
+    private void PrevStep() => _step = Math.Max(1, _step - 1);
+
+    private bool ShowTriggerWords =>
+        _trigger.Type == AutomodTriggerType.Blacklist || _trigger.Type == AutomodTriggerType.Command;
+
+    private string TriggerWordsLabel => _trigger.Type switch
+    {
+        AutomodTriggerType.Blacklist => "Trigger Words (comma separated)",
+        AutomodTriggerType.Command => "Command Name",
+        _ => string.Empty
+    };
+
+    protected override void OnInitialized()
+    {
+        _isNew = Data.Trigger is null;
+        if (Data.Trigger is not null)
+        {
+            _trigger = Data.Trigger;
+            _actionEngine = Client.AutomodService.GetActionQueryEngine(Data.Planet, _trigger.Id);
+        }
+        else
+        {
+            _trigger = new AutomodTrigger(Client) { PlanetId = Data.Planet.Id };
+            _newActions = new();
+        }
+
+        _changed = false;
+
+        _actionColumns = new()
+        {
+            new()
+            {
+                Name = "Type",
+                RenderFragment = row => @<span>@row.Row.ActionType</span>,
+                Width = "200px"
+            },
+            new()
+            {
+                Name = "Message",
+                RenderFragment = row => @<span>@row.Row.Message</span>,
+                Width = "250px"
+            },
+            new()
+            {
+                Name = "Strikes",
+                RenderFragment = row => @<span>@row.Row.Strikes</span>
+            },
+            new()
+            {
+                Name = "Global",
+                RenderFragment = row => @<span>@row.Row.UseGlobalStrikes</span>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn" @onclick="(() => EditAction(row.Row))">Edit</button>
+                        <button class="v-btn danger" @onclick="(() => RemoveAction(row.Row))">Remove</button>
+                    </div>,
+                Width = "160px"
+            }
+        };
+    }
+
+    private async Task OnSave()
+    {
+        TaskResult<AutomodTrigger> res;
+        if (_isNew)
+        {
+            _trigger.PlanetId = Data.Planet.Id;
+            var req = new CreateAutomodTriggerRequest
+            {
+                Trigger = _trigger,
+                Actions = _newActions
+            };
+            res = await Client.AutomodService.CreateTriggerAsync(req);
+        }
+        else
+        {
+            res = await _trigger.UpdateAsync();
+        }
+        _result = res;
+        if (res.Success)
+        {
+            _changed = false;
+            Close();
+        }
+    }
+
+    private void OnAddAction()
+    {
+        _action = new AutomodAction(Client)
+        {
+            PlanetId = Data.Planet.Id,
+            TriggerId = _trigger.Id,
+            Message = string.Empty,
+            Strikes = 1,
+            UseGlobalStrikes = false
+        };
+        _duration = 0;
+        _selectedRoleId = 0;
+        _actionIsNew = true;
+        _actionResult = null;
+        _step = 3;
+    }
+
+    private void EditAction(AutomodAction act)
+    {
+        _action = act;
+        _duration = _action.Expires.HasValue ?
+            (int)Math.Ceiling((_action.Expires.Value - DateTime.UtcNow).TotalMinutes) : 0;
+        _selectedRoleId = _action.RoleId ?? 0;
+        _actionIsNew = false;
+        _actionResult = null;
+        _step = 3;
+    }
+
+    private async Task OnSaveAction()
+    {
+        if (ShowRole)
+            _action.RoleId = _selectedRoleId;
+        if (ShowExpires)
+            _action.Expires = _duration > 0 ? DateTime.UtcNow.AddMinutes(_duration) : null;
+
+        TaskResult<AutomodAction> res;
+        if (_actionIsNew)
+        {
+            if (_isNew)
+            {
+                _action.Id = Guid.NewGuid();
+                _newActions.Add(_action);
+                res = TaskResult<AutomodAction>.FromData(_action);
+            }
+            else
+            {
+                res = await Client.AutomodService.CreateActionAsync(_action);
+            }
+        }
+        else
+        {
+            if (_isNew)
+            {
+                res = TaskResult<AutomodAction>.FromData(_action);
+            }
+            else
+            {
+                res = await _action.UpdateAsync();
+            }
+        }
+
+        _actionResult = res;
+        if (res.Success)
+        {
+            if (!_isNew && _actionTable is not null)
+                await _actionTable.Requery();
+
+            _step = 2;
+        }
+    }
+
+    private void CancelAction()
+    {
+        _step = 2;
+        _actionResult = null;
+    }
+
+    private async Task RemoveAction(AutomodAction action)
+    {
+        if (_isNew)
+        {
+            RemoveNewAction(action);
+            StateHasChanged();
+            return;
+        }
+
+        var result = await action.DeleteAsync();
+        _result = result;
+        if (result.Success && _actionTable is not null)
+            await _actionTable.Requery();
+    }
+
+    private void RemoveNewAction(AutomodAction action)
+    {
+        _newActions.Remove(action);
+    }
+
+}

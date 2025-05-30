@@ -3,103 +3,127 @@
 @inject PlanetService PlanetService
 
 <section class="v-bg-dark" style="padding: 2em; border-radius: 1em">
-	<h2>Create a Planet</h2>
+ <h2>Create a Planet</h2>
 
-	<lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1" style="width: 240px; height: 200px;"></lottie-player>
+ <lottie-player @ref="@_lottieRef" src="./_content/Valour.Client/media/animations/create_planet.json" background="transparent" speed="1" style="width: 240px; height: 200px;"></lottie-player>
 
-	@if (_result is null || !_result.Success)
-	{
+ @if (_result is null || !_result.Success)
+ {
 
-		<div class="form-group mt-4">
-			<label>Community Name</label>
-			<input class="form-control" @bind-value="@_name" />
-		</div>
+  <div class="form-group mt-4">
+   <label>Community Name</label>
+   <input class="form-control" @bind-value="@_name" />
+  </div>
 
-		<div class="form-group mt-4">
-			<label>Description</label>
-			<input class="form-control" @bind-value="@_desc"/>
-		</div>
-		
-		<div class="form-group mt-4">
-			<button class="v-btn primary large mt-2" @onclick="OnClickSubmit">Create your Community!</button>
-		</div>
-	}
-	
-	@if (_showWelcome)
-	{
-		<h4 class="welcome" style="text-align: center">
-			We have landed!
-		</h4>
-	}
+  <div class="form-group mt-4">
+   <label>Description</label>
+   <input class="form-control" @bind-value="@_desc"/>
+  </div>
+  
+  <div class="form-group mt-4" style="width: 250px">
+   <label>Search #Tags and add to your planet</label>
+   <SearchTagFilterComponent OnTagSelected="OnTagAdded"/>
+  </div>
+  
+  
+  <div class="form-group mt-4">
+   <button class="v-btn primary large mt-2" @onclick="OnClickSubmit">Create your Community!</button>
+  </div>
+  
+  
+ }
+ 
+ @if (_showWelcome)
+ {
+  <h4 class="welcome" style="text-align: center">
+   We have landed!
+  </h4>
+ }
 </section>
 
 @code {
 
-	private ElementReference _lottieRef;
+    private ElementReference _lottieRef;
+    
 
-	private bool _showWelcome = false;
-	
-	public class ModalParams
-	{
-		public WindowTab Window { get; set; }
-	}
-	
-	private ITaskResult _result;
+    private bool _showWelcome = false;
+    
+    public class ModalParams
+    {
+     public WindowTab Window { get; set; }
+    }
+    
+    private ITaskResult _result;
 
-	private string _name;
-	private string _desc;
+    private string _name;
+    private string _desc;
+    private readonly List<PlanetTag> _selectedTags = [];
 
-	[CascadingParameter]
-	public ModalRoot ModalRoot { get; set; }
-	
-	[Parameter]
-	public ModalParams Data { get; set; }
-	
-	[Parameter]
-	public string ModalId { get; set; }
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+    
+    [Parameter]
+    public ModalParams Data { get; set; }
+    
+    [Parameter]
+    public string ModalId { get; set; }
 
-	private async Task OnClickSubmit(MouseEventArgs e)
-	{
-		// Require a name
-		if (string.IsNullOrWhiteSpace(_name))
-		{
-			_result = new TaskResult(false, "Please input a planet name.");
-			return;
-		}
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+     if (string.IsNullOrWhiteSpace(_name))
+     {
+      _result = new TaskResult(false, "Please input a planet name.");
+      return;
+     }
 
-		var newPlanet = new Planet(Client)
-		{
-			Name = _name,
-			Description = _desc
-		};
+     var newPlanet = new Planet(Client)
+     {
+      Name = _name,
+      Description = _desc,
+      TagId = _selectedTags.Select(tag => tag.Id).ToList()
+     };
 
-		var result = await newPlanet.CreateAsync();
-		_result = result;
-		
-		if (!_result.Success)
-		{
-			StateHasChanged();
-			return;
-		}
+     var result = await newPlanet.CreateAsync();
+     _result = result;
+     
+     if (!_result.Success)
+     {
+      StateHasChanged();
+      return;
+     }
 
-		_showWelcome = true;
-		StateHasChanged();
-		
-		await Task.Delay(200);
+     _showWelcome = true;
+     StateHasChanged();
+     
+     await Task.Delay(200);
 
-		await JsRuntime.InvokeVoidAsync("playLottie", _lottieRef);
-		
-		await Task.Delay(3000);
-		
-		ModalRoot.CloseModal(ModalId);
+     await JsRuntime.InvokeVoidAsync("playLottie", _lottieRef);
+     
+     await Task.Delay(3000);
+     
+     ModalRoot.CloseModal(ModalId);
 
-		var planet = result.Data.Sync(Client);
-		PlanetService.AddJoinedPlanet(planet);
+     var planet = result.Data.Sync(Client);
+     PlanetService.AddJoinedPlanet(planet);
 
-		await planet.FetchChannelsAsync();
-		var mainChannel = planet.PrimaryChatChannel;
+     await planet.FetchChannelsAsync();
+     var mainChannel = planet.PrimaryChatChannel;
 
-		await Data.Window.Layout.AddTab(await ChatWindowComponent.GetDefaultContent(mainChannel));
-	}
+     await Data.Window.Layout.AddTab(await ChatWindowComponent.GetDefaultContent(mainChannel));
+    }
+    
+    
+    private async Task OnTagAdded(PlanetTag planetTag)
+    {
+     if (planetTag == null)
+     {
+      _selectedTags.Clear();
+     }
+     else if (_selectedTags.All(t => t.Id != planetTag.Id))
+     {
+      _selectedTags.Add(planetTag);
+     }
+     StateHasChanged();
+    }
 
 }

@@ -20,7 +20,10 @@
         </div>
 
         <ResultLabel Result="@_mainResult" />
-
+        
+        <SearchTagFilterComponent InitialTags="Planet.TagId" OnTagSelectToPlanet="HandleTagSelection"
+                   OnTagRemoveToPlanet="HandleTagRemoved" ShowCreateButton="true"/>
+        
         <div class="actions mt-3">
             <button class="v-btn primary" @onclick="OnSaveChanges">Save Changes</button>
         </div>
@@ -121,17 +124,29 @@
         StateHasChanged();
     }
 
-    public async Task OnSaveChanges()
+    private async Task OnSaveChanges()
     {
-        if (nameValue != Planet.Name || descValue != Planet.Description)
+        if (nameValue != Planet.Name || descValue != Planet.Description )
         {
             Planet.Name = nameValue;
             Planet.Description = descValue;
-
-            var result = await Planet.UpdateAsync();
-            _mainResult = result;
         }
-
+        
+        var result = await Planet.UpdateAsync();
+        _mainResult = result;
         StateHasChanged();
+    }
+
+
+    private void HandleTagSelection(PlanetTag planetTag)
+    {
+        if (Planet.TagId.Contains(planetTag.Id)) return;
+        Planet.TagId.Add(planetTag.Id);
+    }
+
+    private void HandleTagRemoved(PlanetTag planetTag)
+    {
+        if (!Planet.TagId.Contains(planetTag.Id)) return;
+        Planet.TagId.Remove(planetTag.Id);
     }
 }

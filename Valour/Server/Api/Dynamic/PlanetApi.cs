@@ -5,6 +5,8 @@ using Valour.Server.Database;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
+using Valour.Server.Models;
+using Valour.Server.Services;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -380,6 +382,51 @@ public class PlanetApi
         var bans = await banService.QueryPlanetBansAsync(planetId, queryRequest);
 
         return Results.Json(bans);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/automod/triggers/query")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> QueryAutomodTriggersAsync(
+        [FromBody] QueryRequest? queryRequest,
+        long planetId,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await automodService.QueryPlanetTriggersAsync(planetId, queryRequest);
+        return Results.Json(result);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/automod/triggers/{triggerId}/actions/query")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> QueryAutomodActionsAsync(
+        [FromBody] QueryRequest? queryRequest,
+        long planetId,
+        Guid triggerId,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await automodService.QueryTriggerActionsAsync(triggerId, queryRequest);
+        return Results.Json(result);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]

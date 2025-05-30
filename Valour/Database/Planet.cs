@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -26,6 +27,10 @@ public class Planet : ISharedPlanet
     public virtual ICollection<Message> Messages { get; set; }
     
     public virtual ICollection<UserChannelState> UserChannelStates { get; set; }
+   
+    public virtual ICollection<PlanetTag> Tags { get; set; }
+    
+
     
     ///////////////////////
     // Entity Properties //

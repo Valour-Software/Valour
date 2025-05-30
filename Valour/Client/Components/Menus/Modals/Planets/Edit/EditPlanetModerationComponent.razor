@@ -1,0 +1,97 @@
+@using Valour.Sdk.Models
+@using Valour.Shared.Models.Staff
+@using Valour.Sdk.ModelLogic
+@inject ValourClient Client
+
+<h5>Autmod Triggers</h5>
+
+<QueryTable
+    @ref="_table"
+    Columns="@_columns"
+    Engine="@_engine"
+    ShowSearch="true"
+    Infinite="true"
+    TableMinWidth="700"
+    SearchPlaceholder="Search name..." />
+
+<button class="v-btn mt-2" @onclick="OpenCreateModal">Add Trigger</button>
+<ResultLabel Result="@_result" />
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private QueryTable<AutomodTrigger> _table;
+    private List<ColumnDefinition<AutomodTrigger>> _columns;
+    private ModelQueryEngine<AutomodTrigger> _engine;
+    private ITaskResult _result;
+
+    protected override void OnInitialized()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+        _engine = Client.AutomodService.GetTriggerQueryEngine(Planet);
+
+        _columns = new()
+        {
+            new()
+            {
+                Name = "Name",
+                SortField = "name",
+                Sortable = true,
+                RenderFragment = row => @<span>@row.Row.Name</span>
+            },
+            new()
+            {
+                Name = "Type",
+                SortField = "type",
+                Sortable = true,
+                RenderFragment = row => @<span>@row.Row.Type</span>
+            },
+            new()
+            {
+                Name = "Words",
+                RenderFragment = row => @<span>@row.Row.TriggerWords</span>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn secondary" @onclick="(() => ViewTrigger(row.Row))">View</button>
+                        <button class="v-btn danger" @onclick="(() => DeleteTrigger(row.Row))">Remove</button>
+                    </div>,
+                Width = "200px",
+                TextAlign = "right"
+            }
+        };
+    }
+
+    private void OpenCreateModal()
+    {
+        var data = new AutomodTriggerModal.ModalParams
+        {
+            Planet = Planet,
+            Trigger = null
+        };
+        ModalRoot.OpenModal<Moderation.AutomodTriggerModal>(data);
+    }
+
+    private void ViewTrigger(AutomodTrigger trigger)
+    {
+        var data = new AutomodTriggerModal.ModalParams
+        {
+            Planet = Planet,
+            Trigger = trigger
+        };
+        ModalRoot.OpenModal<Moderation.AutomodTriggerModal>(data);
+    }
+
+    private async Task DeleteTrigger(AutomodTrigger trigger)
+    {
+        _result = await trigger.DeleteAsync();
+        if (_result.Success && _table is not null)
+            await _table.Requery();
+    }
+}

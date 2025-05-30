@@ -213,27 +213,18 @@ public static class ProxyHandler
                 };
                 
                 // Check if we have already proxied this item
-                var item = await db.CdnProxyItems.FindAsync(hash);
+                var item = await db.CdnProxyItems.FindAsync(hash + ext);
                 if (item is null)
                 {
                     if (type == MessageAttachmentType.Image)
                     {
-                        // If it's an image, we have to get its height and width
-                        var response = await client.GetAsync(uri.AbsoluteUri);
-                        if (!response.IsSuccessStatusCode)
+                        var imageMeta = await ImageSizeFetcher.GetImageDimensionsAsync(uri.AbsoluteUri);
+                        if (imageMeta is not null)
                         {
-                            Console.WriteLine("Content Proxy error: " + await response.Content.ReadAsStringAsync());
-                            return null;
+                            attachment.Width = imageMeta.Value.width;
+                            attachment.Height = imageMeta.Value.height;
                         }
-                        
-                        try
-                        {
-                            var stream = await response.Content.ReadAsStreamAsync();
-                            var imageInfo = await Image.IdentifyAsync(stream);
-                            attachment.Width = imageInfo.Width;
-                            attachment.Height = imageInfo.Height;
-                        }
-                        catch
+                        else
                         {
                             return null;
                         }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Valour.Sdk.Client;
 using Valour.Sdk.Models;
 
 namespace Valour.Client.Components.Messages.Attachments;
@@ -6,8 +7,8 @@ namespace Valour.Client.Components.Messages.Attachments;
 public class AttachmentComponent : ComponentBase
 {
     [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
+    public Message Message { get; set; }
+    
     [Parameter]
-    public MessageComponent MessageComponent { get; set; }
+    public MessageAttachment Attachment { get; set; }
 }

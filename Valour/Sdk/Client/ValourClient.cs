@@ -43,6 +43,7 @@ public class ValourClient
     public readonly TenorService TenorService;
     public readonly SubscriptionService SubscriptionService;
     public readonly NotificationService NotificationService;
+    public readonly AutomodService AutomodService;
     public readonly EcoService EcoService;
     public readonly StaffService StaffService;
     public readonly OauthService OauthService;
@@ -50,6 +51,7 @@ public class ValourClient
     public readonly ThemeService ThemeService;
     public readonly UnreadService UnreadService;
     public readonly WalletService WalletService;
+    public readonly PlanetTagService PlanetTagService;
 
     /// <summary>
     /// The base address the client is connected to
@@ -85,6 +87,7 @@ public class ValourClient
     /// Used mostly for testing, allows for a custom HttpClientProvider
     /// </summary>
     public HttpClientProvider HttpClientProvider { get; set; }
+    
 
     public ValourClient(string baseAddress, LoggingService logger = null, HttpClientProvider httpProvider = null)
     {
@@ -115,6 +118,7 @@ public class ValourClient
         BotService = new BotService(this);
         SubscriptionService = new SubscriptionService(this);
         NotificationService = new NotificationService(this);
+        AutomodService = new AutomodService(this);
         EcoService = new EcoService(this);
         StaffService = new StaffService(this);
         OauthService = new OauthService(this);
@@ -122,6 +126,7 @@ public class ValourClient
         ThemeService = new ThemeService(this);
         UnreadService = new UnreadService(this);
         WalletService = new WalletService(this);
+        PlanetTagService = new PlanetTagService(this);
 
         var tenorHttpClient = new HttpClient();
         tenorHttpClient.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");

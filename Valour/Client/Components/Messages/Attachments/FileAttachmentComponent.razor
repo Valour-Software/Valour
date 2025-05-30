@@ -4,7 +4,7 @@
     <div class="file-icon">
         <h4 class="extension">@_extension</h4>
     </div>
-    <a class="nohide" href="@Attachment.Location">@Attachment.FileName</a>
+    <a class="nohide" href="@_location">@Attachment.FileName</a>
 </div>
 
 
@@ -14,11 +14,15 @@
     public string CustomStyle { get; set; }
 
     private string _extension = "?";
+    
+    private string _location;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         if (Attachment is null)
             return;
+
+        _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
 
         string[] split = null;
         

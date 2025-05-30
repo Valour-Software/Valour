@@ -380,3 +380,6 @@ _UpgradeReport_Files/
 **/.idea/.idea**
 dotnet/
 dotnet-install.sh
+
+/Valour/Server/appsettings.json
+/Valour/Config/appsettings.helper.json

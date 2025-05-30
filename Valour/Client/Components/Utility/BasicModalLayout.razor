@@ -1,4 +1,6 @@
-<div class="basic-modal" style="max-width: @MaxWidth">
+<div class="basic-modal" 
+     style="max-width: min(90vw, @MaxWidth); @(MinWidth is null ? "" : $"min-width: {MinWidth};")"
+>
     <div class="top">
         @if (Icon is not null)
         {
@@ -18,6 +20,9 @@
 @code {
     [Parameter]
     public string MaxWidth { get; set; } = "300px";
+    
+    [Parameter]
+    public string MinWidth { get; set; } = null;
     
     [Parameter]
     public string Title { get; set; }

@@ -471,6 +471,7 @@
 
         MessageAttachment newAttachment = new(type)
         {
+            Local = true,
             MimeType = mime,
             FileName = name,
         };
@@ -481,6 +482,7 @@
         {
             Bytes = bytes,
             Attachment = newAttachment,
+            Message = PreviewMessage,
             OnConfirm = async () => 
             {
                 var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{path}{plusRoute}", content);
@@ -655,7 +657,7 @@
                 Message errorMsg = new(Client)
                 {
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
-                    AuthorUserId = long.MaxValue,
+                    AuthorUserId = ISharedUser.VictorUserId,
                     ChannelId = ChatComponent.Channel.Id,
                     Id = long.MaxValue
                 };

@@ -1,9 +1,17 @@
-﻿using Valour.Shared.Models;
+﻿using Valour.Sdk.Client;
+using Valour.Sdk.Nodes;
+using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
 
 public class MessageAttachment : ISharedMessageAttachment
 {
+    /// <summary>
+    /// True if this attachment is local to the client, meaning it has not been uploaded to the server yet
+    /// </summary>
+    [JsonIgnore]
+    public bool Local { get; set; } = false;
+    
     public string Location { get; set; }
     public string MimeType { get; set; }
     public string FileName { get; set; }
@@ -19,17 +27,6 @@ public class MessageAttachment : ISharedMessageAttachment
     /// </summary>
     public bool Inline { get; set; } = false;
     
-    /* Oembed Attributes */
-    public string OType { get; set; }
-    public string OVersion { get; set; }
-    public string OTitle { get; set; }
-    public string OUrl { get; set; }
-    public string OAuthorName { get; set; }
-    public string OAuthorUrl { get; set; }
-    public string OProviderName { get; set; }
-    public string OProviderUrl { get; set; }
-    public string OCacheAge { get; set; }
-    
     public string Html { get; set; }
 
     public MessageAttachment(MessageAttachmentType type)
@@ -37,22 +34,47 @@ public class MessageAttachment : ISharedMessageAttachment
         Type = type;
     }
     
-    /*
-    public AttachmentType GetAttachmentType()
+    private string _signedUrl;
+
+    public async ValueTask<string?> GetSignedUrl(ValourClient client, Node node)
     {
-        // Malformed
-        if (string.IsNullOrWhiteSpace(MimeType))
-            return AttachmentType.None;
-
-        if (MimeType.StartsWith("image"))
-            return AttachmentType.Image;
-        else if (MimeType.StartsWith("audio"))
-            return AttachmentType.Audio;
-        else if (MimeType.StartsWith("video"))
-            return AttachmentType.Video;
-
-        return AttachmentType.File;
+        if (Local) // If the attachment is local, we don't need to fetch a signed URL
+        {
+            return Location;
+        }
+        
+        var location = Location;
+        
+        // TODO: Make the base url not hard-coded
+        if (!client.BaseAddress.StartsWith("https://app.valour.gg"))
+        {
+            // In dev environments, swap cdn for local server
+            location = location.Replace("https://cdn.valour.gg/", "");
+        }
+        
+        if (location.Contains("proxy/"))
+        {
+            // If the location is a proxy URL, we don't need to fetch a signed URL
+            return location;
+        }
+        
+        if (_signedUrl is null)
+        {
+            // Fetch url from CDN
+            try
+            {
+                var result =
+                    await node.GetAsync(location + "/signed");
+                
+                _signedUrl = result.Data;
+            } 
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error fetching signed URL for attachment: " + ex.Message);
+            }
+        }
+        
+        return _signedUrl;
     }
-    */
 }
 

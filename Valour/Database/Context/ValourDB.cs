@@ -142,6 +142,21 @@ public partial class ValourDb : DbContext
     public DbSet<PlanetInvite> PlanetInvites { get; set; }
 
     /// <summary>
+    /// Table for automod triggers
+    /// </summary>
+    public DbSet<AutomodTrigger> AutomodTriggers { get; set; }
+
+    /// <summary>
+    /// Table for automod actions
+    /// </summary>
+    public DbSet<AutomodAction> AutomodActions { get; set; }
+
+    /// <summary>
+    /// Table for automod trigger logs
+    /// </summary>
+    public DbSet<AutomodLog> AutomodLogs { get; set; }
+
+    /// <summary>
     /// Table for planet invites
     /// </summary>
     public DbSet<StatObject> Stats { get; set; }
@@ -169,8 +184,15 @@ public partial class ValourDb : DbContext
     /// <summary>
     /// Table for Oauth apps
     /// </summary>
+    
     public DbSet<OauthApp> OauthApps { get; set; }
-
+    
+    /// <summary>
+    /// Table for Tags
+    /// </summary>
+    
+    public DbSet<PlanetTag> Tags { get; set; }
+    
     public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
     public DbSet<PlanetRole> PlanetRoles { get; set; }
@@ -184,6 +206,7 @@ public partial class ValourDb : DbContext
     public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
     
     public DbSet<MessageReaction> MessageReactions { get; set; }
+    
     
 
     ////////////////
@@ -266,10 +289,16 @@ public partial class ValourDb : DbContext
         Referral.SetupDbModel(modelBuilder);
         UserCryptoWallet.SetupDbModel(modelBuilder);
         UserCryptoNonce.SetupDbModel(modelBuilder);
-      
+        PlanetTag.SetupDbModel(modelBuilder);
+
+        AutomodTrigger.SetupDbModel(modelBuilder);
+        AutomodAction.SetupDbModel(modelBuilder);
+        AutomodLog.SetupDbModel(modelBuilder);
+
         Valour.Database.NodeStats.SetupDbModel(modelBuilder);
-        
         OldPlanetRoleMember.SetupDbModel(modelBuilder);
+        
+        CdnBucketItem.SetupDbModel(modelBuilder);
     }
 }
 

@@ -54,6 +54,8 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// </summary>
     public int Version { get; set; }
     
+    public List<long>TagId{ get; set; }
+    
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);
 }

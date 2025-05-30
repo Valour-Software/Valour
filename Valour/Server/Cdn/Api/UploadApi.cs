@@ -55,14 +55,6 @@ public class UploadApi
     {
         Quality = 75,
         FileFormat = WebpFileFormatType.Lossy,
-        IgnoreAnimation = true,
-        TransparentColorMode = WebpTransparentColorMode.Clear
-    };
-    
-    public static WebpEncoder WebpAnimatedEncoder = new WebpEncoder()
-    {
-        Quality = 75,
-        FileFormat = WebpFileFormatType.Lossy,
         TransparentColorMode = WebpTransparentColorMode.Clear
     };
     
@@ -70,16 +62,7 @@ public class UploadApi
     {
         Quality = 75,
         FileFormat = WebpFileFormatType.Lossy,
-        IgnoreAnimation = true,
     };
-    
-    public static WebpEncoder WebpAnimatedEncoderTrans = new WebpEncoder()
-    {
-        Quality = 75,
-        FileFormat = WebpFileFormatType.Lossy,
-    };
-    
-    
     
     private static readonly HashSet<ExifTag> AllowedExif = new HashSet<ExifTag>()
     {
@@ -485,46 +468,49 @@ public class UploadApi
                     using MemoryStream ms = new();
 
                     await image.SaveAsync(ms, GifEncoder);
-            
+
                     var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.gif");
 
                     if (!result.Success)
                     {
-                        return new TaskResult(false, "There was an issue uploading your animated image. Try a different format or size.");
+                        return new TaskResult(false,
+                            "There was an issue uploading your animated image. Try a different format or size.");
                     }
-                
+
                     ms.Close();
-                    
+
                     return TaskResult.SuccessResult;
                 });
-                
-                saveTasks.Add(async () =>
-                {
-                    using MemoryStream ms = new();
+            }
 
-                    var encoder = doTransparency ? WebpAnimatedEncoderTrans : WebpAnimatedEncoder;
-                    await image.SaveAsync(ms, encoder);
-            
+            saveTasks.Add(async () =>
+            {
+                using MemoryStream ms = new();
+                var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
+
+                if (doAnimated)
+                {
                     var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
 
                     if (!result.Success)
                     {
                         return new TaskResult(false, "There was an issue uploading your animated image. Try a different format or size.");
                     }
-                
-                    ms.Close();
-                    
-                    return TaskResult.SuccessResult;
-                });
-            }
             
-            // Always save a jpeg
-            saveTasks.Add(async () =>
-            {
-                using MemoryStream ms = new();
-                await image.SaveAsync(ms, JpegEncoder);
+                    ms.Close();
+                
+                    return TaskResult.SuccessResult;
+                }
+                
+                // Remove all frames except 0
+                if (image.Frames.Count > 1)
+                {
+                    image = image.Frames.ExportFrame(0);
+                }
+                
+                await image.SaveAsync(ms, encoder);
 
-                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
+                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
 
                 if (!bucketResult.Success)
                 {
@@ -535,14 +521,14 @@ public class UploadApi
                 return TaskResult.SuccessResult;
             });
             
-            // Always save a webp
+            
+            // Always save a jpeg
             saveTasks.Add(async () =>
             {
                 using MemoryStream ms = new();
-                var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
-                await image.SaveAsync(ms, encoder);
+                await image.SaveAsync(ms, JpegEncoder);
 
-                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
+                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
 
                 if (!bucketResult.Success)
                 {

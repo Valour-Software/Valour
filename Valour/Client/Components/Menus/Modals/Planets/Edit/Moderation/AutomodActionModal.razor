@@ -1,0 +1,161 @@
+@inherits Modal<AutomodActionModal.ModalParams>
+@using Valour.Sdk.Models
+@using Valour.Shared.Models.Staff
+@using Valour.Shared
+@using System
+@inject ValourClient Client
+
+<BasicModalLayout Title="@(_isNew ? "Add Action" : "Edit Action")" Icon="lightning-fill" MaxWidth="400px">
+    <MainArea>
+        <div class="form-group mt-2">
+            <label>Type</label>
+            <select class="form-control" @bind="_action.ActionType">
+                @foreach (AutomodActionType t in Enum.GetValues<AutomodActionType>())
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group mt-2">
+            <label>Strikes Required</label>
+            <InputNumber class="form-control" TValue="int" @bind-Value="_action.Strikes" />
+        </div>
+        <div class="form-group mt-2">
+            <label><input type="checkbox" @bind="_action.UseGlobalStrikes" /> Use Global Strikes</label>
+        </div>
+
+
+        @if (ShowExpires)
+        {
+            <div class="form-group mt-2">
+                <label>Duration Minutes (0 for permanent)</label>
+                <InputNumber class="form-control" TValue="int" @bind-Value="_duration" />
+            </div>
+        }
+
+        @if (ShowRole)
+        {
+            <div class="form-group mt-2">
+                <label>Role</label>
+                <CustomDropdown TItem="PlanetRole"
+                                Items="Data.Planet.Roles"
+                                SelectedItem="_selectedRole"
+                                SelectedItemChanged="OnRoleChanged"
+                                ItemTemplate="RoleFragments.RolePill"
+                                SelectedItemTemplate="RoleFragments.RolePill"
+                                Placeholder="Select Role" />
+            </div>
+        }
+
+        @if (ShowMessage)
+        {
+            <div class="form-group mt-2">
+                <label>Message</label>
+                <textarea class="form-control" @bind="_action.Message"></textarea>
+            </div>
+        }
+
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="Close">Cancel</button>
+            <button class="v-btn primary" @onclick="OnSave">Save</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public Planet Planet { get; set; }
+        public AutomodTrigger Trigger { get; set; }
+        public AutomodAction? Action { get; set; }
+        public Func<Task>? OnSaved { get; set; }
+        public bool LocalOnly { get; set; } = false;
+        public Func<AutomodAction, Task>? OnSavedAction { get; set; }
+    }
+
+    private AutomodAction _action;
+    private bool _isNew;
+    private int _duration;
+    private PlanetRole? _selectedRole;
+    private ITaskResult _result;
+
+
+    protected override void OnInitialized()
+    {
+        _isNew = Data.Action is null;
+        if (Data.Action is not null)
+        {
+            _action = Data.Action;
+            _selectedRole = Data.Planet.Roles.FirstOrDefault(r => r.Id == (_action.RoleId ?? 0));
+            _duration = _action.Expires.HasValue ?
+                (int)Math.Ceiling((_action.Expires.Value - DateTime.UtcNow).TotalMinutes) : 0;
+        }
+        else
+        {
+            _action = new AutomodAction(Client)
+            {
+                PlanetId = Data.Planet.Id,
+                TriggerId = Data.Trigger.Id,
+                Message = string.Empty,
+                Strikes = 1,
+                UseGlobalStrikes = false
+            };
+            _selectedRole = null;
+        }
+    }
+
+    private bool ShowExpires => _action.ActionType == AutomodActionType.Ban;
+    private bool ShowRole => _action.ActionType == AutomodActionType.AddRole || _action.ActionType == AutomodActionType.RemoveRole;
+    private bool ShowMessage => _action.ActionType == AutomodActionType.Respond || _action.ActionType == AutomodActionType.Kick || _action.ActionType == AutomodActionType.Ban;
+
+    private Task OnRoleChanged(PlanetRole role)
+    {
+        _selectedRole = role;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnSave()
+    {
+        if (ShowRole)
+            _action.RoleId = _selectedRole?.Id;
+        if (ShowExpires)
+            _action.Expires = _duration > 0 ? DateTime.UtcNow.AddMinutes(_duration) : null;
+
+        TaskResult<AutomodAction> res;
+        if (_isNew)
+        {
+            if (Data.LocalOnly)
+            {
+                _action.Id = Guid.NewGuid();
+                res = TaskResult<AutomodAction>.FromData(_action);
+            }
+            else
+            {
+                res = await Client.AutomodService.CreateActionAsync(_action);
+            }
+        }
+        else
+        {
+            res = await _action.UpdateAsync();
+        }
+
+        _result = res;
+        if (res.Success)
+        {
+            if (Data.LocalOnly)
+            {
+                if (Data.OnSavedAction is not null)
+                    await Data.OnSavedAction.Invoke(_action);
+            }
+            else if (Data.OnSaved is not null)
+            {
+                await Data.OnSaved.Invoke();
+            }
+            Close();
+        }
+    }
+}

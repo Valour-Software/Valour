@@ -1,11 +1,19 @@
 ﻿@inherits AttachmentComponent
 
 <audio controls preload="auto" playsinline>
-    <source src="@Attachment.Location" type="@Attachment.MimeType" />
+    <source src="@_location" type="@Attachment.MimeType" />
 </audio>
 
 @code {
     [Parameter]
     public string CustomStyle { get; set; }
+    
+    private string _location;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+    }
+
 }
 

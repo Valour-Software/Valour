@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
+using Amazon;
 using CloudFlare.Client;
 using StackExchange.Redis;
 using Valour.Server.API;
@@ -90,6 +91,8 @@ public partial class Program
         OauthAPI.AddRoutes(app);
         
         // s3 (r2) setup
+        
+        AWSConfigsS3.UseSignatureVersion4 = true;
 
         if (CdnConfig.Current is not null)
         {
@@ -128,6 +131,7 @@ public partial class Program
             new DynamicAPI<PlanetInviteApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetBanApi>().RegisterRoutes(app),
             new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
+            new DynamicAPI<AutomodApi>().RegisterRoutes(app),
             new DynamicAPI<UserFriendApi>().RegisterRoutes(app),
             new DynamicAPI<OauthAppAPI>().RegisterRoutes(app),
             new DynamicAPI<TenorFavoriteApi>().RegisterRoutes(app),
@@ -141,7 +145,8 @@ public partial class Program
             new DynamicAPI<StaffApi>().RegisterRoutes(app),
             new DynamicAPI<MessageApi>().RegisterRoutes(app),
             new DynamicAPI<UnreadApi>().RegisterRoutes(app),
-            new DynamicAPI<UserWalletApi>().RegisterRoutes(app)
+            new DynamicAPI<UserWalletApi>().RegisterRoutes(app),
+            new DynamicAPI<TagApi>().RegisterRoutes(app)
         };
 
         NodeAPI = new NodeAPI();
@@ -343,6 +348,7 @@ public partial class Program
         services.AddScoped<PlanetRoleService>();
         services.AddScoped<PlanetService>();
         services.AddScoped<TenorFavoriteService>();
+        services.AddScoped<AutomodService>();
         services.AddScoped<TokenService>();
         services.AddScoped<UserFriendService>();
         services.AddScoped<UserOnlineService>();
@@ -359,6 +365,7 @@ public partial class Program
         services.AddScoped<StartupService>();
         services.AddScoped<PushNotificationService>();
         services.AddScoped<IWalletService,WalletService>();
+        services.AddScoped<ITagService,TagService>();
 
         services.AddSingleton<NodeLifecycleService>();
         

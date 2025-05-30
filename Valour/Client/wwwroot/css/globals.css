@@ -31,6 +31,7 @@
     --p-cyan-purple: #6278cd;
     --p-purple:      #8457cd;
     --p-red:         #cd5e5e;
+    --p-red-rgb: 205, 94, 94;
 }
 
 /* Fun gradient underline */
@@ -895,6 +896,13 @@ td .button-row button {
     .actions .v-btn {
         width: 100%;
     }
+}
+
+.role-pill {
+    padding: 2px 6px;
+    border-radius: 1em;
+    font-size: 12px;
+    border: 1px solid #ccc;
 }
 
 /* Tutorial */

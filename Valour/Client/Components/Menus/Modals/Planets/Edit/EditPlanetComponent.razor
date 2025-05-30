@@ -31,6 +31,7 @@
     private RenderFragment MembersContent => @<EditPlanetUsersComponent Planet="@Data.Planet" />;
     private RenderFragment BansContent => @<EditPlanetBansComponent Planet="@Data.Planet" />;
     private RenderFragment RolesContent => @<EditPlanetRolesComponent Planet="@Data.Planet" />;
+    private RenderFragment ModerationContent => @<EditPlanetModerationComponent Planet="@Data.Planet" />;
     private RenderFragment EconomyContent => @<EditPlanetEconomyComponent Planet="@Data.Planet" />;
     private RenderFragment DeleteContent => @<div></div>;
 
@@ -91,6 +92,13 @@
                         Icon = "person-fill",
                         Description = "Manage roles and permissions",
                         Content = RolesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Moderation",
+                        Icon = "shield-lock-fill",
+                        Description = "Automated moderation settings",
+                        Content = ModerationContent
                     },
                     new MainMenu.MenuItem()
                     {
