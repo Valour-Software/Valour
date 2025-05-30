@@ -250,8 +250,14 @@ public class MessageService
         
         var memberModel = member?.ToModel();
 
-        if (!await _automodService.ScanMessageAsync(message, memberModel))
-            return TaskResult<Message>.FromFailure("Message blocked by automod.");
+        try
+        {
+            if (!await _automodService.ScanMessageAsync(message, memberModel))
+                return TaskResult<Message>.FromFailure("Message blocked by automod.");
+        } catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to scan message with automod");
+        }
 
         // Add to chat caches
         _chatCacheService.AddMessage(message);
