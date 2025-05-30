@@ -44,13 +44,18 @@ public class MessageAttachment : ISharedMessageAttachment
         }
         
         var location = Location;
-        
-        // TODO: Make the base url not hard-coded
-        if (!client.BaseAddress.StartsWith("https://app.valour.gg"))
+
+        if (location.StartsWith("https://media.tenor.com"))
         {
-            // In dev environments, swap cdn for local server
-            location = location.Replace("https://cdn.valour.gg/", "");
+            // If the location is a Tenor URL, we don't need to fetch a signed URL
+            return location;
         }
+        
+        var uri = new Uri(location);
+        
+        // Strip the protocol and host from the location
+        // This is because the CDN will return a signed URL that is relative to the base URL of the client
+        location = uri.PathAndQuery.TrimStart('/');
         
         if (location.Contains("proxy/"))
         {
@@ -63,8 +68,8 @@ public class MessageAttachment : ISharedMessageAttachment
             // Fetch url from CDN
             try
             {
-                var result =
-                    await node.GetAsync(location + "/signed");
+                var url = location + "/signed";
+                var result = await node.GetAsync(url);
                 
                 _signedUrl = result.Data;
             } 
