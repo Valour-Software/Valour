@@ -72,48 +72,65 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
 
         try
         {
+            int currentPage = _currentPageIndex;
+            _currentPageIndex++;
+
             if (_postData is not null)
             {
-                response = await Node.PostAsyncWithResponse<TResponse>(_url + queryString, _postData);
+                response = await Node.PostAsyncWithResponse<TResponse>(_url + BuildQueryStringForPage(currentPage), _postData);
             }
             else
             {
-                response = await Node.GetJsonAsync<TResponse>(_url + queryString);
+                response = await Node.GetJsonAsync<TResponse>(_url + BuildQueryStringForPage(currentPage));
             }
 
             if (!response.Success)
             {
-                Log($"Failed to get page {_currentPageIndex} of {typeof(TItem).Name}: {response.Message}", "yellow");
-                
+                Log($"Failed to get page {currentPage} of {typeof(TItem).Name}: {response.Message}", "yellow");
                 return new TResponse()
                 {
                     Items = new List<TItem>(),
                     TotalCount = 0
                 };
             }
-            
+
             ProcessPage(response.Data);
 
             _currentPage = response.Data;
             _totalCount = _currentPage.TotalCount;
 
+            _currentIndex = -1;
+
             return _currentPage;
         }
         catch (Exception ex)
         {
-            Log($"Exception occurred while fetching page {_currentPageIndex}: {ex.Message}", "red");
+            Log($"Exception occurred while fetching page {_currentPageIndex - 1}: {ex.Message}", "red");
             return new TResponse()
             {
                 Items = new List<TItem>(),
                 TotalCount = 0
             };
         }
-        finally
-        {
-            _currentPageIndex++;
-            _currentIndex = -1; // Reset current index for the new page
-        }
     }
+    
+    private string BuildQueryStringForPage(int pageIndex)
+    {
+        var queryParameters = new List<string>
+        {
+            $"skip={pageIndex * _pageSize}",
+            $"take={_pageSize}"
+        };
+
+        if (_parameters is not null)
+        {
+            queryParameters.AddRange(_parameters.Select(p => $"{p.Key}={WebUtility.UrlEncode(p.Value)}"));
+        }
+
+        return "?" + string.Join("&", queryParameters);
+    }
+
+
     
     public virtual void ProcessPage(TResponse page)
     {
@@ -174,35 +191,76 @@ public class PagedReader<TItem, TResponse>: IAsyncEnumerable<TItem>, IAsyncEnume
         if (index < 0)
             throw new IndexOutOfRangeException("Index cannot be negative.");
 
-        // Calculate target page
         int targetPageIndex = index / _pageSize;
         int indexInPage = index % _pageSize;
-    
-        // Check if we need to load a new page
-        bool needToLoadPage = _currentPage == null || targetPageIndex != (_currentPageIndex - 1);
-    
-        if (needToLoadPage)
-        {
-            // Reset and load the correct page
-            ResetReader();
-            _currentPageIndex = targetPageIndex;
-            _currentPage = await NextPageAsync();
         
-            // If page loading failed or returned empty, return default
-            if (_currentPage == null || _currentPage.Items.Count == 0)
+        Console.WriteLine($"[PagedReader] AtIndexAsync: Request index={index}, pageSize={_pageSize}, targetPage={targetPageIndex}, indexInPage={indexInPage}");
+
+        // Only reload page if needed
+        if (_currentPage == null || _currentPageIndex != targetPageIndex)
+        {
+            var page = await GetPageAtIndexAsync(targetPageIndex);
+            if (page == null || page.Items.Count == 0)
             {
+                Console.WriteLine($"[PagedReader] No page data at targetPage={targetPageIndex}");
                 return default;
             }
+
+            _currentPage = page;
+            _currentPageIndex = targetPageIndex;
+            _totalCount = _currentPage.TotalCount;
+            Console.WriteLine($"[PagedReader] Loaded page {targetPageIndex} with {page.Items.Count} items (totalCount={_totalCount})");
         }
-    
-        // Return the item at the calculated index if it exists
+
         if (indexInPage < _currentPage.Items.Count)
         {
+            Console.WriteLine($"[PagedReader] Returning item {indexInPage} of page {_currentPageIndex} (itemName={(typeof(TItem).GetProperty("Name")?.GetValue(_currentPage.Items[indexInPage]) ?? _currentPage.Items[indexInPage])})");
             return _currentPage.Items[indexInPage];
         }
-    
-        return default;
+        else
+        {
+            Console.WriteLine($"[PagedReader] indexInPage={indexInPage} out of range for page items={_currentPage.Items.Count}");
+            return default;
+        }
     }
+
+
+   
+   private async Task<TResponse> GetPageAtIndexAsync(int pageIndex) 
+   { 
+       string queryString = BuildQueryStringForPage(pageIndex); 
+       TaskResult<TResponse> response; 
+       try 
+       { 
+           if (_postData is not null)
+            response = await Node.PostAsyncWithResponse<TResponse>(_url + queryString, _postData);
+           else
+               response = await Node.GetJsonAsync<TResponse>(_url + queryString);
+
+           if (!response.Success)
+           {
+               Log($"Failed to get page {pageIndex} of {typeof(TItem).Name}: {response.Message}", "yellow");
+               return new TResponse()
+               {
+                   Items = new List<TItem>(),
+                   TotalCount = 0
+               };
+           }
+
+           ProcessPage(response.Data);
+           return response.Data;
+       }
+       catch (Exception ex)
+       {
+           Log($"Exception occurred while fetching page {pageIndex}: {ex.Message}", "red");
+           return new TResponse()
+           {
+               Items = new List<TItem>(),
+               TotalCount = 0
+           };
+       } 
+   }
+
 
     private string BuildQueryString()
     {

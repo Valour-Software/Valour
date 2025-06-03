@@ -24,10 +24,11 @@
         </div>
     </div>
 
-    <button class="carousel-nav next @(CanScrollRight ? "" : "disabled")" @onclick="ScrollRight" aria-label="Next items">
+    <button class="carousel-nav next  @(CanScrollRight ? "" :"disabled")" @onclick="ScrollRight" aria-label="Next items">
         <i class="bi bi-chevron-right"></i>
     </button>
 </div>
+
 
 @code {
     [Parameter]
@@ -40,7 +41,7 @@
     public int TotalItems { get; set; }
     
     [Parameter]
-    public int VisibleItems { get; set; } = 4;
+    public int VisibleItems { get; set; } = 3;
     
     [Parameter]
     public int InitialLoadCount { get; set; } = 8;
@@ -53,9 +54,8 @@
     
     [Parameter]
     public EventCallback OnSwipe { get; set; }
-    
-    [Parameter]
-    public bool AutoScroll { get; set; }
+
+    [Parameter] public bool AutoScroll { get; set; } = true;
     
     [Parameter]
     public int AutoScrollInterval { get; set; } = 5000;
@@ -66,9 +66,11 @@
     private int _currentOffset = 0;
     private bool _isLoading = false;
     private Timer _autoScrollTimer;
+    private bool _scrollRight = true;
+    private bool CanScrollRight => _currentIndex <= (_loadedItems.Count - VisibleItems);
+    private bool CanScrollLeft => _currentIndex > 0;
     
-    public bool CanScrollLeft => _currentIndex > 0;
-    public bool CanScrollRight => _currentIndex + VisibleItems < _loadedItems.Count && _loadedItems.Count < TotalItems;
+    
     
     protected override async Task OnInitializedAsync()
     {
@@ -76,8 +78,20 @@
         
         if (AutoScroll)
         {
-            _autoScrollTimer = new Timer(async _ => await InvokeAsync(() => ScrollRight()), 
-                null, AutoScrollInterval, AutoScrollInterval);
+            StartAutoScroll();
+        }
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AutoScroll)
+        {
+            StartAutoScroll();
+        }
+        else
+        {
+            _autoScrollTimer?.Dispose();
+            _autoScrollTimer = null;
         }
     }
     
@@ -91,44 +105,96 @@
         }
     }
     
+
     private async Task LoadInitialItems()
     {
         _isLoading = true;
-        
-        int count = Math.Min(InitialLoadCount, TotalItems);
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < TotalItems; i++)
         {
             var item = await GetItem(i);
             if (item != null)
                 _loadedItems.Add(item);
+            else
+                break;
         }
-        
         _isLoading = false;
     }
-    
+
+
     private async Task LoadMoreItems()
     {
         if (_isLoading || _loadedItems.Count >= TotalItems)
             return;
-            
+
         _isLoading = true;
         StateHasChanged();
-        
+
         int startIndex = _loadedItems.Count;
         int count = Math.Min(InitialLoadCount, TotalItems - startIndex);
-        
+
         for (int i = 0; i < count; i++)
         {
+            if (startIndex + i >= TotalItems)
+                break;
             var item = await GetItem(startIndex + i);
             if (item != null)
                 _loadedItems.Add(item);
+            else
+                break;
         }
-        
+
         _isLoading = false;
         StateHasChanged();
     }
     
-    public async Task ScrollLeft()
+    private void StartAutoScroll()
+    {
+        _autoScrollTimer?.Dispose();
+        _autoScrollTimer = new Timer(TimerCallback, null, AutoScrollInterval, AutoScrollInterval);
+    }
+    
+    private void TimerCallback(object state)
+    {
+        _ = InvokeAsync(async () => await AutoScrollStep());
+    }
+    
+    
+    private async Task AutoScrollStep()
+    {
+        try
+        {
+            if (_scrollRight)
+            {
+                if (!CanScrollRight)
+                {
+                    _scrollRight = false;
+                    await ScrollLeft();
+                }
+                else
+                {
+                    await ScrollRight();
+                }
+            }
+            else
+            {
+                if (!CanScrollLeft)
+                {
+                    _scrollRight = true;
+                    await ScrollRight();
+                }
+                else
+                {
+                    await ScrollLeft();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Carousel] Error en AutoScrollStep: {ex.Message}");
+        }
+    }
+    
+    private async Task ScrollLeft()
     {
         if (!CanScrollLeft) return;
         
@@ -136,33 +202,23 @@
         _currentOffset = _currentIndex * ItemWidth;
         
         await OnSwipe.InvokeAsync();
-        
         StateHasChanged();
     }
     
-    public async Task ScrollRight()
+    private async Task ScrollRight()
     {
-        if (_currentIndex + VisibleItems >= _loadedItems.Count)
-        {
-            if (_loadedItems.Count < TotalItems)
-                await LoadMoreItems();
-            else
-                return;
-        }
-        
+        if (_currentIndex > (_loadedItems.Count - VisibleItems)) return;
+
         _currentIndex++;
         _currentOffset = _currentIndex * ItemWidth;
-        
-        // Preload more items if we're nearing the end
-        if (_currentIndex + VisibleItems + PreloadThreshold >= _loadedItems.Count && _loadedItems.Count < TotalItems)
-        {
+
+        if (_currentIndex + VisibleItems > _loadedItems.Count && _loadedItems.Count < TotalItems)
             await LoadMoreItems();
-        }
-        
+
         await OnSwipe.InvokeAsync();
-        
         StateHasChanged();
     }
+
     
     public async Task Reset()
     {
@@ -170,11 +226,10 @@
         _currentIndex = 0;
         _currentOffset = 0;
         _isLoading = false;
-        
         await LoadInitialItems();
-        
         StateHasChanged();
     }
+
     
     public void Dispose()
     {

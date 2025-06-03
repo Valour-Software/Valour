@@ -17,6 +17,7 @@
     transition: transform 0.4s ease-out;
     gap: 16px;
 }
+
 .carousel-item {
     width: 250px;
     flex: 0 0 auto;
