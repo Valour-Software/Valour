@@ -1,6 +1,6 @@
 ﻿@typeparam TComponent
 
-<div class="carousel-container">
+<div class="carousel-container" style="min-height: @(Height)px">
     <button class="carousel-nav prev @(CanScrollLeft ? "" : "disabled")" @onclick="ScrollLeft" aria-label="Previous items">
         <i class="bi bi-chevron-left"></i>
     </button>
