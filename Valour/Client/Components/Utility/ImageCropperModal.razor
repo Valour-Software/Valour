@@ -1,0 +1,75 @@
+@inherits Modal<ImageCropperModal.ModalParams>
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<BasicModalLayout Title="Crop Image" Icon="crop" MaxWidth="100%">
+    <MainArea>
+        <img id="@_imgId" class="cropper-image" src="@Data.ImageDataUrl" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button class="v-btn" @onclick="OnCancel">Cancel</button>
+            <button class="v-btn primary" @onclick="OnConfirm">Crop</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public string ImageDataUrl { get; init; }
+        public double AspectRatio { get; init; } = 1d;
+        public string OutputMimeType { get; init; } = "image/png";
+        public Func<string, Task> OnCropped { get; init; }
+        public Action OnCancel { get; init; }
+    }
+
+    private IJSInProcessObjectReference _jsModule;
+    private IJSInProcessObjectReference _jsService;
+    
+    private string _imgId = $"cropper-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_initialized)
+        {
+            _jsModule ??= await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/ImageCropperModal.razor.js");
+            _jsService ??= await _jsModule.InvokeAsync<IJSInProcessObjectReference>("initCropper", _imgId, Data.AspectRatio);
+            _initialized = true;
+        }
+    }
+
+    private async Task OnConfirm()
+    {
+        if (_jsModule is not null)
+        {
+            var dataUrl = await _jsService.InvokeAsync<string>("getCroppedImage", _imgId, Data.OutputMimeType);
+            if (Data.OnCropped is not null)
+                await Data.OnCropped.Invoke(dataUrl);
+        }
+        Close();
+    }
+
+    private async Task OnCancel()
+    {
+        Data.OnCancel?.Invoke();
+        Close();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsService is not null)
+        {
+            await _jsService.InvokeVoidAsync("cleanup");
+            await _jsService.DisposeAsync();
+        }
+        
+        if (_jsModule is not null)
+        {
+            await _jsModule.DisposeAsync();
+        }
+        
+        _initialized = false;
+    }
+}

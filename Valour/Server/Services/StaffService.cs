@@ -1,6 +1,7 @@
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Staff;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -19,22 +20,26 @@ public class StaffService
     public async Task<List<Report>> GetReportsAsync() =>
         await _db.Reports.Select(x => x.ToModel()).ToListAsync();
     
-    public async Task<QueryResponse<Report>> QueryReportsAsync(ReportQueryModel model, int skip = 0, int take = 50)
+    public async Task<QueryResponse<Report>> QueryReportsAsync(QueryRequest queryRequest)
     {
+        var take = queryRequest.Take;
         if (take > 100)
             take = 100;
+        
+        var skip = queryRequest.Skip;
         
         var query = _db.Reports
             .AsQueryable()
             .AsNoTracking();
 
-        if (model.Filter is not null)
+        var reason = queryRequest.Options?.Filters?.GetValueOrDefault("reason");
+        if (int.TryParse(reason, out int reasonCode))
         {
-            if (model.Filter.Reason.HasValue)
-                query = query.Where(x => x.ReasonCode == model.Filter.Reason);
+            query = query.Where(x => (int)x.ReasonCode == reasonCode);
         }
-
-        if (model.Sort is not null)
+        
+        var sort = queryRequest.Options?.Sort?.Field;
+        if (sort is not null)
         {
             // TODO: Sorting
         }

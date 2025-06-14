@@ -40,6 +40,20 @@
   <ItemGroup>
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Components\Menus\Modals\Users\Edit\ConnectToWallet.js">
+      <DependentUpon>EditUserComponent.razor</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Components\Menus\Modals\Users\Edit\EditWalletComponent.js">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <DependentUpon>EditWalletComponent.razor</DependentUpon>
+    </Content>
+  </ItemGroup>
   
   <!-- JS Cleanup script
   <Target Name="RunCustomBuildScripts" BeforeTargets="PrepareForBuild">

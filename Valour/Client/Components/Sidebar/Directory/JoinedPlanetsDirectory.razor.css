@@ -8,6 +8,7 @@
 
 .joined-planets .list {
     display: flex;
+    margin-top: 1em;
     flex-direction: column;
     overflow-y: auto;
     border-radius: 8px;
@@ -94,3 +95,5 @@
 .planet-row .right .edit {
     cursor: pointer;
 }
+
+

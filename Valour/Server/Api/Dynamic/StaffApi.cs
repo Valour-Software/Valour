@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Models.Staff;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -16,12 +17,10 @@ public class StaffApi
     [StaffRequired]
     [ValourRoute(HttpVerbs.Post, "api/staff/reports/query")]
     public static async Task<IResult> QueryReportsAsync(
-        StaffService staffService,
-        [FromBody] ReportQueryModel query,
-        [FromQuery] int amount = 50,
-        [FromQuery] int page = 0)
+        [FromBody] QueryRequest queryRequest,
+        StaffService staffService)
     {
-        var result = await staffService.QueryReportsAsync(query, amount, page);
+        var result = await staffService.QueryReportsAsync(queryRequest);
         return Results.Json(result);
     }
     

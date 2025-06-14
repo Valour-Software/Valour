@@ -38,7 +38,7 @@ Planets can deploy a currency and economic system in two clicks. Why? Don't both
 
 ### Total-Outage-proof Node System
 
-Valour Nodes are designed to be able to run independantly of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
+Valour Nodes are designed to be able to run independently of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
 
 ## Contribute
 

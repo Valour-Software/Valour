@@ -31,6 +31,7 @@
     --p-cyan-purple: #6278cd;
     --p-purple:      #8457cd;
     --p-red:         #cd5e5e;
+    --p-red-rgb: 205, 94, 94;
 }
 
 /* Fun gradient underline */
@@ -68,6 +69,19 @@
 .v-table thead {
     background-color: var(--main-2);
     font-weight: 700;
+}
+
+/* Empty table state */
+.empty-state {
+    text-align: center;
+    padding: 1rem;
+    color: var(--font-alt-color);
+}
+
+.empty-state i {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
 }
 
 /* Colors */
@@ -782,7 +796,6 @@
 /* Setting container */
 .settings-container {
     max-width: 800px;
-    margin: 0 auto;
     padding: 0.5rem;
     display: flex;
     flex-direction: column;
@@ -854,6 +867,15 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 0;
+}
+
+td .button-row {
+    display: flex;
+    gap: 0.5em;
+}
+
+td .button-row button {
+    flex-grow: 1;
 }
 
 /* Mobile responsiveness */

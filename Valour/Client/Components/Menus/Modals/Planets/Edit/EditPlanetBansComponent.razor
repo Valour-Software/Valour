@@ -1,5 +1,96 @@
-﻿<h3>EditPlanetBansComponent</h3>
+@using Valour.Sdk.ModelLogic.QueryEngines
+@inject ValourClient Client
+
+<h3>Bans <i class="bi bi-shield-fill-exclamation"></i></h3>
+<p class="subtitle">MANAGE BANS</p>
+
+<QueryTable
+    @ref="_table"
+    TableMinWidth="1100"
+    Columns="@_columns"
+    Engine="@_engine"
+    ShowSearch="true"
+    Infinite="true"
+    SearchPlaceholder="Search name..."/>
+
+<ResultLabel Result="@_result" />
 
 @code {
+    [Parameter]
+    public Planet Planet { get; set; }
 
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private ITaskResult _result;
+    private QueryTable<PlanetBan> _table;
+    private List<ColumnDefinition<PlanetBan>> _columns;
+    private PlanetBanQueryEngine _engine;
+    
+    protected override void OnInitialized()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+        _engine = new PlanetBanQueryEngine(Planet);
+
+        _columns = new()
+        {
+            new()
+            {
+                Name = "User",
+                SortField = "user",
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.TargetId" />,
+                Width = "250px"
+            },
+            new()
+            {
+                Name = "Banned By",
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.IssuerId" />,
+                Width = "250px"
+            },
+            new()
+            {
+                Name = "Created",
+                SortField = "created",
+                RenderFragment = row => @<span>@row.Row.TimeCreated.ToLocalTime().ToShortDateString()</span>
+            },
+            new()
+            {
+                Name = "Expires",
+                RenderFragment = row => @<span>@(row.Row.Permanent ? "Never" : row.Row.TimeExpires?.ToLocalTime().ToShortDateString())</span>
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row">
+                        <button class="v-btn secondary" @onclick="(() => OnEdit(row.Row))">Edit</button>
+                        <button class="v-btn danger" @onclick="(() => OnDelete(row.Row))">Delete</button>
+                    </div>,
+                Width = "150px",
+            }
+        };
+    }
+
+    private void OnEdit(PlanetBan ban)
+    {
+        var modalData = new NumberInputModalComponent.ModalParams(
+            "Ban Length",
+            "Minutes until unban (0 for permanent)",
+            "Save",
+            "Cancel",
+            async minutes =>
+            {
+                ban.TimeExpires = minutes == 0 ? null : DateTime.UtcNow.AddMinutes(minutes);
+                _result = await ban.UpdateAsync();
+                StateHasChanged();
+            },
+            () => Task.CompletedTask);
+
+        ModalRoot.OpenModal<NumberInputModalComponent>(modalData);
+    }
+
+    private async Task OnDelete(PlanetBan ban)
+    {
+        _result = await ban.DeleteAsync();
+        StateHasChanged();
+    }
 }

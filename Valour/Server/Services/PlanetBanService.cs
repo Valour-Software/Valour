@@ -1,5 +1,7 @@
 using Valour.Server.Database;
 using Valour.Shared;
+using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -116,6 +118,58 @@ public class PlanetBanService
         _coreHub.NotifyPlanetItemChange(updatedban);
 
         return new(true, "Success", updatedban);
+    }
+
+    public async Task<QueryResponse<PlanetBan>> QueryPlanetBansAsync(
+        long planetId,
+        QueryRequest queryRequest)
+    {
+        var take = queryRequest.Take;
+        if (take > 50)
+            take = 50;
+        
+        var skip = queryRequest.Skip;
+
+        var query = _db.PlanetBans
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
+            .Join(_db.Users.AsNoTracking(), b => b.TargetId, u => u.Id, (b, u) => new { Ban = b, Target = u });
+
+        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
+        
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(x => EF.Functions.ILike((x.Target.Name.ToLower() + "#" + x.Target.Tag), $"%{lowered}%") ||
+                                      EF.Functions.ILike(x.Target.Name.ToLower(), $"%{lowered}%"));
+        }
+
+        var sortField = queryRequest.Options?.Sort?.Field;
+        var sortDesc = queryRequest.Options?.Sort?.Descending ?? false;
+        query = sortField switch
+        {
+            "user" => sortDesc
+                ? query.OrderByDescending(x => x.Target.Name)
+                : query.OrderBy(x => x.Target.Name),
+            "created" => sortDesc
+                ? query.OrderByDescending(x => x.Ban.TimeCreated)
+                : query.OrderBy(x => x.Ban.TimeCreated),
+            _ => query.OrderByDescending(x => x.Ban.TimeCreated)
+        };
+
+        var total = await query.CountAsync();
+
+        var items = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.Ban.ToModel())
+            .ToListAsync();
+
+        return new QueryResponse<PlanetBan>
+        {
+            Items = items,
+            TotalCount = total
+        };
     }
 
     /// <summary>

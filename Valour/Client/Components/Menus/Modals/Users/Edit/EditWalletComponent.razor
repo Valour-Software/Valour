@@ -1,0 +1,181 @@
+@using System.Net
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JsRuntime
+@inject WalletService WalletService
+
+<div class="wallet-editor-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-pencil-square"></i>
+            Solana
+        </h3>
+
+
+        @if (_isLoading)
+        {
+            <div class="text-muted">Loading wallet info...</div>
+        }
+        else
+        {
+            <div class="form-group">
+                <label>
+                    <span class="@( _isSolConnected ? "danger" : "primary")"> Wallet @(!_isSolConnected ? "is not connected" : $"address is {_publicKey}")</span>
+                </label>
+                @if (_isSolConnected)
+                {
+                    <label>
+                        <span>VLRC Balance: @_vlrcBalance</span>
+                    </label>
+                }
+            </div>
+
+            <div class="actions">
+                <button class="v-btn @( _isSolConnected ? "danger" : "primary" )"
+                        @onclick="HandleWalletConnection">
+                    @( _isSolConnected ? "Disconnect" : "Connect" )
+                </button>
+            </div>
+
+            @if (_result != null)
+            {
+                <ResultLabel Result="_result" />
+            }
+        }
+    </div>
+</div>
+
+
+<br />
+
+@code {
+    private bool _isSolConnected = false;
+    private string _publicKey = "";
+    private static IJSInProcessObjectReference _module;
+    private static DotNetObjectReference<EditWalletComponent> _thisRef;
+    private static IJSInProcessObjectReference _jsService;
+    private ITaskResult _result;
+    private long _vlrcBalance = 0;
+    private bool _isLoading = true;
+    
+
+     protected override async Task OnAfterRenderAsync(bool firstRender)
+     {
+         if (firstRender)
+         {
+             _thisRef = DotNetObjectReference.Create(this);
+             _module = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Modals/Users/Edit/EditWalletComponent.razor.js");
+             _jsService = await _module.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef);
+             await VerifyIfSolConnect();
+            StateHasChanged();
+         }
+    }
+     
+    
+    private async Task HandleWalletConnection()
+    {
+        if (_isSolConnected)
+        {
+            await OnSolDisconnect();
+        }
+        else
+        {
+            await OnSolConnect();
+             
+        }
+    }
+
+    private async Task OnSolConnect()
+    {
+         _publicKey = await _jsService.InvokeAsync<string>("getPublicKeyFromWallet");
+         var walletProvider = await _jsService.InvokeAsync<string>("getWalletName");
+         await LocalStorage.SetItemAsync("publicKey",_publicKey);
+         
+        _result = new TaskResult();
+        var nonce = await WalletService.SyncWithWallet();
+        if (string.IsNullOrEmpty(nonce))
+        {
+            _result.Message = $"Nonce invalid: {nonce}";
+            _result.Details = $"The nonce is empty";
+            return;
+        }
+        var signature = await _jsService.InvokeAsync<string>("signMessageWithWallet", nonce);
+        
+        if (string.IsNullOrEmpty(signature))
+        {
+            _result.Message = "Error signing the nonce";
+            _result.Details = "Error signing the nonce, the operation was likely rejected."; 
+            await _jsService.InvokeVoidAsync("disconnectWallet");
+            return;
+        }
+        
+        var vlrc = await _jsService.InvokeAsync<string>("getTokenBalance", _publicKey, "Ec6t4jq6vK2QzUytRTCF1Bi5GVbaKeZ4nryxRbhjf2b9");
+      
+        var verifyResponse = await WalletService.SignNonce(_publicKey, nonce, signature, vlrc, walletProvider);
+        if (verifyResponse.Success)
+        {
+            _isSolConnected = true;
+            _result.Success = true;
+            _result.Message = verifyResponse.Message;
+            _result.Details = verifyResponse.Details;
+            return;
+        }
+        _result.Message = verifyResponse.Message;
+        _result.Details = verifyResponse.Details;
+    }
+            
+          
+
+
+    private async Task OnSolDisconnect()
+    {
+        await _jsService.InvokeVoidAsync("disconnectWallet");
+        _isSolConnected = false;
+        await WalletService.DisconnectWallet(_publicKey);
+        _publicKey = "";
+        _result = new TaskResult
+        {
+            Success = true,
+            Message = "Wallet Disconnected successfully"
+        };
+        await LocalStorage.RemoveItemAsync("publicKey");
+        StateHasChanged();
+    }
+    
+    private async Task VerifyIfSolConnect()
+    {
+        _isLoading = true; 
+        StateHasChanged();
+
+        _publicKey = await LocalStorage.GetItemAsync<string>("publicKey");
+
+        if (!string.IsNullOrEmpty(_publicKey))
+        {
+            var isConnectedResponse = await WalletService.CheckWalletConnection(_publicKey);
+            if (isConnectedResponse.Success)
+            { 
+                _vlrcBalance = await WalletService.VlrcBalance(_publicKey);
+                _isSolConnected = true;
+                _result = new TaskResult
+                {
+                    Success = true,
+                    Message = isConnectedResponse.Message,
+                    Details = isConnectedResponse.Details
+                };
+            }
+            else
+            {
+                await LocalStorage.RemoveItemAsync("publicKey");
+                _publicKey = "";
+                _isSolConnected = false;
+            }
+        }
+        else
+        {
+            _isSolConnected = false;
+        }
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+}

@@ -24,7 +24,7 @@ public class ChannelWatchingWorker : BackgroundService
                 
                 await hubService.UpdateChannelsWatching();
                 
-                await Task.Delay(5000);
+                await Task.Delay(5000, stoppingToken);
                 i++;
 
                 if (i % 5 == 0)

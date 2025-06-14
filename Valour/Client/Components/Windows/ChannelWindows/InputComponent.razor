@@ -3,6 +3,7 @@
 @inject ValourClient Client
 
 @using System.Net.Http.Headers
+@using System.Text.RegularExpressions
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
@@ -545,6 +546,32 @@
         });
     }
 
+    private static readonly Regex InviteRegex = new("https?://(?:app\\.)?valour\\.gg/[iI]/([a-zA-Z0-9]+)", RegexOptions.Compiled);
+
+    private void InsertInviteAttachments(Message message)
+    {
+        if (string.IsNullOrWhiteSpace(message.Content))
+            return;
+
+        var matches = InviteRegex.Matches(message.Content);
+        if (matches.Count == 0)
+            return;
+
+        var attachments = message.Attachments ?? new List<MessageAttachment>();
+
+        foreach (Match match in matches)
+        {
+            var code = match.Groups[1].Value;
+            attachments.Add(new MessageAttachment(MessageAttachmentType.ValourInvite)
+            {
+                Location = $"https://app.valour.gg/i/{code}",
+                Inline = false
+            });
+        }
+
+        message.SetAttachments(attachments);
+    }
+
     public async Task UpdateMentionMenu(string text)
     {
         //Console.WriteLine(text);
@@ -807,6 +834,7 @@
         }
 
         var postMessage = PreviewMessage;
+        InsertInviteAttachments(postMessage);
 
         // New message for preview
         PreviewMessage = BuildNewMessage();

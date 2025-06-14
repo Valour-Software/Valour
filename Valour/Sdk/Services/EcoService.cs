@@ -5,6 +5,7 @@ using Valour.Sdk.Models.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
+using Valour.Shared.Queries;
 
 namespace Valour.Sdk.Services;
 
@@ -118,19 +119,19 @@ public class EcoService : ServiceBase
     /// Returns an engine for querying shared accounts on the given planet.
     /// </summary>
     public ModelQueryEngine<EcoAccount> GetSharedAccountQueryEngine(Planet planet) =>
-        new ModelQueryEngine<EcoAccount>(planet.Node, $"api/eco/accounts/planet/{planet.Id}/planet");
+        new (planet.Node, $"api/eco/accounts/planet/{planet.Id}/planet");
     
     /// <summary>
     /// Returns an engine for querying user accounts on the given planet.
     /// </summary>
     public ModelQueryEngine<EcoAccountPlanetMember> GetUserAccountQueryEngine(Planet planet) =>
-        new ModelQueryEngine<EcoAccountPlanetMember>(planet.Node, $"api/eco/accounts/planet/{planet.Id}/member"); 
+        new (planet.Node, $"api/eco/accounts/planet/{planet.Id}/member"); 
     
     /// <summary>
     /// Returns a paged reader for querying shared accounts on the given planet.
     /// </summary>
-    public PagedModelReader<EcoAccount> GetSharedAccountPagedReader(Planet planet, int pageSize = 50) =>
-        new PagedModelReader<EcoAccount>(planet.Node, $"api/eco/accounts/planet/{planet.Id}/planet", pageSize);
+    public ModelQueryEngine<EcoAccount> GetSharedAccountPagedReader(Planet planet, int pageSize = 50) =>
+        new (planet.Node, $"api/eco/accounts/planet/{planet.Id}/planet", pageSize);
 
     /// <summary>
     /// Returns the currency with the given id.

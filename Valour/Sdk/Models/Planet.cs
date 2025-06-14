@@ -8,6 +8,7 @@ using Valour.Sdk.Nodes;
 using Valour.Sdk.Requests;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Sdk.Models;
 
@@ -165,6 +166,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The version of the planet. Used for cache busting.
     /// </summary>
     public int Version { get; set; }
+    
+    public List<long> TagId { get; set; }
 
     internal void SetMyMember(PlanetMember member)
     {
@@ -218,7 +221,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// <summary>
     /// Returns a reader for the planet's shared eco accounts
     /// </summary>
-    public PagedModelReader<EcoAccount> GetSharedEcoAccountsReader(int pageSize = 50) =>
+    public ModelQueryEngine<EcoAccount> GetSharedEcoAccountsReader(int pageSize = 50) =>
         Client.EcoService.GetSharedAccountPagedReader(this, pageSize);
 
     /// <summary>
@@ -589,6 +592,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     
     public ModelQueryEngine<EcoAccountPlanetMember> GetUserAccountQueryEngine() =>
         Client.EcoService.GetUserAccountQueryEngine(this);
+
+    public ModelQueryEngine<PlanetMember> GetMemberQueryEngine() =>
+        Client.PlanetService.GetMemberQueryEngine(this);
+
+    public ModelQueryEngine<PlanetBan> GetBanQueryEngine() =>
+        Client.PlanetService.GetBanQueryEngine(this);
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);

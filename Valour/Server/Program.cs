@@ -77,6 +77,7 @@ public partial class Program
         ConfigureApp(app);
 
         app.MapGet("/api/ping", () => "pong");
+        
 
         // Add Cdn routes
         ContentApi.AddRoutes(app);
@@ -139,7 +140,9 @@ public partial class Program
             new DynamicAPI<ThemeApi>().RegisterRoutes(app),
             new DynamicAPI<StaffApi>().RegisterRoutes(app),
             new DynamicAPI<MessageApi>().RegisterRoutes(app),
-            new DynamicAPI<UnreadApi>().RegisterRoutes(app)
+            new DynamicAPI<UnreadApi>().RegisterRoutes(app),
+            new DynamicAPI<UserWalletApi>().RegisterRoutes(app),
+            new DynamicAPI<TagApi>().RegisterRoutes(app)
         };
 
         NodeAPI = new NodeAPI();
@@ -191,12 +194,14 @@ public partial class Program
             app.UseSentryTracing();
         }
 
+        
         // app.UseStartupWait();
 
         // app.UseBlazorCssMinifier();
         // app.UseWebOptimizer();
         app.UseBlazorFrameworkFiles();
         app.MapStaticAssets();
+        
         app.UseRouting();
         app.UseRateLimiter();
         app.UseAuthentication();
@@ -207,6 +212,7 @@ public partial class Program
         app.MapFallbackToFile("_content/Valour.Client/index.html");
 
         app.MapHub<CoreHub>(CoreHub.HubUrl, options => { options.AllowStatefulReconnects = true; });
+        
     }
 
     public static void ConfigureServices(WebApplicationBuilder builder)
@@ -233,6 +239,8 @@ public partial class Program
                         "http://localhost:3000",
                         "https://localhost:3000",
                         "http://localhost:3001",
+                        "http://localhost:5001",
+                        "http://localhost:5000",
                         "https://localhost:3001");
             });
         });
@@ -351,6 +359,8 @@ public partial class Program
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<StartupService>();
         services.AddScoped<PushNotificationService>();
+        services.AddScoped<IWalletService,WalletService>();
+        services.AddScoped<ITagService,TagService>();
 
         services.AddSingleton<NodeLifecycleService>();
         

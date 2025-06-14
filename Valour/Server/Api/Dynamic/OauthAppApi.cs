@@ -8,11 +8,15 @@ public class OauthAppAPI
     [ValourRoute(HttpVerbs.Put, "api/oauthapps/{id}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> PutRouteAsync(
-        [FromBody] OauthApp app, 
+        [FromBody] OauthApp app,
+        long id,
         OauthAppService oauthAppService,
         UserService userService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
+
+        if (app.Id != id)
+            return ValourResult.BadRequest("Route id does not match app id");
 
         var old = await oauthAppService.GetAsync(app.Id);
 

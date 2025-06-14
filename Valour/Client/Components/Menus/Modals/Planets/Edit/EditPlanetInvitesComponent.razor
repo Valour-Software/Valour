@@ -1,78 +1,59 @@
 ﻿@inject ValourClient Client
 
-<h3>Planet Invitations</h3>
-<hr />
-<br />
+<div class="settings-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-envelope-paper-heart"></i>
+            Planet Invitations
+        </h3>
+        <p class="subtitle">Control how users join your planet</p>
 
-<div class="settings-inner">
-    <p>Public</p>
-    <p>
-        <input type="checkbox" @oninput="OnCheckPublic" checked="@publicValue" /> &nbsp; Setting a server to public will allow any user to join
-        through an invite link.
-    </p>
-    @if (!string.IsNullOrWhiteSpace(publicErrorSpan))
-    {
-        <span class="text-danger mb-4">@publicErrorSpan</span>
-    }
-    @if (!string.IsNullOrWhiteSpace(publicInfoSpan))
-    {
-        <span class="text-info mb-4">@publicInfoSpan</span>
-    }
+        <div class="form-group">
+            <label>
+                <input type="checkbox" @oninput="OnCheckPublic" checked="@publicValue" />
+                Public
+            </label>
+            <p class="helper-text">Allow anyone to join via an invite link</p>
+            <ResultLabel Result="@publicResult" />
+        </div>
 
-    <p>Discoverable</p>
-    <p>
-        <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" /> &nbsp; If this and public are true, this server will 
-        appear in the server discovery tab.
-    </p>
-    @if (!string.IsNullOrWhiteSpace(discoverableErrorSpan))
-    {
-        <span class="text-danger mb-4">@discoverableErrorSpan</span>
-    }
-    @if (!string.IsNullOrWhiteSpace(discoverableInfoSpan))
-    {
-        <span class="text-info mb-4">@discoverableInfoSpan</span>
-    }
-    
-    <p>Not Safe For Work</p>
-    <p>
-        <input type="checkbox" @oninput="OnCheckNsfw" checked="@nsfwValue" /> &nbsp; Servers containing mature content are required to be marked as NSFW. These servers will not show on discovery.
-    </p>
-    @if (!string.IsNullOrWhiteSpace(nsfwErrorSpan))
-    {
-        <span class="text-danger mb-4">@nsfwErrorSpan</span>
-    }
-    @if (!string.IsNullOrWhiteSpace(nsfwInfoSpan))
-    {
-        <span class="text-info mb-4">@nsfwInfoSpan</span>
-    }
-    
-    <div class="invite-table">
-        <div class="invite-tab-holder mt-4">
-            <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
-            <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" />
+                Discoverable
+            </label>
+            <p class="helper-text">Public planets can appear in discovery</p>
+            <ResultLabel Result="@discoverableResult" />
         </div>
-        <div class="invite-list">
-            @if (linksChosen)
-            {
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 20%;">Invite Code</th>
-                            <th style="width: 40%;">Created By</th>
-                            <th style="width: 20%;">Created</th>
-                            <th style="width: 20%;">Expires</th>
-                        </tr>
-                    </thead>
-                    @foreach (var invite in Invites)
-                    {
-                        <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
-                    }
-                </table>
-            }
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" @oninput="OnCheckNsfw" checked="@nsfwValue" />
+                Not Safe For Work
+            </label>
+            <p class="helper-text">NSFW planets will not show on discovery</p>
+            <ResultLabel Result="@nsfwResult" />
         </div>
+
+        <TabContainerComponent Titles="@TabTitles">
+            <TabOne>
+                <SimpleTable TItem="PlanetInvite"
+                             Items="Planet.Invites"
+                             Headers="@TableHeaders"
+                             RowTemplate="InviteRow"
+                             EmptyText="No invites yet"
+                             EmptyIcon="envelope" />
+            </TabOne>
+            <TabTwo>
+                <div class="empty-state">
+                    <i class="bi bi-person-slash"></i>
+                    <span>No invited users</span>
+                </div>
+            </TabTwo>
+        </TabContainerComponent>
+
+        <CreateInviteLink Planet="Planet" />
     </div>
-
-    <CreateInviteLink Planet="Planet"></CreateInviteLink>
 </div>
 
 @code {
@@ -81,44 +62,20 @@
 
     public bool publicValue;
 
-    public string publicInfoSpan;
-    public string publicErrorSpan;
+    private ITaskResult publicResult;
 
     public bool discoverableValue;
 
-    public string discoverableInfoSpan;
-    public string discoverableErrorSpan;
+    private ITaskResult discoverableResult;
     
     public bool nsfwValue;
     
-    public string nsfwInfoSpan;
-    public string nsfwErrorSpan;
+    private ITaskResult nsfwResult;
 
-    public bool linksChosen = true;
+    private static readonly string[] TabTitles = new[] { "Invite Links", "Invited Users" };
+    private static readonly string[] TableHeaders = new[] { "Invite Code", "Created By", "Created", "Expires" };
 
-    public List<PlanetInvite> Invites = new();
-
-    public string linksButtonStyle = "settings-button left active";
-    public string usersButtonStyle = "settings-button right";
-
-    public Task OnSwitchTab(bool links)
-    {
-        linksChosen = links;
-
-        if (links)
-        {
-            linksButtonStyle = "settings-button left active";
-            usersButtonStyle = "settings-button right";
-        }
-        else
-        {
-            linksButtonStyle = "settings-button left";
-            usersButtonStyle = "settings-button right active";
-        }
-
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
+    private RenderFragment<PlanetInvite> InviteRow => invite => @<PlanetInviteComponent Invite="@invite" />;
 
 
     protected override async Task OnInitializedAsync()
@@ -126,15 +83,13 @@
         publicValue = Planet.Public;
         discoverableValue = Planet.Discoverable;
         nsfwValue = Planet.Nsfw;
-
-        StateHasChanged();
-
-        long planetId = Planet.Id;
-        long userId = Client.Me.Id;
-        
-        StateHasChanged();
-
         Planet.Invites.Changed += OnPlanetInvitesChange;
+        await Planet.LoadInvitesAsync();
+    }
+
+    public void Dispose()
+    {
+        Planet.Invites.Changed -= OnPlanetInvitesChange;
     }
 
     public void OnPlanetInvitesChange(IModelEvent<PlanetInvite> eventData)
@@ -147,16 +102,11 @@
         publicValue = !publicValue;
 
         Planet.Public = publicValue;
-        var result = await Planet.UpdateAsync();
+        publicResult = await Planet.UpdateAsync();
 
-        if (result.Success)
-        {
-            publicInfoSpan = "Updated successfully.";
-        }
-        else
+        if (!publicResult.Success)
         {
             publicValue = !Planet.Public;
-            publicErrorSpan = "Failed to update. Try again?";
         }
 
         StateHasChanged();
@@ -167,16 +117,11 @@
         discoverableValue = !discoverableValue;
 
         Planet.Discoverable = discoverableValue;
-        var result = await Planet.UpdateAsync();
+        discoverableResult = await Planet.UpdateAsync();
 
-        if (result.Success)
-        {
-            discoverableInfoSpan = "Updated successfully.";
-        }
-        else
+        if (!discoverableResult.Success)
         {
             discoverableValue = !Planet.Discoverable;
-            discoverableErrorSpan = "Failed to update. Try again?";
         }
 
         StateHasChanged();
@@ -187,16 +132,11 @@
         nsfwValue = !nsfwValue;
 
         Planet.Nsfw = nsfwValue;
-        var result = await Planet.UpdateAsync();
+        nsfwResult = await Planet.UpdateAsync();
 
-        if (result.Success)
-        {
-            nsfwInfoSpan = "Updated successfully.";
-        }
-        else
+        if (!nsfwResult.Success)
         {
             nsfwValue = !Planet.Nsfw;
-            nsfwErrorSpan = "Failed to update. Try again?";
         }
 
         StateHasChanged();

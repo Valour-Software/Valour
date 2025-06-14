@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using Valour.Sdk.Client;
+using Valour.Sdk.ModelLogic;
+using Valour.Sdk.ModelLogic.QueryEngines;
 using Valour.Sdk.Models.Themes;
+using Valour.Shared.Queries;
 
 namespace Valour.Sdk.Services;
 
@@ -34,10 +37,10 @@ public class ThemeService : ServiceBase
         return response.Data;
     }
     
-    public PagedReader<ThemeMeta> GetAvailableThemeReader(int amount = 20, string search = null)
+    public ThemeMetaQueryEngine GetAvailableThemeReader(int amount = 20, string search = null)
     {
-        var query = new Dictionary<string, string>() {{ "search", search }}; 
-        var reader = new PagedReader<ThemeMeta>(_client.PrimaryNode, "api/themes", amount, query);
+        var reader = new ThemeMetaQueryEngine(_client.PrimaryNode, amount);
+        
         return reader;
     }
     

@@ -378,3 +378,8 @@ _UpgradeReport_Files/
 [Pp]ackages/
 
 **/.idea/.idea**
+dotnet/
+dotnet-install.sh
+
+/Valour/Server/appsettings.json
+/Valour/Config/appsettings.helper.json

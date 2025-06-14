@@ -328,7 +328,7 @@ public class PlanetService
     /// <summary>
     /// Creates the given planet
     /// </summary>
-    public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user, long? forceId = null)
+   public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user, long? forceId = null)
     {
         var baseValid = await ValidateBasic(model);
         if (!baseValid.Success)
@@ -337,6 +337,15 @@ public class PlanetService
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         var planet = model.ToDatabase();
+        
+        if (model.TagId?.Any() ?? false)
+        {
+            var tags = await _db.Tags
+                .Where(t => model.TagId.Contains(t.Id))
+                .ToListAsync();
+            
+            planet.Tags = tags;
+        }
 
         planet.Description ??= "A new planet!";
         
@@ -450,7 +459,10 @@ public class PlanetService
         if (!baseValid.Success)
             return new TaskResult<Planet>(false, baseValid.Message);
         
-        var old = await _db.Planets.FindAsync(planet.Id);
+        var old = await _db.Planets
+            .Include(p => p.Tags) 
+            .FirstOrDefaultAsync(p => p.Id == planet.Id);
+        
         if (old is null)
             return new TaskResult<Planet>(false, "Planet not found.");
         
@@ -460,11 +472,36 @@ public class PlanetService
         }
 
         await using var tran = await _db.Database.BeginTransactionAsync();
-
+        
         try
         {
-            _db.Entry(old).CurrentValues.SetValues(planet);
-            _db.Planets.Update(old);
+            var dbPlanet = planet.ToDatabase(old);
+            
+            if (planet.TagId?.Any() ?? false)
+            {
+                var existingTagIds = dbPlanet.Tags.Select(t => t.Id).ToHashSet();
+                var newTagIds = planet.TagId.ToHashSet();
+
+                foreach (var tag in dbPlanet.Tags.Where(t => !newTagIds.Contains(t.Id)).ToList())
+                {
+                    dbPlanet.Tags.Remove(tag);
+                }
+
+                var tagsToAdd = await _db.Tags
+                    .Where(t => newTagIds.Contains(t.Id) && !existingTagIds.Contains(t.Id))
+                    .ToListAsync();
+            
+                foreach (var tag in tagsToAdd)
+                {
+                    dbPlanet.Tags.Add(tag);
+                }
+            }
+            else
+            {
+                dbPlanet.Tags.Clear();
+            }
+            
+            _db.Planets.Update(dbPlanet);
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
         }

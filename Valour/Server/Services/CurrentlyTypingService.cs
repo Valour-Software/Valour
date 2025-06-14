@@ -20,7 +20,7 @@ public class CurrentlyTypingService
         _hubService = hubService;
     }
 
-    public void AddCurrentlyTyping(long channelId, long userId)
+    public async ValueTask AddCurrentlyTyping(long channelId, long userId)
     {
         CurrentlyTyping.TryGetValue(channelId, out var usersTyping);
             
@@ -35,7 +35,7 @@ public class CurrentlyTypingService
 
             CurrentlyTyping[channelId] = usersTyping;
                 
-            _ = _hubService.NotifyCurrentlyTyping(channelId, userId);
+            await _hubService.NotifyCurrentlyTyping(channelId, userId);
 
             return;
         }
@@ -80,6 +80,6 @@ public class CurrentlyTypingService
         }
     
         // Now we send the update!
-        _ = _hubService.NotifyCurrentlyTyping(channelId, userId);
+        await _hubService.NotifyCurrentlyTyping(channelId, userId);
     }
 }
