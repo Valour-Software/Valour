@@ -1,4 +1,3 @@
-@using Valour.Client.Components.Utility
 @inherits WindowContentComponentBase
 @inject PlanetService PlanetService
 
@@ -16,7 +15,7 @@
                     @ref="_planetCarousel"
                     TComponent="DiscoveryPlanetCard"
                     GetItem="@GetPlanetParamsAsync"
-                    TotalItems="@UnjoinedPlanets.Count"
+                    TotalItems="@PopularPlanets.Count"
                     InitialLoadCount="5"
                     VisibleItems="4"
                     VisibleItemsPerWidth="@_breakpoints"
@@ -24,7 +23,10 @@
                     AutoScroll="true"
                     ShowPageIndicators="true"
                     Height="350" />
-
+                
+                
+                <h2 class="text-center mt-4">Discover all the new Planets</h2>
+                
                 <DiscoveryPlanetGrid Planets="UnjoinedPlanets"
                                      OnJoin="HandleJoinAsync"
                                      OnInfo="HandleInfoAsync" />
@@ -40,10 +42,10 @@
 @code {
     private string _mobileTag = "";
     private bool _isLoading = true;
-
     private List<PlanetListInfo> _all { get; set; } = new();
     private HashSet<long> _joinedIds { get; set; } = new();
     private List<PlanetListInfo> UnjoinedPlanets { get; set; } = new();
+    private List<PlanetListInfo> PopularPlanets { get; set; } = new();
     private Carousel<DiscoveryPlanetCard> _planetCarousel;
     private bool _carouselInitialized;
     private readonly Dictionary<int, int> _breakpoints = new()
@@ -111,9 +113,9 @@
         _all = await PlanetService.FetchDiscoverablePlanetsAsync();
         _joinedIds = PlanetService.JoinedPlanets.Select(p => p.Id).ToHashSet();
         UnjoinedPlanets = _all.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
-
-        _result.Success = true;
-        _result.Message = "OK";
+        
+        //The idea is that planet is popular when it has more as 20 members for a test
+        PopularPlanets = UnjoinedPlanets.Where(p => p.MemberCount > 20).ToList();
         _isLoading = false;
         _loadedListCount = Math.Min(_loadedListCount > 0 ? _loadedListCount : InitialListLoad, UnjoinedPlanets.Count);
         if (_planetCarousel != null)
@@ -128,7 +130,7 @@
         if (index < 0 || index >= UnjoinedPlanets.Count)
             return Task.FromResult(new Dictionary<string, object>());
 
-        var planet = UnjoinedPlanets[index];
+        var planet = PopularPlanets[index];
         return Task.FromResult(new Dictionary<string, object>
         {
             { "PlanetInfo", planet },

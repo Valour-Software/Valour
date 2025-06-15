@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Models;
+﻿using System.Collections.Generic;
+
+namespace Valour.Shared.Models;
 
 /// <summary>
 /// This information is used to give the client a summary of a planet that has
@@ -14,6 +16,7 @@ public class PlanetListInfo
     public bool Nsfw { get; set; }
     public int MemberCount { get; set; }
     public int Version { get; set; }
+    public List<long> TagIds { get; set; } = new();
     
     // planet unread/read state
     public bool HasUnread { get; set; }

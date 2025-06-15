@@ -121,7 +121,8 @@ public class PlanetService
                 HasCustomIcon = x.HasCustomIcon,
                 HasAnimatedIcon = x.HasAnimatedIcon,
                 MemberCount = x.Members.Count(),
-                Version = x.Version
+                Version = x.Version,
+                TagIds = x.Tags.Select(t => t.Id).Distinct().ToList()
             })
             .OrderByDescending(x => x.MemberCount)
             .Take(30)

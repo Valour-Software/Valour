@@ -24,7 +24,7 @@
     text-align: center;
     font-size: 1.2rem;
     font-weight: 700;
-    margin: 0 0 0.1rem 0;
+    margin: 1rem 0 0.1rem 0;
     color: #fff;
     letter-spacing: 0.02em;
     text-shadow: 0 2px 14px #0007;
@@ -32,7 +32,8 @@
     min-height: 2.6rem;
     max-height: 4.6rem;
     overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    white-space: normal;
 }
 
 .planet-theme-img-holder {
@@ -55,7 +56,6 @@
     overflow: visible;
     box-shadow: 0 6px 32px #101a2a8a, 0 0px 0px #0000;
     position: relative;
-    /* Esto ayuda a mezclar la imagen con el fondo */
     mix-blend-mode: lighten;
     filter: drop-shadow(0 4px 24px #12203a66) blur(1px);
     background: transparent !important;
@@ -108,7 +108,8 @@
     max-height: 3.3em;
     min-height: 3.3em;
     overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    white-space: normal;
 }
 
 .planet-theme-members {
@@ -159,4 +160,20 @@
 }
 .card-btn-gray:hover, .card-btn-gray:focus {
     background: #444d66;
+}
+
+.planet-tags {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.planet-tag {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.6rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
 }
