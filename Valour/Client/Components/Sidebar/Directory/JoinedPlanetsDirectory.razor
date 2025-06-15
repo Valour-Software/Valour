@@ -100,9 +100,10 @@
         ReRender();
     }
 
-    private void OnClickExplore()
+    private async Task OnClickExplore()
     {
-        
+        var windowContent = new DiscoveryPageWindowContent();
+        await WindowService.TryAddFloatingWindow(windowContent);
     }
     
     private async Task OnFilterChanged((string SearchTerm, List<long> TagIds) filter)

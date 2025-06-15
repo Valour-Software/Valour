@@ -1,0 +1,81 @@
+@using System.Text
+@using Valour.Shared.Models
+@using Valour.Shared.Utilities
+@inherits ComponentBase
+
+<div class="planet-theme-card @(PlanetInfo.HasCustomIcon ? "with-bg" : null)" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">
+    <h6 class="planet-theme-title">@PlanetInfo.Name</h6>
+    <div class="planet-theme-img-holder">
+        @if (PlanetInfo.HasCustomIcon)
+        {
+            <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-theme-img" />
+        }
+        else
+        {
+            <div class="planet-theme-img auto-icon">
+                <img src="@DefaultIconPath" class="planet-default-svg" alt="Default icon" draggable="false" />
+                <span class="icon-text planet-initials" style="font-size:@GetFontSize(_iconText.Length)">
+                    @_iconText
+                </span>
+            </div>
+        }
+    </div>
+    <div class="planet-theme-info">
+        <p class="planet-theme-desc">@PlanetInfo.Description</p>
+        <p class="planet-theme-members">
+            <strong>@PlanetInfo.MemberCount Members</strong>
+        </p>
+        <div class="planet-theme-btns">
+            <button class="card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">Info</button>
+            <button class="card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public PlanetListInfo PlanetInfo { get; set; }
+    [Parameter] public EventCallback<PlanetListInfo> OnInfo { get; set; }
+    [Parameter] public EventCallback<PlanetListInfo> OnJoin { get; set; }
+
+    private string _iconUrl;
+    private string _iconText = string.Empty;
+    private const string DefaultIconPath = "_content/Valour.Client/media/logo-circle.svg";
+
+    protected override void OnParametersSet()
+    {
+        if (PlanetInfo.HasCustomIcon)
+        {
+            _iconUrl = PlanetInfo.HasAnimatedIcon
+                ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
+                : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
+        }
+        else
+        {
+            _iconText = GetCommunityShortCode(PlanetInfo.Name);
+        }
+    }
+
+    private string GetCommunityShortCode(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        if (name.Length < 5) return name.ToUpperInvariant();
+        var sb = new StringBuilder();
+        sb.Append(char.ToUpperInvariant(name[0]));
+        for (int i = 1; i < name.Length && sb.Length < 4; i++)
+        {
+            var c = name[i];
+            if (name[i - 1] == ' ' || (char.IsUpper(c) && char.IsLower(name[i - 1])))
+                sb.Append(char.ToUpperInvariant(c));
+        }
+        return sb.ToString();
+    }
+
+    // Tamaño adaptable, seguro para 1-4 letras
+    private string GetFontSize(int length) => length switch
+    {
+        <= 2 => "2.2rem",
+        3 => "1.55rem",
+        4 => "1.18rem",
+        _ => "1rem"
+    };
+}

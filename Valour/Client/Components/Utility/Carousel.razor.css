@@ -15,11 +15,9 @@
 .carousel-track {
     display: flex;
     transition: transform 0.4s ease-out;
-    gap: 16px;
 }
 
 .carousel-item {
-    width: 250px;
     flex: 0 0 auto;
 }
 
@@ -61,6 +59,27 @@
     border-radius: 50%;
     border-top-color: var(--slight-tint);
     animation: spin 1s ease-in-out infinite;
+}
+
+.carousel-pages {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.carousel-page-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--font-color, #fff);
+    opacity: 0.4;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.carousel-page-dot.active {
+    opacity: 1;
 }
 
 @keyframes spin {
