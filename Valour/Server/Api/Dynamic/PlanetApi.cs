@@ -141,7 +141,7 @@ public class PlanetApi
         if (userId != planet.OwnerId)
             return ValourResult.Forbid("You are not the owner of this planet.");
 
-        await planetService.DeleteAsync(planet);
+        await planetService.DeleteAsync(planet.Id);
 
         return Results.NoContent();
     }

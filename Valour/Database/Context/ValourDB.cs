@@ -56,18 +56,6 @@ public partial class ValourDb : DbContext
     /// Table for Valour user profiles
     /// </summary>
     public DbSet<UserProfile> UserProfiles { get; set; }
-
-    /// <summary>
-    /// Table for Valour user crypto Nonces
-    /// </summary>
-    
-    public DbSet<UserCryptoNonce> UserCryptoNonces { get; set; }
-  
-    /// <summary>
-    /// Table for Valour user wallets
-    /// </summary>
-    /// 
-    public DbSet<UserCryptoWallet> UserCryptoWallets { get; set; }
   
     /// <summary>
     /// Table for Valour user friends
@@ -256,11 +244,6 @@ public partial class ValourDb : DbContext
         modelBuilder.Entity<Planet>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
-        
-        
-        modelBuilder.Entity<UserCryptoNonce>()
-            .Property(x => x.UserId)
-            .HasColumnType("bigint");
 
         // can only add query filters to root entities
         // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
@@ -287,8 +270,6 @@ public partial class ValourDb : DbContext
         PushNotificationSubscription.SetUpDbModel(modelBuilder);
         UserPrivateInfo.SetupDbModel(modelBuilder);
         Referral.SetupDbModel(modelBuilder);
-        UserCryptoWallet.SetupDbModel(modelBuilder);
-        UserCryptoNonce.SetupDbModel(modelBuilder);
         PlanetTag.SetupDbModel(modelBuilder);
 
         AutomodTrigger.SetupDbModel(modelBuilder);

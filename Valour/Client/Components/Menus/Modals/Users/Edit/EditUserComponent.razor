@@ -27,7 +27,6 @@
     private RenderFragment ReferralsContent => @<EditReferralsComponent />;
     private RenderFragment PermissionsContent => @<EditUserNotificationsComponent />;
     private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
-    private RenderFragment WalletContent => @<EditWalletComponent  />;
     private RenderFragment LogOutContent => @<div></div>;
     
     private List<MainMenu.MenuCategory> _categories;
@@ -96,13 +95,6 @@
                         Icon = "phone-fill",
                         Description = "Manage device preferences",
                         Content = DevicePreferencesContent
-                    },
-                    new MainMenu.MenuItem()
-                    {
-                        Name = "Wallet",
-                        Icon = "currency-bitcoin",
-                        Description = "Manage crypto wallet",
-                        Content = WalletContent
                     },
                     new MainMenu.MenuItem()
                     {

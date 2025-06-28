@@ -44,8 +44,8 @@ Valour Nodes are designed to be able to run independently of any central server 
 
 To contribute to Valour, getting a mock server environment set up is crucial. Here's a simple walkthough:
 
-1. Install .Net 8 at [https://dotnet.microsoft.com/en-us/download/dotnet/8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-2. We suggest using Rider or Visual Studio, but any IDE supporting dotnet should work. Make sure it supports .Net 8
+1. Install .Net 9 at [https://dotnet.microsoft.com/en-us/download/dotnet/9.0](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
+2. We suggest using Rider or Visual Studio, but any IDE supporting dotnet should work. Make sure it supports .Net 9
 3. Open the .sln file in the root project folder with your IDE. Open the terminal and run `dotnet workload restore`
 4. Now we can run Valour, but it will immediately crash because required services are missing.
 5. Install locally or deploy PostreSQL to a server [https://www.postgresql.org/](https://www.postgresql.org/)
@@ -58,14 +58,6 @@ To contribute to Valour, getting a mock server environment set up is crucial. He
 12. There is a `appsettings.helper.json` file to help you
 13. Also note that we release docker images for every merge, which you can find here on github. You will still need supporting services to run these images and valid appsettings. We run Valour on kubernetes ourselves.
 14. Important note: When developing locally, change the `BaseAddress` in `ValourClient.cs`, otherwise nothing will function. And to just test the client, point it to `https://app.valour.gg` and it will use the official Valour servers.
-
-## Support Us
-
-Building a platform is hard work. You can directly support Valour at the following:
-- [Patreon](https://www.patreon.com/valourapp)
-- Solana: 
-  - FUJypRAafs4nZ6uTLh4zVoh9g8Hd5XS8Q3At99baYFKJ (Ecosystem & Development Fund)
-  - 3TpmRtdR6NYoiCGvXVKm5HGUoM3fnztQteaxF56dJbqB (Community Governed Fund)
 
 ## Trademark Notice
 

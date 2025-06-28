@@ -1,5 +1,5 @@
 @using System.Text
-@inject TagService TagService
+@inject PlanetTagService TagService
 @inherits ComponentBase
 
 <div class="planet-theme-card @(PlanetInfo.HasCustomIcon ? "with-bg" : null)" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">

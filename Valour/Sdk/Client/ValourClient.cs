@@ -50,7 +50,6 @@ public class ValourClient
     public readonly SafetyService SafetyService;
     public readonly ThemeService ThemeService;
     public readonly UnreadService UnreadService;
-    public readonly WalletService WalletService;
     public readonly PlanetTagService PlanetTagService;
 
     /// <summary>
@@ -125,7 +124,6 @@ public class ValourClient
         SafetyService = new SafetyService(this);
         ThemeService = new ThemeService(this);
         UnreadService = new UnreadService(this);
-        WalletService = new WalletService(this);
         PlanetTagService = new PlanetTagService(this);
 
         var tenorHttpClient = new HttpClient();

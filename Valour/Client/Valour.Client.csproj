@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
+    <TypeScriptCompile Remove="Components\Menus\Modals\Users\Edit\EditWalletComponent.razor.ts" />
   </ItemGroup>
 
   <ItemGroup>

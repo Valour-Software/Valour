@@ -315,15 +315,23 @@ public class PlanetService
     /// <summary>
     /// Soft deletes the given planet
     /// </summary>
-    public async Task DeleteAsync(Planet planet)
+    public async Task DeleteAsync(long planetId)
     {
-        var entity = await _db.Planets.FindAsync(planet.Id);
+        var entity = await _db.Planets.FindAsync(planetId);
+        if (entity is null)
+        {
+            _logger.LogWarning("Tried to delete planet {PlanetId} but it does not exist.", planetId);
+            return;
+        }
+        
         entity.IsDeleted = true;
         
         _db.Planets.Update(entity);
         await _db.SaveChangesAsync();
         
-        _coreHub.NotifyPlanetDelete(planet);
+        var model = entity.ToModel();
+        
+        _coreHub.NotifyPlanetDelete(model);
     }
     
     /// <summary>

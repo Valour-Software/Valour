@@ -145,7 +145,6 @@ public partial class Program
             new DynamicAPI<StaffApi>().RegisterRoutes(app),
             new DynamicAPI<MessageApi>().RegisterRoutes(app),
             new DynamicAPI<UnreadApi>().RegisterRoutes(app),
-            new DynamicAPI<UserWalletApi>().RegisterRoutes(app),
             new DynamicAPI<TagApi>().RegisterRoutes(app)
         };
 
@@ -364,7 +363,6 @@ public partial class Program
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<StartupService>();
         services.AddScoped<PushNotificationService>();
-        services.AddScoped<IWalletService,WalletService>();
         services.AddScoped<ITagService,TagService>();
 
         services.AddSingleton<NodeLifecycleService>();

@@ -8,9 +8,9 @@ namespace Valour.Server.Services;
 public class TagService : ITagService
 {
     private readonly ValourDb _db;
-    private readonly ILogger<WalletService> _logger;
+    private readonly ILogger<TagService> _logger;
 
-    public TagService(ValourDb db, ILogger<WalletService> logger)
+    public TagService(ValourDb db, ILogger<TagService> logger)
     {
         _db = db;
         _logger = logger;
