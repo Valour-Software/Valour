@@ -95,14 +95,21 @@ public class UserServiceTests : IAsyncLifetime
         var age = _userService.GetYearsOld(birthday);
         Assert.Equal(20, age);
     }
+    
+    private string RandomName()
+    {
+        return $"test-{Guid.NewGuid():N}".Substring(0, 10);
+    }
 
     [Fact]
     public async Task HardDelete_RemovesUser()
     {
+        var randomName = RandomName();
+        
         var req = new RegisterUserRequest
         {
-            Username = $"temp-{Guid.NewGuid():N}".Substring(0, 8),
-            Email = $"temp-{Guid.NewGuid():N}@example.com".Substring(0, 18),
+            Username = $"temp-{randomName}",
+            Email = $"temp.{randomName}@example.com".Substring(0, 18),
             Password = "TempPass1!",
             DateOfBirth = new DateTime(2000, 1, 1),
             Locality = Locality.General,
