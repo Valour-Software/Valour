@@ -1,0 +1,170 @@
+@inherits WindowContentComponentBase
+@inject PlanetService PlanetService
+
+<div class="discovery-window inner-window @_mobileTag">
+    <h2 class="text-center mt-4">Popular Planets</h2>
+    <div class="planet-discovery-container">
+        @switch (_isLoading)
+        {
+            case false when UnjoinedPlanets.Count == 0:
+                <span>No planets to discover!</span>
+                break;
+            case false:
+                
+                <Carousel
+                    @ref="_planetCarousel"
+                    TComponent="DiscoveryPlanetCard"
+                    GetItem="@GetPlanetParamsAsync"
+                    TotalItems="@PopularPlanets.Count"
+                    InitialLoadCount="5"
+                    VisibleItems="4"
+                    VisibleItemsPerWidth="@_breakpoints"
+                    ScrollStep="4"
+                    AutoScroll="true"
+                    ShowPageIndicators="true"
+                    Height="350" />
+                
+                
+                <h2 class="text-center mt-4">Discover all the new Planets</h2>
+                
+                <DiscoveryPlanetGrid Planets="UnjoinedPlanets"
+                                     OnJoin="HandleJoinAsync"
+                                     OnInfo="HandleInfoAsync" />
+                break;
+            default:
+                <span>Loading planets…</span>
+                break;
+        }
+    </div>
+
+</div>
+
+@code {
+    private string _mobileTag = "";
+    private bool _isLoading = true;
+    private List<PlanetListInfo> _all { get; set; } = new();
+    private HashSet<long> _joinedIds { get; set; } = new();
+    private List<PlanetListInfo> UnjoinedPlanets { get; set; } = new();
+    private List<PlanetListInfo> PopularPlanets { get; set; } = new();
+    private Carousel<DiscoveryPlanetCard> _planetCarousel;
+    private bool _carouselInitialized;
+    private readonly Dictionary<int, int> _breakpoints = new()
+    {
+        { 0, 1 },
+        { 500, 2 },
+        { 800, 3 },
+        { 1100, 4 }
+    };
+    private TaskResult _result = new();
+
+    private const int InitialListLoad = 4;
+    private const int ListBatch = 3;
+    private int _loadedListCount = 0;
+    private ElementReference _listRef;
+    private ElementReference _listSentinel;
+
+    
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadDiscoveryPlanetsAsync();
+            _loadedListCount = Math.Min(InitialListLoad, UnjoinedPlanets.Count);
+        }
+        catch (Exception ex)
+        {
+            _isLoading = false;
+            _result.Success = false;
+            _result.Message = ex.Message;
+            Console.WriteLine("Error loading planets: " + ex);
+            ReRender();
+        }
+
+        if (DeviceInfo.IsMobile)
+        {
+            _mobileTag = "mobile";
+            ReRender();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender && !_isLoading && !_carouselInitialized && _planetCarousel != null)
+        {
+            _carouselInitialized = true;
+            await _planetCarousel.Reset();
+        }
+
+        if (!firstRender && !_listRef.Equals(default))
+        {
+            await CheckListLoadAsync();
+        }
+    }
+
+
+   
+    
+    // ----------  helpers ----------
+
+    private async Task LoadDiscoveryPlanetsAsync()
+    {
+        await PlanetService.FetchJoinedPlanetsAsync();
+        _all = await PlanetService.FetchDiscoverablePlanetsAsync();
+        _joinedIds = PlanetService.JoinedPlanets.Select(p => p.Id).ToHashSet();
+        UnjoinedPlanets = _all.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
+        
+        //The idea is that planet is popular when it has more as 20 members for a test
+        PopularPlanets = UnjoinedPlanets.Where(p => p.MemberCount > 20).ToList();
+        _isLoading = false;
+        _loadedListCount = Math.Min(_loadedListCount > 0 ? _loadedListCount : InitialListLoad, UnjoinedPlanets.Count);
+        if (_planetCarousel != null)
+            await _planetCarousel.Reset();
+        ReRender();
+    }
+
+
+
+    private Task<Dictionary<string, object>> GetPlanetParamsAsync(int index)
+    {
+        if (index < 0 || index >= UnjoinedPlanets.Count)
+            return Task.FromResult(new Dictionary<string, object>());
+
+        var planet = PopularPlanets[index];
+        return Task.FromResult(new Dictionary<string, object>
+        {
+            { "PlanetInfo", planet },
+            { "OnJoin", EventCallback.Factory.Create<PlanetListInfo>(this, HandleJoinAsync) },
+            { "OnInfo", EventCallback.Factory.Create<PlanetListInfo>(this, HandleInfoAsync) }
+        });
+    }
+
+    private Task HandleInfoAsync(PlanetListInfo planet) => Task.CompletedTask;
+
+    private async Task HandleJoinAsync(PlanetListInfo planet)
+    {
+        await PlanetService.JoinPlanetAsync(planet.PlanetId);
+        UnjoinedPlanets.Remove(planet);
+        if (_planetCarousel != null)
+            await _planetCarousel.Reset();
+        ReRender();
+    }
+
+    private async Task OnListScroll()
+    {
+        await CheckListLoadAsync();
+    }
+
+    private async Task CheckListLoadAsync()
+    {
+        if (_loadedListCount >= UnjoinedPlanets.Count)
+            return;
+
+        var dist = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(_listSentinel, _listRef);
+        if (dist.BottomDistance <= 50)
+        {
+            _loadedListCount = Math.Min(_loadedListCount + ListBatch, UnjoinedPlanets.Count);
+            ReRender();
+        }
+    }
+}

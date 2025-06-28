@@ -44,28 +44,24 @@
     
     [Parameter]
     public Theme CurrentTheme { get; set; } = Theme.Default;
+    public static event Action OnThemeChanged;
     
     private StylesheetParser _parser = new StylesheetParser();
     
     public async Task InstallTheme(Theme theme)
     {
         CurrentTheme = theme;
-        
-        // Save to local storage
         await LocalStorage.SetItemAsStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
-        
         StateHasChanged();
+        OnThemeChanged?.Invoke();
     }
-
     public async Task UninstallThemeAsync()
     {
         CurrentTheme = Theme.Default;
-        
-        // Remove from local storage
         if (await LocalStorage.ContainKeyAsync("ACTIVE_THEME"))
             await LocalStorage.RemoveItemAsync("ACTIVE_THEME");
-        
         StateHasChanged();
+        OnThemeChanged?.Invoke();
     }
 
     private string GetSanitizedCustomCss()
@@ -133,6 +129,8 @@
             StateHasChanged();
         }
     }
+    
+   
 
     public void Refresh()
     {

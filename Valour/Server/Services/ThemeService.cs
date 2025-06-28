@@ -40,17 +40,17 @@ public class ThemeService
     {
         if (take > 50)
             take = 50;
-        
+    
         var baseQuery = _db.Themes
             .AsNoTracking()
             .Where(x => x.Published);
-            
+        
         if (!string.IsNullOrWhiteSpace(search))
         {
             baseQuery = baseQuery.Where(x => x.Name.ToLower().Contains(search.ToLower()));
         }
-            
-            
+        
+        var count = await baseQuery.CountAsync();
         var mainQuery = baseQuery
             .Include(x => x.ThemeVotes)
             .Select(x => new
@@ -62,9 +62,7 @@ public class ThemeService
             .OrderByDescending(x => x.VoteCount)
             .Skip(skip)
             .Take(take);
-        
-        var count = await mainQuery.CountAsync();
-        
+
         var data = await mainQuery.Select(x => new ThemeMeta()
         {
             Id = x.Theme.Id,
@@ -76,13 +74,15 @@ public class ThemeService
             MainColor1 = x.Theme.MainColor1,
             PastelCyan = x.Theme.PastelCyan
         }).ToListAsync();
-        
+    
         return new QueryResponse<ThemeMeta>()
         {
             Items = data,
             TotalCount = count
         };
     }
+
+
 
     public async Task<List<ThemeMeta>> GetThemesByUser(long userId)
     {
@@ -157,6 +157,11 @@ public class ThemeService
                 return TaskResult.FromFailure("Theme description is too long. Limit 500 characters.");
             }
         }
+        
+        if ( await _db.Themes.AnyAsync(t=>t.Name == theme.Name && t.Id != theme.Id ))
+        {
+            return TaskResult.FromFailure("Theme name already exists");
+        }
 
         return TaskResult.SuccessResult;
     }
@@ -223,7 +228,7 @@ public class ThemeService
             return TaskResult<Theme>.FromFailure("You have reached the maximum number of created themes.");
         }
         
-        using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
         try
         {
@@ -407,4 +412,5 @@ public class ThemeService
             .Where(x => x.UserId == userId && x.ThemeId == themeId)
             .FirstOrDefaultAsync()).ToModel();
     }
+    
 }

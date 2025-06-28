@@ -54,6 +54,11 @@
       <DependentUpon>EditWalletComponent.razor</DependentUpon>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Components\DiscoveryPlanets\DiscoveryPageComponent.razor" />
+    <AdditionalFiles Include="Components\DiscoveryPlanets\DiscoveryPlanetCard.razor" />
+  </ItemGroup>
   
   <!-- JS Cleanup script
   <Target Name="RunCustomBuildScripts" BeforeTargets="PrepareForBuild">

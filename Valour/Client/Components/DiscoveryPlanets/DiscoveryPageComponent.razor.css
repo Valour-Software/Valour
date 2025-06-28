@@ -1,0 +1,4 @@
+.discovery-window {
+    max-height: 90vh;
+    overflow-y: auto;
+}

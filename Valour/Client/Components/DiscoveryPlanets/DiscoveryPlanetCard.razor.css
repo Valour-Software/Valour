@@ -1,0 +1,179 @@
+.planet-theme-card {
+    width: 100%;
+    max-width: 340px;
+    height: 500px;
+    background:
+            linear-gradient(180deg, #0a1226bb 60%, #20325bcc 100%);
+    border-radius: 2.5rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 32px 0 #0e121e99;
+    transition: box-shadow 0.15s, scale 0.12s;
+    position: relative;
+    color: #fff;
+    padding-bottom: 1.3rem;
+}
+.planet-theme-card.with-bg {
+    background:
+            linear-gradient(180deg, #0a1226bb 60%, #20325bcc 100%),
+            url('/_content/Valour.Client/media/Spookvooper-tall.jpg') center center/cover no-repeat;
+}
+.planet-theme-title {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 1rem 0 0.1rem 0;
+    color: #fff;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 14px #0007;
+    z-index: 2;
+    min-height: 2.6rem;
+    max-height: 4.6rem;
+    overflow: hidden;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.planet-theme-img-holder {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    margin-bottom: 0.7rem;
+}
+
+.planet-theme-img,
+.auto-icon {
+    width: 115px;
+    height: 115px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+    overflow: visible;
+    box-shadow: 0 6px 32px #101a2a8a, 0 0px 0px #0000;
+    position: relative;
+    mix-blend-mode: lighten;
+    filter: drop-shadow(0 4px 24px #12203a66) blur(1px);
+    background: transparent !important;
+}
+
+.planet-default-svg {
+    position: absolute;
+    width: 115px;
+    height: 115px;
+    left: 0; top: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.planet-initials {
+    position: relative;
+    z-index: 1;
+    font-weight: 700;
+    color: #fff;
+    width: 100%;
+    text-align: center;
+    line-height: 1;
+    letter-spacing: 1px;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    font-size: 2rem;
+    text-shadow: 0 2px 12px #20335a55;
+}
+
+.planet-theme-info {
+    padding: 0 1.2rem 0 1.2rem;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    overflow: hidden;
+    width: 100%;
+}
+
+.planet-theme-desc {
+    text-align: center;
+    font-size: 1.12rem;
+    font-weight: 400;
+    margin: 0.6rem 0 1.2rem 0;
+    color: #f4f8ff;
+    text-shadow: 0 1px 10px #10142044;
+    max-height: 3.3em;
+    min-height: 3.3em;
+    overflow: hidden;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.planet-theme-members {
+    text-align: center;
+    font-size: 1.16rem;
+    margin-bottom: 1rem;
+}
+.planet-theme-members strong {
+    color: #20e6ff;
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.planet-theme-btns {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.7rem;
+    margin: 1.4rem 0 0 0;
+}
+
+.card-btn {
+    flex: 1 1 0;
+    padding: 0.95rem 0;
+    border-radius: 0.8rem;
+    border: none;
+    font-weight: 600;
+    font-size: 1.16rem;
+    cursor: pointer;
+    margin-top: 0.3em;
+    transition: filter .1s, background 0.15s;
+}
+
+.card-btn-gray {
+    background: #2c344d;
+    color: #e7e7e7;
+    border: 2px solid #39465b;
+}
+
+.card-btn-blue {
+    background: #1199ff;
+    color: #fff;
+    border: 2px solid #167cff;
+}
+
+.card-btn-blue:hover, .card-btn-blue:focus {
+    background: #167cff;
+}
+.card-btn-gray:hover, .card-btn-gray:focus {
+    background: #444d66;
+}
+
+.planet-tags {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.planet-tag {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.6rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}

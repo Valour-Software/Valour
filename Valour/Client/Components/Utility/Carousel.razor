@@ -1,84 +1,192 @@
 ﻿@typeparam TComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
 
-<div class="carousel-container">
+@if (ShowPageIndicators)
+{
+    <div class="carousel-pages">
+        @for (var p = 0; p < PageCount; p++)
+        {
+            var page = p;
+            <span class="carousel-page-dot @(page == CurrentPage ? "active" : null)" @onclick="() => GoToPage(page)" @key="page"></span>
+        }
+    </div>
+}
+
+<div class="carousel-container" style="min-height: @(Height)px">
     <button class="carousel-nav prev @(CanScrollLeft ? "" : "disabled")" @onclick="ScrollLeft" aria-label="Previous items">
         <i class="bi bi-chevron-left"></i>
     </button>
 
     <div class="carousel-viewport" @ref="_viewportElement">
-        <div class="carousel-track" style="transform: translateX(@($"{-_currentOffset}px"))">
+        <div class="carousel-track" style="transform: translateX(@($"{-_currentOffset}px")); gap:@(ItemGap)px">
             @for (var i = 0; i < _loadedItems.Count; i++)
             {
                 var index = i;
-                <div class="carousel-item" @key="index">
+                <div class="carousel-item" style="width:@(_itemWidth)px" @key="index">
                     <DynamicComponent Type="@typeof(TComponent)" Parameters="@_loadedItems[index]" />
                 </div>
             }
             
             @if (_isLoading)
             {
-                <div class="carousel-item loading">
+                <div class="carousel-item loading" style="width:@(_itemWidth)px">
                     <div class="loading-indicator"></div>
                 </div>
             }
         </div>
     </div>
 
-    <button class="carousel-nav next @(CanScrollRight ? "" : "disabled")" @onclick="ScrollRight" aria-label="Next items">
+    <button class="carousel-nav next  @(CanScrollRight ? "" :"disabled")" @onclick="ScrollRight" aria-label="Next items">
         <i class="bi bi-chevron-right"></i>
     </button>
 </div>
 
+
 @code {
     [Parameter]
-    public int Height { get; set; } = 350; // Default height (300px)
+    public int Height { get; set; }
     
     [Parameter]
-    public int ItemWidth { get; set; } = 216; // Default item width (200px + 16px margin)
+    public int ItemWidth { get; set; }
     
     [Parameter]
     public int TotalItems { get; set; }
     
     [Parameter]
-    public int VisibleItems { get; set; } = 4;
+    public int VisibleItems { get; set; }
     
     [Parameter]
-    public int InitialLoadCount { get; set; } = 8;
+    public int InitialLoadCount { get; set; }
     
     [Parameter]
     public int PreloadThreshold { get; set; } = 3;
+
+    [Parameter]
+    public int ItemGap { get; set; } = 16;
+   
+    [Parameter]
+    public Dictionary<int, int>? VisibleItemsPerWidth { get; set; }
     
     [Parameter]
     public Func<int, Task<Dictionary<string, object>>> GetItem { get; set; }
     
     [Parameter]
     public EventCallback OnSwipe { get; set; }
-    
-    [Parameter]
-    public bool AutoScroll { get; set; }
-    
+
+    [Parameter] public bool AutoScroll { get; set; }
+
     [Parameter]
     public int AutoScrollInterval { get; set; } = 5000;
+
+    [Parameter]
+    public int ScrollStep { get; set; } = 1;
+
+    // Use the responsive item count when ScrollStep matches the default VisibleItems
+    private int ScrollAmount => ScrollStep == VisibleItems ? _visibleItemCount : ScrollStep;
+
+    [Parameter]
+    public bool ShowPageIndicators { get; set; } = false;
     
     private ElementReference _viewportElement;
     private List<Dictionary<string, object>> _loadedItems = new();
     private int _currentIndex = 0;
-    private int _currentOffset = 0;
+    private double _currentOffset = 0;
+    private double _itemWidth = 0;
+    private double _viewportWidth = 0;
     private bool _isLoading = false;
     private Timer _autoScrollTimer;
+    private int _visibleItemCount;
+    private ResizeObserver? _resizeObserver;
+    private int PageCount => _visibleItemCount == 0 ? 0 : (int)Math.Ceiling((double)TotalItems / _visibleItemCount);
+    private int CurrentPage => _visibleItemCount == 0 ? 0 : (_currentIndex + _visibleItemCount - 1) / _visibleItemCount;
+    private double MaxOffset =>
+        Math.Max(0, (_loadedItems.Count * (_itemWidth + ItemGap) - ItemGap) - _viewportWidth);
+    private bool CanScrollRight => PageCount > 1;
+    private bool CanScrollLeft => PageCount > 1;
+
+    private int GetResponsiveVisibleItems(double width)
+    {
+        if (VisibleItemsPerWidth is { Count: > 0 })
+        {
+            int count = VisibleItems;
+            foreach (var bp in VisibleItemsPerWidth.OrderBy(b => b.Key))
+            {
+                if (width >= bp.Key)
+                    count = bp.Value;
+            }
+            return Math.Max(1, count);
+        }
+        return Math.Max(1, VisibleItems);
+    }
+
+    private async Task UpdateItemWidth()
+    {
+        var dims = await BrowserUtils.GetElementDimensions(_viewportElement);
+        if (dims.Width > 0)
+        {
+            _viewportWidth = dims.Width;
+
+            var previousVisible = _visibleItemCount;
+
+            if (ItemWidth > 0)
+            {
+                _itemWidth = ItemWidth;
+                _visibleItemCount = Math.Max(1,
+                    (int)Math.Floor((dims.Width + ItemGap) / (ItemWidth + ItemGap)));
+            }
+            else
+            {
+                // CHANGED: show exactly VisibleItems cards
+                _visibleItemCount = GetResponsiveVisibleItems(dims.Width);
+                _itemWidth = (dims.Width - ItemGap * (_visibleItemCount - 1)) / _visibleItemCount;
+            }
+
+            // Preserve page index after resize
+            var currentPage = previousVisible > 0 ? _currentIndex / previousVisible : 0;
+
+            // CHANGED: clamp index in case viewport grows
+            _currentIndex = Math.Clamp(currentPage * _visibleItemCount, 0, Math.Max(0, _loadedItems.Count - _visibleItemCount));
+            _currentOffset = Math.Min(_currentIndex * (_itemWidth + ItemGap), MaxOffset);
+        }
+    }
+
+    private async Task HandleResize(ElementDimensions dims)
+    {
+        await InvokeAsync(async () =>
+        {
+            await UpdateItemWidth();
+            StateHasChanged();
+        });
+    }
     
-    public bool CanScrollLeft => _currentIndex > 0;
-    public bool CanScrollRight => _currentIndex + VisibleItems < _loadedItems.Count && _loadedItems.Count < TotalItems;
+    
     
     protected override async Task OnInitializedAsync()
     {
         await LoadInitialItems();
+
+        BrowserUtils.OnWindowResize += HandleResize;
         
         if (AutoScroll)
         {
-            _autoScrollTimer = new Timer(async _ => await InvokeAsync(() => ScrollRight()), 
-                null, AutoScrollInterval, AutoScrollInterval);
+            StartAutoScroll();
         }
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AutoScroll)
+        {
+            StartAutoScroll();
+        }
+        else
+        {
+            _autoScrollTimer?.Dispose();
+            _autoScrollTimer = null;
+        }
+
+        await UpdateItemWidth();
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -86,83 +194,130 @@
         if (firstRender)
         {
             // Option to get the actual item width from DOM if needed
-            // var width = await JSRuntime.InvokeAsync<double>("getCarouselItemWidth");
-            // if (width > 0) _itemWidth = (int)width;
+            await UpdateItemWidth();
+            _resizeObserver = new ResizeObserver();
+            _resizeObserver.ResizeEvent += HandleResize;
+            await _resizeObserver.Initialize(_viewportElement, JsRuntime, 2);
         }
     }
     
+
     private async Task LoadInitialItems()
     {
         _isLoading = true;
-        
-        int count = Math.Min(InitialLoadCount, TotalItems);
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < TotalItems; i++)
         {
             var item = await GetItem(i);
             if (item != null)
                 _loadedItems.Add(item);
+            else
+                break;
         }
-        
         _isLoading = false;
     }
-    
+
+
     private async Task LoadMoreItems()
     {
         if (_isLoading || _loadedItems.Count >= TotalItems)
             return;
-            
+
         _isLoading = true;
         StateHasChanged();
-        
+
         int startIndex = _loadedItems.Count;
         int count = Math.Min(InitialLoadCount, TotalItems - startIndex);
-        
+
         for (int i = 0; i < count; i++)
         {
+            if (startIndex + i >= TotalItems)
+                break;
             var item = await GetItem(startIndex + i);
             if (item != null)
                 _loadedItems.Add(item);
+            else
+                break;
         }
-        
+
         _isLoading = false;
         StateHasChanged();
     }
     
-    public async Task ScrollLeft()
+    private void StartAutoScroll()
     {
-        if (!CanScrollLeft) return;
-        
-        _currentIndex = Math.Max(0, _currentIndex - 1);
-        _currentOffset = _currentIndex * ItemWidth;
+        _autoScrollTimer?.Dispose();
+        _autoScrollTimer = new Timer(TimerCallback, null, AutoScrollInterval, AutoScrollInterval);
+    }
+    
+    private void TimerCallback(object state)
+    {
+        _ = InvokeAsync(async () => await AutoScrollStep());
+    }
+    
+    
+    private async Task AutoScrollStep()
+    {
+        try
+        {
+            await ScrollRight();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Carousel] Error en AutoScrollStep: {ex.Message}");
+        }
+    }
+    
+    private async Task ScrollLeft()
+    {
+        int lastIndex = Math.Max(0, _loadedItems.Count - _visibleItemCount);
+        if (_currentIndex <= 0)
+        {
+            _currentIndex = lastIndex;
+        }
+        else
+        {
+            _currentIndex = Math.Max(0, _currentIndex - ScrollAmount);
+        }
+
+        _currentOffset = Math.Min(_currentIndex * (_itemWidth + ItemGap), MaxOffset);
         
         await OnSwipe.InvokeAsync();
-        
         StateHasChanged();
     }
     
-    public async Task ScrollRight()
+    private async Task ScrollRight()
     {
-        if (_currentIndex + VisibleItems >= _loadedItems.Count)
+        int lastIndex = Math.Max(0, _loadedItems.Count - _visibleItemCount);
+        if (_currentIndex >= lastIndex)
         {
-            if (_loadedItems.Count < TotalItems)
-                await LoadMoreItems();
-            else
-                return;
+            _currentIndex = 0;
         }
-        
-        _currentIndex++;
-        _currentOffset = _currentIndex * ItemWidth;
-        
-        // Preload more items if we're nearing the end
-        if (_currentIndex + VisibleItems + PreloadThreshold >= _loadedItems.Count && _loadedItems.Count < TotalItems)
+        else
         {
+            _currentIndex = Math.Min(_currentIndex + ScrollAmount, lastIndex);
+        }
+
+        _currentOffset = Math.Min(_currentIndex * (_itemWidth + ItemGap), MaxOffset);
+
+        // CHANGED: preload upcoming items only when needed
+        if (_currentIndex + _visibleItemCount + PreloadThreshold >= _loadedItems.Count &&
+            _loadedItems.Count < TotalItems)
             await LoadMoreItems();
-        }
-        
+
         await OnSwipe.InvokeAsync();
-        
         StateHasChanged();
     }
+
+    private async Task GoToPage(int page)
+    {
+        if (_visibleItemCount == 0) return;
+        var targetIndex = Math.Clamp(page, 0, PageCount - 1) * _visibleItemCount;
+        _currentIndex = Math.Min(targetIndex, Math.Max(0, _loadedItems.Count - _visibleItemCount));
+        _currentOffset = Math.Min(_currentIndex * (_itemWidth + ItemGap), MaxOffset);
+        await OnSwipe.InvokeAsync();
+        StateHasChanged();
+    }
+
     
     public async Task Reset()
     {
@@ -170,14 +325,17 @@
         _currentIndex = 0;
         _currentOffset = 0;
         _isLoading = false;
-        
+        await UpdateItemWidth();
         await LoadInitialItems();
-        
         StateHasChanged();
     }
+
     
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         _autoScrollTimer?.Dispose();
+        BrowserUtils.OnWindowResize -= HandleResize;
+        if (_resizeObserver is not null)
+            await _resizeObserver.DisposeAsync();
     }
 }

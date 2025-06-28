@@ -3,9 +3,7 @@
 @inject ThemeService ThemeService
 
 @using System.Net.Http.Headers
-@using Valour.Sdk.ModelLogic.QueryEngines
 @using Valour.Shared.Extensions
-@using Valour.Shared.Queries
 
 @* Editing page *@
 @if (_editingTheme is not null)
@@ -233,12 +231,13 @@ else
     else
     {
         <Carousel
-            @ref="@_popularCarousel"
+            @ref="_popularCarousel"
             TComponent="ThemeCard"
             GetItem="@GetPopularThemeParamsAsync"
             TotalItems="@_popularThemeCount"
             VisibleItems="3"
-            InitialLoadCount="8"
+            InitialLoadCount="4"
+            AutoScroll="true"
             ItemWidth="266"
             Height="350"
         />
@@ -254,7 +253,7 @@ else
             GetItem="@GetMyThemeParamsAsync"
             TotalItems="@_myThemes.Count"
             VisibleItems="3"
-            InitialLoadCount="8"
+            InitialLoadCount="4"
             ItemWidth="266"
             Height="350"
         />
@@ -271,8 +270,8 @@ else
     private Carousel<ThemeCard> _popularCarousel;
     private Carousel<ThemeCard> _myCarousel;
 
-    private ThemeMetaQueryEngine _popularThemes;
-    private int _popularThemeCount = -1;
+    private PagedReader<ThemeMeta> _popularThemes;
+    private int _popularThemeCount = 0;
     
     private List<ThemeMeta> _myThemes;
 
@@ -285,14 +284,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _popularThemes = ThemeService.GetAvailableThemeReader();
-        _myThemes = await ThemeService.GetMyThemes();
-        
+        await GetAllThemes();
+        ThemeComponent.OnThemeChanged += ThemeChangedHandler;
         // Load first page of popular themes
         var res = await _popularThemes.NextPageAsync();
-        _popularThemeCount = _popularThemes.TotalCount;
-        
+        _popularThemeCount = res.TotalCount;
         StateHasChanged();
+    }
+    
+     
+    private void ThemeChangedHandler()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
@@ -308,19 +311,24 @@ else
         
         StateHasChanged();
     }
+   
 
 
     private async Task OnSearchChangeAsync(ChangeEventArgs e)
     {
-        Client.Logger.Log<EditThemeComponent>($"New search: {e.Value}", "cyan");
-        
-        _popularThemes.SetFilter("name", e.Value?.ToString());
+        var searchValue = e.Value?.ToString() ?? "";
 
-        if (_popularCarousel is not null)
-        {
+        _popularThemeCount = -1;
+        _popularThemes.SetParameter("search", searchValue);
+        _popularThemes.ResetReader();
+
+        StateHasChanged();
+        var res = await _popularThemes.NextPageAsync();
+        _popularThemeCount = res.TotalCount;
+
+        if (_popularCarousel != null)
             await _popularCarousel.Reset();
-        }
-        
+
         StateHasChanged();
     }
     
@@ -330,9 +338,10 @@ else
         Client.Logger.Log<EditThemeComponent>("Custom CSS updated.", "cyan");
     }
     
-    private void SetPublished(bool published)
+    private async Task SetPublished(bool published)
     {
         _editingTheme.Published = published;
+        _myThemes = await ThemeService.GetMyThemes();
         StateHasChanged();
     }
 
@@ -343,7 +352,11 @@ else
 
     private async Task<Dictionary<string, object>> GetPopularThemeParamsAsync(int index)
     {
-        var theme = await _popularThemes.GetAtIndexAsync(index);
+        if (_popularThemeCount == 0) return null;
+        if (index >= _popularThemeCount || index < 0) return null;
+
+        var theme = await _popularThemes.AtIndexAsync(index);
+        if (theme == null) return null;
 
         return new Dictionary<string, object>()
         {
@@ -434,17 +447,46 @@ else
     private async Task ConfirmChangesAsync()
     {
         if (_editingTheme is null)
+            
+
+        if (_myThemes.Any(t=>t.Name == _editingTheme.Name))
+        {
             return;
+        }
 
         if (_editingTheme.Id == 0)
         {
             // New theme
             _editingResult = await _editingTheme.CreateAsync();
+            await GetAllThemes();
+            StateHasChanged();
+            
+            var res = await _popularThemes.NextPageAsync();
+            _popularThemeCount = res.TotalCount;
+    
+            if (_popularCarousel != null)
+                await _popularCarousel.Reset();
+
+            if (_myCarousel != null)
+                await _myCarousel.Reset();
+            StateHasChanged();
         }
         else
         {
             // Existing theme
             _editingResult = await _editingTheme.UpdateAsync();
+            await GetAllThemes();
+            StateHasChanged();
+            
+            var res = await _popularThemes.NextPageAsync();
+            _popularThemeCount = res.TotalCount;
+    
+            if (_popularCarousel != null)
+                await _popularCarousel.Reset();
+
+            if (_myCarousel != null)
+                await _myCarousel.Reset();
+            StateHasChanged();
         }
 
         if (!_editingResult.Value.Success)
@@ -572,5 +614,21 @@ else
         _editingTheme.PastelRed = newColor;
         ThemeComponent.Instance.Refresh();
         return Task.CompletedTask;
+    }
+
+    private async Task GetAllThemes()
+    {
+        _popularThemeCount = -1; 
+        _popularThemes = new PagedReader<ThemeMeta>(
+            Client.PrimaryNode,
+            "api/themes",
+            pageSize: 6
+        );
+        _myThemes = await ThemeService.GetMyThemes();
+    }
+    
+    public void Dispose()
+    {
+        ThemeComponent.OnThemeChanged -= ThemeChangedHandler;
     }
 }

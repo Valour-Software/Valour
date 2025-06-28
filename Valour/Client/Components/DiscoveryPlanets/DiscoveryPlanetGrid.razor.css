@@ -1,0 +1,28 @@
+.planet-card-grid {
+    display: grid;
+    gap: 1rem;
+    padding: 0 1rem 1rem 1rem;
+    margin-top: 2rem;
+}
+
+/* Match carousel breakpoints (max 3 columns) */
+@media (min-width: 800px) {
+    .planet-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+        max-height: 1050px;
+    }
+}
+
+@media (max-width: 799px) and (min-width: 500px) {
+    .planet-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-height: 1050px;
+    }
+}
+
+@media (max-width: 499px) {
+    .planet-card-grid {
+        grid-template-columns: 1fr;
+        max-height: 1050px;
+    }
+}

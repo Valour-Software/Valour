@@ -44,12 +44,14 @@ export const getWindowDimensions = () => {
 };
 export const getElementDimensions = (element) => {
     if (!element)
-        return null;
+        return { width: 0, height: 0 };
     const { clientWidth: width, clientHeight: height } = element;
     return { width, height };
 };
 export const getElementDimensionsBySelector = (selector) => {
     const element = document.querySelector(selector);
+    if (!element)
+        return { width: 0, height: 0 };
     const { clientWidth: width, clientHeight: height } = element;
     return { width, height };
 };
@@ -58,10 +60,13 @@ export const getElementPosition = (element) => {
     return { x: left, y: top };
 };
 export const getElementBoundingRect = (element) => {
+    if (!element || !element.getBoundingClientRect)
+        return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
     return element.getBoundingClientRect();
 };
 export const getVerticalDistancesToContainer = (element, container) => {
-    // Get the bounding rectangle of the element
+    if (!element || !element.getBoundingClientRect || !container || !container.getBoundingClientRect)
+        return { topDistance: 0, bottomDistance: 0 };
     const elementRect = element.getBoundingClientRect();
     // Get the bounding rectangle of the scrollable container
     const containerRect = container.getBoundingClientRect();
@@ -75,7 +80,8 @@ export const getVerticalDistancesToContainer = (element, container) => {
     };
 };
 export const getVisibleVerticalDistancesToContainer = (element, container) => {
-    // Get the bounding rectangle of the element and container relative to the viewport
+    if (!element || !element.getBoundingClientRect || !container || !container.getBoundingClientRect)
+        return { topDistance: 0, bottomDistance: 0 };
     const elementRect = element.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
     // Calculate the distance from the top of the element to the top of the container

@@ -1,0 +1,13 @@
+@using Valour.Shared.Models
+<div class="planet-card-grid">
+    @foreach (var planet in Planets)
+    {
+        <DiscoveryPlanetCard PlanetInfo="planet" OnJoin="OnJoin" OnInfo="OnInfo" />
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<PlanetListInfo> Planets { get; set; } = new List<PlanetListInfo>();
+    [Parameter] public EventCallback<PlanetListInfo> OnJoin { get; set; }
+    [Parameter] public EventCallback<PlanetListInfo> OnInfo { get; set; }
+}
