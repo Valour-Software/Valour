@@ -606,10 +606,19 @@ public class ChannelService
         // Get the highest local position in the category
 
         uint max = 0;
-        
-        if (await _db.Channels.DirectChildrenOf(parent).AnyAsync())
+
+        if (parent is not null)
         {
-            max = await _db.Channels.DirectChildrenOf(parent).MaxAsync(x => x.RawPosition);
+            if (await _db.Channels.DirectChildrenOf(parent).AnyAsync())
+            {
+                max = await _db.Channels.DirectChildrenOf(parent).MaxAsync(x => x.RawPosition);
+            }
+        }
+        else
+        {
+            max = await _db.Channels
+                .Where(x => x.PlanetId == planetId && x.ParentId == null) // Only root channels
+                .MaxAsync(x => x.RawPosition);
         }
 
         var localMax = ChannelPosition.GetLocalPosition(max);
