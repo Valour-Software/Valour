@@ -11,14 +11,14 @@ namespace Valour.Tests;
 
 public class TestShared
 {
-    public static RegisterUserRequest TestUserDetails { get; set; }
+    public static RegisterUserRequest PrimaryTestUserDetails { get; set; }
 }
 
 public class LoginTestFixture : IAsyncLifetime
 {
     public WebApplicationFactory<Program> Factory { get; private set; } = null!;
     public ValourClient Client { get; private set; } = null!;
-    public  RegisterUserRequest TestUserDetails { get; private set; } = null!;
+    public  RegisterUserRequest PrimaryTestUserDetails { get; private set; } = null!;
     
     public bool UserRegistered { get; private set; } = false;
     public bool UserLoggedIn { get; private set; } = false;
@@ -72,13 +72,13 @@ public class LoginTestFixture : IAsyncLifetime
         
         if (primary)
         {
-            TestUserDetails = details;
-            TestShared.TestUserDetails = details;
+            PrimaryTestUserDetails = details;
+            TestShared.PrimaryTestUserDetails = details;
         }
 
         try
         {
-            var result = await Client.AuthService.RegisterAsync(TestUserDetails);
+            var result = await Client.AuthService.RegisterAsync(details);
 
             Assert.NotNull(result);
             Assert.True(result.Success);
@@ -123,7 +123,7 @@ public class LoginTestFixture : IAsyncLifetime
             Client = new ValourClient("https://localhost:5001/", httpProvider: oldClient.HttpClientProvider);
             Client.SetHttpClient(oldClient.Http);
 
-            var loginResult = await Client.AuthService.LoginAsync(TestUserDetails.Email, TestUserDetails.Password);
+            var loginResult = await Client.AuthService.LoginAsync(PrimaryTestUserDetails.Email, PrimaryTestUserDetails.Password);
 
             Assert.NotNull(loginResult);
             Assert.True(loginResult.Success);
@@ -199,7 +199,7 @@ public class TeardownTestFixture : IAsyncLifetime
             Client = new ValourClient("https://localhost:5001/", httpProvider: new TestHttpProvider(Factory));
             Client.SetHttpClient(httpClient);
 
-            var loginResult = await Client.AuthService.LoginAsync(TestShared.TestUserDetails.Email, TestShared.TestUserDetails.Password);
+            var loginResult = await Client.AuthService.LoginAsync(TestShared.PrimaryTestUserDetails.Email, TestShared.PrimaryTestUserDetails.Password);
 
             Assert.NotNull(loginResult);
             Assert.True(loginResult.Success);

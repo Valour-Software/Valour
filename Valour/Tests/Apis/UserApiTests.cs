@@ -16,7 +16,7 @@ public class UserApiTests
         _client = fixture.Client;
         _httpClient = _client.Http;
         _fixture = fixture;
-        _testUserDetails = fixture.TestUserDetails;
+        _testUserDetails = fixture.PrimaryTestUserDetails;
     }
 
     [Fact]

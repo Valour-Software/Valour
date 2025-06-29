@@ -21,7 +21,7 @@ public class TeardownTests : IClassFixture<TeardownTestFixture>
     public async Task DeleteUser()
     {
         var client = _fixture.Client;
-        var details = TestShared.TestUserDetails;
+        var details = TestShared.PrimaryTestUserDetails;
         var result = await client.DeleteMyAccountAsync(details.Password);
         
         Assert.True(result.Success);
