@@ -1,0 +1,18 @@
+<div class="complex-nebula-container">
+    <div class="stars-small"></div>
+    <div class="stars-medium"></div>
+    <div class="stars-large"></div>
+    <div class="twinkling-stars"></div>
+    <div class="nebula-layer-1"></div>
+    <div class="nebula-layer-2"></div>
+    <div class="nebula-layer-3"></div>
+    <div class="nebula-layer-4"></div>
+    <div class="cosmic-dust"></div>
+    <div class="nebula-content">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

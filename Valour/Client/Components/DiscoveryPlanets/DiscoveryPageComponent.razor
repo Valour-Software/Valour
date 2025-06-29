@@ -1,43 +1,44 @@
 @inherits WindowContentComponentBase
 @inject PlanetService PlanetService
 
-<div class="discovery-window inner-window @_mobileTag">
-    <h2 class="text-center mt-4">Popular Planets</h2>
-    <div class="planet-discovery-container">
-        @switch (_isLoading)
-        {
-            case false when UnjoinedPlanets.Count == 0:
-                <span>No planets to discover!</span>
-                break;
-            case false:
-                
-                <Carousel
-                    @ref="_planetCarousel"
-                    TComponent="DiscoveryPlanetCard"
-                    GetItem="@GetPlanetParamsAsync"
-                    TotalItems="@PopularPlanets.Count"
-                    InitialLoadCount="5"
-                    VisibleItems="4"
-                    VisibleItemsPerWidth="@_breakpoints"
-                    ScrollStep="4"
-                    AutoScroll="true"
-                    ShowPageIndicators="true"
-                    Height="350" />
-                
-                
-                <h2 class="text-center mt-4">Discover all the new Planets</h2>
-                
-                <DiscoveryPlanetGrid Planets="UnjoinedPlanets"
-                                     OnJoin="HandleJoinAsync"
-                                     OnInfo="HandleInfoAsync" />
-                break;
-            default:
-                <span>Loading planets…</span>
-                break;
-        }
+<NebulaBackground>
+    <div class="discovery-window inner-window @_mobileTag">
+        <h2 class="text-center mt-4 mb-4">Popular Planets</h2>
+        <div class="planet-discovery-container">
+            @switch (_isLoading)
+            {
+                case false when UnjoinedPlanets.Count == 0:
+                    <span>No planets to discover!</span>
+                    break;
+                case false:
+                    
+                    <Carousel
+                        @ref="_planetCarousel"
+                        TComponent="DiscoveryPlanetCard"
+                        GetItem="@GetPlanetParamsAsync"
+                        TotalItems="@PopularPlanets.Count"
+                        InitialLoadCount="5"
+                        VisibleItems="3"
+                        VisibleItemsPerWidth="@_breakpoints"
+                        ScrollStep="4"
+                        AutoScroll="false"
+                        ShowPageIndicators="true"
+                        Height="350" />
+                    
+                    
+                    <h2 class="text-center mt-4 mb-4">Discover all the new Planets</h2>
+                    
+                    <DiscoveryPlanetGrid Planets="UnjoinedPlanets"
+                                         OnJoin="HandleJoinAsync"
+                                         OnInfo="HandleInfoAsync" />
+                    break;
+                default:
+                    <span>Loading planets…</span>
+                    break;
+            }
+        </div>
     </div>
-
-</div>
+</NebulaBackground>
 
 @code {
     private string _mobileTag = "";
@@ -62,8 +63,6 @@
     private int _loadedListCount = 0;
     private ElementReference _listRef;
     private ElementReference _listSentinel;
-
-    
     
     protected override async Task OnInitializedAsync()
     {

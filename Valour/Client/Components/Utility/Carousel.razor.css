@@ -19,6 +19,10 @@
 
 .carousel-item {
     flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
 }
 
 .carousel-nav {

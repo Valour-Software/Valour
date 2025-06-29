@@ -4,19 +4,13 @@
 
 <div class="planet-theme-card @(PlanetInfo.HasCustomIcon ? "with-bg" : null)" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">
     <h6 class="planet-theme-title">@PlanetInfo.Name</h6>
-    <div class="planet-theme-img-holder">
-        @if (PlanetInfo.HasCustomIcon)
+    <div class="planet-icon-img-holder">
+        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
+        @if (!PlanetInfo.HasCustomIcon)
         {
-            <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-theme-img" />
-        }
-        else
-        {
-            <div class="planet-theme-img auto-icon">
-                <img src="@DefaultIconPath" class="planet-default-svg" alt="Default icon" draggable="false" />
-                <span class="icon-text planet-initials" style="font-size:@GetFontSize(_iconText.Length)">
-                    @_iconText
-                </span>
-            </div>
+            <span class="icon-text planet-initials" style="font-size:@GetFontSize(_iconText.Length)">
+                @_iconText
+            </span>
         }
     </div>
     <div class="planet-theme-info">
@@ -29,7 +23,7 @@
             <div class="planet-tags">
                 @foreach (var tag in _tagSlugs)
                 {
-                    <span class="planet-tag">@tag.Replace(tag[..],tag[..].ToUpper())</span>
+                    <span class="planet-tag">@tag.Replace(tag[..], tag[..].ToUpper())</span>
                 }
             </div>
         }
@@ -51,13 +45,11 @@
     private readonly List<string> _tagSlugs = new();
     protected override async Task OnParametersSetAsync()
     {
-        if (PlanetInfo.HasCustomIcon)
-        {
-            _iconUrl = PlanetInfo.HasAnimatedIcon
-                ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
-                : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
-        }
-        else
+        _iconUrl = PlanetInfo.HasAnimatedIcon
+            ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
+            : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
+        
+        if (!PlanetInfo.HasCustomIcon)
         {
             _iconText = GetCommunityShortCode(PlanetInfo.Name);
         }
