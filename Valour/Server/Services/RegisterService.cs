@@ -46,14 +46,14 @@ public class RegisterService
         _messageService = messageService;
     }
     
-    public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
+    public async Task<TaskResult<User>> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
     {
         var now = DateTime.Today;
         var age = now.Year - request.DateOfBirth.Year;
         if (request.DateOfBirth > now.AddYears(-age)) age--;
 
         if (age < 13)
-            return new TaskResult(false, "You must be 13 to use Valour. Sorry!");
+            return new TaskResult<User>(false, "You must be 13 to use Valour. Sorry!");
         
         if (await _db.PrivateInfos.AnyAsync(x => x.Email.ToLower() == request.Email))
             return new(false, "This email has already been used");
@@ -85,7 +85,7 @@ public class RegisterService
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             request.Referrer = request.Referrer.Trim();
-            var referUser = await _userService.GetByNameAsync(request.Referrer);
+            var referUser = await _userService.GetByNameAndTagAsync(request.Referrer);
             if (referUser is null)
                 return new(false, "Referrer not found");
 
@@ -275,7 +275,7 @@ public class RegisterService
             Console.WriteLine(e.Message);
         }
 
-        return new(true, "Success");
+        return TaskResult<User>.FromData(user);
     }
 
     public async Task<TaskResult> ResendRegistrationEmail(UserPrivateInfo userPrivateInfo, HttpContext ctx, RegisterUserRequest request)

@@ -49,7 +49,7 @@ public class UserApi
         string name, 
         UserService userService)
     {
-        var user = await userService.GetByNameAsync(name);
+        var user = await userService.GetByNameAndTagAsync(name);
         return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
     }
 

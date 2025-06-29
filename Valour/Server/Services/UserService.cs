@@ -377,7 +377,7 @@ public class UserService
     /// </summary>
     /// <param name="username"></param>
     /// <returns></returns>
-    public async Task<User> GetByNameAsync(string username)
+    public async Task<User> GetByNameAndTagAsync(string username)
     {
         var split = username.Split('#');
         if (split.Length < 2)

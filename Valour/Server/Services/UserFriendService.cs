@@ -39,7 +39,7 @@ public class UserFriendService
         if (user is null)
             return new(false, "User not found.");
         
-        var friendUser = await _userService.GetByNameAsync(friendUsername);
+        var friendUser = await _userService.GetByNameAndTagAsync(friendUsername);
         if (friendUser is null)
             return new(false, $"User {friendUsername} was not found.");
 
@@ -108,7 +108,7 @@ public class UserFriendService
 
     public async Task<TaskResult<UserFriend>> AddFriendAsync(string friendUsername, long userId)
     {
-        var friendUser = await _userService.GetByNameAsync(friendUsername);
+        var friendUser = await _userService.GetByNameAndTagAsync(friendUsername);
         if (friendUser is null)
             return new(false, $"User {friendUsername} was not found.");
 
@@ -117,7 +117,7 @@ public class UserFriendService
 
     public async Task<TaskResult> DeclineRequestAsync(string username, long userId)
     {
-        var requestUser = await _userService.GetByNameAsync(username);
+        var requestUser = await _userService.GetByNameAndTagAsync(username);
         if (requestUser is null)
             return new(false, $"User {username} was not found.");
 
@@ -140,7 +140,7 @@ public class UserFriendService
         if (user is null)
             return new(false, "User not found.");
         
-        var targetUser = await _userService.GetByNameAsync(username);
+        var targetUser = await _userService.GetByNameAndTagAsync(username);
         if (targetUser is null)
             return new(false, $"User {username} was not found.");
 
