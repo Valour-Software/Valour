@@ -4,9 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
+using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Valour.Server.Services;
-using Valour.Shared.Models;
 
 namespace Valour.Tests.Services;
 
@@ -68,7 +68,7 @@ public class PlanetMemberServiceTests : IAsyncLifetime
             await _planetService.DeleteAsync(_planet.Id);
     }
 
-    private async Task<Valour.Shared.Models.User> RegisterNewUserAsync()
+    private async Task<User> RegisterNewUserAsync()
     {
         var details = await _fixture.RegisterUser();
         var user = await _db.Users.FirstAsync(u => u.Name == details.Username);
