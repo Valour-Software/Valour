@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Swashbuckle.SwaggerUi;
 using Valour.Database.Context;
-using Valour.Sdk.Client;
 using Valour.Server;
+using Valour.Server.Models;
 using Valour.Server.Services;
 using Valour.Shared.Models;
 
@@ -64,8 +65,9 @@ public class RegisterServiceTests : IAsyncLifetime
 
         var result = await _registerService.RegisterUserAsync(request, context, skipEmail: true);
         Assert.True(result.Success, result.Message);
+        Assert.NotNull(result.Data);
 
-        var created = await _userService.GetByNameAsync(request.Username);
+        var created = await _userService.GetByNameAndTagAsync(result.Data.NameAndTag);
         Assert.NotNull(created);
         _createdUsers.Add(created);
 
@@ -99,7 +101,9 @@ public class RegisterServiceTests : IAsyncLifetime
 
         var r1 = await _registerService.RegisterUserAsync(request1, ctx, skipEmail: true);
         Assert.True(r1.Success);
-        var user1 = await _userService.GetByNameAsync(request1.Username);
+        Assert.NotNull(r1.Data);
+        
+        var user1 = await _userService.GetByNameAndTagAsync(r1.Data.NameAndTag);
         Assert.NotNull(user1);
         _createdUsers.Add(user1);
 

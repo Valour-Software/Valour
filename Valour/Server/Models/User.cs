@@ -125,4 +125,7 @@ public class User : ServerModel<long>, ISharedUser
     
     public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
         ISharedUser.GetAvatar(this, format);
+    
+    public string NameAndTag => 
+        ISharedUser.GetNameAndTag(this);
 }
