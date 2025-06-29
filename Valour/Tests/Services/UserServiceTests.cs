@@ -55,7 +55,7 @@ public class UserServiceTests : IAsyncLifetime
     public async Task GetByNameAsync_ReturnsUser()
     {
         var me = _client.Me;
-        var result = await _userService.GetByNameAsync($"{me.Name}#{me.Tag}");
+        var result = await _userService.GetByNameAndTagAsync($"{me.Name}#{me.Tag}");
         Assert.NotNull(result);
         Assert.Equal(me.Id, result.Id);
     }
