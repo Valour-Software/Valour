@@ -1,9 +1,9 @@
 ﻿@inherits Modal<EcoPayModal.ModalParams>
 
-<div class="eco-pay-container v-bg-dark">
+<div class="eco-pay-container">
     @if (Data.Input?.ChatComponent.Channel.PlanetId is not null)
     {
-        <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
+        <TabContainerComponent Titles="@TabTitles" MaxHeight="auto" ContentStyle="overflow: visible;">
             <TabOne>
                 <div class="tab-contents">
                     <PlanetPayComponent Input="@Data.Input" Modal="@this" />
@@ -18,7 +18,7 @@
     }
     else
     {
-        <TabContainerComponent Titles="@TabTitlesTwo" ContentStyle="overflow: visible;">
+        <TabContainerComponent Titles="@TabTitlesTwo" MaxHeight="auto" ContentStyle="overflow: visible;">
             <TabOne>
                 <div class="tab-contents">
                     <GlobalPayComponent Input="@Data.Input" Modal="@this" StartValue="@Data.TargetUserNameAndTag" />
