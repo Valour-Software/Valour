@@ -95,6 +95,12 @@ public class Planet : ISharedPlanet
     public bool IsDeleted { get; set; }
     
     /// <summary>
+    /// True if the planet has a custom background
+    /// </summary>
+    [Column("has_custom_bg")]
+    public bool HasCustomBackground { get; set; }
+    
+    /// <summary>
     /// True if you probably shouldn't be on this server at work owo
     /// </summary>
     [Column("nsfw")]

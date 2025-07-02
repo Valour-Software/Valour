@@ -347,10 +347,10 @@ public class PlanetService
 
         var planet = model.ToDatabase();
         
-        if (model.TagId?.Any() ?? false)
+        if (model.TagIds?.Any() ?? false)
         {
             var tags = await _db.Tags
-                .Where(t => model.TagId.Contains(t.Id))
+                .Where(t => model.TagIds.Contains(t.Id))
                 .ToListAsync();
             
             planet.Tags = tags;
@@ -486,10 +486,10 @@ public class PlanetService
         {
             var dbPlanet = planet.ToDatabase(old);
             
-            if (planet.TagId?.Any() ?? false)
+            if (planet.TagIds?.Any() ?? false)
             {
                 var existingTagIds = dbPlanet.Tags.Select(t => t.Id).ToHashSet();
-                var newTagIds = planet.TagId.ToHashSet();
+                var newTagIds = planet.TagIds.ToHashSet();
 
                 foreach (var tag in dbPlanet.Tags.Where(t => !newTagIds.Contains(t.Id)).ToList())
                 {
@@ -511,6 +511,7 @@ public class PlanetService
             }
             
             _db.Planets.Update(dbPlanet);
+            
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
         }

@@ -18,3 +18,9 @@ public enum IconFormat
     WebpAnimated128,
     WebpAnimated256,
 }
+
+public enum PlanetBackgroundFormat
+{
+    Webp,
+    Jpeg
+}

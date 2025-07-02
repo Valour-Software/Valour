@@ -1,4 +1,6 @@
-﻿/*  Valour (TM) - A free and secure chat client
+﻿#nullable enable
+
+/*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2025 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
@@ -67,6 +69,11 @@ public interface ISharedPlanet : ISharedModel<long>
     /// </summary>
     public int Version { get; set; }
     
+    /// <summary>
+    /// True if the planet has a custom background
+    /// </summary>
+    public bool HasCustomBackground { get; set; }
+    
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {
         { IconFormat.Webp64, "64.webp" },
@@ -84,6 +91,12 @@ public interface ISharedPlanet : ISharedModel<long>
         { IconFormat.Gif64, "anim-64.gif" },
         { IconFormat.Gif128, "anim-128.gif" },
         { IconFormat.Gif256, "anim-256.gif" },
+    };
+    
+    private static readonly Dictionary<PlanetBackgroundFormat, string> BackgroundFormatMap = new()
+    {
+        { PlanetBackgroundFormat.Webp, "300x400.webp" },
+        { PlanetBackgroundFormat.Jpeg, "300x400.jpg" },
     };
     
     private static readonly HashSet<IconFormat> AnimatedFormats = new()
@@ -105,6 +118,17 @@ public interface ISharedPlanet : ISharedModel<long>
         { IconFormat.WebpAnimated128, IconFormat.Webp128 },
         { IconFormat.WebpAnimated256, IconFormat.Webp256 },
     };
+    
+    public static string? GetBackgroundUrl(ISharedPlanet planet, PlanetBackgroundFormat format)
+    {
+        if (!planet.HasCustomBackground)
+        {
+            return null;
+        }
+        
+        var formatStr = BackgroundFormatMap[format];
+        return $"https://public-cdn.valour.gg/valour-public/planetbgs/{planet.Id}/{formatStr}?v={planet.Version}";
+    }
     
     public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
     {

@@ -81,6 +81,7 @@ public class UploadApi
         app.MapPost("/upload/image", ImageRouteNonPlus);
         app.MapPost("/upload/image/plus", ImageRoutePlus);
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
+        app.MapPost("/upload/planetbg/{planetId}", PlanetImageRoute);
         app.MapPost("/upload/app/{appId}", AppImageRoute);
         app.MapPost("/upload/file", FileRouteNonPlus);
         app.MapPost("/upload/file/plus", FileRoutePlus);
@@ -307,6 +308,58 @@ public class UploadApi
         HandleExif(image);
 
         var result = await UploadPublicImageVariants(bucketService, image, "profiles", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        var resultPath = result.Message;
+        
+        var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        
+        return ValourResult.Ok(fullPath);
+    }
+    
+    public static ImageSize[] PlanetBackgroundSizes =
+    {
+        new(300, 400)
+    };
+    
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(10240000)]
+    private static async Task<IResult> PlanetBackgroundImageRoute(
+        HttpContext ctx, 
+        ValourDb db, 
+        TokenService tokenService, 
+        CdnBucketService bucketService,
+        PlanetMemberService memberService,
+        long planetId,
+        [FromHeader] string authorization
+    )
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null) return ValourResult.InvalidToken();
+        
+        var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return Results.BadRequest("Please attach a file");
+
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+            return Results.BadRequest("Unsupported file type");
+
+        var image = await Image.LoadAsync(
+            new() { TargetSize = new(ProfileBackgroundSizes[0].Width, ProfileBackgroundSizes[0].Height) }, 
+            file.OpenReadStream()
+        );
+        
+        HandleExif(image);
+
+        var result = await UploadPublicImageVariants(bucketService, image, "planetbgs", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
