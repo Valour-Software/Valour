@@ -81,7 +81,7 @@ public class UploadApi
         app.MapPost("/upload/image", ImageRouteNonPlus);
         app.MapPost("/upload/image/plus", ImageRoutePlus);
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
-        app.MapPost("/upload/planetbg/{planetId}", PlanetImageRoute);
+        app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute);
         app.MapPost("/upload/app/{appId}", AppImageRoute);
         app.MapPost("/upload/file", FileRouteNonPlus);
         app.MapPost("/upload/file/plus", FileRoutePlus);
@@ -359,13 +359,20 @@ public class UploadApi
         
         HandleExif(image);
 
-        var result = await UploadPublicImageVariants(bucketService, image, "planetbgs", authToken.UserId.ToString(), ProfileBackgroundSizes, 0, false, false);
+        var result = await UploadPublicImageVariants(bucketService, image, "planetbgs", planetId.ToString(), ProfileBackgroundSizes, 0, false, false);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
         var resultPath = result.Message;
         
         var fullPath = "https://public-cdn.valour.gg/valour-public/" + resultPath;
+        
+        // Update on database
+        await db.Planets.Where(x => x.Id == planetId)
+            .ExecuteUpdateAsync(x => 
+                x.SetProperty(p => p.HasCustomBackground, true)
+                 .SetProperty(p => p.Version, p => p.Version + 1)
+            );
         
         return ValourResult.Ok(fullPath);
     }

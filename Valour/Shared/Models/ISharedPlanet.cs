@@ -121,13 +121,23 @@ public interface ISharedPlanet : ISharedModel<long>
     
     public static string? GetBackgroundUrl(ISharedPlanet planet, PlanetBackgroundFormat format)
     {
-        if (!planet.HasCustomBackground)
+        return GetBackgroundUrl(planet.HasCustomBackground, planet.Id, planet.Version, format);
+    }
+    
+    public static string? GetBackgroundUrl(PlanetListInfo planet, PlanetBackgroundFormat format)
+    {
+        return GetBackgroundUrl(planet.HasCustomBackground, planet.PlanetId, planet.Version, format);
+    }
+    
+    public static string? GetBackgroundUrl(bool hasCustom, long planetId, int version, PlanetBackgroundFormat format)
+    {
+        if (!hasCustom)
         {
             return null;
         }
         
         var formatStr = BackgroundFormatMap[format];
-        return $"https://public-cdn.valour.gg/valour-public/planetbgs/{planet.Id}/{formatStr}?v={planet.Version}";
+        return $"https://public-cdn.valour.gg/valour-public/planetbgs/{planetId}/{formatStr}?v={version}";
     }
     
     public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
@@ -168,6 +178,22 @@ public interface ISharedPlanet : ISharedModel<long>
         
         string formatStr = IconFormatMap[format];
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
+    }
+    
+    public static PlanetListInfo ToPlanetListInfo(ISharedPlanet planet)
+    {
+        return new PlanetListInfo
+        {
+            PlanetId = planet.Id,
+            Name = planet.Name,
+            Description = planet.Description,
+            HasCustomIcon = planet.HasCustomIcon,
+            HasAnimatedIcon = planet.HasAnimatedIcon,
+            HasCustomBackground = planet.HasCustomBackground,
+            Nsfw = planet.Nsfw,
+            Version = planet.Version,
+            TagIds = null // Tags are not included in this model
+        };
     }
 }
 

@@ -1,0 +1,15 @@
+﻿.appearance-split {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.appearance-split .options {
+    max-width: 200px;
+}
+
+.appearance-split .card-preview {
+    max-width: 300px;
+}

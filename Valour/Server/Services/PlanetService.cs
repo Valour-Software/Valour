@@ -120,6 +120,7 @@ public class PlanetService
                 Description = x.Description,
                 HasCustomIcon = x.HasCustomIcon,
                 HasAnimatedIcon = x.HasAnimatedIcon,
+                HasCustomBackground = x.HasCustomBackground,
                 MemberCount = x.Members.Count(),
                 Version = x.Version,
                 TagIds = x.Tags.Select(t => t.Id).Distinct().ToList()

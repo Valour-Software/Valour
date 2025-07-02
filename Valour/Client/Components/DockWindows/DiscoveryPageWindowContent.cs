@@ -1,4 +1,4 @@
-using Valour.Client.Components.DiscoveryPlanets;
+using Valour.Client.Components.PlanetDiscovery;
 
 namespace Valour.Client.Components.DockWindows;
 

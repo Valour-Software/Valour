@@ -13,12 +13,9 @@ public class PlanetListInfo
     public string Description { get; set; }
     public bool HasCustomIcon { get; set; }
     public bool HasAnimatedIcon { get; set; }
+    public bool HasCustomBackground { get; set; }
     public bool Nsfw { get; set; }
     public int MemberCount { get; set; }
     public int Version { get; set; }
     public List<long> TagIds { get; set; } = new();
-    
-    // planet unread/read state
-    public bool HasUnread { get; set; }
-    public int UnreadNotificationCount { get; set; }
 }

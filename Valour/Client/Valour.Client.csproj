@@ -57,8 +57,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="Components\DiscoveryPlanets\DiscoveryPageComponent.razor" />
-    <AdditionalFiles Include="Components\DiscoveryPlanets\DiscoveryPlanetCard.razor" />
+    <AdditionalFiles Include="Components\PlanetDiscovery\DiscoveryPageComponent.razor" />
+    <AdditionalFiles Include="Components\PlanetDiscovery\DiscoveryPlanetCard.razor" />
   </ItemGroup>
   
   <!-- JS Cleanup script

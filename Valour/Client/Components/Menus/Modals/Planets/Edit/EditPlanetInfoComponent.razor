@@ -11,12 +11,12 @@
 
         <div class="form-group">
             <label>Name</label>
-            <input class="v-input" placeholder="Planet Name" @bind-value="nameValue" maxlength="32" />
+            <input class="v-input" placeholder="Planet Name" @bind-value="_nameValue" maxlength="32" />
         </div>
 
         <div class="form-group">
             <label>Description</label>
-            <textarea class="v-input" placeholder="Description" @bind="descValue" @bind:event="oninput" maxlength="256"></textarea>
+            <textarea class="v-input" placeholder="Description" @bind="_descValue" @bind:event="oninput" maxlength="256"></textarea>
         </div>
 
         <ResultLabel Result="@_mainResult" />
@@ -32,26 +32,38 @@
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-image"></i>
-            Planet Icon
+            Appearance
         </h3>
-        <p class="helper-text">Click the image to upload a new planet icon (max 8MB)</p>
-
-        <div class="avatar-container">
-            <img alt="Planet icon"
-                 class="avatar bordered"
-                 src="@IconUrl"
-                 style="width:128px; border:solid 4px black; margin: 5px; border-radius: 50%; cursor:pointer"
-                 @onerror="OnPfpError"
-                 onclick="document.getElementById('icon-upload').click()" />
-
-            <InputFile @ref="fileInput"
-                       id="icon-upload"
-                       OnChange="LoadFiles"
-                       style="display:none"
-                       accept=".png,.jpg,.jpeg,.gif,.webp" />
-
-            <ResultLabel Result="@_imageResult" />
+        <div class="appearance-split">
+            <div class="options">
+                <div>
+                    <button class="v-btn primary" onclick="document.getElementById('icon-upload').click()">Upload Icon</button>
+                    <p class="helper-text">Upload a Planet Icon (max 8MB, square)</p>
+                    <ResultLabel Result="@_iconResult"/>
+                    <InputFile @ref="_iconFileInput"
+                               id="icon-upload"
+                               OnChange="LoadIconFiles"
+                               style="display:none"
+                               accept=".png,.jpg,.jpeg,.gif,.webp"/>
+                </div>
+                
+                <div>
+                    <button class="v-btn primary" onclick="document.getElementById('bg-upload').click()">Upload Background</button>
+                    <p class="helper-text">Upload a Planet Background (max 10MB, 300x400px)</p>
+                    <ResultLabel Result="@_bgResult"/>
+                    <InputFile @ref="_bgFileInput"
+                               id="bg-upload"
+                               OnChange="LoadBackgroundFiles"
+                               style="display:none"
+                               accept=".png,.jpg,.jpeg,.gif,.webp"/>
+                </div>
+            </div>
+            <div class="card-preview">
+                <DiscoveryPlanetCard PlanetInfo="@ISharedPlanet.ToPlanetListInfo(Planet)" />
+            </div>
         </div>
+        
+       
     </div>
 </div>
 
@@ -59,52 +71,44 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    public string nameValue;
-    public string descValue;
-
-    public string IconUrl;
+    private string _nameValue;
+    private string _descValue;
 
     private ITaskResult _mainResult;
-    private ITaskResult _imageResult;
+    private ITaskResult _iconResult;
+    private ITaskResult _bgResult;
 
-    private InputFile fileInput;
-
-    protected Task OnPfpError()
-    {
-        IconUrl = "_content/Valour.Client/icon-512.webp";
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
+    private InputFile _iconFileInput;
+    private InputFile _bgFileInput;
 
     protected override Task OnInitializedAsync()
     {
-        IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256);
-        nameValue = Planet.Name;
-        descValue = Planet.Description;
+        _nameValue = Planet.Name;
+        _descValue = Planet.Description;
         StateHasChanged();
         return Task.CompletedTask;
     }
 
-    private async Task LoadFiles(InputFileChangeEventArgs e)
+    private async Task LoadIconFiles(InputFileChangeEventArgs e)
     {
         var file = e.File;
 
         if (file == null)
         {
-            _imageResult = new TaskResult(false, "Could not load file as an image.");
+            _iconResult = new TaskResult(false, "Could not load file as an image.");
             StateHasChanged();
             return;
         }
 
-        if (file.Size > 8388608)
+        if (file.Size > 8 * 1024 * 1024)
         {
-            _imageResult = new TaskResult(false, "Max planet image size is 8MB.");
+            _iconResult = new TaskResult(false, "Max planet image size is 8MB.");
             StateHasChanged();
             return;
         }
 
         byte[] data = new byte[file.Size];
-        await file.OpenReadStream(8388608).ReadAsync(data);
+        await file.OpenReadStream(8 * 1024 * 1024).ReadAsync(data);
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);
@@ -113,12 +117,45 @@
         content.Add(arrContent, file.Name, file.Name);
 
         var result = await Planet.Node.PostMultipartDataWithResponse<string>($"upload/planet/{Planet.Id}", content);
-        _imageResult = result;
+        _iconResult = result;
+
+        StateHasChanged();
+    }
+    
+    private async Task LoadBackgroundFiles(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file == null)
+        {
+            _iconResult = new TaskResult(false, "Could not load file as an image.");
+            StateHasChanged();
+            return;
+        }
+
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            _iconResult = new TaskResult(false, "Max planet background size is 10MB.");
+            StateHasChanged();
+            return;
+        }
+
+        byte[] data = new byte[file.Size];
+        await file.OpenReadStream(10 * 1024 * 1024).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await Planet.Node.PostMultipartDataWithResponse<string>($"upload/planetbg/{Planet.Id}", content);
+        _bgResult = result;
 
         if (result.Success)
         {
-            // Force refresh
-            IconUrl = Planet.GetIconUrl(IconFormat.WebpAnimated256) + $"?x={DateTime.Now.Ticks}";
+            Planet.HasCustomBackground = true;
+            Planet.Version += 1;
         }
 
         StateHasChanged();
@@ -126,10 +163,10 @@
 
     private async Task OnSaveChanges()
     {
-        if (nameValue != Planet.Name || descValue != Planet.Description )
+        if (_nameValue != Planet.Name || _descValue != Planet.Description )
         {
-            Planet.Name = nameValue;
-            Planet.Description = descValue;
+            Planet.Name = _nameValue;
+            Planet.Description = _descValue;
         }
         
         var result = await Planet.UpdateAsync();

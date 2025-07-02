@@ -2,7 +2,21 @@
 @inject PlanetTagService TagService
 @inherits ComponentBase
 
-<div class="planet-theme-card @(PlanetInfo.HasCustomIcon ? "with-bg" : null)" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">
+<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">
+    @if (PlanetInfo.HasCustomBackground)
+    {
+        var bgLocation = @ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
+
+        if (bgLocation is not null)
+        {
+            <style>
+                .planet-theme-card-@(PlanetInfo.PlanetId) {
+                    background: linear-gradient(180deg, #0a122699 60%, #20325b99 100%), url('@bgLocation') center center/cover no-repeat !important;
+                }
+            </style>
+        }
+    }
+    
     <h6 class="planet-theme-title">@PlanetInfo.Name</h6>
     <div class="planet-icon-img-holder">
         <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
@@ -23,7 +37,7 @@
             <div class="planet-tags">
                 @foreach (var tag in _tagSlugs)
                 {
-                    <span class="planet-tag">@tag.Replace(tag[..], tag[..].ToUpper())</span>
+                    <span class="planet-tag">@tag.ToUpper()</span>
                 }
             </div>
         }
@@ -41,7 +55,6 @@
 
     private string _iconUrl;
     private string _iconText = string.Empty;
-    private const string DefaultIconPath = "_content/Valour.Client/media/logo-circle.svg";
     private readonly List<string> _tagSlugs = new();
     protected override async Task OnParametersSetAsync()
     {

@@ -12,13 +12,6 @@
     padding-bottom: 1.3rem;
     flex: 1 1 auto;
 }
-.planet-theme-card.with-bg {
-    background:
-            linear-gradient(180deg, #0a1226bb 60%, #20325bcc 100%),
-            url('/_content/Valour.Client/media/Spookvooper-tall.jpg') center center/cover no-repeat;
-    
-    
-}
 .planet-theme-title {
     text-align: center;
     font-size: 1.2rem;
