@@ -153,9 +153,8 @@ public class PlanetService : ServiceBase
         return invite.Sync(_client);
     }
 
-    public async Task<InviteScreenModel> FetchInviteScreenData(string code) =>
-        (await _client.PrimaryNode.GetJsonAsync<InviteScreenModel>(
-            $"{ISharedPlanetInvite.BaseRoute}/{code}/screen")).Data;
+    public Task<TaskResult<PlanetListInfo>> FetchInviteScreenDataAsync(string code) =>
+        _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
 
     /// <summary>
     /// Fetches all planets that the user has joined from the server

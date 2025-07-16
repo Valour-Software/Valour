@@ -606,4 +606,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);
+
+    public PlanetListInfo ToListInfo()
+    {
+        return ISharedPlanet.ToPlanetListInfo(this);
+    }
 }

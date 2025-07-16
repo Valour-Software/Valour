@@ -1,5 +1,6 @@
 using Valour.Server.Database;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -8,15 +9,18 @@ public class PlanetInviteService
     private readonly ValourDb _db;
     private readonly ILogger<PlanetInviteService> _logger;
     private readonly CoreHubService _coreHub;
+    private readonly PlanetService _planetService;
 
     public PlanetInviteService(
         ValourDb db,
         ILogger<PlanetInviteService> logger,
-        CoreHubService coreHub)
+        CoreHubService coreHub, 
+        PlanetService planetService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
+        _planetService = planetService;
     }
 
     public async Task<PlanetInvite> GetAsync(long id) => 
@@ -87,9 +91,9 @@ public class PlanetInviteService
     {
         try
         {
-            var dbinvite = await _db.PlanetInvites.FindAsync(invite.Id);
-            _db.PlanetInvites.Remove(dbinvite);
-            await _db.SaveChangesAsync();
+            var deleted = await _db.PlanetInvites.Where(x => x.Id == invite.Id).ExecuteDeleteAsync();
+            if (deleted == 0)
+                return new(false, "Invite not found or already deleted.");
         }
         catch (System.Exception e)
         {
@@ -99,7 +103,29 @@ public class PlanetInviteService
 
         _coreHub.NotifyPlanetItemDelete(invite);
 
-        return new(true, "Success");
+        return TaskResult.SuccessResult;
+    }
+    
+    public async Task<TaskResult<PlanetListInfo>> GetPlanetInfoByInviteCode(string inviteCode)
+    {
+        var invite = await _db.PlanetInvites.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == inviteCode);
+        
+        if (invite is null)
+            return new TaskResult<PlanetListInfo>(false, "Invite not found.");
+        
+        // Check if invite is expired
+        if (invite.TimeExpires is not null && invite.TimeExpires < DateTime.UtcNow)
+            return new TaskResult<PlanetListInfo>(false, "Invite has expired.");
+        
+        var planetInfo = await _planetService.GetPlanetInfoAsync(invite.PlanetId);
+
+        if (planetInfo is null)
+        {
+            return new TaskResult<PlanetListInfo>(false, "Planet not found for invite code. It may not be set to Public.");
+        }
+
+        return TaskResult<PlanetListInfo>.FromData(planetInfo);
     }
 
     private Random random = new();

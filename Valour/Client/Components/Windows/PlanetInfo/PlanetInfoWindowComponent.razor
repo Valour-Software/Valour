@@ -1,4 +1,4 @@
-@inherits WindowContentComponent<Planet>
+@inherits WindowContentComponent<PlanetListInfo>
 
 <h3>@Data.Name</h3>
 <hr/>
@@ -9,31 +9,29 @@
 
 @code {
 
-    public class Content : WindowContent<PlanetInfoWindowComponent, Planet>
+    public class Content : WindowContent<PlanetInfoWindowComponent, PlanetListInfo>
     {
         public override async Task ImportData(string data, ValourClient client)
         {
-            // Exported data is planet id
-            long planetId = JsonSerializer.Deserialize<long>(data);
-            var planet = await client.PlanetService.FetchPlanetAsync(planetId);
-            Data = planet;
+            var info = JsonSerializer.Deserialize<PlanetListInfo>(data);
+            Data = info;
         }
 
         public override string ExportData(ValourClient client)
         {
-            var json = JsonSerializer.Serialize(Data.Id);
+            var json = JsonSerializer.Serialize(Data);
             return json;
         }
     }
     
-    public static WindowContent<PlanetInfoWindowComponent, Planet> GetDefaultContent(Planet planet)
+    public static WindowContent<PlanetInfoWindowComponent, PlanetListInfo> GetDefaultContent(PlanetListInfo planetInfo)
     {
         return new Content()
         {
-            Title = "Info - " + planet.Name,
-            Icon = planet.GetIconUrl(IconFormat.Webp64),
-            Data = planet,
-            PlanetId = planet.Id
+            Title = "Info - " + planetInfo.Name,
+            Icon = ISharedPlanet.GetIconUrl(planetInfo, IconFormat.Webp64),
+            Data = planetInfo,
+            PlanetId = planetInfo.PlanetId
         };
     }
 }

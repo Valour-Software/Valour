@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
 using Valour.Server.Database;
 using Valour.Server.Utilities;
 using Valour.Shared;
@@ -108,27 +109,37 @@ public class PlanetService
     private DateTime _lastDiscoverableUpdate = DateTime.MinValue;
     private List<PlanetListInfo> _cachedDiscoverables;
 
-    public async Task<List<PlanetListInfo>> GetDiscoverablesFromDb()
+    public async Task<List<PlanetListInfo>> GetDiscoveryPlanetsAsync()
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public
                                        && (!x.Nsfw)) // do not allow weirdos in discovery
-            .Select(x => new PlanetListInfo()
-            {
-                PlanetId = x.Id,
-                Name = x.Name,
-                Description = x.Description,
-                HasCustomIcon = x.HasCustomIcon,
-                HasAnimatedIcon = x.HasAnimatedIcon,
-                HasCustomBackground = x.HasCustomBackground,
-                MemberCount = x.Members.Count(),
-                Version = x.Version,
-                TagIds = x.Tags.Select(t => t.Id).Distinct().ToList()
-            })
+            .Select(PlanetListInfoSelector)
             .OrderByDescending(x => x.MemberCount)
             .Take(30)
             .ToListAsync();
     }
+    
+    public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
+    {
+        return await _db.Planets.AsNoTracking()
+            .Where(x => x.Id == planetId && x.Public && !x.IsDeleted) // only public planets
+            .Select(PlanetListInfoSelector)
+            .FirstOrDefaultAsync();
+    }
+    
+    private static readonly Expression<Func<Valour.Database.Planet, PlanetListInfo>> PlanetListInfoSelector = x => new PlanetListInfo
+    {
+        PlanetId = x.Id,
+        Name = x.Name,
+        Description = x.Description,
+        HasCustomIcon = x.HasCustomIcon,
+        HasAnimatedIcon = x.HasAnimatedIcon,
+        HasCustomBackground = x.HasCustomBackground,
+        MemberCount = x.Members.Count(),
+        Version = x.Version,
+        TagIds = x.Tags.Select(t => t.Id).Distinct().ToList()
+    };
     
     /// <summary>
     /// Returns discoverable planets
@@ -137,7 +148,7 @@ public class PlanetService
     {
         if (_lastDiscoverableUpdate.AddMinutes(5) < DateTime.UtcNow || _cachedDiscoverables is null)
         {
-            _cachedDiscoverables = await GetDiscoverablesFromDb();
+            _cachedDiscoverables = await GetDiscoveryPlanetsAsync();
             _lastDiscoverableUpdate = DateTime.UtcNow;
         }
         

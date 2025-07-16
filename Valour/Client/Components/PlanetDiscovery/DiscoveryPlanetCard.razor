@@ -2,7 +2,7 @@
 @inject PlanetTagService TagService
 @inherits ComponentBase
 
-<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">
+<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)" @onclick="@OnInfoClick">
     @if (PlanetInfo.HasCustomBackground)
     {
         var bgLocation = @ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
@@ -41,17 +41,20 @@
                 }
             </div>
         }
-        <div class="planet-theme-btns">
-            <button class="card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="() => OnInfo.InvokeAsync(PlanetInfo)">Info</button>
-            <button class="card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
-        </div>
+        @if (!HideActions)
+        {
+            <div class="planet-theme-btns">
+                <button class="card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
+                <button class="card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
+            </div>
+        }
     </div>
 </div>
 
 @code {
     [Parameter] public PlanetListInfo PlanetInfo { get; set; }
-    [Parameter] public EventCallback<PlanetListInfo> OnInfo { get; set; }
     [Parameter] public EventCallback<PlanetListInfo> OnJoin { get; set; }
+    [Parameter] public bool HideActions { get; set; } = false;
 
     private string _iconUrl;
     private string _iconText = string.Empty;
@@ -100,4 +103,11 @@
         4 => "1.18rem",
         _ => "1rem"
     };
+
+    private async Task OnInfoClick()
+    {
+        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(PlanetInfo);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
+    }
+
 }

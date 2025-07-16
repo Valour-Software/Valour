@@ -128,18 +128,10 @@ public class PlanetInviteApi
         PlanetInviteService inviteService,
         PlanetService planetService)
     {
-        var invite = await inviteService.GetAsync(inviteCode);
-        if (invite is null)
-            return ValourResult.NotFound("Invite not found");
+        var result = await inviteService.GetPlanetInfoByInviteCode(inviteCode);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        var planet = await planetService.GetAsync(invite.PlanetId);
-
-        return Results.Json(new InviteScreenModel()
-        {
-            PlanetId = planet.Id,
-            PlanetName = planet.Name,
-            PlanetImageUrl = planet.GetIconUrl(IconFormat.Webp256),
-            Expired = invite.TimeExpires < DateTime.UtcNow
-        });
+        return Results.Json(result.Data);
     }
 }

@@ -9,37 +9,28 @@
         <div class="col-md-12">
             <section class="text-center">
 
-                @if (_loading)
+                @if (_inviteDataResult is null)
                 {
                     <h2>Loading...</h2>
                 }
+                else if (!_inviteDataResult.Value.Success)
+                {
+                    <ResultLabel Result="@_inviteDataResult"/>
+                    <button class="v-btn center mt-4" @onclick="OnClose">Back to Home</button>
+                }
                 else
                 {
-                    <h2 class="invite-title">Do you want to join</h2>
-                    <div style="text-align: center">
-                        <h3 class="text-info invite-name">@_inviteData.PlanetName</h3>
-                        <h3 class="invite-name">?</h3>
-                    </div>
-                    <img alt="@_inviteData.PlanetName icon" class="planet-card-icon mt-2" style="width:128px;" src="@_inviteData.PlanetImageUrl" @onerror="OnIconError" />
-                                                                                                                                                                  
                     if (!Client.IsLoggedIn)
                     {
                         <p class="m-4">Log in or register to join this planet</p>
                         <button class="v-btn blue large mt-2" @onclick="OnClickLogin">Log in and Join</button>
                         <button class="v-btn blue large mt-2" @onclick="OnClickRegister">Register and Join</button>
                     }
-                    else if (_alreadyJoined)
-                    {
-                        <p class="m-4">You have already joined this planet</p>
-                        <button class="v-btn center mt-4" @onclick="OnClose">Back to Home</button>
-                    }
                     else
                     {
-                        <button class="v-btn center mt-4" @onclick="OnClickJoin">Join Planet</button>
+                        <h2 class="mb-4">Join a Planet:</h2>
+                        <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data"/>
                     }
-                    
-                    <span class="text-info" style="text-align:center">@_infoSpan</span>
-                    <span class="text-danger" style="text-align:center">@_errorSpan</span>
                 }
             </section>
         </div>
@@ -51,40 +42,20 @@
     [Parameter]
     public string InviteCode {get; set;}
     
-    private string _infoSpan = "";
-    private string _errorSpan = "";
-    
-    private bool _loading = true;
-
-    private bool _alreadyJoined;
-
-    private InviteScreenModel _inviteData;
+    private TaskResult<PlanetListInfo>? _inviteDataResult;
+    private bool _alreadyJoined = false;
 
     protected override async  Task OnInitializedAsync()
     {
-        _inviteData = await PlanetService.FetchInviteScreenData(InviteCode);
-        
-        if (_inviteData is null)
-        {
-            _errorSpan = "Failed to find invite.";
-            StateHasChanged();
-            return;
-        }
-        
-        if (_inviteData.Expired)
-        {
-            _errorSpan = "Invite has expired.";
-            StateHasChanged();
-            return;
-        }
+        _inviteDataResult = await PlanetService.FetchInviteScreenDataAsync(InviteCode);
         
         // Already joined
-        if (PlanetService.JoinedPlanets.Any(x => x.Id == _inviteData.PlanetId))
+        if (_inviteDataResult.HasValue &&
+            _inviteDataResult.Value.Data is not null &&
+            PlanetService.JoinedPlanets.Any(x => x.Id == _inviteDataResult.Value.Data.PlanetId))
         {
             _alreadyJoined = true;
         }
-        
-        _loading = false;
 
         StateHasChanged();
 
@@ -108,31 +79,16 @@
 
     private async Task OnClickJoin()
     {
-        if (Client.IsLoggedIn)
+        if (_inviteDataResult.HasValue && _inviteDataResult.Value.Data is not null)
         {
-            var response = await PlanetService.JoinPlanetAsync(_inviteData.PlanetId, InviteCode);
-
-            if (!response.Success)
+            var result = await ToastContainer.Instance.WaitToastWithResult(new ProgressToastData<TaskResult<PlanetMember>>()
             {
-                _errorSpan = response.Message;
-            }
-            else
-            {
-                _infoSpan = "Joined " + _inviteData.PlanetName + "!";
-            }
+                ProgressTask = PlanetService.JoinPlanetAsync(_inviteDataResult.Value.Data.PlanetId, InviteCode),
+                Title = "Joining Planet",
+                Message = "Landing rocket ship..."
+            });
 
             StateHasChanged();
         }
-        else
-        {
-            
-        }
     }
-
-    private void OnIconError()
-    {
-        _inviteData.PlanetImageUrl = "_content/Valour.Client/icon-512.png"; 
-        StateHasChanged();
-    }
-
 }

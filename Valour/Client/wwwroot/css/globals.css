@@ -1,6 +1,7 @@
 :root {
     --main-radius: 8px;
     --small-radius: 6px;
+    --card-radius: 16px;
 
     --font-color: #ffffff;
     --font-alt-color: #7a7a7a;
@@ -32,6 +33,18 @@
     --p-purple:      #8457cd;
     --p-red:         #cd5e5e;
     --p-red-rgb: 205, 94, 94;
+}
+
+.rounded-sm {
+    border-radius: var(--small-radius);
+}
+
+.rounded-md {
+    border-radius: var(--main-radius);
+}
+
+.rounded-card {
+    border-radius: var(--card-radius);
 }
 
 /* Fun gradient underline */
