@@ -8,11 +8,13 @@
     <div class="nebula-layer-3"></div>
     <div class="nebula-layer-4"></div>
     <div class="cosmic-dust"></div>
-    <div class="nebula-content">
+    <div class="nebula-content @ContentClasses">
         @ChildContent
     </div>
 </div>
 
 @code {
+    #nullable enable
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? ContentClasses { get; set; }
 }

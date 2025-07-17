@@ -29,8 +29,7 @@
                     <h2 class="text-center mt-4 mb-4">Discover all the new Planets</h2>
                     
                     <DiscoveryPlanetGrid Planets="UnjoinedPlanets"
-                                         OnJoin="HandleJoinAsync"
-                                         OnInfo="HandleInfoAsync" />
+                                         OnJoin="HandleJoinAsync" />
                     break;
                 default:
                     <span>Loading planets…</span>
@@ -134,12 +133,9 @@
         {
             { "PlanetInfo", planet },
             { "OnJoin", EventCallback.Factory.Create<PlanetListInfo>(this, HandleJoinAsync) },
-            { "OnInfo", EventCallback.Factory.Create<PlanetListInfo>(this, HandleInfoAsync) }
         });
     }
-
-    private Task HandleInfoAsync(PlanetListInfo planet) => Task.CompletedTask;
-
+    
     private async Task HandleJoinAsync(PlanetListInfo planet)
     {
         await PlanetService.JoinPlanetAsync(planet.PlanetId);

@@ -134,6 +134,14 @@
     background-color: var(--main-5);
 }
 
+/* Forces absolute centering */
+.absolute-center {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
 /* Inputs and Buttons */
 .v-input {
     display: block;
