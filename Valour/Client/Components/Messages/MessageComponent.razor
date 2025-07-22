@@ -103,7 +103,7 @@ else
                     };
 
                     <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
-                        @if (_ghost)
+                        @if (_ghost && !_isInnerReply)
                         {
                             <div class="attachment-x">x</div>
                         }
@@ -115,10 +115,6 @@ else
             @if (_message.Embed != null && _message.Embed.Pages.Count > 0)
             {
                 <EmbedComponent Message="@_message" MessageComponent="@this"></EmbedComponent>
-                @if (_message.EditedTime != null)
-                {
-                    <p class="edited-flag"> (Edited)</p>
-                }
             }
             else
             {
@@ -128,11 +124,11 @@ else
                 {
                     <p class="edit-flag">(Editing)</p>
                 }
-
-                @if (_message.EditedTime != null)
-                {
-                    <p class="edited-flag"> (Edited)</p>
-                }
+            }
+            
+            @if (_message.EditedTime != null)
+            {
+                <p class="edited-flag"> (Edited)</p>
             }
         </div>
     </div>
@@ -161,7 +157,9 @@ else
 
     @if (_isInnerReply)
     {
-        <div class="reply-x">x</div>
+        <div class="reply-remove">
+            <div class="reply-x">Click to Remove</div>
+        </div>
     }
 </div>
 
