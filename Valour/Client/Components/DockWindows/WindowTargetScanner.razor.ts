@@ -27,15 +27,19 @@ export const init = (): WindowTargetService => {
 
                 if (newTarget) {
                     if (newTarget !== service.currentTarget) {
+                        // Reset previous target
                         if (service.currentTarget) {
-                            service.currentTarget.style.backgroundColor = '#fff';
+                            service.currentTarget.classList.remove('w-target-active');
                         }
+                        
+                        // Set new target
                         service.currentTarget = newTarget;
-                        service.currentTarget.style.backgroundColor = '#0ff';
+                        service.currentTarget.classList.add('w-target-active');
                     }
                 } else {
+                    // If no target found, reset current target
                     if (service.currentTarget) {
-                        service.currentTarget.style.backgroundColor = '#fff';
+                        service.currentTarget.classList.remove('w-target-active');
                         service.currentTarget = null;
                     }
                 }

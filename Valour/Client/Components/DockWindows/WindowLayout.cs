@@ -373,6 +373,50 @@ public class WindowLayout
 
         AddSplit(tab, location);
     }
+
+    /// <summary>
+    /// Handles the event when a tab is dropped on another tab.
+    /// Places the tab before the dropped tab in the same layout and focuses it.
+    /// </summary>
+
+    public async Task OnTabDropped(WindowTab dragging, WindowTab droppedOn)
+    {
+        var index = Tabs.IndexOf(dragging);
+        
+        if (index == -1)
+        {
+            // Remove the dragging tab from its current layout
+            await dragging.SetLayout(null, false);
+
+            // Add the dragging tab to this layout before the dropped tab
+            Tabs.Insert(index, dragging);
+        }
+        else
+        {
+            // If the dragging tab is already in this layout, we just move it
+            Tabs.RemoveAt(index);
+            index = Tabs.IndexOf(droppedOn);
+            if (index == -1)
+            {
+                // If the dropped on tab is not in this layout, we add the dragging tab to the end
+                Tabs.Add(dragging);
+            }
+            else
+            {
+                // Insert the dragging tab before the dropped tab
+                Tabs.Insert(index, dragging);
+            }
+        }
+
+        // Set the focused tab to the dragging tab
+        await SetFocusedTab(dragging);
+        
+        // Notify tabs of tab-stack change
+        NotifyTabsOfChange();
+        
+        // Re-render tabs 
+        DockComponent.NotifyLayoutChanged();
+    }
     
     public async Task OnChannelDropped(Channel channel, WindowDropTargets.DropLocation location)
     {
@@ -392,6 +436,16 @@ public class WindowLayout
         }
 
         AddSplit(tab, location);
+    }
+    
+    public async Task OnChannelDropped(Channel channel, WindowTab droppedOn)
+    {
+        // Create a new chat window
+        var chatWindow = await ChatWindowComponent.GetDefaultContent(channel);
+        var tab = new WindowTab(chatWindow);
+        
+        // Use the existing OnTabDropped method to handle the drop
+        await OnTabDropped(tab, droppedOn);
     }
 
     private void AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)

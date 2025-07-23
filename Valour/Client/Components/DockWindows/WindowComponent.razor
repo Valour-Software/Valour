@@ -18,7 +18,11 @@
         @* Mobile does not have tabs *@
         @if (!DeviceInfo.IsMobile)
         {
-            <div class="tab">
+            <div 
+                ondragenter="event.preventDefault(); event.stopPropagation();"
+                ondragover="event.preventDefault(); event.stopPropagation();"
+                @onclick="OnDropOnTab"
+                class="tab @(IsFloating ? "" : "w-drop-target")">
                 <div class="tab-info">
                     <img alt="tab icon" class="tab-icon" src="@Icon"/>
                     <span class="tab-title">@Title</span>
@@ -52,21 +56,20 @@
          @onclick="@OnClickWindow">
         @* Window Content *@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
-    </div>
-    
-    
-    @if (!IsFloating) // floating tabs don't have drop targets
-    {
-        // Needs to be the visible tab on the layout
-        if (Layout?.FocusedTab == this.WindowTab) {
-            if ((WindowService.DraggingTab is not null &&
-              WindowService.DraggingTab != WindowTab) ||
-             ChannelDragManager.Dragging)
-            {
-                <WindowDropTargets Window="@this"/>
+        
+        @if (!IsFloating) // floating tabs don't have drop targets
+        {
+            // Needs to be the visible tab on the layout
+            if (Layout?.FocusedTab == this.WindowTab) {
+                if ((WindowService.DraggingTab is not null &&
+                     WindowService.DraggingTab != WindowTab) ||
+                    ChannelDragManager.Dragging)
+                {
+                    <WindowDropTargets Window="@this"/>
+                }
             }
         }
-    }
+    </div>
 </div>
 
 @code {
@@ -388,6 +391,20 @@
         }
         
         ReRender();
+    }
+    
+    private Task OnDropOnTab()
+    {
+        if (WindowService.DraggingTab is not null)
+        {
+            return Layout.OnTabDropped(WindowService.DraggingTab, WindowTab);
+        }
+        else if (ChannelDragManager.CurrentDragItem is not null && ChannelDragManager.CurrentDragItem.Channel is not null)
+        {
+            return Layout.OnChannelDropped(ChannelDragManager.CurrentDragItem.Channel, WindowTab);
+        }
+        
+        return Task.CompletedTask;
     }
     
     public async Task OnWindowMouseUp(MouseEventArgs e)

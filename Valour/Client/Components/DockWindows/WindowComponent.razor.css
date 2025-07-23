@@ -34,6 +34,7 @@
 }
 
 .window {
+    position: relative;
     display: flex;
     flex-direction: column;
     pointer-events: all;
