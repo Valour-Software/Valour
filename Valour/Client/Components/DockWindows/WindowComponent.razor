@@ -19,10 +19,7 @@
         @if (!DeviceInfo.IsMobile)
         {
             <div 
-                ondragenter="event.preventDefault(); event.stopPropagation();"
-                ondragover="event.preventDefault(); event.stopPropagation();"
-                @onclick="OnDropOnTab"
-                class="tab @(IsFloating ? "" : "w-drop-target")">
+                class="tab">
                 <div class="tab-info">
                     <img alt="tab icon" class="tab-icon" src="@Icon"/>
                     <span class="tab-title">@Title</span>
@@ -34,6 +31,17 @@
                         <i class="bi bi-dash-circle-fill"></i>
                     </span>
                 </div>
+                
+                @if (ShouldShowTabTarget) // Tab-specific drop targets
+                {
+                    <div
+                        @onclick:stopPropagation="true"
+                        @onclick="OnDropOnTab"
+                        @ondrop:stopPropagation="true"
+                        @ondrop="OnDropOnTab"
+                        class="w-drop-target">
+                    </div>
+                }
             </div>
             
             @if (IsLastTab)
@@ -57,22 +65,29 @@
         @* Window Content *@
         @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
         
-        @if (!IsFloating) // floating tabs don't have drop targets
-        {
-            // Needs to be the visible tab on the layout
-            if (Layout?.FocusedTab == this.WindowTab) {
-                if ((WindowService.DraggingTab is not null &&
-                     WindowService.DraggingTab != WindowTab) ||
-                    ChannelDragManager.Dragging)
-                {
-                    <WindowDropTargets Window="@this"/>
-                }
-            }
+        @if (ShouldShowDropTargets) // floating tabs don't have drop targets
+        { 
+            <WindowDropTargets Window="@this"/>
         }
     </div>
 </div>
 
 @code {
+
+    public bool ShouldShowDropTargets =>
+        !IsFloating && // Only show drop targets for docked windows
+        (Layout?.FocusedTab == this.WindowTab) && // Needs to be the visible tab on the layout
+        ((WindowService.DraggingTab is not null &&
+          WindowService.DraggingTab != WindowTab) ||
+         ChannelDragManager.Dragging);
+    
+    public bool ShouldShowTabTarget =>
+        !IsFloating && // Only show drop targets for docked windows
+        // (Layout?.FocusedTab == this.WindowTab) && // DOES NOT Need to be the visible tab on the layout
+        ((WindowService.DraggingTab is not null &&
+          WindowService.DraggingTab != WindowTab) ||
+         ChannelDragManager.Dragging);
+    
     public ElementReference OuterWindowRef { get; private set; }
 
     ////////////

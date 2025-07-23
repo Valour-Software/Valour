@@ -219,7 +219,7 @@ public class WindowLayout
         return tab;
     }
 
-    public async Task AddTab(WindowTab tab, bool render = true)
+    public async Task AddTab(WindowTab tab, bool render = true, int? index = null)
     {
         // Make sure we don't already contain the tab
         if (Tabs.Contains(tab))
@@ -234,7 +234,17 @@ public class WindowLayout
         }
         
         // Add tab to list
-        Tabs.Add(tab);
+        
+        // If an index is provided, insert at that index
+        if (index.HasValue && index.Value >= 0 && index.Value < Tabs.Count)
+        {
+            Tabs.Insert(index.Value, tab);
+        }
+        else
+        {
+            // Otherwise add to the end
+            Tabs.Add(tab);
+        }
         
         // Set the layout of the tab
         await tab.SetLayout(this, false);
@@ -381,41 +391,19 @@ public class WindowLayout
 
     public async Task OnTabDropped(WindowTab dragging, WindowTab droppedOn)
     {
-        var index = Tabs.IndexOf(dragging);
+        // Remove tab as floater
+        await DockComponent.RemoveFloatingTab(dragging);
         
-        if (index == -1)
-        {
-            // Remove the dragging tab from its current layout
-            await dragging.SetLayout(null, false);
 
-            // Add the dragging tab to this layout before the dropped tab
-            Tabs.Insert(index, dragging);
-        }
-        else
-        {
-            // If the dragging tab is already in this layout, we just move it
-            Tabs.RemoveAt(index);
-            index = Tabs.IndexOf(droppedOn);
-            if (index == -1)
-            {
-                // If the dropped on tab is not in this layout, we add the dragging tab to the end
-                Tabs.Add(dragging);
-            }
-            else
-            {
-                // Insert the dragging tab before the dropped tab
-                Tabs.Insert(index, dragging);
-            }
-        }
+        // Find the index to insert before
+        int? insertIndex = Tabs.IndexOf(droppedOn);
 
-        // Set the focused tab to the dragging tab
-        await SetFocusedTab(dragging);
+        if (insertIndex == -1)
+        {
+            insertIndex = null;
+        }
         
-        // Notify tabs of tab-stack change
-        NotifyTabsOfChange();
-        
-        // Re-render tabs 
-        DockComponent.NotifyLayoutChanged();
+        await AddTab(dragging, true, insertIndex);
     }
     
     public async Task OnChannelDropped(Channel channel, WindowDropTargets.DropLocation location)
