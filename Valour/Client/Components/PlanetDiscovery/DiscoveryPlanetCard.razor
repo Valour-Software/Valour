@@ -28,7 +28,7 @@
         }
     </div>
     <div class="planet-info mt-4">
-        <p class="planet-desc">@PlanetInfo.Description</p>
+        <p class="planet-desc">@_descText</p>
         <p class="member-count">
             <strong>@PlanetInfo.MemberCount Members</strong>
         </p>
@@ -43,7 +43,7 @@
         }
         @if (!HideActions)
         {
-            <div class="action-btns">
+            <div class="action-btns mt-2">
                 <button class="card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
                 <button class="card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
             </div>
@@ -59,6 +59,9 @@
     private string _iconUrl;
     private string _iconText = string.Empty;
     private readonly List<string> _tagSlugs = new();
+
+    private string _descText;
+    
     protected override async Task OnParametersSetAsync()
     {
         _iconUrl = PlanetInfo.HasAnimatedIcon
@@ -79,6 +82,15 @@
                 if (tag != null && !string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
                     _tagSlugs.Add(tag.Slug);
             }
+        }
+
+        if (PlanetInfo.Description.Length < 100)
+        {
+            _descText = PlanetInfo.Description;
+        }
+        else
+        {
+            _descText = PlanetInfo.Description.Substring(0, 100) + "...";
         }
     }
     

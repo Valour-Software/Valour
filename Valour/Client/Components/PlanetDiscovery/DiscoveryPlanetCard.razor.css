@@ -77,18 +77,17 @@
     text-align: center;
     font-size: 1.12rem;
     font-weight: 400;
-    margin: 0.6rem 0 1.2rem 0;
     color: #f4f8ff;
     text-shadow: 0 0 10px black;
-    max-height: 3.3em;
-    min-height: 3.3em;
+    max-height: 4.5em;
+    min-height: 4.5em;
     word-break: break-word;
     white-space: normal;
 }
 
 .member-count {
     text-align: center;
-    font-size: 1.16rem;
+    font-size: 1.2em;
 }
 .member-count strong {
     color: #20e6ff;
@@ -100,7 +99,6 @@
     display: flex;
     justify-content: space-between;
     gap: 0.7rem;
-    margin: 1.4rem 0 0 0;
 }
 
 .card-btn {
