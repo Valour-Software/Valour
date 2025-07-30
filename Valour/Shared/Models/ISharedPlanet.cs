@@ -6,6 +6,7 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using System.Text;
 using Valour.Shared.Utilities;
 
 namespace Valour.Shared.Models;
@@ -194,6 +195,31 @@ public interface ISharedPlanet : ISharedModel<long>
             Version = planet.Version,
             TagIds = null // Tags are not included in this model
         };
+    }
+
+    public static string GetCommunityShortCode(ISharedPlanet planet)
+    {
+        return GetCommunityShortCode(planet.Name);
+    }
+
+    public static string GetCommunityShortCode(PlanetListInfo planet)
+    {
+        return GetCommunityShortCode(planet.Name);
+    }
+
+    public static string GetCommunityShortCode(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        if (name.Length < 5) return name.ToUpperInvariant();
+        var sb = new StringBuilder();
+        sb.Append(char.ToUpperInvariant(name[0]));
+        for (int i = 1; i < name.Length && sb.Length < 4; i++)
+        {
+            var c = name[i];
+            if (name[i - 1] == ' ' || (char.IsUpper(c) && char.IsLower(name[i - 1])))
+                sb.Append(char.ToUpperInvariant(c));
+        }
+        return sb.ToString();
     }
 }
 

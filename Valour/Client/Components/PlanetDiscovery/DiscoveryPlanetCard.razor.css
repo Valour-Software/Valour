@@ -1,7 +1,8 @@
 .planet-theme-card {
     background:
             linear-gradient(180deg, #0a1226bb 60%, #20325bcc 100%);
-    border-radius: 2rem;
+    border-radius: 2em;
+    padding: 2em;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -9,20 +10,13 @@
     transition: box-shadow 0.15s, scale 0.12s;
     position: relative;
     color: #fff;
-    padding-bottom: 1.3rem;
     flex: 1 1 auto;
 }
 .planet-theme-title {
     text-align: center;
-    font-size: 1.2rem;
     font-weight: 700;
-    margin: 1rem 0 0.1rem 0;
     color: #fff;
-    letter-spacing: 0.02em;
     text-shadow: 0 0 10px black;
-    z-index: 2;
-    min-height: 2.6rem;
-    max-height: 4.6rem;
     word-break: break-word;
     white-space: normal;
 }
@@ -33,7 +27,6 @@
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    margin-bottom: 0.7rem;
 }
 
 .planet-icon-img,
@@ -70,8 +63,7 @@
     text-shadow: 0 2px 12px #20335a55;
 }
 
-.planet-theme-info {
-    padding: 0 1.2rem 0 1.2rem;
+.planet-info {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -81,7 +73,7 @@
     width: 100%;
 }
 
-.planet-theme-desc {
+.planet-desc {
     text-align: center;
     font-size: 1.12rem;
     font-weight: 400;
@@ -94,19 +86,17 @@
     white-space: normal;
 }
 
-.planet-theme-members {
+.member-count {
     text-align: center;
     font-size: 1.16rem;
-    margin-bottom: 1rem;
 }
-.planet-theme-members strong {
+.member-count strong {
     color: #20e6ff;
     font-size: 1.35rem;
     font-weight: 600;
-    letter-spacing: 0.5px;
 }
 
-.planet-theme-btns {
+.action-btns {
     display: flex;
     justify-content: space-between;
     gap: 0.7rem;

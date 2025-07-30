@@ -2,7 +2,7 @@
 @inject PlanetTagService TagService
 @inherits ComponentBase
 
-<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)" @onclick="@OnInfoClick">
+<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)">
     @if (PlanetInfo.HasCustomBackground)
     {
         var bgLocation = @ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
@@ -17,19 +17,19 @@
         }
     }
     
-    <h6 class="planet-theme-title">@PlanetInfo.Name</h6>
-    <div class="planet-icon-img-holder">
+    <h3 class="planet-theme-title">@PlanetInfo.Name</h3>
+    <div class="planet-icon-img-holder mt-4">
         <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
         @if (!PlanetInfo.HasCustomIcon)
         {
-            <span class="icon-text planet-initials" style="font-size:@GetFontSize(_iconText.Length)">
+            <span class="icon-text planet-initials" style="font-size:@GetShortCodeFontSize(_iconText.Length)">
                 @_iconText
             </span>
         }
     </div>
-    <div class="planet-theme-info">
-        <p class="planet-theme-desc">@PlanetInfo.Description</p>
-        <p class="planet-theme-members">
+    <div class="planet-info mt-4">
+        <p class="planet-desc">@PlanetInfo.Description</p>
+        <p class="member-count">
             <strong>@PlanetInfo.MemberCount Members</strong>
         </p>
         @if (_tagSlugs.Count > 0)
@@ -43,7 +43,7 @@
         }
         @if (!HideActions)
         {
-            <div class="planet-theme-btns">
+            <div class="action-btns">
                 <button class="card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
                 <button class="card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
             </div>
@@ -67,7 +67,7 @@
         
         if (!PlanetInfo.HasCustomIcon)
         {
-            _iconText = GetCommunityShortCode(PlanetInfo.Name);
+            _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
         }
 
         _tagSlugs.Clear();
@@ -81,27 +81,13 @@
             }
         }
     }
-
-    private string GetCommunityShortCode(string name)
+    
+    private static string GetShortCodeFontSize(int length) => length switch
     {
-        if (string.IsNullOrEmpty(name)) return string.Empty;
-        if (name.Length < 5) return name.ToUpperInvariant();
-        var sb = new StringBuilder();
-        sb.Append(char.ToUpperInvariant(name[0]));
-        for (int i = 1; i < name.Length && sb.Length < 4; i++)
-        {
-            var c = name[i];
-            if (name[i - 1] == ' ' || (char.IsUpper(c) && char.IsLower(name[i - 1])))
-                sb.Append(char.ToUpperInvariant(c));
-        }
-        return sb.ToString();
-    }
-    private string GetFontSize(int length) => length switch
-    {
-        <= 2 => "2.2rem",
-        3 => "1.55rem",
-        4 => "1.18rem",
-        _ => "1rem"
+        <= 2 => "2.2em",
+        3 => "1.55em",
+        4 => "1.18em",
+        _ => "1em"
     };
 
     private async Task OnInfoClick()
