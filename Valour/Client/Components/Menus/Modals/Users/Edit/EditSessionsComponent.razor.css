@@ -1,0 +1,155 @@
+.sessions-container {
+    padding-right: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.sessions-header {
+    margin-bottom: 1.5rem;
+}
+
+.sessions-header h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.sessions-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.loading, .no-tokens {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.tokens-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.token-item {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.token-item:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.token-item.expired {
+    opacity: 0.6;
+    background: var(--surface-tertiary);
+}
+
+.token-item.expires-soon {
+    border-color: var(--warning);
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.token-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.token-app {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.app-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.app-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.token-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.token-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.token-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.token-info .label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.token-info span:last-child {
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.expired {
+    color: var(--error) !important;
+}
+
+.expires-soon {
+    color: var(--warning) !important;
+}
+
+.time-remaining {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-left: 0.5rem;
+}
+
+.current-session {
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.token-actions-bulk {
+    border-top: 1px solid var(--border-primary);
+    padding-top: 1rem;
+    text-align: center;
+}
+
+.help-text {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+ /* Valour button classes are handled by the global CSS */

@@ -27,6 +27,7 @@
     private RenderFragment ReferralsContent => @<EditReferralsComponent />;
     private RenderFragment PermissionsContent => @<EditUserNotificationsComponent />;
     private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
+    private RenderFragment SessionsContent => @<EditSessionsComponent />;
     private RenderFragment LogOutContent => @<div></div>;
     
     private List<MainMenu.MenuCategory> _categories;
@@ -95,6 +96,13 @@
                         Icon = "phone-fill",
                         Description = "Manage device preferences",
                         Content = DevicePreferencesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Sessions",
+                        Icon = "shield-lock-fill",
+                        Description = "Manage active login sessions",
+                        Content = SessionsContent
                     },
                     new MainMenu.MenuItem()
                     {

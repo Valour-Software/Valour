@@ -1,0 +1,219 @@
+@using Valour.Sdk.Models
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+@using Valour.Client.Components.Menus.Modals.Users.Edit
+
+<div class="sessions-container">
+
+    @if (Tokens == null)
+    {
+        <div class="loading">Loading sessions...</div>
+    }
+    else if (!Tokens.Any())
+    {
+        <div class="no-tokens">No active sessions found</div>
+    }
+    else
+    {
+        <div class="tokens-list">
+            @foreach (var token in Tokens)
+            {
+                var isExpired = IsExpired(token);
+                var expiresSoon = ExpiresSoon(token);
+
+                <div class="token-item @(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
+                    <div class="token-header">
+                        <div class="token-app">
+                            @if (token.AppId == "VALOUR")
+                            {
+                                <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
+                                <span class="app-name">Valour Web Client</span>
+                            }
+                            else if (_appInfoCache.TryGetValue(token.AppId, out var appInfo))
+                            {
+                                <img src="@appInfo.ImageUrl" alt="@appInfo.Name" class="app-icon" />
+                                <span class="app-name">@appInfo.Name</span>
+                            }
+                            else
+                            {
+                                <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
+                                <span class="app-name">OAuth App (@token.AppId)</span>
+                            }
+                        </div>
+                        <div class="token-actions">
+                            @if (!isExpired)
+                            {
+                                <button class="v-btn danger" @onclick="() => RevokeToken(token)">
+                                    Revoke
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="token-details">
+                        <div class="token-info">
+                            <span class="label">Created:</span>
+                            <span>@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
+                        </div>
+                        <div class="token-info">
+                            <span class="label">Expires:</span>
+                            <span class="@(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
+                                @token.TimeExpires.ToString("MMM dd, yyyy 'at' HH:mm UTC")
+                                @if (!isExpired)
+                                {
+                                    <span class="time-remaining">(@GetTimeRemainingString(token) remaining)</span>
+                                }
+                            </span>
+                        </div>
+                        @if (token.Id == Client.AuthService.Token)
+                        {
+                            <div class="current-session">
+                                <span class="badge badge-primary">Current Session</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="token-actions-bulk">
+            <button class="v-btn warning" @onclick="RevokeAllOtherTokens">
+                Revoke All Other Sessions
+            </button>
+            <p class="help-text">This will log out all other devices except this one</p>
+        </div>
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private List<AuthToken> Tokens { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private Dictionary<string, PublicOauthAppData> _appInfoCache = new();
+
+    private bool IsExpired(AuthToken token)
+    {
+        return token.TimeExpires < DateTime.UtcNow;
+    }
+
+    private bool ExpiresSoon(AuthToken token)
+    {
+        return !IsExpired(token) && token.TimeExpires < DateTime.UtcNow.AddDays(1);
+    }
+
+    private string GetTimeRemainingString(AuthToken token)
+    {
+        var remaining = token.TimeExpires - DateTime.UtcNow;
+        if (remaining.TotalDays > 1)
+            return $"{(int)remaining.TotalDays} days";
+        if (remaining.TotalHours > 1)
+            return $"{(int)remaining.TotalHours} hours";
+        if (remaining.TotalMinutes > 1)
+            return $"{(int)remaining.TotalMinutes} minutes";
+        return "less than a minute";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTokens();
+    }
+
+    private async Task LoadTokens()
+    {
+        try
+        {
+            IsLoading = true;
+            Tokens = await Client.AuthService.GetMyTokensAsync();
+
+            // Load OAuth app info for non-VALOUR tokens
+            await LoadOAuthAppInfo();
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("console.error", "Failed to load tokens:", ex);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadOAuthAppInfo()
+    {
+        if (Tokens == null) return;
+
+        foreach (var token in Tokens)
+        {
+            if (token.AppId != "VALOUR" && long.TryParse(token.AppId, out long appId) && !_appInfoCache.ContainsKey(token.AppId))
+            {
+                try
+                {
+                    var appInfo = await Client.OauthService.FetchAppPublicDataAsync(appId);
+                    _appInfoCache[token.AppId] = appInfo;
+                }
+                catch
+                {
+                    // If we can't fetch the app info, we'll just show the default
+                }
+            }
+        }
+    }
+
+    private void RevokeToken(AuthToken token)
+    {
+        if (token.Id == Client.AuthService.Token)
+        {
+            // Show a simple info modal for current session
+            ModalRoot.OpenModal<InfoModalComponent>(new InfoModalComponent.ModalParams(
+            "Cannot Revoke Current Session",
+            "You cannot revoke your current session. Please use the logout button instead.",
+            "OK",
+            async () => { }
+            ));
+            return;
+        }
+
+        var modalParams = new RevokeTokenModal.Params
+        {
+            Token = token,
+            ShowTokenInfo = true,
+            IsRevokeAll = false,
+            OnConfirmAsync = async () =>
+            {
+                var result = await Client.AuthService.RevokeTokenAsync(token.Id);
+                if (result.Success)
+                {
+                    await LoadTokens(); // Refresh the list
+                }
+                return result;
+            }
+        };
+
+        ModalRoot.OpenModal<RevokeTokenModal>(modalParams);
+    }
+
+    private void RevokeAllOtherTokens()
+    {
+        var modalParams = new RevokeTokenModal.Params
+        {
+            Token = null,
+            ShowTokenInfo = false,
+            IsRevokeAll = true,
+            OnConfirmAsync = async () =>
+            {
+                var result = await Client.AuthService.RevokeAllOtherTokensAsync();
+                if (result.Success)
+                {
+                    await LoadTokens(); // Refresh the list
+                }
+                return result;
+            }
+        };
+
+        ModalRoot.OpenModal<RevokeTokenModal>(modalParams);
+    }
+}

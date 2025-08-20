@@ -85,6 +85,9 @@ public class OauthApp : ISharedOauthApp
             
             e.Property(x => x.Name)
                 .HasColumnName("name");
+
+            e.Property(x => x.RedirectUrl)
+                .HasColumnName("redirect_url");
             
             // Relationships
 

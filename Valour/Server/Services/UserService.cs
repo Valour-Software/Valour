@@ -472,9 +472,12 @@ public class UserService
         {
             var key = _tokenService.GetAuthKey();
             var dbToken = await _db.AuthTokens.FindAsync(key);
-            _db.AuthTokens.Remove(dbToken);
-            _tokenService.RemoveFromQuickCache(key);
-            await _db.SaveChangesAsync();
+            if (dbToken is not null)
+            {
+                _db.AuthTokens.Remove(dbToken);
+                _tokenService.RemoveFromQuickCache(key);
+                await _db.SaveChangesAsync();
+            }
         }
         catch (Exception e)
         {
@@ -483,6 +486,74 @@ public class UserService
         }
 
         return new(true, "Success");
+    }
+
+    /// <summary>
+    /// Gets all tokens for a user
+    /// </summary>
+    public async Task<List<AuthToken>> GetUserTokensAsync(long userId)
+    {
+        var tokens = await _db.AuthTokens
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.TimeCreated)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+        return tokens;
+    }
+
+    /// <summary>
+    /// Revokes a specific token
+    /// </summary>
+    public async Task<TaskResult> RevokeTokenAsync(long userId, string tokenId)
+    {
+        try
+        {
+            var token = await _db.AuthTokens
+                .FirstOrDefaultAsync(x => x.Id == tokenId && x.UserId == userId);
+
+            if (token is null)
+                return new TaskResult(false, "Token not found");
+
+            _db.AuthTokens.Remove(token);
+            _tokenService.RemoveFromQuickCache(tokenId);
+            await _db.SaveChangesAsync();
+
+            return new TaskResult(true, "Token revoked successfully");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Revokes all tokens for a user except the current one
+    /// </summary>
+    public async Task<TaskResult> RevokeAllOtherTokensAsync(long userId, string currentTokenId)
+    {
+        try
+        {
+            var tokens = await _db.AuthTokens
+                .Where(x => x.UserId == userId && x.Id != currentTokenId)
+                .ToListAsync();
+
+            foreach (var token in tokens)
+            {
+                _tokenService.RemoveFromQuickCache(token.Id);
+            }
+
+            _db.AuthTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+
+            return new TaskResult(true, $"Revoked {tokens.Count} tokens");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new TaskResult(false, e.Message);
+        }
     }
 
 
@@ -553,48 +624,30 @@ public class UserService
 
     public async Task<TaskResult<AuthToken>> GetTokenAfterLoginAsync(HttpContext ctx, long userId)
     {
-        // Check for an old token
-        var token = await _db.AuthTokens
-            .FirstOrDefaultAsync(x => x.AppId == "VALOUR" &&
-                                      x.UserId == userId &&
-                                      x.Scope == UserPermissions.FullControl.Value);
-
         try
         {
-            if (token is null)
+            // Always create a new token for each login
+            var token = new AuthToken()
             {
-                // We now have to create a token for the user
-                token = new AuthToken()
-                {
-                    AppId = "VALOUR",
-                    Id = "val-" + Guid.NewGuid().ToString(),
-                    TimeCreated = DateTime.UtcNow,
-                    TimeExpires = DateTime.UtcNow.AddDays(7),
-                    Scope = UserPermissions.FullControl.Value,
-                    UserId = userId,
-                    IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN",
-                }.ToDatabase();
+                AppId = "VALOUR",
+                Id = "val-" + Guid.NewGuid().ToString(),
+                TimeCreated = DateTime.UtcNow,
+                TimeExpires = DateTime.UtcNow.AddDays(7),
+                Scope = UserPermissions.FullControl.Value,
+                UserId = userId,
+                IssuedAddress = ctx.Connection?.RemoteIpAddress?.ToString() ?? "UNKNOWN",
+            }.ToDatabase();
 
-                await _db.AuthTokens.AddAsync(token);
-                await _db.SaveChangesAsync();
-            }
-            else
-            {
-                token.TimeCreated = DateTime.UtcNow;
-                token.TimeExpires = DateTime.UtcNow.AddDays(7);
+            await _db.AuthTokens.AddAsync(token);
+            await _db.SaveChangesAsync();
 
-                _db.Entry(token).State = EntityState.Detached;
-                _db.AuthTokens.Update(token);
-                await _db.SaveChangesAsync();
-            }
+            return new(true, "Success", token.ToModel());
         }
         catch (Exception e)
         {
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
-
-        return new(true, "Success", token.ToModel());
     }
 
     public async Task<TaskResult> ChangePasswordAsync(long userId, string newPassword)

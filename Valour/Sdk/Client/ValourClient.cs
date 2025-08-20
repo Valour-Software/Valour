@@ -47,6 +47,7 @@ public class ValourClient
     public readonly EcoService EcoService;
     public readonly StaffService StaffService;
     public readonly OauthService OauthService;
+    public readonly OauthHelper OauthHelper;
     public readonly SafetyService SafetyService;
     public readonly ThemeService ThemeService;
     public readonly UnreadService UnreadService;
@@ -121,6 +122,7 @@ public class ValourClient
         EcoService = new EcoService(this);
         StaffService = new StaffService(this);
         OauthService = new OauthService(this);
+        OauthHelper = new OauthHelper(this);
         SafetyService = new SafetyService(this);
         ThemeService = new ThemeService(this);
         UnreadService = new UnreadService(this);

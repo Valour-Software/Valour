@@ -227,4 +227,41 @@ public class AuthService : ServiceBase
         
         return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
     }
+
+    #region Token Management
+
+    /// <summary>
+    /// Gets all tokens for the current user
+    /// </summary>
+    public async Task<List<AuthToken>> GetMyTokensAsync()
+    {
+        var response = await _client.PrimaryNode.GetJsonAsync<List<AuthToken>>("api/users/me/tokens");
+        return response.Success ? response.Data : new List<AuthToken>();
+    }
+
+    /// <summary>
+    /// Revokes a specific token
+    /// </summary>
+    public async Task<TaskResult> RevokeTokenAsync(string tokenId)
+    {
+        return await _client.PrimaryNode.DeleteAsync($"api/users/me/tokens/{tokenId}");
+    }
+
+    /// <summary>
+    /// Revokes all other tokens (except the current one)
+    /// </summary>
+    public async Task<TaskResult> RevokeAllOtherTokensAsync()
+    {
+        return await _client.PrimaryNode.DeleteAsync("api/users/me/tokens");
+    }
+
+    /// <summary>
+    /// Logs out the current user (revokes current token)
+    /// </summary>
+    public async Task<TaskResult> LogoutAsync()
+    {
+        return await _client.PrimaryNode.PostAsync("api/users/me/logout", null);
+    }
+
+    #endregion
 }

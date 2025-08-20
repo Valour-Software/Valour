@@ -27,7 +27,7 @@ public class TokenService
 
     /// <summary>
     /// Will return the auth object for a valid token.
-    /// A null response means the key was invalid.
+    /// A null response means the key was invalid or expired.
     /// </summary>
     public async ValueTask<AuthToken> GetAsync(string key)
     {
@@ -41,11 +41,29 @@ public class TokenService
         if (token is null)
         {
             // If the auth token is null, try to get it from the database
-            token = (await _db.AuthTokens.FindAsync(key)).ToModel();
+            var dbToken = await _db.AuthTokens.FindAsync(key);
+            if (dbToken is null)
+                return null;
+                
+            token = dbToken.ToModel();
             
             // If there was a token, add it to the cache
             if (token is not null)
                 QuickCache[key] = token;
+        }
+
+        // Check if token is expired
+        if (token.TimeExpires < DateTime.UtcNow)
+        {
+            // Remove expired token from cache and database
+            QuickCache.Remove(key, out _);
+            var dbToken = await _db.AuthTokens.FindAsync(key);
+            if (dbToken is not null)
+            {
+                _db.AuthTokens.Remove(dbToken);
+                await _db.SaveChangesAsync();
+            }
+            return null;
         }
 
         return token;

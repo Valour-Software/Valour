@@ -1,0 +1,43 @@
+.token-info-preview {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.token-app {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.app-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.app-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.token-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.token-details .label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.token-details span:last-child {
+    color: var(--text-primary);
+    text-align: right;
+}
