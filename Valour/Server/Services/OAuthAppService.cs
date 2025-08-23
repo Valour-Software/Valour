@@ -18,13 +18,18 @@ public class OauthAppService
     public async Task<OauthApp> GetAsync(long id) =>
         (await _db.OauthApps.FindAsync(id)).ToModel();
 
-    public async Task<TaskResult<OauthApp>> PutAsync(OauthApp old, OauthApp updatedApp)
+    public async Task<TaskResult<OauthApp>> UpdateAsync(OauthApp updatedApp)
     {
+        var old = await _db.OauthApps.FindAsync(updatedApp.Id);
+
+        if (old == null)
+            return new(false, "App not found");
+
         old.RedirectUrl = updatedApp.RedirectUrl;
 
         try
         {
-            _db.OauthApps.Update(old.ToDatabase());
+            _db.OauthApps.Update(old);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
@@ -33,6 +38,9 @@ public class OauthAppService
             return new(false, e.Message);
         }
 
-        return new(true, "Success", old);
+        return new(true, "Success", old.ToModel());
     }
+
+    public async Task<bool> OwnsAppAsync(long userId, long appId) =>
+        await _db.OauthApps.AnyAsync(a => a.OwnerId == userId && a.Id == appId);
 }

@@ -29,6 +29,7 @@
     private RenderFragment DevicePreferencesContent => @<EditDevicePreferencesComponent />;
     private RenderFragment SessionsContent => @<EditSessionsComponent />;
     private RenderFragment LogOutContent => @<div></div>;
+    private RenderFragment OAuthContent => @<EditOAuthComponent />;
     
     private List<MainMenu.MenuCategory> _categories;
     
@@ -111,6 +112,21 @@
                         Color = "var(--p-red)",
                         Content = LogOutContent,
                         OnClick = LogOut
+                    }
+                }
+            },
+            new MainMenu.MenuCategory()
+            {
+                Name = "Developer",
+                Icon = "code-slash",
+                Items = new List<MainMenu.MenuItem>()
+                {
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "OAuth Apps",
+                        Icon = "key-fill",
+                        Description = "Manage your OAuth applications and API access",
+                        Content = OAuthContent
                     }
                 }
             },

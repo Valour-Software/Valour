@@ -144,11 +144,13 @@
         await Data.MessageComponent.OpenEditMode();
     }
 
-	private async Task OnClickCopyText(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Content);
-	}
+	    private async Task OnClickCopyText(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Content);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message text copied to clipboard", ToastProgressState.Success));
+    }
 
-	private async Task OnClickCopyId(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id);
-	}
+    private async Task OnClickCopyId(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message ID copied to clipboard", ToastProgressState.Success));
+    }
 }

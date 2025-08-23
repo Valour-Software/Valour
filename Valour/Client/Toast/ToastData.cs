@@ -23,10 +23,11 @@ public class ToastData
         
     }
     
-    public ToastData(string title, string message)
+    public ToastData(string title, string message, ToastProgressState? type = null)
     {
         Title = title;
         Message = message;
+        Type = type;
     }
 }
 

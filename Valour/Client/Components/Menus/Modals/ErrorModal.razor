@@ -29,5 +29,6 @@
     private async Task OnClickCopyAsync()
     {
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Result.Details);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Error details copied to clipboard", ToastProgressState.Success));
     }
 }

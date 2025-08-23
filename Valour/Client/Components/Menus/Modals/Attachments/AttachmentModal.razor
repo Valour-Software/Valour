@@ -49,6 +49,7 @@
     {
         var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Attachment link copied to clipboard", ToastProgressState.Success));
     }
 
     private async Task OnClickDownload()

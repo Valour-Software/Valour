@@ -185,6 +185,9 @@ public abstract class ClientModel<TSelf, TId> : ClientModel<TSelf>, ISharedModel
         if (Id.Equals(default))
             throw new Exception("Trying to update a model with no ID assigned. Has it been created?");
         
+        if (Node == null)
+            throw new Exception("Trying to update a model with no node assigned. Did you forget to sync after fetching?");
+
         return Node.PutAsyncWithResponse<TSelf>(IdRoute, this);
     }
 

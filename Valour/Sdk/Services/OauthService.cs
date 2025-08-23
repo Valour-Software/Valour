@@ -5,6 +5,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using System.Net.Http.Json;
 using Valour.Shared;
+using Valour.Sdk.ModelLogic;
 
 namespace Valour.Sdk.Services;
 
@@ -33,14 +34,20 @@ public class OauthService : ServiceBase
     /// <summary>
     /// Fetches all OAuth apps owned by the current user
     /// </summary>
-    public async Task<List<OauthApp>> FetchMyOauthAppAsync() =>
-        (await _client.PrimaryNode.GetJsonAsync<List<OauthApp>>($"{_client.Me.IdRoute}/apps")).Data;
+    public async Task<List<OauthApp>> FetchMyOauthAppAsync(){
+        var apps = (await _client.PrimaryNode.GetJsonAsync<List<OauthApp>>("api/users/apps")).Data;
+        apps.SyncAll(_client);
+        return apps;
+    }
 
     /// <summary>
     /// Fetches a specific OAuth app by ID (must be the owner)
     /// </summary>
-    public async Task<OauthApp> FetchAppAsync(long id) =>
-        (await _client.PrimaryNode.GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
+    public async Task<OauthApp> FetchAppAsync(long id) {
+        var app =(await _client.PrimaryNode.GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
+        app = app.Sync(_client);
+        return app;
+    }
 
     /// <summary>
     /// Fetches public data for an OAuth app (no authentication required)

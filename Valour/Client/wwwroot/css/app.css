@@ -330,6 +330,12 @@ label {
     color: var(--font-color);
 }
 
+/* Readonly form control */
+.form-control[readonly] {
+    background-color: var(--medium-tint);
+    opacity: 1;
+}
+
 .form-control::placeholder {
     color: var(--font-color) !important;
     opacity: 0.65 !important;
@@ -983,25 +989,6 @@ blockquote {
 
 .channel-mention:active::before {
     background-color: rgba(170, 170, 255, 0.3);
-}
-
-/* Window resize gutters */
-.gutter-horizontal {
-    background-color: var(--main-1);
-    width: 10px;
-    cursor: e-resize;
-    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-.gutter-vertical {
-    background-color: var(--main-1);
-    height: 10px;
-    cursor: s-resize;
-    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
-    background-repeat: no-repeat;
-    background-position: center;
 }
 
 img.emoji {

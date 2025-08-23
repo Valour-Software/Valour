@@ -85,13 +85,15 @@ else
 		StateHasChanged();
 	}
 
-	private async Task OnClickCopyUsername(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.NameAndTag); 
-	}
+	    private async Task OnClickCopyUsername(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.NameAndTag);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Username copied to clipboard", ToastProgressState.Success));
+    }
 
-	private async Task OnClickCopyUserId(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.Id);
-	}
+    private async Task OnClickCopyUserId(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.Id);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "User ID copied to clipboard", ToastProgressState.Success));
+    }
 	
 	private async Task OnClickMessage()
 	{

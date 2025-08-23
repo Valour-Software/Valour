@@ -133,7 +133,7 @@ public partial class Program
             new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
             new DynamicAPI<AutomodApi>().RegisterRoutes(app),
             new DynamicAPI<UserFriendApi>().RegisterRoutes(app),
-            new DynamicAPI<OauthAppAPI>().RegisterRoutes(app),
+            new DynamicAPI<OauthAppApi>().RegisterRoutes(app),
             new DynamicAPI<TenorFavoriteApi>().RegisterRoutes(app),
             new DynamicAPI<EcoApi>().RegisterRoutes(app),
             new DynamicAPI<NotificationApi>().RegisterRoutes(app),
