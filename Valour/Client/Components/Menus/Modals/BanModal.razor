@@ -1,47 +1,53 @@
 ﻿@inject ValourClient Client
 @inherits Modal<BanModal.BanModalProps>
 
-<div class="col-md-12">
-	<section class="glassy-modal" style="text-align: center; padding: 30px">
-		<h3><i class="bi bi-hammer"></i> Ban @Data.Member.Nickname?</h3>
-		<label style="font-size: 1.2em">This will remove them from the planet and prevent them from rejoining.</label>
-		<br />
-		<UserInfoComponent Member="@Data.Member" 
-		                   Style="
-		                   background-color: var(--main-3); 
-		                   display: inline-block; 
-		                   border-radius: 0.5em; 
-		                   padding-right: 0.5em;
-						   scale: 1.5;
-						   margin-top: 1.5em;
-						   margin-bottom: 2em" />
-		<br />
-		
-		<div class="form-group">
-			<label>Reason (Optional)</label>
-			<input type="text" class="form-control" @bind-value="@_reason"/>
-		</div>
-		
-		<br />
-		
-		<div class="form-group">
-			<label>Time in Minutes (0 or empty for permanent)</label>
-			<InputNumber class="form-control" TValue="@int" @bind-Value="@_unbanMinutes"></InputNumber>
+<BasicModalLayout Title="@Title" Icon="hammer" MaxWidth="500px">
+    <MainArea>
+        @if (_isSelf)
+        {
+            <p class="text-danger">You cannot ban yourself.</p>
+        }
+        else
+        {
+            <p>This will remove them from the planet and prevent them from rejoining.</p>
+            
+            <UserInfoComponent Member="@Data.Member" 
+                               Style="
+                               background-color: var(--main-3); 
+                               display: inline-block; 
+                               border-radius: 0.5em; 
+                               padding-right: 0.5em;
+                               scale: 1.5;
+                               margin-top: 1.5em;
+                               margin-bottom: 2em" />
+            
+            <div class="form-group">
+                <label>Reason (Optional)</label>
+                <input type="text" class="form-control" @bind-value="@_reason"/>
+            </div>
+            
+            <div class="form-group">
+                <label>Time in Minutes (0 or empty for permanent)</label>
+                <InputNumber class="form-control" TValue="@int" @bind-Value="@_unbanMinutes"></InputNumber>
+            </div>
+            
+            <ResultLabel Result="@_result" />
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            @if (!_isSelf)
+            {
+                <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+            }
         </div>
-		
-		<br />
-		
-		<div class="btn-wrapper">
-			<button @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel </button>
-			<button @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</button>
-		</div>
-		
-		<ResultLabel Result="@_result" Style="margin-top: 1em; margin-bottom: 0" />
-	</section>
-</div>
-
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
+    private string Title => Data.Member.Nickname is null ? "Ban" : $"Ban {Data.Member.Nickname}";
+    private bool _isSelf;
 
 	private string _reason;
 	private int _unbanMinutes;
@@ -53,8 +59,15 @@
         public PlanetMember Member;
     }
 	
+	protected override void OnInitialized()
+	{
+		_isSelf = Data.Member.UserId == Client.Me.Id;
+	}
+	
 	private async Task OnConfirm()
 	{
+		if (_isSelf) return;
+		
 		var expires = DateTime.UtcNow;
 		if (_unbanMinutes > 0)
 			expires = expires.AddMinutes(_unbanMinutes);

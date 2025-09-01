@@ -30,14 +30,14 @@ else
 		<Icon>+<i class="bi bi-person-fill"></i></Icon>
 	</ContextMenuItem>
 }
-@if (_canKick)
+@if (_canKick && !_isSelf)
 {
 	<ContextMenuItem OnClickAsync="@OnClickKick" Color="red">
 		<Label>Kick</Label>
 		<Icon><i class="bi bi-shield-fill-exclamation"></i></Icon>
 	</ContextMenuItem>
 }
-@if (_canBan) {
+@if (_canBan && !_isSelf) {
 	<ContextMenuItem OnClickAsync="@OnClickBan" Color="red">
 		<Label>Ban</Label>
 		<Icon><i class="bi bi-hammer"></i></Icon>
@@ -76,6 +76,7 @@ else
 	private bool _canBan;
 	private bool _isFriend;
 	private bool _isFriendRequested;
+	private bool _isSelf;
 
 	private async Task OnClickAddFriend()
 	{
@@ -110,6 +111,7 @@ else
 	{
 		_isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == Data.Member.UserId);
 		_isFriend = FriendService.Friends.Any(x => x.Id == Data.Member.UserId);
+		_isSelf = Data.Member.UserId == Client.Me.Id;
 
 		_canKick = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Kick);
 		_canBan = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Ban);

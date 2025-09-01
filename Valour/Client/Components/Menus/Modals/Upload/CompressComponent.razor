@@ -1,44 +1,45 @@
 @inherits Modal<CompressComponent.ModalParams>
 @inject ValourClient Client
 
-<section class="outer">
-    <div class="title-container">
-        <h3>Compress Image <i class="bi bi-file-earmark-zip-fill"></i></h3>
-        <p class="subtitle">Image is too large!</p>
-    </div>
-    @if (_result is not null)
-    {
-        <ResultLabel Result="@_result" />
-    }
-    else if (_loading)
-    {
-        <img alt="victor" class="victor" src="_content/Valour.Client/media/victor.svg" />
-        <p class="victor-text">Compressing...</p>
-    }
-    else
-    {
-        @if (Client.Me.SubscriptionType is not null)
+<BasicModalLayout Title="Compress Image" Icon="file-earmark-zip-fill" MaxWidth="500px">
+    <MainArea>
+        <p>Image is too large!</p>
+        
+        @if (_result is not null)
         {
-            <p class="inner">
-                Your image is over the 20MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
-            </p>
+            <ResultLabel Result="@_result" />
+        }
+        else if (_loading)
+        {
+            <img alt="victor" class="victor" src="_content/Valour.Client/media/victor.svg" />
+            <p class="victor-text">Compressing...</p>
         }
         else
         {
-            <p class="inner">
-                Your image is over the 10MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable. You can also subscribe to Valour Plus to increase the limit to 20MB!
-            </p>
+            @if (Client.Me.SubscriptionType is not null)
+            {
+                <p>
+                    Your image is over the 20MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable.
+                </p>
+            }
+            else
+            {
+                <p>
+                    Your image is over the 10MB limit. You can hit the button below to compress the image. This will reduce the quality of the image, but it will make it sendable. You can also subscribe to Valour Plus to increase the limit to 20MB!
+                </p>
+            }
         }
-    }
-    
-    <div class="btns-wrapper">
-        <button @onclick="@OnClickClose" class="v-btn">Close</button>
-        @if (!_loading)
-        {
-            <button @onclick="@OnClickCompressAsync" class="v-btn">Compress</button>
-        }
-    </div>
-</section>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnClickClose" class="v-btn">Close</button>
+            @if (!_loading)
+            {
+                <button @onclick="@OnClickCompressAsync" class="v-btn primary">Compress</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 

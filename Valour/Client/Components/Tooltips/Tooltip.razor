@@ -11,13 +11,15 @@
     public TooltipData Data { get; set; }
 
     private ElementReference _tooltipReference;
-    private ElementBounds _contentBounds;
+    private ElementBounds? _contentBounds;
+    private ElementBounds? _triggerBounds;
     
     private ElementPosition? _tooltipPosition;
+    private bool _boundsCalculated = false;
 
-    // Hidden until bounds are calculated and position is known
-    private string TooltipStyles => _tooltipPosition is null ? "opacity: 0; pointer-events: none;" : $"position: fixed; top: {_tooltipPosition.Value.Y}px; left: {_tooltipPosition.Value.X}px;";
-    private string ComputedClass => _shown ? Data.Trigger.TooltipClass + " show" : Data.Trigger.TooltipClass + " hide";
+    // Initially positioned off-screen until we calculate the proper position
+    private string TooltipStyles => _tooltipPosition is null ? "position: fixed; top: -1000px; left: -1000px; z-index: 9999;" : $"position: fixed; top: {_tooltipPosition.Value.Y}px; left: {_tooltipPosition.Value.X}px; z-index: 9999;";
+    private string ComputedClass => _shown ? (Data.Trigger.TooltipClass ?? "") + " show" : (Data.Trigger.TooltipClass ?? "") + " hide";
 
     private bool _shown;
     
@@ -28,64 +30,96 @@
     
     private async Task MouseCheck(MousePosition mousePosition)
     {
-        if (!_shown) return;
+        if (!_shown || _triggerBounds == null) return;
         
-        var triggerRect = await BrowserUtils.GetElementBoundingRectAsync(Data.Trigger.OuterReference);
-        
-        if ( // Check if mouse is outside the trigger element
-            mousePosition.ClientX < triggerRect.Left || mousePosition.ClientX > triggerRect.Right ||
-            mousePosition.ClientY < triggerRect.Top || mousePosition.ClientY > triggerRect.Bottom
-        )
+        // Check if mouse is outside the trigger element
+        if (mousePosition.ClientX < _triggerBounds.Left || 
+            mousePosition.ClientX > _triggerBounds.Right ||
+            mousePosition.ClientY < _triggerBounds.Top || 
+            mousePosition.ClientY > _triggerBounds.Bottom)
         {
             await HideAsync();
         }
     }
 
-    public void Show()
+    public async void Show()
     {
         if (_shown) return;
+        
         _shown = true;
         
+        // First render to make the tooltip visible so we can measure it
         ReRender();
+        
+        // Small delay to ensure DOM is ready
+        await Task.Delay(10);
+        
+        // Now calculate bounds with the actual rendered tooltip
+        await CalculateBounds();
+        
+        // Update position with actual bounds
+        UpdateTooltipPosition();
     }
 
     public async Task HideAsync()
     {
+        if (!_shown) return;
+        
         _shown = false;
         ReRender();
 
         await Task.Delay(150); // Wait for the fade-out animation
         
-        if (_shown) return; // Re-shown before fade-out completed
-        TooltipRoot.RemoveTooltip(this);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
+        if (!_shown) // Still hidden after fade-out
         {
-            _contentBounds = await BrowserUtils.GetElementBoundingRectAsync(_tooltipReference);
-            await UpdateTooltipPosition();
-            ReRender();
+            TooltipRoot.RemoveTooltip(this);
         }
     }
 
-    private async Task UpdateTooltipPosition()
+    private async Task CalculateBounds()
     {
-        // Retrieve trigger element dimensions
-        var triggerRect = await BrowserUtils.GetElementBoundingRectAsync(Data.Trigger.OuterReference);
-        
-        if (_contentBounds is not null)
+        try
         {
-            // Calculate new position
-            var basePosition = CalculateTooltipBasePosition(triggerRect, _contentBounds, Data.Trigger.Position);
-            _tooltipPosition = basePosition;
+            // Get trigger bounds
+            _triggerBounds = await BrowserUtils.GetElementBoundingRectAsync(Data.Trigger.OuterReference);
             
-            ReRender();
+            // Get actual tooltip content bounds after it's rendered
+            _contentBounds = await BrowserUtils.GetElementBoundingRectAsync(_tooltipReference);
+            
+            _boundsCalculated = true;
+            
+            Console.WriteLine($"Actual tooltip bounds: {_contentBounds.Width}x{_contentBounds.Height}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calculating tooltip bounds: {ex.Message}");
         }
     }
     
-    const double TooltipMargin = 4; // Space between trigger and tooltip
+
+    private void UpdateTooltipPosition()
+    {
+        if (_triggerBounds == null || _contentBounds == null) return;
+        
+        // Use actual calculated bounds
+        var contentBounds = _contentBounds;
+        
+        // Calculate new position
+        var basePosition = CalculateTooltipBasePosition(_triggerBounds, contentBounds, Data.Trigger.Position);
+        
+        // Debug logging
+        // Console.WriteLine($"Tooltip positioning: Trigger={_triggerBounds.Left},{_triggerBounds.Top} Size={_triggerBounds.Width}x{_triggerBounds.Height}");
+        // Console.WriteLine($"Tooltip content: Size={contentBounds.Width}x{contentBounds.Height}");
+        // Console.WriteLine($"Base position: {basePosition.X},{basePosition.Y}");
+        
+        _tooltipPosition = EnsureOnScreen(basePosition, contentBounds);
+        
+        // Console.WriteLine($"Final position: {_tooltipPosition?.X},{_tooltipPosition?.Y}");
+        
+        ReRender();
+    }
+    
+    const double TooltipMargin = 8; // Space between trigger and tooltip
     
     private ElementPosition CalculateTooltipBasePosition(ElementBounds triggerRect, ElementBounds contentRect, string position)
     {
@@ -94,7 +128,7 @@
         switch (position.ToLower()) {
             case "bottom":
             {
-                top = triggerRect.Top + triggerRect.Height + TooltipMargin;
+                top = triggerRect.Bottom + TooltipMargin;
                 left = triggerRect.Left + (triggerRect.Width / 2) - (contentRect.Width / 2);
                 break;
             }
@@ -107,12 +141,11 @@
             case "right":
             {
                 top = triggerRect.Top + (triggerRect.Height / 2) - (contentRect.Height / 2);
-                left = triggerRect.Left + triggerRect.Width + TooltipMargin;
+                left = triggerRect.Right + TooltipMargin;
                 break;
             }
-            default:
+            default: // "top"
             {
-                // Default to top placement
                 top = triggerRect.Top - contentRect.Height - TooltipMargin;
                 left = triggerRect.Left + (triggerRect.Width / 2) - (contentRect.Width / 2);
                 break;
@@ -122,16 +155,64 @@
         return new ElementPosition() { X = left, Y = top };
     }
 
-    private ElementPosition EnsureOnScreen(double top, double left, double width = 0, double height = 0)
+    private ElementPosition EnsureOnScreen(ElementPosition position, ElementBounds contentBounds)
     {
         var windowDimensions = BrowserUtils.WindowDimensions;
+        var margin = TooltipMargin;
 
-        if (top - (height / 2) - TooltipMargin < 0) top = (height / 2) + TooltipMargin;
-        if (left - (width / 2) - TooltipMargin < 0) left = (width / 2) + TooltipMargin;
-        if (top + (height / 2) + TooltipMargin > windowDimensions.Height) top = windowDimensions.Height - (height / 2) - TooltipMargin;
-        if (left + (width / 2) + TooltipMargin > windowDimensions.Width) left = windowDimensions.Width - (width / 2) - TooltipMargin;
+        // For left-positioned tooltips, if they would go off-screen, flip to right
+        if (Data.Trigger.Position.ToLower() == "left" && position.X < margin)
+        {
+            // Flip to right side
+            position.X = _triggerBounds.Right + TooltipMargin;
+        }
+        // For right-positioned tooltips, if they would go off-screen, flip to left
+        else if (Data.Trigger.Position.ToLower() == "right" && position.X + contentBounds.Width > windowDimensions.Width - margin)
+        {
+            // Flip to left side
+            position.X = _triggerBounds.Left - contentBounds.Width - TooltipMargin;
+        }
+        // For top-positioned tooltips, if they would go off-screen, flip to bottom
+        else if (Data.Trigger.Position.ToLower() == "top" && position.Y < margin)
+        {
+            // Flip to bottom
+            position.Y = _triggerBounds.Bottom + TooltipMargin;
+        }
+        // For bottom-positioned tooltips, if they would go off-screen, flip to top
+        else if (Data.Trigger.Position.ToLower() == "bottom" && position.Y + contentBounds.Height > windowDimensions.Height - margin)
+        {
+            // Flip to top
+            position.Y = _triggerBounds.Top - contentBounds.Height - TooltipMargin;
+        }
+        else
+        {
+            // Standard boundary checking for other cases
+            // Ensure tooltip doesn't go off the left edge
+            if (position.X < margin)
+            {
+                position.X = margin;
+            }
+            
+            // Ensure tooltip doesn't go off the right edge
+            if (position.X + contentBounds.Width > windowDimensions.Width - margin)
+            {
+                position.X = windowDimensions.Width - contentBounds.Width - margin;
+            }
+            
+            // Ensure tooltip doesn't go off the top edge
+            if (position.Y < margin)
+            {
+                position.Y = margin;
+            }
+            
+            // Ensure tooltip doesn't go off the bottom edge
+            if (position.Y + contentBounds.Height > windowDimensions.Height - margin)
+            {
+                position.Y = windowDimensions.Height - contentBounds.Height - margin;
+            }
+        }
 
-        return new ElementPosition() { X = top, Y = left };
+        return position;
     }
     
     public void Dispose()

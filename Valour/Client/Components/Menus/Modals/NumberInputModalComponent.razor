@@ -2,17 +2,20 @@
 
 <!-- This modal exists to allow parts of the app to ask for a number -->
 
-<div class="col-md-12">
-	<section class="v-section v-bg-dark" style="text-align: center; padding: 30px">
-		<h4>@Data.Title</h4>
-		<h5 class="subtitle">@Data.Description</h5>
-		<br />
-		<input type="number" step="1" min="0" max="1000000000000" class="v-input" @bind="_value" />
-		
-		<div @onclick="@OnCancel" class="v-btn d-inline-block">@Data.CancelText</div>
-		<div @onclick="@OnConfirm" class="v-btn v-text-red d-inline-block">@Data.ConfirmText</div>
-	</section>
-</div>
+<BasicModalLayout Title="@Data.Title" Icon="123" MaxWidth="400px">
+    <MainArea>
+        <p>@Data.Description</p>
+        <div class="form-group">
+            <input type="number" step="1" min="0" max="1000000000000" class="form-control" @bind="_value" />
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">@Data.CancelText</button>
+            <button @onclick="@OnConfirm" class="v-btn primary">@Data.ConfirmText</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 

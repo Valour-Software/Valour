@@ -8,41 +8,42 @@
     return;
 }
 
-<div class="preview-container glassy-modal" @onkeydown="@OnKeyDown">
-	<h6>Upload?</h6>
-
-    <div class="attachment-holder">
-        @if (_loaded)
-        {
-            switch (Data.Attachment.Type)
+<BasicModalLayout Title="Upload File" Icon="cloud-upload-fill" MaxWidth="600px">
+    <MainArea>
+        <div class="attachment-holder">
+            @if (_loaded)
             {
-                case MessageAttachmentType.Image:
+                switch (Data.Attachment.Type)
                 {
-                    if (_imageReady)
+                    case MessageAttachmentType.Image:
                     {
-                        <ImageAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                        if (_imageReady)
+                        {
+                            <ImageAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                        }
+
+                        break;
                     }
-
-                    break;
+                    case MessageAttachmentType.Video:
+                        <VideoAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                        break;
+                    case MessageAttachmentType.Audio:
+                        <AudioAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                        break;
+                    default:
+                        <FileAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
+                        break;
                 }
-                case MessageAttachmentType.Video:
-                    <VideoAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
-                    break;
-                case MessageAttachmentType.Audio:
-                    <AudioAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
-                    break;
-                default:
-                    <FileAttachmentComponent Message="@Data.Message" Attachment="@Data.Attachment"/>
-                    break;
             }
-        }
-    </div>
-
-    <div class="d-flex flex-row justify-content-between">
-        <button class="v-btn" style="float: right" @onclick="@OnClickConfirm">Go for it</button>
-        <button class="v-btn danger" @onclick="@OnClickCancel">Cancel</button>
-    </div>
-</div>
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
+            <button @onclick="@OnClickConfirm" class="v-btn primary">Upload</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code
 {

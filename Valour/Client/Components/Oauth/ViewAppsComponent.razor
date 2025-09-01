@@ -1,28 +1,33 @@
 ﻿@inherits Modal<ViewAppsComponent.ModalParams>
 @inject OauthService OauthService
 
-<div class="modal-bg">
-    <h4>Your Applications</h4>
-
-    @if (Apps is null)
-    {
-        <br/> 
-        <p>Loading...</p>
-    }
-    else
-    {
-        foreach (var app in Apps)
+<BasicModalLayout Title="Your Applications" Icon="key-fill" MaxWidth="600px">
+    <MainArea>
+        @if (Apps is null)
         {
-            var appN = app;
-
-            <div class="app" @onclick='@(() => OpenEditApp(appN))'>
-                <img alt="@app.Name Icon" src='@app.ImageUrl' class='app-icon' />
-                <p class='app-name'>@app.Name</p>
-            </div>  
+            <p>Loading...</p>
         }
-    }
-</div>
+        else
+        {
+            <div class="apps-grid">
+                @foreach (var app in Apps)
+                {
+                    var appN = app;
 
+                    <div class="app" @onclick='@(() => OpenEditApp(appN))'>
+                        <img alt="@app.Name Icon" src='@app.ImageUrl' class='app-icon' />
+                        <p class='app-name'>@app.Name</p>
+                    </div>  
+                }
+            </div>
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@Close" class="v-btn">Close</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code 
 {
