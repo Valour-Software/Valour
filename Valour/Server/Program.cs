@@ -18,6 +18,7 @@ using Valour.Server.Workers;
 using Valour.Shared.Models;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
+using Microsoft.AspNetCore.Components;
 using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
@@ -211,6 +212,7 @@ public partial class Program
         app.UseAuthorization();
         app.MapRazorPages();
         app.MapControllers();
+        app.MapBlazorHub();
 
         app.MapFallbackToFile("_content/Valour.Client/index.html");
 
@@ -313,6 +315,7 @@ public partial class Program
         });
 
         services.AddRazorPages();
+        services.AddServerSideBlazor();
 
         //if (!string.IsNullOrEmpty(CloudflareConfig.Instance?.ApiKey))
         //{

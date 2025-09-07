@@ -25,7 +25,7 @@ public static class PlanetMapper
             Nsfw = planet.Nsfw,
             Version = planet.Version,
             HasCustomBackground = planet.HasCustomBackground,
-            TagIds = planet.Tags?.Select(t => t.Id).ToList()
+            Tags = planet.Tags?.Select(x => x.ToModel()).ToList() ?? new ()
         };
     }
     
@@ -49,6 +49,7 @@ public static class PlanetMapper
         dbPlanet.Nsfw = planet.Nsfw;
         dbPlanet.Version = planet.Version;
         dbPlanet.HasCustomBackground = planet.HasCustomBackground;
+        dbPlanet.Tags = planet.Tags?.Select(x => x.ToDatabase()).ToList() ?? new ();
 
         return dbPlanet;
     }

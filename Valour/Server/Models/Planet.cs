@@ -59,7 +59,7 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// </summary>
     public bool HasCustomBackground { get; set; }
     
-    public List<long> TagIds { get; set; }
+    public List<PlanetTag> Tags { get; set; } = new();
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);

@@ -80,7 +80,7 @@
      {
       Name = _name,
       Description = _desc,
-      TagId = _selectedTags.Select(tag => tag.Id).ToList()
+      Tags = _selectedTags.ToList()
      };
 
      var result = await newPlanet.CreateAsync();

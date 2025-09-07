@@ -21,7 +21,7 @@
 
         <ResultLabel Result="@_mainResult" />
         
-        <SearchTagFilterComponent InitialTags="Planet.TagId" OnTagSelectToPlanet="HandleTagSelection"
+        <SearchTagFilterComponent InitialTags="Planet.Tags?.Select(t => t.Id).ToList() ?? new List<long>()" OnTagSelectToPlanet="HandleTagSelection"
                    OnTagRemoveToPlanet="HandleTagRemoved" ShowCreateButton="true"/>
         
         <div class="actions mt-3">
@@ -177,13 +177,14 @@
 
     private void HandleTagSelection(PlanetTag planetTag)
     {
-        if (Planet.TagId.Contains(planetTag.Id)) return;
-        Planet.TagId.Add(planetTag.Id);
+        if (Planet.Tags == null) Planet.Tags = new List<PlanetTag>();
+        if (Planet.Tags.Any(t => t.Id == planetTag.Id)) return;
+        Planet.Tags.Add(planetTag);
     }
 
     private void HandleTagRemoved(PlanetTag planetTag)
     {
-        if (!Planet.TagId.Contains(planetTag.Id)) return;
-        Planet.TagId.Remove(planetTag.Id);
+        if (Planet.Tags == null) return;
+        Planet.Tags.RemoveAll(t => t.Id == planetTag.Id);
     }
 }

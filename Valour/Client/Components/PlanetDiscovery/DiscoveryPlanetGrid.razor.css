@@ -35,3 +35,58 @@
         gap: 2rem;
     }
 }
+
+/* Loading state */
+.planet-grid-loading {
+    grid-column: 1 / -1; /* Span all columns */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    min-height: 400px;
+    color: var(--v-text-secondary);
+}
+
+.planet-grid-spinner {
+    font-size: 48px;
+    margin-bottom: 20px;
+    animation: spin 1s linear infinite;
+}
+
+.planet-grid-loading-text {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.planet-grid-empty {
+    grid-column: 1 / -1; /* Span all columns */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    min-height: 400px;
+    color: var(--v-text-secondary);
+}
+
+.planet-grid-empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.planet-grid-empty-text {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+    max-width: 400px;
+}

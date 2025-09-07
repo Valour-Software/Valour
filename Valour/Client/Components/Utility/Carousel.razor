@@ -4,10 +4,28 @@
 @using Valour.Client.Utility
 
 <div class="carousel-root" @ref="_rootElement">
-    <div class="carousel-viewport @(EnableFadeEffect ? "fade-enabled" : "")" style="@(EnableFadeEffect ? $"--fade-opacity: {FadeOpacity}; --fade-width: {FadeWidth}px;" : "")">
-        <div class="carousel-track" style="transform: translateX(@($"-{_offsetPx}px")); transition: transform @(_transitionMs)ms ease;">
-            @if (Items != null)
-            {
+    @if (IsLoading)
+    {
+        <div class="carousel-loading">
+            <div class="carousel-spinner">
+                <i class="bi bi-arrow-clockwise"></i>
+            </div>
+            <p class="carousel-loading-text">Loading...</p>
+        </div>
+    }
+    else if (Items == null || !Items.Any())
+    {
+        <div class="carousel-empty">
+            <div class="carousel-empty-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <p class="carousel-empty-text">@EmptyMessage</p>
+        </div>
+    }
+    else
+    {
+        <div class="carousel-viewport @(EnableFadeEffect ? "fade-enabled" : "")" style="@(EnableFadeEffect ? $"--fade-opacity: {FadeOpacity}; --fade-width: {FadeWidth}px;" : "")">
+            <div class="carousel-track" style="transform: translateX(@($"-{_offsetPx}px")); transition: transform @(_transitionMs)ms ease;">
                 @foreach (var (item, index) in Items.Select((item, index) => (item, index)))
                 {
                     <div class="carousel-item" style="width: @(_itemWidth)px;" @key="index">
@@ -16,23 +34,23 @@
                         </div>
                     </div>
                 }
-            }
+            </div>
         </div>
-    </div>
-    
-    <button class="carousel-nav carousel-prev @(_canScrollLeft ? "" : "disabled")" 
-            @onclick="ScrollLeft" 
-            aria-label="Previous"
-            disabled="@(!_canScrollLeft)">
-        <i class="bi bi-chevron-left"></i>
-    </button>
-    
-    <button class="carousel-nav carousel-next @(_canScrollRight ? "" : "disabled")" 
-            @onclick="ScrollRight" 
-            aria-label="Next"
-            disabled="@(!_canScrollRight)">
-        <i class="bi bi-chevron-right"></i>
-    </button>
+        
+        <button class="carousel-nav carousel-prev @(_canScrollLeft ? "" : "disabled")" 
+                @onclick="ScrollLeft" 
+                aria-label="Previous"
+                disabled="@(!_canScrollLeft)">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        
+        <button class="carousel-nav carousel-next @(_canScrollRight ? "" : "disabled")" 
+                @onclick="ScrollRight" 
+                aria-label="Next"
+                disabled="@(!_canScrollRight)">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    }
 </div>
 
 @code {
@@ -49,6 +67,8 @@
     [Parameter] public double FadeOpacity { get; set; } = 0.3;
     [Parameter] public int FadeWidth { get; set; } = 50;
     [Parameter] public bool CenterItems { get; set; } = true;
+    [Parameter] public bool IsLoading { get; set; } = false;
+    [Parameter] public string EmptyMessage { get; set; } = "No content available";
 
     private ElementReference _rootElement;
     private int _currentIndex;

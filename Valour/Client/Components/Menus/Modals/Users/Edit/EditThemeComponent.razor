@@ -234,53 +234,43 @@ else
                      OnSearchCleared="@OnSearchCleared" />
     </div>
     
-    @if (_popularThemeCount == -1)
-    {
-        <h6>Loading...</h6>
-    }
-    else if (_popularThemeCount == 0)
-    {
-        <h6>No themes found.</h6>
-    }
-    else
-    {
+    <div class="carousel-section">
+        <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
+                  @ref="_popularCarousel"
+                  Items="@_popularThemesList"
+                  Breakpoints="@_themeBreakpoints"
+                  GapPx="16"
+                  TransitionMs="300"
+                  MinItemWidth="200"
+                  MaxItemWidth="300"
+                  ItemPadding="8"
+                  IsLoading="@_isLoadingPopular"
+                  EmptyMessage="No popular themes found">
+            <ItemTemplate>
+                <ThemeCard Theme="@context" Editor="@this" />
+            </ItemTemplate>
+        </Carousel>
+    </div>
+    
+    <div class="theme-section">
+        <h5>My Themes</h5>
         <div class="carousel-section">
             <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
-                      @ref="_popularCarousel"
-                      Items="@_popularThemesList"
+                      @ref="@_myCarousel"
+                      Items="@_myThemes"
                       Breakpoints="@_themeBreakpoints"
                       GapPx="16"
                       TransitionMs="300"
                       MinItemWidth="200"
                       MaxItemWidth="300"
-                      ItemPadding="8">
+                      ItemPadding="8"
+                      IsLoading="@_isLoadingMy"
+                      EmptyMessage="You haven't created any themes yet">
                 <ItemTemplate>
                     <ThemeCard Theme="@context" Editor="@this" />
                 </ItemTemplate>
             </Carousel>
         </div>
-    }
-    
-    <div class="theme-section">
-        <h5>My Themes</h5>
-        @if (_myThemes is not null)
-        {
-            <div class="carousel-section">
-                <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
-                          @ref="@_myCarousel"
-                          Items="@_myThemes"
-                          Breakpoints="@_themeBreakpoints"
-                          GapPx="16"
-                          TransitionMs="300"
-                          MinItemWidth="200"
-                          MaxItemWidth="300"
-                          ItemPadding="8">
-                    <ItemTemplate>
-                        <ThemeCard Theme="@context" Editor="@this" />
-                    </ItemTemplate>
-                </Carousel>
-            </div>
-        }
     </div>
 
     <br />
@@ -297,8 +287,10 @@ else
     private ThemeMetaQueryEngine _popularThemes;
     private int _popularThemeCount = 0;
     private List<Valour.Sdk.Models.Themes.ThemeMeta> _popularThemesList = new();
+    private bool _isLoadingPopular = false;
     
     private List<Valour.Sdk.Models.Themes.ThemeMeta> _myThemes;
+    private bool _isLoadingMy = false;
     
     private readonly List<Breakpoint> _themeBreakpoints = new()
     {
@@ -346,62 +338,80 @@ else
 
     private async Task OnSearchChangeAsync(string searchValue)
     {
-        // Use proper ModelQueryEngine API with QueryOptions
-        _popularThemes.SetFilter("search", searchValue, apply: true);
-        
-        // Reload themes with new filter
-        _popularThemesList.Clear();
-        _popularThemeCount = await _popularThemes.GetTotalCountAsync();
-        
-        // Load themes in batches
-        int pageSize = 50;
-        int currentPage = 0;
-        
-        while (true)
-        {
-            var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
-            if (page == null || page.Count == 0)
-                break;
-                
-            _popularThemesList.AddRange(page);
-            
-            if (page.Count < pageSize)
-                break;
-                
-            currentPage++;
-        }
-
+        _isLoadingPopular = true;
         StateHasChanged();
+        
+        try
+        {
+            // Use proper ModelQueryEngine API with QueryOptions
+            _popularThemes.SetFilter("search", searchValue, apply: true);
+            
+            // Reload themes with new filter
+            _popularThemesList.Clear();
+            _popularThemeCount = await _popularThemes.GetTotalCountAsync();
+            
+            // Load themes in batches
+            int pageSize = 50;
+            int currentPage = 0;
+            
+            while (true)
+            {
+                var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
+                if (page == null || page.Count == 0)
+                    break;
+                    
+                _popularThemesList.AddRange(page);
+                
+                if (page.Count < pageSize)
+                    break;
+                    
+                currentPage++;
+            }
+        }
+        finally
+        {
+            _isLoadingPopular = false;
+            StateHasChanged();
+        }
     }
 
     private async Task OnSearchCleared()
     {
-        // Clear the search filter
-        _popularThemes.SetFilter("search", null, apply: true);
-        
-        // Reload themes without filter
-        _popularThemesList.Clear();
-        _popularThemeCount = await _popularThemes.GetTotalCountAsync();
-        
-        // Load themes in batches
-        int pageSize = 50;
-        int currentPage = 0;
-        
-        while (true)
-        {
-            var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
-            if (page == null || page.Count == 0)
-                break;
-                
-            _popularThemesList.AddRange(page);
-            
-            if (page.Count < pageSize)
-                break;
-                
-            currentPage++;
-        }
-
+        _isLoadingPopular = true;
         StateHasChanged();
+        
+        try
+        {
+            // Clear the search filter
+            _popularThemes.SetFilter("search", null, apply: true);
+            
+            // Reload themes without filter
+            _popularThemesList.Clear();
+            _popularThemeCount = await _popularThemes.GetTotalCountAsync();
+            
+            // Load themes in batches
+            int pageSize = 50;
+            int currentPage = 0;
+            
+            while (true)
+            {
+                var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
+                if (page == null || page.Count == 0)
+                    break;
+                    
+                _popularThemesList.AddRange(page);
+                
+                if (page.Count < pageSize)
+                    break;
+                    
+                currentPage++;
+            }
+        }
+        finally
+        {
+            _isLoadingPopular = false;
+            StateHasChanged();
+        }
     }
     
     private void OnCssChange()
@@ -642,31 +652,46 @@ else
 
     private async Task GetAllThemes()
     {
-        _popularThemes = ThemeService.GetAvailableThemeReader(amount: 100);
+        // Set loading states
+        _isLoadingPopular = true;
+        _isLoadingMy = true;
+        StateHasChanged();
         
-        // Load all popular themes into a list
-        _popularThemesList.Clear();
-        _popularThemeCount = await _popularThemes.GetTotalCountAsync();
-        
-        // Load themes in batches
-        int pageSize = 50;
-        int currentPage = 0;
-        
-        while (true)
+        try
         {
-            var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
-            if (page == null || page.Count == 0)
-                break;
-                
-            _popularThemesList.AddRange(page);
+            _popularThemes = ThemeService.GetAvailableThemeReader(amount: 100);
             
-            if (page.Count < pageSize)
-                break;
+            // Load all popular themes into a list
+            _popularThemesList.Clear();
+            _popularThemeCount = await _popularThemes.GetTotalCountAsync();
+            
+            // Load themes in batches
+            int pageSize = 50;
+            int currentPage = 0;
+            
+            while (true)
+            {
+                var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
+                if (page == null || page.Count == 0)
+                    break;
+                    
+                _popularThemesList.AddRange(page);
                 
-            currentPage++;
+                if (page.Count < pageSize)
+                    break;
+                    
+                currentPage++;
+            }
+            
+            _myThemes = await ThemeService.GetMyThemes();
         }
-        
-        _myThemes = await ThemeService.GetMyThemes();
+        finally
+        {
+            // Clear loading states
+            _isLoadingPopular = false;
+            _isLoadingMy = false;
+            StateHasChanged();
+        }
     }
     
     public void Dispose()

@@ -1,5 +1,4 @@
 @using System.Text
-@inject PlanetTagService TagService
 @inherits ComponentBase
 @using Valour.Sdk.Models
 
@@ -75,12 +74,12 @@
         }
 
         _tagSlugs.Clear();
-        if (PlanetInfo.TagIds != null)
+        if (PlanetInfo.Tags != null && PlanetInfo.Tags.Count > 0)
         {
-            foreach (var id in PlanetInfo.TagIds.Distinct().Take(6))
+            // Use the pre-loaded tags
+            foreach (var tag in PlanetInfo.Tags.Take(6))
             {
-                var tag = await TagService.FetchTagByIdAsync(id);
-                if (tag != null && !string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
+                if (!string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
                     _tagSlugs.Add(tag.Slug);
             }
         }

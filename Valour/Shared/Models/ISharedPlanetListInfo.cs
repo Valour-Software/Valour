@@ -50,9 +50,6 @@ public interface ISharedPlanetListInfo : ISharedModel<long>
     /// The version of the planet
     /// </summary>
     int Version { get; set; }
-    
-    /// <summary>
-    /// List of tag IDs associated with the planet
-    /// </summary>
-    List<long> TagIds { get; set; }
+
+    public List<ISharedPlanetTag> GetTagsGeneric();
 }

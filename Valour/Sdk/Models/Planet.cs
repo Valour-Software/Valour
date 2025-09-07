@@ -172,7 +172,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public bool HasCustomBackground { get; set; }
     
-    public List<long> TagId { get; set; }
+    public List<PlanetTag> Tags { get; set; }
 
     internal void SetMyMember(PlanetMember member)
     {

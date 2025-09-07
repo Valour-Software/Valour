@@ -108,9 +108,9 @@ public class PlanetService
 
     
     private DateTime _lastDiscoverableUpdate = DateTime.MinValue;
-    private List<ISharedPlanetListInfo> _cachedDiscoverables;
+    private List<PlanetListInfo> _cachedDiscoverables;
 
-    public async Task<List<ISharedPlanetListInfo>> GetDiscoveryPlanetsAsync()
+    public async Task<List<PlanetListInfo>> GetDiscoveryPlanetsAsync()
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public
@@ -121,7 +121,7 @@ public class PlanetService
             .ToListAsync();
     }
     
-    public async Task<ISharedPlanetListInfo> GetPlanetInfoAsync(long planetId)
+    public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Id == planetId && x.Public && !x.IsDeleted) // only public planets
@@ -129,7 +129,7 @@ public class PlanetService
             .FirstOrDefaultAsync();
     }
     
-    private static readonly Expression<Func<Valour.Database.Planet, ISharedPlanetListInfo>> PlanetListInfoSelector = x => new Valour.Sdk.Models.PlanetListInfo
+    private static readonly Expression<Func<Valour.Database.Planet, PlanetListInfo>> PlanetListInfoSelector = x => new PlanetListInfo
     {
         Id = x.Id,
         PlanetId = x.Id,
@@ -140,13 +140,18 @@ public class PlanetService
         HasCustomBackground = x.HasCustomBackground,
         MemberCount = x.Members.Count(),
         Version = x.Version,
-        TagIds = x.Tags.Select(t => t.Id).Distinct().ToList()
+        Tags = x.Tags.Select(t => new PlanetTag
+        {
+            Id = t.Id,
+            Name = t.Name,
+            Slug = t.Slug
+        }).ToList()
     };
     
     /// <summary>
     /// Returns discoverable planets
     /// </summary>
-    public async Task<List<ISharedPlanetListInfo>> GetDiscoverablesAsync()
+    public async Task<List<PlanetListInfo>> GetDiscoverablesAsync()
     {
         if (_lastDiscoverableUpdate.AddMinutes(5) < DateTime.UtcNow || _cachedDiscoverables is null)
         {
@@ -160,7 +165,7 @@ public class PlanetService
     /// <summary>
     /// Queries discoverable planets with filters and pagination
     /// </summary>
-    public async Task<QueryResponse<ISharedPlanetListInfo>> QueryDiscoverablePlanetsAsync(QueryRequest queryRequest)
+    public async Task<QueryResponse<PlanetListInfo>> QueryDiscoverablePlanetsAsync(QueryRequest queryRequest)
     {
         var take = queryRequest.Take;
         if (take > 50)
@@ -200,7 +205,7 @@ public class PlanetService
             .Select(PlanetListInfoSelector)
             .ToListAsync();
 
-        return new QueryResponse<ISharedPlanetListInfo>
+        return new QueryResponse<PlanetListInfo>
         {
             Items = items,
             TotalCount = totalCount
@@ -410,15 +415,6 @@ public class PlanetService
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         var planet = model.ToDatabase();
-        
-        if (model.TagIds?.Any() ?? false)
-        {
-            var tags = await _db.Tags
-                .Where(t => model.TagIds.Contains(t.Id))
-                .ToListAsync();
-            
-            planet.Tags = tags;
-        }
 
         planet.Description ??= "A new planet!";
         
@@ -550,10 +546,10 @@ public class PlanetService
         {
             var dbPlanet = planet.ToDatabase(old);
             
-            if (planet.TagIds?.Any() ?? false)
+            if (planet.Tags is not null && planet.Tags.Count > 0)
             {
                 var existingTagIds = dbPlanet.Tags.Select(t => t.Id).ToHashSet();
-                var newTagIds = planet.TagIds.ToHashSet();
+                var newTagIds = planet.Tags.Select(t => t.Id).ToHashSet();
 
                 foreach (var tag in dbPlanet.Tags.Where(t => !newTagIds.Contains(t.Id)).ToList())
                 {

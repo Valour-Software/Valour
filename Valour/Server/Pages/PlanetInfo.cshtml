@@ -1,0 +1,169 @@
+@page "/p/{PlanetIdText}"
+@model Valour.Server.Pages.PlanetInfoModel
+@using Valour.Shared.Models
+@using Valour.Client.Components.Utility
+@using Microsoft.AspNetCore.Components
+@{
+    ViewData["Title"] = Model.PlanetInfo?.Name ?? "Planet";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(Model.PlanetInfo?.Name ?? "Planet") - Valour</title>
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/_content/Valour.Client/media/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    
+    @if (Model.PlanetInfo != null)
+    {
+        <meta name="description" content="@Model.PlanetInfo.Description" />
+        <meta name="keywords" content="valour, planet, community, @Model.PlanetInfo.Name" />
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="@Model.RequestUrl" />
+        <meta property="og:title" content="@Model.PlanetInfo.Name - Valour" />
+        <meta property="og:description" content="@Model.PlanetInfo.Description" />
+        <meta property="og:image" content="@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)" />
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="@Model.RequestUrl" />
+        <meta property="twitter:title" content="@Model.PlanetInfo.Name - Valour" />
+        <meta property="twitter:description" content="@Model.PlanetInfo.Description" />
+        <meta property="twitter:image" content="@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)" />
+        
+        <!-- Structured Data -->
+        <script type="application/ld+json">
+        {
+            "@@context": "https://schema.org",
+            "@@type": "Organization",
+            "name": "@Model.PlanetInfo.Name",
+            "description": "@Model.PlanetInfo.Description",
+            "url": "@Model.RequestUrl",
+            "logo": "@ISharedPlanet.GetIconUrl(Model.PlanetInfo, IconFormat.Webp256)",
+            "memberOf": {
+                "@@type": "Organization",
+                "name": "Valour"
+            }
+        }
+        </script>
+    }
+    
+    <link id="bundled-css" href="_content/Valour.Client/css/bundled.min.css?version=$(SHORTHASH)" rel="stylesheet" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Ubuntu', sans-serif;
+            background: linear-gradient(135deg, #040d14 0%, #0b151d 50%, #121e27 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        
+        .planet-page-container {
+            min-height: 100vh;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
+        }
+        
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 1.5rem;
+            color: var(--font-color);
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error-container h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #cd5e5e;
+            margin: 0;
+        }
+        
+        .error-container p {
+            font-size: 1.1rem;
+            color: #7a7a7a;
+            margin: 0;
+            max-width: 500px;
+            line-height: 1.5;
+        }
+        
+        .v-btn {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 400;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5em 1em;
+            display: inline-block;
+            outline: none !important;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s ease-in-out;
+        }
+        
+        .v-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .v-btn.primary {
+            background-color: #37a4ce;
+            color: white;
+        }
+        
+        .v-btn.primary:hover {
+            background-color: #8457cd;
+            color: white;
+        }
+        
+        @@media (max-width: 768px) {
+            .planet-page-container {
+                padding: 1rem;
+            }
+            
+            .error-container {
+                padding: 1rem;
+            }
+            
+            .error-container h2 {
+                font-size: 1.5rem;
+            }
+            
+            .error-container p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    @if (Model.PlanetInfo != null)
+    {
+        <div class="planet-page-container">
+            @(await Html.RenderComponentAsync<PlanetInfoDisplay>(RenderMode.Static, new { PlanetInfo = Model.PlanetInfo, IsFullPage = true }))
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="error-container">
+            <h2>Planet Not Found</h2>
+            <p>@Model.ErrorMessage</p>
+            <a href="/" class="v-btn primary">Go Home</a>
+        </div>
+    }
+</body>
+</html>
+

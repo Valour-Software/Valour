@@ -157,6 +157,20 @@ public class PlanetService : ServiceBase
         _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
 
     /// <summary>
+    /// Fetches public planet information by ID (no membership required)
+    /// </summary>
+    public async Task<TaskResult<PlanetListInfo>> FetchPlanetInfoAsync(long planetId)
+    {
+        var response = await _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"api/planets/{planetId}/info");
+        if (!response.Success)
+            return TaskResult<PlanetListInfo>.FromFailure(response.Message);
+        
+        var planetInfo = response.Data;
+        planetInfo.Sync(_client);
+        return TaskResult<PlanetListInfo>.FromData(planetInfo);
+    }
+
+    /// <summary>
     /// Fetches all planets that the user has joined from the server
     /// </summary>
     public async Task<TaskResult> FetchJoinedPlanetsAsync()

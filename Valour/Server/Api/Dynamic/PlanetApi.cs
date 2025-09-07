@@ -429,6 +429,18 @@ public class PlanetApi
         return Results.Json(result);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/info")]
+    public static async Task<IResult> GetPlanetInfoAsync(
+        long id,
+        PlanetService planetService)
+    {
+        var planetInfo = await planetService.GetPlanetInfoAsync(id);
+        if (planetInfo is null)
+            return ValourResult.NotFound("Planet not found or not public");
+        
+        return Results.Json(planetInfo);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]
     public static async Task<IResult> GetDiscoverables(PlanetService planetService)
     {

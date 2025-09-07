@@ -36,7 +36,9 @@
                                  OnSearchChanged="@OnSearchChanged" 
                                  OnSearchCleared="@OnSearchCleared" />
                     
-                    <DiscoveryPlanetGrid @ref="PlanetGrid" />
+                    <DiscoveryPlanetGrid @ref="PlanetGrid" 
+                                         IsLoading="@_isSearchLoading"
+                                         EmptyMessage="No planets found matching your search" />
                     break;
                 default:
                     <span>Loading planets…</span>
@@ -58,6 +60,7 @@
     private bool _carouselInitialized;
     private ModelQueryEngine<PlanetListInfo> _discoverablePlanetsQuery;
     private List<PlanetListInfo> _filteredPlanets = new();
+    private bool _isSearchLoading = false;
     
     private DiscoveryPlanetGrid _planetGrid;
     private DiscoveryPlanetGrid PlanetGrid
@@ -161,18 +164,30 @@
 
     private Task OnSearchCleared()
     {
-        _searchTerm = string.Empty;
-        _filteredPlanets = UnjoinedPlanets;
+        _isSearchLoading = true;
+        StateHasChanged();
         
-        // Clear the search filter on the query engine
-        if (_discoverablePlanetsQuery != null)
+        try
         {
-            _discoverablePlanetsQuery.ResetPaging();
-            _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
+            _searchTerm = string.Empty;
+            _filteredPlanets = UnjoinedPlanets;
+            
+            // Clear the search filter on the query engine
+            if (_discoverablePlanetsQuery != null)
+            {
+                _discoverablePlanetsQuery.ResetPaging();
+                _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
+            }
+            
+            StateHasChanged();
+            _planetGrid?.SetPlanets(_filteredPlanets);
+        }
+        finally
+        {
+            _isSearchLoading = false;
+            StateHasChanged();
         }
         
-        StateHasChanged();
-        _planetGrid?.SetPlanets(_filteredPlanets);
         return Task.CompletedTask;
     }
 
@@ -180,28 +195,39 @@
     {
         if (_discoverablePlanetsQuery == null) return;
         
-        // Reset paging and set the search filter on the query engine
-        _discoverablePlanetsQuery.ResetPaging();
-        
-        // Only apply search filter if search term is not null or empty
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            _discoverablePlanetsQuery.SetFilter("search", _searchTerm, apply: true);
-        }
-        else
-        {
-            _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
-        }
-        
-        // Get the first page of filtered results
-        await _discoverablePlanetsQuery.GetPageAsync(0, 50);
-        var filteredResults = _discoverablePlanetsQuery.CurrentPage.ToList();
-        
-        // Filter out joined planets
-        _filteredPlanets = filteredResults.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
-        
+        _isSearchLoading = true;
         StateHasChanged();
-        _planetGrid?.SetPlanets(_filteredPlanets);
+        
+        try
+        {
+            // Reset paging and set the search filter on the query engine
+            _discoverablePlanetsQuery.ResetPaging();
+            
+            // Only apply search filter if search term is not null or empty
+            if (!string.IsNullOrWhiteSpace(_searchTerm))
+            {
+                _discoverablePlanetsQuery.SetFilter("search", _searchTerm, apply: true);
+            }
+            else
+            {
+                _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
+            }
+            
+            // Get the first page of filtered results
+            await _discoverablePlanetsQuery.GetPageAsync(0, 50);
+            var filteredResults = _discoverablePlanetsQuery.CurrentPage.ToList();
+            
+            // Filter out joined planets
+            _filteredPlanets = filteredResults.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
+            
+            StateHasChanged();
+            _planetGrid?.SetPlanets(_filteredPlanets);
+        }
+        finally
+        {
+            _isSearchLoading = false;
+            StateHasChanged();
+        }
     }
 
     public ValueTask DisposeAsync()

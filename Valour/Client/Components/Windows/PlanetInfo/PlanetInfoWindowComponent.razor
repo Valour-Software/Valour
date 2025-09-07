@@ -1,11 +1,6 @@
 @inherits WindowContentComponent<PlanetListInfo>
 
-<h3>@Data.Name</h3>
-<hr/>
-<br/>
-<p>
-    @Data.Description
-</p>
+<PlanetInfoDisplay PlanetInfo="@Data" />
 
 @code {
 
