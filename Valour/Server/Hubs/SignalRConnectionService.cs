@@ -25,7 +25,7 @@ public class SignalRConnectionService : IDisposable
     private static readonly ConcurrentDictionary<string, Valour.Database.PrimaryNodeConnection> PrimaryConnections = new();
     
     // Thread synchronization
-    private static readonly SemaphoreSlim _registryLock = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _registryLock = new SemaphoreSlim(1, 1);
     
     // Our single source of truth - all other structures derive from this
     private static readonly ConcurrentDictionary<string, GroupInfo> GroupRegistry = new();

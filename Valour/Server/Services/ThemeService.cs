@@ -1,4 +1,5 @@
 ﻿using ExCSS;
+using Valour.Sdk.ModelLogic;
 using Valour.Server.Database;
 using Valour.Server.Mapping.Themes;
 using Valour.Server.Models.Themes;
@@ -39,12 +40,10 @@ public class ThemeService
         
         if (take > 50)
             take = 50;
-        
+    
         var baseQuery = _db.Themes
             .AsNoTracking()
             .Where(x => x.Published);
-
-        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -53,7 +52,7 @@ public class ThemeService
                                              EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%"));
         }
         
-        var skip = queryRequest.Skip;
+        var count = await baseQuery.CountAsync();
 
         var mainQuery = baseQuery
             .Include(x => x.ThemeVotes)
@@ -66,9 +65,7 @@ public class ThemeService
             .OrderByDescending(x => x.VoteCount)
             .Skip(skip)
             .Take(take);
-        
-        var count = await mainQuery.CountAsync();
-        
+
         var data = await mainQuery.Select(x => new ThemeMeta()
         {
             Id = x.Theme.Id,
@@ -80,13 +77,99 @@ public class ThemeService
             MainColor1 = x.Theme.MainColor1,
             PastelCyan = x.Theme.PastelCyan
         }).ToListAsync();
-        
+    
         return new QueryResponse<ThemeMeta>()
         {
             Items = data,
             TotalCount = count
         };
     }
+
+    /// <summary>
+    /// Returns a list of theme meta info using the ModelQueryEngine pattern.
+    /// </summary>
+    /// <param name="request">The query request with filters, sorting, and pagination</param>
+    /// <returns>A QueryResponse with theme meta info</returns>
+    public async Task<QueryResponse<ThemeMeta>> QueryThemes(QueryRequest request)
+    {
+        var take = Math.Min(request.Take, 50);
+        var skip = request.Skip;
+    
+        var baseQuery = _db.Themes
+            .AsNoTracking()
+            .Where(x => x.Published);
+        
+        // Apply search filter
+        if (request.Options?.Filters != null && request.Options.Filters.TryGetValue("search", out var searchValue) && !string.IsNullOrWhiteSpace(searchValue))
+        {
+            baseQuery = baseQuery.Where(x => x.Name.ToLower().Contains(searchValue.ToLower()) || 
+                                           x.Description.ToLower().Contains(searchValue.ToLower()));
+        }
+        
+        var count = await baseQuery.CountAsync();
+        
+        // Apply sorting
+        var mainQuery = baseQuery
+            .Include(x => x.ThemeVotes)
+            .Select(x => new
+            {
+                Theme = x,
+                VoteCount = x.ThemeVotes.Count(v => v.Sentiment) - 
+                            x.ThemeVotes.Count(v => !v.Sentiment)
+            });
+
+        var defaultSort = "votes";
+
+        // Apply sort options
+        switch ((request.Options?.Sort?.Field ?? defaultSort).ToLower())
+        {
+            case "name":
+                mainQuery = request.Options.Sort.Descending 
+                    ? mainQuery.OrderByDescending(x => x.Theme.Name)
+                    : mainQuery.OrderBy(x => x.Theme.Name);
+                break;
+            case "votes":
+            case "votecount":
+                mainQuery = request.Options.Sort.Descending 
+                    ? mainQuery.OrderByDescending(x => x.VoteCount)
+                    : mainQuery.OrderBy(x => x.VoteCount);
+                break;
+            case "created":
+            case "date":
+                mainQuery = request.Options.Sort.Descending 
+                    ? mainQuery.OrderByDescending(x => x.Theme.Id) // Using ID as proxy for creation date
+                    : mainQuery.OrderBy(x => x.Theme.Id);
+                break;
+            default:
+                // Default to vote count descending
+                mainQuery = mainQuery.OrderByDescending(x => x.VoteCount);
+                break;
+        }
+        
+
+        var data = await mainQuery
+            .Skip(skip)
+            .Take(take)
+            .Select(x => new ThemeMeta()
+            {
+                Id = x.Theme.Id,
+                AuthorId = x.Theme.AuthorId,
+                Name = x.Theme.Name,
+                Description = x.Theme.Description,
+                HasCustomBanner = x.Theme.HasCustomBanner,
+                HasAnimatedBanner = x.Theme.HasAnimatedBanner,
+                MainColor1 = x.Theme.MainColor1,
+                PastelCyan = x.Theme.PastelCyan
+            }).ToListAsync();
+    
+        return new QueryResponse<ThemeMeta>()
+        {
+            Items = data,
+            TotalCount = count
+        };
+    }
+
+
 
     public async Task<List<ThemeMeta>> GetThemesByUser(long userId)
     {
@@ -161,6 +244,11 @@ public class ThemeService
                 return TaskResult.FromFailure("Theme description is too long. Limit 500 characters.");
             }
         }
+        
+        if ( await _db.Themes.AnyAsync(t=>t.Name == theme.Name && t.Id != theme.Id ))
+        {
+            return TaskResult.FromFailure("Theme name already exists");
+        }
 
         return TaskResult.SuccessResult;
     }
@@ -227,7 +315,7 @@ public class ThemeService
             return TaskResult<Theme>.FromFailure("You have reached the maximum number of created themes.");
         }
         
-        using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
         try
         {
@@ -411,4 +499,5 @@ public class ThemeService
             .Where(x => x.UserId == userId && x.ThemeId == themeId)
             .FirstOrDefaultAsync()).ToModel();
     }
+    
 }

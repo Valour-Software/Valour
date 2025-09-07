@@ -30,14 +30,14 @@ else
 		<Icon>+<i class="bi bi-person-fill"></i></Icon>
 	</ContextMenuItem>
 }
-@if (_canKick)
+@if (_canKick && !_isSelf)
 {
 	<ContextMenuItem OnClickAsync="@OnClickKick" Color="red">
 		<Label>Kick</Label>
 		<Icon><i class="bi bi-shield-fill-exclamation"></i></Icon>
 	</ContextMenuItem>
 }
-@if (_canBan) {
+@if (_canBan && !_isSelf) {
 	<ContextMenuItem OnClickAsync="@OnClickBan" Color="red">
 		<Label>Ban</Label>
 		<Icon><i class="bi bi-hammer"></i></Icon>
@@ -76,6 +76,7 @@ else
 	private bool _canBan;
 	private bool _isFriend;
 	private bool _isFriendRequested;
+	private bool _isSelf;
 
 	private async Task OnClickAddFriend()
 	{
@@ -110,6 +111,7 @@ else
 	{
 		_isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == Data.Member.UserId);
 		_isFriend = FriendService.Friends.Any(x => x.Id == Data.Member.UserId);
+		_isSelf = Data.Member.UserId == Client.Me.Id;
 
 		_canKick = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Kick);
 		_canBan = Data.Member.Planet.MyMember.HasPermission(PlanetPermissions.Ban);
@@ -124,21 +126,25 @@ else
 		await WindowService.OpenWindowAtFocused(newWindowContent);
 	}
 
-	private async Task OnClickCopyNickname(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Name);
-	}
+	    private async Task OnClickCopyNickname(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Name);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Nickname copied to clipboard", ToastProgressState.Success));
+    }
 
-	private async Task OnClickCopyUsername(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.User.NameAndTag);
-	}
+    private async Task OnClickCopyUsername(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.User.NameAndTag);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Username copied to clipboard", ToastProgressState.Success));
+    }
 
-	private async Task OnClickCopyMemberId(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Id);
-	}
+    private async Task OnClickCopyMemberId(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Id);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Member ID copied to clipboard", ToastProgressState.Success));
+    }
 
-	private async Task OnClickCopyUserId(){
-		await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.UserId);
-	}
+    private async Task OnClickCopyUserId(){
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.UserId);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "User ID copied to clipboard", ToastProgressState.Success));
+    }
 
 	private async Task OnClickKick()
 	{

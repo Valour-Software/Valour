@@ -2,28 +2,27 @@
 @inject NavigationManager NavManager
 @inject ValourClient Client
 
-<div class="col-md-12">
-	<section class="modal-bg">
-		<h3>Delete your account?</h3>
-		<h5>This is a permanent action. You will lose all your data and will not be able to recover it, including eco balances and items.</h5>
-		
-		<div class="form-group mt-2">
-			<label>Password</label>
-			<input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" />
-		</div>
-		<br />
-		
-		@if (!string.IsNullOrWhiteSpace(_errorSpan))
-		{
-			<span id="password-span" class="text-danger">@_errorSpan (For help contact support@valour.gg)</span>
-			<br/>
-		}
-		
-		<br />
-		<div @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel</div>
-		<div @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</div>
-	</section>
-</div>
+<BasicModalLayout Title="Delete Account" Icon="trash-fill" MaxWidth="500px">
+    <MainArea>
+        <p>This is a permanent action. You will lose all your data and will not be able to recover it, including eco balances and items.</p>
+        
+        <div class="form-group">
+            <label>Password</label>
+            <input id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" />
+        </div>
+        
+        @if (!string.IsNullOrWhiteSpace(_errorSpan))
+        {
+            <span id="password-span" class="text-danger">@_errorSpan (For help contact support@valour.gg)</span>
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 	

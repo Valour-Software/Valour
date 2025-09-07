@@ -76,50 +76,10 @@
         
     }
     
-    private string GetCommunityShortCode(string communityName)
-    {
-        if (communityName.Length < 5)
-        {
-            return communityName.ToUpper();
-        }
-
-        var sb = new StringBuilder();
-
-        for (int i = 0; i < communityName.Length; i++)
-        {
-            if (i == 0)
-            {
-                sb.Append(char.ToUpper(communityName[0]));
-                continue;
-            }
-            
-            bool spaceFound = false;
-            char currentChar = communityName[i];
-
-            if (i > 0 && (communityName[i - 1] == ' ' || 
-                          (char.IsUpper(currentChar) && char.IsLower(communityName[i - 1]))))
-            {
-                spaceFound = true;
-            }
-
-            if (spaceFound)
-            {
-                sb.Append(char.ToUpper(currentChar));
-            }
-
-            if (sb.Length >= 4)
-            {
-                break;
-            }
-        }
-
-        return sb.ToString();
-    }
-    
     private void GenerateAutoGraphic()
     {
         _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-        _iconText = GetCommunityShortCode(PlanetInfo.Name);
+        _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
         _iconImageColor = PlanetInfo.PlanetId.GetHashCode();
 
         _iconTextStyle = $"font-size: {100f / (_iconText.Length + 1)}px;";

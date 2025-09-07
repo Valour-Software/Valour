@@ -1,72 +1,96 @@
 ﻿@if (Theme is null)
 {
-    <div class="theme-container">
-        <img class="theme-img" alt="Unknown image" src="_content/Valour.Client/media/image-not-found.webp" />
-        <div class="theme-info">
-            <h6 class="title"> 
-                Unknown Theme
-            </h6>
-            <p class="desc">
-                Loading theme data...
-            </p>
+    <div class="theme-card theme-card-loading">
+        <div class="theme-banner">
+            <img alt="Unknown image" src="_content/Valour.Client/media/image-not-found.webp" />
+        </div>
+        <div class="theme-content">
+            <h3 class="theme-title">Unknown Theme</h3>
+            <p class="theme-description">Loading theme data...</p>
         </div>
     </div>
     return;
 }
 
-<div class="theme-container" @onclick="@OnClick">
+<div class="theme-card theme-card-@Theme.Id" @onclick="@OnClick">
     @if (Theme.HasCustomBanner)
     {
         if (Theme.HasAnimatedBanner)
         {
             <style>
-                .theme-container:hover .theme-img-@Theme.Id {
+                .theme-card-@Theme.Id:hover .theme-banner {
                     background-image: url(@Theme.GetBannerUrl(ThemeBannerFormat.WebpAnimated)), url(@Theme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp) !important;
                 }
             </style>
         }
-        else
-        {
-            <div class="theme-img theme-img-@Theme.Id" style="background-image: url(@Theme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
-        }
+        <div class="theme-banner theme-banner-@Theme.Id" style="background-image: url(@Theme.GetBannerUrl(ThemeBannerFormat.Webp)), url(_content/Valour.Client/media/image-not-found.webp)"></div>
     }
     else
     {
-        <div class="theme-img" style="text-align: center; background-color: @Theme.MainColor1"> 
+        <div class="theme-banner theme-banner-default" style="background-color: @Theme.MainColor1"> 
             <Victor Style="max-width: 80px; padding: 5px; padding-top: 10px;" Color="@Theme.PastelCyan" />
         </div>
     }
-    <div class="theme-info">
-        <h6 class="title">
-            @Theme.Name
-        </h6>
-        <p class="desc">
-            @Theme.Description
-        </p>
+    
+    <div class="theme-content">
+        <h3 class="theme-title">@Theme.Name</h3>
+        <p class="theme-description">@Theme.Description</p>
+        
+        <div class="theme-actions">
+            <button class="theme-btn theme-btn-primary" @onclick:stopPropagation="true" @onclick="@OnApplyTheme">
+                <i class="bi bi-palette"></i>
+                Apply
+            </button>
+            @if (Editor != null)
+            {
+                <button class="theme-btn theme-btn-secondary" @onclick:stopPropagation="true" @onclick="@OnEditTheme">
+                    <i class="bi bi-pencil"></i>
+                    Edit
+                </button>
+            }
+        </div>
     </div>
 </div>
+
+@inject ThemeService ThemeService
 
 @code {
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
     
     [Parameter]
-    public ThemeMeta Theme { get; set; }
+    public Valour.Sdk.Models.Themes.ThemeMeta Theme { get; set; }
     
     [Parameter]
     public EditThemeComponent Editor { get; set; }
 
     private void OnClick()
     {
-        if (Theme.Id == 0)
-            return;
+        // Card click handled by individual buttons now
+    }
+
+    private async Task OnApplyTheme()
+    {
+        if (Theme == null) return;
         
-        var data = new ThemeInfoModal.ThemeInfoModalParams()
+        // Apply the theme
+        var theme = await ThemeService.FetchThemeAsync(Theme.Id);
+        if (theme != null)
         {
-            ThemeMeta = Theme,
-            Editor = Editor
-        };
+            ThemeComponent.Instance.CurrentTheme = theme;
+            ThemeComponent.Instance.Refresh();
+        }
+    }
+
+    private async Task OnEditTheme()
+    {
+        if (Editor == null || Theme == null) return;
         
-        ModalRoot.OpenModal<ThemeInfoModal>(data);
+        // Open the theme in the editor
+        var theme = await ThemeService.FetchThemeAsync(Theme.Id);
+        if (theme != null)
+        {
+            Editor.OpenEditorWithTheme(theme);
+        }
     }
 }

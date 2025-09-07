@@ -34,7 +34,8 @@
 	private static event Func<Task> OnToggleMobileSidebar;
 	public static async Task ToggleMobileSidebar()
 	{
-		if (OnToggleMobileSidebar is not null)
+		// Only toggle sidebar on mobile devices
+		if (DeviceInfo.IsMobile && OnToggleMobileSidebar is not null)
 			await OnToggleMobileSidebar.Invoke();
 	}
 	

@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
 using Valour.Server.Database;
 using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -108,25 +110,43 @@ public class PlanetService
     private DateTime _lastDiscoverableUpdate = DateTime.MinValue;
     private List<PlanetListInfo> _cachedDiscoverables;
 
-    public async Task<List<PlanetListInfo>> GetDiscoverablesFromDb()
+    public async Task<List<PlanetListInfo>> GetDiscoveryPlanetsAsync()
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public
                                        && (!x.Nsfw)) // do not allow weirdos in discovery
-            .Select(x => new PlanetListInfo()
-            {
-                PlanetId = x.Id,
-                Name = x.Name,
-                Description = x.Description,
-                HasCustomIcon = x.HasCustomIcon,
-                HasAnimatedIcon = x.HasAnimatedIcon,
-                MemberCount = x.Members.Count(),
-                Version = x.Version
-            })
+            .Select(PlanetListInfoSelector)
             .OrderByDescending(x => x.MemberCount)
             .Take(30)
             .ToListAsync();
     }
+    
+    public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
+    {
+        return await _db.Planets.AsNoTracking()
+            .Where(x => x.Id == planetId && x.Public && !x.IsDeleted) // only public planets
+            .Select(PlanetListInfoSelector)
+            .FirstOrDefaultAsync();
+    }
+    
+    private static readonly Expression<Func<Valour.Database.Planet, PlanetListInfo>> PlanetListInfoSelector = x => new PlanetListInfo
+    {
+        Id = x.Id,
+        PlanetId = x.Id,
+        Name = x.Name,
+        Description = x.Description,
+        HasCustomIcon = x.HasCustomIcon,
+        HasAnimatedIcon = x.HasAnimatedIcon,
+        HasCustomBackground = x.HasCustomBackground,
+        MemberCount = x.Members.Count(),
+        Version = x.Version,
+        Tags = x.Tags.Select(t => new PlanetTag
+        {
+            Id = t.Id,
+            Name = t.Name,
+            Slug = t.Slug
+        }).ToList()
+    };
     
     /// <summary>
     /// Returns discoverable planets
@@ -135,11 +155,61 @@ public class PlanetService
     {
         if (_lastDiscoverableUpdate.AddMinutes(5) < DateTime.UtcNow || _cachedDiscoverables is null)
         {
-            _cachedDiscoverables = await GetDiscoverablesFromDb();
+            _cachedDiscoverables = await GetDiscoveryPlanetsAsync();
             _lastDiscoverableUpdate = DateTime.UtcNow;
         }
         
         return _cachedDiscoverables;
+    }
+
+    /// <summary>
+    /// Queries discoverable planets with filters and pagination
+    /// </summary>
+    public async Task<QueryResponse<PlanetListInfo>> QueryDiscoverablePlanetsAsync(QueryRequest queryRequest)
+    {
+        var take = queryRequest.Take;
+        if (take > 50)
+            take = 50;
+        
+        var skip = queryRequest.Skip;
+        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
+
+        var query = _db.Planets.AsNoTracking()
+            .Where(x => x.Discoverable && x.Public && !x.Nsfw);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(x => 
+                EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%") ||
+                EF.Functions.ILike(x.Description.ToLower(), $"%{lowered}%"));
+        }
+
+        var sortDesc = queryRequest.Options?.Sort?.Descending ?? false;
+        query = queryRequest.Options?.Sort?.Field switch
+        {
+            "name" => sortDesc
+                ? query.OrderByDescending(x => x.Name)
+                : query.OrderBy(x => x.Name),
+            "memberCount" => sortDesc
+                ? query.OrderByDescending(x => x.Members.Count())
+                : query.OrderBy(x => x.Members.Count()),
+            _ => query.OrderByDescending(x => x.Members.Count())
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(PlanetListInfoSelector)
+            .ToListAsync();
+
+        return new QueryResponse<PlanetListInfo>
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
     /// <summary>
@@ -314,15 +384,23 @@ public class PlanetService
     /// <summary>
     /// Soft deletes the given planet
     /// </summary>
-    public async Task DeleteAsync(Planet planet)
+    public async Task DeleteAsync(long planetId)
     {
-        var entity = await _db.Planets.FindAsync(planet.Id);
+        var entity = await _db.Planets.FindAsync(planetId);
+        if (entity is null)
+        {
+            _logger.LogWarning("Tried to delete planet {PlanetId} but it does not exist.", planetId);
+            return;
+        }
+        
         entity.IsDeleted = true;
         
         _db.Planets.Update(entity);
         await _db.SaveChangesAsync();
         
-        _coreHub.NotifyPlanetDelete(planet);
+        var model = entity.ToModel();
+        
+        _coreHub.NotifyPlanetDelete(model);
     }
     
     /// <summary>
@@ -337,15 +415,6 @@ public class PlanetService
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         var planet = model.ToDatabase();
-        
-        if (model.TagId?.Any() ?? false)
-        {
-            var tags = await _db.Tags
-                .Where(t => model.TagId.Contains(t.Id))
-                .ToListAsync();
-            
-            planet.Tags = tags;
-        }
 
         planet.Description ??= "A new planet!";
         
@@ -477,10 +546,10 @@ public class PlanetService
         {
             var dbPlanet = planet.ToDatabase(old);
             
-            if (planet.TagId?.Any() ?? false)
+            if (planet.Tags is not null && planet.Tags.Count > 0)
             {
                 var existingTagIds = dbPlanet.Tags.Select(t => t.Id).ToHashSet();
-                var newTagIds = planet.TagId.ToHashSet();
+                var newTagIds = planet.Tags.Select(t => t.Id).ToHashSet();
 
                 foreach (var tag in dbPlanet.Tags.Where(t => !newTagIds.Contains(t.Id)).ToList())
                 {
@@ -502,6 +571,7 @@ public class PlanetService
             }
             
             _db.Planets.Update(dbPlanet);
+            
             await _db.SaveChangesAsync();
             await tran.CommitAsync();
         }
@@ -511,10 +581,6 @@ public class PlanetService
             _logger.LogError(e, e.Message);
             return new TaskResult<Planet>(false, "Error updating planet.");
         }
-        
-        // Copy changes to cached HostedPlanet!
-        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planet.Id);
-        hostedPlanet.Update(planet);
 
         _coreHub.NotifyPlanetChange(planet);
         

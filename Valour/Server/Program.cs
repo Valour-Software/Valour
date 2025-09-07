@@ -18,6 +18,7 @@ using Valour.Server.Workers;
 using Valour.Shared.Models;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
+using Microsoft.AspNetCore.Components;
 using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
@@ -133,7 +134,7 @@ public partial class Program
             new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
             new DynamicAPI<AutomodApi>().RegisterRoutes(app),
             new DynamicAPI<UserFriendApi>().RegisterRoutes(app),
-            new DynamicAPI<OauthAppAPI>().RegisterRoutes(app),
+            new DynamicAPI<OauthAppApi>().RegisterRoutes(app),
             new DynamicAPI<TenorFavoriteApi>().RegisterRoutes(app),
             new DynamicAPI<EcoApi>().RegisterRoutes(app),
             new DynamicAPI<NotificationApi>().RegisterRoutes(app),
@@ -145,7 +146,6 @@ public partial class Program
             new DynamicAPI<StaffApi>().RegisterRoutes(app),
             new DynamicAPI<MessageApi>().RegisterRoutes(app),
             new DynamicAPI<UnreadApi>().RegisterRoutes(app),
-            new DynamicAPI<UserWalletApi>().RegisterRoutes(app),
             new DynamicAPI<TagApi>().RegisterRoutes(app)
         };
 
@@ -212,6 +212,7 @@ public partial class Program
         app.UseAuthorization();
         app.MapRazorPages();
         app.MapControllers();
+        app.MapBlazorHub();
 
         app.MapFallbackToFile("_content/Valour.Client/index.html");
 
@@ -314,6 +315,7 @@ public partial class Program
         });
 
         services.AddRazorPages();
+        services.AddServerSideBlazor();
 
         //if (!string.IsNullOrEmpty(CloudflareConfig.Instance?.ApiKey))
         //{
@@ -364,7 +366,6 @@ public partial class Program
         services.AddScoped<PlanetPermissionService>();
         services.AddScoped<StartupService>();
         services.AddScoped<PushNotificationService>();
-        services.AddScoped<IWalletService,WalletService>();
         services.AddScoped<ITagService,TagService>();
 
         services.AddSingleton<NodeLifecycleService>();

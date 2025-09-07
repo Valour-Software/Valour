@@ -1,0 +1,111 @@
+@using System.Text
+@inherits ComponentBase
+@using Valour.Sdk.Models
+
+<div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)">
+    @if (PlanetInfo.HasCustomBackground)
+    {
+        var bgLocation = @ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
+
+        if (bgLocation is not null)
+        {
+            <style>
+                .planet-theme-card-@(PlanetInfo.PlanetId) {
+                    background: linear-gradient(180deg, #0a122699 60%, #20325b99 100%), url('@bgLocation') center center/cover no-repeat !important;
+                }
+            </style>
+        }
+    }
+    
+    <h3 class="planet-theme-title">@PlanetInfo.Name</h3>
+    <div class="planet-icon-img-holder mt-4">
+        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
+        @if (!PlanetInfo.HasCustomIcon)
+        {
+            <span class="icon-text planet-initials" style="font-size:@GetShortCodeFontSize(_iconText.Length)">
+                @_iconText
+            </span>
+        }
+    </div>
+    <div class="planet-info">
+        <div class="planet-tags">
+            <span class="planet-tag member-count-tag">
+                <strong>@PlanetInfo.MemberCount Members</strong>
+            </span>
+            @if (_tagSlugs.Count > 0)
+            {
+                @foreach (var tag in _tagSlugs)
+                {
+                    <span class="planet-tag">@tag.ToUpper()</span>
+                }
+            }
+        </div>
+        <p class="planet-desc">@_descText</p>
+        @if (!HideActions)
+        {
+            <div class="action-btns mt-2">
+                <button class="v-btn card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
+                <button class="v-btn card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public PlanetListInfo PlanetInfo { get; set; }
+    [Parameter] public EventCallback<PlanetListInfo> OnJoin { get; set; }
+    [Parameter] public bool HideActions { get; set; } = false;
+
+    private string _iconUrl;
+    private string _iconText = string.Empty;
+    private readonly List<string> _tagSlugs = new();
+
+    private string _descText;
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        _iconUrl = PlanetInfo.HasAnimatedIcon
+            ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
+            : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
+        
+        if (!PlanetInfo.HasCustomIcon)
+        {
+            _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
+        }
+
+        _tagSlugs.Clear();
+        if (PlanetInfo.Tags != null && PlanetInfo.Tags.Count > 0)
+        {
+            // Use the pre-loaded tags
+            foreach (var tag in PlanetInfo.Tags.Take(6))
+            {
+                if (!string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
+                    _tagSlugs.Add(tag.Slug);
+            }
+        }
+
+        if (PlanetInfo.Description.Length < 100)
+        {
+            _descText = PlanetInfo.Description;
+        }
+        else
+        {
+            _descText = PlanetInfo.Description.Substring(0, 100) + "...";
+        }
+    }
+    
+    private static string GetShortCodeFontSize(int length) => length switch
+    {
+        <= 2 => "2.2em",
+        3 => "1.55em",
+        4 => "1.18em",
+        _ => "1em"
+    };
+
+    private async Task OnInfoClick()
+    {
+        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(PlanetInfo);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
+    }
+
+}

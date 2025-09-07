@@ -21,11 +21,11 @@ export const init = (dotnet: DotnetObject) => {
         const dimensions = getWindowDimensions();
         await dotnet.invokeMethodAsync('NotifyWindowDimensions', { width: dimensions.width, height: dimensions.height });
     };
-    
+
     const onBlur = async () => {
         await dotnet.invokeMethodAsync('NotifyBlur');
     };
-    
+
     window.addEventListener('resize', onResize);
     window.addEventListener('blur', onBlur);
 
@@ -71,16 +71,18 @@ export const getWindowDimensions = (): Dimensions => {
     return { width, height };
 };
 
-export const getElementDimensions = (element: HTMLElement): Dimensions => {
+export const getElementDimensions = (element: HTMLElement | null): Dimensions => {
     if (!element)
-        return null;
-    
+        return { width: 0, height: 0 };
+
     const { clientWidth: width, clientHeight: height } = element;
     return { width, height };
 }
 
 export const getElementDimensionsBySelector = (selector: string): Dimensions => {
-    const element = document.querySelector(selector) as HTMLElement;
+    const element = document.querySelector(selector) as HTMLElement | null;
+    if (!element)
+        return { width: 0, height: 0 };
     const { clientWidth: width, clientHeight: height } = element;
     return { width, height };
 }
@@ -91,12 +93,15 @@ export const getElementPosition = (element: HTMLElement): { x: number, y: number
 };
 
 export const getElementBoundingRect = (element: HTMLElement) => {
+    if (!element || !element.getBoundingClientRect)
+        return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 } as DOMRect;
     return element.getBoundingClientRect();
 }
 
 export const getVerticalDistancesToContainer
     = (element: HTMLElement, container: HTMLElement) => {
-    // Get the bounding rectangle of the element
+    if (!element || !element.getBoundingClientRect || !container || !container.getBoundingClientRect)
+        return { topDistance: 0, bottomDistance: 0 };
     const elementRect = element.getBoundingClientRect();
 
     // Get the bounding rectangle of the scrollable container
@@ -116,7 +121,8 @@ export const getVerticalDistancesToContainer
 
 export const getVisibleVerticalDistancesToContainer
     = (element: HTMLElement, container: HTMLElement) => {
-    // Get the bounding rectangle of the element and container relative to the viewport
+    if (!element || !element.getBoundingClientRect || !container || !container.getBoundingClientRect)
+        return { topDistance: 0, bottomDistance: 0 };
     const elementRect = element.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
 

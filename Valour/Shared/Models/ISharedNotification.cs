@@ -21,6 +21,9 @@ public enum NotificationSource
     TradeProposed =          0x800,
     TradeAccepted =          0x1000,
     TradeDeclined =          0x2000,
+    
+    // DMs
+    DirectMessage =          0x4000,
 }
 
 public interface ISharedNotification : ISharedModel<Guid>

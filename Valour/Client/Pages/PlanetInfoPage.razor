@@ -1,0 +1,92 @@
+@page "/planet/{PlanetIdText}"
+@inject PlanetService PlanetService
+@inject NavigationManager Navigation
+
+<PageTitle>@(_planetInfo?.Name ?? "Planet") - Valour</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="loading-container">
+        <div class="loading-indicator"></div>
+        <p>Loading planet information...</p>
+    </div>
+}
+else if (_planetInfo != null)
+{
+    <div class="planet-page-container">
+        <PlanetInfoDisplay PlanetInfo="@_planetInfo" IsFullPage="true" />
+    </div>
+}
+else if (_errorMessage != null)
+{
+    <div class="error-container">
+        <h2>Planet Not Found</h2>
+        <p>@_errorMessage</p>
+    <button class="v-btn primary" @onclick="@(() => Navigation.NavigateTo("/"))">
+            Go Home
+        </button>
+    </div>
+}
+
+@code {
+    [Parameter] public string PlanetIdText { get; set; }
+
+    private long _planetId;
+    
+    private PlanetListInfo? _planetInfo;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPlanetInfo();
+    }
+
+    private async Task LoadPlanetInfo()
+    {
+        if (!long.TryParse(PlanetIdText, out var planetId))
+        {
+            _errorMessage = "Invalid planet ID format.";
+            _isLoading = false;
+            StateHasChanged();
+            return;
+        }
+        
+        _planetId = planetId;
+        
+        if (_planetId <= 0)
+        {
+            _errorMessage = "Invalid planet ID.";
+            _isLoading = false;
+            StateHasChanged();
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await PlanetService.FetchPlanetInfoAsync(_planetId);
+            if (result.Success)
+            {
+                _planetInfo = result.Data;
+            }
+            else
+            {
+                _errorMessage = result.Message ?? "The planet you're looking for doesn't exist or is not public.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "Failed to load planet information. Please try again later.";
+            Console.WriteLine($"Error loading planet {_planetId}: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

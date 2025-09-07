@@ -1,183 +1,335 @@
-﻿@typeparam TComponent
+﻿@typeparam TItem
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+@using Valour.Client.Utility
 
-<div class="carousel-container" style="min-height: @(Height)px">
-    <button class="carousel-nav prev @(CanScrollLeft ? "" : "disabled")" @onclick="ScrollLeft" aria-label="Previous items">
-        <i class="bi bi-chevron-left"></i>
-    </button>
-
-    <div class="carousel-viewport" @ref="_viewportElement">
-        <div class="carousel-track" style="transform: translateX(@($"{-_currentOffset}px"))">
-            @for (var i = 0; i < _loadedItems.Count; i++)
-            {
-                var index = i;
-                <div class="carousel-item" @key="index">
-                    <DynamicComponent Type="@typeof(TComponent)" Parameters="@_loadedItems[index]" />
-                </div>
-            }
-            
-            @if (_isLoading)
-            {
-                <div class="carousel-item loading">
-                    <div class="loading-indicator"></div>
-                </div>
-            }
+<div class="carousel-root" @ref="_rootElement">
+    @if (IsLoading)
+    {
+        <div class="carousel-loading">
+            <div class="carousel-spinner">
+                <i class="bi bi-arrow-clockwise"></i>
+            </div>
+            <p class="carousel-loading-text">Loading...</p>
         </div>
-    </div>
-
-    <button class="carousel-nav next @(CanScrollRight ? "" : "disabled")" @onclick="ScrollRight" aria-label="Next items">
-        <i class="bi bi-chevron-right"></i>
-    </button>
+    }
+    else if (Items == null || !Items.Any())
+    {
+        <div class="carousel-empty">
+            <div class="carousel-empty-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <p class="carousel-empty-text">@EmptyMessage</p>
+        </div>
+    }
+    else
+    {
+        <div class="carousel-viewport @(EnableFadeEffect ? "fade-enabled" : "")" style="@(EnableFadeEffect ? $"--fade-opacity: {FadeOpacity}; --fade-width: {FadeWidth}px;" : "")">
+            <div class="carousel-track" style="transform: translateX(@($"-{_offsetPx}px")); transition: transform @(_transitionMs)ms ease;">
+                @foreach (var (item, index) in Items.Select((item, index) => (item, index)))
+                {
+                    <div class="carousel-item" style="width: @(_itemWidth)px;" @key="index">
+                        <div class="carousel-item-wrapper" style="padding: @(ItemPadding)px;">
+                            @ItemTemplate(item)
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <button class="carousel-nav carousel-prev @(_canScrollLeft ? "" : "disabled")" 
+                @onclick="ScrollLeft" 
+                aria-label="Previous"
+                disabled="@(!_canScrollLeft)">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        
+        <button class="carousel-nav carousel-next @(_canScrollRight ? "" : "disabled")" 
+                @onclick="ScrollRight" 
+                aria-label="Next"
+                disabled="@(!_canScrollRight)">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    }
 </div>
 
 @code {
-    [Parameter]
-    public int Height { get; set; } = 350; // Default height (300px)
-    
-    [Parameter]
-    public int ItemWidth { get; set; } = 216; // Default item width (200px + 16px margin)
-    
-    [Parameter]
-    public int TotalItems { get; set; }
-    
-    [Parameter]
-    public int VisibleItems { get; set; } = 4;
-    
-    [Parameter]
-    public int InitialLoadCount { get; set; } = 8;
-    
-    [Parameter]
-    public int PreloadThreshold { get; set; } = 3;
-    
-    [Parameter]
-    public Func<int, Task<Dictionary<string, object>>> GetItem { get; set; }
-    
-    [Parameter]
-    public EventCallback OnSwipe { get; set; }
-    
-    [Parameter]
-    public bool AutoScroll { get; set; }
-    
-    [Parameter]
-    public int AutoScrollInterval { get; set; } = 5000;
-    
-    private ElementReference _viewportElement;
-    private List<Dictionary<string, object>> _loadedItems = new();
-    private int _currentIndex = 0;
-    private int _currentOffset = 0;
-    private bool _isLoading = false;
-    private Timer _autoScrollTimer;
-    
-    public bool CanScrollLeft => _currentIndex > 0;
-    public bool CanScrollRight => _currentIndex + VisibleItems < TotalItems;
-    
-    protected override async Task OnInitializedAsync()
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = null!;
+    [Parameter] public RenderFragment<TItem> ItemTemplate { get; set; } = null!;
+    [Parameter] public IReadOnlyList<Breakpoint> Breakpoints { get; set; } = new List<Breakpoint>();
+    [Parameter] public int GapPx { get; set; } = 16;
+    [Parameter] public int TransitionMs { get; set; } = 300;
+    [Parameter] public int StartIndex { get; set; } = 0;
+    [Parameter] public int MinItemWidth { get; set; } = 200;
+    [Parameter] public int MaxItemWidth { get; set; } = 400;
+    [Parameter] public int ItemPadding { get; set; } = 8;
+    [Parameter] public bool EnableFadeEffect { get; set; } = true;
+    [Parameter] public double FadeOpacity { get; set; } = 0.3;
+    [Parameter] public int FadeWidth { get; set; } = 50;
+    [Parameter] public bool CenterItems { get; set; } = true;
+    [Parameter] public bool IsLoading { get; set; } = false;
+    [Parameter] public string EmptyMessage { get; set; } = "No content available";
+
+    private ElementReference _rootElement;
+    private int _currentIndex;
+    private int _visibleItems = 1;
+    private double _itemWidth;
+    private double _elementWidth;
+    private double _offsetPx;
+    private bool _canScrollLeft;
+    private bool _canScrollRight;
+    private int _maxIndex;
+    private int _transitionMs;
+
+    protected override void OnInitialized()
     {
-        await LoadInitialItems();
+        // Subscribe to window resize events
+        BrowserUtils.OnWindowResize += HandleResize;
         
-        if (AutoScroll)
-        {
-            _autoScrollTimer = new Timer(async _ => await InvokeAsync(() => ScrollRight()), 
-                null, AutoScrollInterval, AutoScrollInterval);
-        }
+        // Initialize current index
+        _currentIndex = Math.Clamp(StartIndex, 0, Math.Max(0, (Items?.Count() ?? 0) - 1));
+        
+        // Initialize transition duration
+        _transitionMs = TransitionMs;
     }
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Option to get the actual item width from DOM if needed
-            // var width = await JSRuntime.InvokeAsync<double>("getCarouselItemWidth");
-            // if (width > 0) _itemWidth = (int)width;
+            await MeasureAndUpdate();
         }
     }
-    
-    private async Task LoadInitialItems()
+
+    protected override async Task OnParametersSetAsync()
     {
-        _isLoading = true;
+        // Update transition duration if parameter changed
+        _transitionMs = TransitionMs;
         
-        int count = Math.Min(InitialLoadCount, TotalItems);
-        for (int i = 0; i < count; i++)
+        // Recalculate when parameters change
+        await MeasureAndUpdate();
+    }
+
+    private async Task MeasureAndUpdate()
+    {
+        try
         {
-            var item = await GetItem(i);
-            if (item != null)
-                _loadedItems.Add(item);
-        }
-        
-        _isLoading = false;
-    }
-    
-    private async Task LoadMoreItems()
-    {
-        if (_isLoading || _loadedItems.Count >= TotalItems)
-            return;
+            // Measure the root element
+            var dimensions = await BrowserUtils.GetElementDimensionsAsync(_rootElement);
+            if (dimensions.Width <= 0) return;
+
+            _elementWidth = dimensions.Width;
             
-        _isLoading = true;
-        StateHasChanged();
-        
-        int startIndex = _loadedItems.Count;
-        int count = Math.Min(InitialLoadCount, TotalItems - startIndex);
-        
-        for (int i = 0; i < count; i++)
+            // Calculate available width (accounting for viewport padding)
+            var availableWidth = _elementWidth - 100; // 50px padding on each side
+            
+            // Calculate optimal number of visible items based on min/max width constraints
+            _visibleItems = CalculateOptimalVisibleItems(availableWidth);
+            
+            // Calculate item width with min/max constraints
+            var gapsTotal = (_visibleItems - 1) * GapPx;
+            var calculatedWidth = Math.Max(0, (availableWidth - gapsTotal) / _visibleItems);
+            _itemWidth = Math.Clamp(calculatedWidth, MinItemWidth, MaxItemWidth);
+            
+            // Update navigation bounds
+            UpdateNavigationBounds();
+            
+            // Update offset
+            UpdateOffset();
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
         {
-            var item = await GetItem(startIndex + i);
-            if (item != null)
-                _loadedItems.Add(item);
+            Console.WriteLine($"[Carousel] Error in MeasureAndUpdate: {ex.Message}");
+        }
+    }
+
+    private int CalculateOptimalVisibleItems(double availableWidth)
+    {
+        var totalItems = Items?.Count() ?? 0;
+        if (totalItems == 0) return 1;
+        
+        // If breakpoints are provided, use them as a starting point
+        if (Breakpoints != null && Breakpoints.Count > 0)
+        {
+            // Sort breakpoints by MinWidth ascending
+            var sortedBreakpoints = Breakpoints.OrderBy(b => b.MinWidth).ToList();
+            
+            // Find the best number of visible items that fits within constraints
+            int bestVisible = 1;
+            
+            foreach (var breakpoint in sortedBreakpoints)
+            {
+                if (availableWidth >= breakpoint.MinWidth)
+                {
+                    // Test if this number of items can fit with min/max width constraints
+                    var gapsTotal = (breakpoint.Visible - 1) * GapPx;
+                    var calculatedWidth = (availableWidth - gapsTotal) / breakpoint.Visible;
+                    
+                    // If the calculated width is within our constraints, use this breakpoint
+                    if (calculatedWidth >= MinItemWidth && calculatedWidth <= MaxItemWidth)
+                    {
+                        bestVisible = breakpoint.Visible;
+                    }
+                    // If calculated width is too small, we can't fit this many items
+                    else if (calculatedWidth < MinItemWidth)
+                    {
+                        break; // Stop here, previous bestVisible is our answer
+                    }
+                    // If calculated width is too large, we can fit more items
+                    else
+                    {
+                        bestVisible = breakpoint.Visible;
+                    }
+                }
+            }
+            
+            // Cap the visible items to the actual number of items available
+            return Math.Max(1, Math.Min(bestVisible, totalItems));
         }
         
-        _isLoading = false;
-        StateHasChanged();
+        // No breakpoints provided - calculate optimal items mathematically
+        // Start with maximum possible items and work down until we find a good fit
+        int maxPossibleItems = (int)Math.Floor((availableWidth + GapPx) / (MinItemWidth + GapPx));
+        
+        for (int items = maxPossibleItems; items >= 1; items--)
+        {
+            var gapsTotal = (items - 1) * GapPx;
+            var calculatedWidth = (availableWidth - gapsTotal) / items;
+            
+            if (calculatedWidth >= MinItemWidth && calculatedWidth <= MaxItemWidth)
+            {
+                // Cap the visible items to the actual number of items available
+                return Math.Min(items, totalItems);
+            }
+        }
+        
+        // Fallback to 1 item if nothing fits, but cap to total items
+        return Math.Min(1, totalItems);
     }
-    
-    public async Task ScrollLeft()
+
+    private int GetVisibleItemsForWidth(double width)
     {
-        if (!CanScrollLeft) return;
+        if (Breakpoints == null || Breakpoints.Count == 0)
+            return 1;
+
+        // Sort breakpoints by MinWidth ascending
+        var sortedBreakpoints = Breakpoints.OrderBy(b => b.MinWidth).ToList();
+        
+        // Find the last breakpoint where width >= MinWidth
+        int visible = 1; // default
+        foreach (var breakpoint in sortedBreakpoints)
+        {
+            if (width >= breakpoint.MinWidth)
+            {
+                visible = breakpoint.Visible;
+            }
+        }
+        
+        return Math.Max(1, visible);
+    }
+
+    private void UpdateNavigationBounds()
+    {
+        var itemCount = Items?.Count() ?? 0;
+        
+        if (itemCount == 0)
+        {
+            _maxIndex = 0;
+            _canScrollLeft = false;
+            _canScrollRight = false;
+            return;
+        }
+        
+        // Calculate the maximum index we can scroll to
+        // We can scroll until the last item is centered or visible
+        if (itemCount <= _visibleItems)
+        {
+            // If we have fewer items than can be visible, we can't scroll at all
+            _maxIndex = 0;
+            _canScrollLeft = false;
+            _canScrollRight = false;
+        }
+        else
+        {
+            // We can scroll until the last item is centered
+            // The last scrollable index is when the last item is centered
+            _maxIndex = Math.Max(0, itemCount - 1);
+            
+            // But we should only enable right scroll if there are items beyond what's currently visible
+            _canScrollLeft = _currentIndex > 0;
+            _canScrollRight = _currentIndex < _maxIndex && (_currentIndex + _visibleItems) < itemCount;
+        }
+    }
+
+    private void UpdateOffset()
+    {
+        var step = _itemWidth + GapPx;
+        var availableWidth = _elementWidth - 100; // Account for viewport padding
+        var itemCount = Items?.Count() ?? 0;
+        
+        // Calculate offset to center the current item
+        var currentItemCenter = _currentIndex * step + (_itemWidth / 2);
+        var viewportCenter = availableWidth / 2;
+        var calculatedOffset = currentItemCenter - viewportCenter;
+        
+        // Calculate the maximum possible offset (when last item is at the right edge)
+        var totalTrackWidth = itemCount * step;
+        var maxOffset = Math.Max(0, totalTrackWidth - availableWidth);
+        
+        // For the first item, we need to ensure it's centered within the available space
+        if (_currentIndex == 0)
+        {
+            // Center the first item in the available viewport width
+            _offsetPx = Math.Max(0, (_itemWidth / 2) - (availableWidth / 2));
+        }
+        else
+        {
+            // For all other items, use the calculated offset but clamp it to valid bounds
+            // This ensures proper centering while preventing over-scrolling
+            _offsetPx = Math.Max(0, Math.Min(maxOffset, calculatedOffset));
+        }
+    }
+
+    private void ScrollLeft()
+    {
+        if (!_canScrollLeft) return;
         
         _currentIndex = Math.Max(0, _currentIndex - 1);
-        _currentOffset = _currentIndex * ItemWidth;
-        
-        await OnSwipe.InvokeAsync();
-        
+        UpdateNavigationBounds();
+        UpdateOffset();
         StateHasChanged();
     }
-    
-    public async Task ScrollRight()
+
+    private void ScrollRight()
     {
-        if (_currentIndex + VisibleItems >= _loadedItems.Count)
-        {
-            if (_loadedItems.Count < TotalItems)
-                await LoadMoreItems();
-            else
-                return;
-        }
+        if (!_canScrollRight) return;
         
-        _currentIndex++;
-        _currentOffset = _currentIndex * ItemWidth;
-        
-        // Preload more items if we're nearing the end
-        if (_currentIndex + VisibleItems + PreloadThreshold >= _loadedItems.Count && _loadedItems.Count < TotalItems)
-        {
-            await LoadMoreItems();
-        }
-        
-        await OnSwipe.InvokeAsync();
-        
+        _currentIndex = Math.Min(_maxIndex, _currentIndex + 1);
+        UpdateNavigationBounds();
+        UpdateOffset();
         StateHasChanged();
     }
-    
+
+    private async Task HandleResize(ElementDimensions dimensions)
+    {
+        await InvokeAsync(async () =>
+        {
+            await MeasureAndUpdate();
+        });
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        BrowserUtils.OnWindowResize -= HandleResize;
+        return ValueTask.CompletedTask;
+    }
+
+    // Backward compatibility methods for existing code
     public async Task Reset()
     {
-        _loadedItems.Clear();
-        _currentIndex = 0;
-        _currentOffset = 0;
-        _isLoading = false;
-        
-        await LoadInitialItems();
-        
-        StateHasChanged();
-    }
-    
-    public void Dispose()
-    {
-        _autoScrollTimer?.Dispose();
+        _currentIndex = Math.Clamp(StartIndex, 0, Math.Max(0, (Items?.Count() ?? 0) - 1));
+        await MeasureAndUpdate();
     }
 }

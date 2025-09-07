@@ -1,48 +1,61 @@
 @inherits Modal<ReportModalComponent.ModalParams>
 @inject SafetyService SafetyService
 
-<div class="report-modal glassy-modal">
-    <div style="max-height: 40vh; overflow: auto">
-        @switch (_page)
-        {
-            case 0:
+<BasicModalLayout Title="@GetTitle()" Icon="flag-fill" MaxWidth="500px">
+    <MainArea>
+        <div style="max-height: 40vh; overflow: auto">
+            @switch (_page)
             {
-                <h2>Why are you reporting this content?</h2>
-                <br/>
-                @foreach (var reason in ReportReasons.Reasons)
+                case 0:
                 {
-                    var r = reason;
+                    <h3>Why are you reporting this content?</h3>
+                    <div class="report-reasons">
+                        @foreach (var reason in ReportReasons.Reasons)
+                        {
+                            var r = reason;
 
-                    <button class="btn v-btn large" style="width: 95%" @onclick="() => OnSelectReason(reason.Code)">
-                        <h4>@reason.Title</h4>
-                        <p>@reason.Description</p>
-                    </button>
-                    <br />
+                            <button class="btn v-btn large" style="width: 100%; margin-bottom: 0.5em" @onclick="() => OnSelectReason(reason.Code)">
+                                <h4>@reason.Title</h4>
+                                <p>@reason.Description</p>
+                            </button>
+                        }
+                    </div>
+                    break;
                 }
-
-                break;
+                case 1:
+                {
+                    <h3>Describe the incident</h3>
+                    <div class="form-group">
+                        <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5" placeholder="Please provide details about the incident..."></textarea>
+                    </div>
+                    break;
+                }
+                case 2:
+                {
+                    <h4>@_response</h4>
+                    break;
+                }
             }
-            case 1:
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (_page == 1)
             {
-                <h2>Describe the incident</h2>
-                <br/>
-                <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5"></textarea>
-                <br />
-                <button style="text-align: center" class="btn v-btn large" @onclick="OnClickSubmitAsync">Submit Report</button>
-                break;
+                <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
+                <button @onclick="OnClickSubmitAsync" class="v-btn primary">Submit Report</button>
             }
-            case 2:
+            else if (_page == 0)
             {
-                <h4>@_response</h4>
-                break;
+                <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
             }
-        }
-    </div>
-    
-    <br/>
-
-    <button style="text-align: center" class="btn v-btn large" @onclick="@OnClickCancel">Cancel</button>
-</div>
+            else
+            {
+                <button @onclick="@OnClickCancel" class="v-btn">Close</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 
@@ -53,6 +66,17 @@
 
     private int _page = 0;
     private string _response = "";
+
+    private string GetTitle()
+    {
+        return _page switch
+        {
+            0 => "Report Content",
+            1 => "Describe Incident",
+            2 => "Report Submitted",
+            _ => "Report Content"
+        };
+    }
 
     private void OnSelectReason(ReportReasonCode reasonCode)
     {

@@ -7,7 +7,12 @@
   "theme_color": "#192630",
   "icons": [
     {
-      "src": "_content/Valour.Client/media/logo/logo-512.png",
+      "src": "/_content/Valour.Client/media/logo/logo-square-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/_content/Valour.Client/media/logo/logo-square-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

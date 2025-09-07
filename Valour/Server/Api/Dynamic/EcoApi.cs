@@ -332,7 +332,7 @@ public class EcoApi
         EcoService ecoService,
         UserService userService)
     {
-        var user = await userService.GetByNameAsync(username);
+        var user = await userService.GetByNameAndTagAsync(username);
         if (user is null)
             return ValourResult.NotFound("Account not found");
         

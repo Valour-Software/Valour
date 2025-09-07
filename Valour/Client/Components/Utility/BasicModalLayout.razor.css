@@ -2,6 +2,8 @@
     box-shadow: 0 0 8px black;
     background-color: var(--main-2);
     border-radius: 14px;
+    max-height: calc(100vh - 2em);
+    overflow-y: auto;
 }
 
 .basic-modal .content {
@@ -10,8 +12,8 @@
     flex-direction: column;
     gap: 1em;
     text-align: center;
-    max-height: calc(100vh - 8em);
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
 }
 
 .basic-modal .top {

@@ -43,6 +43,7 @@
     
     private async Task OnClickCopyId(){
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Channel.Id);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Channel ID copied to clipboard", ToastProgressState.Success));
     }
 
     private void OpenCreateChannel(){

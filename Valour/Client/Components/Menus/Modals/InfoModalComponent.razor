@@ -2,14 +2,16 @@
 
 <!-- This modal exists to allow parts of the app to give the user info -->
 
-<div class="col-md-12 v-bg-dark">
-    <section class="glassy-modal" style="text-align: center; padding: 30px">
-        <h2 class="subtitle">@Data.Title</h2>
+<BasicModalLayout Title="@Data.Title" Icon="info-circle-fill" MaxWidth="400px">
+    <MainArea>
         <p>@Data.Description</p>
-        <br />
-        <div role="button" @onclick="@OnClick" class="btn v-btn d-inline-block">@Data.ButtonText</div>
-    </section>
-</div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnClick" class="v-btn primary">@Data.ButtonText</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 

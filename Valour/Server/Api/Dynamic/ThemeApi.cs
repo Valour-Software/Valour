@@ -14,6 +14,16 @@ public class ThemeApi
     {
         var themes = await themeService.QueryThemesAsync(query);
         return Results.Json(themes);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/themes/query")]
+    [UserRequired]
+    public static async Task<IResult> QueryThemes(
+        ThemeService themeService,
+        [FromBody] QueryRequest request)
+    {
+        var response = await themeService.QueryThemes(request);
+        return Results.Json(response);
     } 
     
     [ValourRoute(HttpVerbs.Get, "api/themes/me")]

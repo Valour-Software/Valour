@@ -1,0 +1,66 @@
+.planet-page-container {
+    min-height: 100vh;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 1rem;
+    color: var(--font-color);
+}
+
+.loading-container p {
+    font-size: 1.1rem;
+    color: var(--font-alt-color);
+    margin: 0;
+}
+
+.error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 1.5rem;
+    color: var(--font-color);
+    text-align: center;
+    padding: 2rem;
+}
+
+.error-container h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--p-red);
+    margin: 0;
+}
+
+.error-container p {
+    font-size: 1.1rem;
+    color: var(--font-alt-color);
+    margin: 0;
+    max-width: 500px;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .planet-page-container {
+        padding: 1rem;
+    }
+    
+    .error-container {
+        padding: 1rem;
+    }
+    
+    .error-container h2 {
+        font-size: 1.5rem;
+    }
+    
+    .error-container p {
+        font-size: 1rem;
+    }
+}

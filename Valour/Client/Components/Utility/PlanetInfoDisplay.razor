@@ -1,0 +1,126 @@
+@using System.Text
+@inherits ComponentBase
+
+<NebulaBackground>
+    <div class="planet-info-display planet-info-display-@(PlanetInfo.PlanetId)">
+        @if (PlanetInfo.HasCustomBackground)
+        {
+            var bgLocation = ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
+            if (bgLocation is not null)
+            {
+                <style>
+                    .planet-info-display-@(PlanetInfo.PlanetId) {
+                        background: linear-gradient(135deg, rgba(4, 13, 20, 0.95) 0%, rgba(11, 21, 29, 0.9) 50%, rgba(18, 30, 39, 0.95) 100%), url('@bgLocation') center center/cover no-repeat !important;
+                    }
+                </style>
+            }
+        }
+        
+        <div class="planet-info-header">
+            <div class="planet-icon-section">
+                <div class="planet-icon-container">
+                    @if (!string.IsNullOrWhiteSpace(_iconText))
+                    {
+                        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
+                        <div class="icon-text-overlay">
+                            <span class="icon-text" style="font-size:@GetShortCodeFontSize(_iconText.Length)">
+                                @_iconText
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <img src="@_iconUrl" alt="@PlanetInfo.Name" class="planet-icon-img"/>
+                    }
+                </div>
+            </div>
+            
+            <div class="planet-details">
+                <h1 class="planet-title">@PlanetInfo.Name</h1>
+                <div class="planet-stats">
+                    <div class="stat-item">
+                        <span class="stat-icon">👥</span>
+                        <span class="stat-value">@PlanetInfo.MemberCount</span>
+                        <span class="stat-label">Members</span>
+                    </div>
+                    @if (PlanetInfo.Nsfw)
+                    {
+                        <div class="stat-item nsfw">
+                            <span class="stat-icon">🔞</span>
+                            <span class="stat-label">NSFW</span>
+                        </div>
+                    }
+                    <div class="stat-item">
+                        <span class="stat-icon">🏷️</span>
+                        <span class="stat-value">@_tagSlugs.Count</span>
+                        <span class="stat-label">Tags</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="planet-content">
+            @if (!string.IsNullOrWhiteSpace(PlanetInfo.Description))
+            {
+                <div class="planet-description">
+                    <h3 class="section-title">About</h3>
+                    <p class="description-text">@PlanetInfo.Description</p>
+                </div>
+            }
+            
+            @if (_tagSlugs.Count > 0)
+            {
+                <div class="planet-tags-section">
+                    <h3 class="section-title">Tags</h3>
+                    <div class="tags-container">
+                        @foreach (var tag in _tagSlugs)
+                        {
+                            <span class="planet-tag">#@tag.ToUpper()</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</NebulaBackground>
+@code {
+    [Parameter] public ISharedPlanetListInfo PlanetInfo { get; set; }
+    [Parameter] public bool IsFullPage { get; set; } = false;
+
+    private string _iconUrl;
+    private string _iconText = string.Empty;
+    private readonly List<string> _tagSlugs = new();
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        _iconUrl = PlanetInfo.HasAnimatedIcon
+            ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
+            : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);
+        
+        if (!PlanetInfo.HasCustomIcon)
+        {
+            _iconText = ISharedPlanet.GetCommunityShortCode(PlanetInfo);
+        }
+
+        var tags = PlanetInfo.GetTagsGeneric();
+
+        _tagSlugs.Clear();
+        if (tags != null && tags.Count > 0)
+        {
+            // Use the pre-loaded tags
+            foreach (var tag in tags.Take(10))
+            {
+                if (!string.IsNullOrWhiteSpace(tag.Slug) && !_tagSlugs.Contains(tag.Slug))
+                    _tagSlugs.Add(tag.Slug);
+            }
+        }
+    }
+    
+    private static string GetShortCodeFontSize(int length) => length switch
+    {
+        <= 2 => "2.2em",
+        3 => "1.55em",
+        4 => "1.18em",
+        _ => "1em"
+    };
+}

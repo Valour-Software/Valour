@@ -204,6 +204,26 @@ public class NotificationService
 
         await SendUserNotification(repliedToMessage.AuthorUserId, notification);
     }
+    
+    public async Task HandleDirectMessageAsync(
+        ISharedMessage message,
+        ISharedUser user,
+        ISharedChannel channel)
+    {
+        Models.Notification notification = new()
+        {
+            Title = user.Name + " DMed you.",
+            Body = message.Content,
+            ImageUrl = user.GetAvatar(),
+            ClickUrl = $"channels/direct/{channel.Id}/{message.Id}",
+            ChannelId = channel.Id,
+            Source = NotificationSource.DirectMessage,
+            SourceId = message.Id,
+            UserId = user.Id,
+        };
+
+        await SendUserNotification(user.Id, notification);
+    }
 
     public Task HandleMentionAsync(
         Mention mention, 

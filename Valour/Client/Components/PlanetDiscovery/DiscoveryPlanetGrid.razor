@@ -1,0 +1,41 @@
+@using Valour.Sdk.Models
+<div class="planet-card-grid">
+    @if (IsLoading)
+    {
+        <div class="planet-grid-loading">
+            <div class="planet-grid-spinner">
+                <i class="bi bi-arrow-clockwise"></i>
+            </div>
+            <p class="planet-grid-loading-text">Loading planets...</p>
+        </div>
+    }
+    else if (_planets == null || !_planets.Any())
+    {
+        <div class="planet-grid-empty">
+            <div class="planet-grid-empty-icon">
+                <i class="bi bi-globe"></i>
+            </div>
+            <p class="planet-grid-empty-text">@EmptyMessage</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var planet in _planets)
+        {
+            <DiscoveryPlanetCard PlanetInfo="planet" @key="planet.PlanetId" />
+        }
+    }
+</div>
+
+@code {
+    private List<PlanetListInfo> _planets = new();
+
+    [Parameter] public bool IsLoading { get; set; } = false;
+    [Parameter] public string EmptyMessage { get; set; } = "No planets found";
+
+    public void SetPlanets(IEnumerable<PlanetListInfo> planets)
+    {
+        _planets = planets?.ToList() ?? new List<PlanetListInfo>();
+        StateHasChanged();
+    }
+}

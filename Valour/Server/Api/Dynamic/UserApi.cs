@@ -49,7 +49,7 @@ public class UserApi
         string name, 
         UserService userService)
     {
-        var user = await userService.GetByNameAsync(name);
+        var user = await userService.GetByNameAndTagAsync(name);
         return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
     }
 
@@ -155,6 +155,53 @@ public class UserApi
     {
         var result = await userService.Logout();
         return Results.Ok("Come back soon!");
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/users/me/tokens")]
+    public static async Task<IResult> GetTokensRouteAsync(UserService userService)
+    {
+        var user = await userService.GetCurrentUserAsync();
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        var tokens = await userService.GetUserTokensAsync(user.Id);
+        return Results.Json(tokens);
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/users/me/tokens/{tokenId}")]
+    public static async Task<IResult> RevokeTokenRouteAsync(
+        string tokenId,
+        UserService userService)
+    {
+        var user = await userService.GetCurrentUserAsync();
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        var result = await userService.RevokeTokenAsync(user.Id, tokenId);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok("Token revoked successfully");
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/users/me/tokens")]
+    public static async Task<IResult> RevokeAllOtherTokensRouteAsync(
+        UserService userService,
+        TokenService tokenService)
+    {
+        var user = await userService.GetCurrentUserAsync();
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        var currentToken = await tokenService.GetCurrentTokenAsync();
+        if (currentToken is null)
+            return ValourResult.InvalidToken();
+
+        var result = await userService.RevokeAllOtherTokensAsync(user.Id, currentToken.Id);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok(result.Message);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/users/me")]

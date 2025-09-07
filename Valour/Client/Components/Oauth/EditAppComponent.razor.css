@@ -1,35 +1,55 @@
-.name {
-    color: var(--v-cyan);
-}
-
-.icon {
-    width: 128px;
-    height: 128px;
-    cursor: pointer;
-}
-
-.icon:hover {
-    filter: opacity(0.8);
-}
-
-.icon:active {
-    filter: opacity(0.5);
-}
-
-.btn-copy {
-    width: 120px;
-}
-
-.btn-copy:after {
-    content: 'Copy Secret';
-}
-
-.btn-copy:active:after {
-    content: 'Copied!';
-}
-
-.modal-bg {
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
     background-color: var(--main-4);
-    padding: 20px;
-    border-radius: 20px;
+    border-radius: var(--main-radius);
+}
+
+.app-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--main-radius);
+    object-fit: cover;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.app-icon:hover {
+    opacity: 0.8;
+}
+
+.app-info {
+    flex: 1;
+}
+
+.app-name {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--font-color);
+}
+
+.app-stats {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--font-color-muted);
+}
+
+.input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.input-group .form-control {
+    flex: 1;
+    text-overflow: ellipsis;
+}
+
+.helper-text {
+    font-size: 0.85rem;
+    color: var(--font-color-muted);
+    margin-top: 0.25rem;
 }

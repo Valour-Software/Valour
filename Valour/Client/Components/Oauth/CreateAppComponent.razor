@@ -7,27 +7,25 @@
     return;
 }
 
-<div class="col-md-12 modal-bg">
-	<section style="text-align: center;">
-		<h2>Create a new App</h2>
+<BasicModalLayout Title="Create OAuth App" Icon="plus-circle-fill" MaxWidth="400px">
+    <MainArea>
+        <p class="subtitle">Developers rejoice! Create your OAuth application to integrate with Valour.</p>
+        
+        <div class="form-group">
+            <label>Application Name</label>
+            <input class="form-control" @bind-value="@_name" placeholder="Enter app name..." />
+            <span class="helper-text">@_nameSpan</span>
+        </div>
 
-		<h4>Developers rejoice!</h4>
-		
-		<hr />
-
-		<div asp-validation-summary="All" class="text-info"></div>
-
-		<div class="form-group mt-4">
-			<label>Application Name</label>
-			<input class="form-control" @bind-value="@_name" type='' />
-			<span id="name-span" style="color:#888888">@_nameSpan</span>
-		</div>
-
-        <div class="form-group mt-4">
-			<button class="btn v-btn mt-2" @onclick="@OnClickSubmit">Submit</button>
-		</div>
-	</section>
-</div>
+        <ResultLabel Result="@_result" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            <button @onclick="@OnClickSubmit" class="v-btn primary">Create App</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 	
@@ -37,13 +35,15 @@
 	private string _name;
 	// Spans
 	private string _nameSpan = "The name of your application";
+	private ITaskResult _result;
 	
 	private async Task OnClickSubmit(MouseEventArgs e)
 	{
 		// Require a name
 		if (string.IsNullOrWhiteSpace(_name))
 		{
-			_name = "Please input an application name.";
+			_result = new TaskResult(false, "Please input an application name.");
+			StateHasChanged();
 			return;
 		}
 
@@ -52,38 +52,24 @@
 			Name = _name,
             ImageUrl = "media/logo/logo-512.png",
             OwnerId = Client.Me.Id,
-            Uses = 0
+            Uses = 0,
+            RedirectUrl = string.Empty
 		};
 
 		var response = await Client.PrimaryNode.PostAsyncWithResponse<long>($"api/oauth/app", newApp);
         
         if (!response.Success){
-            _nameSpan = response.Message;
+            _result = new TaskResult(false, response.Message);
             StateHasChanged();
             return;
         }
 
-		long appId = response.Data;
+		_result = new TaskResult(true, "App created successfully!");
 
-		_nameSpan = "App created.";
-
-        ////////////////////////////////
-
-		var app = await OauthService.FetchAppAsync(appId);
-
-		if (app is null)
-		{
-			Console.WriteLine($"Failed to retrieve app {appId}");
-			_nameSpan = "Created app, but an error occured retrieving it. Please refresh.";
-            StateHasChanged();
-			return;
-		}
-
-
-		// Go to app page
-		//navManager.NavigateTo($"/oauth/apps/{app_id}", true);
-
+		// Close the modal after successful creation
 		Close();
 	}
+
+	private void OnCancel() => Close();
 
 }

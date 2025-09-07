@@ -55,6 +55,7 @@ else
     private async Task OnClickCopyLink()
     {
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _link);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Referral link copied to clipboard", ToastProgressState.Success));
     }
 
 }

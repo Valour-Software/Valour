@@ -1,6 +1,7 @@
 :root {
     --main-radius: 8px;
     --small-radius: 6px;
+    --card-radius: 16px;
 
     --font-color: #ffffff;
     --font-alt-color: #7a7a7a;
@@ -32,6 +33,18 @@
     --p-purple:      #8457cd;
     --p-red:         #cd5e5e;
     --p-red-rgb: 205, 94, 94;
+}
+
+.rounded-sm {
+    border-radius: var(--small-radius);
+}
+
+.rounded-md {
+    border-radius: var(--main-radius);
+}
+
+.rounded-card {
+    border-radius: var(--card-radius);
 }
 
 /* Fun gradient underline */
@@ -119,6 +132,14 @@
 }
 .v-bg-lightest {
     background-color: var(--main-5);
+}
+
+/* Forces absolute centering */
+.absolute-center {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
 }
 
 /* Inputs and Buttons */
@@ -911,4 +932,57 @@ td .button-row button {
     background-color: var(--main-1);
     color: var(--font-color);
     border: 2px solid var(--p-cyan);
+}
+
+/* Nebula Background */
+
+@keyframes stars-move-1 {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-250px) translateY(-50px); }
+}
+
+@keyframes stars-move-2 {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-300px) translateY(30px); }
+}
+
+@keyframes stars-move-3 {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-400px) translateY(-20px); }
+}
+
+@keyframes twinkle {
+    0% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+@keyframes complex-drift-1 {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    100% { transform: translate(50px, -40px) rotate(3deg) scale(1.15); }
+}
+
+@keyframes complex-drift-2 {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    100% { transform: translate(-45px, 35px) rotate(-2deg) scale(1.08); }
+}
+
+@keyframes complex-drift-3 {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    100% { transform: translate(30px, -25px) rotate(1.5deg) scale(1.12); }
+}
+
+@keyframes complex-drift-4 {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    100% { transform: translate(-20px, 20px) rotate(-1deg) scale(1.05); }
+}
+
+@keyframes dust-swirl {
+    0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 0.4;
+    }
+    100% {
+        transform: translate(-15px, 15px) scale(1.03) rotate(2deg);
+        opacity: 0.7;
+    }
 }

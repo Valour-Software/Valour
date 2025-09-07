@@ -1,19 +1,20 @@
 @inherits Modal<ErrorModal.ModalParams>
 @inject IJSRuntime JsRuntime
 
-<section class="outer">
-    <div class="title-container">
-    	<h3>Error Details @CodeText <i class="bi bi-bug-fill"></i></h3>
-    	<p class="subtitle">Send to us... or maybe <a href="https://github.com/Valour-Software/Valour">contribute?</a></p>
-    </div>
-    <pre class="inner">
-        @(Data.Result.Details ?? "No details available")
-    </pre>
-    <div class="btns-wrapper">
-        <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
-        <button @onclick="@OnClickClose" class="v-btn">Close</button>
-    </div>
-</section>
+<BasicModalLayout Title="@($"Error Details {CodeText}")" Icon="bug-fill" MaxWidth="600px">
+    <MainArea>
+        <p class="subtitle">Send to us... or maybe <a href="https://github.com/Valour-Software/Valour">contribute?</a></p>
+        <pre class="error-details">
+            @(Data.Result.Details ?? "No details available")
+        </pre>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
+            <button @onclick="@OnClickClose" class="v-btn">Close</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
     public class ModalParams
@@ -29,5 +30,6 @@
     private async Task OnClickCopyAsync()
     {
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Result.Details);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Error details copied to clipboard", ToastProgressState.Success));
     }
 }

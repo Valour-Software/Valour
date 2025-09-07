@@ -1,6 +1,8 @@
-﻿<div @ref="@OuterReference" class="tooltip-trigger" @onmousemove="ShowTooltip" @onmouseover="ShowTooltip" @onmouseout="HideTooltip">
+﻿<div @ref="@OuterReference" class="tooltip-trigger" @onmouseenter="OnMouseEnter" @onmouseleave="OnMouseLeave">
     @ChildContent
 </div>
+
+@using System.Timers
 
 @code {
     
@@ -23,8 +25,64 @@
 
     [Parameter]
     public string TooltipStyle { get; set; }
+    
+    [Parameter]
+    public int ShowDelay { get; set; } = 300; // Delay before showing tooltip (ms)
+    
+    [Parameter]
+    public int HideDelay { get; set; } = 100; // Delay before hiding tooltip (ms)
+
+    private Timer? _showTimer;
+    private Timer? _hideTimer;
+    private bool _isHovering = false;
+
+    public void OnMouseEnter()
+    {
+        _isHovering = true;
+        
+        // Cancel any hide timer
+        _hideTimer?.Stop();
+        
+        // Start show timer
+        _showTimer?.Stop();
+        _showTimer = new Timer(ShowDelay);
+        _showTimer.Elapsed += (sender, e) => 
+        {
+            if (_isHovering)
+            {
+                ShowTooltip();
+            }
+        };
+        _showTimer.Start();
+    }
+    
+    public void OnMouseLeave()
+    {
+        _isHovering = false;
+        
+        // Cancel any show timer
+        _showTimer?.Stop();
+        
+        // Start hide timer
+        _hideTimer?.Stop();
+        _hideTimer = new Timer(HideDelay);
+        _hideTimer.Elapsed += async (sender, e) => 
+        {
+            if (!_isHovering)
+            {
+                await HideTooltip();
+            }
+        };
+        _hideTimer.Start();
+    }
 
     public void ShowTooltip() => TooltipRoot.ShowTooltip(this);
 
     public Task HideTooltip() => TooltipRoot.HideTooltip(this);
+    
+    public void Dispose()
+    {
+        _showTimer?.Dispose();
+        _hideTimer?.Dispose();
+    }
 }

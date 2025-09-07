@@ -4,54 +4,47 @@
 @inject ValourClient Client
 @inject OauthService OauthService
 
-<div class="modal-bg" style="text-align: center;">
-    <h5>Editing</h5>
-    <h4 class="name">@Data.App.Name</h4>
-    <br/>
-    <img alt="App Icon" src="@Data.App.ImageUrl" onclick="document.getElementById('upload-core').click()" class="icon" />
+<BasicModalLayout Title="Edit OAuth App" Icon="gear-fill" MaxWidth="500px">
+    <MainArea>
+        <div class="app-header">
+            <img alt="App Icon" src="@Data.App.ImageUrl" onclick="document.getElementById('upload-core').click()" class="app-icon" />
+            <div class="app-info">
+                <h4 class="app-name">@Data.App.Name</h4>
+                <p class="app-stats">Used @Data.App.Uses time@(Data.App.Uses == 1 ? "" : "s") • ID: @Data.App.Id</p>
+            </div>
+        </div>
 
-    <div style="display: none">
-        <InputFile OnChange="@LoadFiles" AdditionalAttributes="@_inputAttributes"></InputFile>
-    </div>
+        <div style="display: none">
+            <InputFile OnChange="@LoadFiles" AdditionalAttributes="@_inputAttributes"></InputFile>
+        </div>
 
-    <br/>
+        <div class="form-group">
+            <label>Redirect URL</label>
+            <div class="input-group">
+                <input class="form-control" @bind="_redirect" placeholder="Your redirect URL..." />
+                <button class="v-btn" @onclick="OnClickRedirectUpdate">Update</button>
+            </div>
+            <ResultLabel Result="@_redirectResult" />
+        </div>
 
-    <span id="result-span" style="display:block" class="text-info">@_iconOutput</span>
-    <span id="error-span" style="display:block" class="text-danger">@_iconError</span>
+        <div class="form-group">
+            <label>App Secret</label>
+            <div class="input-group">
+                <input class="form-control" value="@Data.App.Secret" readonly />
+                <button class="v-btn" @onclick="@OnCopySecret">Copy</button>
+            </div>
+            <span class="helper-text">Keep this secret secure. It's used to authenticate your app.</span>
+        </div>
 
-    <br/>
-
-    <code class="m-2 mb-4">App ID: @Data.App.Id</code>
-
-    <p class="m-2 mb-4">Your app has been used @Data.App.Uses times.</p>
-
-    <br />
-
-
-    <div class="input-group" style="max-width: 400px;">
-        <input class="form-control" @bind="_redirect" placeholder="Your redirect url..." />
-        <button class="btn v-btn" @onclick="OnClickRedirectUpdate">Apply</button>
-    </div>
-
-    @if (_redirectResult is not null)
-    {
-        if (_redirectResultError)
-        {
-            <span class="text-danger mb-4">@_redirectResult</span>
-            <br />
-        }
-        else
-        {
-            <span class="text-info mb-4">@_redirectResult</span>
-            <br />
-        }
-    }
-
-    <br />
-
-    <button class="btn v-btn btn-copy" @onclick="@OnCopySecret"></button>
-    <button class="btn v-btn" @onclick="@OnClickDelete">Delete</button>
-</div>
+        <ResultLabel Result="@_iconResult" />
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            <button @onclick="@OnClickDelete" class="v-btn danger">Delete App</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code 
 {
@@ -67,15 +60,10 @@
         { "id", "upload-core"}
     };
 
-    [CascadingParameter]
-    public new ModalRoot ModalRoot { get; set; }
-
-    private string _iconOutput = "";
-    private string _iconError = "";
+    private ITaskResult _iconResult;
 
     private string _redirect;
-    private string _redirectResult;
-    private bool _redirectResultError;
+    private ITaskResult _redirectResult;
 
     protected override void OnInitialized()
     {
@@ -86,17 +74,16 @@
     {
         Data.App.RedirectUrl = _redirect;
 
-        var updateResult = await Data.App.UpdateAsync();
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult<OauthApp>>()
+        {
+            ProgressTask = Data.App.UpdateAsync(),
+            Title = "Updating App",
+            Message = "Updating redirect URL...",
+            SuccessMessage = "Redirect URL updated successfully!",
+            FailureMessage = "Failed to update redirect URL"
+        });
 
-        Console.WriteLine(updateResult.Message);
-
-        _redirectResultError = !updateResult.Success;
-
-        if (updateResult.Success)
-            _redirectResult = "Successfully updated!";
-        else
-            _redirectResult = updateResult.Message;
-
+        _redirectResult = result;
         StateHasChanged();
     }
 
@@ -111,13 +98,26 @@
                 var res = await Data.App.DeleteAsync();
 
                 if (res.Success)
-                    _iconOutput = "Deleted.";
+                {
+                    // Update the ViewComponent if it exists (for backward compatibility)
+                    if (Data.ViewComponent != null)
+                    {
+                        Data.ViewComponent.Apps.Remove(Data.App);
+                        Data.ViewComponent.Refresh();
+                    }
+                    else
+                    {
+                        // Close the modal after successful deletion
+                        await ModalRoot.CloseTopModal();
+                    }
+                }
                 else
-                    _iconError = res.Message;
+                {
+                    _iconResult = new TaskResult(false, res.Message);
+                    StateHasChanged();
+                }
 
                 StateHasChanged();
-                Data.ViewComponent.Apps.Remove(Data.App);
-                Data.ViewComponent.Refresh();
             },
             () => Task.CompletedTask
         );
@@ -127,21 +127,20 @@
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        _iconOutput = "";
-        _iconError = "";
-
-        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
-
         var file = e.File;
 
         if (file == null)
         {
-            _iconError = "Could not load file as an image.";
+            _iconResult = new TaskResult(false, "Could not load file as an image.");
+            StateHasChanged();
+            return;
         }
 
         if (file.Size > 10240000)
         {
-            _iconError = "Max app icon size is 10mb.";
+            _iconResult = new TaskResult(false, "Max app icon size is 10mb.");
+            StateHasChanged();
+            return;
         }
 
         byte[] data = new byte[file.Size];
@@ -159,11 +158,11 @@
         if (result.Success)
         {
             Data.App.ImageUrl = result.Data;
-            _iconOutput = "Successfully changed app icon.";
+            _iconResult = new TaskResult(true, "Successfully changed app icon.");
         }
         else
         {
-            _iconError = result.Message;
+            _iconResult = new TaskResult(false, result.Message);
         }
 
         StateHasChanged();
@@ -171,6 +170,8 @@
 
     public async Task OnCopySecret(){
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.App.Secret);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "App secret copied to clipboard", ToastProgressState.Success));
     }
 
+    private void OnCancel() => Close();
 }

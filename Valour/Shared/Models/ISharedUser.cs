@@ -261,4 +261,12 @@ public interface  ISharedUser : ISharedModel<long>
         var formatStr = AvatarFormatMap[format];
         return $"https://public-cdn.valour.gg/valour-public/avatars/{user.Id}/{formatStr}?v={user.Version}";
     }
+    
+    public static string GetNameAndTag(ISharedUser user)
+    {
+        if (user is null)
+            return null;
+        
+        return $"{user.Name}#{user.Tag}";
+    }
 }

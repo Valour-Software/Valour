@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <TypeScriptCompile Remove="wwwroot\blazorTypes.ts" />
+    <TypeScriptCompile Remove="Components\Menus\Modals\Users\Edit\EditWalletComponent.razor.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,6 +54,11 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <DependentUpon>EditWalletComponent.razor</DependentUpon>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Components\PlanetDiscovery\DiscoveryPageComponent.razor" />
+    <AdditionalFiles Include="Components\PlanetDiscovery\DiscoveryPlanetCard.razor" />
   </ItemGroup>
   
   <!-- JS Cleanup script

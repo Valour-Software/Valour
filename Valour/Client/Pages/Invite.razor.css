@@ -1,0 +1,11 @@
+.invite-card {
+    padding: 20px;
+    max-width: 90vw;
+    background-color: var(--main-2);
+    width: 400px;
+    z-index: 2;
+    box-shadow: rgb(0, 0, 0) 0px 0px 15px;
+    border-radius: 1em;
+    border-color: rgb(128, 128, 128);
+    margin: auto;
+}

@@ -153,9 +153,22 @@ public class PlanetService : ServiceBase
         return invite.Sync(_client);
     }
 
-    public async Task<InviteScreenModel> FetchInviteScreenData(string code) =>
-        (await _client.PrimaryNode.GetJsonAsync<InviteScreenModel>(
-            $"{ISharedPlanetInvite.BaseRoute}/{code}/screen")).Data;
+    public Task<TaskResult<PlanetListInfo>> FetchInviteScreenDataAsync(string code) =>
+        _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"{ISharedPlanetInvite.BaseRoute}/{code}/screen");
+
+    /// <summary>
+    /// Fetches public planet information by ID (no membership required)
+    /// </summary>
+    public async Task<TaskResult<PlanetListInfo>> FetchPlanetInfoAsync(long planetId)
+    {
+        var response = await _client.PrimaryNode.GetJsonAsync<PlanetListInfo>($"api/planets/{planetId}/info");
+        if (!response.Success)
+            return TaskResult<PlanetListInfo>.FromFailure(response.Message);
+        
+        var planetInfo = response.Data;
+        planetInfo.Sync(_client);
+        return TaskResult<PlanetListInfo>.FromData(planetInfo);
+    }
 
     /// <summary>
     /// Fetches all planets that the user has joined from the server
@@ -450,7 +463,14 @@ public class PlanetService : ServiceBase
         if (!response.Success)
             return new List<PlanetListInfo>();
         
-        return response.Data;
+        var planets = response.Data;
+        planets.SyncAll(_client);
+        return planets;
+    }
+
+    public ModelQueryEngine<PlanetListInfo> CreateDiscoverablePlanetsQueryEngine()
+    {
+        return new ModelQueryEngine<PlanetListInfo>(_client.PrimaryNode, "api/planets/discoverable/query");
     }
 
     public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)

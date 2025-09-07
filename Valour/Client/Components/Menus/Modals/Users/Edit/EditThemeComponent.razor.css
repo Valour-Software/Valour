@@ -26,14 +26,220 @@
 
 .search-title {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    margin-right: 1em;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
 }
 
-.search-title input {
-    width: unset;
-    margin-left: 1em;
+.search-title h5 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--font-color);
+}
+
+.theme-section {
+    margin-bottom: 3rem;
+}
+
+.theme-section h5 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--font-color);
+    border-bottom: 2px solid var(--p-cyan);
+    padding-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.carousel-section {
+    margin-bottom: 2rem;
+}
+
+.current-theme-section {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+}
+
+.create-theme-card {
+    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
+    border-radius: var(--card-radius);
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    color: var(--font-color);
+    height: 320px;
+    min-height: 320px;
+    max-height: 320px;
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 2px dashed var(--p-cyan);
+    margin: 0;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.create-theme-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+        rgba(55, 164, 206, 0.1) 0%, 
+        rgba(132, 87, 205, 0.05) 50%, 
+        rgba(98, 120, 205, 0.1) 100%);
+    border-radius: var(--card-radius);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.create-theme-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: var(--p-purple);
+}
+
+.create-theme-card:hover::before {
+    opacity: 1;
+}
+
+.create-theme-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    gap: 1rem;
+}
+
+.create-theme-icon {
+    font-size: 3rem;
+    color: var(--p-cyan);
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.create-theme-card:hover .create-theme-icon {
+    color: var(--p-purple);
+    transform: scale(1.1);
+}
+
+.create-theme-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--font-color);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    margin: 0;
+    line-height: 1.3;
+}
+
+.create-theme-description {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--font-alt-color);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    line-height: 1.4;
+    margin: 0;
+    flex: 1 1 auto;
+}
+
+.create-theme-btn {
+    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
+    color: white;
+    border: 1px solid var(--p-cyan);
+    border-radius: var(--main-radius);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(55, 164, 206, 0.3);
+    margin-top: auto;
+}
+
+.create-theme-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.create-theme-btn:hover::before {
+    left: 100%;
+}
+
+.create-theme-btn:hover, .create-theme-btn:focus {
+    background: linear-gradient(135deg, var(--p-purple) 0%, var(--p-cyan) 100%);
+    border-color: var(--p-purple);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(132, 87, 205, 0.4);
+}
+
+@media (max-width: 768px) {
+    .current-theme-section {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .create-theme-card {
+        width: 100%;
+        min-width: unset;
+        max-width: unset;
+        height: 280px;
+        min-height: 280px;
+        max-height: 280px;
+    }
+    
+    .create-theme-content {
+        padding: 1.5rem 1rem;
+    }
+    
+    .create-theme-icon {
+        font-size: 2.5rem;
+    }
+    
+    .create-theme-title {
+        font-size: 1.1rem;
+    }
+    
+    .create-theme-description {
+        font-size: 0.85rem;
+    }
+    
+    .create-theme-btn {
+        font-size: 0.8rem;
+        padding: 0.6rem 1.2rem;
+    }
 }
 
 /* For create theme */

@@ -300,32 +300,28 @@
 }
 
 .preview-message .message .reply:hover {
-    padding-right: 50px !important;
-    background-color: rgba(255, 0, 0, 0.1) !important;
     cursor: pointer;
-}
-
-.message:hover .reply .author-avatar {
-    margin-left: 4px;
-}
-
-.message:hover .reply .time {
-    display: block;
-    font-size: 10px;
-    margin-left: -10px;
 }
 
 .reply .content-holder {
     padding-left: 40px;
 }
 
-.reply-x {
+.reply-remove {
     display: none;
     position: absolute;
-    color: red;
-    top: 10px;
-    right: 5%;
-    font-size: 20px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.reply-x {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .attachment-wrapper {
@@ -334,7 +330,7 @@
     overflow: auto;
 }
 
-.preview-message .reply:hover .reply-x {
+.preview-message .reply:hover .reply-remove {
     display: block;
 }
 
@@ -358,6 +354,6 @@
 }
 
 /* Ensure loading messages are greyed out */
-.message.ghost {
+.message .ghost {
     opacity: 0.7 !important;
 }

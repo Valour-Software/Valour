@@ -182,7 +182,7 @@
     
     private async Task OnClickPlanetInfo()
     {
-        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(Planet);
+        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(Planet.ToListInfo());
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 }

@@ -1,0 +1,126 @@
+@inject ValourClient Client
+@inject OauthService OauthService
+
+<div class="oauth-management-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-code-slash"></i>
+            OAuth Applications
+        </h3>
+        <p class="subtitle">Manage your OAuth applications and API access</p>
+
+        <div class="oauth-actions">
+            <button class="v-btn primary" @onclick="OnCreateApp">
+                <i class="bi bi-plus-circle"></i>
+                Create New App
+            </button>
+        </div>
+
+        @if (_apps is null)
+        {
+            <div class="loading-state">
+                <i class="bi bi-arrow-clockwise"></i>
+                <p>Loading your applications...</p>
+            </div>
+        }
+        else if (_apps.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="bi bi-code-square"></i>
+                <h4>No OAuth Applications</h4>
+                <p>You haven't created any OAuth applications yet. Create your first app to get started with the Valour API.</p>
+                <button class="v-btn primary" @onclick="OnCreateApp">Create Your First App</button>
+            </div>
+        }
+        else
+        {
+            <div class="apps-grid">
+                @foreach (var app in _apps)
+                {
+                    <div class="app-card" @onclick="() => OnEditApp(app)">
+                        <div class="app-icon">
+                            <img src="@app.ImageUrl" alt="@app.Name" onerror="this.src='_content/Valour.Client/media/logo/logo-512.png'" />
+                        </div>
+                        <div class="app-info">
+                            <h4 class="app-name">@app.Name</h4>
+                            <p class="app-uses">Used @app.Uses time@(app.Uses == 1 ? "" : "s")</p>
+                            <p class="app-id">ID: @app.Id</p>
+                        </div>
+                        <div class="app-actions">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-info-circle"></i>
+            About OAuth
+        </h3>
+        <p class="subtitle">Learn how to use OAuth with Valour</p>
+
+        <div class="oauth-info">
+            <div class="info-item">
+                <h4>What is OAuth?</h4>
+                <p>OAuth allows third-party applications to access your Valour account with your explicit permission. This is useful for bots, integrations, and custom applications.</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>How it works</h4>
+                <p>When you create an OAuth app, you get a Client ID and Secret. Other applications can use these to request access to your account through a secure authorization flow.</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Security</h4>
+                <p>Your OAuth apps are secure and can be revoked at any time. You can see how many times each app has been used and manage their permissions.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private List<OauthApp> _apps;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadApps();
+    }
+
+    private async Task LoadApps()
+    {
+        try
+        {
+            _apps = await OauthService.FetchMyOauthAppAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load OAuth apps: {ex.Message}");
+            _apps = new List<OauthApp>();
+            StateHasChanged();
+        }
+    }
+
+    private void OnCreateApp()
+    {
+        var data = new CreateAppComponent.ModalParams();
+        ModalRoot.OpenModal<CreateAppComponent>(data);
+    }
+
+    private void OnEditApp(OauthApp app)
+    {
+        var data = new EditAppComponent.ModalParams()
+        {
+            App = app,
+            ViewComponent = null // We don't need the ViewAppsComponent reference here
+        };
+        
+        ModalRoot.OpenModal<EditAppComponent>(data);
+    }
+}

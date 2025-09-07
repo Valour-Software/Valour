@@ -1,0 +1,92 @@
+.planet-card-grid {
+    display: grid;
+    gap: 1.5rem;
+    padding: 0 1rem 1rem 1rem;
+    margin-top: 2rem;
+    min-height: 600px; /* Minimum height for 3 rows */
+    
+    grid-template-columns: repeat(auto-fit, minmax(300px, 350px));
+    align-items: start; /* Ensure cards align to top */
+    justify-content: center; /* Center the grid items */
+}
+
+/* Add padding to grid items to prevent hover clipping */
+.planet-card-grid > * {
+    padding: 12px; /* Increased space for hover animation and scaling */
+    box-sizing: border-box;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .planet-card-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0 0.5rem 1rem 0.5rem;
+    }
+    
+    .planet-card-grid > * {
+        padding: 8px; /* Adequate padding for mobile hover effects */
+    }
+}
+
+@media (min-width: 1200px) {
+    .planet-card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 350px));
+        gap: 2rem;
+    }
+}
+
+/* Loading state */
+.planet-grid-loading {
+    grid-column: 1 / -1; /* Span all columns */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    min-height: 400px;
+    color: var(--v-text-secondary);
+}
+
+.planet-grid-spinner {
+    font-size: 48px;
+    margin-bottom: 20px;
+    animation: spin 1s linear infinite;
+}
+
+.planet-grid-loading-text {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.planet-grid-empty {
+    grid-column: 1 / -1; /* Span all columns */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    min-height: 400px;
+    color: var(--v-text-secondary);
+}
+
+.planet-grid-empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.planet-grid-empty-text {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+    max-width: 400px;
+}

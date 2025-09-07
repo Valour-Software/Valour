@@ -35,7 +35,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         _client = fixture.Client;
         _httpClient = _client.Http;
         _fixture = fixture;
-        _testUserDetails = fixture.TestUserDetails;
+        _testUserDetails = fixture.PrimaryTestUserDetails;
         _factory = fixture.Factory;
         
         var scope = _factory.Services.CreateScope();

@@ -42,8 +42,15 @@
             {
                 Name = "Actions",
                 RenderFragment = row => @<div class="button-row">
-                        <button class="v-btn secondary" @onclick="(() => OnKick(row.Row))">Kick</button>
-                        <button class="v-btn danger" @onclick="(() => OnBan(row.Row))">Ban</button>
+                        @if (row.Row.UserId != Client.Me.Id)
+                        {
+                            <button class="v-btn secondary" @onclick="(() => OnKick(row.Row))">Kick</button>
+                            <button class="v-btn danger" @onclick="(() => OnBan(row.Row))">Ban</button>
+                        }
+                        else
+                        {
+                            <span class="text-muted">You</span>
+                        }
                     </div>,
                 TextAlign = "right",
                 Width = "150px"

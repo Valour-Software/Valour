@@ -1,9 +1,12 @@
-﻿/*  Valour (TM) - A free and secure chat client
+﻿#nullable enable
+
+/*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2025 Valour Software LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using System.Text;
 using Valour.Shared.Utilities;
 
 namespace Valour.Shared.Models;
@@ -67,6 +70,11 @@ public interface ISharedPlanet : ISharedModel<long>
     /// </summary>
     public int Version { get; set; }
     
+    /// <summary>
+    /// True if the planet has a custom background
+    /// </summary>
+    public bool HasCustomBackground { get; set; }
+    
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {
         { IconFormat.Webp64, "64.webp" },
@@ -84,6 +92,12 @@ public interface ISharedPlanet : ISharedModel<long>
         { IconFormat.Gif64, "anim-64.gif" },
         { IconFormat.Gif128, "anim-128.gif" },
         { IconFormat.Gif256, "anim-256.gif" },
+    };
+    
+    private static readonly Dictionary<PlanetBackgroundFormat, string> BackgroundFormatMap = new()
+    {
+        { PlanetBackgroundFormat.Webp, "300x400.webp" },
+        { PlanetBackgroundFormat.Jpeg, "300x400.jpg" },
     };
     
     private static readonly HashSet<IconFormat> AnimatedFormats = new()
@@ -106,6 +120,27 @@ public interface ISharedPlanet : ISharedModel<long>
         { IconFormat.WebpAnimated256, IconFormat.Webp256 },
     };
     
+    public static string? GetBackgroundUrl(ISharedPlanet planet, PlanetBackgroundFormat format)
+    {
+        return GetBackgroundUrl(planet.HasCustomBackground, planet.Id, planet.Version, format);
+    }
+    
+    public static string? GetBackgroundUrl(ISharedPlanetListInfo planet, PlanetBackgroundFormat format)
+    {
+        return GetBackgroundUrl(planet.HasCustomBackground, planet.PlanetId, planet.Version, format);
+    }
+    
+    public static string? GetBackgroundUrl(bool hasCustom, long planetId, int version, PlanetBackgroundFormat format)
+    {
+        if (!hasCustom)
+        {
+            return null;
+        }
+        
+        var formatStr = BackgroundFormatMap[format];
+        return $"https://public-cdn.valour.gg/valour-public/planetbgs/{planetId}/{formatStr}?v={version}";
+    }
+    
     public static string GetIconUrl(ISharedPlanet planet, IconFormat format)
     {
         if (!planet.HasCustomIcon)
@@ -126,7 +161,7 @@ public interface ISharedPlanet : ISharedModel<long>
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}?v={planet.Version}";
     }
     
-    public static string GetIconUrl(PlanetListInfo planet, IconFormat format)
+    public static string GetIconUrl(ISharedPlanetListInfo planet, IconFormat format)
     {
         if (!planet.HasCustomIcon)
         {
@@ -144,6 +179,32 @@ public interface ISharedPlanet : ISharedModel<long>
         
         string formatStr = IconFormatMap[format];
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
+    }
+    
+
+    public static string GetCommunityShortCode(ISharedPlanet planet)
+    {
+        return GetCommunityShortCode(planet.Name);
+    }
+
+    public static string GetCommunityShortCode(ISharedPlanetListInfo planet)
+    {
+        return GetCommunityShortCode(planet.Name);
+    }
+
+    public static string GetCommunityShortCode(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        if (name.Length < 5) return name.ToUpperInvariant();
+        var sb = new StringBuilder();
+        sb.Append(char.ToUpperInvariant(name[0]));
+        for (int i = 1; i < name.Length && sb.Length < 4; i++)
+        {
+            var c = name[i];
+            if (name[i - 1] == ' ' || (char.IsUpper(c) && char.IsLower(name[i - 1])))
+                sb.Append(char.ToUpperInvariant(c));
+        }
+        return sb.ToString();
     }
 }
 

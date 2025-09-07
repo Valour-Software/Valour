@@ -219,7 +219,7 @@ public class WindowLayout
         return tab;
     }
 
-    public async Task AddTab(WindowTab tab, bool render = true)
+    public async Task AddTab(WindowTab tab, bool render = true, int? index = null)
     {
         // Make sure we don't already contain the tab
         if (Tabs.Contains(tab))
@@ -234,7 +234,17 @@ public class WindowLayout
         }
         
         // Add tab to list
-        Tabs.Add(tab);
+        
+        // If an index is provided, insert at that index
+        if (index.HasValue && index.Value >= 0 && index.Value < Tabs.Count)
+        {
+            Tabs.Insert(index.Value, tab);
+        }
+        else
+        {
+            // Otherwise add to the end
+            Tabs.Add(tab);
+        }
         
         // Set the layout of the tab
         await tab.SetLayout(this, false);
@@ -373,6 +383,28 @@ public class WindowLayout
 
         AddSplit(tab, location);
     }
+
+    /// <summary>
+    /// Handles the event when a tab is dropped on another tab.
+    /// Places the tab before the dropped tab in the same layout and focuses it.
+    /// </summary>
+
+    public async Task OnTabDropped(WindowTab dragging, WindowTab droppedOn)
+    {
+        // Remove tab as floater
+        await DockComponent.RemoveFloatingTab(dragging);
+        
+
+        // Find the index to insert before
+        int? insertIndex = Tabs.IndexOf(droppedOn);
+
+        if (insertIndex == -1)
+        {
+            insertIndex = null;
+        }
+        
+        await AddTab(dragging, true, insertIndex);
+    }
     
     public async Task OnChannelDropped(Channel channel, WindowDropTargets.DropLocation location)
     {
@@ -392,6 +424,16 @@ public class WindowLayout
         }
 
         AddSplit(tab, location);
+    }
+    
+    public async Task OnChannelDropped(Channel channel, WindowTab droppedOn)
+    {
+        // Create a new chat window
+        var chatWindow = await ChatWindowComponent.GetDefaultContent(channel);
+        var tab = new WindowTab(chatWindow);
+        
+        // Use the existing OnTabDropped method to handle the drop
+        await OnTabDropped(tab, droppedOn);
     }
 
     private void AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)

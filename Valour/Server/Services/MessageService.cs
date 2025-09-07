@@ -93,6 +93,9 @@ public class MessageService
         
         if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
             return TaskResult<Message>.FromFailure("Channel is not a message channel.");
+        
+        // The notification to send out after processing the message
+        NotificationSource? notification = null;
 
         HostedPlanet? hostedPlanet = null;
         Planet? planet = null;
@@ -124,11 +127,19 @@ public class MessageService
                         "Mismatch between member's user id and message author user id.");
             }
         }
+        else
+        {
+            // DMs always send a notification
+            notification = NotificationSource.DirectMessage;
+        }
+        
+        // The message this message is replying to
+        Message? replyTo = null;
 
         // Handle replies
         if (message.ReplyToId is not null)
         {
-            var replyTo = (await _db.Messages.FindAsync(message.ReplyToId)).ToModel();
+            replyTo = (await _db.Messages.FindAsync(message.ReplyToId)).ToModel();
             if (replyTo is null)
             {
                 // Try to get from cache if it has not yet posted
@@ -144,7 +155,8 @@ public class MessageService
             
             message.ReplyTo = replyTo;
             
-            await _notificationService.HandleReplyAsync(replyTo, planet, message, member, user, channel);
+            // Flag notification to be sent
+            notification = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply;
         }
         
         if (string.IsNullOrEmpty(message.Content) &&
@@ -308,6 +320,27 @@ public class MessageService
         if (channel.PlanetId is not null)
         {
             _coreHubService.NotifyChannelStateUpdate(channel.PlanetId.Value, channel.Id, message.TimeSent);
+        }
+
+        if (notification is not null)
+        {
+            switch (notification)
+            {
+                case NotificationSource.DirectReply:
+                case NotificationSource.PlanetMemberReply:
+                {
+                    if (replyTo is not null)
+                    {
+                        await _notificationService.HandleReplyAsync(replyTo, planet, message, member, user, channel);
+                    }
+                    break;
+                }
+                case NotificationSource.DirectMessage:
+                {
+                    await _notificationService.HandleDirectMessageAsync(message, user, channel);
+                    break;
+                }
+            }
         }
 
         return TaskResult<Message>.FromData(message);

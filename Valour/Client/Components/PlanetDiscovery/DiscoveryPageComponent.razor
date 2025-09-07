@@ -1,0 +1,238 @@
+@inherits WindowContentComponentBase
+@implements IAsyncDisposable
+@inject PlanetService PlanetService
+
+<NebulaBackground>
+    <div class="discovery-window inner-window @_mobileTag">
+        <h2 class="text-center mt-4 mb-4">Popular Planets</h2>
+        <div class="planet-discovery-container">
+            @switch (_isLoading)
+            {
+                case false when UnjoinedPlanets.Count == 0:
+                    <span>No planets to discover!</span>
+                    break;
+                case false:
+                    <div class="carousel-section">
+            <Carousel TItem="PlanetListInfo"
+                      @ref="_planetCarousel"
+                      Items="@PopularPlanets"
+                      GapPx="16"
+                      TransitionMs="300"
+                      MinItemWidth="300"
+                      MaxItemWidth="350"
+                      ItemPadding="12"
+                      FadeWidth="50">
+                <ItemTemplate>
+                    <DiscoveryPlanetCard PlanetInfo="@context" OnJoin="@HandleJoinAsync" />
+                </ItemTemplate>
+            </Carousel>
+                    </div>
+                    
+                    
+                    <h2 class="text-center mt-5 mb-4">Discover all the new Planets</h2>
+                    
+                    <LargeSearch Placeholder="Search planets..." 
+                                 DebounceMs="300" 
+                                 OnSearchChanged="@OnSearchChanged" 
+                                 OnSearchCleared="@OnSearchCleared" />
+                    
+                    <DiscoveryPlanetGrid @ref="PlanetGrid" 
+                                         IsLoading="@_isSearchLoading"
+                                         EmptyMessage="No planets found matching your search" />
+                    break;
+                default:
+                    <span>Loading planets…</span>
+                    break;
+            }
+        </div>
+    </div>
+</NebulaBackground>
+
+@code {
+    private string _mobileTag = "";
+    private bool _isLoading = true;
+    private List<PlanetListInfo> _all { get; set; } = new();
+    private HashSet<long> _joinedIds { get; set; } = new();
+    private List<PlanetListInfo> UnjoinedPlanets { get; set; } = new();
+    private List<PlanetListInfo> PopularPlanets { get; set; } = new();
+    private Carousel<PlanetListInfo> _planetCarousel;
+    private string _searchTerm = string.Empty;
+    private bool _carouselInitialized;
+    private ModelQueryEngine<PlanetListInfo> _discoverablePlanetsQuery;
+    private List<PlanetListInfo> _filteredPlanets = new();
+    private bool _isSearchLoading = false;
+    
+    private DiscoveryPlanetGrid _planetGrid;
+    private DiscoveryPlanetGrid PlanetGrid
+    {
+        get => _planetGrid;
+        set
+        {
+            _planetGrid = value;
+            _planetGrid?.SetPlanets(_filteredPlanets);
+        }
+    }
+    
+    private TaskResult _result = new();
+
+    private const int InitialListLoad = 4;
+    private int _loadedListCount = 0;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Initialize the query engine for discoverable planets
+            _discoverablePlanetsQuery = PlanetService.CreateDiscoverablePlanetsQueryEngine();
+            _discoverablePlanetsQuery.SetPageSize(50);
+            
+            await LoadDiscoveryPlanetsAsync();
+            _loadedListCount = Math.Min(InitialListLoad, UnjoinedPlanets.Count);
+        }
+        catch (Exception ex)
+        {
+            _isLoading = false;
+            _result.Success = false;
+            _result.Message = ex.Message;
+            Console.WriteLine("Error loading planets: " + ex);
+            ReRender();
+        }
+
+        if (DeviceInfo.IsMobile)
+        {
+            _mobileTag = "mobile";
+            ReRender();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender && !_isLoading && !_carouselInitialized && _planetCarousel != null)
+        {
+            _carouselInitialized = true;
+            await _planetCarousel.Reset();
+        }
+    }
+
+
+   
+    
+    // ----------  helpers ----------
+
+    private async Task LoadDiscoveryPlanetsAsync()
+    {
+        await PlanetService.FetchJoinedPlanetsAsync();
+        _joinedIds = PlanetService.JoinedPlanets.Select(p => p.Id).ToHashSet();
+        
+        // Load initial page of discoverable planets
+        await _discoverablePlanetsQuery.GetPageAsync(0, 50);
+        _all = _discoverablePlanetsQuery.CurrentPage.ToList();
+        
+        UnjoinedPlanets = _all.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
+        
+        //The idea is that planet is popular when it has more as 20 members for a test
+        PopularPlanets = UnjoinedPlanets.Where(p => p.MemberCount > 20).ToList();
+        _filteredPlanets = UnjoinedPlanets;
+        
+        _isLoading = false;
+        _loadedListCount = Math.Min(_loadedListCount > 0 ? _loadedListCount : InitialListLoad, UnjoinedPlanets.Count);
+        if (_planetCarousel != null)
+            await _planetCarousel.Reset();
+        
+        _planetGrid?.SetPlanets(_filteredPlanets);
+        
+        ReRender();
+    }
+
+
+
+    
+    private async Task HandleJoinAsync(PlanetListInfo planet)
+    {
+        await PlanetService.JoinPlanetAsync(planet.PlanetId);
+        UnjoinedPlanets.Remove(planet);
+        if (_planetCarousel != null)
+            await _planetCarousel.Reset();
+        ReRender();
+    }
+
+    private async Task OnSearchChanged(string searchTerm)
+    {
+        _searchTerm = searchTerm;
+        await PerformSearch();
+    }
+
+    private Task OnSearchCleared()
+    {
+        _isSearchLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            _searchTerm = string.Empty;
+            _filteredPlanets = UnjoinedPlanets;
+            
+            // Clear the search filter on the query engine
+            if (_discoverablePlanetsQuery != null)
+            {
+                _discoverablePlanetsQuery.ResetPaging();
+                _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
+            }
+            
+            StateHasChanged();
+            _planetGrid?.SetPlanets(_filteredPlanets);
+        }
+        finally
+        {
+            _isSearchLoading = false;
+            StateHasChanged();
+        }
+        
+        return Task.CompletedTask;
+    }
+
+    private async Task PerformSearch()
+    {
+        if (_discoverablePlanetsQuery == null) return;
+        
+        _isSearchLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Reset paging and set the search filter on the query engine
+            _discoverablePlanetsQuery.ResetPaging();
+            
+            // Only apply search filter if search term is not null or empty
+            if (!string.IsNullOrWhiteSpace(_searchTerm))
+            {
+                _discoverablePlanetsQuery.SetFilter("search", _searchTerm, apply: true);
+            }
+            else
+            {
+                _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
+            }
+            
+            // Get the first page of filtered results
+            await _discoverablePlanetsQuery.GetPageAsync(0, 50);
+            var filteredResults = _discoverablePlanetsQuery.CurrentPage.ToList();
+            
+            // Filter out joined planets
+            _filteredPlanets = filteredResults.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
+            
+            StateHasChanged();
+            _planetGrid?.SetPlanets(_filteredPlanets);
+        }
+        finally
+        {
+            _isSearchLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return ValueTask.CompletedTask;
+    }
+
+}

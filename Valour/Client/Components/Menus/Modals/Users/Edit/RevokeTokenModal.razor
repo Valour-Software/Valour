@@ -1,0 +1,88 @@
+@inherits Modal<RevokeTokenModal.Params>
+@inject ValourClient Client
+
+<BasicModalLayout Title="@GetTitle()" Icon="shield-lock-fill" MaxWidth="400px">
+    <MainArea>
+        <p>@GetDescription()</p>
+        
+        @if (Data.ShowTokenInfo && Data.Token != null)
+        {
+            <div class="token-info-preview">
+                <div class="token-app">
+                    @if (Data.Token.AppId == "VALOUR")
+                    {
+                        <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
+                        <span class="app-name">Valour Web Client</span>
+                    }
+                    else if (_appInfo != null)
+                    {
+                        <img src="@_appInfo.ImageUrl" alt="@_appInfo.Name" class="app-icon" />
+                        <span class="app-name">@_appInfo.Name</span>
+                    }
+                    else
+                    {
+                        <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
+                        <span class="app-name">OAuth App (@Data.Token.AppId)</span>
+                    }
+                </div>
+                <div class="token-details">
+                    <span class="label">Created:</span>
+                    <span>@Data.Token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
+                </div>
+            </div>
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            <button @onclick="@OnConfirm" class="v-btn danger">Revoke Session</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class Params
+    {
+        public AuthToken Token { get; set; }
+        public bool ShowTokenInfo { get; set; } = true;
+        public bool IsRevokeAll { get; set; } = false;
+        public Func<Task<TaskResult>> OnConfirmAsync { get; set; }
+    }
+
+    private PublicOauthAppData _appInfo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data.Token?.AppId != null && Data.Token.AppId != "VALOUR" && long.TryParse(Data.Token.AppId, out long appId))
+        {
+            try
+            {
+                _appInfo = await Client.OauthService.FetchAppPublicDataAsync(appId);
+            }
+            catch
+            {
+                // If we can't fetch the app info, we'll just show the default
+            }
+        }
+    }
+
+    private string GetTitle() => Data.IsRevokeAll ? "Revoke All Other Sessions" : "Revoke Session";
+    
+    private string GetDescription() => Data.IsRevokeAll 
+        ? "Are you sure you want to revoke all other sessions? This will log out all other devices except this one."
+        : "Are you sure you want to revoke this session? This will immediately log out that device.";
+
+    private async Task OnConfirm()
+    {
+        if (Data.OnConfirmAsync is not null)
+        {
+            var result = await Data.OnConfirmAsync.Invoke();
+            if (result.Success)
+            {
+                Close();
+            }
+        }
+    }
+
+    private void OnCancel() => Close();
+}

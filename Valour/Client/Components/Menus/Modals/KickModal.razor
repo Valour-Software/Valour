@@ -1,26 +1,37 @@
 ﻿@inherits Modal<KickModal.KickModalParams>
+@inject ValourClient Client
 
-<div class="col-md-12">
-	<section class="glassy-modal" style="text-align: center; padding: 30px">
-		<h3><i class="bi bi-shield-fill-exclamation"></i> Kick @Data.Member.Nickname?</h3>
-		<label style="font-size: 1.2em">This will remove them from the planet.</label>
-		<br />
-		<UserInfoComponent Member="@Data.Member" 
-		                   Style="
-		                   background-color: var(--main-3); 
-		                   display: inline-block; 
-		                   border-radius: 0.5em; 
-		                   padding-right: 0.5em;
-						   scale: 1.5;
-						   margin-top: 1.5em;
-						   margin-bottom: 2em" />
-		<br />
-		<div class="btn-wrapper">
-			<button @onclick="@OnCancel" class="btn v-btn d-inline-block">Cancel </button>
-			<button @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">Confirm</button>
-		</div>
-	</section>
-</div>
+<BasicModalLayout Title="@Title" Icon="shield-exclamation" MaxWidth="500px">
+    <MainArea>
+        @if (_isSelf)
+        {
+            <p class="text-danger">You cannot kick yourself.</p>
+        }
+        else
+        {
+            <p>This will remove them from the planet.</p>
+            
+            <UserInfoComponent Member="@Data.Member" 
+                               Style="
+                               background-color: var(--main-3); 
+                               display: inline-block; 
+                               border-radius: 0.5em; 
+                               padding-right: 0.5em;
+                               scale: 1.5;
+                               margin-top: 1.5em;
+                               margin-bottom: 2em" />
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+            @if (!_isSelf)
+            {
+                <button @onclick="@OnConfirm" class="v-btn danger">Confirm</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 
@@ -28,9 +39,19 @@
     {
         public PlanetMember Member { get; set; }
     }
+
+	private string Title => Data.Member.Nickname is null ? "Kick" : $"Kick {Data.Member.Nickname}";
+	private bool _isSelf;
+	
+	protected override void OnInitialized()
+	{
+		_isSelf = Data.Member.UserId == Client.Me.Id;
+	}
 	
 	private async Task OnConfirm()
 	{
+		if (_isSelf) return;
+		
 		var result = await Data.Member.DeleteAsync();
 		Console.WriteLine(result);
 		Close();

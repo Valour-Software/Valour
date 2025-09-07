@@ -1,0 +1,103 @@
+@using Valour.Shared.Utilities
+@implements IAsyncDisposable
+
+<div class="search-container">
+    <div class="search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" 
+               class="search-input" 
+               placeholder="@Placeholder" 
+               value="@_searchTerm"
+               @oninput="OnSearchInput" />
+        @if (_isLoading)
+        {
+            <div class="search-loading">
+                <i class="bi bi-arrow-clockwise spin"></i>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(_searchTerm))
+        {
+            <button class="search-clear" @onclick="ClearSearch">
+                <i class="bi bi-x"></i>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Placeholder { get; set; } = "Search...";
+    [Parameter] public int DebounceMs { get; set; } = 300;
+    [Parameter] public bool ShowLoadingSpinner { get; set; } = true;
+    [Parameter] public EventCallback<string> OnSearchChanged { get; set; }
+    [Parameter] public EventCallback OnSearchCleared { get; set; }
+    
+    private string _searchTerm = string.Empty;
+    private bool _isLoading = false;
+    private bool _searchQueued = false;
+    private System.Threading.Timer _searchTimer;
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? string.Empty;
+        await PerformSearchDebounced();
+    }
+
+    private async Task PerformSearchDebounced()
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            await OnSearchCleared.InvokeAsync();
+            return;
+        }
+        
+        if (_isLoading)
+        {
+            _searchQueued = true;
+            return;
+        }
+
+        await PerformSearchDebouncedInternal();
+    }
+
+    private async Task PerformSearchDebouncedInternal()
+    {
+        do
+        {
+            _isLoading = true;
+            _searchQueued = false;
+            
+            if (ShowLoadingSpinner)
+                StateHasChanged();
+            
+            // Cancel previous timer
+            _searchTimer?.Dispose();
+            
+            // Start new timer for debounced search
+            _searchTimer = new System.Threading.Timer(async _ =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    await OnSearchChanged.InvokeAsync(_searchTerm);
+                    _isLoading = false;
+                    StateHasChanged();
+                });
+            }, null, DebounceMs, Timeout.Infinite);
+            
+            await Task.Delay(100); // Minimum delay between searches
+        } while (_searchQueued);
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        _searchTimer?.Dispose();
+        await OnSearchCleared.InvokeAsync();
+        StateHasChanged();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _searchTimer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

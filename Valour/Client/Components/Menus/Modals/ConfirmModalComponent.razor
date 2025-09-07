@@ -2,18 +2,17 @@
 
 <!-- This modal exists to allow parts of the app to ask for confirmation -->
 
-<div class="col-md-12">
-	<section class="glassy-modal" style="text-align: center; padding: 30px; background-color: var(--main-1); border-radius: 15px">
-		<h3>@Data.Title</h3>
-		<label style="font-size: 1.2em">@Data.Description</label>
-		<br />
-		<br />
-		<div class="btn-wrapper">
-			<button @onclick="@OnCancel" class="btn v-btn d-inline-block">@Data.CancelText</button>
-			<button @onclick="@OnConfirm" class="btn v-btn danger d-inline-block">@Data.ConfirmText</button>
-		</div>
-	</section>
-</div>
+<BasicModalLayout Title="@Data.Title" Icon="question-circle-fill" MaxWidth="400px">
+    <MainArea>
+        <p>@Data.Description</p>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnCancel" class="v-btn">@Data.CancelText</button>
+            <button @onclick="@OnConfirm" class="v-btn danger">@Data.ConfirmText</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 

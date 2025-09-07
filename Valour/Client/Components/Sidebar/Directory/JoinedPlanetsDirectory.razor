@@ -2,6 +2,7 @@
 @inject PlanetService PlanetService
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
+@inject PlanetTagService TagService
 
 <div class="joined-planets">
     <p class="subtitle mb-2">Joined Planets</p>
@@ -54,7 +55,7 @@
     private List<JoinedPlanetRenderInfo> _renderPlanets = new();
     private string _filterText;
     private string _searchTerm = "";
-    private List<long> _filterTagIds = new();
+    private List<string> _filterTagNames = new();
     
     protected override async Task OnInitializedAsync()
     {
@@ -79,16 +80,16 @@
     
     private void OnTagSelected(PlanetTag planetTag)
     {
-        if (planetTag != null && !_filterTagIds.Contains(planetTag.Id))
-            _filterTagIds.Add(planetTag.Id);
+        if (planetTag != null && !_filterTagNames.Contains(planetTag.Name))
+            _filterTagNames.Add(planetTag.Name);
         CalculatePlanets();
         ReRender();
     }
-    
+
     private void OnTagRemoved(PlanetTag planetTag)
     {
         if (planetTag != null)
-            _filterTagIds.Remove(planetTag.Id);
+            _filterTagNames.Remove(planetTag.Name);
 
         CalculatePlanets();
         ReRender();
@@ -100,15 +101,23 @@
         ReRender();
     }
 
-    private void OnClickExplore()
+    private async Task OnClickExplore()
     {
-        
+        var windowContent = new DiscoveryPageWindowContent();
+        await WindowService.OpenWindowAtFocused(windowContent);
     }
     
     private async Task OnFilterChanged((string SearchTerm, List<long> TagIds) filter)
     {
         _searchTerm = filter.SearchTerm; 
-        _filterTagIds = filter.TagIds; 
+        // Convert tag IDs to names for simpler filtering
+        _filterTagNames.Clear();
+        foreach (var tagId in filter.TagIds)
+        {
+            var tag = await TagService.FetchTagByIdAsync(tagId);
+            if (tag != null && !_filterTagNames.Contains(tag.Name))
+                _filterTagNames.Add(tag.Name);
+        }
         CalculatePlanets();
         ReRender(); 
     }
@@ -119,9 +128,9 @@
         var planets = PlanetService.JoinedPlanets;
 
      
-        if (_filterTagIds.Any())
+        if (_filterTagNames.Any())
         {
-            planets = planets.Where(p => p.TagId != null && _filterTagIds.All(id => p.TagId.Any(t => t == id))).ToList();
+            planets = planets.Where(p => p.Tags != null && p.Tags.Any() && _filterTagNames.All(tagName => p.Tags.Any(t => t.Name == tagName))).ToList();
         }
 
         

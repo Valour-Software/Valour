@@ -141,7 +141,7 @@ public class PlanetApi
         if (userId != planet.OwnerId)
             return ValourResult.Forbid("You are not the owner of this planet.");
 
-        await planetService.DeleteAsync(planet);
+        await planetService.DeleteAsync(planet.Id);
 
         return Results.NoContent();
     }
@@ -429,10 +429,34 @@ public class PlanetApi
         return Results.Json(result);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/info")]
+    public static async Task<IResult> GetPlanetInfoAsync(
+        long id,
+        PlanetService planetService)
+    {
+        var planetInfo = await planetService.GetPlanetInfoAsync(id);
+        if (planetInfo is null)
+            return ValourResult.NotFound("Planet not found or not public");
+        
+        return Results.Json(planetInfo);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]
     public static async Task<IResult> GetDiscoverables(PlanetService planetService)
     {
         var planets = await planetService.GetDiscoverablesAsync();
+        return Results.Json(planets);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/discoverable/query")]
+    public static async Task<IResult> QueryDiscoverables(
+        [FromBody] QueryRequest? queryRequest,
+        PlanetService planetService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+        
+        var planets = await planetService.QueryDiscoverablePlanetsAsync(queryRequest);
         return Results.Json(planets);
     }
 

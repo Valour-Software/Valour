@@ -167,7 +167,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public int Version { get; set; }
     
-    public List<long> TagId { get; set; }
+    /// <summary>
+    /// True if the planet has a custom background
+    /// </summary>
+    public bool HasCustomBackground { get; set; }
+    
+    public List<PlanetTag> Tags { get; set; }
 
     internal void SetMyMember(PlanetMember member)
     {
@@ -601,4 +606,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);
+
+    public PlanetListInfo ToListInfo()
+    {
+        return PlanetListInfo.FromPlanet(this);
+    }
 }

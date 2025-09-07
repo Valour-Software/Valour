@@ -10,26 +10,32 @@ export const init = () => {
             }
             service.scanTimer = 0;
             let newTarget = null;
-            document.elementsFromPoint(mouseX, mouseY).forEach((element) => {
+            const elements = document.elementsFromPoint(mouseX, mouseY);
+            console.log("Scanning...", elements);
+            elements.forEach((element) => {
                 if (element.classList.contains('w-drop-target')) {
                     newTarget = element;
                 }
-                if (newTarget) {
-                    if (newTarget !== service.currentTarget) {
-                        if (service.currentTarget) {
-                            service.currentTarget.style.backgroundColor = '#fff';
-                        }
-                        service.currentTarget = newTarget;
-                        service.currentTarget.style.backgroundColor = '#0ff';
-                    }
-                }
-                else {
-                    if (service.currentTarget) {
-                        service.currentTarget.style.backgroundColor = '#fff';
-                        service.currentTarget = null;
-                    }
-                }
             });
+            if (newTarget) {
+                if (newTarget !== service.currentTarget) {
+                    // Reset previous target
+                    if (service.currentTarget) {
+                        service.currentTarget.classList.remove('w-target-active');
+                    }
+                    // Set new target
+                    service.currentTarget = newTarget;
+                    service.currentTarget.classList.add('w-target-active');
+                    console.log("New target found:", service.currentTarget);
+                }
+            }
+            else {
+                // If no target found, reset current target
+                if (service.currentTarget) {
+                    service.currentTarget.classList.remove('w-target-active');
+                    service.currentTarget = null;
+                }
+            }
         },
         finalize: (mouseX, mouseY) => {
             if (service.currentTarget) {

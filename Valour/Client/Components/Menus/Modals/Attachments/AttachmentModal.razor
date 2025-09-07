@@ -7,30 +7,33 @@
     return;
 }
 
-<div class="preview-container glassy-modal">
-    <div class="attachment-holder">
-        @switch (Data.Attachment.Type){
-            case MessageAttachmentType.Image:
-                <ImageAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
-                break;
-            case MessageAttachmentType.Video:
-                <VideoAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
-                break;
-            case MessageAttachmentType.Audio:
-                <AudioAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
-                break;
-            default:
-                <FileAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
-                break;
-        }
-    </div>
-    
-    <div class="button-row">
-        <button class="v-btn" style="float: right" @onclick="@OnClickClose">Close</button>
-        <button class="v-btn" style="float: right" @onclick="@OnClickCopyLink">Copy Link</button>
-        <button class="v-btn danger" @onclick="@OnClickDownload">Download</button>
-    </div>
-</div>
+<BasicModalLayout Title="Attachment Preview" Icon="file-earmark" MaxWidth="800px">
+    <MainArea>
+        <div class="attachment-holder">
+            @switch (Data.Attachment.Type){
+                case MessageAttachmentType.Image:
+                    <ImageAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
+                    break;
+                case MessageAttachmentType.Video:
+                    <VideoAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
+                    break;
+                case MessageAttachmentType.Audio:
+                    <AudioAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
+                    break;
+                default:
+                    <FileAttachmentComponent Message="Data.Message" Attachment="Data.Attachment" />
+                    break;
+            }
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnClickDownload" class="v-btn">Download</button>
+            <button @onclick="@OnClickCopyLink" class="v-btn">Copy Link</button>
+            <button @onclick="@OnClickClose" class="v-btn">Close</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
 
 @code {
 
@@ -49,6 +52,7 @@
     {
         var url = await Data.Attachment.GetSignedUrl(Data.Message.Client, Data.Message.Node);
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Attachment link copied to clipboard", ToastProgressState.Success));
     }
 
     private async Task OnClickDownload()

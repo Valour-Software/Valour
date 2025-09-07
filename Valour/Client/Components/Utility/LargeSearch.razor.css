@@ -1,0 +1,131 @@
+.search-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+    padding: 0 1rem;
+}
+
+.search-box {
+    position: relative;
+    max-width: 500px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 100%);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--card-radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.search-box:focus-within {
+    border-color: var(--p-cyan);
+    box-shadow: 0 6px 24px rgba(55, 164, 206, 0.3);
+    transform: translateY(-1px);
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--font-alt-color);
+    font-size: 1.1rem;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--font-color);
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.search-input::placeholder {
+    color: var(--font-alt-color);
+    opacity: 0.7;
+}
+
+.search-clear {
+    position: absolute;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: var(--font-alt-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+}
+
+.search-clear:hover {
+    background: var(--slight-tint);
+    color: var(--font-color);
+    transform: scale(1.1);
+}
+
+.search-loading {
+    position: absolute;
+    right: 1rem;
+    color: var(--p-cyan);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+}
+
+.search-loading .spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .search-container {
+        margin: 1.5rem 0;
+        padding: 0 0.75rem;
+    }
+    
+    .search-box {
+        max-width: 100%;
+    }
+    
+    .search-input {
+        padding: 0.875rem 0.875rem 0.875rem 2.75rem;
+        font-size: 0.95rem;
+    }
+    
+    .search-icon {
+        left: 0.875rem;
+        font-size: 1rem;
+    }
+    
+    .search-clear {
+        right: 0.875rem;
+        font-size: 1.1rem;
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+    
+    .search-loading {
+        right: 0.875rem;
+        font-size: 1.1rem;
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+}

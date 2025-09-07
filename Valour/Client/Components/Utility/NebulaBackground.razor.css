@@ -1,0 +1,226 @@
+.complex-nebula-container {
+    position: relative;
+    min-height: 100vh;
+    background: radial-gradient(
+            ellipse at center,
+            #0a0015 0%,
+            #050008 50%,
+            #000000 100%
+    );
+    overflow: hidden;
+}
+
+/* Multi-layer star system */
+.stars-small {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(1px 1px at 25px 25px, white, transparent),
+    radial-gradient(1px 1px at 75px 75px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 125px 125px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 175px 175px, white, transparent),
+    radial-gradient(1px 1px at 225px 225px, rgba(255, 255, 255, 0.6), transparent);
+    background-repeat: repeat;
+    background-size: 250px 250px;
+    animation: stars-move-1 200s linear infinite;
+}
+
+.stars-medium {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(2px 2px at 50px 100px, white, transparent),
+    radial-gradient(2px 2px at 150px 200px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 250px 50px, rgba(255, 255, 255, 0.9), transparent);
+    background-repeat: repeat;
+    background-size: 300px 300px;
+    animation: stars-move-2 150s linear infinite reverse;
+}
+
+.stars-large {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(3px 3px at 100px 150px, white, transparent),
+    radial-gradient(2px 2px at 300px 100px, rgba(255, 255, 255, 0.9), transparent);
+    background-repeat: repeat;
+    background-size: 400px 400px;
+    animation: stars-move-3 100s linear infinite;
+}
+
+.twinkling-stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(2px 2px at 80px 80px, white, transparent),
+    radial-gradient(1px 1px at 180px 180px, white, transparent),
+    radial-gradient(2px 2px at 280px 80px, white, transparent);
+    background-repeat: repeat;
+    background-size: 350px 350px;
+    animation: twinkle 3s ease-in-out infinite alternate;
+}
+
+/* Complex nebula layers with sharp falloffs */
+.nebula-layer-1 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+            circle at 20% 30%,
+            rgba(0, 255, 255, 0.35) 0%,
+            rgba(0, 255, 255, 0.25) 8%,
+            rgba(0, 220, 255, 0.15) 16%,
+            rgba(0, 180, 255, 0.08) 24%,
+            rgba(0, 140, 255, 0.03) 32%,
+            transparent 40%
+    ),
+    radial-gradient(
+            ellipse at 80% 20%,
+            rgba(0, 200, 255, 0.4) 0%,
+            rgba(0, 200, 255, 0.3) 10%,
+            rgba(0, 170, 255, 0.18) 20%,
+            rgba(0, 140, 255, 0.1) 30%,
+            rgba(0, 110, 255, 0.04) 40%,
+            transparent 50%
+    );
+    animation: complex-drift-1 45s ease-in-out infinite alternate;
+}
+
+.nebula-layer-2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+            circle at 70% 70%,
+            rgba(128, 0, 255, 0.45) 0%,
+            rgba(128, 0, 255, 0.35) 6%,
+            rgba(110, 0, 220, 0.22) 12%,
+            rgba(90, 0, 180, 0.12) 18%,
+            rgba(70, 0, 140, 0.05) 24%,
+            transparent 30%
+    ),
+    radial-gradient(
+            ellipse at 10% 60%,
+            rgba(75, 0, 130, 0.5) 0%,
+            rgba(75, 0, 130, 0.4) 8%,
+            rgba(90, 0, 150, 0.25) 16%,
+            rgba(60, 0, 110, 0.15) 24%,
+            rgba(40, 0, 80, 0.06) 32%,
+            transparent 40%
+    );
+    animation: complex-drift-2 55s ease-in-out infinite alternate-reverse;
+}
+
+.nebula-layer-3 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+            circle at 50% 10%,
+            rgba(138, 43, 226, 0.38) 0%,
+            rgba(138, 43, 226, 0.28) 7%,
+            rgba(120, 35, 200, 0.18) 14%,
+            rgba(100, 25, 170, 0.1) 21%,
+            rgba(80, 15, 140, 0.04) 28%,
+            transparent 35%
+    ),
+    radial-gradient(
+            ellipse at 90% 90%,
+            rgba(72, 61, 139, 0.42) 0%,
+            rgba(72, 61, 139, 0.32) 9%,
+            rgba(85, 70, 160, 0.2) 18%,
+            rgba(60, 50, 120, 0.11) 27%,
+            rgba(45, 35, 90, 0.05) 36%,
+            transparent 45%
+    );
+    animation: complex-drift-3 65s ease-in-out infinite alternate;
+}
+
+.nebula-layer-4 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+            circle at 40% 50%,
+            rgba(106, 90, 205, 0.25) 0%,
+            rgba(106, 90, 205, 0.18) 12%,
+            rgba(90, 75, 180, 0.1) 24%,
+            rgba(70, 60, 150, 0.04) 36%,
+            transparent 48%
+    ),
+    radial-gradient(
+            ellipse at 15% 85%,
+            rgba(147, 112, 219, 0.3) 0%,
+            rgba(147, 112, 219, 0.22) 10%,
+            rgba(120, 90, 190, 0.13) 20%,
+            rgba(100, 70, 160, 0.06) 30%,
+            rgba(80, 50, 130, 0.02) 40%,
+            transparent 50%
+    );
+    animation: complex-drift-4 75s ease-in-out infinite alternate-reverse;
+}
+
+.cosmic-dust {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+            circle at 25% 25%,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(255, 255, 255, 0.03) 20%,
+            transparent 40%
+    ),
+    radial-gradient(
+            circle at 75% 75%,
+            rgba(200, 200, 255, 0.08) 0%,
+            rgba(180, 180, 255, 0.04) 25%,
+            transparent 50%
+    ),
+    radial-gradient(
+            circle at 60% 40%,
+            rgba(255, 200, 255, 0.05) 0%,
+            rgba(220, 180, 255, 0.025) 30%,
+            transparent 60%
+    ),
+        /* Dark void areas for contrast */
+    radial-gradient(
+            circle at 35% 65%,
+            rgba(0, 0, 0, 0.4) 0%,
+            rgba(0, 0, 0, 0.2) 15%,
+            transparent 30%
+    ),
+    radial-gradient(
+            circle at 85% 25%,
+            rgba(0, 0, 0, 0.35) 0%,
+            rgba(0, 0, 0, 0.15) 20%,
+            transparent 40%
+    );
+    animation: dust-swirl 80s ease-in-out infinite alternate;
+}
+
+.nebula-content {
+    position: relative;
+    z-index: 10;
+    padding: 2rem;
+    color: white;
+    
+    filter: drop-shadow(0px 0px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0px 0px 128px rgba(0, 0, 0, 0.5));
+}
