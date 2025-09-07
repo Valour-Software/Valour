@@ -22,7 +22,7 @@ public class ThemeApi
         ThemeService themeService,
         [FromBody] QueryRequest request)
     {
-        var response = await themeService.QueryThemes(request);
+        var response = await themeService.QueryThemesAsync(request);
         return Results.Json(response);
     } 
     
