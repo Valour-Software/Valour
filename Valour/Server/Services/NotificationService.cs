@@ -111,6 +111,8 @@ public class NotificationService
         notification.TimeSent = DateTime.UtcNow;
 
         notification.Id = Guid.NewGuid();
+
+        notification.Body ??= "";
         
         await _db.Notifications.AddAsync(notification.ToDatabase());
         await _db.SaveChangesAsync();
@@ -136,6 +138,8 @@ public class NotificationService
         var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)
             return;
+
+        baseNotification.Body ??= "";
         
         // Create db notifications
         

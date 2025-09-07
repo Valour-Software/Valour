@@ -15,7 +15,7 @@ else
 {
     <div class="result-message error">
         <p>
-            <i class="bi bi-exclamation-circle"></i> @(Result.Message ?? "An error occured.")
+            <span><i class="bi bi-exclamation-circle"></i> @(Result.Message ?? "An error occured.")</span>
             <a class="details" @onclick="@OnDetails">Details</a>
         </p>
     </div>

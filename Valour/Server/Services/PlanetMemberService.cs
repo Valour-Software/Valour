@@ -280,7 +280,7 @@ public class PlanetMemberService
 
         if (planet.Nsfw)
         {
-            var userPrivateInfo = await _db.PrivateInfos.FindAsync(user.Id);
+            var userPrivateInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == user.Id);
             if (userPrivateInfo is null)
                 return new TaskResult<PlanetMember>(false, "An unexpected error occured.");
 

@@ -1,7 +1,7 @@
 Terms and Conditions  
 ====================
 
-Last updated: January 14, 2021
+Last updated: July 29, 2025
 
 Please read these terms and conditions carefully before using Our Service.
 
@@ -250,7 +250,7 @@ responsible for protecting those rights. You agree that this license includes
 the right for Us to make Your Content available to other users of the Service,
 who may also use Your Content subject to these Terms.
 
-By posting Content to the Service, You also agree to the terms within the
+By posting Content to the Service, You agree to the terms within the
 platform rules located at [Platform Rules](https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md)
 
 You represent and warrant that: (i) the Content is Yours (You own it) or You
@@ -272,9 +272,7 @@ Examples of such objectionable Content include, but are not
 limited to, the following:
 
   * Unlawful or promoting unlawful activity.
-  * Defamatory, discriminatory, or mean-spirited content, including references
-    or commentary about religion, race, sexual orientation, gender,
-    national/ethnic origin, or other targeted groups.
+  * Defamatory content or targeted harassment
   * Spam, machine – or randomly – generated, constituting unauthorized or
     unsolicited advertising, chain letters, any other form of unauthorized
     solicitation, or any form of lottery or gambling.
@@ -288,7 +286,6 @@ limited to, the following:
   * Impersonating any person or entity including the Company and its employees
     or representatives.
   * Violating the privacy of any third person.
-  * False information and features.
 
 The Company reserves the right, but not the obligation, to, in its sole
 discretion, determine whether or not any Content is appropriate and complies

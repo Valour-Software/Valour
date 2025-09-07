@@ -34,25 +34,26 @@ public class ThemeService
     /// <summary>
     /// Returns a list of theme meta info, with optional search and pagination.
     /// </summary>
-    /// <param name="take">The number of themes to return in the page</param>
-    /// <param name="skip">The number of themes to skip over</param>
-    /// <param name="search">Search query</param>
-    /// <returns>A list of theme meta info</returns>
-    public async Task<QueryResponse<ThemeMeta>> GetThemes(int skip = 0, int take = 20, string search = null)
+    public async Task<QueryResponse<ThemeMeta>> QueryThemesAsync(QueryRequest queryRequest)
     {
+        var take = queryRequest.Take;
+        
         if (take > 50)
             take = 50;
     
         var baseQuery = _db.Themes
             .AsNoTracking()
             .Where(x => x.Published);
-        
+
         if (!string.IsNullOrWhiteSpace(search))
         {
-            baseQuery = baseQuery.Where(x => x.Name.ToLower().Contains(search.ToLower()));
+            var lowered = search.ToLower();
+            baseQuery = baseQuery.Where(x => EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%") ||
+                                             EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%"));
         }
         
         var count = await baseQuery.CountAsync();
+
         var mainQuery = baseQuery
             .Include(x => x.ThemeVotes)
             .Select(x => new
