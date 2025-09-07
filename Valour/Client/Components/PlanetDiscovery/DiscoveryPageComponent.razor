@@ -1,4 +1,5 @@
 @inherits WindowContentComponentBase
+@implements IAsyncDisposable
 @inject PlanetService PlanetService
 
 <NebulaBackground>
@@ -11,25 +12,31 @@
                     <span>No planets to discover!</span>
                     break;
                 case false:
-                    
-                    <Carousel
-                        @ref="_planetCarousel"
-                        TComponent="DiscoveryPlanetCard"
-                        GetItem="@GetPlanetParamsAsync"
-                        TotalItems="@PopularPlanets.Count"
-                        InitialLoadCount="5"
-                        VisibleItems="3"
-                        VisibleItemsPerWidth="@_breakpoints"
-                        ScrollStep="4"
-                        AutoScroll="false"
-                        ShowPageIndicators="true"
-                        Height="350" />
+                    <div class="carousel-section">
+            <Carousel TItem="PlanetListInfo"
+                      @ref="_planetCarousel"
+                      Items="@PopularPlanets"
+                      GapPx="16"
+                      TransitionMs="300"
+                      MinItemWidth="300"
+                      MaxItemWidth="350"
+                      ItemPadding="12"
+                      FadeWidth="50">
+                <ItemTemplate>
+                    <DiscoveryPlanetCard PlanetInfo="@context" OnJoin="@HandleJoinAsync" />
+                </ItemTemplate>
+            </Carousel>
+                    </div>
                     
                     
                     <h2 class="text-center mt-5 mb-4">Discover all the new Planets</h2>
                     
-                    <DiscoveryPlanetGrid Planets="UnjoinedPlanets"
-                                         OnJoin="HandleJoinAsync" />
+                    <LargeSearch Placeholder="Search planets..." 
+                                 DebounceMs="300" 
+                                 OnSearchChanged="@OnSearchChanged" 
+                                 OnSearchCleared="@OnSearchCleared" />
+                    
+                    <DiscoveryPlanetGrid @ref="PlanetGrid" />
                     break;
                 default:
                     <span>Loading planets…</span>
@@ -46,27 +53,36 @@
     private HashSet<long> _joinedIds { get; set; } = new();
     private List<PlanetListInfo> UnjoinedPlanets { get; set; } = new();
     private List<PlanetListInfo> PopularPlanets { get; set; } = new();
-    private Carousel<DiscoveryPlanetCard> _planetCarousel;
+    private Carousel<PlanetListInfo> _planetCarousel;
+    private string _searchTerm = string.Empty;
     private bool _carouselInitialized;
-    private readonly Dictionary<int, int> _breakpoints = new()
+    private ModelQueryEngine<PlanetListInfo> _discoverablePlanetsQuery;
+    private List<PlanetListInfo> _filteredPlanets = new();
+    
+    private DiscoveryPlanetGrid _planetGrid;
+    private DiscoveryPlanetGrid PlanetGrid
     {
-        { 0, 1 },
-        { 500, 2 },
-        { 800, 3 },
-        { 1100, 4 }
-    };
+        get => _planetGrid;
+        set
+        {
+            _planetGrid = value;
+            _planetGrid?.SetPlanets(_filteredPlanets);
+        }
+    }
+    
     private TaskResult _result = new();
 
     private const int InitialListLoad = 4;
-    private const int ListBatch = 3;
     private int _loadedListCount = 0;
-    private ElementReference _listRef;
-    private ElementReference _listSentinel;
     
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            // Initialize the query engine for discoverable planets
+            _discoverablePlanetsQuery = PlanetService.CreateDiscoverablePlanetsQueryEngine();
+            _discoverablePlanetsQuery.SetPageSize(50);
+            
             await LoadDiscoveryPlanetsAsync();
             _loadedListCount = Math.Min(InitialListLoad, UnjoinedPlanets.Count);
         }
@@ -93,11 +109,6 @@
             _carouselInitialized = true;
             await _planetCarousel.Reset();
         }
-
-        if (!firstRender && !_listRef.Equals(default))
-        {
-            await CheckListLoadAsync();
-        }
     }
 
 
@@ -108,33 +119,30 @@
     private async Task LoadDiscoveryPlanetsAsync()
     {
         await PlanetService.FetchJoinedPlanetsAsync();
-        _all = await PlanetService.FetchDiscoverablePlanetsAsync();
         _joinedIds = PlanetService.JoinedPlanets.Select(p => p.Id).ToHashSet();
+        
+        // Load initial page of discoverable planets
+        await _discoverablePlanetsQuery.GetPageAsync(0, 50);
+        _all = _discoverablePlanetsQuery.CurrentPage.ToList();
+        
         UnjoinedPlanets = _all.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
         
         //The idea is that planet is popular when it has more as 20 members for a test
         PopularPlanets = UnjoinedPlanets.Where(p => p.MemberCount > 20).ToList();
+        _filteredPlanets = UnjoinedPlanets;
+        
         _isLoading = false;
         _loadedListCount = Math.Min(_loadedListCount > 0 ? _loadedListCount : InitialListLoad, UnjoinedPlanets.Count);
         if (_planetCarousel != null)
             await _planetCarousel.Reset();
+        
+        _planetGrid?.SetPlanets(_filteredPlanets);
+        
         ReRender();
     }
 
 
 
-    private Task<Dictionary<string, object>> GetPlanetParamsAsync(int index)
-    {
-        if (index < 0 || index >= UnjoinedPlanets.Count)
-            return Task.FromResult(new Dictionary<string, object>());
-
-        var planet = PopularPlanets[index];
-        return Task.FromResult(new Dictionary<string, object>
-        {
-            { "PlanetInfo", planet },
-            { "OnJoin", EventCallback.Factory.Create<PlanetListInfo>(this, HandleJoinAsync) },
-        });
-    }
     
     private async Task HandleJoinAsync(PlanetListInfo planet)
     {
@@ -145,21 +153,60 @@
         ReRender();
     }
 
-    private async Task OnListScroll()
+    private async Task OnSearchChanged(string searchTerm)
     {
-        await CheckListLoadAsync();
+        _searchTerm = searchTerm;
+        await PerformSearch();
     }
 
-    private async Task CheckListLoadAsync()
+    private Task OnSearchCleared()
     {
-        if (_loadedListCount >= UnjoinedPlanets.Count)
-            return;
-
-        var dist = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(_listSentinel, _listRef);
-        if (dist.BottomDistance <= 50)
+        _searchTerm = string.Empty;
+        _filteredPlanets = UnjoinedPlanets;
+        
+        // Clear the search filter on the query engine
+        if (_discoverablePlanetsQuery != null)
         {
-            _loadedListCount = Math.Min(_loadedListCount + ListBatch, UnjoinedPlanets.Count);
-            ReRender();
+            _discoverablePlanetsQuery.ResetPaging();
+            _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
         }
+        
+        StateHasChanged();
+        _planetGrid?.SetPlanets(_filteredPlanets);
+        return Task.CompletedTask;
     }
+
+    private async Task PerformSearch()
+    {
+        if (_discoverablePlanetsQuery == null) return;
+        
+        // Reset paging and set the search filter on the query engine
+        _discoverablePlanetsQuery.ResetPaging();
+        
+        // Only apply search filter if search term is not null or empty
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _discoverablePlanetsQuery.SetFilter("search", _searchTerm, apply: true);
+        }
+        else
+        {
+            _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
+        }
+        
+        // Get the first page of filtered results
+        await _discoverablePlanetsQuery.GetPageAsync(0, 50);
+        var filteredResults = _discoverablePlanetsQuery.CurrentPage.ToList();
+        
+        // Filter out joined planets
+        _filteredPlanets = filteredResults.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
+        
+        StateHasChanged();
+        _planetGrid?.SetPlanets(_filteredPlanets);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return ValueTask.CompletedTask;
+    }
+
 }

@@ -6,6 +6,7 @@ using Valour.Server.Utilities;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Queries;
 
 namespace Valour.Server.Services;
 
@@ -107,9 +108,9 @@ public class PlanetService
 
     
     private DateTime _lastDiscoverableUpdate = DateTime.MinValue;
-    private List<PlanetListInfo> _cachedDiscoverables;
+    private List<ISharedPlanetListInfo> _cachedDiscoverables;
 
-    public async Task<List<PlanetListInfo>> GetDiscoveryPlanetsAsync()
+    public async Task<List<ISharedPlanetListInfo>> GetDiscoveryPlanetsAsync()
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Discoverable && x.Public
@@ -120,7 +121,7 @@ public class PlanetService
             .ToListAsync();
     }
     
-    public async Task<PlanetListInfo> GetPlanetInfoAsync(long planetId)
+    public async Task<ISharedPlanetListInfo> GetPlanetInfoAsync(long planetId)
     {
         return await _db.Planets.AsNoTracking()
             .Where(x => x.Id == planetId && x.Public && !x.IsDeleted) // only public planets
@@ -128,8 +129,9 @@ public class PlanetService
             .FirstOrDefaultAsync();
     }
     
-    private static readonly Expression<Func<Valour.Database.Planet, PlanetListInfo>> PlanetListInfoSelector = x => new PlanetListInfo
+    private static readonly Expression<Func<Valour.Database.Planet, ISharedPlanetListInfo>> PlanetListInfoSelector = x => new Valour.Sdk.Models.PlanetListInfo
     {
+        Id = x.Id,
         PlanetId = x.Id,
         Name = x.Name,
         Description = x.Description,
@@ -144,7 +146,7 @@ public class PlanetService
     /// <summary>
     /// Returns discoverable planets
     /// </summary>
-    public async Task<List<PlanetListInfo>> GetDiscoverablesAsync()
+    public async Task<List<ISharedPlanetListInfo>> GetDiscoverablesAsync()
     {
         if (_lastDiscoverableUpdate.AddMinutes(5) < DateTime.UtcNow || _cachedDiscoverables is null)
         {
@@ -153,6 +155,56 @@ public class PlanetService
         }
         
         return _cachedDiscoverables;
+    }
+
+    /// <summary>
+    /// Queries discoverable planets with filters and pagination
+    /// </summary>
+    public async Task<QueryResponse<ISharedPlanetListInfo>> QueryDiscoverablePlanetsAsync(QueryRequest queryRequest)
+    {
+        var take = queryRequest.Take;
+        if (take > 50)
+            take = 50;
+        
+        var skip = queryRequest.Skip;
+        var search = queryRequest.Options?.Filters?.GetValueOrDefault("search");
+
+        var query = _db.Planets.AsNoTracking()
+            .Where(x => x.Discoverable && x.Public && !x.Nsfw);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lowered = search.ToLower();
+            query = query.Where(x => 
+                EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%") ||
+                EF.Functions.ILike(x.Description.ToLower(), $"%{lowered}%"));
+        }
+
+        var sortDesc = queryRequest.Options?.Sort?.Descending ?? false;
+        query = queryRequest.Options?.Sort?.Field switch
+        {
+            "name" => sortDesc
+                ? query.OrderByDescending(x => x.Name)
+                : query.OrderBy(x => x.Name),
+            "memberCount" => sortDesc
+                ? query.OrderByDescending(x => x.Members.Count())
+                : query.OrderBy(x => x.Members.Count()),
+            _ => query.OrderByDescending(x => x.Members.Count())
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip(skip)
+            .Take(take)
+            .Select(PlanetListInfoSelector)
+            .ToListAsync();
+
+        return new QueryResponse<ISharedPlanetListInfo>
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
     /// <summary>

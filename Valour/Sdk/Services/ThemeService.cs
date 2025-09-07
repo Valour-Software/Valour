@@ -53,6 +53,17 @@ public class ThemeService : ServiceBase
             return new List<ThemeMeta>();
         }
 
-        return response.Data;
+        // Convert server-side ThemeMeta to client-side ThemeMeta
+        return response.Data.Select(serverMeta => new ThemeMeta()
+        {
+            Id = serverMeta.Id,
+            AuthorId = serverMeta.AuthorId,
+            Name = serverMeta.Name,
+            Description = serverMeta.Description,
+            HasCustomBanner = serverMeta.HasCustomBanner,
+            HasAnimatedBanner = serverMeta.HasAnimatedBanner,
+            MainColor1 = serverMeta.MainColor1,
+            PastelCyan = serverMeta.PastelCyan
+        }).ToList();
     }
 }

@@ -449,7 +449,14 @@ public class PlanetService : ServiceBase
         if (!response.Success)
             return new List<PlanetListInfo>();
         
-        return response.Data;
+        var planets = response.Data;
+        planets.SyncAll(_client);
+        return planets;
+    }
+
+    public ModelQueryEngine<PlanetListInfo> CreateDiscoverablePlanetsQueryEngine()
+    {
+        return new ModelQueryEngine<PlanetListInfo>(_client.PrimaryNode, "api/planets/discoverable/query");
     }
 
     public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)

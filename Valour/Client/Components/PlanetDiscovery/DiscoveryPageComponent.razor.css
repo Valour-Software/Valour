@@ -2,3 +2,22 @@
     max-height: 90vh;
     overflow-y: auto;
 }
+
+.carousel-section {
+    max-width: 1200px; /* Limit max width to prevent cards from getting too wide */
+    margin: 0 auto; /* Center the carousel section */
+    padding: 0 1rem; /* Reduced padding to prevent cutoff with fixed card width */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .carousel-section {
+        padding: 0 0.75rem; /* Reduced padding for mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .carousel-section {
+        padding: 0 0.5rem; /* Minimal padding for very small screens */
+    }
+}

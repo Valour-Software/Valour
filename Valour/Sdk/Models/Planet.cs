@@ -609,6 +609,6 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public PlanetListInfo ToListInfo()
     {
-        return ISharedPlanet.ToPlanetListInfo(this);
+        return PlanetListInfo.FromPlanet(this);
     }
 }

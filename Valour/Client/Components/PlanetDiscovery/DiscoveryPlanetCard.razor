@@ -1,6 +1,7 @@
 @using System.Text
 @inject PlanetTagService TagService
 @inherits ComponentBase
+@using Valour.Sdk.Models
 
 <div class="planet-theme-card planet-theme-card-@(PlanetInfo.PlanetId)">
     @if (PlanetInfo.HasCustomBackground)
@@ -27,25 +28,25 @@
             </span>
         }
     </div>
-    <div class="planet-info mt-4">
-        <p class="planet-desc">@_descText</p>
-        <p class="member-count">
-            <strong>@PlanetInfo.MemberCount Members</strong>
-        </p>
-        @if (_tagSlugs.Count > 0)
-        {
-            <div class="planet-tags">
+    <div class="planet-info">
+        <div class="planet-tags">
+            <span class="planet-tag member-count-tag">
+                <strong>@PlanetInfo.MemberCount Members</strong>
+            </span>
+            @if (_tagSlugs.Count > 0)
+            {
                 @foreach (var tag in _tagSlugs)
                 {
                     <span class="planet-tag">@tag.ToUpper()</span>
                 }
-            </div>
-        }
+            }
+        </div>
+        <p class="planet-desc">@_descText</p>
         @if (!HideActions)
         {
             <div class="action-btns mt-2">
-                <button class="card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
-                <button class="card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
+                <button class="v-btn card-btn card-btn-gray" @onclick:stopPropagation="true" @onclick="@OnInfoClick">Info</button>
+                <button class="v-btn card-btn card-btn-blue" @onclick:stopPropagation="true" @onclick="() => OnJoin.InvokeAsync(PlanetInfo)">Join</button>
             </div>
         }
     </div>

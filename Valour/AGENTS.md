@@ -2,6 +2,12 @@
 
 This document provides guidelines and patterns for AI assistants working on the Valour project.
 
+# Critical
+
+All changes must be complete, clean, and extendable. You should never add TODO or incomplete solutions.
+
+Avoid comments unless the code complexity warrants them. Always avoid comments in CSS.
+
 ## 🎨 UI Components & Patterns
 
 ### BasicModalLayout Usage
@@ -294,6 +300,176 @@ ComponentName.razor.cs       # Component logic (if complex)
 - **Component Library**: Check existing components for patterns
 - **API Documentation**: See `Sdk/Services/` for available services
 - **Modal Examples**: Look at existing modals for patterns
+
+## 🔍 HybridEvent Usage
+
+The `HybridEvent<T>` and `HybridEvent` classes provide efficient event handling that supports both synchronous and asynchronous handlers with object pooling for performance.
+
+### Basic Usage
+
+```csharp
+// Create a HybridEvent with data
+public HybridEvent<string> OnSearchChanged { get; set; } = new();
+
+// Subscribe to events
+OnSearchChanged += async (searchTerm) => {
+    await PerformSearch(searchTerm);
+};
+
+// Invoke the event
+OnSearchChanged?.Invoke("search term");
+```
+
+### Parameterless Events
+
+```csharp
+// Create a parameterless HybridEvent
+public HybridEvent OnSearchCleared { get; set; } = new();
+
+// Subscribe to events
+OnSearchCleared += async () => {
+    await ClearResults();
+};
+
+// Invoke the event
+OnSearchCleared?.Invoke();
+```
+
+### Component Integration
+
+For component parameters, use `EventCallback` instead of `HybridEvent`:
+
+```csharp
+@code {
+    [Parameter] public EventCallback<string> OnSearchChanged { get; set; }
+    [Parameter] public EventCallback OnSearchCleared { get; set; }
+    
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            await OnSearchCleared.InvokeAsync();
+        }
+        else
+        {
+            await OnSearchChanged.InvokeAsync(value);
+        }
+    }
+}
+```
+
+For internal component events, use `HybridEvent`:
+
+```csharp
+@code {
+    public HybridEvent<string> OnSearchChanged { get; } = new();
+    public HybridEvent OnSearchCleared { get; } = new();
+    
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            OnSearchCleared?.Invoke();
+        }
+        else
+        {
+            OnSearchChanged?.Invoke(value);
+        }
+    }
+    
+    public ValueTask DisposeAsync()
+    {
+        OnSearchChanged?.Dispose();
+        OnSearchCleared?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+### Key Benefits
+
+- **Performance**: Uses object pooling to minimize allocations
+- **Thread-Safe**: Handles concurrent access with proper locking
+- **Flexible**: Supports both sync and async handlers
+- **Memory Efficient**: Automatically manages handler lists
+- **Clean API**: Simple += and -= operators for subscription
+
+### Best Practices
+
+- Always dispose HybridEvents in component disposal
+- Use parameterized events when you need to pass data
+- Use parameterless events for simple notifications
+- Prefer async handlers for I/O operations
+- Use sync handlers for simple state updates
+
+## 🔍 ModelQueryEngine API Reference
+
+The `ModelQueryEngine<T>` provides a powerful API for querying data with filtering, sorting, and paging:
+
+### Filtering
+```csharp
+// Set a filter (automatically applies and resets paging)
+queryEngine.SetFilter("search", "search term", apply: true);
+
+// Set multiple filters
+queryEngine.SetFilter("category", "themes");
+queryEngine.SetFilter("status", "active");
+
+// Clear a specific filter
+queryEngine.SetFilter("search", null, apply: true);
+```
+
+### Sorting
+```csharp
+// Set sort field and direction
+queryEngine.SetSort("name", descending: false, apply: true);
+
+// Clear sorting
+queryEngine.ClearSort();
+```
+
+### Paging
+```csharp
+// Get total count
+int total = await queryEngine.GetTotalCountAsync();
+
+// Get specific page
+var page = await queryEngine.GetPageAsync(pageIndex: 0, pageSize: 20);
+
+// Navigate pages
+var nextPage = await queryEngine.NextPageAsync();
+var prevPage = await queryEngine.PreviousPageAsync();
+
+// Refresh current page
+var refreshed = await queryEngine.RefreshCurrentPageAsync();
+```
+
+### Random Access
+```csharp
+// Get item at specific index
+var item = await queryEngine.GetAtIndexAsync(index: 5);
+
+// Get range of items
+var response = await queryEngine.GetItemsAsync(skip: 10, take: 5);
+```
+
+### State Management
+```csharp
+// Check paging state
+bool isFirst = queryEngine.IsFirstPage;
+bool isLast = queryEngine.IsLastPage;
+int currentPage = queryEngine.CurrentPageIndex;
+int pageSize = queryEngine.PageSize;
+int totalCount = queryEngine.TotalCount;
+
+// Reset paging (keeps filters/sort)
+queryEngine.ResetPaging();
+
+// Apply all options (resets paging)
+queryEngine.ApplyOptions();
+```
 
 ## 🎯 Quick Reference
 

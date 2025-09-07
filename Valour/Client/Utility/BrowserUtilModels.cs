@@ -42,3 +42,9 @@ public struct VerticalContainerDistance
     public float TopDistance { get; set; }
     public float BottomDistance { get; set; }
 }
+
+public struct Breakpoint
+{
+    public int MinWidth { get; set; }
+    public int Visible { get; set; }
+}

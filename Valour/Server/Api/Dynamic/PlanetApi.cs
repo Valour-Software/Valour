@@ -436,6 +436,18 @@ public class PlanetApi
         return Results.Json(planets);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/planets/discoverable/query")]
+    public static async Task<IResult> QueryDiscoverables(
+        [FromBody] QueryRequest? queryRequest,
+        PlanetService planetService)
+    {
+        if (queryRequest is null)
+            return ValourResult.BadRequest("Include query in body.");
+        
+        var planets = await planetService.QueryDiscoverablePlanetsAsync(queryRequest);
+        return Results.Json(planets);
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/discover")]
     [UserRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> JoinDiscoverable(

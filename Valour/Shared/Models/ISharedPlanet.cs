@@ -125,7 +125,7 @@ public interface ISharedPlanet : ISharedModel<long>
         return GetBackgroundUrl(planet.HasCustomBackground, planet.Id, planet.Version, format);
     }
     
-    public static string? GetBackgroundUrl(PlanetListInfo planet, PlanetBackgroundFormat format)
+    public static string? GetBackgroundUrl(ISharedPlanetListInfo planet, PlanetBackgroundFormat format)
     {
         return GetBackgroundUrl(planet.HasCustomBackground, planet.PlanetId, planet.Version, format);
     }
@@ -161,7 +161,7 @@ public interface ISharedPlanet : ISharedModel<long>
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.Id}/{formatStr}?v={planet.Version}";
     }
     
-    public static string GetIconUrl(PlanetListInfo planet, IconFormat format)
+    public static string GetIconUrl(ISharedPlanetListInfo planet, IconFormat format)
     {
         if (!planet.HasCustomIcon)
         {
@@ -181,28 +181,13 @@ public interface ISharedPlanet : ISharedModel<long>
         return $"https://public-cdn.valour.gg/valour-public/planets/{planet.PlanetId}/{formatStr}?v={planet.Version}";
     }
     
-    public static PlanetListInfo ToPlanetListInfo(ISharedPlanet planet)
-    {
-        return new PlanetListInfo
-        {
-            PlanetId = planet.Id,
-            Name = planet.Name,
-            Description = planet.Description,
-            HasCustomIcon = planet.HasCustomIcon,
-            HasAnimatedIcon = planet.HasAnimatedIcon,
-            HasCustomBackground = planet.HasCustomBackground,
-            Nsfw = planet.Nsfw,
-            Version = planet.Version,
-            TagIds = null // Tags are not included in this model
-        };
-    }
 
     public static string GetCommunityShortCode(ISharedPlanet planet)
     {
         return GetCommunityShortCode(planet.Name);
     }
 
-    public static string GetCommunityShortCode(PlanetListInfo planet)
+    public static string GetCommunityShortCode(ISharedPlanetListInfo planet)
     {
         return GetCommunityShortCode(planet.Name);
     }

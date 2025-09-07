@@ -1,24 +1,70 @@
 .planet-theme-card {
-    background:
-            linear-gradient(180deg, #0a1226bb 60%, #20325bcc 100%);
-    border-radius: 2em;
-    padding: 2em;
+    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
+    border-radius: var(--card-radius);
+    padding: 1.5rem 1.5rem 1.25rem 1.5rem;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: box-shadow 0.15s, scale 0.12s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    color: #fff;
-    flex: 1 1 auto;
+    color: var(--font-color);
+    height: 480px;
+    min-height: 480px;
+    max-height: 480px;
+    width: 100%;
+    min-width: 0;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--slight-tint);
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.planet-theme-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+        rgba(55, 164, 206, 0.1) 0%, 
+        rgba(132, 87, 205, 0.05) 50%, 
+        rgba(98, 120, 205, 0.1) 100%);
+    border-radius: var(--card-radius);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.planet-theme-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: var(--p-cyan);
+}
+
+.planet-theme-card:hover::before {
+    opacity: 1;
 }
 .planet-theme-title {
     text-align: center;
     font-weight: 700;
-    color: #fff;
-    text-shadow: 0 0 10px black;
+    color: var(--font-color);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     word-break: break-word;
-    white-space: normal;
+    white-space: nowrap;
+    font-size: 1.4rem;
+    line-height: 1.3;
+    margin: 0 0 0.75rem 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
 .planet-icon-img-holder {
@@ -26,15 +72,34 @@
     width: 100%;
     display: flex;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
 }
 
 .planet-icon-img,
 .auto-icon {
-    width: 50%;
-    height: auto;
-    box-shadow: 0 0 32px #000;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     border-radius: var(--main-radius);
+    border: 2px solid var(--slight-tint);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.planet-theme-card:hover .planet-icon-img,
+.planet-theme-card:hover .auto-icon {
+    transform: scale(1.05);
+    box-shadow: 
+        0 12px 32px rgba(0, 0, 0, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: var(--p-cyan);
 }
 
 .planet-default-svg {
@@ -48,110 +113,254 @@
 }
 
 .planet-initials {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 1;
     font-weight: 700;
-    color: #fff;
-    width: 100%;
+    color: var(--font-color);
     text-align: center;
     line-height: 1;
     letter-spacing: 1px;
     pointer-events: none;
     user-select: none;
     white-space: nowrap;
-    font-size: 2rem;
-    text-shadow: 0 2px 12px #20335a55;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
 .planet-info {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: stretch;
     overflow: hidden;
     width: 100%;
+    min-height: 0;
+    gap: 0.5rem;
 }
 
 .planet-desc {
     text-align: center;
-    font-size: 1.12rem;
+    font-size: 0.95rem;
     font-weight: 400;
-    color: #f4f8ff;
-    text-shadow: 0 0 10px black;
-    max-height: 4.5em;
-    min-height: 4.5em;
+    color: var(--font-alt-color);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    line-height: 1.4;
     word-break: break-word;
     white-space: normal;
+    margin: 0;
+    flex: 1 1 auto;
+    min-height: 4.2rem;
+    max-height: 5.6rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
 }
 
-.member-count {
-    text-align: center;
-    font-size: 1.2em;
+.member-count-tag {
+    background: linear-gradient(135deg, var(--slight-tint) 0%, var(--medium-tint) 100%);
+    border: 1px solid var(--p-cyan);
+    color: var(--p-cyan);
 }
-.member-count strong {
-    color: #20e6ff;
-    font-size: 1.35rem;
-    font-weight: 600;
+.member-count-tag:hover {
+    background: linear-gradient(135deg, var(--medium-tint) 0%, var(--strong-tint) 100%);
+    border-color: var(--p-cyan);
+}
+.member-count-tag strong {
+    color: var(--p-cyan);
+    font-weight: 500;
 }
 
 .action-btns {
     display: flex;
     justify-content: space-between;
-    gap: 0.7rem;
+    gap: 0.75rem;
+    margin-top: auto;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+    padding: 0.25rem 0;
 }
 
 .card-btn {
     flex: 1 1 0;
-    padding: 0.95rem 0;
-    border-radius: 0.8rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: var(--main-radius);
     border: none;
     font-weight: 600;
-    font-size: 1.16rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    margin-top: 0.3em;
-    transition: filter .1s, background 0.15s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.card-btn:hover::before {
+    left: 100%;
 }
 
 .card-btn-gray {
-    background: #2c344d;
-    color: #e7e7e7;
-    border: 2px solid #39465b;
+    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-5) 100%);
+    color: var(--font-color);
+    border: 1px solid var(--main-5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card-btn-gray:hover, .card-btn-gray:focus {
+    background: linear-gradient(135deg, var(--main-5) 0%, var(--medium-tint) 100%);
+    border-color: var(--medium-tint);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .card-btn-blue {
-    background: #1199ff;
-    color: #fff;
-    border: 2px solid #167cff;
+    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
+    color: white;
+    border: 1px solid var(--p-cyan);
+    box-shadow: 0 2px 8px rgba(55, 164, 206, 0.3);
 }
 
 .card-btn-blue:hover, .card-btn-blue:focus {
-    background: #167cff;
-}
-.card-btn-gray:hover, .card-btn-gray:focus {
-    background: #444d66;
+    background: linear-gradient(135deg, var(--p-purple) 0%, var(--p-cyan) 100%);
+    border-color: var(--p-purple);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(132, 87, 205, 0.4);
 }
 
 .planet-tags {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 0.3rem;
-    margin-bottom: 0.5rem;
+    gap: 0.4rem;
+    margin: 0;
+    flex-shrink: 0;
+    height: 2rem;
+    align-items: center;
 }
 
 .planet-tag {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 0.2rem 0.6rem;
-    border-radius: 0.6rem;
-    font-size: 0.85rem;
+    background: linear-gradient(135deg, var(--slight-tint) 0%, var(--medium-tint) 100%);
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--small-radius);
+    font-size: 0.75rem;
+    font-weight: 500;
     white-space: nowrap;
+    border: 1px solid var(--medium-tint);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.planet-tag::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.3s ease;
+}
+
+.planet-tag:hover {
+    background: linear-gradient(135deg, var(--medium-tint) 0%, var(--strong-tint) 100%);
+    border-color: var(--p-cyan);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.planet-tag:hover::before {
+    left: 100%;
 }
 
 
 .icon-text {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
-    text-shadow: 0 0 10px black;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+    .planet-theme-card {
+        height: 450px;
+        min-height: 450px;
+        max-height: 450px;
+        padding: 1.25rem 1.25rem 1rem 1.25rem;
+    }
+    
+    .planet-theme-card:hover {
+        transform: translateY(-2px) scale(1.01);
+    }
+    
+    .planet-theme-title {
+        font-size: 1.2rem;
+        margin: 0 0 0.75rem 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .planet-icon-img,
+    .auto-icon {
+        width: 85px;
+        height: 85px;
+    }
+    
+    .planet-theme-card:hover .planet-icon-img,
+    .planet-theme-card:hover .auto-icon {
+        transform: scale(1.03);
+    }
+    
+    .planet-desc {
+        font-size: 0.9rem;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        min-height: 3.6rem;
+        max-height: 3.6rem;
+    }
+    
+    .card-btn {
+        font-size: 0.8rem;
+        padding: 0.6rem 0.3rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .planet-theme-card {
+        height: 470px;
+        min-height: 470px;
+        max-height: 470px;
+    }
+    
+    .planet-theme-title {
+        font-size: 1.5rem;
+    }
+    
+    .planet-icon-img,
+    .auto-icon {
+        width: 110px;
+        height: 110px;
+    }
 }

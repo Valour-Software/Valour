@@ -106,26 +106,26 @@ public class PlanetInviteService
         return TaskResult.SuccessResult;
     }
     
-    public async Task<TaskResult<PlanetListInfo>> GetPlanetInfoByInviteCode(string inviteCode)
+    public async Task<TaskResult<ISharedPlanetListInfo>> GetPlanetInfoByInviteCode(string inviteCode)
     {
         var invite = await _db.PlanetInvites.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == inviteCode);
         
         if (invite is null)
-            return new TaskResult<PlanetListInfo>(false, "Invite not found.");
+            return new TaskResult<ISharedPlanetListInfo>(false, "Invite not found.");
         
         // Check if invite is expired
         if (invite.TimeExpires is not null && invite.TimeExpires < DateTime.UtcNow)
-            return new TaskResult<PlanetListInfo>(false, "Invite has expired.");
+            return new TaskResult<ISharedPlanetListInfo>(false, "Invite has expired.");
         
         var planetInfo = await _planetService.GetPlanetInfoAsync(invite.PlanetId);
 
         if (planetInfo is null)
         {
-            return new TaskResult<PlanetListInfo>(false, "Planet not found for invite code. It may not be set to Public.");
+            return new TaskResult<ISharedPlanetListInfo>(false, "Planet not found for invite code. It may not be set to Public.");
         }
 
-        return TaskResult<PlanetListInfo>.FromData(planetInfo);
+        return TaskResult<ISharedPlanetListInfo>.FromData(planetInfo);
     }
 
     private Random random = new();

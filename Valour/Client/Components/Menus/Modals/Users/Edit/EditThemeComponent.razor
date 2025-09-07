@@ -4,6 +4,8 @@
 
 @using System.Net.Http.Headers
 @using Valour.Shared.Extensions
+@using Valour.Client.Utility
+@using Valour.Sdk.ModelLogic.QueryEngines
 
 @* Editing page *@
 @if (_editingTheme is not null)
@@ -197,11 +199,20 @@ else
     <h5>Current Theme:</h5>
     <br/>
     
-    <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
-    <div class="theme-container create">
-        <div class="inner">
-            <h5>Create a Theme!</h5>
-            <button class="btn v-btn primary inline" @onclick="@EnterEditorNewTheme">Enter Editor</button>
+    <div class="current-theme-section">
+        <ThemeCard Theme="@ThemeComponent.Instance.CurrentTheme.ToMeta()" />
+        <div class="create-theme-card" @onclick="@EnterEditorNewTheme">
+            <div class="create-theme-content">
+                <div class="create-theme-icon">
+                    <i class="bi bi-plus-circle"></i>
+                </div>
+                <h4 class="create-theme-title">Create New Theme</h4>
+                <p class="create-theme-description">Start building your own custom theme</p>
+                <button class="create-theme-btn">
+                    <i class="bi bi-palette"></i>
+                    Get Started
+                </button>
+            </div>
         </div>
     </div>
     
@@ -216,8 +227,11 @@ else
     <br />
     
     <div class="search-title">
-        <h5>Popular Themes:</h5>
-        <input class="form-control" placeholder="Search..." @oninput="@OnSearchChangeAsync" />
+        <h5>Popular Themes</h5>
+        <LargeSearch Placeholder="Search themes..." 
+                     DebounceMs="300" 
+                     OnSearchChanged="@OnSearchChangeAsync" 
+                     OnSearchCleared="@OnSearchCleared" />
     </div>
     
     @if (_popularThemeCount == -1)
@@ -230,34 +244,44 @@ else
     }
     else
     {
-        <Carousel
-            @ref="_popularCarousel"
-            TComponent="ThemeCard"
-            GetItem="@GetPopularThemeParamsAsync"
-            TotalItems="@_popularThemeCount"
-            VisibleItems="3"
-            InitialLoadCount="4"
-            AutoScroll="true"
-            ItemWidth="266"
-            Height="350"
-        />
+        <div class="carousel-section">
+            <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
+                      @ref="_popularCarousel"
+                      Items="@_popularThemesList"
+                      Breakpoints="@_themeBreakpoints"
+                      GapPx="16"
+                      TransitionMs="300"
+                      MinItemWidth="200"
+                      MaxItemWidth="300"
+                      ItemPadding="8">
+                <ItemTemplate>
+                    <ThemeCard Theme="@context" Editor="@this" />
+                </ItemTemplate>
+            </Carousel>
+        </div>
     }
     
-    <br/>
-    <h5>My Themes:</h5>
-    @if (_myThemes is not null)
-    {
-        <Carousel
-            @ref="@_myCarousel"
-            TComponent="ThemeCard"
-            GetItem="@GetMyThemeParamsAsync"
-            TotalItems="@_myThemes.Count"
-            VisibleItems="3"
-            InitialLoadCount="4"
-            ItemWidth="266"
-            Height="350"
-        />
-    }
+    <div class="theme-section">
+        <h5>My Themes</h5>
+        @if (_myThemes is not null)
+        {
+            <div class="carousel-section">
+                <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
+                          @ref="@_myCarousel"
+                          Items="@_myThemes"
+                          Breakpoints="@_themeBreakpoints"
+                          GapPx="16"
+                          TransitionMs="300"
+                          MinItemWidth="200"
+                          MaxItemWidth="300"
+                          ItemPadding="8">
+                    <ItemTemplate>
+                        <ThemeCard Theme="@context" Editor="@this" />
+                    </ItemTemplate>
+                </Carousel>
+            </div>
+        }
+    </div>
 
     <br />
     
@@ -267,13 +291,22 @@ else
     private Theme _backupTheme;
     private Theme _editingTheme;
     
-    private Carousel<ThemeCard> _popularCarousel;
-    private Carousel<ThemeCard> _myCarousel;
+    private Carousel<Valour.Sdk.Models.Themes.ThemeMeta> _popularCarousel;
+    private Carousel<Valour.Sdk.Models.Themes.ThemeMeta> _myCarousel;
 
-    private PagedReader<ThemeMeta> _popularThemes;
+    private ThemeMetaQueryEngine _popularThemes;
     private int _popularThemeCount = 0;
+    private List<Valour.Sdk.Models.Themes.ThemeMeta> _popularThemesList = new();
     
-    private List<ThemeMeta> _myThemes;
+    private List<Valour.Sdk.Models.Themes.ThemeMeta> _myThemes;
+    
+    private readonly List<Breakpoint> _themeBreakpoints = new()
+    {
+        new() { MinWidth = 0, Visible = 1 },      // Mobile: 1 item
+        new() { MinWidth = 600, Visible = 2 },    // Tablet: 2 items
+        new() { MinWidth = 900, Visible = 3 },    // Desktop: 3 items
+        new() { MinWidth = 1200, Visible = 4 }    // Large: 4 items
+    };
 
     private TaskResult<Theme>? _editingResult = null;
 
@@ -286,9 +319,6 @@ else
     {
         await GetAllThemes();
         ThemeComponent.OnThemeChanged += ThemeChangedHandler;
-        // Load first page of popular themes
-        var res = await _popularThemes.NextPageAsync();
-        _popularThemeCount = res.TotalCount;
         StateHasChanged();
     }
     
@@ -314,20 +344,62 @@ else
    
 
 
-    private async Task OnSearchChangeAsync(ChangeEventArgs e)
+    private async Task OnSearchChangeAsync(string searchValue)
     {
-        var searchValue = e.Value?.ToString() ?? "";
-
-        _popularThemeCount = -1;
-        _popularThemes.SetParameter("search", searchValue);
-        _popularThemes.ResetReader();
+        // Use proper ModelQueryEngine API with QueryOptions
+        _popularThemes.SetFilter("search", searchValue, apply: true);
+        
+        // Reload themes with new filter
+        _popularThemesList.Clear();
+        _popularThemeCount = await _popularThemes.GetTotalCountAsync();
+        
+        // Load themes in batches
+        int pageSize = 50;
+        int currentPage = 0;
+        
+        while (true)
+        {
+            var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
+            if (page == null || page.Count == 0)
+                break;
+                
+            _popularThemesList.AddRange(page);
+            
+            if (page.Count < pageSize)
+                break;
+                
+            currentPage++;
+        }
 
         StateHasChanged();
-        var res = await _popularThemes.NextPageAsync();
-        _popularThemeCount = res.TotalCount;
+    }
 
-        if (_popularCarousel != null)
-            await _popularCarousel.Reset();
+    private async Task OnSearchCleared()
+    {
+        // Clear the search filter
+        _popularThemes.SetFilter("search", null, apply: true);
+        
+        // Reload themes without filter
+        _popularThemesList.Clear();
+        _popularThemeCount = await _popularThemes.GetTotalCountAsync();
+        
+        // Load themes in batches
+        int pageSize = 50;
+        int currentPage = 0;
+        
+        while (true)
+        {
+            var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
+            if (page == null || page.Count == 0)
+                break;
+                
+            _popularThemesList.AddRange(page);
+            
+            if (page.Count < pageSize)
+                break;
+                
+            currentPage++;
+        }
 
         StateHasChanged();
     }
@@ -350,34 +422,6 @@ else
         await ThemeComponent.Instance.UninstallThemeAsync();
     }
 
-    private async Task<Dictionary<string, object>> GetPopularThemeParamsAsync(int index)
-    {
-        if (_popularThemeCount == 0) return null;
-        if (index >= _popularThemeCount || index < 0) return null;
-
-        var theme = await _popularThemes.AtIndexAsync(index);
-        if (theme == null) return null;
-
-        return new Dictionary<string, object>()
-        {
-            { "Theme", theme },
-            { "Editor", this }
-        };
-    }
-    
-    private Task<Dictionary<string, object>> GetMyThemeParamsAsync(int index)
-    {
-        if (_myThemes is null || index >= _myThemes.Count)
-            return Task.FromResult<Dictionary<string, object>>(null);
-        
-        var theme = _myThemes[index];
-
-        return Task.FromResult(new Dictionary<string, object>() 
-        {
-            { "Theme", theme },
-            { "Editor", this }
-        });
-    }
 
     public void OpenEditorWithTheme(Theme theme)
     {
@@ -460,32 +504,12 @@ else
             _editingResult = await _editingTheme.CreateAsync();
             await GetAllThemes();
             StateHasChanged();
-            
-            var res = await _popularThemes.NextPageAsync();
-            _popularThemeCount = res.TotalCount;
-    
-            if (_popularCarousel != null)
-                await _popularCarousel.Reset();
-
-            if (_myCarousel != null)
-                await _myCarousel.Reset();
-            StateHasChanged();
         }
         else
         {
             // Existing theme
             _editingResult = await _editingTheme.UpdateAsync();
             await GetAllThemes();
-            StateHasChanged();
-            
-            var res = await _popularThemes.NextPageAsync();
-            _popularThemeCount = res.TotalCount;
-    
-            if (_popularCarousel != null)
-                await _popularCarousel.Reset();
-
-            if (_myCarousel != null)
-                await _myCarousel.Reset();
             StateHasChanged();
         }
 
@@ -618,12 +642,30 @@ else
 
     private async Task GetAllThemes()
     {
-        _popularThemeCount = -1; 
-        _popularThemes = new PagedReader<ThemeMeta>(
-            Client.PrimaryNode,
-            "api/themes",
-            pageSize: 6
-        );
+        _popularThemes = ThemeService.GetAvailableThemeReader(amount: 100);
+        
+        // Load all popular themes into a list
+        _popularThemesList.Clear();
+        _popularThemeCount = await _popularThemes.GetTotalCountAsync();
+        
+        // Load themes in batches
+        int pageSize = 50;
+        int currentPage = 0;
+        
+        while (true)
+        {
+            var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
+            if (page == null || page.Count == 0)
+                break;
+                
+            _popularThemesList.AddRange(page);
+            
+            if (page.Count < pageSize)
+                break;
+                
+            currentPage++;
+        }
+        
         _myThemes = await ThemeService.GetMyThemes();
     }
     
