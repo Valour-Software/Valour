@@ -18,6 +18,11 @@ public static class ReportMapper
             ReasonCode = report.ReasonCode,
             LongReason = report.LongReason,
             Reviewed = report.Reviewed,
+            ReportedUserId = report.ReportedUserId,
+            Resolution = report.Resolution,
+            ResolvedById = report.ResolvedById,
+            ResolvedAt = report.ResolvedAt,
+            StaffNotes = report.StaffNotes,
         };
     }
     
@@ -37,6 +42,11 @@ public static class ReportMapper
             ReasonCode = report.ReasonCode,
             LongReason = report.LongReason,
             Reviewed = report.Reviewed,
+            ReportedUserId = report.ReportedUserId,
+            Resolution = report.Resolution,
+            ResolvedById = report.ResolvedById,
+            ResolvedAt = report.ResolvedAt,
+            StaffNotes = report.StaffNotes,
         };
     }
 }

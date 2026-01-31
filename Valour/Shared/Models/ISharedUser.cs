@@ -136,6 +136,12 @@ public interface  ISharedUser : ISharedModel<long>
     public long TutorialState { get; set; }
 
     /// <summary>
+    /// If this user is a bot, the ID of the user who owns it.
+    /// Null for regular users.
+    /// </summary>
+    public long? OwnerId { get; set; }
+
+    /// <summary>
     /// The subscription the user currently has
     /// </summary>
     public static UserSubscriptionType GetSubscription(ISharedUser user)

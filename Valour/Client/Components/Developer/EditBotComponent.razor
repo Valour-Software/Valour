@@ -1,0 +1,206 @@
+@inherits Modal<EditBotComponent.ModalParams>
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+<BasicModalLayout Title="Edit Bot" Icon="robot" MaxWidth="500px">
+    <MainArea>
+        <div class="bot-header">
+            <img alt="Bot Avatar" src="@GetBotAvatar()" class="bot-avatar" />
+            <div class="bot-header-info">
+                <h4 class="bot-header-name">@Data.Bot.Name</h4>
+                <p class="bot-header-tag">#@Data.Bot.Tag</p>
+                <p class="bot-header-id">ID: @Data.Bot.Id</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Status</label>
+            <div class="input-group">
+                <input class="form-control" @bind="_status" placeholder="Set a status for your bot..." maxlength="128" />
+                <button class="v-btn" @onclick="OnUpdateStatus">Update</button>
+            </div>
+            <ResultLabel Result="@_statusResult" />
+        </div>
+
+        @if (_showNewToken)
+        {
+            <div class="token-section">
+                <div class="token-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Save this token now! It will not be shown again.
+                </div>
+                <div class="form-group">
+                    <label>New Bot Token</label>
+                    <div class="input-group">
+                        <input class="form-control token-input" value="@_newToken" readonly />
+                        <button class="v-btn" @onclick="OnCopyToken">
+                            <i class="bi bi-clipboard"></i>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="form-group">
+                <label>Bot Token</label>
+                <button class="v-btn warning" @onclick="OnRegenerateToken" disabled="@_regenerating">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    @if (_regenerating)
+                    {
+                        <span>Regenerating...</span>
+                    }
+                    else
+                    {
+                        <span>Regenerate Token</span>
+                    }
+                </button>
+                <span class="helper-text">This will invalidate the old token immediately.</span>
+                <ResultLabel Result="@_tokenResult" />
+            </div>
+        }
+
+        <div class="danger-zone">
+            <h5>Danger Zone</h5>
+            <p>Deleting your bot is permanent and cannot be undone.</p>
+            <button class="v-btn danger" @onclick="OnDeleteBot">
+                <i class="bi bi-trash"></i>
+                Delete Bot
+            </button>
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="@OnClose" class="v-btn">Close</button>
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public BotResponse Bot { get; set; }
+        public Action<BotResponse> OnBotUpdated { get; set; }
+        public Action<long> OnBotDeleted { get; set; }
+    }
+
+    private string _status;
+    private string _newToken;
+    private bool _showNewToken;
+    private bool _regenerating;
+    private ITaskResult _statusResult;
+    private ITaskResult _tokenResult;
+
+    protected override void OnInitialized()
+    {
+        _status = Data.Bot.Status;
+    }
+
+    private async Task OnUpdateStatus()
+    {
+        var request = new UpdateBotRequest { Status = _status };
+        var result = await Client.BotService.UpdateBotAsync(Data.Bot.Id, request);
+
+        if (result.Success)
+        {
+            Data.Bot = result.Data;
+            Data.OnBotUpdated?.Invoke(result.Data);
+            _statusResult = new TaskResult(true, "Status updated successfully!");
+        }
+        else
+        {
+            _statusResult = new TaskResult(false, result.Message);
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnRegenerateToken()
+    {
+        var confirmData = new ConfirmModalComponent.ModalParams(
+            "Regenerate Token?",
+            "This will invalidate your current bot token immediately. Any applications using the old token will stop working.",
+            "Regenerate",
+            "Cancel",
+            async () => await DoRegenerateToken(),
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(confirmData);
+    }
+
+    private async Task DoRegenerateToken()
+    {
+        _regenerating = true;
+        StateHasChanged();
+
+        var result = await Client.BotService.RegenerateBotTokenAsync(Data.Bot.Id);
+
+        _regenerating = false;
+
+        if (result.Success)
+        {
+            _newToken = result.Data.Token;
+            _showNewToken = true;
+            Data.Bot = result.Data;
+            Data.OnBotUpdated?.Invoke(result.Data);
+            _tokenResult = new TaskResult(true, "Token regenerated!");
+        }
+        else
+        {
+            _tokenResult = new TaskResult(false, result.Message);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnCopyToken()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _newToken);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Bot token copied to clipboard", ToastProgressState.Success));
+    }
+
+    private void OnDeleteBot()
+    {
+        var confirmData = new ConfirmModalComponent.ModalParams(
+            $"Delete {Data.Bot.Name}?",
+            "This action cannot be undone. The bot account will be permanently deleted.",
+            "Delete Bot",
+            "Cancel",
+            async () => await DoDeleteBot(),
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(confirmData);
+    }
+
+    private async Task DoDeleteBot()
+    {
+        var result = await Client.BotService.DeleteBotAsync(Data.Bot.Id);
+
+        if (result.Success)
+        {
+            Data.OnBotDeleted?.Invoke(Data.Bot.Id);
+            ToastContainer.Instance.AddToast(new ToastData("Deleted", "Bot has been deleted successfully", ToastProgressState.Success));
+            await ModalRoot.CloseTopModal();
+            Close();
+        }
+        else
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Error", result.Message, ToastProgressState.Failure));
+        }
+    }
+
+    private void OnClose() => Close();
+
+    private string GetBotAvatar()
+    {
+        if (Data.Bot.HasCustomAvatar)
+        {
+            return $"https://public-cdn.valour.gg/valour-public/avatars/{Data.Bot.Id}/256.webp";
+        }
+        var variant = (int)(Data.Bot.Id % 5);
+        return $"_content/Valour.Client/media/user-icons/icon-{variant}.webp";
+    }
+}

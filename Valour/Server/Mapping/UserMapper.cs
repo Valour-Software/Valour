@@ -27,10 +27,11 @@ public static class UserMapper
             PriorName = user.PriorName,
             NameChangeTime = user.NameChangeTime,
             Version = user.Version,
-            TutorialState = user.TutorialState
+            TutorialState = user.TutorialState,
+            OwnerId = user.OwnerId
         };
     }
-    
+
     public static Valour.Database.User ToDatabase(this User user)
     {
         if (user is null)
@@ -56,7 +57,8 @@ public static class UserMapper
             PriorName = user.PriorName,
             NameChangeTime = user.NameChangeTime,
             Version = user.Version,
-            TutorialState = user.TutorialState
+            TutorialState = user.TutorialState,
+            OwnerId = user.OwnerId
         };
     }
 }

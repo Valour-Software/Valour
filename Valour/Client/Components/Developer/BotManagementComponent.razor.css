@@ -1,0 +1,151 @@
+.bot-management-container {
+    padding: 1rem;
+}
+
+.bot-actions {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.limit-warning {
+    color: var(--p-orange);
+    font-size: 0.9rem;
+}
+
+.loading-state,
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--font-color-muted);
+}
+
+.loading-state i,
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h4 {
+    margin-bottom: 0.5rem;
+    color: var(--font-color);
+}
+
+.empty-state p {
+    margin-bottom: 1.5rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.bots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.bot-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--main-4);
+    border-radius: var(--main-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.bot-card:hover {
+    background-color: var(--medium-tint);
+    border-color: var(--p-cyan);
+    transform: translateY(-2px);
+}
+
+.bot-icon {
+    width: 48px;
+    height: 48px;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.bot-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.bot-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bot-name {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--font-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bot-tag,
+.bot-id {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--font-color-muted);
+}
+
+.bot-actions-icon {
+    margin-left: 1rem;
+    color: var(--font-color-muted);
+    transition: color 0.2s ease;
+}
+
+.bot-card:hover .bot-actions-icon {
+    color: var(--p-cyan);
+}
+
+.bot-info-section {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.info-item {
+    padding: 1rem;
+    background-color: var(--main-4);
+    border-radius: var(--main-radius);
+    border-left: 3px solid var(--p-cyan);
+}
+
+.info-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--font-color);
+    font-size: 1.1rem;
+}
+
+.info-item p {
+    margin: 0;
+    color: var(--font-color-muted);
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .bots-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bot-card {
+        padding: 0.75rem;
+    }
+
+    .bot-icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 0.75rem;
+    }
+}

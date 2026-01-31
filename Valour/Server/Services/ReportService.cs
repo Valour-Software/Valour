@@ -1,4 +1,5 @@
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -17,6 +18,17 @@ public class ReportService
         dbReport.Reviewed = false;
         dbReport.TimeCreated = DateTime.UtcNow;
         dbReport.Id = Guid.NewGuid().ToString();
+        dbReport.Resolution = ReportResolution.None;
+
+        // Auto-populate ReportedUserId from message author if applicable
+        if (dbReport.MessageId.HasValue && !dbReport.ReportedUserId.HasValue)
+        {
+            var message = await _db.Messages.FindAsync(dbReport.MessageId.Value);
+            if (message is not null)
+            {
+                dbReport.ReportedUserId = message.AuthorUserId;
+            }
+        }
 
         try
         {

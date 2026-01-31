@@ -1,0 +1,36 @@
+.success-section {
+    text-align: center;
+    padding: 1rem 0 1.5rem 0;
+}
+
+.success-icon {
+    font-size: 3rem;
+    color: var(--p-green);
+    margin-bottom: 0.5rem;
+}
+
+.success-section h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--font-color);
+}
+
+.warning-text {
+    color: var(--p-orange);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.warning-text i {
+    margin-right: 0.5rem;
+}
+
+.token-display {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.token-input {
+    flex: 1;
+    font-family: monospace;
+    font-size: 0.85rem;
+}

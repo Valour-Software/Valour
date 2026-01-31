@@ -1,0 +1,164 @@
+@inject ValourClient Client
+
+<div class="bot-management-container">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-robot"></i>
+            Bot Accounts
+        </h3>
+        <p class="subtitle">Create and manage bot accounts for automation and integrations</p>
+
+        <div class="bot-actions">
+            <button class="v-btn primary" @onclick="OnCreateBot" disabled="@(_bots is not null && _bots.Count >= 10)">
+                <i class="bi bi-plus-circle"></i>
+                Create New Bot
+            </button>
+            @if (_bots is not null && _bots.Count >= 10)
+            {
+                <span class="limit-warning">Maximum of 10 bots reached</span>
+            }
+        </div>
+
+        @if (_bots is null)
+        {
+            <div class="loading-state">
+                <i class="bi bi-arrow-clockwise"></i>
+                <p>Loading your bots...</p>
+            </div>
+        }
+        else if (_bots.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="bi bi-robot"></i>
+                <h4>No Bot Accounts</h4>
+                <p>You haven't created any bot accounts yet. Create your first bot to start building integrations with Valour.</p>
+                <button class="v-btn primary" @onclick="OnCreateBot">Create Your First Bot</button>
+            </div>
+        }
+        else
+        {
+            <div class="bots-grid">
+                @foreach (var bot in _bots)
+                {
+                    <div class="bot-card" @onclick="() => OnEditBot(bot)">
+                        <div class="bot-icon">
+                            <img src="@GetBotAvatar(bot)" alt="@bot.Name" onerror="this.src='_content/Valour.Client/media/user-icons/icon-0.webp'" />
+                        </div>
+                        <div class="bot-info">
+                            <h4 class="bot-name">@bot.Name</h4>
+                            <p class="bot-tag">#@bot.Tag</p>
+                            <p class="bot-id">ID: @bot.Id</p>
+                        </div>
+                        <div class="bot-actions-icon">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-info-circle"></i>
+            About Bots
+        </h3>
+        <p class="subtitle">Learn how to use bots with Valour</p>
+
+        <div class="bot-info-section">
+            <div class="info-item">
+                <h4>What are bots?</h4>
+                <p>Bots are automated accounts that can interact with Valour on your behalf. They can send messages, respond to commands, and integrate with external services.</p>
+            </div>
+
+            <div class="info-item">
+                <h4>How to use your bot</h4>
+                <p>Use your bot's token with the Valour SDK to authenticate. Your bot can then join planets, send messages, and respond to events.</p>
+            </div>
+
+            <div class="info-item">
+                <h4>Security</h4>
+                <p>Keep your bot token secret! Anyone with access to it can control your bot. If your token is compromised, regenerate it immediately.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private List<BotResponse> _bots;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBots();
+    }
+
+    private async Task LoadBots()
+    {
+        try
+        {
+            _bots = await Client.BotService.GetMyBotsAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load bots: {ex.Message}");
+            _bots = new List<BotResponse>();
+            StateHasChanged();
+        }
+    }
+
+    private void OnCreateBot()
+    {
+        var data = new CreateBotComponent.ModalParams
+        {
+            OnBotCreated = OnBotCreated
+        };
+        ModalRoot.OpenModal<CreateBotComponent>(data);
+    }
+
+    private void OnEditBot(BotResponse bot)
+    {
+        var data = new EditBotComponent.ModalParams
+        {
+            Bot = bot,
+            OnBotUpdated = OnBotUpdated,
+            OnBotDeleted = OnBotDeleted
+        };
+        ModalRoot.OpenModal<EditBotComponent>(data);
+    }
+
+    private void OnBotCreated(BotResponse bot)
+    {
+        _bots.Add(bot);
+        StateHasChanged();
+    }
+
+    private void OnBotUpdated(BotResponse bot)
+    {
+        var index = _bots.FindIndex(b => b.Id == bot.Id);
+        if (index >= 0)
+        {
+            _bots[index] = bot;
+            StateHasChanged();
+        }
+    }
+
+    private void OnBotDeleted(long botId)
+    {
+        _bots.RemoveAll(b => b.Id == botId);
+        StateHasChanged();
+    }
+
+    private string GetBotAvatar(BotResponse bot)
+    {
+        if (bot.HasCustomAvatar)
+        {
+            return $"https://public-cdn.valour.gg/valour-public/avatars/{bot.Id}/256.webp";
+        }
+        var variant = (int)(bot.Id % 5);
+        return $"_content/Valour.Client/media/user-icons/icon-{variant}.webp";
+    }
+}

@@ -1,0 +1,111 @@
+@inject UserService UserService
+
+@if (_user is null)
+{
+    @if (UserId.HasValue)
+    {
+        <div class="user-info-mini">
+            <div class="avatar-mini" style="background-image: url(@ISharedUser.DefaultAvatar);"></div>
+            <span class="name-mini">Loading...</span>
+        </div>
+    }
+    else
+    {
+        <span class="name-mini text-muted">N/A</span>
+    }
+}
+else
+{
+    <div class="user-info-mini" @onclick="ShowProfileAsync">
+        <div class="avatar-mini" style="background-image: url(@_avatarUrl), url(@ISharedUser.DefaultAvatar);"></div>
+        <span class="name-mini">@_user.NameAndTag</span>
+    </div>
+}
+
+<style>
+    .user-info-mini {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background-color 0.15s ease;
+    }
+
+    .user-info-mini:hover {
+        background-color: var(--v-bg-tertiary);
+    }
+
+    .avatar-mini {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+    }
+
+    .name-mini {
+        font-size: 0.9em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+    }
+
+    .text-muted {
+        color: var(--v-gray);
+    }
+</style>
+
+@code {
+    [Parameter]
+    public long? UserId { get; set; }
+
+    [Parameter]
+    public User User { get; set; }
+
+    private User _user;
+    private string _avatarUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (User is not null)
+        {
+            _user = User;
+        }
+        else if (UserId.HasValue)
+        {
+            _user = await UserService.FetchUserAsync(UserId.Value);
+        }
+
+        if (_user is not null)
+        {
+            _avatarUrl = _user.GetAvatar();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (User is not null && User != _user)
+        {
+            _user = User;
+            _avatarUrl = _user.GetAvatar();
+        }
+        else if (UserId.HasValue && (_user is null || _user.Id != UserId.Value))
+        {
+            _user = await UserService.FetchUserAsync(UserId.Value);
+            if (_user is not null)
+            {
+                _avatarUrl = _user.GetAvatar();
+            }
+        }
+    }
+
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (_user is null) return;
+        await ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+    }
+}

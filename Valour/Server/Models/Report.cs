@@ -48,4 +48,29 @@ public class Report : ISharedReport
     /// If the report has been reviewed by a moderator
     /// </summary>
     public bool Reviewed { get; set; }
+
+    /// <summary>
+    /// The user who was reported (if applicable)
+    /// </summary>
+    public long? ReportedUserId { get; set; }
+
+    /// <summary>
+    /// The resolution status of the report
+    /// </summary>
+    public ReportResolution Resolution { get; set; }
+
+    /// <summary>
+    /// The staff member who resolved the report
+    /// </summary>
+    public long? ResolvedById { get; set; }
+
+    /// <summary>
+    /// When the report was resolved
+    /// </summary>
+    public DateTime? ResolvedAt { get; set; }
+
+    /// <summary>
+    /// Internal staff notes about the report
+    /// </summary>
+    public string StaffNotes { get; set; }
 }

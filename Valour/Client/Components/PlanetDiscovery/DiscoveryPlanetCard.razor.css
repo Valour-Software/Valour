@@ -9,12 +9,12 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     color: var(--font-color);
-    height: 480px;
-    min-height: 480px;
-    max-height: 480px;
+    height: 440px;
+    min-height: 440px;
+    max-height: 440px;
     width: 100%;
     min-width: 0;
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.4),
         0 2px 8px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -41,16 +41,21 @@
 }
 
 .planet-theme-card:hover {
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 
-        0 12px 40px rgba(0, 0, 0, 0.5),
-        0 4px 16px rgba(0, 0, 0, 0.3),
+    transform: translateY(-4px) scale(1.02);
+    box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.5),
+        0 6px 20px rgba(0, 0, 0, 0.3),
+        0 0 0 1px var(--p-cyan),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     border-color: var(--p-cyan);
 }
 
 .planet-theme-card:hover::before {
     opacity: 1;
+}
+
+.planet-theme-card:active {
+    transform: translateY(-2px) scale(1.01);
 }
 .planet-theme-title {
     text-align: center;
@@ -143,23 +148,21 @@
 
 .planet-desc {
     text-align: center;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 400;
     color: var(--font-alt-color);
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    line-height: 1.4;
+    line-height: 1.5;
     word-break: break-word;
     white-space: normal;
-    margin: 0;
+    margin: 0.5rem 0;
     flex: 1 1 auto;
-    min-height: 4.2rem;
-    max-height: 5.6rem;
+    min-height: 3rem;
+    max-height: 4.5rem;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
 }
 
@@ -182,9 +185,10 @@
     justify-content: space-between;
     gap: 0.75rem;
     margin-top: auto;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     flex-shrink: 0;
-    padding: 0.25rem 0;
+    padding: 0.5rem 0 0 0;
+    width: 100%;
 }
 
 .card-btn {
@@ -249,11 +253,13 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.35rem;
     margin: 0;
     flex-shrink: 0;
-    height: 2rem;
+    min-height: 2rem;
+    max-height: 2.5rem;
     align-items: center;
+    overflow: hidden;
 }
 
 .planet-tag {
@@ -304,63 +310,67 @@
 
 @media (max-width: 768px) {
     .planet-theme-card {
-        height: 450px;
-        min-height: 450px;
-        max-height: 450px;
+        height: 400px;
+        min-height: 400px;
+        max-height: 400px;
         padding: 1.25rem 1.25rem 1rem 1.25rem;
     }
-    
+
     .planet-theme-card:hover {
         transform: translateY(-2px) scale(1.01);
     }
-    
+
     .planet-theme-title {
         font-size: 1.2rem;
-        margin: 0 0 0.75rem 0;
+        margin: 0 0 0.5rem 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    
+
     .planet-icon-img,
     .auto-icon {
-        width: 85px;
-        height: 85px;
+        width: 80px;
+        height: 80px;
     }
-    
+
     .planet-theme-card:hover .planet-icon-img,
     .planet-theme-card:hover .auto-icon {
         transform: scale(1.03);
     }
-    
+
     .planet-desc {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         -webkit-line-clamp: 3;
         line-clamp: 3;
-        min-height: 3.6rem;
+        min-height: 3rem;
         max-height: 3.6rem;
     }
-    
+
     .card-btn {
         font-size: 0.8rem;
-        padding: 0.6rem 0.3rem;
+        padding: 0.6rem 0.4rem;
+    }
+
+    .action-btns {
+        margin-bottom: 0.5rem;
     }
 }
 
 @media (min-width: 1200px) {
     .planet-theme-card {
-        height: 470px;
-        min-height: 470px;
-        max-height: 470px;
+        height: 450px;
+        min-height: 450px;
+        max-height: 450px;
     }
-    
+
     .planet-theme-title {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
-    
+
     .planet-icon-img,
     .auto-icon {
-        width: 110px;
-        height: 110px;
+        width: 100px;
+        height: 100px;
     }
 }

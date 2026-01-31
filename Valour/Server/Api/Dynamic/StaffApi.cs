@@ -23,6 +23,40 @@ public class StaffApi
         var result = await staffService.QueryReportsAsync(queryRequest);
         return Results.Json(result);
     }
+
+    [StaffRequired]
+    [ValourRoute(HttpVerbs.Get, "api/staff/reports/{reportId}")]
+    public static async Task<IResult> GetReportAsync(
+        StaffService staffService,
+        string reportId)
+    {
+        var report = await staffService.GetReportAsync(reportId);
+        if (report is null)
+            return ValourResult.NotFound("Report not found");
+
+        return Results.Json(report);
+    }
+
+    [StaffRequired]
+    [ValourRoute(HttpVerbs.Post, "api/staff/reports/resolve")]
+    public static async Task<IResult> ResolveReportAsync(
+        UserService userService,
+        StaffService staffService,
+        [FromBody] ResolveReportRequest request)
+    {
+        var staffUser = await userService.GetCurrentUserAsync();
+
+        var result = await staffService.ResolveReportAsync(
+            request.ReportId,
+            request.Resolution,
+            request.StaffNotes,
+            staffUser.Id);
+
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return ValourResult.Ok();
+    }
     
     [StaffRequired]
     [ValourRoute(HttpVerbs.Put, "api/staff/reports/{reportId}/reviewed/{value}")]

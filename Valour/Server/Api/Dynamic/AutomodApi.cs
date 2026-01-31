@@ -134,4 +134,99 @@ public class AutomodApi
 
         return Results.Json(result.Data);
     }
+
+    [ValourRoute(HttpVerbs.Delete, "api/planets/{planetId}/automod/triggers/{triggerId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> DeleteTriggerAsync(
+        long planetId,
+        Guid triggerId,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var trigger = await automodService.GetTriggerAsync(triggerId);
+        if (trigger is null)
+            return ValourResult.NotFound("Trigger not found.");
+
+        if (trigger.PlanetId != planetId)
+            return ValourResult.BadRequest("Trigger does not belong to this planet.");
+
+        var result = await automodService.DeleteTriggerAsync(trigger);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Put, "api/planets/{planetId}/automod/triggers/{triggerId}/actions/{actionId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> PutActionAsync(
+        long planetId,
+        Guid triggerId,
+        Guid actionId,
+        [FromBody] AutomodAction action,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        if (action is null)
+            return ValourResult.BadRequest("Include action in body.");
+
+        if (action.Id != actionId)
+            return ValourResult.BadRequest("Id mismatch with body.");
+
+        if (action.TriggerId != triggerId)
+            return ValourResult.BadRequest("TriggerId mismatch with route.");
+
+        if (action.PlanetId != planetId)
+            return ValourResult.BadRequest("PlanetId mismatch with route.");
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var result = await automodService.UpdateActionAsync(action);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Json(result.Data);
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "api/planets/{planetId}/automod/triggers/{triggerId}/actions/{actionId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> DeleteActionAsync(
+        long planetId,
+        Guid triggerId,
+        Guid actionId,
+        PlanetMemberService memberService,
+        AutomodService automodService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var action = await automodService.GetActionAsync(actionId);
+        if (action is null)
+            return ValourResult.NotFound("Action not found.");
+
+        if (action.TriggerId != triggerId || action.PlanetId != planetId)
+            return ValourResult.BadRequest("Action does not belong to this trigger.");
+
+        var result = await automodService.DeleteActionAsync(action);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok();
+    }
 }

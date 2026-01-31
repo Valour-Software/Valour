@@ -180,6 +180,22 @@ namespace Valour.Database
         public long TutorialState { get; set; }
 
         /// <summary>
+        /// If this user is a bot, the ID of the user who owns it.
+        /// Null for regular users.
+        /// </summary>
+        public long? OwnerId { get; set; }
+
+        /// <summary>
+        /// The user who owns this bot (if applicable).
+        /// </summary>
+        public virtual User Owner { get; set; }
+
+        /// <summary>
+        /// The bots owned by this user.
+        /// </summary>
+        public virtual ICollection<User> OwnedBots { get; set; }
+
+        /// <summary>
         /// Generates the avatar URL for this user based on the requested format.
         /// </summary>
         public string GetAvatarUrl(AvatarFormat format = AvatarFormat.Webp256) =>
@@ -273,7 +289,15 @@ namespace Valour.Database
                     .HasColumnName("tutorial_state")
                     .HasDefaultValue(0);
 
+                e.Property(x => x.OwnerId)
+                    .HasColumnName("owner_id");
+
                 // Relationships
+
+                e.HasOne(x => x.Owner)
+                    .WithMany(x => x.OwnedBots)
+                    .HasForeignKey(x => x.OwnerId)
+                    .OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(x => x.PrivateInfo)
                     .WithOne(x => x.User)
                     .HasForeignKey<UserPrivateInfo>(x => x.UserId);
@@ -295,6 +319,8 @@ namespace Valour.Database
                     .IsUnique();
 
                 e.HasIndex(x => x.TimeLastActive);
+
+                e.HasIndex(x => x.OwnerId);
             });
         }
     }

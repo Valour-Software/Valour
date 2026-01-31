@@ -52,11 +52,56 @@ public class Report : ClientModel<Report, string>, ISharedReport
     /// </summary>
     public bool Reviewed { get; set; }
 
+    /// <summary>
+    /// The user who was reported (if applicable)
+    /// </summary>
+    public long? ReportedUserId { get; set; }
+
+    /// <summary>
+    /// The resolution status of the report
+    /// </summary>
+    public ReportResolution Resolution { get; set; }
+
+    /// <summary>
+    /// The staff member who resolved the report
+    /// </summary>
+    public long? ResolvedById { get; set; }
+
+    /// <summary>
+    /// When the report was resolved
+    /// </summary>
+    public DateTime? ResolvedAt { get; set; }
+
+    /// <summary>
+    /// Internal staff notes about the report
+    /// </summary>
+    public string StaffNotes { get; set; }
+
+    /// <summary>
+    /// Whether the report has been resolved
+    /// </summary>
+    public bool IsResolved => Resolution != ReportResolution.None;
+
+    /// <summary>
+    /// Gets the display name for the resolution
+    /// </summary>
+    public string ResolutionDisplayName => Resolution switch
+    {
+        ReportResolution.None => "Unresolved",
+        ReportResolution.NoAction => "No Action Needed",
+        ReportResolution.Warning => "Warning Issued",
+        ReportResolution.UserDisabled => "User Disabled",
+        ReportResolution.ContentRemoved => "Content Removed",
+        ReportResolution.UserDeleted => "User Deleted",
+        ReportResolution.Duplicate => "Duplicate",
+        _ => "Unknown"
+    };
+
     public override Report AddToCache(ModelInsertFlags flags = ModelInsertFlags.None)
     {
         return this;
     }
-    
+
     public override Report RemoveFromCache(bool skipEvents = false)
     {
         return this;

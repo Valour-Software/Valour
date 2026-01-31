@@ -4,47 +4,73 @@
 
 <NebulaBackground>
     <div class="discovery-window inner-window @_mobileTag">
-        <h2 class="text-center mt-4 mb-4">Popular Planets</h2>
-        <div class="planet-discovery-container">
-            @switch (_isLoading)
-            {
-                case false when UnjoinedPlanets.Count == 0:
-                    <span>No planets to discover!</span>
-                    break;
-                case false:
-                    <div class="carousel-section">
-            <Carousel TItem="PlanetListInfo"
-                      @ref="_planetCarousel"
-                      Items="@PopularPlanets"
-                      GapPx="16"
-                      TransitionMs="300"
-                      MinItemWidth="300"
-                      MaxItemWidth="350"
-                      ItemPadding="12"
-                      FadeWidth="50">
-                <ItemTemplate>
-                    <DiscoveryPlanetCard PlanetInfo="@context" OnJoin="@HandleJoinAsync" />
-                </ItemTemplate>
-            </Carousel>
+        @if (_isLoading)
+        {
+            <div class="discovery-loading">
+                <div class="discovery-loading-spinner">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </div>
+                <p class="discovery-loading-text">Loading planets...</p>
+            </div>
+        }
+        else if (UnjoinedPlanets.Count == 0)
+        {
+            <div class="discovery-empty">
+                <div class="discovery-empty-icon">
+                    <i class="bi bi-globe-americas"></i>
+                </div>
+                <h3>No Planets to Discover</h3>
+                <p>You've already joined all available planets, or none are available right now.</p>
+            </div>
+        }
+        else
+        {
+            <div class="planet-discovery-container">
+                @if (PopularPlanets.Count > 0)
+                {
+                    <section class="discovery-section">
+                        <div class="discovery-section-header">
+                            <i class="bi bi-star-fill"></i>
+                            <h2>Popular Planets</h2>
+                        </div>
+                        <div class="carousel-section">
+                            <Carousel TItem="PlanetListInfo"
+                                      @ref="_planetCarousel"
+                                      Items="@PopularPlanets"
+                                      GapPx="16"
+                                      TransitionMs="300"
+                                      MinItemWidth="300"
+                                      MaxItemWidth="350"
+                                      ItemPadding="12"
+                                      FadeWidth="50">
+                                <ItemTemplate>
+                                    <DiscoveryPlanetCard PlanetInfo="@context" OnJoin="@HandleJoinAsync" />
+                                </ItemTemplate>
+                            </Carousel>
+                        </div>
+                    </section>
+                }
+
+                <section class="discovery-section">
+                    <div class="discovery-section-header">
+                        <i class="bi bi-compass"></i>
+                        <h2>Explore All Planets</h2>
                     </div>
-                    
-                    
-                    <h2 class="text-center mt-5 mb-4">Discover all the new Planets</h2>
-                    
-                    <LargeSearch Placeholder="Search planets..." 
-                                 DebounceMs="300" 
-                                 OnSearchChanged="@OnSearchChanged" 
-                                 OnSearchCleared="@OnSearchCleared" />
-                    
-                    <DiscoveryPlanetGrid @ref="PlanetGrid" 
+
+                    <div class="discovery-search-container">
+                        <LargeSearch Placeholder="Search planets by name or description..."
+                                     DebounceMs="300"
+                                     OnSearchChanged="@OnSearchChanged"
+                                     OnSearchCleared="@OnSearchCleared" />
+                    </div>
+
+                    <DiscoveryPlanetGrid @ref="PlanetGrid"
                                          IsLoading="@_isSearchLoading"
+                                         OnJoin="@HandleJoinAsync"
                                          EmptyMessage="No planets found matching your search" />
-                    break;
-                default:
-                    <span>Loading planets…</span>
-                    break;
-            }
-        </div>
+                </section>
+            </div>
+        }
     </div>
 </NebulaBackground>
 
@@ -129,10 +155,10 @@
         _all = _discoverablePlanetsQuery.CurrentPage.ToList();
         
         UnjoinedPlanets = _all.Where(p => !_joinedIds.Contains(p.PlanetId)).ToList();
-        
-        //The idea is that planet is popular when it has more as 20 members for a test
+
+        // Popular planets have more than 20 members
         PopularPlanets = UnjoinedPlanets.Where(p => p.MemberCount > 20).ToList();
-        _filteredPlanets = UnjoinedPlanets;
+        _filteredPlanets = UnjoinedPlanets.ToList();
         
         _isLoading = false;
         _loadedListCount = Math.Min(_loadedListCount > 0 ? _loadedListCount : InitialListLoad, UnjoinedPlanets.Count);
@@ -150,9 +176,22 @@
     private async Task HandleJoinAsync(PlanetListInfo planet)
     {
         await PlanetService.JoinPlanetAsync(planet.PlanetId);
-        UnjoinedPlanets.Remove(planet);
+
+        // Add to joined IDs
+        _joinedIds.Add(planet.PlanetId);
+
+        // Remove from all lists by planet ID to handle list copies
+        UnjoinedPlanets.RemoveAll(p => p.PlanetId == planet.PlanetId);
+        PopularPlanets.RemoveAll(p => p.PlanetId == planet.PlanetId);
+        _filteredPlanets.RemoveAll(p => p.PlanetId == planet.PlanetId);
+
+        // Update the grid
+        _planetGrid?.SetPlanets(_filteredPlanets);
+
+        // Reset carousel if it exists
         if (_planetCarousel != null)
             await _planetCarousel.Reset();
+
         ReRender();
     }
 
@@ -162,24 +201,24 @@
         await PerformSearch();
     }
 
-    private Task OnSearchCleared()
+    private async Task OnSearchCleared()
     {
         _isSearchLoading = true;
         StateHasChanged();
-        
+
         try
         {
             _searchTerm = string.Empty;
-            _filteredPlanets = UnjoinedPlanets;
-            
+
             // Clear the search filter on the query engine
             if (_discoverablePlanetsQuery != null)
             {
                 _discoverablePlanetsQuery.ResetPaging();
                 _discoverablePlanetsQuery.SetFilter("search", null, apply: true);
             }
-            
-            StateHasChanged();
+
+            // Reset to show all unjoined planets
+            _filteredPlanets = UnjoinedPlanets.ToList();
             _planetGrid?.SetPlanets(_filteredPlanets);
         }
         finally
@@ -187,8 +226,6 @@
             _isSearchLoading = false;
             StateHasChanged();
         }
-        
-        return Task.CompletedTask;
     }
 
     private async Task PerformSearch()

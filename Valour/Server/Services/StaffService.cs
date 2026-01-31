@@ -37,6 +37,24 @@ public class StaffService
         {
             query = query.Where(x => (int)x.ReasonCode == reasonCode);
         }
+
+        var resolution = queryRequest.Options?.Filters?.GetValueOrDefault("resolution");
+        if (int.TryParse(resolution, out int resolutionCode))
+        {
+            query = query.Where(x => (int)x.Resolution == resolutionCode);
+        }
+
+        var unresolved = queryRequest.Options?.Filters?.GetValueOrDefault("unresolved");
+        if (unresolved == "true")
+        {
+            query = query.Where(x => x.Resolution == ReportResolution.None);
+        }
+
+        var resolved = queryRequest.Options?.Filters?.GetValueOrDefault("resolved");
+        if (resolved == "true")
+        {
+            query = query.Where(x => x.Resolution != ReportResolution.None);
+        }
         
         var sort = queryRequest.Options?.Sort?.Field;
         if (sort is not null)
@@ -118,5 +136,28 @@ public class StaffService
     {
         var msg = await _db.Messages.FirstOrDefaultAsync(x => x.Id == messageId);
         return msg.ToModel();
+    }
+
+    public async Task<Report> GetReportAsync(string reportId)
+    {
+        var report = await _db.Reports.FindAsync(reportId);
+        return report?.ToModel();
+    }
+
+    public async Task<TaskResult> ResolveReportAsync(string reportId, ReportResolution resolution, string staffNotes, long staffUserId)
+    {
+        var report = await _db.Reports.FindAsync(reportId);
+        if (report is null)
+            return TaskResult.FromFailure("Report not found");
+
+        report.Resolution = resolution;
+        report.StaffNotes = staffNotes;
+        report.ResolvedById = staffUserId;
+        report.ResolvedAt = DateTime.UtcNow;
+        report.Reviewed = true;
+
+        await _db.SaveChangesAsync();
+
+        return TaskResult.SuccessResult;
     }
 }

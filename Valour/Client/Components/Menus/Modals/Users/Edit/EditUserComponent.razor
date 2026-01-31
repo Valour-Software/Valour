@@ -1,4 +1,5 @@
 ﻿@using Valour.Client.Components.Windows.ModTools
+@using Valour.Client.Components.Staff
 @inherits Modal<EditUserComponent.ModalParams>
 @inject NavigationManager NavManager
 @inject ValourClient Client
@@ -30,7 +31,19 @@
     private RenderFragment SessionsContent => @<EditSessionsComponent />;
     private RenderFragment LogOutContent => @<div></div>;
     private RenderFragment OAuthContent => @<EditOAuthComponent />;
-    
+    private RenderFragment BotsContent => @<BotManagementComponent />;
+    private RenderFragment StaffToolsContent =>
+        @<TabContainerComponent Titles="@_staffTabs" MaxHeight="100%" ContentStyle="background-color: var(--main-1); padding: 1em">
+            <TabOne>
+                <StaffUserQueryTable />
+            </TabOne>
+            <TabTwo>
+                <ReportsQueryTable />
+            </TabTwo>
+        </TabContainerComponent>;
+
+    private readonly string[] _staffTabs = new[] { "Members", "Reports" };
+
     private List<MainMenu.MenuCategory> _categories;
     
     private List<MainMenu.MenuCategory> BuildCategories() =>
@@ -123,6 +136,13 @@
                 {
                     new MainMenu.MenuItem()
                     {
+                        Name = "Bots",
+                        Icon = "robot",
+                        Description = "Create and manage bot accounts",
+                        Content = BotsContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
                         Name = "OAuth Apps",
                         Icon = "key-fill",
                         Description = "Manage your OAuth applications and API access",
@@ -135,6 +155,26 @@
     protected override void OnInitialized()
     {
         _categories = BuildCategories();
+
+        // Add staff category if user is staff
+        if (Data.User?.ValourStaff == true)
+        {
+            _categories.Add(new MainMenu.MenuCategory()
+            {
+                Name = "Staff",
+                Icon = "shield-fill",
+                Items = new List<MainMenu.MenuItem>()
+                {
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Staff Tools",
+                        Icon = "tools",
+                        Description = "Manage users and reports",
+                        Content = StaffToolsContent
+                    }
+                }
+            });
+        }
     }
 
     public class ModalParams

@@ -50,4 +50,22 @@ public class StaffService : ServiceBase
         var result = await _client.PrimaryNode.GetJsonAsync<Message>($"api/staff/messages/{messageId}");
         return result.Data;
     }
+
+    public async Task<Report> GetReportAsync(string reportId)
+    {
+        var result = await _client.PrimaryNode.GetJsonAsync<Report>($"api/staff/reports/{reportId}");
+        return result.Data;
+    }
+
+    public async Task<TaskResult> ResolveReportAsync(string reportId, ReportResolution resolution, string staffNotes)
+    {
+        var request = new ResolveReportRequest()
+        {
+            ReportId = reportId,
+            Resolution = resolution,
+            StaffNotes = staffNotes
+        };
+
+        return await _client.PrimaryNode.PostAsync("api/staff/reports/resolve", request);
+    }
 }

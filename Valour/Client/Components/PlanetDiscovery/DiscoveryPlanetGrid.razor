@@ -6,7 +6,7 @@
             <div class="planet-grid-spinner">
                 <i class="bi bi-arrow-clockwise"></i>
             </div>
-            <p class="planet-grid-loading-text">Loading planets...</p>
+            <p class="planet-grid-loading-text">Searching planets...</p>
         </div>
     }
     else if (_planets == null || !_planets.Any())
@@ -22,7 +22,7 @@
     {
         @foreach (var planet in _planets)
         {
-            <DiscoveryPlanetCard PlanetInfo="planet" @key="planet.PlanetId" />
+            <DiscoveryPlanetCard PlanetInfo="planet" OnJoin="OnJoin" @key="planet.PlanetId" />
         }
     }
 </div>
@@ -32,6 +32,7 @@
 
     [Parameter] public bool IsLoading { get; set; } = false;
     [Parameter] public string EmptyMessage { get; set; } = "No planets found";
+    [Parameter] public EventCallback<PlanetListInfo> OnJoin { get; set; }
 
     public void SetPlanets(IEnumerable<PlanetListInfo> planets)
     {

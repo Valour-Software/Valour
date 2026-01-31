@@ -126,7 +126,13 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
     /// Bitmask representing tutorials the user has completed
     /// </summary>
     public long TutorialState { get; set; }
-    
+
+    /// <summary>
+    /// If this user is a bot, the ID of the user who owns it.
+    /// Null for regular users.
+    /// </summary>
+    public long? OwnerId { get; set; }
+
     /// <summary>
     /// The subscription the user currently has
     /// </summary>

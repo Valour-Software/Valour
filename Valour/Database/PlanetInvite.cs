@@ -87,8 +87,7 @@ public class PlanetInvite : ISharedPlanetInvite
             
             e.HasIndex(x => x.PlanetId);
 
-            e.HasIndex(x => x.IssuerId)
-                .IsUnique();
+            e.HasIndex(x => x.IssuerId);
         });
 
     }

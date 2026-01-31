@@ -1258,70 +1258,70 @@ namespace Valour.Database.Migrations
                         new
                         {
                             Id = 1L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Gaming",
                             Slug = "gaming"
                         },
                         new
                         {
                             Id = 2L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Anime",
                             Slug = "anime"
                         },
                         new
                         {
                             Id = 3L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Debates",
                             Slug = "debates"
                         },
                         new
                         {
                             Id = 4L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "News",
                             Slug = "news"
                         },
                         new
                         {
                             Id = 5L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Strategy",
                             Slug = "strategy"
                         },
                         new
                         {
                             Id = 6L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Action",
                             Slug = "action"
                         },
                         new
                         {
                             Id = 7L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Manga",
                             Slug = "manga"
                         },
                         new
                         {
                             Id = 8L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Geek Culture",
                             Slug = "geek-culture"
                         },
                         new
                         {
                             Id = 9L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Events",
                             Slug = "events"
                         },
                         new
                         {
                             Id = 10L,
-                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Local),
+                            Created = new DateTime(2025, 8, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Indie Games",
                             Slug = "indie-games"
                         });

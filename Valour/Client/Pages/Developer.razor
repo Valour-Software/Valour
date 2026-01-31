@@ -1,0 +1,68 @@
+@page "/developer"
+@page "/developer/{Tab}"
+@inject ValourClient Client
+@inject NavigationManager NavManager
+
+@if (!Client.IsLoggedIn)
+{
+    <LoginComponent FromVerified="false"></LoginComponent>
+    return;
+}
+
+<ModalRoot>
+    <div class="developer-page">
+        <div class="developer-header">
+            <h1>
+                <i class="bi bi-code-slash"></i>
+                Developer Portal
+            </h1>
+            <p>Build integrations and bots for Valour</p>
+        </div>
+
+        <div class="developer-tabs">
+            <button class="tab-button @(ActiveTab == "bots" ? "active" : "")" @onclick="@(() => SetTab("bots"))">
+                <i class="bi bi-robot"></i>
+                Bots
+            </button>
+            <button class="tab-button @(ActiveTab == "oauth" ? "active" : "")" @onclick="@(() => SetTab("oauth"))">
+                <i class="bi bi-key-fill"></i>
+                OAuth Apps
+            </button>
+        </div>
+
+        <div class="developer-content">
+            @if (ActiveTab == "bots")
+            {
+                <BotManagementComponent />
+            }
+            else if (ActiveTab == "oauth")
+            {
+                <EditOAuthComponent />
+            }
+        </div>
+
+        <div class="back-link">
+            <a href="/" @onclick:preventDefault @onclick="GoHome">
+                <i class="bi bi-arrow-left"></i>
+                Back to Valour
+            </a>
+        </div>
+    </div>
+</ModalRoot>
+
+@code {
+    [Parameter]
+    public string Tab { get; set; }
+
+    private string ActiveTab => string.IsNullOrEmpty(Tab) ? "bots" : Tab.ToLower();
+
+    private void SetTab(string tab)
+    {
+        NavManager.NavigateTo($"/developer/{tab}");
+    }
+
+    private void GoHome()
+    {
+        NavManager.NavigateTo("/");
+    }
+}

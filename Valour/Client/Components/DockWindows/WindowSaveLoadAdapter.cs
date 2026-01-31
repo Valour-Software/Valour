@@ -35,13 +35,19 @@ public class WindowLayoutState
     // Children
     public WindowLayoutState ChildOne { get; set; }
     public WindowLayoutState ChildTwo { get; set; }
-    
+
     // Split data
     public WindowSplitState SplitState { get; set; }
-    
+
     public List<WindowTabState> TabStates { get; set; }
-    
+
     public int FocusedTabIndex { get; set; }
+
+    /// <summary>
+    /// Indicates that this layout contains the globally focused tab
+    /// (the one that was last active across all layouts)
+    /// </summary>
+    public bool IsGloballyFocused { get; set; }
 }
 
 public class WindowSaveLoadAdapter
@@ -64,7 +70,68 @@ public class WindowSaveLoadAdapter
     {
         var state = JsonSerializer.Deserialize<WindowLayoutState>(json);
         var layout = await Import(state);
+
+        // Find and set the globally focused tab
+        var globallyFocusedTab = FindGloballyFocusedTab(layout, state);
+        if (globallyFocusedTab is not null)
+        {
+            await WindowService.SetFocusedTab(globallyFocusedTab);
+        }
+        else
+        {
+            // Fallback for old layouts without IsGloballyFocused: find any focused tab
+            var anyFocusedTab = FindAnyFocusedTab(layout);
+            if (anyFocusedTab is not null)
+            {
+                await WindowService.SetFocusedTab(anyFocusedTab);
+            }
+        }
+
         return layout;
+    }
+
+    /// <summary>
+    /// Recursively finds the globally focused tab by matching the layout tree with state tree
+    /// </summary>
+    private WindowTab FindGloballyFocusedTab(WindowLayout layout, WindowLayoutState state)
+    {
+        if (layout is null || state is null)
+            return null;
+
+        // Check if this layout is marked as globally focused
+        if (state.IsGloballyFocused && layout.FocusedTab is not null)
+        {
+            return layout.FocusedTab;
+        }
+
+        // Recursively check children
+        var fromChildOne = FindGloballyFocusedTab(layout.ChildOne, state.ChildOne);
+        if (fromChildOne is not null)
+            return fromChildOne;
+
+        var fromChildTwo = FindGloballyFocusedTab(layout.ChildTwo, state.ChildTwo);
+        if (fromChildTwo is not null)
+            return fromChildTwo;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Fallback: finds any focused tab in the layout tree
+    /// </summary>
+    private WindowTab FindAnyFocusedTab(WindowLayout layout)
+    {
+        if (layout is null)
+            return null;
+
+        if (layout.FocusedTab is not null)
+            return layout.FocusedTab;
+
+        var fromChildOne = FindAnyFocusedTab(layout.ChildOne);
+        if (fromChildOne is not null)
+            return fromChildOne;
+
+        return FindAnyFocusedTab(layout.ChildTwo);
     }
 
     public string SerializeFloaters(List<WindowTab> floaters)
@@ -145,9 +212,9 @@ public class WindowSaveLoadAdapter
         }
 
         var tabStates = Export(layout.Tabs);
-        
+
         WindowSplitState splitState = null;
-        
+
         if (layout.Split is not null)
         {
             splitState = new WindowSplitState
@@ -158,20 +225,24 @@ public class WindowSaveLoadAdapter
         }
 
         var focusedIndex = 0;
+        var isGloballyFocused = false;
         if (layout.Tabs is not null && layout.FocusedTab is not null)
         {
             focusedIndex = layout.Tabs.IndexOf(layout.FocusedTab);
+            // Check if this layout's focused tab is the globally focused tab
+            isGloballyFocused = layout.FocusedTab == WindowService.FocusedTab;
         }
-        
+
         var state = new WindowLayoutState
         {
             ChildOne = Export(layout.ChildOne),
             ChildTwo = Export(layout.ChildTwo),
             SplitState = splitState,
             TabStates = tabStates,
-            FocusedTabIndex = focusedIndex
+            FocusedTabIndex = focusedIndex,
+            IsGloballyFocused = isGloballyFocused
         };
-        
+
         return state;
     }
     

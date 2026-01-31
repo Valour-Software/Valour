@@ -41,6 +41,9 @@ public class AutomodService
     public async Task<AutomodTrigger?> GetTriggerAsync(Guid id) =>
         (await _db.AutomodTriggers.FindAsync(id))?.ToModel();
 
+    public async Task<AutomodAction?> GetActionAsync(Guid id) =>
+        (await _db.AutomodActions.FindAsync(id))?.ToModel();
+
     public async Task<List<AutomodTrigger>> GetPlanetTriggersAsync(long planetId) =>
         await _db.AutomodTriggers.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel()).ToListAsync();
@@ -87,6 +90,9 @@ public class AutomodService
             return new(false, e.Message);
         }
 
+        // Invalidate cache
+        _triggerCache.TryRemove(trigger.PlanetId, out _);
+
         _coreHub.NotifyPlanetItemChange(trigger);
         return new(true, "Success", trigger);
     }
@@ -105,7 +111,7 @@ public class AutomodService
         {
             await _db.AutomodTriggers.AddAsync(trigger.ToDatabase());
             await _db.SaveChangesAsync();
-            
+
             if (actions.Count > 0)
                 await _db.AutomodActions.AddRangeAsync(actions.Select(x => x.ToDatabase()));
             await _db.SaveChangesAsync();
@@ -117,6 +123,10 @@ public class AutomodService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
+
+        // Invalidate cache
+        _triggerCache.TryRemove(trigger.PlanetId, out _);
+        _actionCache.TryRemove(trigger.Id, out _);
 
         _coreHub.NotifyPlanetItemChange(trigger);
         foreach (var action in actions)
@@ -148,6 +158,9 @@ public class AutomodService
             return new(false, e.Message);
         }
 
+        // Invalidate cache
+        _triggerCache.TryRemove(trigger.PlanetId, out _);
+
         _coreHub.NotifyPlanetItemChange(trigger);
         return new(true, "Success", trigger);
     }
@@ -159,6 +172,11 @@ public class AutomodService
             var dbItem = await _db.AutomodTriggers.FindAsync(trigger.Id);
             if (dbItem != null)
             {
+                // Cascade delete actions
+                var actions = await _db.AutomodActions.Where(x => x.TriggerId == trigger.Id).ToListAsync();
+                if (actions.Count > 0)
+                    _db.AutomodActions.RemoveRange(actions);
+
                 _db.AutomodTriggers.Remove(dbItem);
                 await _db.SaveChangesAsync();
             }
@@ -168,6 +186,10 @@ public class AutomodService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
+
+        // Invalidate cache
+        _triggerCache.TryRemove(trigger.PlanetId, out _);
+        _actionCache.TryRemove(trigger.Id, out _);
 
         _coreHub.NotifyPlanetItemDelete(trigger);
         return new(true, "Success");
@@ -187,8 +209,68 @@ public class AutomodService
             return new(false, e.Message);
         }
 
+        // Invalidate cache
+        _actionCache.TryRemove(action.TriggerId, out _);
+
         _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
         return new(true, "Success", action);
+    }
+
+    public async Task<TaskResult<AutomodAction>> UpdateActionAsync(AutomodAction action)
+    {
+        var existing = await _db.AutomodActions.FindAsync(action.Id);
+        if (existing is null)
+            return new(false, "Automod action not found");
+
+        if (existing.PlanetId != action.PlanetId)
+            return new(false, "PlanetId cannot be changed.");
+
+        if (existing.TriggerId != action.TriggerId)
+            return new(false, "TriggerId cannot be changed.");
+
+        if (existing.MemberAddedBy != action.MemberAddedBy)
+            return new(false, "MemberAddedBy cannot be changed.");
+
+        try
+        {
+            _db.Entry(existing).CurrentValues.SetValues(action.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        // Invalidate cache
+        _actionCache.TryRemove(action.TriggerId, out _);
+
+        _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
+        return new(true, "Success", action);
+    }
+
+    public async Task<TaskResult> DeleteActionAsync(AutomodAction action)
+    {
+        try
+        {
+            var dbItem = await _db.AutomodActions.FindAsync(action.Id);
+            if (dbItem != null)
+            {
+                _db.AutomodActions.Remove(dbItem);
+                await _db.SaveChangesAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        // Invalidate cache
+        _actionCache.TryRemove(action.TriggerId, out _);
+
+        _coreHub.NotifyPlanetItemDelete(action.PlanetId, action);
+        return new(true, "Success");
     }
 
     private readonly ConcurrentDictionary<long, List<AutomodTrigger>> _triggerCache = new();
@@ -333,9 +415,9 @@ public class AutomodService
         
         if (message.AuthorUserId == ISharedUser.VictorUserId)
             return true; // Don't scan messages from Victor -- this would create an infinite loop
-        
-        //if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
-        //    return true;
+
+        if (await _permissionService.HasPlanetPermissionAsync(member, PlanetPermissions.BypassAutomod))
+            return true;
 
         var triggers = await GetCachedTriggersAsync(member.PlanetId);
         if (triggers.Count == 0)

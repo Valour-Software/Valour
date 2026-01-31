@@ -63,17 +63,19 @@ public class PlanetTag : ISharedPlanetTag
            
            
            
+           // Use a fixed UTC date for seed data to avoid migration regeneration issues
+           var seedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
            e.HasData(
-               new PlanetTag { Id = 1, Name = "Gaming", Slug = "gaming",Created = DateTime.Today},
-               new PlanetTag { Id = 2, Name = "Anime", Slug = "anime",Created = DateTime.Today},
-               new PlanetTag { Id = 3, Name = "Debates", Slug = "debates",Created = DateTime.Today},
-               new PlanetTag { Id = 4, Name = "News", Slug = "news",Created = DateTime.Today},
-               new PlanetTag { Id = 5, Name = "Strategy", Slug = "strategy",Created = DateTime.Today},
-               new PlanetTag { Id = 6, Name = "Action", Slug = "action",Created = DateTime.Today},
-               new PlanetTag { Id = 7, Name = "Manga", Slug = "manga",Created = DateTime.Today},
-               new PlanetTag { Id = 8, Name = "Geek Culture", Slug = "geek-culture",Created = DateTime.Today},
-               new PlanetTag { Id = 9, Name = "Events", Slug = "events",Created = DateTime.Today},
-               new PlanetTag { Id = 10, Name = "Indie Games", Slug = "indie-games",Created = DateTime.Today}
+               new PlanetTag { Id = 1, Name = "Gaming", Slug = "gaming", Created = seedDate },
+               new PlanetTag { Id = 2, Name = "Anime", Slug = "anime", Created = seedDate },
+               new PlanetTag { Id = 3, Name = "Debates", Slug = "debates", Created = seedDate },
+               new PlanetTag { Id = 4, Name = "News", Slug = "news", Created = seedDate },
+               new PlanetTag { Id = 5, Name = "Strategy", Slug = "strategy", Created = seedDate },
+               new PlanetTag { Id = 6, Name = "Action", Slug = "action", Created = seedDate },
+               new PlanetTag { Id = 7, Name = "Manga", Slug = "manga", Created = seedDate },
+               new PlanetTag { Id = 8, Name = "Geek Culture", Slug = "geek-culture", Created = seedDate },
+               new PlanetTag { Id = 9, Name = "Events", Slug = "events", Created = seedDate },
+               new PlanetTag { Id = 10, Name = "Indie Games", Slug = "indie-games", Created = seedDate }
            );
 
            builder.Entity<PlanetTag>()

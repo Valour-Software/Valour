@@ -1,5 +1,16 @@
 namespace Valour.Shared.Models;
 
+public enum ReportResolution : int
+{
+    None = 0,           // Not yet resolved
+    NoAction = 1,       // Reviewed, no action needed
+    Warning = 2,        // Warning issued
+    UserDisabled = 3,
+    ContentRemoved = 4,
+    UserDeleted = 5,
+    Duplicate = 6
+}
+
 public class ReportReason
 {
     public ReportReasonCode Code { get; set; }
@@ -172,4 +183,29 @@ public interface ISharedReport : ISharedModel<string>
     /// If the report has been reviewed by a moderator
     /// </summary>
     bool Reviewed { get; set; }
+
+    /// <summary>
+    /// The user who was reported (if applicable)
+    /// </summary>
+    long? ReportedUserId { get; set; }
+
+    /// <summary>
+    /// The resolution status of the report
+    /// </summary>
+    ReportResolution Resolution { get; set; }
+
+    /// <summary>
+    /// The staff member who resolved the report
+    /// </summary>
+    long? ResolvedById { get; set; }
+
+    /// <summary>
+    /// When the report was resolved
+    /// </summary>
+    DateTime? ResolvedAt { get; set; }
+
+    /// <summary>
+    /// Internal staff notes about the report
+    /// </summary>
+    string StaffNotes { get; set; }
 }

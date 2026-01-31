@@ -1,0 +1,538 @@
+@inherits Modal<ReportDetailsModal.ModalParams>
+@inject StaffService StaffService
+@inject ValourClient Client
+
+<BasicModalLayout Title="Report Details" Icon="flag-fill" MaxWidth="700px">
+    <MainArea>
+        <div class="report-details">
+            <div class="report-section">
+                <h4>Report Information</h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Report ID</span>
+                        <span class="value">@Data.Report.Id</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Created</span>
+                        <span class="value">@Data.Report.TimeCreated.ToString("g")</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Reason</span>
+                        <span class="value reason-badge @GetReasonClass()">@GetReasonTitle()</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Status</span>
+                        <span class="value status-badge @GetStatusClass()">@GetStatusText()</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-section">
+                <h4>Users</h4>
+                <div class="users-grid">
+                    <div class="user-item">
+                        <span class="label">Reporter</span>
+                        <UserInfoMini UserId="@Data.Report.ReportingUserId" />
+                    </div>
+                    <div class="user-item">
+                        <span class="label">Reported User</span>
+                        @if (Data.Report.ReportedUserId.HasValue)
+                        {
+                            <UserInfoMini UserId="@Data.Report.ReportedUserId" />
+                        }
+                        else
+                        {
+                            <span class="text-muted">N/A</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Data.Report.LongReason))
+            {
+                <div class="report-section">
+                    <h4>Description</h4>
+                    <div class="description-box">
+                        @Data.Report.LongReason
+                    </div>
+                </div>
+            }
+
+            @if (Data.Report.MessageId.HasValue)
+            {
+                <div class="report-section">
+                    <h4>Reported Message</h4>
+                    @if (_isLoadingMessage)
+                    {
+                        <div class="message-loading">Loading message...</div>
+                    }
+                    else if (_reportedMessage is not null)
+                    {
+                        <div class="reported-message-container">
+                            <MessageComponent ParamData="@_messageParams" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="message-error">
+                            <span>Message could not be loaded (ID: @Data.Report.MessageId)</span>
+                            <button class="v-btn small secondary" @onclick="LoadMessage">Retry</button>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Data.Report.Resolution != ReportResolution.None)
+            {
+                <div class="report-section resolved-section">
+                    <h4>Resolution</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">Resolution</span>
+                            <span class="value">@GetResolutionDisplayName()</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Resolved At</span>
+                            <span class="value">@Data.Report.ResolvedAt?.ToString("g")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Resolved By</span>
+                            @if (Data.Report.ResolvedById.HasValue)
+                            {
+                                <UserInfoMini UserId="@Data.Report.ResolvedById" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">N/A</span>
+                            }
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Data.Report.StaffNotes))
+                    {
+                        <div class="staff-notes">
+                            <span class="label">Staff Notes</span>
+                            <div class="notes-box">@Data.Report.StaffNotes</div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="report-section resolve-form">
+                    <h4>Resolve Report</h4>
+                    <div class="form-group">
+                        <label>Resolution</label>
+                        <select class="form-control" @bind="_selectedResolution">
+                            <option value="@ReportResolution.NoAction">No Action Needed</option>
+                            <option value="@ReportResolution.Warning">Warning Issued</option>
+                            <option value="@ReportResolution.UserDisabled">User Disabled</option>
+                            <option value="@ReportResolution.ContentRemoved">Content Removed</option>
+                            <option value="@ReportResolution.UserDeleted">User Deleted</option>
+                            <option value="@ReportResolution.Duplicate">Duplicate Report</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Staff Notes</label>
+                        <textarea class="form-control" @bind="_staffNotes" rows="3" placeholder="Add internal notes about this report..."></textarea>
+                    </div>
+                    <div class="quick-actions">
+                        <h5>Quick Actions</h5>
+                        <div class="action-buttons">
+                            @if (Data.Report.ReportedUserId.HasValue)
+                            {
+                                <button class="v-btn danger" @onclick="DisableUserAndResolve">Disable User</button>
+                            }
+                            <button class="v-btn secondary" @onclick="() => ResolveReport(ReportResolution.NoAction)">No Action</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            <button @onclick="Close" class="v-btn">Close</button>
+            @if (Data.Report.Resolution == ReportResolution.None)
+            {
+                <button @onclick="SubmitResolution" class="v-btn primary" disabled="@_isSubmitting">
+                    @if (_isSubmitting)
+                    {
+                        <span>Resolving...</span>
+                    }
+                    else
+                    {
+                        <span>Resolve Report</span>
+                    }
+                </button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+<style>
+    .report-details {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .report-section {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--v-bg-tertiary);
+    }
+
+    .report-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .report-section h4 {
+        margin-bottom: 12px;
+        color: var(--v-gray-light);
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .info-item .label {
+        font-size: 0.8em;
+        color: var(--v-gray);
+    }
+
+    .info-item .value {
+        font-size: 0.95em;
+    }
+
+    .users-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .user-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .user-item .label {
+        font-size: 0.8em;
+        color: var(--v-gray);
+    }
+
+    .description-box, .notes-box {
+        background: var(--v-bg-tertiary);
+        padding: 12px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.95em;
+    }
+
+    .reported-message-container {
+        background: var(--main-2);
+        border-radius: 8px;
+        padding: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .message-loading {
+        padding: 20px;
+        text-align: center;
+        color: var(--v-gray);
+    }
+
+    .message-error {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(220, 53, 69, 0.1);
+        border-radius: 6px;
+        color: var(--v-gray-light);
+    }
+
+    .reason-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+
+    .reason-badge.severe {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+
+    .reason-badge.moderate {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    .reason-badge.minor {
+        background: rgba(108, 117, 125, 0.2);
+        color: #6c757d;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+
+    .status-badge.unresolved {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    .status-badge.resolved {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+
+    .resolved-section {
+        background: var(--v-bg-secondary);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+
+    .staff-notes {
+        margin-top: 12px;
+    }
+
+    .staff-notes .label {
+        display: block;
+        font-size: 0.8em;
+        color: var(--v-gray);
+        margin-bottom: 6px;
+    }
+
+    .resolve-form .form-group {
+        margin-bottom: 15px;
+    }
+
+    .resolve-form label {
+        display: block;
+        font-size: 0.85em;
+        color: var(--v-gray);
+        margin-bottom: 6px;
+    }
+
+    .resolve-form .form-control {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid var(--v-bg-tertiary);
+        background: var(--v-bg-secondary);
+        color: var(--v-text);
+    }
+
+    .quick-actions {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--v-bg-tertiary);
+    }
+
+    .quick-actions h5 {
+        font-size: 0.85em;
+        color: var(--v-gray);
+        margin-bottom: 10px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .text-muted {
+        color: var(--v-gray);
+    }
+</style>
+
+@code {
+    public class ModalParams
+    {
+        public Report Report { get; set; }
+        public Func<Task> OnResolved { get; set; }
+    }
+
+    private ReportResolution _selectedResolution = ReportResolution.NoAction;
+    private string _staffNotes = "";
+    private bool _isSubmitting = false;
+
+    // Message display
+    private Message _reportedMessage;
+    private MessageComponent.Params _messageParams;
+    private bool _isLoadingMessage = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data.Report.MessageId.HasValue)
+        {
+            await LoadMessage();
+        }
+    }
+
+    private async Task LoadMessage()
+    {
+        if (!Data.Report.MessageId.HasValue) return;
+
+        _isLoadingMessage = true;
+        StateHasChanged();
+
+        try
+        {
+            _reportedMessage = await StaffService.GetMessageAsync(Data.Report.MessageId.Value);
+            if (_reportedMessage is not null)
+            {
+                _messageParams = new MessageComponent.Params
+                {
+                    Message = _reportedMessage
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load message: {ex.Message}");
+            _reportedMessage = null;
+        }
+        finally
+        {
+            _isLoadingMessage = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetReasonTitle()
+    {
+        return ReportReasons.Reasons.FirstOrDefault(r => r.Code == Data.Report.ReasonCode)?.Title ?? "Unknown";
+    }
+
+    private string GetReasonClass()
+    {
+        return Data.Report.ReasonCode switch
+        {
+            ReportReasonCode.IsMinorSexualContent or
+            ReportReasonCode.IsTerroristContent or
+            ReportReasonCode.IsThreatsOrViolence => "severe",
+            ReportReasonCode.IsPromotingIllegal or
+            ReportReasonCode.IsTargetedHarassment or
+            ReportReasonCode.IsNonConsensualImages or
+            ReportReasonCode.IsBanEvasion => "moderate",
+            _ => "minor"
+        };
+    }
+
+    private string GetStatusClass()
+    {
+        return Data.Report.Resolution == ReportResolution.None ? "unresolved" : "resolved";
+    }
+
+    private string GetStatusText()
+    {
+        return Data.Report.Resolution == ReportResolution.None ? "Unresolved" : "Resolved";
+    }
+
+    private string GetResolutionDisplayName()
+    {
+        return Data.Report.Resolution switch
+        {
+            ReportResolution.None => "Unresolved",
+            ReportResolution.NoAction => "No Action Needed",
+            ReportResolution.Warning => "Warning Issued",
+            ReportResolution.UserDisabled => "User Disabled",
+            ReportResolution.ContentRemoved => "Content Removed",
+            ReportResolution.UserDeleted => "User Deleted",
+            ReportResolution.Duplicate => "Duplicate",
+            _ => "Unknown"
+        };
+    }
+
+    private async Task DisableUserAndResolve()
+    {
+        if (!Data.Report.ReportedUserId.HasValue) return;
+
+        _isSubmitting = true;
+        StateHasChanged();
+
+        var disableResult = await StaffService.SetUserDisabledAsync(Data.Report.ReportedUserId.Value, true);
+        if (!disableResult.Success)
+        {
+            ToastContainer.Instance.AddToast(new ProgressToastData()
+            {
+                Message = $"Failed to disable user: {disableResult.Message}",
+                ProgressTask = Task.FromException(new Exception(disableResult.Message))
+            });
+            _isSubmitting = false;
+            StateHasChanged();
+            return;
+        }
+
+        await ResolveReport(ReportResolution.UserDisabled);
+    }
+
+    private async Task ResolveReport(ReportResolution resolution)
+    {
+        _selectedResolution = resolution;
+        await SubmitResolution();
+    }
+
+    private async Task SubmitResolution()
+    {
+        _isSubmitting = true;
+        StateHasChanged();
+
+        var result = await StaffService.ResolveReportAsync(Data.Report.Id, _selectedResolution, _staffNotes);
+
+        _isSubmitting = false;
+
+        if (!result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ProgressToastData()
+            {
+                Message = $"Failed to resolve report: {result.Message}",
+                ProgressTask = Task.FromException(new Exception(result.Message))
+            });
+            StateHasChanged();
+            return;
+        }
+
+        // Update local report state
+        Data.Report.Resolution = _selectedResolution;
+        Data.Report.StaffNotes = _staffNotes;
+        Data.Report.ResolvedAt = DateTime.UtcNow;
+
+        ToastContainer.Instance.AddToast(new ProgressToastData()
+        {
+            Title = "Success",
+            Message = "Report resolved successfully",
+            ProgressTask = Task.CompletedTask
+        });
+
+        if (Data.OnResolved != null)
+        {
+            await Data.OnResolved.Invoke();
+        }
+
+        StateHasChanged();
+    }
+}

@@ -2,60 +2,325 @@
 @inject ValourClient Client
 @inject StaffService StaffService
 
+<div class="reports-filters">
+    <div class="filter-group">
+        <label>Reason</label>
+        <select class="form-control" @onchange="OnReasonFilterChanged">
+            <option value="">All Reasons</option>
+            @foreach (var reason in ReportReasons.Reasons)
+            {
+                <option value="@((int)reason.Code)">@reason.Title</option>
+            }
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Status</label>
+        <select class="form-control" @onchange="OnStatusFilterChanged">
+            <option value="">All</option>
+            <option value="unresolved" selected>Unresolved</option>
+            <option value="resolved">Resolved</option>
+        </select>
+    </div>
+    <button class="v-btn secondary" @onclick="RefreshTable">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
 <QueryTable
+    @ref="_table"
     Columns="@_columns"
     Engine="@_engine"
     Infinite="true"
+    RowHeight="60"
 />
 
+<style>
+    .reports-filters {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .filter-group label {
+        font-size: 0.8em;
+        color: var(--v-gray);
+    }
+
+    .filter-group .form-control {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--v-bg-tertiary);
+        background: var(--v-bg-secondary);
+        color: var(--v-text);
+        min-width: 150px;
+    }
+
+    .reason-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .reason-badge.severe {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+
+    .reason-badge.moderate {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    .reason-badge.minor {
+        background: rgba(108, 117, 125, 0.2);
+        color: #6c757d;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: 500;
+    }
+
+    .status-badge.unresolved {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+
+    .status-badge.resolved {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+
+    .report-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .report-actions .v-btn {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+
+    .time-cell {
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+
+    .description-cell {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.9em;
+        color: var(--v-gray-light);
+    }
+</style>
+
 @code {
-    
+
     [CascadingParameter]
     public ModalRoot Modal { get; set; }
 
+    private QueryTable<Report> _table;
     private StaffReportQueryEngine _engine;
-
     private List<ColumnDefinition<Report>> _columns;
+    private string _reasonFilter = "";
+    private string _statusFilter = "unresolved";
 
     protected override void OnInitialized()
     {
         _engine = new StaffReportQueryEngine(Client.PrimaryNode);
-        
+
+        // Set default filter to show unresolved
+        _engine.SetFilter("unresolved", "true", true);
+
         _columns = new()
         {
             new ()
             {
-                Name = "ID",
-                RenderFragment = (rowData) => @<p>@rowData.Row.Id</p>
+                Name = "Time",
+                Width = "120px",
+                RenderFragment = (rowData) =>
+                    @<span class="time-cell">@rowData.Row.TimeCreated.ToString("MMM d, HH:mm")</span>
             },
             new ()
             {
-                Name = "Type",
-                RenderFragment = (rowData) => @<p>@rowData.Row.ReasonCode.ToString()</p>
+                Name = "Reason",
+                Width = "200px",
+                RenderFragment = (rowData) =>
+                    @<span class="reason-badge @GetReasonClass(rowData.Row.ReasonCode)">@GetReasonTitle(rowData.Row.ReasonCode)</span>
             },
             new ()
             {
-                Name = "Reviewed",
-                RenderFragment = (rowData) => @<p>@(rowData.Row.Reviewed ? "Yes" : "No")</p>
+                Name = "Reporter",
+                Width = "180px",
+                RenderFragment = (rowData) =>
+                    @<UserInfoMini UserId="@rowData.Row.ReportingUserId" />
             },
             new ()
             {
-                Name = "Message ID",
-                RenderFragment = (rowData) => 
-                    @<p>
-                        @rowData.Row.MessageId
-                        @if (rowData.Row.MessageId is not null)
+                Name = "Reported User",
+                Width = "180px",
+                RenderFragment = (rowData) =>
+                    @<UserInfoMini UserId="@rowData.Row.ReportedUserId" />
+            },
+            new ()
+            {
+                Name = "Description",
+                RenderFragment = (rowData) =>
+                    @<span class="description-cell" title="@rowData.Row.LongReason">@(string.IsNullOrWhiteSpace(rowData.Row.LongReason) ? "-" : rowData.Row.LongReason)</span>
+            },
+            new ()
+            {
+                Name = "Status",
+                Width = "130px",
+                RenderFragment = (rowData) =>
+                    @<span class="status-badge @(rowData.Row.Resolution == ReportResolution.None ? "unresolved" : "resolved")">
+                        @(rowData.Row.Resolution == ReportResolution.None ? "Unresolved" : "Resolved")
+                    </span>
+            },
+            new ()
+            {
+                Name = "Actions",
+                Width = "220px",
+                RenderFragment = (rowData) =>
+                    @<div class="report-actions">
+                        @if (rowData.Row.Resolution == ReportResolution.None)
                         {
-                            <button class="v-btn primary" @onclick="() => OpenMessageWindow(rowData.Row.MessageId ?? 0)">View</button>
+                            @if (rowData.Row.ReportedUserId.HasValue)
+                            {
+                                <button class="v-btn danger small" @onclick="@(() => DisableUserQuick(rowData.Row))">Disable User</button>
+                            }
+                            <button class="v-btn secondary small" @onclick="@(() => NoActionQuick(rowData.Row))">No Action</button>
                         }
-                    </p>
+                        <button class="v-btn primary small" @onclick="@(() => OpenDetailsModal(rowData.Row))">Details</button>
+                    </div>
             }
         };
     }
 
+    private string GetReasonTitle(ReportReasonCode code)
+    {
+        return ReportReasons.Reasons.FirstOrDefault(r => r.Code == code)?.Title ?? "Unknown";
+    }
+
+    private string GetReasonClass(ReportReasonCode code)
+    {
+        return code switch
+        {
+            ReportReasonCode.IsMinorSexualContent or
+            ReportReasonCode.IsTerroristContent or
+            ReportReasonCode.IsThreatsOrViolence => "severe",
+            ReportReasonCode.IsPromotingIllegal or
+            ReportReasonCode.IsTargetedHarassment or
+            ReportReasonCode.IsNonConsensualImages or
+            ReportReasonCode.IsBanEvasion => "moderate",
+            _ => "minor"
+        };
+    }
+
+    private async Task OnReasonFilterChanged(ChangeEventArgs e)
+    {
+        _reasonFilter = e.Value?.ToString() ?? "";
+
+        // SetFilter with null/empty removes the filter
+        _engine.SetFilter("reason", string.IsNullOrEmpty(_reasonFilter) ? null : _reasonFilter, false);
+
+        await _table.Requery();
+    }
+
+    private async Task OnStatusFilterChanged(ChangeEventArgs e)
+    {
+        _statusFilter = e.Value?.ToString() ?? "";
+
+        // Clear both filters first (SetFilter with null removes it)
+        _engine.SetFilter("unresolved", null, false);
+        _engine.SetFilter("resolved", null, false);
+
+        if (_statusFilter == "unresolved")
+        {
+            _engine.SetFilter("unresolved", "true", false);
+        }
+        else if (_statusFilter == "resolved")
+        {
+            _engine.SetFilter("resolved", "true", false);
+        }
+        // Empty means all, no filter needed
+
+        await _table.Requery();
+    }
+
+    private async Task RefreshTable()
+    {
+        await _table.Requery();
+    }
+
+    private void OpenDetailsModal(Report report)
+    {
+        Modal.OpenModal<ReportDetailsModal>(new ReportDetailsModal.ModalParams()
+        {
+            Report = report,
+            OnResolved = async () => await _table.Requery()
+        });
+    }
+
+    private async Task DisableUserQuick(Report report)
+    {
+        if (!report.ReportedUserId.HasValue) return;
+
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            Title = "Disabling User",
+            SuccessMessage = "User has been disabled",
+            Message = "Waiting for result...",
+            ProgressTask = StaffService.SetUserDisabledAsync(report.ReportedUserId.Value, true)
+        };
+
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+        if (result.Success)
+        {
+            // Resolve the report
+            await StaffService.ResolveReportAsync(report.Id, ReportResolution.UserDisabled, "Quick action: User disabled");
+            await _table.Requery();
+        }
+    }
+
+    private async Task NoActionQuick(Report report)
+    {
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            Title = "Resolving Report",
+            SuccessMessage = "Report marked as No Action Needed",
+            Message = "Waiting for result...",
+            ProgressTask = StaffService.ResolveReportAsync(report.Id, ReportResolution.NoAction, "Quick action: No action needed")
+        };
+
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+        if (result.Success)
+        {
+            await _table.Requery();
+        }
+    }
+
     public async Task OpenMessageWindow(long messageId)
     {
-        
         var message = await StaffService.GetMessageAsync(messageId);
         if (message is null)
         {
@@ -63,26 +328,25 @@
             {
                 throw new Exception("Failed to load message");
             });
-            
+
             var toastData = new ProgressToastData()
             {
                 Message = "Error",
                 ProgressTask = task,
             };
-            
+
             ToastContainer.Instance.AddToast(toastData);
 
             return;
         }
-        
+
         var props = new StaffMessageWindow.Props()
         {
             Message = message
         };
-        
+
         var windowData = await StaffMessageWindow.GetDefaultContentAsync(props);
 
         await WindowService.TryAddFloatingWindow(windowData);
     }
-
 }

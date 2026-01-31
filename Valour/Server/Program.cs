@@ -146,7 +146,8 @@ public partial class Program
             new DynamicAPI<StaffApi>().RegisterRoutes(app),
             new DynamicAPI<MessageApi>().RegisterRoutes(app),
             new DynamicAPI<UnreadApi>().RegisterRoutes(app),
-            new DynamicAPI<TagApi>().RegisterRoutes(app)
+            new DynamicAPI<TagApi>().RegisterRoutes(app),
+            new DynamicAPI<BotApi>().RegisterRoutes(app)
         };
 
         NodeAPI = new NodeAPI();
@@ -289,12 +290,12 @@ public partial class Program
         services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
 
         // Apply migrations if flag is set
-        if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
-        {
+        //if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
+        //{
             using var scope = services.BuildServiceProvider().CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
             db.Database.Migrate();
-        }
+        //}
         
         Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
         
@@ -356,6 +357,7 @@ public partial class Program
         services.AddScoped<PlanetService>();
         services.AddScoped<TenorFavoriteService>();
         services.AddScoped<AutomodService>();
+        services.AddScoped<BotService>();
         services.AddScoped<TokenService>();
         services.AddScoped<UserFriendService>();
         services.AddScoped<UserOnlineService>();

@@ -1,0 +1,108 @@
+.developer-page {
+    min-height: 100vh;
+    background-color: var(--main-1);
+    padding: 2rem;
+}
+
+.developer-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.developer-header h1 {
+    color: var(--font-color);
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+}
+
+.developer-header h1 i {
+    margin-right: 0.5rem;
+    color: var(--p-cyan);
+}
+
+.developer-header p {
+    color: var(--font-color-muted);
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.developer-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.tab-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--main-3);
+    border: 1px solid var(--main-4);
+    border-radius: var(--main-radius);
+    color: var(--font-color-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    background-color: var(--main-4);
+    color: var(--font-color);
+}
+
+.tab-button.active {
+    background-color: var(--p-cyan);
+    border-color: var(--p-cyan);
+    color: white;
+}
+
+.tab-button i {
+    font-size: 1.1rem;
+}
+
+.developer-content {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: var(--main-2);
+    border-radius: var(--main-radius);
+    padding: 1rem;
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.back-link a {
+    color: var(--font-color-muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.back-link a:hover {
+    color: var(--p-cyan);
+}
+
+.back-link i {
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .developer-page {
+        padding: 1rem;
+    }
+
+    .developer-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .developer-tabs {
+        flex-direction: column;
+    }
+
+    .tab-button {
+        justify-content: center;
+    }
+}

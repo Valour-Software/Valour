@@ -37,10 +37,10 @@ public class ThemeService
     public async Task<QueryResponse<ThemeMeta>> QueryThemesAsync(QueryRequest queryRequest)
     {
         var take = queryRequest.Take;
-        
+
         if (take > 50)
             take = 50;
-        
+
         var baseQuery = _db.Themes
             .AsNoTracking()
             .Where(x => x.Published);
@@ -49,39 +49,38 @@ public class ThemeService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var lowered = search.ToLower();
-            baseQuery = baseQuery.Where(x => EF.Functions.ILike(x.Name.ToLower(), $"%{lowered}%") ||
-                                             EF.Functions.ILike(x.Description.ToLower(), $"%{lowered}%"));
+            baseQuery = baseQuery.Where(x => EF.Functions.ILike(x.Name, $"%{search}%") ||
+                                             EF.Functions.ILike(x.Description, $"%{search}%"));
         }
-        
+
+        // Get total count BEFORE pagination
+        var count = await baseQuery.CountAsync();
+
         var skip = queryRequest.Skip;
 
-        var mainQuery = baseQuery
+        var data = await baseQuery
             .Include(x => x.ThemeVotes)
             .Select(x => new
             {
                 Theme = x,
-                VoteCount = x.ThemeVotes.Count(v => v.Sentiment) - 
+                VoteCount = x.ThemeVotes.Count(v => v.Sentiment) -
                             x.ThemeVotes.Count(v => !v.Sentiment)
             })
             .OrderByDescending(x => x.VoteCount)
             .Skip(skip)
-            .Take(take);
-        
-        var count = await mainQuery.CountAsync();
+            .Take(take)
+            .Select(x => new ThemeMeta()
+            {
+                Id = x.Theme.Id,
+                AuthorId = x.Theme.AuthorId,
+                Name = x.Theme.Name,
+                Description = x.Theme.Description,
+                HasCustomBanner = x.Theme.HasCustomBanner,
+                HasAnimatedBanner = x.Theme.HasAnimatedBanner,
+                MainColor1 = x.Theme.MainColor1,
+                PastelCyan = x.Theme.PastelCyan
+            }).ToListAsync();
 
-        var data = await mainQuery.Select(x => new ThemeMeta()
-        {
-            Id = x.Theme.Id,
-            AuthorId = x.Theme.AuthorId,
-            Name = x.Theme.Name,
-            Description = x.Theme.Description,
-            HasCustomBanner = x.Theme.HasCustomBanner,
-            HasAnimatedBanner = x.Theme.HasAnimatedBanner,
-            MainColor1 = x.Theme.MainColor1,
-            PastelCyan = x.Theme.PastelCyan
-        }).ToListAsync();
-    
         return new QueryResponse<ThemeMeta>()
         {
             Items = data,

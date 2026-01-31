@@ -139,10 +139,10 @@ public class WindowLayout
 
         if (Tabs.Count > 0)
         {
-            if (focusedTabIndex >= Tabs.Count)
+            if (focusedTabIndex >= Tabs.Count || focusedTabIndex < 0)
                 focusedTabIndex = 0;
-            else
-                FocusedTab = Tabs[focusedTabIndex];
+
+            FocusedTab = Tabs[focusedTabIndex];
         }
 
         // Set layout of everything to this
@@ -224,7 +224,7 @@ public class WindowLayout
         // Make sure we don't already contain the tab
         if (Tabs.Contains(tab))
             return;
-        
+
         // If this is split, add the tab to the first child.
         // We cannot add tabs to a split layout.
         if (IsSplit)
@@ -232,24 +232,23 @@ public class WindowLayout
             await ChildOne.AddTab(tab, false);
             return;
         }
-        
+
         // Add tab to list
-        
         // If an index is provided, insert at that index
-        if (index.HasValue && index.Value >= 0 && index.Value < Tabs.Count)
+        if (index.HasValue && index.Value >= 0 && index.Value <= Tabs.Count)
         {
             Tabs.Insert(index.Value, tab);
         }
         else
         {
-            // Otherwise add to the end
-            Tabs.Add(tab);
+            // Otherwise add to the beginning (top of tab list)
+            Tabs.Insert(0, tab);
         }
-        
+
         // Set the layout of the tab
         await tab.SetLayout(this, false);
-        
-        // Set the active tab if there is none
+
+        // Set the new tab as active
         await SetFocusedTab(tab);
 
         // Notify base dock that a change has occurred

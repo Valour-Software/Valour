@@ -51,7 +51,32 @@ public class Report : ISharedReport
     /// If the report has been reviewed by a moderator
     /// </summary>
     public bool Reviewed { get; set; }
-    
+
+    /// <summary>
+    /// The user who was reported (if applicable)
+    /// </summary>
+    public long? ReportedUserId { get; set; }
+
+    /// <summary>
+    /// The resolution status of the report
+    /// </summary>
+    public ReportResolution Resolution { get; set; }
+
+    /// <summary>
+    /// The staff member who resolved the report
+    /// </summary>
+    public long? ResolvedById { get; set; }
+
+    /// <summary>
+    /// When the report was resolved
+    /// </summary>
+    public DateTime? ResolvedAt { get; set; }
+
+    /// <summary>
+    /// Internal staff notes about the report
+    /// </summary>
+    public string StaffNotes { get; set; }
+
     public static void SetupDbModel(ModelBuilder builder)
     {
         builder.Entity<Report>(e =>
@@ -93,9 +118,28 @@ public class Report : ISharedReport
             
             e.Property(x => x.Reviewed)
                 .HasColumnName("reviewed");
-            
+
+            e.Property(x => x.ReportedUserId)
+                .HasColumnName("reported_user_id");
+
+            e.Property(x => x.Resolution)
+                .HasColumnName("resolution");
+
+            e.Property(x => x.ResolvedById)
+                .HasColumnName("resolved_by_id");
+
+            e.Property(x => x.ResolvedAt)
+                .HasColumnName("resolved_at")
+                .HasConversion(
+                    x => x,
+                    x => x.HasValue ? new DateTime(x.Value.Ticks, DateTimeKind.Utc) : null
+                );
+
+            e.Property(x => x.StaffNotes)
+                .HasColumnName("staff_notes");
+
             // Relationships
-            
+
             // Indices
 
             e.HasIndex(x => x.ReportingUserId);
@@ -105,6 +149,12 @@ public class Report : ISharedReport
             e.HasIndex(x => x.ChannelId);
 
             e.HasIndex(x => x.PlanetId);
+
+            e.HasIndex(x => x.ReportedUserId);
+
+            e.HasIndex(x => x.Resolution);
+
+            e.HasIndex(x => x.ResolvedById);
         });
 
     }

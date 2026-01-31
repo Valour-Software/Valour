@@ -1,0 +1,136 @@
+@inherits Modal<CreateBotComponent.ModalParams>
+@inject ValourClient Client
+@inject IJSRuntime JsRuntime
+
+@if (Client.Me is null)
+{
+    <h2>Sign in!</h2>
+    return;
+}
+
+<BasicModalLayout Title="Create Bot" Icon="robot" MaxWidth="500px">
+    <MainArea>
+        @if (!_created)
+        {
+            <p class="subtitle">Create a new bot account to automate tasks and build integrations.</p>
+
+            <div class="form-group">
+                <label>Bot Name</label>
+                <input class="form-control" @bind-value="@_name" placeholder="Enter bot name..." />
+                <span class="helper-text">Choose a unique name for your bot (2-32 characters)</span>
+            </div>
+
+            <ResultLabel Result="@_result" />
+        }
+        else
+        {
+            <div class="success-section">
+                <div class="success-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h4>Bot Created Successfully!</h4>
+                <p class="warning-text">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Save your token now! This is the only time it will be shown.
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label>Bot Token</label>
+                <div class="token-display">
+                    <input class="form-control token-input" value="@_token" readonly />
+                    <button class="v-btn" @onclick="OnCopyToken">
+                        <i class="bi bi-clipboard"></i>
+                        Copy
+                    </button>
+                </div>
+                <span class="helper-text">Use this token with the Valour SDK to authenticate your bot.</span>
+            </div>
+        }
+    </MainArea>
+    <ButtonArea>
+        <div class="basic-modal-buttons">
+            @if (!_created)
+            {
+                <button @onclick="@OnCancel" class="v-btn">Cancel</button>
+                <button @onclick="@OnClickSubmit" class="v-btn primary" disabled="@_loading">
+                    @if (_loading)
+                    {
+                        <span>Creating...</span>
+                    }
+                    else
+                    {
+                        <span>Create Bot</span>
+                    }
+                </button>
+            }
+            else
+            {
+                <button @onclick="@OnDone" class="v-btn primary">Done</button>
+            }
+        </div>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        public Action<BotResponse> OnBotCreated { get; set; }
+    }
+
+    private string _name;
+    private string _token;
+    private bool _created;
+    private bool _loading;
+    private ITaskResult _result;
+    private BotResponse _createdBot;
+
+    private async Task OnClickSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _result = new TaskResult(false, "Please enter a bot name.");
+            StateHasChanged();
+            return;
+        }
+
+        if (_name.Length < 2 || _name.Length > 32)
+        {
+            _result = new TaskResult(false, "Bot name must be between 2 and 32 characters.");
+            StateHasChanged();
+            return;
+        }
+
+        _loading = true;
+        StateHasChanged();
+
+        var result = await Client.BotService.CreateBotAsync(_name);
+
+        _loading = false;
+
+        if (!result.Success)
+        {
+            _result = new TaskResult(false, result.Message);
+            StateHasChanged();
+            return;
+        }
+
+        _createdBot = result.Data;
+        _token = result.Data.Token;
+        _created = true;
+
+        Data.OnBotCreated?.Invoke(_createdBot);
+
+        StateHasChanged();
+    }
+
+    private async Task OnCopyToken()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _token);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Bot token copied to clipboard", ToastProgressState.Success));
+    }
+
+    private void OnCancel() => Close();
+
+    private void OnDone() => Close();
+}

@@ -104,8 +104,7 @@ public class AuthToken : ISharedAuthToken
             e.HasIndex(x => x.Id)
                 .IsUnique();
 
-            e.HasIndex(x => x.UserId)
-                .IsUnique();
+            e.HasIndex(x => x.UserId);
 
             e.HasIndex(x => x.Scope);
         });
