@@ -6,7 +6,7 @@ public enum MessageAttachmentType : long
     Video,
     Audio,
     File,
-    
+
     // Future embedded attachments for Valour functions
     ValourMessage,
     ValourInvite,
@@ -17,12 +17,26 @@ public enum MessageAttachmentType : long
     ValourEcoTrade,
     ValourReceipt,
     ValourBot,
-    
+
+    // Generic link preview using Open Graph
     SitePreview,
-    
+
+    // Video platforms
     YouTube,
     Vimeo,
     Twitch,
+    TikTok,
+
+    // Social platforms
     Twitter,
     Reddit,
+    Instagram,
+    Bluesky,
+
+    // Music platforms
+    Spotify,
+    SoundCloud,
+
+    // Developer platforms
+    GitHub,
 }

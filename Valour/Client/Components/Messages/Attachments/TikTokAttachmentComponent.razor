@@ -1,0 +1,24 @@
+@inherits AttachmentComponent
+@inject IJSRuntime JsRuntime
+
+<div class="tiktok-embed" id="@_id" style="max-width: @(Attachment.Width)px;">
+</div>
+
+<style>
+    .tiktok-embed {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+</style>
+
+@code {
+    private readonly string _id = "tiktok-embed-" + Guid.NewGuid().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(Attachment.Html))
+        {
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Html, "https://www.tiktok.com/embed.js");
+        }
+    }
+}

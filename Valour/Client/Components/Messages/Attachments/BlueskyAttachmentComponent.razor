@@ -1,0 +1,25 @@
+@inherits AttachmentComponent
+
+<div class="bluesky-container">
+    <iframe
+        class="bluesky-embed"
+        src="@Attachment.Location"
+        width="@(Attachment.Width > 0 ? Attachment.Width : 400)"
+        height="@(Attachment.Height > 0 ? Attachment.Height : 300)"
+        frameborder="0"
+        scrolling="no">
+    </iframe>
+</div>
+
+<style>
+    .bluesky-container {
+        max-width: 400px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .bluesky-embed {
+        border: none;
+        border-radius: 8px;
+    }
+</style>

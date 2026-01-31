@@ -1,4 +1,4 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Valour.Server.Cdn.Extensions
@@ -26,13 +26,13 @@ namespace Valour.Server.Cdn.Extensions
             {
                 Schema = new OpenApiSchema()
                 {
-                    Type = "object",
+                    Type = JsonSchemaType.Object,
                     Properties =
                 {
                     ["uploadedFile"] = new OpenApiSchema()
                     {
                         Description = "Upload File",
-                        Type = "file",
+                        Type = JsonSchemaType.Object,
                         Format = "formData"
                     }
                 },

@@ -1,0 +1,44 @@
+@inherits AttachmentComponent
+@inject IJSRuntime JsRuntime
+
+<div class="github-gist-embed" id="@_id">
+</div>
+
+<style>
+    .github-gist-embed {
+        border-radius: 8px;
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .github-gist-embed .gist {
+        background: var(--v-bg-secondary);
+    }
+
+    .github-gist-embed .gist .gist-file {
+        border: 1px solid var(--v-bg-tertiary);
+        border-radius: 8px;
+    }
+
+    .github-gist-embed .gist .gist-data {
+        background: var(--v-bg-secondary);
+        border-bottom: 1px solid var(--v-bg-tertiary);
+    }
+
+    .github-gist-embed .gist .gist-meta {
+        background: var(--v-bg-tertiary);
+        color: var(--v-gray-light);
+    }
+</style>
+
+@code {
+    private readonly string _id = "github-gist-" + Guid.NewGuid().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(Attachment.Html))
+        {
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Html, null);
+        }
+    }
+}

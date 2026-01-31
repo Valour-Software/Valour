@@ -1,0 +1,30 @@
+@inherits AttachmentComponent
+@inject IJSRuntime JsRuntime
+
+<div class="soundcloud-embed" id="@_id">
+</div>
+
+<style>
+    .soundcloud-embed {
+        border-radius: 8px;
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .soundcloud-embed iframe {
+        border: none;
+        border-radius: 8px;
+    }
+</style>
+
+@code {
+    private readonly string _id = "soundcloud-embed-" + Guid.NewGuid().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(Attachment.Html))
+        {
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Html, null);
+        }
+    }
+}

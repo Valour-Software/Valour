@@ -26,8 +26,16 @@ public class MessageAttachment : ISharedMessageAttachment
     /// True if this was an inline attachment - aka, it was generated using urls within the message
     /// </summary>
     public bool Inline { get; set; } = false;
-    
+
+    /// <summary>
+    /// HTML content for oEmbed-based attachments (Twitter, Reddit, etc.)
+    /// </summary>
     public string Html { get; set; }
+
+    /// <summary>
+    /// Open Graph data for site preview attachments
+    /// </summary>
+    public OpenGraphData OpenGraph { get; set; }
 
     public MessageAttachment(MessageAttachmentType type)
     {

@@ -274,6 +274,36 @@ async function injectReddit(id, data) {
     container.appendChild(redditScript);
 }
 
+// Generic embed injection function for oEmbed-based embeds
+// Injects HTML content and optionally loads an external script
+async function injectEmbed(id, html, scriptSrc) {
+    const container = document.getElementById(id);
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = html;
+
+    // If a script source is provided, load it
+    if (scriptSrc) {
+        // Check if script is already loaded
+        const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
+        if (!existingScript) {
+            const script = document.createElement('script');
+            script.src = scriptSrc;
+            script.async = true;
+            script.charset = "utf-8";
+            container.appendChild(script);
+        } else {
+            // Script already exists, try to re-process embeds if possible
+            // TikTok uses window.tiktokEmbed?.lib?.render()
+            if (scriptSrc.includes('tiktok') && window.tiktokEmbed?.lib?.render) {
+                window.tiktokEmbed.lib.render();
+            }
+        }
+    }
+}
+
 function playLottie(element) {
     element.play();
 }

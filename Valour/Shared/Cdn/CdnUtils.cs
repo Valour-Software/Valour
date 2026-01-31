@@ -30,13 +30,29 @@ namespace Valour.Shared.Cdn
         /// </summary>
         public static readonly Dictionary<string, MessageAttachmentType> VirtualAttachmentMap = new(StringComparer.OrdinalIgnoreCase)
         {
+            // Video platforms
             { "youtube.com", MessageAttachmentType.YouTube },
             { "youtu.be", MessageAttachmentType.YouTube },
+            { "music.youtube.com", MessageAttachmentType.YouTube },
             { "vimeo.com", MessageAttachmentType.Vimeo },
             { "twitch.tv", MessageAttachmentType.Twitch },
+            { "tiktok.com", MessageAttachmentType.TikTok },
+
+            // Social platforms
             { "twitter.com", MessageAttachmentType.Twitter },
             { "x.com", MessageAttachmentType.Twitter },
             { "reddit.com", MessageAttachmentType.Reddit },
+            { "instagram.com", MessageAttachmentType.Instagram },
+            { "bsky.app", MessageAttachmentType.Bluesky },
+
+            // Music platforms
+            { "open.spotify.com", MessageAttachmentType.Spotify },
+            { "spotify.com", MessageAttachmentType.Spotify },
+            { "soundcloud.com", MessageAttachmentType.SoundCloud },
+
+            // Developer platforms
+            { "github.com", MessageAttachmentType.GitHub },
+            { "gist.github.com", MessageAttachmentType.GitHub },
         };
 
         /// <summary>

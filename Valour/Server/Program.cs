@@ -3,7 +3,6 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.OpenApi.Models;
 using System.Text.Json;
 using Amazon;
 using CloudFlare.Client;
@@ -19,6 +18,7 @@ using Valour.Shared.Models;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Config;
 using Microsoft.AspNetCore.Components;
+using Microsoft.OpenApi;
 using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
@@ -93,7 +93,7 @@ public partial class Program
         
         // s3 (r2) setup
         
-        AWSConfigsS3.UseSignatureVersion4 = true;
+        //AWSConfigsS3.UseSignatureVersion4 = true;
 
         if (CdnConfig.Current is not null)
         {

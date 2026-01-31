@@ -480,12 +480,15 @@ public class UserApi
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/remove")]
     public static async Task<IResult> RemoveMultiFactorRouteAsync(
         [FromBody] RemoveMfaRequest request,
+        HttpContext ctx,
         UserService userService,
+        TokenService tokenService,
         MultiAuthService multiAuthService)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-        
-        var currentCredential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
+        var currentToken = await tokenService.GetCurrentTokenAsync();
+
+        var currentCredential = await userService.GetCredentialAsync(userId);
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.Password);
         if (!validResult.Success)
             return ValourResult.Forbid(validResult.Message);
@@ -494,7 +497,13 @@ public class UserApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Ok();
+        // Rotate session token after MFA removal for security
+        var rotateResult = await userService.RotateSessionTokenAsync(ctx, userId, currentToken.Id);
+        if (!rotateResult.Success)
+            return ValourResult.Problem("MFA removed but failed to rotate session: " + rotateResult.Message);
+
+        // Return the new token so the client can update their auth
+        return Results.Json(new { newToken = rotateResult.Data.Id, message = "MFA removed. All other sessions have been logged out." });
     }
     
     [RateLimit("mfa")]
@@ -533,13 +542,18 @@ public class UserApi
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> ChangePasswordRouteAsync(
         [FromBody] ChangePasswordRequest request,
-        UserService userService)
+        HttpContext ctx,
+        UserService userService,
+        TokenService tokenService)
     {
         if (request is null)
             return ValourResult.BadRequest("Include request in body.");
-        
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var currentToken = await tokenService.GetCurrentTokenAsync();
+
         // Ensure current password is valid
-        var currentCredential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
+        var currentCredential = await userService.GetCredentialAsync(userId);
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.OldPassword);
         if (!validResult.Success)
             return ValourResult.Forbid(validResult.Message);
@@ -548,12 +562,17 @@ public class UserApi
         if (!passValid.Success)
             return ValourResult.BadRequest(passValid.Message);
 
-        var userId = await userService.GetCurrentUserIdAsync();
         var result = await userService.ChangePasswordAsync(userId, request.NewPassword);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.NoContent();
+        // Rotate session token after password change for security
+        var rotateResult = await userService.RotateSessionTokenAsync(ctx, userId, currentToken.Id);
+        if (!rotateResult.Success)
+            return ValourResult.Problem("Password changed but failed to rotate session: " + rotateResult.Message);
+
+        // Return the new token so the client can update their auth
+        return Results.Json(new { newToken = rotateResult.Data.Id, message = "Password changed. All other sessions have been logged out." });
     }
     
     [ValourRoute(HttpVerbs.Post, "api/users/me/username")]

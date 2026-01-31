@@ -556,6 +556,47 @@ public class UserService
         }
     }
 
+    /// <summary>
+    /// Rotates the current session token after a privilege change (password change, MFA change, etc.)
+    /// Creates a new token and revokes all other tokens for security.
+    /// </summary>
+    /// <param name="ctx">The HTTP context for generating the new token</param>
+    /// <param name="userId">The user ID</param>
+    /// <param name="currentTokenId">The current token ID to revoke</param>
+    /// <returns>The new auth token</returns>
+    public async Task<TaskResult<AuthToken>> RotateSessionTokenAsync(HttpContext ctx, long userId, string currentTokenId)
+    {
+        try
+        {
+            // Create a new token first
+            var newTokenResult = await GetTokenAfterLoginAsync(ctx, userId);
+            if (!newTokenResult.Success)
+                return newTokenResult;
+
+            // Revoke all other tokens including the old current token
+            var tokens = await _db.AuthTokens
+                .Where(x => x.UserId == userId && x.Id != newTokenResult.Data.Id)
+                .ToListAsync();
+
+            foreach (var token in tokens)
+            {
+                _tokenService.RemoveFromQuickCache(token.Id);
+            }
+
+            _db.AuthTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Session token rotated for user {UserId}. Revoked {Count} old tokens.", userId, tokens.Count);
+
+            return newTokenResult;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to rotate session token for user {UserId}", userId);
+            return new TaskResult<AuthToken>(false, e.Message);
+        }
+    }
+
 
     /// <summary>
     /// Returns the user for the current context

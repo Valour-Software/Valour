@@ -1,0 +1,25 @@
+@inherits AttachmentComponent
+
+<div class="spotify-container">
+    <iframe
+        class="spotify-embed"
+        src="@Attachment.Location"
+        width="@(Attachment.Width > 0 ? Attachment.Width : 300)"
+        height="@(Attachment.Height > 0 ? Attachment.Height : 80)"
+        frameborder="0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy">
+    </iframe>
+</div>
+
+<style>
+    .spotify-container {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .spotify-embed {
+        border: none;
+        border-radius: 12px;
+    }
+</style>
