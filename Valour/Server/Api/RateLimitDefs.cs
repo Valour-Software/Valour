@@ -9,6 +9,7 @@ public static class RateLimitDefs
     {
         services.AddRateLimiter(_ =>
         {
+            // Login attempts - strict limit
             _.AddFixedWindowLimiter("login", options =>
             {
                 options.PermitLimit = 5;
@@ -16,7 +17,61 @@ public static class RateLimitDefs
                 options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                 options.QueueLimit = 2;
             });
-            
+
+            // Registration - prevent spam account creation
+            _.AddFixedWindowLimiter("register", options =>
+            {
+                options.PermitLimit = 3;
+                options.Window = TimeSpan.FromMinutes(10);
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.QueueLimit = 1;
+            });
+
+            // Password reset - prevent email spam and enumeration attacks
+            _.AddFixedWindowLimiter("password-reset", options =>
+            {
+                options.PermitLimit = 3;
+                options.Window = TimeSpan.FromMinutes(15);
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.QueueLimit = 1;
+            });
+
+            // Email verification - prevent brute force code guessing
+            _.AddFixedWindowLimiter("email-verify", options =>
+            {
+                options.PermitLimit = 10;
+                options.Window = TimeSpan.FromMinutes(5);
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.QueueLimit = 2;
+            });
+
+            // MFA operations - prevent brute force code guessing
+            _.AddFixedWindowLimiter("mfa", options =>
+            {
+                options.PermitLimit = 5;
+                options.Window = TimeSpan.FromMinutes(5);
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.QueueLimit = 1;
+            });
+
+            // Password change - prevent brute force
+            _.AddFixedWindowLimiter("password-change", options =>
+            {
+                options.PermitLimit = 3;
+                options.Window = TimeSpan.FromMinutes(10);
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.QueueLimit = 1;
+            });
+
+            // OAuth token exchange - prevent brute force
+            _.AddFixedWindowLimiter("oauth", options =>
+            {
+                options.PermitLimit = 10;
+                options.Window = TimeSpan.FromMinutes(5);
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.QueueLimit = 2;
+            });
+
             _.OnRejected = (OnRejectedContext ctx, CancellationToken token) =>
             {
                 ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;

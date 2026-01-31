@@ -8,6 +8,20 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Server.API;
 
+/// <summary>
+/// Cached OAuth authorization code with expiration tracking
+/// </summary>
+public class CachedOAuthCode
+{
+    public AuthorizeModel Model { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// OAuth codes expire after 10 minutes (per RFC 6749 recommendation)
+    /// </summary>
+    public bool IsExpired => DateTime.UtcNow - CreatedAt > TimeSpan.FromMinutes(10);
+}
+
 public class OauthAPI : BaseAPI
 {
     /// <summary>
@@ -23,11 +37,49 @@ public class OauthAPI : BaseAPI
         app.MapGet("api/users/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
-        app.MapGet("api/oauth/token", Token);
+        app.MapGet("api/oauth/token", Token).RequireRateLimiting("oauth");
+
+        // Start background cleanup task for expired OAuth codes
+        _ = Task.Run(CleanupExpiredCodesAsync);
     }
 
-    // TODO: Clean this cache based on age of entry
-    public static ConcurrentDictionary<string, AuthorizeModel> OauthReqCache = new();
+    /// <summary>
+    /// Cache for OAuth authorization codes with expiration tracking
+    /// </summary>
+    public static ConcurrentDictionary<string, CachedOAuthCode> OauthReqCache = new();
+
+    /// <summary>
+    /// Background task to periodically clean up expired OAuth codes
+    /// </summary>
+    private static async Task CleanupExpiredCodesAsync()
+    {
+        while (true)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(5));
+
+                var expiredCodes = OauthReqCache
+                    .Where(kvp => kvp.Value.IsExpired)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var code in expiredCodes)
+                {
+                    OauthReqCache.TryRemove(code, out _);
+                }
+
+                if (expiredCodes.Count > 0)
+                {
+                    Console.WriteLine($"Cleaned up {expiredCodes.Count} expired OAuth codes");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cleaning up OAuth codes: {ex.Message}");
+            }
+        }
+    }
 
     public static async Task<object> Authorize(
         ValourDb db, HttpContext context,
@@ -47,7 +99,14 @@ public class OauthAPI : BaseAPI
             return ValourResult.Problem("Client redirect url does not match given url");
 
         model.Code = Guid.NewGuid().ToString();
-        OauthReqCache.TryAdd(model.Code, model);
+
+        // Store code with creation timestamp for expiration tracking
+        var cachedCode = new CachedOAuthCode
+        {
+            Model = model,
+            CreatedAt = DateTime.UtcNow
+        };
+        OauthReqCache.TryAdd(model.Code, cachedCode);
 
         context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
@@ -65,16 +124,29 @@ public class OauthAPI : BaseAPI
         string state
     )
     {
-        OauthReqCache.TryGetValue(code, out var model);
-        if (model is null ||
-            model.ClientId != client_id ||
+        OauthReqCache.TryGetValue(code, out var cached);
+        if (cached is null)
+            return ValourResult.Forbid("Invalid or expired authorization code.");
+
+        // Check if the code has expired (10 minute lifetime per RFC 6749)
+        if (cached.IsExpired)
+        {
+            OauthReqCache.TryRemove(code, out _);
+            return ValourResult.Forbid("Authorization code has expired. Please re-authorize.");
+        }
+
+        var model = cached.Model;
+        if (model.ClientId != client_id ||
             model.RedirectUri != redirect_uri ||
-            model.State !=  state)
+            model.State != state)
             return ValourResult.Forbid("Parameters are invalid.");
 
         var app = await db.OauthApps.FindAsync(client_id);
         if (app.Secret != client_secret)
             return ValourResult.Forbid("Parameters are invalid.");
+
+        // Remove the code from cache - codes are single-use per RFC 6749
+        OauthReqCache.TryRemove(code, out _);
 
         switch (grant_type)
         {

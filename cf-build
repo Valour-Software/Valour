@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# Install .NET 10
+# Install .NET 10 (preview)
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 10.0 --quality daily -InstallDir ./dotnet
+./dotnet-install.sh --channel 10.0 --quality preview -InstallDir ./dotnet
 ./dotnet/dotnet --version
 
 # Build Valour
