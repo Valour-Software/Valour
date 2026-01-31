@@ -51,6 +51,27 @@ build/
 bld/
 [Bb]in/
 [Oo]bj/
+# Catch malformed paths with backslashes (Windows/macOS sync issues)
+**/bin\\*
+**/obj\\*
+**/[Bb]in\\[Dd]ebug*
+**/[Bb]in\\[Rr]elease*
+**/[Oo]bj\\*
+# Additional .NET build artifacts
+*.dll
+*.exe
+*.pdb
+!**/wwwroot/**/*.dll
+artifacts/
+publish/
+TestResults/
+BenchmarkDotNet.Artifacts/
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+# Build host artifacts
+**/BuildHost-*/**
 
 # Visual Studo 2015 cache/options directory
 .vs/
