@@ -6,7 +6,7 @@ chmod +x dotnet-install.sh
 ./dotnet-install.sh --channel 10.0 -InstallDir ./dotnet
 ./dotnet/dotnet --version
 
-# Build Valour
-./dotnet/dotnet workload restore
+# Build Valour Client.Blazor for Cloudflare Pages
+./dotnet/dotnet workload restore Valour/Client.Blazor/Valour.Client.Blazor.csproj
 ./dotnet/dotnet workload install wasm-tools
-./dotnet/dotnet publish -c Release -o output
+./dotnet/dotnet publish Valour/Client.Blazor/Valour.Client.Blazor.csproj -c Release -o output
