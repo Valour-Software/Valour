@@ -28,8 +28,13 @@ public readonly struct Change<T>
 /// Represents the precomputed differences for a model update.
 /// The dictionary entries are keyed on a property name (string)
 /// and store a Change value boxed as an object.
+///
+/// Note: This class uses pooled dictionaries for efficiency. The dictionary
+/// is returned to the pool when Dispose() is called or when the finalizer runs.
+/// Since event handlers may be async and fire-and-forget, we rely on the finalizer
+/// as backup for handlers that don't explicitly dispose.
 /// </summary>
-public class ModelChange<TModel>
+public class ModelChange<TModel> : IDisposable
 {
     public static readonly ModelChange<TModel> Empty = 
         new ModelChange<TModel>(null);

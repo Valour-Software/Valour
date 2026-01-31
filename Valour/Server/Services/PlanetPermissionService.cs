@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Collections.Concurrent;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Server.Utilities;
 using Valour.Shared.Authorization;
@@ -22,10 +21,6 @@ public class PlanetPermissionService
 {
     public static readonly ObjectPool<List<PlanetRole>> RoleListPool =
         new DefaultObjectPool<List<PlanetRole>>(new ListPooledObjectPolicy<PlanetRole>());
-
-    // Inheritance maps for channels.
-    private static readonly ConcurrentDictionary<long, long?> _inheritanceMap = new();
-    private static readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _inheritanceLists = new();
 
     private readonly ValourDb _db;
     private readonly HostedPlanetService _hostedPlanetService;
@@ -61,30 +56,37 @@ public class PlanetPermissionService
     public async Task<PlanetRole[][]> GetPlanetRoleCombosAsync(long planetId)
     {
         var combos = await GetAllUniqueRoleCombinationsForPlanet(planetId);
-        
+
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
 
         var roleArrs = new PlanetRole[combos.Length][];
-        
-        for (int i = 0; i < combos.Length; i++)
-        {
-            var combo = combos[i];
-            var roleIndices = combo.GetRoleIndices();
-            var roles = new PlanetRole[roleIndices.Length];
-            
-            for (int j = 0; j < roleIndices.Length; j++)
-            {
-                var role = hostedPlanet.GetRoleByIndex(roleIndices[j]);
-                if (role is null)
-                {
-                    _logger.LogWarning("Role not found for role index {RoleIndex} in planet {PlanetId}", roleIndices[j], planetId);
-                    continue;
-                }
-                
-                roles[j] = role;
-            }
+        var roleList = RoleListPool.Get();
 
-            roleArrs[i] = roles;
+        try
+        {
+            for (int i = 0; i < combos.Length; i++)
+            {
+                var combo = combos[i];
+                roleList.Clear();
+
+                foreach (var roleIndex in combo.EnumerateRoleIndices())
+                {
+                    var role = hostedPlanet.GetRoleByIndex(roleIndex);
+                    if (role is null)
+                    {
+                        _logger.LogWarning("Role not found for role index {RoleIndex} in planet {PlanetId}", roleIndex, planetId);
+                        continue;
+                    }
+
+                    roleList.Add(role);
+                }
+
+                roleArrs[i] = roleList.ToArray();
+            }
+        }
+        finally
+        {
+            RoleListPool.Return(roleList);
         }
 
         return roleArrs;
@@ -117,7 +119,7 @@ public class PlanetPermissionService
     }
 
     /// <summary>
-    /// When a channel’s inheritance settings change, clear its caches.
+    /// When a channel's inheritance settings change, clear its caches.
     /// </summary>
     public async Task HandleChannelInheritanceChange(Channel channel)
     {
@@ -125,13 +127,17 @@ public class PlanetPermissionService
             return;
 
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(channel.PlanetId.Value);
-        if (_inheritanceLists.TryGetValue(channel.Id, out var inheritorsList))
+
+        // Clear caches for any channels that inherit from this one
+        var inheritorsList = hostedPlanet.GetInheritors(channel.Id);
+        if (inheritorsList is not null)
         {
             foreach (var inheritorId in inheritorsList)
                 hostedPlanet.PermissionCache.ClearCacheForChannel(inheritorId);
         }
 
         hostedPlanet.PermissionCache.ClearCacheForChannel(channel.Id);
+        hostedPlanet.ClearInheritanceCache(channel.Id);
     }
 
     /// <summary>
@@ -251,9 +257,6 @@ public class PlanetPermissionService
 
             roles.Add(role);
         }
-        
-        // Ensure roles are sorted by position descending (weakest to strongest)
-        roles.Sort(ISortable.ComparerDescending);
 
         if (isAdmin)
         {
@@ -262,6 +265,7 @@ public class PlanetPermissionService
             return adminResult;
         }
 
+        // Sort roles by position ascending (lower position = higher authority = first)
         roles.Sort(ISortable.Comparer);
         var access = hostedPlanet.PermissionCache.GetEmptyAccessList();
         foreach (var channel in allChannels.List)
@@ -346,7 +350,8 @@ public class PlanetPermissionService
         var initialChannelId = channel.Id;
         if (channel.InheritsPerms)
         {
-            if (_inheritanceMap.TryGetValue(channel.Id, out var targetId))
+            // Check cached inheritance target
+            if (hosted.TryGetInheritanceTarget(channel.Id, out var targetId))
             {
                 if (targetId is not null)
                 {
@@ -357,6 +362,7 @@ public class PlanetPermissionService
             }
             else
             {
+                // Walk up the parent chain to find the non-inheriting ancestor
                 while (channel.InheritsPerms && channel.ParentId is not null)
                 {
                     var parent = hosted.GetChannel(channel.ParentId.Value);
@@ -365,16 +371,8 @@ public class PlanetPermissionService
                     channel = parent;
                 }
 
-                _inheritanceMap[initialChannelId] = channel.Id;
-                if (!_inheritanceLists.TryGetValue(channel.Id, out var inheritorsList))
-                {
-                    inheritorsList = new ConcurrentHashSet<long>() { initialChannelId };
-                    _inheritanceLists[channel.Id] = inheritorsList;
-                }
-                else
-                {
-                    inheritorsList.Add(initialChannelId);
-                }
+                // Cache the inheritance target
+                hosted.SetInheritanceTarget(initialChannelId, channel.Id);
             }
         }
 
@@ -384,17 +382,18 @@ public class PlanetPermissionService
         if (cachedPerms is not null)
             return cachedPerms.Value;
 
-        var roleIndices = member.RoleMembership.GetRoleIndices();
         var roles = RoleListPool.Get();
 
-        for (int i = 0; i < roleIndices.Length; i++)
+        foreach (var roleIndex in member.RoleMembership.EnumerateRoleIndices())
         {
-            var roleIndex = roleIndices[i];
             var role = hosted.GetRoleByIndex(roleIndex);
             if (role is null)
+            {
                 _logger.LogWarning("Role not found for role index {RoleIndex} in planet {PlanetId}", roleIndex, member.PlanetId);
-            
-            roles.Add(role!);
+                continue;
+            }
+
+            roles.Add(role);
         }
         
         // Roles need to be ordered by position descending (weakest to strongest)
@@ -424,13 +423,19 @@ public class PlanetPermissionService
         if (cachedPerms != null)
             return cachedPerms.Value;
 
+        if (roles.Count == 0)
+        {
+            permCache.Set(roleMembership, channel.Id, 0);
+            return 0;
+        }
+
         if (roles.Any(x => x.IsAdmin))
         {
             permCache.Set(roleMembership, channel.Id, Permission.FULL_CONTROL);
             return Permission.FULL_CONTROL;
         }
 
-        var targetRoleIds = roles.Select(r => r.Id).ToList();
+        var targetRoleIds = roles.Select(r => r.Id).ToArray();
         var permNodes = await _db.PermissionsNodes.AsNoTracking()
             .Where(x =>
                 x.TargetType == targetType &&
@@ -439,13 +444,18 @@ public class PlanetPermissionService
             .OrderByDescending(x => x.Role.Position)
             .ToListAsync();
 
-        long permissions = targetType switch
+        // Combine base permissions from ALL roles (OR them together)
+        long permissions = 0;
+        foreach (var role in roles)
         {
-            ChannelTypeEnum.PlanetChat => roles.Last().ChatPermissions,
-            ChannelTypeEnum.PlanetCategory => roles.Last().CategoryPermissions,
-            ChannelTypeEnum.PlanetVoice => roles.Last().VoicePermissions,
-            _ => throw new Exception("Invalid channel type!")
-        };
+            permissions |= targetType switch
+            {
+                ChannelTypeEnum.PlanetChat => role.ChatPermissions,
+                ChannelTypeEnum.PlanetCategory => role.CategoryPermissions,
+                ChannelTypeEnum.PlanetVoice => role.VoicePermissions,
+                _ => 0
+            };
+        }
 
         foreach (var node in permNodes)
         {

@@ -1,7 +1,7 @@
 # ChatGPT made the first version of this, hopefully it works!
 
-# Start with the official .NET Core 9.0 SDK image
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env
+# Start with the official .NET 10.0 SDK image
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 
 # Install Node.js (replace with the latest LTS version)
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
@@ -36,7 +36,7 @@ RUN dotnet restore
 RUN dotnet publish -c Release -o out
 
 # Start with a smaller runtime image for the final image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
 # Set the working directory to the app's output directory
 WORKDIR /app

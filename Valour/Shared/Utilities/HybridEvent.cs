@@ -14,7 +14,10 @@ public class HybridEvent<TEventData> : IDisposable
     private List<Func<TEventData, Task>> _asyncHandlers;
 
     // Init is false until the handler lists are initialized
-    private bool _init;
+    private volatile bool _init;
+
+    // Lock object for initialization (separate from handler access locks)
+    private readonly object _initLock = new();
 
     // Lock object for synchronous and asynchronous handler access
     private readonly object _syncLock = new();
@@ -22,30 +25,26 @@ public class HybridEvent<TEventData> : IDisposable
 
     // Object pool for list reuse
     // This is static because it is shared across all instances of HybridEvent
-    private static readonly ObjectPool<List<Action<TEventData>>> SyncListPool = 
+    private static readonly ObjectPool<List<Action<TEventData>>> SyncListPool =
         new DefaultObjectPool<List<Action<TEventData>>>(new ListPolicy<Action<TEventData>>());
     private static readonly ObjectPool<List<Func<TEventData, Task>>> AsyncListPool =
         new DefaultObjectPool<List<Func<TEventData, Task>>>(new ListPolicy<Func<TEventData, Task>>());
-    
+
     // Object pool for task list
     private static readonly ObjectPool<List<Task>> TaskListPool =
         new DefaultObjectPool<List<Task>>(new ListPolicy<Task>());
 
     private void InitIfNeeded()
     {
-        if (!_init)
+        if (_init) return;
+
+        // Double-checked locking pattern
+        lock (_initLock)
         {
-            // set up handler lists
-            lock (_syncLock)
-            {
-                _syncHandlers = SyncListPool.Get();
-            }
-            
-            lock (_asyncLock)
-            {
-                _asyncHandlers = AsyncListPool.Get();
-            }
-            
+            if (_init) return;
+
+            _syncHandlers = SyncListPool.Get();
+            _asyncHandlers = AsyncListPool.Get();
             _init = true;
         }
     }
@@ -75,18 +74,22 @@ public class HybridEvent<TEventData> : IDisposable
     // Remove a synchronous handler
     public void RemoveHandler(Action<TEventData> handler)
     {
+        if (!_init) return;
+
         lock (_syncLock)
         {
-            _syncHandlers.Remove(handler);
+            _syncHandlers?.Remove(handler);
         }
     }
 
     // Remove an asynchronous handler
     public void RemoveHandler(Func<TEventData, Task> handler)
     {
+        if (!_init) return;
+
         lock (_asyncLock)
         {
-            _asyncHandlers.Remove(handler);
+            _asyncHandlers?.Remove(handler);
         }
     }
 
@@ -200,12 +203,33 @@ public class HybridEvent<TEventData> : IDisposable
         handler.RemoveHandler(action);
         return handler;
     }
-    
+
     // Cleanup everything
     public void Dispose()
     {
-        _syncHandlers.Clear();
-        _asyncHandlers.Clear();
+        if (!_init) return;
+
+        lock (_syncLock)
+        {
+            if (_syncHandlers is not null)
+            {
+                _syncHandlers.Clear();
+                SyncListPool.Return(_syncHandlers);
+                _syncHandlers = null;
+            }
+        }
+
+        lock (_asyncLock)
+        {
+            if (_asyncHandlers is not null)
+            {
+                _asyncHandlers.Clear();
+                AsyncListPool.Return(_asyncHandlers);
+                _asyncHandlers = null;
+            }
+        }
+
+        _init = false;
     }
 
     // Custom object pooling policy for List<T>
@@ -232,7 +256,10 @@ public class HybridEvent : IDisposable
     private List<Func<Task>> _asyncHandlers;
 
     // Init is false until the handler lists are initialized
-    private bool _init;
+    private volatile bool _init;
+
+    // Lock object for initialization (separate from handler access locks)
+    private readonly object _initLock = new();
 
     // Lock object for synchronous and asynchronous handler access
     private readonly object _syncLock = new();
@@ -240,39 +267,35 @@ public class HybridEvent : IDisposable
 
     // Object pool for list reuse
     // This is static because it is shared across all instances of HybridEvent
-    private static readonly ObjectPool<List<Action>> SyncListPool = 
+    private static readonly ObjectPool<List<Action>> SyncListPool =
         new DefaultObjectPool<List<Action>>(new ListPolicy<Action>());
     private static readonly ObjectPool<List<Func<Task>>> AsyncListPool =
         new DefaultObjectPool<List<Func<Task>>>(new ListPolicy<Func<Task>>());
-    
+
     // Object pool for task list
     private static readonly ObjectPool<List<Task>> TaskListPool =
         new DefaultObjectPool<List<Task>>(new ListPolicy<Task>());
 
     private void InitIfNeeded()
     {
-        if (!_init)
+        if (_init) return;
+
+        // Double-checked locking pattern
+        lock (_initLock)
         {
-            // set up handler lists
-            lock (_syncLock)
-            {
-                _syncHandlers = SyncListPool.Get();
-            }
-            
-            lock (_asyncLock)
-            {
-                _asyncHandlers = AsyncListPool.Get();
-            }
-            
+            if (_init) return;
+
+            _syncHandlers = SyncListPool.Get();
+            _asyncHandlers = AsyncListPool.Get();
             _init = true;
         }
     }
-    
+
     // Add a synchronous handler
     public void AddHandler(Action handler)
     {
         InitIfNeeded();
-        
+
         lock (_syncLock)
         {
             _syncHandlers.Add(handler);
@@ -283,7 +306,7 @@ public class HybridEvent : IDisposable
     public void AddHandler(Func<Task> handler)
     {
         InitIfNeeded();
-        
+
         lock (_asyncLock)
         {
             _asyncHandlers.Add(handler);
@@ -293,18 +316,22 @@ public class HybridEvent : IDisposable
     // Remove a synchronous handler
     public void RemoveHandler(Action handler)
     {
+        if (!_init) return;
+
         lock (_syncLock)
         {
-            _syncHandlers.Remove(handler);
+            _syncHandlers?.Remove(handler);
         }
     }
 
     // Remove an asynchronous handler
     public void RemoveHandler(Func<Task> handler)
     {
+        if (!_init) return;
+
         lock (_asyncLock)
         {
-            _asyncHandlers.Remove(handler);
+            _asyncHandlers?.Remove(handler);
         }
     }
 
@@ -414,16 +441,37 @@ public class HybridEvent : IDisposable
     {
         if (handler is null)
             return null;
-        
+
         handler.RemoveHandler(action);
         return handler;
     }
-    
+
     // Cleanup everything
     public void Dispose()
     {
-        _syncHandlers.Clear();
-        _asyncHandlers.Clear();
+        if (!_init) return;
+
+        lock (_syncLock)
+        {
+            if (_syncHandlers is not null)
+            {
+                _syncHandlers.Clear();
+                SyncListPool.Return(_syncHandlers);
+                _syncHandlers = null;
+            }
+        }
+
+        lock (_asyncLock)
+        {
+            if (_asyncHandlers is not null)
+            {
+                _asyncHandlers.Clear();
+                AsyncListPool.Return(_asyncHandlers);
+                _asyncHandlers = null;
+            }
+        }
+
+        _init = false;
     }
 
     // Custom object pooling policy for List<T>

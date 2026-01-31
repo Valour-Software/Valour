@@ -434,33 +434,45 @@ public class PlanetMemberService
     public async Task<TaskResult> AddRoleAsync(long planetId, long memberId, long roleId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-        
-        var member = await _db.PlanetMembers.FindAsync(memberId);
-        if (member is null)
-            return new TaskResult(false, "Member not found.");
 
         var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)
             return new TaskResult(false, "Role not found.");
-        
-        if (member.PlanetId != role.PlanetId)
-            return new TaskResult(false, "Role and member are not in the same planet.");
 
-        if (await HasRoleAsync(member, roleId))
-            return new TaskResult(false, "Member already has this role.");
+        // Use atomic database update to prevent race conditions
+        var roleIndex = role.FlagBitIndex;
+        int updated;
 
         try
         {
-            // Add role to member
-            member.RoleMembership = member.RoleMembership.AddRole(role);
-            await _db.SaveChangesAsync();
-        } 
+            // Atomic bit set operation - sets the role bit without read-modify-write race
+            var query = _db.PlanetMembers.Where(x => x.Id == memberId && x.PlanetId == planetId);
+
+            updated = roleIndex switch
+            {
+                < 64 => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf0, p => p.RoleMembership.Rf0 | (1L << roleIndex))),
+                < 128 => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf1, p => p.RoleMembership.Rf1 | (1L << (roleIndex - 64)))),
+                < 192 => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf2, p => p.RoleMembership.Rf2 | (1L << (roleIndex - 128)))),
+                _ => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf3, p => p.RoleMembership.Rf3 | (1L << (roleIndex - 192))))
+            };
+        }
         catch (Exception e)
         {
+            _logger.LogError(e, "Failed to add role {RoleId} to member {MemberId}", roleId, memberId);
             return new TaskResult(false, "An unexpected error occurred.");
         }
 
-        _coreHub.NotifyPlanetItemChange(member.ToModel());
+        if (updated == 0)
+            return new TaskResult(false, "Member not found.");
+
+        // Fetch updated member for notification
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is not null)
+            _coreHub.NotifyPlanetItemChange(member.ToModel());
 
         return new TaskResult(true, "Success");
     }
@@ -468,33 +480,48 @@ public class PlanetMemberService
     public async Task<TaskResult> RemoveRoleAsync(long planetId, long memberId, long roleId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
-        
-        var member = await _db.PlanetMembers.FindAsync(memberId);
-        if (member is null)
-            return new TaskResult(false, "Member not found.");
 
         var role = hostedPlanet.GetRoleById(roleId);
         if (role is null)
             return new TaskResult(false, "Role not found.");
-        
+
         if (role.IsDefault)
             return new TaskResult(false, "Cannot remove the default role from members.");
 
-        if (member.PlanetId != role.PlanetId)
-            return new TaskResult(false, "Role and member are not in the same planet.");
+        // Use atomic database update to prevent race conditions
+        var roleIndex = role.FlagBitIndex;
+        int updated;
 
         try
         {
-            // Remove role from member
-            member.RoleMembership = member.RoleMembership.RemoveRole(role);
-            await _db.SaveChangesAsync();
+            // Atomic bit clear operation - clears the role bit without read-modify-write race
+            var query = _db.PlanetMembers.Where(x => x.Id == memberId && x.PlanetId == planetId);
+
+            updated = roleIndex switch
+            {
+                < 64 => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf0, p => p.RoleMembership.Rf0 & ~(1L << roleIndex))),
+                < 128 => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf1, p => p.RoleMembership.Rf1 & ~(1L << (roleIndex - 64)))),
+                < 192 => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf2, p => p.RoleMembership.Rf2 & ~(1L << (roleIndex - 128)))),
+                _ => await query.ExecuteUpdateAsync(x =>
+                    x.SetProperty(p => p.RoleMembership.Rf3, p => p.RoleMembership.Rf3 & ~(1L << (roleIndex - 192))))
+            };
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Failed to remove role {RoleId} from member {MemberId}", roleId, memberId);
             return new TaskResult(false, "An unexpected error occurred.");
         }
 
-        _coreHub.NotifyPlanetItemChange(member.ToModel());
+        if (updated == 0)
+            return new TaskResult(false, "Member not found.");
+
+        // Fetch updated member for notification
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is not null)
+            _coreHub.NotifyPlanetItemChange(member.ToModel());
 
         return TaskResult.SuccessResult;
     }

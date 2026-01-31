@@ -186,7 +186,11 @@ public readonly struct PlanetRoleMembership : IEquatable<PlanetRoleMembership>
     public byte[] ToBinary()
     {
         var bytes = new byte[32]; // 4 longs * 8 bytes
-        MemoryMarshal.Write(bytes, ref Unsafe.AsRef(in Rf0));
+        var span = bytes.AsSpan();
+        BitConverter.TryWriteBytes(span.Slice(0, 8), Rf0);
+        BitConverter.TryWriteBytes(span.Slice(8, 8), Rf1);
+        BitConverter.TryWriteBytes(span.Slice(16, 8), Rf2);
+        BitConverter.TryWriteBytes(span.Slice(24, 8), Rf3);
         return bytes;
     }
     

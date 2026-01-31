@@ -1,8 +1,10 @@
 #nullable enable
 
+using System.Collections.Concurrent;
 using System.Threading;
 using Valour.Server.Utilities;
 using Valour.Shared.Extensions;
+using Valour.Shared.Utilities;
 
 namespace Valour.Server.Models;
 
@@ -14,17 +16,21 @@ public class HostedPlanet : ServerModel<long>
 {
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
-    
+
     // Fixed-size array for local-to-global role mapping.
     private readonly long[] _localToGlobalRoleId = new long[256];
     private volatile long[]? _localToGlobalRoleIdSnapshot;
     private volatile bool _isLocalToGlobalRoleIdDirty = true;
-    
+
     // Lock for controlling access to the local-to-global array and snapshot.
     private readonly ReaderWriterLockSlim _localToGlobalRoleLock =
         new(LockRecursionPolicy.SupportsRecursion);
-    
+
     public readonly PlanetPermissionsCache PermissionCache = new();
+
+    // Channel permission inheritance maps (per-planet to avoid memory leaks)
+    private readonly ConcurrentDictionary<long, long?> _inheritanceMap = new();
+    private readonly ConcurrentDictionary<long, ConcurrentHashSet<long>> _inheritanceLists = new();
 
     private Channel _defaultChannel;
     private PlanetRole _defaultRole;
@@ -223,4 +229,45 @@ public class HostedPlanet : ServerModel<long>
     }
 
     public ModelListSnapshot<PlanetRole, long> Roles => _roles.Snapshot;
+
+    // Channel Inheritance //
+
+    /// <summary>
+    /// Gets the inherited-from channel ID for a given channel, or null if not cached.
+    /// </summary>
+    public bool TryGetInheritanceTarget(long channelId, out long? targetId) =>
+        _inheritanceMap.TryGetValue(channelId, out targetId);
+
+    /// <summary>
+    /// Sets the inheritance target for a channel.
+    /// </summary>
+    public void SetInheritanceTarget(long channelId, long targetChannelId)
+    {
+        _inheritanceMap[channelId] = targetChannelId;
+
+        // Track the inverse relationship
+        var inheritorsList = _inheritanceLists.GetOrAdd(targetChannelId, _ => new ConcurrentHashSet<long>());
+        inheritorsList.Add(channelId);
+    }
+
+    /// <summary>
+    /// Gets all channels that inherit from a given channel.
+    /// </summary>
+    public ConcurrentHashSet<long>? GetInheritors(long channelId)
+    {
+        _inheritanceLists.TryGetValue(channelId, out var result);
+        return result;
+    }
+
+    /// <summary>
+    /// Clears inheritance cache for a channel.
+    /// </summary>
+    public void ClearInheritanceCache(long channelId)
+    {
+        _inheritanceMap.TryRemove(channelId, out _);
+        if (_inheritanceLists.TryGetValue(channelId, out var inheritors))
+        {
+            inheritors.Clear();
+        }
+    }
 }

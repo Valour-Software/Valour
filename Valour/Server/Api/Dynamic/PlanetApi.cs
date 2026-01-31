@@ -277,26 +277,22 @@ public class PlanetApi
     {
         if (order.Length > 256)
             return ValourResult.BadRequest("Too many roles in order.");
-        
-        // Check for duplicates
-        for (var i = 0; i < order.Length; i++)
+
+        // Check for duplicates using HashSet - O(n) instead of O(n²)
+        var seen = new HashSet<long>();
+        foreach (var roleId in order)
         {
-            var a = order[i];
-            
-            for (var j = i + 1; j < order.Length; j++)
-            {
-                var b = order[j];
-                
-                if (a == b)
-                {
-                    return ValourResult.BadRequest($"Duplicate role in order ({a})");
-                }
-            }
+            if (!seen.Add(roleId))
+                return ValourResult.BadRequest($"Duplicate role in order ({roleId})");
         }
 
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
+
+        // Check ManageRoles permission
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
         var authority = await memberService.GetAuthorityAsync(member);
         

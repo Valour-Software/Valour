@@ -25,20 +25,35 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
 {
     // Called for all changes
     public HybridEvent<IModelEvent<TModel>>? Changed; // We don't assign because += and -= will do it
-    
+
     // Specific events
     public HybridEvent<ModelsSetEvent<TModel>>? ModelsSet;
     public HybridEvent<ModelsClearedEvent<TModel>>? ModelsCleared;
     public HybridEvent<ModelsOrderedEvent<TModel>>? ModelsReordered;
-    
+
     public HybridEvent<ModelAddedEvent<TModel>>? ModelAdded;
     public HybridEvent<ModelUpdatedEvent<TModel>>? ModelUpdated;
     public HybridEvent<ModelRemovedEvent<TModel>>? ModelDeleted;
-    
+
     protected readonly List<TModel> List;
     protected readonly Dictionary<TId, TModel> IdMap;
-    
-    public int Count => List.Count;
+
+    /// <summary>
+    /// Lock object for thread-safe access to List and IdMap.
+    /// SignalR callbacks run on background threads while UI accesses from main thread.
+    /// </summary>
+    protected readonly object SyncLock = new();
+
+    public int Count
+    {
+        get
+        {
+            lock (SyncLock)
+            {
+                return List.Count;
+            }
+        }
+    }
     
     public ModelStore(List<TModel>? startingList = null)
     {
@@ -46,10 +61,33 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
         IdMap = List.ToDictionary(x => x.Id);
     }
     
-    // Make iterable
-    public TModel this[int index] => List[index];
-    public IEnumerator<TModel> GetEnumerator() => List.GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => List.GetEnumerator();
+    // Make iterable - returns a snapshot to avoid holding lock during iteration
+    public TModel this[int index]
+    {
+        get
+        {
+            lock (SyncLock)
+            {
+                return List[index];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns an enumerator over a snapshot of the list.
+    /// This is thread-safe but the snapshot may be slightly stale.
+    /// </summary>
+    public IEnumerator<TModel> GetEnumerator()
+    {
+        List<TModel> snapshot;
+        lock (SyncLock)
+        {
+            snapshot = new List<TModel>(List);
+        }
+        return snapshot.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     private bool ValuesDiffer(object? a, object? b)
     {
@@ -102,39 +140,51 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     {
         if (model is null)
             return null;
-        
-        IModelInsertionEvent<TModel>? result;
-        
-        if (IdMap.TryGetValue(model.Id, out var existing))
-        {
-            // Add change markers to event data and apply changes
-            var modelEventData = HandleChanges(existing, model);
-            
-            // Check if nothing changed
-            if (modelEventData.Changes is null)
-            {
-                return modelEventData;
-            }
 
-            if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
-            {
-                existing.InvokeUpdatedEvent(modelEventData);
-                ModelUpdated?.Invoke(modelEventData);
-                Changed?.Invoke(modelEventData);
-            }
-            
-            result = modelEventData;
-        }
-        else
+        IModelInsertionEvent<TModel>? result;
+        bool isUpdate;
+        TModel existing;
+
+        lock (SyncLock)
         {
-            List.Add(model);
-            IdMap[model.Id] = model;
-            
-            var addedEvent = new ModelAddedEvent<TModel>(model);
-            ModelAdded?.Invoke(addedEvent);
-            Changed?.Invoke(addedEvent);
-            
-            result = addedEvent;
+            if (IdMap.TryGetValue(model.Id, out existing))
+            {
+                isUpdate = true;
+                // Apply changes while holding lock
+                var modelEventData = HandleChanges(existing, model);
+
+                // Check if nothing changed
+                if (modelEventData.Changes is null)
+                {
+                    return modelEventData;
+                }
+
+                result = modelEventData;
+            }
+            else
+            {
+                isUpdate = false;
+                List.Add(model);
+                IdMap[model.Id] = model;
+                result = new ModelAddedEvent<TModel>(model);
+            }
+        }
+
+        // Fire events outside lock to prevent deadlocks
+        if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
+        {
+            if (isUpdate)
+            {
+                var updateEvent = (ModelUpdatedEvent<TModel>)result;
+                existing.InvokeUpdatedEvent(updateEvent);
+                ModelUpdated?.Invoke(updateEvent);
+            }
+            else
+            {
+                var addedEvent = (ModelAddedEvent<TModel>)result;
+                ModelAdded?.Invoke(addedEvent);
+            }
+            Changed?.Invoke(result);
         }
 
         return result;
@@ -147,16 +197,21 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     
     public TModel? Remove(TId id, bool skipEvent = false)
     {
-        if (!IdMap.ContainsKey(id))
-            return null;
-        
-        IdMap.Remove(id);
-        
-        // Get index of item in list
-        var index = List.FindIndex(x => x.Id.Equals(id));
-        var item = List[index];
-        List.RemoveAt(index);
-        
+        TModel item;
+
+        lock (SyncLock)
+        {
+            if (!IdMap.TryGetValue(id, out item))
+                return null;
+
+            IdMap.Remove(id);
+
+            // Get index of item in list
+            var index = List.FindIndex(x => x.Id.Equals(id));
+            List.RemoveAt(index);
+        }
+
+        // Fire events outside lock to prevent deadlocks
         if (!skipEvent)
         {
             item.InvokeDeletedEvent();
@@ -164,22 +219,26 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             ModelDeleted?.Invoke(storeEvent);
             Changed?.Invoke(storeEvent);
         }
-        
+
         return item;
     }
     
     public virtual void Set(List<TModel> items, bool skipEvent = false)
     {
-        // We clear rather than replace the list to ensure that the reference is maintained
-        // Because the reference may be used across the application.
-        List.Clear();
-        IdMap.Clear();
-        
-        List.AddRange(items);
-        
-        foreach (var item in items)
-            IdMap[item.Id] = item;
+        lock (SyncLock)
+        {
+            // We clear rather than replace the list to ensure that the reference is maintained
+            // Because the reference may be used across the application.
+            List.Clear();
+            IdMap.Clear();
 
+            List.AddRange(items);
+
+            foreach (var item in items)
+                IdMap[item.Id] = item;
+        }
+
+        // Fire events outside lock
         if (!skipEvent)
         {
             var storeEvent = new ModelsSetEvent<TModel>();
@@ -187,11 +246,16 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             Changed?.Invoke(storeEvent);
         }
     }
-    
+
     public virtual void Clear(bool skipEvent = false)
     {
-        List.Clear();
-        IdMap.Clear();
+        lock (SyncLock)
+        {
+            List.Clear();
+            IdMap.Clear();
+        }
+
+        // Fire events outside lock
         if (!skipEvent)
         {
             var storeEvent = new ModelsClearedEvent<TModel>();
@@ -199,35 +263,49 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
             Changed?.Invoke(storeEvent);
         }
     }
-    
+
     public bool TryGet(TId id, out TModel? item)
     {
-        return IdMap.TryGetValue(id, out item);
+        lock (SyncLock)
+        {
+            return IdMap.TryGetValue(id, out item);
+        }
     }
-    
+
     public TModel? Get(TId id)
     {
-        IdMap.TryGetValue(id, out var item);
-        return item;
+        lock (SyncLock)
+        {
+            IdMap.TryGetValue(id, out var item);
+            return item;
+        }
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Contains(TModel item)
     {
-        return IdMap.ContainsKey(item.Id); // This is faster than List.Contains
-        // return List.Contains(item);
+        lock (SyncLock)
+        {
+            return IdMap.ContainsKey(item.Id);
+        }
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ContainsId(TId id)
     {
-        return IdMap.ContainsKey(id);
+        lock (SyncLock)
+        {
+            return IdMap.ContainsKey(id);
+        }
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Sort(Comparison<TModel> comparison)
     {
-        List.Sort(comparison);
+        lock (SyncLock)
+        {
+            List.Sort(comparison);
+        }
     }
     
     /// <summary>
@@ -243,19 +321,22 @@ public class ModelStore<TModel, TId> : IEnumerable<TModel>, IDisposable
     public void Dispose()
     {
         Changed?.Dispose();
-        
+
         ModelsSet?.Dispose();
         ModelsCleared?.Dispose();
         ModelsReordered?.Dispose();
-        
+
         ModelAdded?.Dispose();
         ModelUpdated?.Dispose();
         ModelDeleted?.Dispose();
-        
+
         Changed = null;
-        
-        List.Clear();
-        IdMap.Clear();
+
+        lock (SyncLock)
+        {
+            List.Clear();
+            IdMap.Clear();
+        }
     }
 }
 
@@ -291,16 +372,24 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
 
     protected override IModelInsertionEvent<TModel>? PutInternal(TModel? model, ModelInsertFlags flags)
     {
-        var baseResult = base.PutInternal(model, flags); // Do base put without event
+        // Always skip events in base - we'll fire them after repositioning
+        var baseFlags = flags | ModelInsertFlags.SkipEvents;
+        var baseResult = base.PutInternal(model, baseFlags);
         if (baseResult is null)
             return null;
-        
+
         // Don't bother positioning the item properly if we're skipping sorting
         if (flags.HasFlag(ModelInsertFlags.SkipSorting))
+        {
+            // Still need to fire events if not skipping
+            if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
+            {
+                FireEventsForResult(baseResult);
+            }
             return baseResult;
-        
-        bool doRemoval = false;
+        }
 
+        bool doRemoval = false;
         ModelUpdatedEvent<TModel>? updateEvent = null;
         ModelAddedEvent<TModel>? addEvent = null;
 
@@ -309,57 +398,79 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
             case ModelUpdatedEvent<TModel> update:
                 updateEvent = update;
                 if (updateEvent.PositionChange is null)
-                    return baseResult; // No need to sort if no position change
-                else
-                    doRemoval = true; // We need to remove the existing item before re-inserting it
+                {
+                    // No position change - just fire events and return
+                    if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
+                    {
+                        FireEventsForResult(baseResult);
+                    }
+                    return baseResult;
+                }
+                doRemoval = true;
                 break;
             case ModelAddedEvent<TModel> add:
                 addEvent = add;
                 doRemoval = true;
                 break;
         }
-        
+
         var resultModel = baseResult.GetModel();
 
-        if (doRemoval)
+        // Reposition within lock
+        lock (SyncLock)
         {
-            // Get the index of the item
-            var index = List.FindIndex(x => x.Id.Equals(resultModel.Id));
-            // Remove the item from the list
-            List.RemoveAt(index);
+            if (doRemoval)
+            {
+                var index = List.FindIndex(x => x.Id.Equals(resultModel.Id));
+                List.RemoveAt(index);
+            }
+
+            var newIndex = List.BinarySearch(resultModel, ISortable.Comparer);
+            if (newIndex < 0) newIndex = ~newIndex;
+
+            List.Insert(newIndex, resultModel);
         }
 
-        // Find the new index
-        var newIndex = List.BinarySearch(resultModel, ISortable.Comparer);
-        if (newIndex < 0) newIndex = ~newIndex;
-
-        List.Insert(newIndex, resultModel);
-        
+        // Fire events outside lock
         if (!flags.HasFlag(ModelInsertFlags.SkipEvents))
         {
-            if (updateEvent is not null) 
-                ModelUpdated?.Invoke(updateEvent);
-            else if (addEvent is not null)
-                ModelAdded?.Invoke(addEvent.Value);
-            
-            Changed?.Invoke(baseResult);
+            FireEventsForResult(baseResult);
         }
 
         return baseResult;
     }
 
+    private void FireEventsForResult(IModelInsertionEvent<TModel> result)
+    {
+        switch (result)
+        {
+            case ModelUpdatedEvent<TModel> updateEvent:
+                updateEvent.GetModel().InvokeUpdatedEvent(updateEvent);
+                ModelUpdated?.Invoke(updateEvent);
+                break;
+            case ModelAddedEvent<TModel> addEvent:
+                ModelAdded?.Invoke(addEvent);
+                break;
+        }
+        Changed?.Invoke(result);
+    }
+
     public override void Set(List<TModel> items, bool skipEvent = false)
     {
-        List.Clear();
-        IdMap.Clear();
-        
-        List.AddRange(items);
-        
-        foreach (var item in items)
-            IdMap[item.Id] = item;
-        
-        Sort(true);
+        lock (SyncLock)
+        {
+            List.Clear();
+            IdMap.Clear();
 
+            List.AddRange(items);
+
+            foreach (var item in items)
+                IdMap[item.Id] = item;
+
+            List.Sort(ISortable.Compare);
+        }
+
+        // Fire events outside lock
         if (!skipEvent)
         {
             var setEvent = new ModelsSetEvent<TModel>();
@@ -370,8 +481,12 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
 
     public void Sort(bool skipEvent = false)
     {
-        List.Sort(ISortable.Compare);
+        lock (SyncLock)
+        {
+            List.Sort(ISortable.Compare);
+        }
 
+        // Fire events outside lock
         if (!skipEvent)
         {
             var reorderEvent = new ModelsOrderedEvent<TModel>();

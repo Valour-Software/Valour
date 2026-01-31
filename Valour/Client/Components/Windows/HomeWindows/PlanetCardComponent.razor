@@ -149,8 +149,6 @@
             return;
         }
         
-        await WindowCtx.Tab.SetContent(newWindowContent);
-
-        StateHasChanged();
+        await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 }

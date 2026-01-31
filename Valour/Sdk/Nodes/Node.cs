@@ -56,7 +56,7 @@ public class Node : ServiceBase // each node acts like a service
     /// <summary>
     /// Timer that updates the user's online status
     /// </summary>
-    private static Timer _onlineTimer;
+    private Timer _onlineTimer;
 
     public ValourClient Client { get; private set; }
     private readonly NodeService _nodeService;
@@ -311,18 +311,24 @@ public class Node : ServiceBase // each node acts like a service
     private readonly Stopwatch _pingStopwatch = new();
 
     /// <summary>
-    /// Run by the online timer
+    /// Run by the online timer. Wrapped to handle async void exceptions.
     /// </summary>
-    private async void OnPingTimer(object state = null)
+    private void OnPingTimer(object state = null)
     {
-        if (HubConnection.State != HubConnectionState.Connected)
-        {
-            LogError($"Ping failed. Hub state is: {HubConnection.State.ToString()}");
-            return;
-        }
+        // Fire and forget but catch all exceptions to prevent crashes
+        _ = OnPingTimerAsync();
+    }
 
+    private async Task OnPingTimerAsync()
+    {
         try
         {
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                LogError($"Ping failed. Hub state is: {HubConnection.State.ToString()}");
+                return;
+            }
+
             Log("Doing node ping...");
 
             _pingStopwatch.Reset();
@@ -468,11 +474,6 @@ public class Node : ServiceBase // each node acts like a service
     public void HookSignalREvents()
     {
         Log("Hooking model events.");
-        
-        HubConnection.On<PlanetMember, int>($"PlanetMember-Update", (PlanetMember pm, int i) =>
-        {
-            Log("TEST");
-        });
 
         // For every single item...
         var baseType = typeof(ClientModel<>);
@@ -525,6 +526,9 @@ public class Node : ServiceBase // each node acts like a service
     /// </summary>
     public void CheckConnection()
     {
+        if (!IsRealtimeSetup || HubConnection is null)
+            return;
+
         LogWarning("Refresh has been requested.");
         LogWarning("SignalR state is " + HubConnection.State);
 
@@ -614,6 +618,48 @@ public class Node : ServiceBase // each node acts like a service
         // Authenticate and connect to personal channel
         await AuthenticateSignalR();
         await ConnectToUserSignalRChannel();
+
+        // Rejoin all previously connected planets
+        foreach (var planetId in _realtimePlanets.Keys)
+        {
+            try
+            {
+                var result = await HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planetId);
+                if (result.Success)
+                {
+                    Log($"Rejoined planet {planetId} after reconnect");
+                }
+                else
+                {
+                    LogError($"Failed to rejoin planet {planetId}: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error rejoining planet {planetId}", ex);
+            }
+        }
+
+        // Rejoin all previously connected channels
+        foreach (var channelId in _realtimeChannels.Keys)
+        {
+            try
+            {
+                var result = await HubConnection.InvokeAsync<TaskResult>("JoinChannel", channelId);
+                if (result.Success)
+                {
+                    Log($"Rejoined channel {channelId} after reconnect");
+                }
+                else
+                {
+                    LogError($"Failed to rejoin channel {channelId}: {result.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error rejoining channel {channelId}", ex);
+            }
+        }
     }
 
     private Task<TaskResult> ConnectToUserSignalRChannel()

@@ -1,4 +1,5 @@
 ﻿using System.Web.Http;
+using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 

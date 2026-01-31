@@ -11,7 +11,5 @@
     "url": "https://github.com/Valour-Software/Valour"
   },
   "private": true,
-  "dependencies": {
-    "@solana/web3.js": "^1.98.2"
-  }
+  "dependencies": {}
 }

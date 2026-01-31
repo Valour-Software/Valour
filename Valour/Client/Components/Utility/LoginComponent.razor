@@ -57,7 +57,7 @@
     {
         <div class="multi-factor-auth">
             <h3>Multi-Factor Authentication</h3>
-            <input class="form-control" type="text" @bind-value="@_multiFactorCode" />
+            <input class="form-control" type="text" @bind-value="@_multiFactorCode" @onkeyup="@OnMfaKey" />
             @if (!string.IsNullOrWhiteSpace(_multiFactorSpan))
             {
                 <span class="text-danger mt-4">@_multiFactorSpan</span>
@@ -99,6 +99,14 @@
         if (e.Key == "Enter")
         {
             await OnClickLogin();
+        }
+    }
+
+    private async Task OnMfaKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnClickMultiFactorAuth();
         }
     }
 

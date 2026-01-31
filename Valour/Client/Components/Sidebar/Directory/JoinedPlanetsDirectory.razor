@@ -162,7 +162,7 @@
             });
         }
 
-        await WindowService.TryAddFloatingWindow(newWindowContent);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
 
         await Sidebar.ToggleMobileSidebar();
     }
