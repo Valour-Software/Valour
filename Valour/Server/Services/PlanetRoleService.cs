@@ -52,13 +52,27 @@ public class PlanetRoleService
         if (!_hexColorRegex.IsMatch(role.Color))
             return new TaskResult<PlanetRole>(false, "Invalid hex color");
 
-        role.Position = (uint)await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId && !x.IsDefault);
         role.Id = IdManager.Generate();
-        
+
         // The index should be the next free index
         var roles = await _db.PlanetRoles.Where(x => x.PlanetId == role.PlanetId)
             .OrderBy(x => x.FlagBitIndex)
             .ToListAsync();
+
+        // Get the default role and calculate new role position based on max existing position
+        // (not count, since positions can be reordered)
+        var defaultRole = roles.FirstOrDefault(x => x.IsDefault);
+        var maxNonDefaultPosition = roles.Where(x => !x.IsDefault).Max(x => (uint?)x.Position) ?? 0;
+
+        // New role goes just before default (or at 0 if no other non-default roles exist)
+        role.Position = roles.Any(x => !x.IsDefault) ? maxNonDefaultPosition + 1 : 0;
+
+        // Bump default role to stay last if needed
+        if (defaultRole != null && defaultRole.Position <= role.Position)
+        {
+            defaultRole.Position = role.Position + 1;
+            _db.PlanetRoles.Update(defaultRole);
+        }
 
         // Below, we find the first free space in the role indices. There may be a gap due to
         // a deletion, in which case we want to use that space first.
@@ -79,6 +93,9 @@ public class PlanetRoleService
             }
         }
         
+        // Track if we need to update the default role
+        var defaultRoleUpdated = defaultRole != null && defaultRole.Position == role.Position + 1;
+
         try
         {
             await _db.AddAsync(role.ToDatabase());
@@ -89,10 +106,17 @@ public class PlanetRoleService
             _logger.LogError("Error saving role to database: {Error}", e.Message);
             return new(false, e.Message);
         }
-        
-        hostedPlanet.UpsertRole(role);
 
+        hostedPlanet.UpsertRole(role);
         _coreHub.NotifyPlanetItemChange(role);
+
+        // If we bumped the default role, update cache and notify clients
+        if (defaultRoleUpdated)
+        {
+            var defaultRoleModel = defaultRole.ToModel();
+            hostedPlanet.UpsertRole(defaultRoleModel);
+            _coreHub.NotifyPlanetItemChange(defaultRoleModel);
+        }
 
         return new(true, "Success", role);
     }

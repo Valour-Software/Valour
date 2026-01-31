@@ -9,17 +9,18 @@ using Valour.Database;
 
 namespace Valour.Server.Cdn;
 
-public static class ProxyHandler
+public class ProxyHandler
 {
-    private static readonly SHA256 Sha256 = SHA256.Create();
-    private static readonly HttpClient Http = new HttpClient();
+    private readonly HttpClient _http;
+    private readonly ILogger<ProxyHandler> _logger;
 
-    static ProxyHandler()
+    public ProxyHandler(HttpClient http, ILogger<ProxyHandler> logger)
     {
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
+        _http = http;
+        _logger = logger;
     }
 
-    public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDb db, HttpClient client)
+    public async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, ValourDb db)
     {
         var urls = CdnUtils.UrlRegex.Matches(url);
 
@@ -27,7 +28,7 @@ public static class ProxyHandler
         
         foreach (Match match in urls)
         {
-            var attachment = await GetAttachmentFromUrl(match.Value, db, client);
+            var attachment = await GetAttachmentFromUrl(match.Value, db);
             if (attachment != null)
             {
                 if (attachments is null)
@@ -45,7 +46,7 @@ public static class ProxyHandler
     /// This can be an image, video, or even an embed website view
     /// Also handles converting to ValourCDN when necessary
     /// </summary>
-    public static async Task<MessageAttachment> GetAttachmentFromUrl(string url, ValourDb db, HttpClient client)
+    public async Task<MessageAttachment> GetAttachmentFromUrl(string url, ValourDb db)
     {
         var uri = new Uri(url.Replace("www.", ""));
 
@@ -64,7 +65,7 @@ public static class ProxyHandler
                         // Get oembed data from reddit
                         var route = "https://www.reddit.com/oembed?url=" + HttpUtility.UrlEncode(url);
                         var oembedData =
-                            await Http.GetFromJsonAsync<OembedData>(route);
+                            await _http.GetFromJsonAsync<OembedData>(route);
 
                         attachment.Location = url;
                         attachment.Html = oembedData.Html;
@@ -72,8 +73,9 @@ public static class ProxyHandler
 
                         return attachment;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger.LogWarning(ex, "Failed to fetch Reddit oEmbed data for {Url}", url);
                         return null;
                     }
                 }
@@ -83,13 +85,14 @@ public static class ProxyHandler
                     {
                         // Get oembed data from twitter
                         var oembedData =
-                            await Http.GetFromJsonAsync<OembedData>("https://publish.twitter.com/oembed?url=" + url + 
+                            await _http.GetFromJsonAsync<OembedData>("https://publish.twitter.com/oembed?url=" + url + 
                                                                     "&theme=dark&dnt=true&omit_script=true&maxwidth=400&maxheight=400&limit=1&hide_thread=true");
                         attachment.Location = url;
                         attachment.Html = oembedData.Html;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger.LogWarning(ex, "Failed to fetch Twitter oEmbed data for {Url}", url);
                         return null;
                     }
 
@@ -202,9 +205,9 @@ public static class ProxyHandler
             // Use our own CDN
             else
             {
-                // Get hash from uri
-                var h = Sha256.ComputeHash(Encoding.UTF8.GetBytes(uri.AbsoluteUri));
-                var hash = BitConverter.ToString(h).Replace("-", "").ToLower();
+                // Get hash from uri (using thread-safe static method)
+                var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(uri.AbsoluteUri));
+                var hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 
                 var attachment = new MessageAttachment(type)
                 {

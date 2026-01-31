@@ -325,6 +325,11 @@ public partial class Program
 
         services.AddSingleton<CdnBucketService>();
 
+        services.AddHttpClient<ProxyHandler>(client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
+        });
+
         services.AddSingleton<SignalRConnectionService>();
 
         services.AddSingleton<CdnMemoryCache>();

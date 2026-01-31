@@ -7,6 +7,7 @@ using CloudFlare.Client.Api.Zones;
 using Valour.Config.Configs;
 using Valour.Database;
 using Valour.Shared;
+using Valour.Shared.Cdn;
 
 namespace Valour.Server.Cdn;
 
@@ -28,12 +29,18 @@ public class CdnBucketService
 
     public async Task<TaskResult> UploadPublicImage(Stream data, string path)
     {
+        // Get MIME type from file extension
+        var extension = Path.GetExtension(path);
+        CdnUtils.ExtensionToMimeType.TryGetValue(extension, out var mimeType);
+        mimeType ??= "application/octet-stream";
+
         PutObjectRequest request = new()
         {
             Key = path,
             InputStream = data,
             BucketName = "valour-public",
-            DisablePayloadSigning = true
+            DisablePayloadSigning = true,
+            ContentType = mimeType
         };
         
         try {
@@ -69,6 +76,7 @@ public class CdnBucketService
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Failed to upload public image to {Path}", path);
             return new TaskResult(false, e.Message);
         }
     }
@@ -114,12 +122,10 @@ public class CdnBucketService
                 await db.CdnBucketItems.AddAsync(bucketRecord);
                 await db.SaveChangesAsync();
             }
-            catch(System.Exception e)
+            catch (Exception e)
             {
-                Console.WriteLine("Critical error when adding new route to existing bucket item.");
-                Console.WriteLine(e.Message);
-
-                return new TaskResult(false, "Critical error when adding new route to existing bucket item."); 
+                _logger.LogError(e, "Critical error when adding new route to existing bucket item");
+                return new TaskResult(false, "Critical error when adding new route to existing bucket item.");
             }
 
             return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
@@ -132,12 +138,13 @@ public class CdnBucketService
             // ChecksumAlgorithm = ChecksumAlgorithm.SHA256,
             InputStream = data,
             BucketName = "valourmps",
-            DisablePayloadSigning = true
+            DisablePayloadSigning = true,
+            ContentType = mime
         };
 
         var response = await Client.PutObjectAsync(request);
 
-        if (!IsSuccessStatusCode(response.HttpStatusCode))
+        if (!CdnUtils.IsSuccessStatusCode(response.HttpStatusCode))
         {
             return new TaskResult(false, $"Failed to PUT object into bucket. ({response.HttpStatusCode})");
         }
@@ -148,22 +155,15 @@ public class CdnBucketService
                 await db.CdnBucketItems.AddAsync(bucketRecord);
                 await db.SaveChangesAsync();
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
-                Console.WriteLine("Critical error when adding route to new item.");
-                Console.WriteLine(e.Message);
-
-                return new TaskResult(false, "Critical error when adding new route to existing bucket item.");
+                _logger.LogError(e, "Critical error when adding route to new bucket item");
+                return new TaskResult(false, "Critical error when adding route to new bucket item.");
             }
 
             return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
         }
     }
 
-    public static bool IsSuccessStatusCode(HttpStatusCode statusCode)
-    {
-        var intStatus = (int)statusCode;
-        return (intStatus >= 200) && (intStatus <= 299);
-    }
 }
 

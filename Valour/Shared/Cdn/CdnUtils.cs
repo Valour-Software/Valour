@@ -1,10 +1,17 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Net;
+using System.Text.RegularExpressions;
 using Valour.Shared.Models;
 
 namespace Valour.Shared.Cdn
 {
     public static class CdnUtils
     {
+        public static bool IsSuccessStatusCode(HttpStatusCode statusCode)
+        {
+            var intStatus = (int)statusCode;
+            return intStatus >= 200 && intStatus <= 299;
+        }
+
         public static readonly HashSet<string> ImageSharpSupported = new()
         {
             "image/png",

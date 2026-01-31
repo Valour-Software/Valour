@@ -22,14 +22,24 @@
                 {
                     if (!Client.IsLoggedIn)
                     {
-                        <p class="m-4">Log in or register to join this planet</p>
-                        <button class="v-btn blue large mt-2" @onclick="OnClickLogin">Log in and Join</button>
-                        <button class="v-btn blue large mt-2" @onclick="OnClickRegister">Register and Join</button>
+                        <div class="invite-planet-preview">
+                            <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data" HideActions="true"/>
+                        </div>
+                        <p class="invite-prompt">Create an account or log in to join this planet</p>
+                        <div class="invite-actions">
+                            <button class="v-btn mt-2 join-btn" @onclick="OnClickRegister">Join Valour</button>
+                            <button class="v-btn mt-2 login-btn" @onclick="OnClickLogin">Log In</button>
+                        </div>
+                    }
+                    else if (_alreadyJoined)
+                    {
+                        <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data" HideActions="true"/>
+                        <p class="already-joined-text">You're already a member of this planet!</p>
+                        <button class="v-btn mt-2" @onclick="OnClose">Go to Home</button>
                     }
                     else
                     {
-                        <h2 class="mb-4">Join a Planet:</h2>
-                        <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data"/>
+                        <DiscoveryPlanetCard PlanetInfo="@_inviteDataResult.Value.Data" OnJoin="OnJoinPlanet"/>
                     }
                 }
             </section>
@@ -77,18 +87,21 @@
         NavManager.NavigateTo($"/register/i/{InviteCode}", true);
     }
 
-    private async Task OnClickJoin()
+    private async Task OnJoinPlanet(PlanetListInfo planetInfo)
     {
-        if (_inviteDataResult.HasValue && _inviteDataResult.Value.Data is not null)
+        var result = await ToastContainer.Instance.WaitToastWithResult(new ProgressToastData<TaskResult<PlanetMember>>()
         {
-            var result = await ToastContainer.Instance.WaitToastWithResult(new ProgressToastData<TaskResult<PlanetMember>>()
-            {
-                ProgressTask = PlanetService.JoinPlanetAsync(_inviteDataResult.Value.Data.PlanetId, InviteCode),
-                Title = "Joining Planet",
-                Message = "Landing rocket ship..."
-            });
+            ProgressTask = PlanetService.JoinPlanetAsync(planetInfo.PlanetId, InviteCode),
+            Title = "Joining Planet",
+            Message = "Landing rocket ship..."
+        });
 
-            StateHasChanged();
+        if (result.Success)
+        {
+            _alreadyJoined = true;
+            await PlanetService.FetchJoinedPlanetsAsync();
         }
+
+        StateHasChanged();
     }
 }

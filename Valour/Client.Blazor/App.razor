@@ -125,7 +125,13 @@ else
                     if (result.Success) {
                         Log("App", $"Auto-logged user {Client.Me.Name}", "magenta");
                     }
-                } 
+                }
+            }
+
+            // Ensure PrimaryNode is set up for anonymous API calls (e.g., invite pages)
+            if (Client.PrimaryNode is null)
+            {
+                await Client.NodeService.SetupPrimaryNodeAsync();
             }
 
             _triedInitialLogin = true;

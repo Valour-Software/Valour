@@ -73,7 +73,9 @@ function getElementText(el: Node): string {
     switch (el.nodeType) {
         case Node.TEXT_NODE:
         case Node.CDATA_SECTION_NODE:
-            return el.nodeValue || '';
+            // Replace non-breaking spaces (U+00A0) with regular spaces
+            // Browsers insert &nbsp; in contenteditable to prevent whitespace collapsing
+            return (el.nodeValue || '').replace(/\u00A0/g, ' ');
         case Node.ELEMENT_NODE: {
             const element = el as HTMLElement;
             const tagName = element.tagName.toLowerCase();

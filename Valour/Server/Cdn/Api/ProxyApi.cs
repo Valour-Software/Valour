@@ -22,12 +22,19 @@ namespace Valour.Server.Cdn.Api
             if (item is null)
                 return Results.NotFound("No existing proxy item found");
 
+            // Extract filename from origin URL
+            var fileName = Path.GetFileName(new Uri(item.Origin).AbsolutePath);
+            if (string.IsNullOrWhiteSpace(fileName))
+                fileName = hash;
+
+            var mimeType = item.MimeType ?? "application/octet-stream";
+
             // Try to get from cache
             if (cache.Cache.TryGetValue(hash, out var cachedData))
             {
                 if (cachedData is not null)
                 {
-                    return Results.File((byte[])cachedData, item.MimeType ?? "application/octet-stream");
+                    return Results.File((byte[])cachedData, mimeType, fileName);
                 }
             }
 
@@ -45,7 +52,7 @@ namespace Valour.Server.Cdn.Api
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
             });
 
-            return Results.File(data, item.MimeType ?? "application/octet-stream");
+            return Results.File(data, mimeType, fileName);
         }
     }
 }

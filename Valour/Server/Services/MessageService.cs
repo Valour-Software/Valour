@@ -19,33 +19,33 @@ public class MessageService
     private readonly ChannelService _channelService;
     private readonly NotificationService _notificationService;
     private readonly CoreHubService _coreHubService;
-    private readonly HttpClient _http;
     private readonly ChatCacheService _chatCacheService;
     private readonly HostedPlanetService _hostedPlanetService;
     private readonly AutomodService _automodService;
-    
+    private readonly ProxyHandler _proxyHandler;
+
     public MessageService(
         ILogger<MessageService> logger,
-        ValourDb db, 
-        NodeLifecycleService nodeLifecycleService, 
-        NotificationService notificationService, 
-        IHttpClientFactory http, 
+        ValourDb db,
+        NodeLifecycleService nodeLifecycleService,
+        NotificationService notificationService,
         CoreHubService coreHubService,
         ChannelService channelService,
-        ChatCacheService chatCacheService, 
+        ChatCacheService chatCacheService,
         HostedPlanetService hostedPlanetService,
-        AutomodService automodService)
+        AutomodService automodService,
+        ProxyHandler proxyHandler)
     {
         _logger = logger;
         _db = db;
         _nodeLifecycleService = nodeLifecycleService;
         _notificationService = notificationService;
-        _http = http.CreateClient();
         _coreHubService = coreHubService;
         _channelService = channelService;
         _chatCacheService = chatCacheService;
         _hostedPlanetService = hostedPlanetService;
         _automodService = automodService;
+        _proxyHandler = proxyHandler;
     }
     
     /// <summary>
@@ -225,7 +225,7 @@ public class MessageService
             // This is because a direct image link is not proxied and can steal ip addresses
             message.Content = message.Content.Replace("[](", "(");
 	        
-            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(message.Content, _db, _http);
+            var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(message.Content, _db);
             if (inlineAttachments is not null)
             {
                 if (attachments is null)
@@ -413,7 +413,7 @@ public class MessageService
         // Handle new inline attachments
         if (!string.IsNullOrWhiteSpace(updated.Content))
         {
-            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(updated.Content, _db, _http);
+            var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(updated.Content, _db);
             if (inlineAttachments is not null)
             {
                 if (attachments is null)

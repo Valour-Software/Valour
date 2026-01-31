@@ -526,76 +526,78 @@ public class UploadApi
                 saveTasks.Add(async () =>
                 {
                     using MemoryStream ms = new();
-
                     await image.SaveAsync(ms, GifEncoder);
+                    ms.Position = 0;
 
                     var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.gif");
-
                     if (!result.Success)
                     {
                         return new TaskResult(false,
                             "There was an issue uploading your animated image. Try a different format or size.");
                     }
 
-                    ms.Close();
+                    return TaskResult.SuccessResult;
+                });
+
+                saveTasks.Add(async () =>
+                {
+                    using MemoryStream ms = new();
+                    var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
+                    await image.SaveAsync(ms, encoder);
+                    ms.Position = 0;
+
+                    var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
+                    if (!result.Success)
+                    {
+                        return new TaskResult(false,
+                            "There was an issue uploading your animated image. Try a different format or size.");
+                    }
+
+                    return TaskResult.SuccessResult;
+                });
+            }
+            else
+            {
+                saveTasks.Add(async () =>
+                {
+                    using MemoryStream ms = new();
+                    var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
+
+                    // Remove all frames except 0
+                    var frameImage = image.Frames.Count > 1 ? image.Frames.ExportFrame(0) : image;
+
+                    await frameImage.SaveAsync(ms, encoder);
+                    ms.Position = 0;
+
+                    var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
+                    if (!bucketResult.Success)
+                    {
+                        return new TaskResult(false,
+                            "There was an issue uploading your image. Try a different format or size.");
+                    }
 
                     return TaskResult.SuccessResult;
                 });
             }
 
-            saveTasks.Add(async () =>
-            {
-                using MemoryStream ms = new();
-                var encoder = doTransparency ? WebpEncoderTrans : WebpEncoder;
-
-                if (doAnimated)
-                {
-                    var result = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/anim-{size}.webp");
-
-                    if (!result.Success)
-                    {
-                        return new TaskResult(false, "There was an issue uploading your animated image. Try a different format or size.");
-                    }
-            
-                    ms.Close();
-                
-                    return TaskResult.SuccessResult;
-                }
-                
-                // Remove all frames except 0
-                if (image.Frames.Count > 1)
-                {
-                    image = image.Frames.ExportFrame(0);
-                }
-                
-                await image.SaveAsync(ms, encoder);
-
-                var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.webp");
-
-                if (!bucketResult.Success)
-                {
-                    return new TaskResult(false,
-                        "There was an issue uploading your image. Try a different format or size.");
-                }
-                
-                return TaskResult.SuccessResult;
-            });
-            
-            
             // Always save a jpeg
             saveTasks.Add(async () =>
             {
                 using MemoryStream ms = new();
-                await image.SaveAsync(ms, JpegEncoder);
+
+                // Remove all frames except 0 for jpeg
+                var frameImage = image.Frames.Count > 1 ? image.Frames.ExportFrame(0) : image;
+
+                await frameImage.SaveAsync(ms, JpegEncoder);
+                ms.Position = 0;
 
                 var bucketResult = await bucketService.UploadPublicImage(ms, $"{folder}/{id}/{size}.jpg");
-
                 if (!bucketResult.Success)
                 {
                     return new TaskResult(false,
                         "There was an issue uploading your image. Try a different format or size.");
                 }
-                
+
                 return TaskResult.SuccessResult;
             });
             
