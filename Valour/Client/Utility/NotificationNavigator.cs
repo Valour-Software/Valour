@@ -18,6 +18,8 @@ public static class NotificationNavigator
             case NotificationSource.PlanetMemberMention:
             case NotificationSource.PlanetRoleMention:
             case NotificationSource.PlanetMemberReply:
+            case NotificationSource.PlanetHereMention:
+            case NotificationSource.PlanetEveryoneMention:
             {
                 var planet = await client.PlanetService.FetchPlanetAsync(notification.PlanetId!.Value);
                 if (planet is null)
@@ -34,17 +36,19 @@ public static class NotificationNavigator
             }
             case NotificationSource.DirectMention:
             case NotificationSource.DirectReply:
+            case NotificationSource.DirectMessage:
             {
                 var channel = await client.ChannelService.FetchDirectChannelAsync(notification.ChannelId!.Value);
                 if (channel is null)
                     break;
-                
+
                 var content = await ChatWindowComponent.GetDefaultContent(channel);
                 await WindowService.OpenWindowAtFocused(content);
-                
+
                 break;
             }
             case NotificationSource.FriendRequest:
+            case NotificationSource.FriendRequestAccepted:
             {
                 var data = new EditUserComponent.ModalParams()
                 {
@@ -52,11 +56,13 @@ public static class NotificationNavigator
                     StartItem = "Friends",
                     User = client.Me
                 };
-                
+
                 ModalInjector.Service.OpenModal<EditUserComponent>(data);
 
                 break;
             }
+            // Economy notifications (TransactionReceived, TradeProposed, TradeAccepted, TradeDeclined)
+            // and Platform notifications don't have a specific navigation target
         }
     }
 }

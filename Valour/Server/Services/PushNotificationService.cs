@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Valour.Config.Configs;
 using Valour.Server.Database;
@@ -91,13 +92,13 @@ public class PushNotificationService
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string GetPayload(NotificationContent content)
     {
-        return 
-        $@"{{
-            ""title"": ""{content.Title}"",
-            ""message"": ""{content.Message}"",
-            ""iconUrl"": ""{content.IconUrl}"",
-            ""url"": ""{content.Url}""
-        }}";
+        return JsonSerializer.Serialize(new
+        {
+            title = content.Title,
+            message = content.Message,
+            iconUrl = content.IconUrl,
+            url = content.Url
+        });
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,7 +115,7 @@ public class PushNotificationService
             await _webPushClient.SendNotificationAsync(webSub, payload, _vapidDetails,
                 cancellationToken: cancellationToken);
             
-            _logger .LogInformation("Sent notification to {Endpoint}", sub.Endpoint);
+            _logger.LogInformation("Sent notification to {Endpoint}", sub.Endpoint);
         }
         catch (WebPushException ex)
         {
@@ -199,7 +200,13 @@ public class PushNotificationService
                 FlagBitIndex = x.FlagBitIndex
             })
             .FirstOrDefaultAsync(x => x.Id == roleId);
-        
+
+        if (role is null)
+        {
+            _logger.LogWarning("Role {RoleId} not found for push notification", roleId);
+            return;
+        }
+
         var subscriptions = await _db.PlanetMembers
             .AsNoTracking()
             .WithRoleByLocalIndex(role.PlanetId, role.FlagBitIndex)
@@ -207,11 +214,11 @@ public class PushNotificationService
             // Flatten
             .SelectMany(x => x)
             .ToArrayAsync();
-        
+
         var payload = GetPayload(content);
-        
+
         await SendParallelNotificationsAsync(subscriptions, payload);
-        
+
         _logger.LogInformation("Sent role mention for {SubscriptionCount} subscriptions", subscriptions.Length);
     }
 }

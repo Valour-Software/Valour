@@ -1,35 +1,37 @@
-/* Profile Editor Styling */
+/* Profile Editor - Modern Flat Design */
 .profile-editor-container {
-    max-width: 900px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 0.5rem;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
 }
 
+/* Section styling - clean dividers */
 .editor-section {
-    background-color: var(--main-3);
-    border-radius: var(--main-radius);
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    border-left: 3px solid var(--p-cyan);
-    transition: box-shadow 0.2s ease;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--slight-tint);
 }
 
-.editor-section:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.editor-section:last-child {
+    border-bottom: none;
 }
 
+/* Section headings - typography-driven */
 .editor-section-title {
-    font-size: 1.2rem;
+    font-size: 0.75rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--p-cyan);
     margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--main-4);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.editor-section-title i {
+    font-size: 0.85rem;
 }
 
 .profile-preview-container {
@@ -37,7 +39,7 @@
     top: 1rem;
 }
 
-/* Form controls */
+/* Form controls - minimal style */
 .form-group {
     margin-bottom: 1.25rem;
 }
@@ -46,22 +48,28 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    color: var(--font-color);
 }
 
 .v-input {
     width: 100%;
-    background-color: var(--main-4);
-    border: 1px solid var(--main-5);
-    border-radius: var(--small-radius);
-    padding: 0.6rem;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--main-radius);
+    padding: 0.6rem 0.875rem;
     color: var(--font-color);
+    box-shadow: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .v-input:focus {
     border-color: var(--p-cyan);
-    box-shadow: 0 0 0 2px rgba(55, 164, 206, 0.25);
+    box-shadow: 0 0 0 2px rgba(55, 164, 206, 0.1);
+}
+
+.v-input:hover:not(:focus) {
+    border-color: var(--medium-tint);
 }
 
 textarea.v-input {
@@ -69,12 +77,16 @@ textarea.v-input {
     resize: vertical;
 }
 
-/* Toggle item styling */
+/* Toggle/Setting rows - flat hover style */
 .toggle-item {
-    background-color: var(--main-4);
-    border-radius: var(--small-radius);
     padding: 1rem;
-    margin-bottom: 0.75rem;
+    margin: 0 -1rem 0.5rem;
+    border-radius: var(--main-radius);
+    transition: background-color 0.15s ease;
+}
+
+.toggle-item:hover {
+    background-color: var(--main-3);
 }
 
 .toggle-item:last-child {
@@ -85,22 +97,23 @@ textarea.v-input {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .toggle-title {
     font-weight: 500;
+    font-size: 0.95rem;
 }
 
 .toggle-description {
     color: var(--font-alt-color);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .toggle-content {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--main-5);
+    border-top: 1px solid var(--slight-tint);
 }
 
 /* Color picker section */
@@ -111,25 +124,46 @@ textarea.v-input {
 }
 
 .color-picker-item {
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .color-picker-item .v-span {
     display: block;
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--font-alt-color);
 }
 
-/* Actions */
+/* Actions - clean buttons */
 .actions {
     margin-top: 1.5rem;
     display: flex;
     justify-content: flex-start;
-    gap: 1rem;
+    gap: 0.5rem;
 }
 
 .actions .v-btn {
-    min-width: 120px;
+    box-shadow: none;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+}
+
+.actions .v-btn.primary {
+    background: var(--p-cyan);
+    border: none;
+}
+
+.actions .v-btn.primary:hover {
+    background: color-mix(in srgb, var(--p-cyan) 85%, white);
+}
+
+.actions .v-btn.secondary {
+    background: var(--main-4);
+    border: 1px solid var(--slight-tint);
+}
+
+.actions .v-btn.secondary:hover {
+    background: var(--main-5);
 }
 
 /* Custom file input */
@@ -139,4 +173,27 @@ textarea.v-input {
 
 .custom-file-input input {
     margin-top: 0.5rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .profile-editor-container {
+        padding: 0 0.5rem;
+    }
+
+    .toggle-item {
+        margin: 0 -0.5rem 0.5rem;
+    }
+
+    .color-pickers {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .actions .v-btn {
+        width: 100%;
+    }
 }

@@ -1,70 +1,64 @@
-﻿/* Settings Layout */
+/* Settings Layout - Modern Flat Design */
 .settings-container {
-    max-width: 800px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 0.5rem;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
 }
 
+/* Section styling - no boxes, just spacing and dividers */
 .editor-section {
-    background-color: var(--main-3);
-    border-radius: var(--main-radius);
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    border-left: 3px solid var(--p-cyan);
-    transition: box-shadow 0.2s ease;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--slight-tint);
 }
 
-.editor-section:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.editor-section:last-child {
+    border-bottom: none;
 }
 
-.editor-section.security {
-    border-left-color: var(--p-purple);
-}
-
-.editor-section.danger-zone {
-    border-left-color: var(--p-red);
-}
-
-/* Section headings */
+/* Section headings - clean typography */
 .editor-section-title {
-    font-size: 1.2rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--main-4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--p-cyan);
+    margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
+.editor-section-title i {
+    font-size: 0.85rem;
+}
+
+.editor-section.security .editor-section-title {
+    color: var(--p-purple);
+}
+
+.editor-section.danger-zone .editor-section-title {
+    color: var(--p-red);
+}
+
 .subtitle {
     color: var(--font-alt-color);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: 1.25rem;
 }
 
-/* User preview styling */
+/* User preview - subtle card */
 .preview {
-    background-color: var(--main-4);
+    background-color: var(--main-3);
     display: inline-block;
     padding: 0.5rem;
     border-radius: var(--main-radius);
-    transform-origin: left center;
     margin: 0.5rem 0 1.5rem;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--slight-tint);
 }
 
-.preview:hover {
-    transform: scale(1.02);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* Form elements */
+/* Form elements - clean and minimal */
 .form-group {
     margin-bottom: 1.25rem;
 }
@@ -73,120 +67,142 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    color: var(--font-color);
 }
 
 .input-group {
     display: flex;
     max-width: 400px;
-    border-radius: var(--main-radius);
-    overflow: hidden;
-    transition: box-shadow 0.2s ease;
-}
-
-.input-group:hover {
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    gap: 0.5rem;
 }
 
 .input-group .v-input {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
     flex: 1;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    box-shadow: none;
+    margin-bottom: 0;
+}
+
+.input-group .v-input:focus {
+    border-color: var(--p-cyan);
+    box-shadow: 0 0 0 2px rgba(55, 164, 206, 0.1);
 }
 
 .input-group .v-btn {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
+    flex-shrink: 0;
+    box-shadow: none;
+    background: var(--p-cyan);
+    border: none;
+}
+
+.input-group .v-btn:hover {
+    background: color-mix(in srgb, var(--p-cyan) 85%, white);
 }
 
 .helper-text {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--font-alt-color);
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
 }
 
-/* Avatar styling */
+/* Avatar styling - clean */
 .avatar-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 1rem 0;
+    padding: 1rem 0;
 }
 
 .avatar {
-    width: 128px;
-    height: 128px;
-    border: 3px solid var(--main-5);
+    width: 120px;
+    height: 120px;
+    border: 2px solid var(--slight-tint);
     border-radius: var(--main-radius);
     cursor: pointer;
     object-fit: cover;
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .avatar:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
     border-color: var(--p-cyan);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Toggle item styling */
+/* Toggle/Setting rows - flat design */
 .toggle-item {
-    background-color: var(--main-4);
-    border-radius: var(--small-radius);
     padding: 1rem;
-    margin-bottom: 0.75rem;
+    margin: 0 -1rem;
+    border-radius: var(--main-radius);
+    transition: background-color 0.15s ease;
+}
+
+.toggle-item:hover {
+    background-color: var(--main-3);
 }
 
 .toggle-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .toggle-title {
     font-weight: 500;
+    font-size: 0.95rem;
 }
 
 .toggle-description {
     color: var(--font-alt-color);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .toggle-content {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--main-5);
+    border-top: 1px solid var(--slight-tint);
 }
 
-/* Status badges */
+/* Status badges - pill style */
 .status-badge {
-    background-color: var(--main-5);
-    border-radius: 20px;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.75rem;
+    background-color: var(--main-4);
+    border-radius: 100px;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .status-badge.enabled {
-    background-color: rgba(var(--p-cyan-rgb), 0.2);
+    background-color: rgba(55, 164, 206, 0.15);
     color: var(--p-cyan);
 }
 
-/* MFA section */
+/* MFA status - clean inline */
 .mfa-status {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem;
-    border-radius: var(--small-radius);
-    background-color: var(--main-5);
+    padding: 0.75rem 1rem;
+    border-radius: var(--main-radius);
+    background-color: var(--main-3);
     margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.mfa-status i {
+    font-size: 1.1rem;
+    color: var(--font-alt-color);
 }
 
 .mfa-status.enabled {
-    background-color: rgba(var(--p-cyan-rgb), 0.1);
+    background-color: rgba(55, 164, 206, 0.1);
+}
+
+.mfa-status.enabled i {
     color: var(--p-cyan);
 }
 
@@ -195,17 +211,18 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 0;
+    color: var(--font-alt-color);
 }
 
-/* Loading state */
+/* Loading spinner */
 .loading-indicator {
     display: inline-block;
-    width: 1.5rem;
-    height: 1.5rem;
-    border: 2px solid var(--main-5);
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--slight-tint);
     border-radius: 50%;
     border-top-color: var(--p-cyan);
-    animation: spinner 0.8s linear infinite;
+    animation: spinner 0.7s linear infinite;
 }
 
 @keyframes spinner {
@@ -214,27 +231,55 @@
     }
 }
 
-/* Action buttons */
+/* Action buttons - clean row */
 .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.5rem;
     margin-top: 1rem;
 }
 
-.v-btn {
-    min-width: 120px;
+.actions .v-btn {
+    box-shadow: none;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+}
+
+.actions .v-btn.secondary {
+    background: var(--main-4);
+    border: 1px solid var(--slight-tint);
+}
+
+.actions .v-btn.secondary:hover {
+    background: var(--main-5);
+}
+
+.actions .v-btn.danger {
+    background: var(--p-red);
+    border: none;
+}
+
+.actions .v-btn.danger:hover {
+    background: color-mix(in srgb, var(--p-red) 85%, white);
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .input-group {
-        max-width: 100%;
+    .settings-container {
+        padding: 0 0.5rem;
     }
 
-    .preview {
+    .input-group {
+        max-width: 100%;
+        flex-direction: column;
+    }
+
+    .input-group .v-btn {
         width: 100%;
-        text-align: center;
+    }
+
+    .toggle-item {
+        margin: 0 -0.5rem;
     }
 
     .actions {

@@ -210,19 +210,28 @@ public class NotificationService
         ISharedUser user,
         ISharedChannel channel)
     {
-        Models.Notification notification = new()
-        {
-            Title = user.Name + " DMed you.",
-            Body = message.Content,
-            ImageUrl = user.GetAvatar(),
-            ClickUrl = $"channels/direct/{channel.Id}/{message.Id}",
-            ChannelId = channel.Id,
-            Source = NotificationSource.DirectMessage,
-            SourceId = message.Id,
-            UserId = user.Id,
-        };
+        // Get all members of the DM channel except the sender
+        var recipientIds = await _db.ChannelMembers
+            .Where(x => x.ChannelId == channel.Id && x.UserId != user.Id)
+            .Select(x => x.UserId)
+            .ToListAsync();
 
-        await SendUserNotification(user.Id, notification);
+        foreach (var recipientId in recipientIds)
+        {
+            Models.Notification notification = new()
+            {
+                Title = user.Name + " DMed you.",
+                Body = message.Content,
+                ImageUrl = user.GetAvatar(),
+                ClickUrl = $"channels/direct/{channel.Id}/{message.Id}",
+                ChannelId = channel.Id,
+                Source = NotificationSource.DirectMessage,
+                SourceId = message.Id,
+                UserId = recipientId,
+            };
+
+            await SendUserNotification(recipientId, notification);
+        }
     }
 
     public Task HandleMentionAsync(
@@ -254,7 +263,7 @@ public class NotificationService
     )
     {
         // Ensure that the user is a member of the channel
-        if (await _db.ChannelMembers.AnyAsync(x =>
+        if (!await _db.ChannelMembers.AnyAsync(x =>
             x.UserId == mention.TargetId && x.ChannelId == message.ChannelId))
             return;
         

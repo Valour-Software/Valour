@@ -149,39 +149,37 @@ public class PushNotificationWorker : IHostedService, IDisposable
         }
     }
 
-    private readonly Stopwatch _sw = new();
-
     private async Task ProcessSubscribe(PushNotificationSubscription subscription)
     {
-        _sw.Restart();
+        var sw = Stopwatch.StartNew();
         _logger.LogInformation("Processing subscription for user {UserId}", subscription.UserId);
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.SubscribeAsync(subscription);
-        _sw.Stop();
-        _logger.LogInformation("Subscription processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
+        sw.Stop();
+        _logger.LogInformation("Subscription processed in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
     }
 
     private async Task ProcessUnsubscribe(PushNotificationSubscription subscription)
     {
-        _sw.Restart();
+        var sw = Stopwatch.StartNew();
         _logger.LogInformation("Processing unsubscription for user {UserId}", subscription.UserId);
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.UnsubscribeAsync(subscription);
-        _sw.Stop();
-        _logger.LogInformation("Unsubscription processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
+        sw.Stop();
+        _logger.LogInformation("Unsubscription processed in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
     }
 
     private async Task ProcessRoleNotification(long roleId, NotificationContent content)
     {
-        _sw.Restart();
+        var sw = Stopwatch.StartNew();
         _logger.LogInformation("Processing role mention for role {RoleId}", roleId);
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.SendRolePushNotificationsAsync(roleId, content);
-        _sw.Stop();
-        _logger.LogInformation("Role mention processed in {ElapsedMilliseconds}ms", _sw.ElapsedMilliseconds);
+        sw.Stop();
+        _logger.LogInformation("Role mention processed in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
     }
 
     private async Task ProcessUserNotification(long userId, NotificationContent content)
