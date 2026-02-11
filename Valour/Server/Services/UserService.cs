@@ -229,6 +229,10 @@ public class UserService
 
     public async Task<UserPrivateInfo> GetUserPrivateInfoAsync(string email, bool makelowercase = true)
     {
+        email = email?.Trim();
+        if (string.IsNullOrEmpty(email))
+            return null;
+
         if (!makelowercase)
             return (await _db.PrivateInfos.FindAsync(email)).ToModel();
         else

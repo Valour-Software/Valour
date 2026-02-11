@@ -330,8 +330,10 @@ public class UserApi
 
         // Prevent trailing whitespace
         request.Username = request.Username.Trim();
-        // Prevent comparisons issues
-        request.Email = request.Email.ToLower();
+        // Sanitize email: trim, lowercase, strip invisible chars
+        request.Email = UserUtils.SanitizeEmail(request.Email);
+        if (string.IsNullOrEmpty(request.Email))
+            return ValourResult.BadRequest("Email is required.");
 
         var result = await registerService.RegisterUserAsync(request, ctx);
         if (!result.Success)

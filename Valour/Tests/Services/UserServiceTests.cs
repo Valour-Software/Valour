@@ -109,7 +109,7 @@ public class UserServiceTests : IAsyncLifetime
         var req = new RegisterUserRequest
         {
             Username = $"temp-{randomName}",
-            Email = $"temp.{randomName}@example.com".Substring(0, 18),
+            Email = $"t{randomName}@test.com",
             Password = "TempPass1!",
             DateOfBirth = new DateTime(2000, 1, 1),
             Locality = Locality.General,

@@ -62,6 +62,9 @@ public class RegisterService
         if (!emailValid.Success)
             return new(false, emailValid.Message);
 
+        // Use the validated/normalized email going forward
+        request.Email = emailValid.Data;
+
         // Check for whole blocked emails
         if (await _db.BlockedUserEmails.AnyAsync(x => x.Email.ToLower() == request.Email.ToLower()))
             return new(false, "Include request in body"); // Vague on purpose

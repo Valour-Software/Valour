@@ -1,26 +1,58 @@
-﻿using System.Net.Mail;
+using System.Net.Mail;
 using System.Text.RegularExpressions;
 
 namespace Valour.Shared.Models;
 
 public class UserUtils
 {
+    // Matches control characters, zero-width characters, and other invisible Unicode
+    private static readonly Regex InvisibleCharsRegex = new Regex(
+        @"[\u0000-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202F\u2060\uFEFF\uFFF9-\uFFFB]");
+
     /// <summary>
-    /// Allows checking if a email meets standards
+    /// Sanitizes an email address by trimming whitespace, removing invisible
+    /// characters, and normalizing to lowercase.
+    /// Returns the sanitized email, or null if the input is null/empty.
+    /// </summary>
+    public static string SanitizeEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
+        email = email.Trim().ToLower();
+        email = InvisibleCharsRegex.Replace(email, string.Empty);
+
+        return email;
+    }
+
+    /// <summary>
+    /// Validates an email address. Returns the normalized address from MailAddress
+    /// on success. The caller should use the returned address (Data) for storage
+    /// since it is the canonical form.
     /// </summary>
     public static TaskResult<string> TestEmail(string email)
     {
+        if (string.IsNullOrWhiteSpace(email))
+            return new TaskResult<string>(false, "Email was invalid.");
+
         try
         {
-            MailAddress address = new MailAddress(EmailDomainToDotCom(email));
+            // Validate the actual email, not a domain-munged version
+            var address = new MailAddress(email);
 
-            Console.WriteLine($"Email address: <{address.Address}>");
+            // Reject display-name tricks like '"Name" <real@email.com>'
+            if (address.Address != email)
+                return new TaskResult<string>(false, "Email was invalid.");
+
+            // Require a TLD (at least one dot after @)
+            var domain = email[(email.IndexOf('@') + 1)..];
+            if (!domain.Contains('.'))
+                return new TaskResult<string>(false, "Email was invalid.");
 
             return new TaskResult<string>(true, "Email was valid!", address.Address);
         }
-        catch (FormatException e)
+        catch (FormatException)
         {
-            Console.WriteLine(e.Message);
             return new TaskResult<string>(false, "Email was invalid.");
         }
     }
@@ -45,9 +77,9 @@ public class UserUtils
     private static readonly Regex HasNumbersRegex = new Regex(@"\d");
     private static readonly Regex HasSymbolsRegex = new Regex(@"\W");
 
-    private static readonly TaskResult PasswordFailedResult = 
+    private static readonly TaskResult PasswordFailedResult =
         new TaskResult(false, $"Password must be 10+ characters, with an uppercase letter, lowercase letter, and number or symbol.");
-    
+
     /// <summary>
     /// Returns success if a password meets complexity rules
     /// </summary>
@@ -63,37 +95,4 @@ public class UserUtils
 
         return new TaskResult(true, $"Success: The given password passed all tests.");
     }
-
-    /// <summary>
-    /// Returns the user's email domain as .com, filters for extended domains i.e. @example.test.me
-    /// </summary>
-    /// <param name="email"></param>
-    /// <returns>
-    /// Email as submitted or adjusted to .com
-    /// </returns>
-    private static string EmailDomainToDotCom(string email)
-    {
-        var dotCom = ".com";
-        var atIndex = email.IndexOf('@');
-        if (atIndex == -1)
-        {
-            return email;
-        }
-        var domain = email.Substring(atIndex + 1);
-
-
-        if (!domain.EndsWith(dotCom))
-        {
-            var lastDotIndex = email.LastIndexOf('.');
-            if (lastDotIndex <= atIndex)
-            {
-                return email;
-            }
-
-            email = email.Substring(0, lastDotIndex) + dotCom;
-        }
-        return email;
-    }
 }
-
-
