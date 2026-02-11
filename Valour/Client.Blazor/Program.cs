@@ -25,7 +25,7 @@ public class Program
         
         builder.UseSentry(options =>
         {
-            options.Dsn = "https://9e512a64a799404e923e3663bb3f1b18@glitchtip.valour.gg/1";
+            options.Dsn = "https://879f3056b27211d90384601b6e7691fd@o4510867505479680.ingest.us.sentry.io/4510867508035584";
             options.MinimumEventLevel = LogLevel.Error;
         });
 
