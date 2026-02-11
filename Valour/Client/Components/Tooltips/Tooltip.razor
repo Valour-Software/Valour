@@ -27,6 +27,15 @@
     {
         MouseListener.SubscribeMouseMove(MouseCheck);
     }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+        if (firstRender)
+        {
+            Show();
+        }
+    }
     
     private async Task MouseCheck(MousePosition mousePosition)
     {
