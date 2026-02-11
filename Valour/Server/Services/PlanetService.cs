@@ -392,15 +392,18 @@ public class PlanetService
             _logger.LogWarning("Tried to delete planet {PlanetId} but it does not exist.", planetId);
             return;
         }
-        
+
         entity.IsDeleted = true;
-        
+
         _db.Planets.Update(entity);
         await _db.SaveChangesAsync();
-        
+
         var model = entity.ToModel();
-        
+
         _coreHub.NotifyPlanetDelete(model);
+
+        // Remove from hosted planet cache so the server stops serving it
+        _hostedPlanetService.Remove(planetId);
     }
     
     /// <summary>

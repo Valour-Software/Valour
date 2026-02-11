@@ -312,7 +312,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     protected override void OnDeleted()
     {
-
+        Client?.PlanetService.RemoveJoinedPlanet(this);
     }
 
     public void Dispose()
