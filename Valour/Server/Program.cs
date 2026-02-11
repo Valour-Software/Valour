@@ -404,6 +404,7 @@ public partial class Program
             c.AddSecurityDefinition("Token", new OpenApiSecurityScheme()
             {
                 Description = "The token used for authorizing your account.",
+                Name = "Authorization",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.ApiKey,
                 Scheme = "Token"
