@@ -1,4 +1,4 @@
-﻿.theme-card {
+.theme-card {
     background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
     border-radius: var(--card-radius);
     padding: 0;
@@ -8,12 +8,12 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     color: var(--font-color);
-    height: 320px;
-    min-height: 320px;
-    max-height: 320px;
+    height: 380px;
+    min-height: 380px;
+    max-height: 380px;
     width: 100%;
     min-width: 0;
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.4),
         0 2px 8px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -30,9 +30,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, 
-        rgba(55, 164, 206, 0.1) 0%, 
-        rgba(132, 87, 205, 0.05) 50%, 
+    background: linear-gradient(135deg,
+        rgba(55, 164, 206, 0.1) 0%,
+        rgba(132, 87, 205, 0.05) 50%,
         rgba(98, 120, 205, 0.1) 100%);
     border-radius: var(--card-radius);
     opacity: 0;
@@ -42,7 +42,7 @@
 
 .theme-card:hover {
     transform: translateY(-2px) scale(1.01);
-    box-shadow: 
+    box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.5),
         0 4px 16px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -82,7 +82,7 @@
     display: flex;
     flex-direction: column;
     padding: 1rem;
-    gap: 0.5rem;
+    gap: 0.25rem;
     min-height: 0;
 }
 
@@ -99,6 +99,15 @@
     text-overflow: ellipsis;
 }
 
+.theme-author {
+    font-size: 0.8rem;
+    color: var(--font-alt-color);
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .theme-description {
     font-size: 0.85rem;
     font-weight: 400;
@@ -109,18 +118,25 @@
     white-space: normal;
     margin: 0;
     flex: 1 1 auto;
-    min-height: 2.4rem;
-    max-height: 3.6rem;
+    min-height: 1.4rem;
+    max-height: 2.8rem;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+
+.theme-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: auto;
+    flex-shrink: 0;
 }
 
 .theme-actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: auto;
     flex-shrink: 0;
 }
 
@@ -186,6 +202,41 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.theme-voting {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.vote-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--main-5);
+    background: var(--main-4);
+    color: var(--font-alt-color);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.vote-btn:hover {
+    background: var(--main-5);
+    border-color: var(--medium-tint);
+}
+
+.vote-btn.active {
+    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
+    border-color: var(--p-cyan);
+    color: white;
+}
+
+.vote-btn i {
+    font-size: 0.8rem;
+}
+
 .theme-card-loading {
     opacity: 0.7;
     pointer-events: none;
@@ -223,11 +274,11 @@
     max-height: 100px;
     aspect-ratio: 1/2;
     object-fit: contain;
-    
+
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
-    
+
     background-color: #535353;
 }
 
@@ -242,26 +293,26 @@
 
 @media (max-width: 768px) {
     .theme-card {
-        height: 300px;
-        min-height: 300px;
-        max-height: 300px;
+        height: 360px;
+        min-height: 360px;
+        max-height: 360px;
     }
-    
+
     .theme-banner {
         height: 100px;
     }
-    
+
     .theme-title {
         font-size: 1rem;
     }
-    
+
     .theme-description {
         font-size: 0.8rem;
         -webkit-line-clamp: 2;
-        min-height: 2rem;
+        min-height: 1.4rem;
         max-height: 2rem;
     }
-    
+
     .theme-btn {
         font-size: 0.75rem;
         padding: 0.4rem 0.6rem;

@@ -63,7 +63,10 @@ public class ThemeService : ServiceBase
             HasCustomBanner = serverMeta.HasCustomBanner,
             HasAnimatedBanner = serverMeta.HasAnimatedBanner,
             MainColor1 = serverMeta.MainColor1,
-            PastelCyan = serverMeta.PastelCyan
+            PastelCyan = serverMeta.PastelCyan,
+            AuthorName = serverMeta.AuthorName,
+            Upvotes = serverMeta.Upvotes,
+            Downvotes = serverMeta.Downvotes
         }).ToList();
     }
 }

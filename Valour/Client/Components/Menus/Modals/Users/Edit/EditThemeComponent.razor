@@ -226,30 +226,29 @@ else
     <br/>
     <br />
     
-    <div class="search-title">
+    <div class="theme-section">
         <h5>Popular Themes</h5>
-        <LargeSearch Placeholder="Search themes..." 
-                     DebounceMs="300" 
-                     OnSearchChanged="@OnSearchChangeAsync" 
+        <LargeSearch Placeholder="Search themes..."
+                     DebounceMs="300"
+                     OnSearchChanged="@OnSearchChangeAsync"
                      OnSearchCleared="@OnSearchCleared" />
-    </div>
-    
-    <div class="carousel-section">
-        <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
-                  @ref="_popularCarousel"
-                  Items="@_popularThemesList"
-                  Breakpoints="@_themeBreakpoints"
-                  GapPx="16"
-                  TransitionMs="300"
-                  MinItemWidth="200"
-                  MaxItemWidth="300"
-                  ItemPadding="8"
-                  IsLoading="@_isLoadingPopular"
-                  EmptyMessage="No popular themes found">
-            <ItemTemplate>
-                <ThemeCard Theme="@context" Editor="@this" />
-            </ItemTemplate>
-        </Carousel>
+        <div class="carousel-section">
+            <Carousel TItem="Valour.Sdk.Models.Themes.ThemeMeta"
+                      @ref="_popularCarousel"
+                      Items="@_popularThemesList"
+                      Breakpoints="@_themeBreakpoints"
+                      GapPx="16"
+                      TransitionMs="300"
+                      MinItemWidth="200"
+                      MaxItemWidth="300"
+                      ItemPadding="8"
+                      IsLoading="@_isLoadingPopular"
+                      EmptyMessage="No popular themes found">
+                <ItemTemplate>
+                    <ThemeCard Theme="@context" Editor="@this" />
+                </ItemTemplate>
+            </Carousel>
+        </div>
     </div>
     
     <div class="theme-section">
@@ -700,6 +699,11 @@ else
             _isLoadingPopular = false;
             _isLoadingMy = false;
             StateHasChanged();
+
+            if (_popularCarousel is not null)
+                await _popularCarousel.Reset();
+            if (_myCarousel is not null)
+                await _myCarousel.Reset();
         }
     }
     

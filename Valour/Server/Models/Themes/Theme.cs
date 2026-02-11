@@ -36,4 +36,9 @@ public class Theme : ISharedTheme
     public string PastelRed { get; set; }
     
     public string CustomCss { get; set; }
+
+    // ISharedThemeMeta fields (computed, not persisted on Theme)
+    public string AuthorName { get; set; }
+    public int Upvotes { get; set; }
+    public int Downvotes { get; set; }
 }

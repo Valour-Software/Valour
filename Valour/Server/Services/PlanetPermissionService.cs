@@ -420,7 +420,10 @@ public class PlanetPermissionService
         }
 
         var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(member.RoleMembership, channel.Id);
-        var cache = hosted.PermissionCache.GetChannelCache(channel.ChannelType);
+        // Use targetType for cache, not channel.ChannelType, because when a chat channel
+        // inherits from a category, the effective channel is the category but we need to
+        // cache chat permissions separately from category permissions.
+        var cache = hosted.PermissionCache.GetChannelCache(targetType);
         var cachedPerms = cache.GetChannelPermission(channelKey);
         if (cachedPerms is not null)
             return cachedPerms.Value;
@@ -438,17 +441,17 @@ public class PlanetPermissionService
 
             roles.Add(role);
         }
-        
+
         // Roles need to be ordered by position descending (weakest to strongest)
         roles.Sort(ISortable.ComparerDescending);
-        
+
         var computedPerms =
             await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel, hosted, targetType);
-        
+
         RoleListPool.Return(roles);
-        
+
         cache.Set(member.RoleMembership, channel.Id, computedPerms);
-        
+
         return computedPerms;
     }
 
@@ -460,7 +463,9 @@ public class PlanetPermissionService
         ChannelTypeEnum targetType)
     {
         var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleMembership, channel.Id);
-        var permCache = hostedPlanet.PermissionCache.GetChannelCache(channel.ChannelType);
+        // Use targetType for cache, not channel.ChannelType - the effective channel may be
+        // a category but we're computing permissions for a specific channel type (chat/voice/category).
+        var permCache = hostedPlanet.PermissionCache.GetChannelCache(targetType);
 
         var cachedPerms = permCache.GetChannelPermission(channelKey);
         if (cachedPerms != null)

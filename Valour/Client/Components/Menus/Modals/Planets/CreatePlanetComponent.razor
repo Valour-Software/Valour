@@ -106,7 +106,7 @@
      var planet = result.Data.Sync(Client);
      PlanetService.AddJoinedPlanet(planet);
 
-     await planet.FetchChannelsAsync();
+     await planet.FetchInitialDataAsync();
      var mainChannel = planet.PrimaryChatChannel;
 
      await Data.Window.Layout.AddTab(await ChatWindowComponent.GetDefaultContent(mainChannel));

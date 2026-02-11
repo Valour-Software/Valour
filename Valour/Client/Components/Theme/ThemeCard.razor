@@ -1,4 +1,4 @@
-﻿@if (Theme is null)
+@if (Theme is null)
 {
     <div class="theme-card theme-card-loading">
         <div class="theme-banner">
@@ -27,54 +27,105 @@
     }
     else
     {
-        <div class="theme-banner theme-banner-default" style="background-color: @Theme.MainColor1"> 
+        <div class="theme-banner theme-banner-default" style="background-color: @Theme.MainColor1">
             <Victor Style="max-width: 80px; padding: 5px; padding-top: 10px;" Color="@Theme.PastelCyan" />
         </div>
     }
-    
+
     <div class="theme-content">
         <h3 class="theme-title">@Theme.Name</h3>
+        <span class="theme-author">by @Theme.AuthorName</span>
         <p class="theme-description">@Theme.Description</p>
-        
-        <div class="theme-actions">
-            <button class="theme-btn theme-btn-primary" @onclick:stopPropagation="true" @onclick="@OnApplyTheme">
-                <i class="bi bi-palette"></i>
-                Apply
-            </button>
-            @if (Editor != null)
-            {
-                <button class="theme-btn theme-btn-secondary" @onclick:stopPropagation="true" @onclick="@OnEditTheme">
-                    <i class="bi bi-pencil"></i>
-                    Edit
+
+        <div class="theme-footer">
+            <div class="theme-actions">
+                <button class="theme-btn theme-btn-primary" @onclick:stopPropagation="true" @onclick="@OnApplyTheme">
+                    <i class="bi bi-palette"></i>
+                    Apply
                 </button>
-            }
+                @if (Editor != null)
+                {
+                    <button class="theme-btn theme-btn-secondary" @onclick:stopPropagation="true" @onclick="@OnEditTheme">
+                        <i class="bi bi-pencil"></i>
+                        Edit
+                    </button>
+                }
+                <button class="theme-btn theme-btn-secondary" @onclick:stopPropagation="true" @onclick="@OnClickTip">
+                    <i class="bi bi-coin"></i>
+                    Tip
+                </button>
+            </div>
+            <div class="theme-voting">
+                <button class="vote-btn vote-up @(_myUpvote ? "active" : "")" @onclick:stopPropagation="true" @onclick="@OnUpvoteAsync">
+                    <i class="bi bi-hand-thumbs-up-fill"></i>
+                    <span>@_upvotes</span>
+                </button>
+                <button class="vote-btn vote-down @(_myDownvote ? "active" : "")" @onclick:stopPropagation="true" @onclick="@OnDownvoteAsync">
+                    <i class="bi bi-hand-thumbs-down-fill"></i>
+                    <span>@_downvotes</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
+@inject ValourClient Client
+@inject UserService UserService
 @inject ThemeService ThemeService
 
 @code {
     [CascadingParameter]
     public ModalRoot ModalRoot { get; set; }
-    
+
     [Parameter]
     public Valour.Sdk.Models.Themes.ThemeMeta Theme { get; set; }
-    
+
     [Parameter]
     public EditThemeComponent Editor { get; set; }
 
+    private Valour.Sdk.Models.Themes.Theme _theme;
+    private ThemeVote _myVote;
+    private User _authorUser;
+
+    private int _upvotes;
+    private int _downvotes;
+    private bool _myUpvote;
+    private bool _myDownvote;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Theme is null) return;
+
+        _upvotes = Theme.Upvotes;
+        _downvotes = Theme.Downvotes;
+
+        _theme = await ThemeService.FetchThemeAsync(Theme.Id);
+        if (_theme is null) return;
+
+        _theme = _theme.Sync(Client);
+
+        _authorUser = await UserService.FetchUserAsync(Theme.AuthorId);
+
+        _myVote = await _theme.GetMyVote();
+        if (_myVote is not null)
+        {
+            _myVote.SetClient(Client);
+            _myUpvote = _myVote.Sentiment;
+            _myDownvote = !_myVote.Sentiment;
+        }
+
+        StateHasChanged();
+    }
+
     private void OnClick()
     {
-        // Card click handled by individual buttons now
     }
 
     private async Task OnApplyTheme()
     {
         if (Theme == null) return;
 
-        // Apply the theme
-        var theme = await ThemeService.FetchThemeAsync(Theme.Id);
+        var theme = _theme ?? await ThemeService.FetchThemeAsync(Theme.Id);
         if (theme != null)
         {
             await ThemeComponent.Instance.InstallTheme(theme);
@@ -84,12 +135,123 @@
     private async Task OnEditTheme()
     {
         if (Editor == null || Theme == null) return;
-        
-        // Open the theme in the editor
-        var theme = await ThemeService.FetchThemeAsync(Theme.Id);
+
+        var theme = _theme ?? await ThemeService.FetchThemeAsync(Theme.Id);
         if (theme != null)
         {
             Editor.OpenEditorWithTheme(theme);
         }
+    }
+
+    private void OnClickTip()
+    {
+        if (_authorUser is null) return;
+
+        ModalInjector.Service.OpenModal<EcoPayModal>(new EcoPayModal.ModalParams()
+        {
+            TargetUserNameAndTag = _authorUser.NameAndTag
+        });
+    }
+
+    private async Task OnUpvoteAsync()
+    {
+        if (_theme is null) return;
+
+        if (_myVote is not null)
+        {
+            if (_myVote.Sentiment)
+            {
+                var result = await _myVote.DeleteAsync();
+                if (result.Success)
+                {
+                    _upvotes--;
+                    _myUpvote = false;
+                    _myVote = null;
+                }
+            }
+            else
+            {
+                _myVote.Sentiment = true;
+                var result = await _myVote.UpdateAsync();
+                if (result.Success)
+                {
+                    _upvotes++;
+                    _downvotes--;
+                    _myUpvote = true;
+                    _myDownvote = false;
+                }
+            }
+        }
+        else
+        {
+            var vote = new ThemeVote(Client)
+            {
+                ThemeId = _theme.Id,
+                Sentiment = true,
+                UserId = Client.Me.Id,
+            };
+
+            var result = await vote.CreateAsync();
+            if (result.Success)
+            {
+                _upvotes++;
+                _myUpvote = true;
+                _myVote = result.Data;
+                _myVote?.SetClient(Client);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnDownvoteAsync()
+    {
+        if (_theme is null) return;
+
+        if (_myVote is not null)
+        {
+            if (!_myVote.Sentiment)
+            {
+                var result = await _myVote.DeleteAsync();
+                if (result.Success)
+                {
+                    _downvotes--;
+                    _myDownvote = false;
+                    _myVote = null;
+                }
+            }
+            else
+            {
+                _myVote.Sentiment = false;
+                var result = await _myVote.UpdateAsync();
+                if (result.Success)
+                {
+                    _downvotes++;
+                    _upvotes--;
+                    _myDownvote = true;
+                    _myUpvote = false;
+                }
+            }
+        }
+        else
+        {
+            var vote = new ThemeVote(Client)
+            {
+                ThemeId = _theme.Id,
+                Sentiment = false,
+                UserId = Client.Me.Id,
+            };
+
+            var result = await vote.CreateAsync();
+            if (result.Success)
+            {
+                _downvotes++;
+                _myDownvote = true;
+                _myVote = result.Data;
+                _myVote?.SetClient(Client);
+            }
+        }
+
+        StateHasChanged();
     }
 }

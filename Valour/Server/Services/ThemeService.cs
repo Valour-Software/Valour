@@ -63,6 +63,9 @@ public class ThemeService
             .Select(x => new
             {
                 Theme = x,
+                AuthorName = x.Author.Name,
+                Upvotes = x.ThemeVotes.Count(v => v.Sentiment),
+                Downvotes = x.ThemeVotes.Count(v => !v.Sentiment),
                 VoteCount = x.ThemeVotes.Count(v => v.Sentiment) -
                             x.ThemeVotes.Count(v => !v.Sentiment)
             })
@@ -78,7 +81,10 @@ public class ThemeService
                 HasCustomBanner = x.Theme.HasCustomBanner,
                 HasAnimatedBanner = x.Theme.HasAnimatedBanner,
                 MainColor1 = x.Theme.MainColor1,
-                PastelCyan = x.Theme.PastelCyan
+                PastelCyan = x.Theme.PastelCyan,
+                AuthorName = x.AuthorName,
+                Upvotes = x.Upvotes,
+                Downvotes = x.Downvotes
             }).ToListAsync();
 
         return new QueryResponse<ThemeMeta>()
@@ -100,7 +106,10 @@ public class ThemeService
             HasCustomBanner = x.HasCustomBanner,
             HasAnimatedBanner = x.HasAnimatedBanner,
             MainColor1 = x.MainColor1,
-            PastelCyan = x.PastelCyan
+            PastelCyan = x.PastelCyan,
+            AuthorName = x.Author.Name,
+            Upvotes = x.ThemeVotes.Count(v => v.Sentiment),
+            Downvotes = x.ThemeVotes.Count(v => !v.Sentiment)
         }).ToListAsync();
     }
 

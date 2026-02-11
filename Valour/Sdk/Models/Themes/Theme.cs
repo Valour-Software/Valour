@@ -71,7 +71,12 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
     public string PastelRed { get; set; }
     
     public string CustomCss { get; set; }
-    
+
+    // ISharedThemeMeta fields (computed, not persisted on Theme)
+    public string AuthorName { get; set; }
+    public int Upvotes { get; set; }
+    public int Downvotes { get; set; }
+
     private Theme() : base() {}
     public Theme (ValourClient client) : base(client) {}
     

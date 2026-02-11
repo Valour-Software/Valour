@@ -14,7 +14,11 @@ public class ThemeMeta : ClientModel<ThemeMeta, long>, ISharedThemeMeta
     
     public string MainColor1 { get; set; }
     public string PastelCyan { get; set; }
-    
+
+    public string AuthorName { get; set; }
+    public int Upvotes { get; set; }
+    public int Downvotes { get; set; }
+
     public string GetBannerUrl(ThemeBannerFormat format = ThemeBannerFormat.Webp)
     {
         return ISharedTheme.GetBannerUrl(this, format);

@@ -13,4 +13,8 @@ public class ThemeMeta : ISharedThemeMeta
     
     public string MainColor1 { get; set; }
     public string PastelCyan { get; set; }
+
+    public string AuthorName { get; set; }
+    public int Upvotes { get; set; }
+    public int Downvotes { get; set; }
 }

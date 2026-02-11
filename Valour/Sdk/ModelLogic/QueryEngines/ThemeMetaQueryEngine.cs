@@ -18,6 +18,9 @@ public class ThemeMetaDto
     public bool HasAnimatedBanner { get; set; }
     public string MainColor1 { get; set; } = string.Empty;
     public string PastelCyan { get; set; } = string.Empty;
+    public string AuthorName { get; set; } = string.Empty;
+    public int Upvotes { get; set; }
+    public int Downvotes { get; set; }
 }
 
 public class ThemeMetaQueryEngine
@@ -159,7 +162,10 @@ public class ThemeMetaQueryEngine
             HasCustomBanner = serverMeta.HasCustomBanner,
             HasAnimatedBanner = serverMeta.HasAnimatedBanner,
             MainColor1 = serverMeta.MainColor1,
-            PastelCyan = serverMeta.PastelCyan
+            PastelCyan = serverMeta.PastelCyan,
+            AuthorName = serverMeta.AuthorName,
+            Upvotes = serverMeta.Upvotes,
+            Downvotes = serverMeta.Downvotes
         }).ToList();
 
         return new QueryResponse<Valour.Sdk.Models.Themes.ThemeMeta>()
