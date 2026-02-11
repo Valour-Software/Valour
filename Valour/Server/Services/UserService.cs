@@ -863,17 +863,40 @@ public class UserService
 
             var recovs = _db.PasswordRecoveries.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.PasswordRecoveries.RemoveRange(recovs);
-            
+
+            // Remove multi-factor auth records
+            var multiAuths = _db.MultiAuths.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.MultiAuths.RemoveRange(multiAuths);
+
+            await _db.SaveChangesAsync();
+
+            // Remove OAuth apps owned by this user
+            var oauthApps = _db.OauthApps.IgnoreQueryFilters().Where(x => x.OwnerId == dbUser.Id);
+            _db.OauthApps.RemoveRange(oauthApps);
+
+            // Remove user subscriptions
+            var subscriptions = _db.UserSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.UserSubscriptions.RemoveRange(subscriptions);
+
+            // Remove tenor favorites
+            var tenorFavorites = _db.TenorFavorites.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
+            _db.TenorFavorites.RemoveRange(tenorFavorites);
+
             await _db.SaveChangesAsync();
             
             // Remove eco stuff
             var transactions = _db.Transactions.IgnoreQueryFilters().Where(x => x.UserFromId == dbUser.Id || x.UserToId == dbUser.Id);
             _db.Transactions.RemoveRange(transactions);
-            
+
             var ecoAccounts = _db.EcoAccounts.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.EcoAccounts.RemoveRange(ecoAccounts);
-            
+
             await _db.SaveChangesAsync();
+
+            // Remove message reactions (before planet members, since reactions FK to both)
+            await _db.MessageReactions.IgnoreQueryFilters()
+                .Where(x => x.AuthorUserId == dbUser.Id)
+                .ExecuteDeleteAsync();
 
             // Remove planet membership
             var members = _db.PlanetMembers.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -917,6 +940,17 @@ public class UserService
 
             await _db.SaveChangesAsync();
             
+            // Themes - reassign ownership to Victor (must happen before user deletion
+            // since the FK would cascade delete them)
+            var themes = _db.Themes.IgnoreQueryFilters().Where(x => x.AuthorId == dbUser.Id);
+            foreach (var theme in themes)
+            {
+                theme.AuthorId = ISharedUser.VictorUserId;
+                _db.Themes.Update(theme);
+            }
+
+            await _db.SaveChangesAsync();
+
             // profile
             var profile = await _db.UserProfiles.FindAsync(dbUser.Id);
             if (profile is not null)
@@ -927,29 +961,16 @@ public class UserService
 
             _db.Users.Remove(dbUser);
             await _db.SaveChangesAsync();
-            
-            // Themes
-            // we re-assign ownership of themes to Victor
-            
-            var themes = _db.Themes.IgnoreQueryFilters().Where(x => x.AuthorId == dbUser.Id);
-            foreach (var theme in themes)
-            {
-                theme.AuthorId = ISharedUser.VictorUserId;
-                _db.Themes.Update(theme);
-            }
-            
-            await _db.SaveChangesAsync();
         
             await tran.CommitAsync();
-            Console.WriteLine("Deleting " + dbUser.Name);
+            _logger.LogInformation("Hard deleted user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
 
             return TaskResult.SuccessResult;
         }
         catch(System.Exception e)
         {
             await tran.RollbackAsync();
-            Console.WriteLine("Error Hard Deleting User!");
-            Console.WriteLine(e.Message);
+            _logger.LogError(e, "Error hard deleting user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
             
             return new TaskResult(false, "An unexpected Database error occured.");
         }

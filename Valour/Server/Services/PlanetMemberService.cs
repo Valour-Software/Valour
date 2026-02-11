@@ -469,6 +469,13 @@ public class PlanetMemberService
         if (updated == 0)
             return new TaskResult(false, "Member not found.");
 
+        // ExecuteUpdateAsync bypasses the change tracker, so any tracked entity
+        // is now stale. Reload it so subsequent reads see the updated value.
+        var tracked = _db.ChangeTracker.Entries<Valour.Database.PlanetMember>()
+            .FirstOrDefault(e => e.Entity.Id == memberId);
+        if (tracked != null)
+            await tracked.ReloadAsync();
+
         // Fetch updated member for notification
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is not null)
@@ -476,7 +483,7 @@ public class PlanetMemberService
 
         return new TaskResult(true, "Success");
     }
-    
+
     public async Task<TaskResult> RemoveRoleAsync(long planetId, long memberId, long roleId)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
@@ -517,6 +524,13 @@ public class PlanetMemberService
 
         if (updated == 0)
             return new TaskResult(false, "Member not found.");
+
+        // ExecuteUpdateAsync bypasses the change tracker, so any tracked entity
+        // is now stale. Reload it so subsequent reads see the updated value.
+        var tracked = _db.ChangeTracker.Entries<Valour.Database.PlanetMember>()
+            .FirstOrDefault(e => e.Entity.Id == memberId);
+        if (tracked != null)
+            await tracked.ReloadAsync();
 
         // Fetch updated member for notification
         var member = await _db.PlanetMembers.FindAsync(memberId);

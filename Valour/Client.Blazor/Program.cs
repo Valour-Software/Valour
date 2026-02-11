@@ -22,6 +22,12 @@ public class Program
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
         builder.RootComponents.Add<App>("app");
         builder.Services.AddBlazoredLocalStorage();
+        
+        builder.UseSentry(options =>
+        {
+            options.Dsn = "https://9e512a64a799404e923e3663bb3f1b18@glitchtip.valour.gg/1";
+            options.MinimumEventLevel = LogLevel.Error;
+        });
 
         var loggingService = new LoggingService(false);
         var client = new ValourClient("https://app.valour.gg", loggingService);

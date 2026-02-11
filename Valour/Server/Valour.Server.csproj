@@ -32,8 +32,8 @@
     <PackageReference Include="Npgsql" Version="10.0.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="SendGrid" Version="9.29.3" />
-    <PackageReference Include="Sentry" Version="6.0.0" />
-    <PackageReference Include="Sentry.AspNetCore" Version="6.0.0" />
+    <PackageReference Include="Sentry" Version="6.1.0" />
+    <PackageReference Include="Sentry.AspNetCore" Version="6.1.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
