@@ -616,9 +616,13 @@ public class ChannelService
         }
         else
         {
-            max = await _db.Channels
-                .Where(x => x.PlanetId == planetId && x.ParentId == null) // Only root channels
-                .MaxAsync(x => x.RawPosition);
+            var rootChannels = _db.Channels
+                .Where(x => x.PlanetId == planetId && x.ParentId == null);
+
+            if (await rootChannels.AnyAsync())
+            {
+                max = await rootChannels.MaxAsync(x => x.RawPosition);
+            }
         }
 
         var localMax = ChannelPosition.GetLocalPosition(max);
