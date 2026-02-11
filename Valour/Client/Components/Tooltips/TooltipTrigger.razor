@@ -1,22 +1,24 @@
-﻿<div @ref="@OuterReference" class="tooltip-trigger" @onmouseenter="OnMouseEnter" @onmouseleave="OnMouseLeave">
+﻿@implements IDisposable
+
+<div @ref="@OuterReference" class="tooltip-trigger" @onmouseenter="OnMouseEnter" @onmouseleave="OnMouseLeave">
     @ChildContent
 </div>
 
 @using System.Timers
 
 @code {
-    
+
     // Used for the root to identify tooltip triggers
     public readonly string TriggerId = Guid.NewGuid().ToString();
-    
+
     public ElementReference OuterReference { get; set; }
-    
+
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
     [Parameter]
     public RenderFragment TooltipContent { get; set; }
-    
+
     [Parameter]
     public string Position { get; set; } = "top"; // Default position
 
@@ -25,50 +27,63 @@
 
     [Parameter]
     public string TooltipStyle { get; set; }
-    
+
     [Parameter]
     public int ShowDelay { get; set; } = 300; // Delay before showing tooltip (ms)
-    
+
     [Parameter]
     public int HideDelay { get; set; } = 100; // Delay before hiding tooltip (ms)
 
     private Timer? _showTimer;
     private Timer? _hideTimer;
     private bool _isHovering = false;
+    private bool _disposed = false;
 
     public void OnMouseEnter()
     {
+        if (_disposed) return;
+
         _isHovering = true;
-        
+
         // Cancel any hide timer
         _hideTimer?.Stop();
-        
-        // Start show timer
+        _hideTimer?.Dispose();
+        _hideTimer = null;
+
+        // Start show timer (fire once)
         _showTimer?.Stop();
+        _showTimer?.Dispose();
         _showTimer = new Timer(ShowDelay);
-        _showTimer.Elapsed += (sender, e) => 
+        _showTimer.AutoReset = false;
+        _showTimer.Elapsed += (sender, e) =>
         {
-            if (_isHovering)
+            if (_isHovering && !_disposed)
             {
                 ShowTooltip();
             }
         };
         _showTimer.Start();
     }
-    
+
     public void OnMouseLeave()
     {
+        if (_disposed) return;
+
         _isHovering = false;
-        
+
         // Cancel any show timer
         _showTimer?.Stop();
-        
-        // Start hide timer
+        _showTimer?.Dispose();
+        _showTimer = null;
+
+        // Start hide timer (fire once)
         _hideTimer?.Stop();
+        _hideTimer?.Dispose();
         _hideTimer = new Timer(HideDelay);
-        _hideTimer.Elapsed += async (sender, e) => 
+        _hideTimer.AutoReset = false;
+        _hideTimer.Elapsed += async (sender, e) =>
         {
-            if (!_isHovering)
+            if (!_isHovering && !_disposed)
             {
                 await HideTooltip();
             }
@@ -79,10 +94,18 @@
     public void ShowTooltip() => TooltipRoot.ShowTooltip(this);
 
     public Task HideTooltip() => TooltipRoot.HideTooltip(this);
-    
+
     public void Dispose()
     {
+        _disposed = true;
+        _showTimer?.Stop();
         _showTimer?.Dispose();
+        _showTimer = null;
+        _hideTimer?.Stop();
         _hideTimer?.Dispose();
+        _hideTimer = null;
+
+        // Remove any tooltip still showing for this trigger
+        TooltipRoot.RemoveTooltipByTrigger(this);
     }
 }

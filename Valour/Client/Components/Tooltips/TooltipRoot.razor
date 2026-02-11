@@ -13,7 +13,7 @@
     }
 
     private static List<TooltipData> _tooltips = new List<TooltipData>();
-    
+
     public static void ShowTooltip(TooltipTrigger trigger)
     {
         // Check if we already have a tooltip for this trigger
@@ -26,20 +26,20 @@
             }
             return;
         }
-        
-        // Remove any other tooltips that might be showing
+
+        // Remove all existing tooltips immediately
         HideAllTooltips();
-        
+
         // Add new tooltip
         _tooltips.Add(new TooltipData
         {
             Trigger = trigger,
         });
-        
+
         // Re-render the root component
         Instance?.ReRender();
     }
-    
+
     public static async Task HideTooltip(TooltipTrigger trigger)
     {
         var tooltip = _tooltips.FirstOrDefault(x => x.Trigger.TriggerId == trigger.TriggerId);
@@ -47,19 +47,30 @@
         {
             await tooltip.Component.HideAsync();
         }
-    }
-    
-    public static void HideAllTooltips()
-    {
-        foreach (var tooltip in _tooltips.ToList())
+        else
         {
-            tooltip.Component?.HideAsync();
+            // Component was never shown or is null — just remove the entry directly
+            _tooltips.RemoveAll(x => x.Trigger.TriggerId == trigger.TriggerId);
+            Instance?.ReRender();
         }
     }
-    
+
+    public static void HideAllTooltips()
+    {
+        if (_tooltips.Count == 0) return;
+        _tooltips.Clear();
+        Instance?.ReRender();
+    }
+
     public static void RemoveTooltip(Tooltip tooltip)
     {
         _tooltips.RemoveAll(x => x.Trigger.TriggerId == tooltip.Data.Trigger.TriggerId);
+        Instance?.ReRender();
+    }
+
+    public static void RemoveTooltipByTrigger(TooltipTrigger trigger)
+    {
+        _tooltips.RemoveAll(x => x.Trigger.TriggerId == trigger.TriggerId);
         Instance?.ReRender();
     }
 }

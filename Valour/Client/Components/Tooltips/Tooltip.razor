@@ -63,13 +63,18 @@
 
     public async Task HideAsync()
     {
-        if (!_shown) return;
-        
+        if (!_shown)
+        {
+            // Was never shown — remove immediately without animation
+            TooltipRoot.RemoveTooltip(this);
+            return;
+        }
+
         _shown = false;
         ReRender();
 
         await Task.Delay(150); // Wait for the fade-out animation
-        
+
         if (!_shown) // Still hidden after fade-out
         {
             TooltipRoot.RemoveTooltip(this);
@@ -87,12 +92,10 @@
             _contentBounds = await BrowserUtils.GetElementBoundingRectAsync(_tooltipReference);
             
             _boundsCalculated = true;
-            
-            Console.WriteLine($"Actual tooltip bounds: {_contentBounds.Width}x{_contentBounds.Height}");
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error calculating tooltip bounds: {ex.Message}");
+            // Bounds calculation can fail if the element reference is stale
         }
     }
     
