@@ -496,9 +496,6 @@ public class PlanetApi
         var planet = await planetService.GetAsync(id);
 
         if (!planet.Public)
-            return Results.BadRequest("Planet is set to private");
-
-        if (!planet.Public)
         {
             if (inviteCode is null)
                 return ValourResult.Forbid("The planet is not public. Please include inviteCode.");

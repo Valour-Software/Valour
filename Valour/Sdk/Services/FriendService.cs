@@ -109,60 +109,39 @@ public class FriendService : ServiceBase
             {
                 case FriendEventType.AddedMe:
                     // Someone sent you a request
-                    if (IncomingRequests.Any(x => x.Id == user.Id))
+                    if (OutgoingRequests.Any(x => x.Id == user.Id))
                     {
-                        // If you both sent requests, now friends
+                        // We already sent them a request, so now we're mutual friends
+                        OutgoingRequests.RemoveAll(x => x.Id == user.Id);
+                        IncomingRequests.RemoveAll(x => x.Id == user.Id);
                         if (!Friends.Any(x => x.Id == user.Id))
                         {
                             Friends.Add(user);
                             FriendLookup[user.Id] = user;
                         }
-                        IncomingRequests.RemoveAll(x => x.Id == user.Id);
-                        OutgoingRequests.RemoveAll(x => x.Id == user.Id);
                     }
-                    else if (!OutgoingRequests.Any(x => x.Id == user.Id))
+                    else if (!IncomingRequests.Any(x => x.Id == user.Id))
                     {
-                        // You haven't sent a request, so just add to incoming
+                        // New incoming request
                         IncomingRequests.Add(user);
                     }
                     break;
 
-                case FriendEventType.AddedThem:
-                    // You sent a request
-                    if (OutgoingRequests.Any(x => x.Id == user.Id))
-                    {
-                        // If they also sent a request, now friends
-                        if (IncomingRequests.Any(x => x.Id == user.Id))
-                        {
-                            if (!Friends.Any(x => x.Id == user.Id))
-                            {
-                                Friends.Add(user);
-                                FriendLookup[user.Id] = user;
-                            }
-                            IncomingRequests.RemoveAll(x => x.Id == user.Id);
-                            OutgoingRequests.RemoveAll(x => x.Id == user.Id);
-                        }
-                    }
-                    else if (!OutgoingRequests.Any(x => x.Id == user.Id))
-                    {
-                        OutgoingRequests.Add(user);
-                    }
-                    break;
-
                 case FriendEventType.RemovedMe:
-                case FriendEventType.RemovedThem:
-                    // Remove from all lists
+                    // Someone removed us as a friend
                     Friends.RemoveAll(x => x.Id == user.Id);
                     FriendLookup.Remove(user.Id);
                     IncomingRequests.RemoveAll(x => x.Id == user.Id);
                     OutgoingRequests.RemoveAll(x => x.Id == user.Id);
                     break;
 
-                case FriendEventType.DeclinedThem:
+                case FriendEventType.DeclinedMe:
+                    // Someone declined our friend request
                     OutgoingRequests.RemoveAll(x => x.Id == user.Id);
                     break;
 
-                case FriendEventType.CancelledThem:
+                case FriendEventType.CancelledMe:
+                    // Someone cancelled their request to us
                     IncomingRequests.RemoveAll(x => x.Id == user.Id);
                     break;
             }
@@ -186,13 +165,23 @@ public class FriendService : ServiceBase
 
         lock (_lock)
         {
-            OutgoingRequests.RemoveAll(x => x.Id == addedUser.Id);
-            IncomingRequests.RemoveAll(x => x.Id == addedUser.Id);
+            // If they already sent us a request, we're now mutual friends
+            if (IncomingRequests.Any(x => x.Id == addedUser.Id))
+            {
+                IncomingRequests.RemoveAll(x => x.Id == addedUser.Id);
+                OutgoingRequests.RemoveAll(x => x.Id == addedUser.Id);
 
-            if (!Friends.Any(x => x.Id == addedUser.Id))
-                Friends.Add(addedUser);
+                if (!Friends.Any(x => x.Id == addedUser.Id))
+                    Friends.Add(addedUser);
 
-            FriendLookup[addedUser.Id] = addedUser;
+                FriendLookup[addedUser.Id] = addedUser;
+            }
+            else
+            {
+                // Otherwise just an outgoing request
+                if (!OutgoingRequests.Any(x => x.Id == addedUser.Id))
+                    OutgoingRequests.Add(addedUser);
+            }
         }
 
         var eventData = new FriendEventData

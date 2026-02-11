@@ -376,79 +376,34 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         // No permission rules for non-planet channels (at least for now)
         if (PlanetId is null)
             return true;
-        
+
         // Member is from another planet
         if (member.PlanetId != PlanetId)
             return false;
-        
+
         // Owners have all permissions
         if (Planet.OwnerId == member.UserId)
             return true;
-        
-        var viewPerm = PermissionState.Undefined;
 
-        foreach (var role in member.Roles)
+        var source = GetPermissionSource() ?? this;
+        var channelType = permission.TargetType;
+
+        // Collect nodes weakest-first (Roles is strongest-first, so reverse)
+        var nodes = new List<PermissionsNode>();
+        for (int i = member.Roles.Count - 1; i >= 0; i--)
         {
-            var node = await GetPermNodeAsync(role.Id, permission.TargetType);
-            if (node is null)
-                continue;
-
-            viewPerm = node.GetPermissionState(ChatChannelPermissions.View, true);
-            if (viewPerm != PermissionState.Undefined)
-                break;
+            var node = await source.GetPermNodeAsync(member.Roles[i].Id, channelType);
+            if (node is not null)
+                nodes.Add(node);
         }
 
-        var topRole = member.PrimaryRole ?? PlanetRole.DefaultRole;
+        var perms = PermissionCalculator.GetChannelPermissions(member.Roles, channelType, nodes);
 
-        if (viewPerm == PermissionState.Undefined)
-        {
-            viewPerm = Permission.HasPermission(topRole.ChatPermissions, ChatChannelPermissions.View)
-                ? PermissionState.True
-                : PermissionState.False;
-        }
-
-        if (viewPerm != PermissionState.True)
+        // View gate: no view → no access
+        if (!Permission.HasPermission(perms, ChannelPermissions.View))
             return false;
 
-        // Go through roles in order
-        foreach (var role in member.Roles)
-        {
-            var node = await GetPermNodeAsync(role.Id, permission.TargetType);
-            if (node is null)
-                continue;
-
-            // (A lot of the logic here is identical to the server-side PlanetMemberService.HasPermissionAsync)
-
-            // If there is no view permission, there can't be any other permissions
-            // View is always 0x01 for channel permissions, so it is safe to use ChatChannelPermission.View for
-            // all cases.
-
-            var state = node.GetPermissionState(permission, true);
-
-            switch (state)
-            {
-                case PermissionState.Undefined:
-                    continue;
-                case PermissionState.True:
-                    return true;
-                case PermissionState.False:
-                default:
-                    return false;
-            }
-        }
-
-        // Fallback to base permissions
-        switch (permission)
-        {
-            case ChatChannelPermission:
-                return Permission.HasPermission(topRole.ChatPermissions, permission);
-            case CategoryPermission:
-                return Permission.HasPermission(topRole.CategoryPermissions, permission);
-            case VoiceChannelPermission:
-                return Permission.HasPermission(topRole.VoicePermissions, permission);
-            default:
-                throw new Exception("Unexpected permission type: " + permission.GetType().Name);
-        }
+        return Permission.HasPermission(perms, permission);
     }
 
     /// <summary>
@@ -482,24 +437,20 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             return dummyNode;
         }
         
+        var source = GetPermissionSource() ?? this;
+        var permissionSet = ChannelPermissions.GetChannelPermissionSet(ChannelType);
+
         // Should be in order of most power -> least,
         // so we reverse it here
         for (int i = member.Roles.Count - 1; i >= 0; i--)
         {
             var role = member.Roles[i];
-            PermissionsNode node;
-            // If true, we grab the parent's permission node
-            if (InheritsPerms == true)
-                node = await Parent.GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
-            else
-                node = await GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
+            var node = await source.GetPermNodeAsync(role.Id, ChannelType, forceRefresh);
 
             if (node is null)
                 continue;
 
-            //Console.WriteLine($"{role.Name}: {node.Mask} {node.Code}");
-
-            foreach (var perm in ChatChannelPermissions.Permissions)
+            foreach (var perm in permissionSet)
             {
                 var val = node.GetPermissionState(perm);
 

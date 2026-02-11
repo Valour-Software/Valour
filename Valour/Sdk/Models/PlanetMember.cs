@@ -166,11 +166,12 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     {
         if (Planet is null)
             return false;
-        
+
         if (Planet.OwnerId == UserId)
             return true;
 
-        return PrimaryRole.HasPermission(permission);
+        var perms = PermissionCalculator.GetPlanetPermissions(Roles);
+        return Permission.HasPermission(perms, permission);
     }
 
     /// <summary>

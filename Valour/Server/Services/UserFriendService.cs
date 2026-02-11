@@ -51,13 +51,13 @@ public class UserFriendService
         _db.UserFriends.Remove(friend);
         await _db.SaveChangesAsync();
         
-        await _coreHub.RelayFriendEvent(friend.Id, new FriendEventData()
+        await _coreHub.RelayFriendEvent(friendUser.Id, new FriendEventData()
         {
             User = user.ToModel(),
-            Type = FriendEventType.Removed
+            Type = FriendEventType.RemovedMe
         }, _nodeLifecycleService);
 
-        return new(true, "Succcess");
+        return new(true, "Success");
     }
 
     public async Task<TaskResult<UserFriend>> AddFriendAsync(long userId, long friendId)
@@ -100,7 +100,7 @@ public class UserFriendService
         await _coreHub.RelayFriendEvent(friendId, new FriendEventData()
         {
             User = user.ToModel(),
-            Type = FriendEventType.Added
+            Type = FriendEventType.AddedMe
         }, _nodeLifecycleService);
 
         return new(true, "Success", newFriend);
@@ -117,6 +117,10 @@ public class UserFriendService
 
     public async Task<TaskResult> DeclineRequestAsync(string username, long userId)
     {
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new(false, "User not found.");
+
         var requestUser = await _userService.GetByNameAndTagAsync(username);
         if (requestUser is null)
             return new(false, $"User {username} was not found.");
@@ -130,6 +134,12 @@ public class UserFriendService
 
         _db.UserFriends.Remove(request);
         await _db.SaveChangesAsync();
+
+        await _coreHub.RelayFriendEvent(requestUser.Id, new FriendEventData()
+        {
+            User = user.ToModel(),
+            Type = FriendEventType.DeclinedMe
+        }, _nodeLifecycleService);
 
         return new(true, "Success");
     }
@@ -157,7 +167,7 @@ public class UserFriendService
         await _coreHub.RelayFriendEvent(targetUser.Id, new FriendEventData()
         {
             User = user.ToModel(),
-            Type = FriendEventType.Removed
+            Type = FriendEventType.CancelledMe
         }, _nodeLifecycleService);
 
         return new(true, "Success");

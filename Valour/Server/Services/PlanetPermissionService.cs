@@ -444,24 +444,7 @@ public class PlanetPermissionService
             .OrderByDescending(x => x.Role.Position)
             .ToListAsync();
 
-        // Combine base permissions from ALL roles (OR them together)
-        long permissions = 0;
-        foreach (var role in roles)
-        {
-            permissions |= targetType switch
-            {
-                ChannelTypeEnum.PlanetChat => role.ChatPermissions,
-                ChannelTypeEnum.PlanetCategory => role.CategoryPermissions,
-                ChannelTypeEnum.PlanetVoice => role.VoicePermissions,
-                _ => 0
-            };
-        }
-
-        foreach (var node in permNodes)
-        {
-            permissions &= ~node.Mask;
-            permissions |= (node.Code & node.Mask);
-        }
+        var permissions = PermissionCalculator.GetChannelPermissions(roles, targetType, permNodes);
 
         permCache.Set(roleMembership, channel.Id, permissions);
         return permissions;

@@ -327,6 +327,11 @@ public class MessageService
             switch (notification)
             {
                 case NotificationSource.DirectReply:
+                {
+                    // For DM replies, still send the DM notification to the recipient
+                    await _notificationService.HandleDirectMessageAsync(message, user, channel);
+                    break;
+                }
                 case NotificationSource.PlanetMemberReply:
                 {
                     if (replyTo is not null)

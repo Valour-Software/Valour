@@ -1,11 +1,6 @@
+using Valour.Shared.Models;
+
 namespace Valour.Server.Models;
-
-public enum FriendEventType
-{
-    Added,
-    Removed
-}
-
 
 public class FriendEventData
 {
@@ -13,7 +8,7 @@ public class FriendEventData
     /// The user the event is about
     /// </summary>
     public User User { get; set; }
-    
+
     /// <summary>
     /// The type of friend event
     /// </summary>

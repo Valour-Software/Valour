@@ -18,14 +18,17 @@ public static class RateLimitDefs
                 options.QueueLimit = 2;
             });
 
-            // Registration - prevent spam account creation
-            _.AddFixedWindowLimiter("register", options =>
-            {
-                options.PermitLimit = 3;
-                options.Window = TimeSpan.FromMinutes(10);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 1;
-            });
+            // Registration - prevent spam account creation (per-IP)
+            _.AddPolicy("register", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 3,
+                        Window = TimeSpan.FromMinutes(10),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 1,
+                    }));
 
             // Password reset - prevent email spam and enumeration attacks
             _.AddFixedWindowLimiter("password-reset", options =>
@@ -72,11 +75,11 @@ public static class RateLimitDefs
                 options.QueueLimit = 2;
             });
 
-            _.OnRejected = (OnRejectedContext ctx, CancellationToken token) =>
+            _.OnRejected = async (OnRejectedContext ctx, CancellationToken token) =>
             {
                 ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await ctx.HttpContext.Response.WriteAsync("Too many requests. Please wait a moment and try again.", token);
                 Console.WriteLine("Rate limit exceeded for " + ctx.HttpContext.Connection.RemoteIpAddress + " on " + ctx.HttpContext.Request.Path);
-                return ValueTask.CompletedTask;
             };
         });
     }

@@ -78,11 +78,13 @@ public class PlanetInviteApi
     [ValourRoute(HttpVerbs.Delete, "api/invites/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
-        long id,
+        string id,
         PlanetMemberService memberService,
         PlanetInviteService inviteService)
     {
         var invite = await inviteService.GetAsync(id);
+        if (invite is null)
+            return ValourResult.NotFound<PlanetInvite>();
 
         // Get member
         var member = await memberService.GetCurrentAsync(invite.PlanetId);
@@ -93,9 +95,8 @@ public class PlanetInviteApi
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
         await inviteService.DeleteAsync(invite);
-        
-        return Results.NoContent();
 
+        return Results.NoContent();
     }
 
     // Custom routes
