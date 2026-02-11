@@ -53,29 +53,35 @@ public class UnreadService
     
     public async Task<UserChannelState> UpdateReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
     {
-        updateTime ??= DateTime.UtcNow;
+        var effectiveUpdateTime = DateTime.SpecifyKind(updateTime ?? DateTime.UtcNow, DateTimeKind.Utc);
 
-        var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);
+        // Atomic upsert to avoid race conditions when multiple requests update the same
+        // (user_id, channel_id) row concurrently.
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
+            VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
+            ON CONFLICT (user_id, channel_id) DO UPDATE
+            SET
+                last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time),
+                planet_id = EXCLUDED.planet_id,
+                member_id = EXCLUDED.member_id
+        ");
+
+        var channelState = await _db.UserChannelStates.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);
 
         if (channelState is null)
         {
-            channelState = new UserChannelState()
+            _logger.LogWarning("Failed to load user_channel_state after upsert for user {UserId} channel {ChannelId}", userId, channelId);
+            return new UserChannelState
             {
                 UserId = userId,
                 ChannelId = channelId,
                 PlanetId = planetId,
                 PlanetMemberId = memberId,
-                LastViewedTime = updateTime.Value
-            }.ToDatabase();
-
-            _db.UserChannelStates.Add(channelState);
+                LastViewedTime = effectiveUpdateTime
+            };
         }
-        else
-        {
-            channelState.LastViewedTime = updateTime.Value;
-        }
-        
-        await _db.SaveChangesAsync();
 
         return channelState.ToModel();
     }

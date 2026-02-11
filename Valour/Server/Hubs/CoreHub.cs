@@ -20,6 +20,7 @@ public class CoreHub : Hub
     private readonly CoreHubService _hubService;
     private readonly UserOnlineService _onlineService;
     private readonly PlanetMemberService _memberService;
+    private readonly UnreadService _unreadService;
     private readonly TokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
@@ -29,6 +30,7 @@ public class CoreHub : Hub
         CoreHubService hubService, 
         UserOnlineService onlineService,
         PlanetMemberService memberService,
+        UnreadService unreadService,
         TokenService tokenService,
         IConnectionMultiplexer redis, 
         SignalRConnectionService connectionTracker)
@@ -39,6 +41,7 @@ public class CoreHub : Hub
         _redis = redis;
         _connectionTracker = connectionTracker;
         _memberService = memberService;
+        _unreadService = unreadService;
         _tokenService = tokenService;
     }
 
@@ -152,25 +155,14 @@ public class CoreHub : Hub
         await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         
-        var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
-
-        if (channelState is null)
-        {
-            channelState = new UserChannelState()
-            {
-                UserId = authToken.UserId,
-                ChannelId = channelId,
-                PlanetMemberId = member?.Id,
-                PlanetId = member?.PlanetId
-            }.ToDatabase();
-
-            _db.UserChannelStates.Add(channelState);
-        }
+        var updatedState = await _unreadService.UpdateReadState(
+            channelId,
+            authToken.UserId,
+            member?.PlanetId,
+            member?.Id,
+            DateTime.UtcNow);
         
-        channelState.LastViewedTime = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        
-        _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState.ToModel());
+        _hubService.NotifyUserChannelStateUpdate(authToken.UserId, updatedState);
 
         return new TaskResult(true, "Connected to channel " + channelId);
     }
