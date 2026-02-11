@@ -71,6 +71,11 @@ public class PlanetService : ServiceBase
 
     private readonly Dictionary<string, long> _planetLocks = new();
 
+    /// <summary>
+    /// Tracks planet IDs currently being connected to prevent concurrent setup
+    /// </summary>
+    private readonly HashSet<long> _connectingPlanets = new();
+
     private readonly LogOptions _logOptions = new(
         "PlanetService",
         "#3381a3",
@@ -250,39 +255,49 @@ public class PlanetService : ServiceBase
         }
 
         // Already open
-        if (ConnectedPlanets.Contains(planet))
+        if (_connectedPlanetsLookup.ContainsKey(planet.Id))
             return TaskResult.SuccessResult;
 
-        // Mark as opened
-        _connectedPlanets.Add(planet);
-        _connectedPlanetsLookup[planet.Id] = planet;
-        
+        // Already being connected by another concurrent call
+        if (_connectingPlanets.Contains(planet.Id))
+            return TaskResult.SuccessResult;
+
+        _connectingPlanets.Add(planet.Id);
+
         Log($"Opening planet {planet.Name} ({planet.Id})");
 
         var sw = new Stopwatch();
 
         sw.Start();
-        
+
         // Joins SignalR group
         var result = await planet.ConnectToRealtime();
 
         if (!result.Success)
         {
+            _connectingPlanets.Remove(planet.Id);
             HandlePlanetConnectionFailure(result, planet, key);
             return result;
         }
 
         Log(result.Message);
-        
+
         var initialDataResult = await planet.FetchInitialDataAsync();
         if (!initialDataResult.Success)
         {
+            _connectingPlanets.Remove(planet.Id);
             HandlePlanetConnectionFailure(initialDataResult, planet, key);
             return initialDataResult;
         }
 
+        // Mark as opened only after successful setup
+        _connectedPlanets.Add(planet);
+        _connectedPlanetsLookup[planet.Id] = planet;
+
+        _connectingPlanets.Remove(planet.Id);
+
         sw.Stop();
-        
+
         ConnectedPlanetsUpdated?.Invoke();
 
         Log($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");

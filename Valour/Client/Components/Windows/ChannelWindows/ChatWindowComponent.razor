@@ -294,26 +294,33 @@ else
             ReRender();
         }
 
-        await Channel.Open(WindowChannelKey);
-        
-        // Planet stuff
-        if (Channel.PlanetId is not null)
+        try
         {
-            Channel.Planet.Deleted += OnPlanetDeleted;
-            Channel.Planet.MyMember.Deleted += OnSelfMemberDeleted;
-            ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(Channel.Planet.MyMember.Id);
+            await Channel.Open(WindowChannelKey);
+
+            // Planet stuff
+            if (Channel.PlanetId is not null)
+            {
+                Channel.Planet.Deleted += OnPlanetDeleted;
+                Channel.Planet.MyMember.Deleted += OnSelfMemberDeleted;
+                ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(Channel.Planet.MyMember.Id);
+            }
+
+            Channel.Updated += OnChatChannelUpdate;
+
+            ClearMessages(false);
+            await LoadRecentMessages(64);
+            await Channel.UpdateUserState(DateTime.UtcNow);
         }
-        
-        Channel.Updated += OnChatChannelUpdate;
-        
-        ClearMessages(false);
-        await LoadRecentMessages(64);
-        await Channel.UpdateUserState(DateTime.UtcNow);
-        
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChatWindowComponent>($"Error setting up channel: {e.Message}", "red");
+        }
+
         _loading = false;
 
         await InputComponent.NotifyChannelLoadedAsync();
-        
+
         ReRender();
     }
 

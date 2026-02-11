@@ -147,7 +147,7 @@
                         <label class="switch">
                             <input 
                                 type="checkbox" 
-                                @onclick="@(e => PermClick(chatPerm.Value, ref _rolePlanetPerms))" 
+                                @onclick="@(e => PermClick(chatPerm.Value, ref _roleChatPerms))" 
                                 checked="@((_roleChatPerms & chatPerm.Value) != 0)"
                             />
                             <span class="slider round"></span>
@@ -224,7 +224,7 @@
                 var count = 0;
                 
                 if (_roleMemberCounts is not null)
-                    _roleMemberCounts.TryGetValue(roleX.Id, out count);
+                    hasCount = _roleMemberCounts.TryGetValue(roleX.Id, out count);
 
                 <div  
                     @onpointerdown="@(e => OnRoleItemClick(roleX))" 
@@ -387,7 +387,7 @@
             "Confirm",
             "Cancel",
             async () => {
-                _result = await _selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
+                _result = await role.DeleteAsync();
                 _editMode = false;
                 StateHasChanged();
             },

@@ -143,6 +143,12 @@ public class ChannelService : ServiceBase
     public async Task<List<PlanetMember>> FetchRecentChattersAsync(long channelId, Planet planet)
     {
         var result = await planet.Node.GetJsonAsync<List<PlanetMember>>($"{ISharedChannel.GetPlanetIdRoute(planet.Id, channelId)}/recentChatters");
+        if (!result.Success || result.Data is null)
+        {
+            LogError($"Failed to fetch recent chatters for channel {channelId}: {result.Message}");
+            return new List<PlanetMember>();
+        }
+
         result.Data.SyncAll(_client);
         return result.Data;
     }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -64,7 +65,7 @@ public class PlanetRoleApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/roles/{result.Data.Id}", result.Data);
+        return Results.Created(ISharedPlanetRole.GetIdRoute(planetId, result.Data.Id), result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planet/{planetId}/roles/{roleId}")]
@@ -76,6 +77,15 @@ public class PlanetRoleApi
         PlanetMemberService memberService,
         PlanetRoleService roleService)
     {
+        if (role is null)
+            return ValourResult.BadRequest("Include role in body.");
+
+        if (role.Id != roleId)
+            return ValourResult.BadRequest("Role id in body does not match route role id.");
+
+        if (role.PlanetId != planetId)
+            return ValourResult.BadRequest("Role planet id does not match route planet id.");
+
         var oldRole = await roleService.GetAsync(planetId, roleId);
         if (oldRole is null)
             return ValourResult.NotFound("Role not found.");
@@ -88,7 +98,7 @@ public class PlanetRoleApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
+        if (await memberService.GetAuthorityAsync(member) <= oldRole.GetAuthority())
             return ValourResult.Forbid("You can only edit roles under your own.");
         
         if (oldRole.IsDefault != role.IsDefault)

@@ -355,7 +355,7 @@ public class PlanetService
         var roleMemberships = _db.PlanetMembers.Where(x => x.PlanetId == planetId)
             .Select(x => x.RoleMembership).AsAsyncEnumerable();
 
-        var counts = new byte[256];
+        var counts = new int[256];
         
         await foreach (var membership in roleMemberships)
         {
