@@ -51,9 +51,12 @@ public class UserService
 
     public async Task<IEnumerable<string>> GetNewUsersAsync(int count)
     {
+        if (count < 1)
+            return [];
+
         if (count > 50)
             count = 50;
-        
+
         var users = await _db.Users.OrderByDescending(x => x.Id).Take(count).Select(x => x.Name).ToListAsync();
         return users;
     }
