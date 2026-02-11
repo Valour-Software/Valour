@@ -72,13 +72,12 @@
     private async Task OnApplyTheme()
     {
         if (Theme == null) return;
-        
+
         // Apply the theme
         var theme = await ThemeService.FetchThemeAsync(Theme.Id);
         if (theme != null)
         {
-            ThemeComponent.Instance.CurrentTheme = theme;
-            ThemeComponent.Instance.Refresh();
+            await ThemeComponent.Instance.InstallTheme(theme);
         }
     }
 
