@@ -91,7 +91,17 @@
         @if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
             <div
-                class="drop full"
+                class="drop cat-top"
+                @ondragenter:stopPropagation="true"
+                @ondragenter="@OnDragEnterTop">
+            </div>
+            <div
+                class="drop cat-middle"
+                @ondragenter:stopPropagation="true"
+                @ondragenter="@OnDragEnterMiddle">
+            </div>
+            <div
+                class="drop cat-bottom"
                 @ondragenter:stopPropagation="true"
                 @ondragenter="@OnDragEnterBottom">
             </div>
@@ -537,6 +547,12 @@
         Refresh();
     }
     
+    private void OnDragEnterMiddle()
+    {
+        DragManager.OnDragEnterItem(Channel.Id, false, insideCategory: true);
+        Refresh();
+    }
+
     private void OnDragEnterBottom()
     {
         DragManager.OnDragEnterItem(Channel.Id, false);

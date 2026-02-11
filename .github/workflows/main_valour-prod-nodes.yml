@@ -23,6 +23,9 @@ jobs:
         with:
           dotnet-version: '10.0'
 
+      - name: Restore workloads
+        run: dotnet workload restore
+
       - name: Build with dotnet
         run: dotnet build --configuration Release
 

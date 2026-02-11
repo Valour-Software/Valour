@@ -111,7 +111,7 @@ namespace Valour.Client.Components.Sidebar.Directory
             }
 
             var task = draggedChannel.Client.ChannelService.MoveChannelAsync(draggedChannel, droppedOnChannel,
-                    DragIsTop);
+                    DragIsTop, DragIntoCategory);
 
             await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
                 "Moving channel",
@@ -127,17 +127,19 @@ namespace Valour.Client.Components.Sidebar.Directory
 
         public long DragOverId = 0;
         public bool DragIsTop = true;
+        public bool DragIntoCategory = false;
         public ChannelDirectoryItem HighlightInner = null;
 
-        public void OnDragEnterItem(long id, bool top = false)
+        public void OnDragEnterItem(long id, bool top = false, bool insideCategory = false)
         {
             DragOverId = id;
             DragIsTop = top;
-            
+            DragIntoCategory = insideCategory;
+
             var oldHighlight = HighlightInner;
-            
+
             HighlightInner = null;
-            
+
             if (oldHighlight is not null)
                 oldHighlight.Refresh();
         }

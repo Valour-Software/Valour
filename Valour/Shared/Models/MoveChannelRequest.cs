@@ -21,4 +21,10 @@ public class MoveChannelRequest
     /// True if the channel should be inserted before the destination channel, false if it should be inserted after
     /// </summary>
     public bool PlaceBefore { get; set; }
+
+    /// <summary>
+    /// True if the channel should be moved inside the destination category (when the destination is a category).
+    /// When false and the destination is a category, the channel is treated as a sibling at the same level.
+    /// </summary>
+    public bool InsideCategory { get; set; }
 }

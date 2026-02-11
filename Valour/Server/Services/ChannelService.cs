@@ -712,7 +712,8 @@ public class ChannelService
         long planetId,
         long toMoveId, // The channel to be moved
         long? destinationChannelId, // The channel in the position the channel will be moved to
-        bool insertBefore) // If the channel should be inserted before the destination channel, or default after
+        bool insertBefore, // If the channel should be inserted before the destination channel, or default after
+        bool insideCategory = false) // If true and destination is a category, move inside it; if false, treat as sibling
     {
         // Get entire tree of channels
         // We do this to ensure we never break the tree structure
@@ -737,16 +738,32 @@ public class ChannelService
         Valour.Database.Channel? destinationChannel = null;
 
         if (destinationChannelId != null) {
-            
+
             if (!channelLookup.TryGetValue(destinationChannelId.Value, out destinationChannel))
             {
                 return TaskResult.FromFailure("Destination channel not found.");
             }
-            
+
             if (destinationChannel.ChannelType == ChannelTypeEnum.PlanetCategory)
             {
-                destinationCategory = destinationChannel;
-                destinationChannel = null;
+                if (insideCategory)
+                {
+                    // Move inside the category (append as child)
+                    destinationCategory = destinationChannel;
+                    destinationChannel = null;
+                }
+                else
+                {
+                    // Treat the category as a sibling - find its parent
+                    if (destinationChannel.ParentId is not null)
+                    {
+                        if (!channelLookup.TryGetValue(destinationChannel.ParentId.Value, out destinationCategory))
+                        {
+                            return TaskResult.FromFailure("Destination category's parent not found.");
+                        }
+                    }
+                    // else: destinationCategory stays null (root level), destinationChannel stays as the category
+                }
             }
             else
             {

@@ -5,6 +5,18 @@
 
 @if (_canEdit)
 {
+    <ContextMenuItem OnClick='@OpenCreateChannel'>
+        <Label>Add Channel</Label>
+        <Icon><i class="bi bi-chat-left"></i></Icon>
+    </ContextMenuItem>
+    <ContextMenuItem OnClick='@OpenCreateVoiceChannel'>
+        <Label>Add Voice Channel</Label>
+        <Icon><i class="bi bi-music-note-beamed"></i></Icon>
+    </ContextMenuItem>
+    <ContextMenuItem OnClick='@OpenCreateCategory'>
+        <Label>Add Category</Label>
+        <Icon><i class="bi bi-folder"></i></Icon>
+    </ContextMenuItem>
     <ContextMenuItem OnClickAsync='@OnClickEdit'>
         <Label>Edit</Label>
         <Icon><i class="bi bi-pen-fill"></i></Icon>
@@ -41,15 +53,42 @@
         StateHasChanged();
     }
 
+    private void OpenCreateChannel()
+    {
+        OpenCreate(ChannelTypeEnum.PlanetChat);
+    }
+
+    private void OpenCreateVoiceChannel()
+    {
+        OpenCreate(ChannelTypeEnum.PlanetVoice);
+    }
+
+    private void OpenCreateCategory()
+    {
+        OpenCreate(ChannelTypeEnum.PlanetCategory);
+    }
+
+    private void OpenCreate(ChannelTypeEnum type)
+    {
+        var data = new CreateChannelComponent.ModalParams()
+        {
+            Planet = Data.Planet,
+            ChannelType = type,
+            Parent = null
+        };
+
+        ModalRoot.OpenModal<CreateChannelComponent>(data);
+    }
+
     private async Task OnClickEdit()
     {
         await CloseAsync();
-        
+
         var data = new EditPlanetComponent.ModalParams()
         {
             Planet = Data.Planet
         };
-        
+
         ModalRoot.OpenModal<EditPlanetComponent>(data);
     }
 

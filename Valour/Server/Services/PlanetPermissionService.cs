@@ -142,7 +142,7 @@ public class PlanetPermissionService
 
     /// <summary>
     /// When a permissions node changes (for a given channel) clear all per–(role,channel) caches
-    /// and the inverse mapping for that channel.
+    /// and the inverse mapping for that channel, including channels that inherit from it.
     /// </summary>
     public async Task HandleNodeChange(PermissionsNode node)
     {
@@ -155,6 +155,18 @@ public class PlanetPermissionService
         }
 
         hostedPlanet.PermissionCache.ClearChannelAccessRoleComboCache(node.TargetId);
+
+        // Also clear caches for channels that inherit permissions from this channel,
+        // since their effective permissions are derived from this node's target.
+        var inheritors = hostedPlanet.GetInheritors(node.TargetId);
+        if (inheritors is not null)
+        {
+            foreach (var inheritorId in inheritors)
+            {
+                hostedPlanet.PermissionCache.ClearCacheForChannel(inheritorId);
+                hostedPlanet.PermissionCache.ClearChannelAccessRoleComboCache(inheritorId);
+            }
+        }
     }
 
     /// <summary>
@@ -276,13 +288,44 @@ public class PlanetPermissionService
                 continue;
             }
 
+            // Resolve permission inheritance: if the channel inherits permissions,
+            // walk up the parent chain to find the effective target channel whose
+            // permission nodes should be used.
+            ISharedChannel effectiveChannel = channel;
+            if (channel.InheritsPerms)
+            {
+                if (hostedPlanet.TryGetInheritanceTarget(channel.Id, out var targetId))
+                {
+                    if (targetId is not null)
+                    {
+                        var target = hostedPlanet.GetChannel(targetId.Value);
+                        if (target is not null)
+                            effectiveChannel = target;
+                    }
+                }
+                else
+                {
+                    var walkChannel = (ISharedChannel)channel;
+                    while (walkChannel.InheritsPerms && walkChannel.ParentId is not null)
+                    {
+                        var parent = hostedPlanet.GetChannel(walkChannel.ParentId.Value);
+                        if (parent is null)
+                            break;
+                        walkChannel = parent;
+                    }
+
+                    hostedPlanet.SetInheritanceTarget(channel.Id, walkChannel.Id);
+                    effectiveChannel = walkChannel;
+                }
+            }
+
             long? perms = channel.ChannelType switch
             {
-                ChannelTypeEnum.PlanetChat => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel,
+                ChannelTypeEnum.PlanetChat => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, effectiveChannel,
                     hostedPlanet, ChannelTypeEnum.PlanetChat),
                 ChannelTypeEnum.PlanetCategory => await GenerateChannelPermissionsAsync(member.RoleMembership, roles,
-                    channel, hostedPlanet, ChannelTypeEnum.PlanetCategory),
-                ChannelTypeEnum.PlanetVoice => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel,
+                    effectiveChannel, hostedPlanet, ChannelTypeEnum.PlanetCategory),
+                ChannelTypeEnum.PlanetVoice => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, effectiveChannel,
                     hostedPlanet, ChannelTypeEnum.PlanetVoice),
                 _ => throw new Exception("Invalid channel type!")
             };

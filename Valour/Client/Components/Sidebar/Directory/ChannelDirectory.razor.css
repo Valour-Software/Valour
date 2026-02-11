@@ -158,9 +158,17 @@
     bottom: 0;
 }
 
-::deep .channel-wrapper .drop.full {
+::deep .channel-wrapper .drop.cat-top {
     top: 0;
-    height: 100%;
+    height: 25%;
+}
+::deep .channel-wrapper .drop.cat-middle {
+    top: 25%;
+    height: 50%;
+}
+::deep .channel-wrapper .drop.cat-bottom {
+    bottom: 0;
+    height: 25%;
 }
 
 ::deep .channel {

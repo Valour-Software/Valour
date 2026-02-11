@@ -375,6 +375,8 @@ public partial class Program
         services.AddScoped<PushNotificationService>();
         services.AddScoped<ITagService,TagService>();
 
+        services.AddHttpClient<DiscordImportService>();
+
         services.AddSingleton<NodeLifecycleService>();
         
         // Add the CSS bundling service

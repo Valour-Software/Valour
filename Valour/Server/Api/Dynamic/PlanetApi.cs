@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
+using Valour.Server.Requests;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
@@ -533,7 +534,7 @@ public class PlanetApi
         
         Channel destination = null;
         Channel category = null;
-        
+
         // Either the target is the category, or it's within a category. Or, well, it's at the top level.
         // We have to determine this.
         if (request.DestinationChannel is not null)
@@ -541,12 +542,26 @@ public class PlanetApi
             destination = await channelService.GetChannelAsync(planetId, request.DestinationChannel.Value);
             if (destination is null)
                 return ValourResult.NotFound("Destination channel not found");
-            
+
             if (destination.ChannelType == ChannelTypeEnum.PlanetCategory)
             {
-                // In this case, the destination was the category
-                // ie: user dropped the channel directly on the category
-                category = destination;
+                if (request.InsideCategory)
+                {
+                    // User dropped into the middle zone of a category - move inside it
+                    category = destination;
+                }
+                else
+                {
+                    // User dropped on the top/bottom edge of a category - treat as sibling
+                    // Find the category's parent (if any) for permission checks
+                    if (destination.ParentId is not null)
+                    {
+                        category = await channelService.GetChannelAsync(planetId, destination.ParentId!.Value);
+                        if (category is null)
+                            return ValourResult.BadRequest("Internal error - Parent category not found for destination");
+                    }
+                    // else: root level, category stays null
+                }
             }
             else
             {
@@ -555,16 +570,16 @@ public class PlanetApi
                 if (destination.ParentId is not null)
                 {
                     category = await channelService.GetChannelAsync(planetId, destination.ParentId!.Value);
-                    
+
                     // If the category is null in this case, something is wrong
                     if (category is null)
                         return ValourResult.BadRequest("Internal error - Parent category not found for destination");
                 }
-                
+
                 // There's a chance the destination's parent is null, which means it's a top level channel
                 // ie: a channel not within a category. This is fine.
             }
-            
+
             // If there is a category, ensure the member has permission to manage it
             if (category is not null)
             {
@@ -583,11 +598,37 @@ public class PlanetApi
             return ValourResult.LacksPermission(ChannelPermissions.Manage);
         
         // Auth is finished. Toss down to the service to do the work.
-        var result = await channelService.MoveChannelAsync(channel.PlanetId!.Value, channel.Id, destination?.Id, request.PlaceBefore);
+        var result = await channelService.MoveChannelAsync(channel.PlanetId!.Value, channel.Id, destination?.Id, request.PlaceBefore, request.InsideCategory);
 
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
         
         return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/import/discord")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> ImportDiscordTemplateAsync(
+        [FromBody] ImportDiscordTemplateRequest request,
+        DiscordImportService importService,
+        UserService userService)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.TemplateCodeOrUrl))
+            return ValourResult.BadRequest("Template code or URL is required.");
+
+        var user = await userService.GetCurrentUserAsync();
+
+        if (!user.ValourStaff)
+        {
+            var ownedPlanets = await userService.GetOwnedPlanetCount(user.Id);
+            if (ownedPlanets > ISharedUser.MaxOwnedPlanets)
+                return ValourResult.BadRequest("You have reached the maximum owned planets!");
+        }
+
+        var result = await importService.ImportAsync(request.TemplateCodeOrUrl, user, request.PlanetName);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Created($"api/planets/{result.Data.Id}", result.Data);
     }
 }

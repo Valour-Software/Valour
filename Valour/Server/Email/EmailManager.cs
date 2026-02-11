@@ -31,7 +31,7 @@ public class EmailManager
         }
 
         // Sender and recipient
-        EmailAddress from = new EmailAddress("automated@valour.gg", "Valour AI");
+        EmailAddress from = new EmailAddress("automated@valour.gg", "Valour");
         EmailAddress to = new EmailAddress(address);
 
         // Log to console
