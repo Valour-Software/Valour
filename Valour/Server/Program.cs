@@ -277,7 +277,10 @@ public partial class Program
 
 
 
-        services.AddSignalR();
+        services.AddSignalR(options =>
+        {
+            options.MaximumParallelInvocationsPerClient = 5;
+        });
 
         services.AddHttpClient();
 

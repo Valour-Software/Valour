@@ -242,7 +242,12 @@ public class UserApi
             return ValourResult.InvalidToken();
 
         if (!userPrivateInfo.Verified)
-            return ValourResult.Forbid("This account needs email verification. Please check your email.");
+            return Results.Json(new AuthResult
+            {
+                Success = false,
+                Message = "This account needs email verification.",
+                RequiresEmailVerification = true
+            });
 
         var user = await userService.GetAsync(userPrivateInfo.UserId);
 
@@ -337,7 +342,11 @@ public class UserApi
 
         var result = await registerService.RegisterUserAsync(request, ctx);
         if (!result.Success)
+        {
+            if (result.Message == "EMAIL_NOT_VERIFIED")
+                return Results.Conflict("This email is registered but not yet verified.");
             return ValourResult.Problem(result.Message);
+        }
 
         return Results.Ok("Your confirmation email has been sent!");
     }

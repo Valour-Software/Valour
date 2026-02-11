@@ -182,7 +182,15 @@
 
         if (!result.Success)
         {
-            _errorSpan = result.Message;
+            if (result.Code == 409)
+            {
+                // Email exists but is not verified — show the confirmation/resend screen
+                _completed = true;
+            }
+            else
+            {
+                _errorSpan = result.Message;
+            }
         }
         else
         {

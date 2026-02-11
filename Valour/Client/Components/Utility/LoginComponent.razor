@@ -53,6 +53,19 @@
         </form>
     </div>
 
+    @if (_showResendVerification)
+    {
+        <div class="multi-factor-auth">
+            <h3>Email Verification Required</h3>
+            <p>This account needs email verification. Please check your email or resend the verification link.</p>
+            @if (!string.IsNullOrWhiteSpace(_resendSpan))
+            {
+                <span class="@(_resendSuccess ? "text-info" : "text-danger") mt-4">@_resendSpan</span>
+            }
+            <button class="v-btn blue" @onclick="@OnClickResendVerification" disabled="@_resendDisabled">Resend Verification Email</button>
+        </div>
+    }
+
     @if (_showMultiFactorAuth)
     {
         <div class="multi-factor-auth">
@@ -83,8 +96,12 @@
 
     private bool _showMultiFactorAuth = false;
     private string _multiFactorCode;
-
     private string _multiFactorSpan;
+
+    private bool _showResendVerification = false;
+    private string _resendSpan;
+    private bool _resendSuccess;
+    private bool _resendDisabled;
 
     private async Task OnEmailKey(KeyboardEventArgs e)
     {
@@ -132,6 +149,34 @@
         }
     }
 
+    private async Task OnClickResendVerification()
+    {
+        _resendDisabled = true;
+        _resendSpan = "Sending...";
+        _resendSuccess = true;
+        StateHasChanged();
+
+        var request = new RegisterUserRequest() { Email = _email };
+        var response = await Client.Http.PostAsJsonAsync("api/users/resendemail", request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            _resendSpan = "Verification email sent! Please check your inbox.";
+            _resendSuccess = true;
+        }
+        else
+        {
+            _resendSpan = "Failed to resend. Please try again later.";
+            _resendSuccess = false;
+        }
+
+        StateHasChanged();
+
+        await Task.Delay(20000);
+        _resendDisabled = false;
+        StateHasChanged();
+    }
+
     private async Task OnClickLogin()
     {
         if (_email == null || string.IsNullOrWhiteSpace(_email))
@@ -157,7 +202,14 @@
 
         if (tokenResult.RequiresMultiAuth){
             // Show multi-factor auth dialog
-            _showMultiFactorAuth = true;   
+            _showMultiFactorAuth = true;
+            StateHasChanged();
+            return;
+        }
+
+        if (tokenResult.RequiresEmailVerification)
+        {
+            _showResendVerification = true;
             StateHasChanged();
             return;
         }

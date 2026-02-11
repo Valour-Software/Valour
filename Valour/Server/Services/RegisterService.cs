@@ -55,8 +55,13 @@ public class RegisterService
         if (age < 13)
             return new TaskResult<User>(false, "You must be 13 to use Valour. Sorry!");
         
-        if (await _db.PrivateInfos.AnyAsync(x => x.Email.ToLower() == request.Email))
+        var existingInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == request.Email);
+        if (existingInfo != null)
+        {
+            if (!existingInfo.Verified)
+                return new(false, "EMAIL_NOT_VERIFIED");
             return new(false, "This email has already been used");
+        }
 
         var emailValid = UserUtils.TestEmail(request.Email);
         if (!emailValid.Success)

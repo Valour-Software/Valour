@@ -34,26 +34,40 @@ public class CoreHubService
         _connectionTracker = connectionTracker;
     }
     
-    public async Task RelayMessage(Message message)
+    public void RelayMessage(Message message)
     {
         var groupId = $"c-{message.ChannelId}";
-
-        // Group we are sending messages to
-        var group = _hub.Clients.Group(groupId);
-
-        // Get all user IDs in the group to update their channel state
-        var viewingIds = _connectionTracker.GetGroupUserIds(groupId);
-        
-        if (viewingIds.Length > 0)
-        {
-            await _db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});", 
-                viewingIds, message.ChannelId, DateTime.UtcNow);
-        }
 
         if (NodeConfig.Instance.LogInfo)
             Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying message {message.Id} to group {groupId}");
 
-        await group.SendAsync("Relay", message);
+        // Fire-and-forget broadcast (matches pattern used by every other relay method)
+        _ = _hub.Clients.Group(groupId).SendAsync("Relay", message);
+
+        // Fire-and-forget channel state update with its own scope to avoid
+        // blocking the message pipeline. Uses a separate DbContext so the
+        // long-lived worker DbContext is never accessed concurrently.
+        var viewingIds = _connectionTracker.GetGroupUserIds(groupId);
+        if (viewingIds.Length > 0)
+        {
+            _ = UpdateChannelViewStatesAsync(viewingIds, message.ChannelId);
+        }
+    }
+
+    private async Task UpdateChannelViewStatesAsync(long[] viewingIds, long channelId)
+    {
+        try
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            await db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});",
+                viewingIds, channelId, DateTime.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            // Non-critical: channel state will self-correct when the user next opens the channel
+            Console.Error.WriteLine($"Failed to update channel view states for channel {channelId}: {ex.Message}");
+        }
     }
     
     public void RelayMessageEdit(Message message)
