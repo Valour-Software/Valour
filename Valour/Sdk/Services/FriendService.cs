@@ -1,5 +1,4 @@
-﻿using System.Web;
-using Valour.Sdk.Client;
+﻿using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -156,7 +155,7 @@ public class FriendService : ServiceBase
     public async Task<TaskResult<UserFriend>> AddFriendAsync(string nameAndTag)
     {
         var result = await _client.PrimaryNode.PostAsyncWithResponse<UserFriend>(
-            $"api/userfriends/add/{HttpUtility.UrlEncode(nameAndTag)}");
+            $"api/userfriends/add/{Uri.EscapeDataString(nameAndTag)}");
 
         if (!result.Success)
             return result;
@@ -201,7 +200,7 @@ public class FriendService : ServiceBase
     public async Task<TaskResult> DeclineFriendAsync(string nameAndTag)
     {
         var result = await _client.PrimaryNode.PostAsync(
-            $"api/userfriends/decline/{HttpUtility.UrlEncode(nameAndTag)}", null);
+            $"api/userfriends/decline/{Uri.EscapeDataString(nameAndTag)}", null);
 
         if (!result.Success)
             return result;
@@ -232,7 +231,7 @@ public class FriendService : ServiceBase
     public async Task<TaskResult> RemoveFriendAsync(string nameAndTag)
     {
         var result = await _client.PrimaryNode.PostAsync(
-            $"api/userfriends/remove/{HttpUtility.UrlEncode(nameAndTag)}", null);
+            $"api/userfriends/remove/{Uri.EscapeDataString(nameAndTag)}", null);
 
         if (!result.Success)
             return result;
@@ -270,7 +269,7 @@ public class FriendService : ServiceBase
     public async Task<TaskResult> CancelFriendAsync(string nameAndTag)
     {
         var result = await _client.PrimaryNode.PostAsync(
-            $"api/userfriends/cancel/{HttpUtility.UrlEncode(nameAndTag)}", null);
+            $"api/userfriends/cancel/{Uri.EscapeDataString(nameAndTag)}", null);
 
         if (!result.Success)
             return result;

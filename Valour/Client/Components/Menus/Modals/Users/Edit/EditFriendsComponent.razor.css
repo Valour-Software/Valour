@@ -22,3 +22,18 @@
     overflow-y: auto;
     background-color: var(--main-4)
 }
+
+.add-friend-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+}
+
+.add-friend-row .form-control {
+    flex: 1;
+}
+
+.add-friend-row .v-btn {
+    white-space: nowrap;
+}

@@ -44,11 +44,14 @@
         <div asp-validation-summary="All" class="text-info"></div>
 
         <div class="form-group mt-4">
-            <label>Friend's Username</label>
-            <input class="form-control" @bind-value="@_name" />
+            <label>Add Friend</label>
+            <div class="add-friend-row">
+                <input class="form-control" @bind-value="@_name" placeholder="username#tag" @onkeydown="OnKeyDown" />
+                <button @onclick="OnClickSubmit" type="button" class="v-btn">Add</button>
+            </div>
             <span id="name-span" style="color:#888888">@_nameSpan</span>
         </div>
-        
+
         <ResultLabel Result="@_friendBoxResult" />
     </section>
 </div>
@@ -58,7 +61,7 @@
     private string _name;
 
     // Spans
-    private string _nameSpan = "The username of your friend";
+    private string _nameSpan = "Enter as username#tag (e.g. Victor#0000)";
 
     private ITaskResult _addedYouResult = null;
     private ITaskResult _addedResult = null;
@@ -80,12 +83,26 @@
         return Task.CompletedTask;
     }
 
-    private async Task OnClickSubmit(MouseEventArgs e)
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await OnClickSubmit();
+    }
+
+    private async Task OnClickSubmit()
     {
         // Require a name
         if (string.IsNullOrWhiteSpace(_name))
         {
             _friendBoxResult = new TaskResult(false, "Please input a username.");
+            return;
+        }
+
+        // Validate format: must contain # with text on both sides
+        var hashIndex = _name.IndexOf('#');
+        if (hashIndex <= 0 || hashIndex >= _name.Length - 1)
+        {
+            _friendBoxResult = new TaskResult(false, "Invalid format. Use username#tag (e.g. SpikeViper#a1b2).");
             return;
         }
 

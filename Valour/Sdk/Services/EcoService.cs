@@ -1,4 +1,3 @@
-using System.Web;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Economy;
@@ -34,7 +33,7 @@ public class EcoService : ServiceBase
     public async Task<EcoGlobalAccountSearchResult> SearchGlobalAccountsAsync(string name)
     {
         var node = await _client.NodeService.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
-        return (await node.GetJsonAsync<EcoGlobalAccountSearchResult>($"api/eco/accounts/byname/{HttpUtility.UrlEncode(name)}", true)).Data;
+        return (await node.GetJsonAsync<EcoGlobalAccountSearchResult>($"api/eco/accounts/byname/{Uri.EscapeDataString(name)}", true)).Data;
     }
     
     /// <summary>
