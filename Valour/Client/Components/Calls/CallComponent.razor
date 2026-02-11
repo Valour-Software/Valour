@@ -92,8 +92,10 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        _thisRef.Dispose();
-        await _jsModule.DisposeAsync();
+        _thisRef?.Dispose();
+
+        if (_jsModule is not null)
+            await _jsModule.DisposeAsync();
     }
 
     public async Task NotifyPeerElementReady(MediaPeerComponent component)

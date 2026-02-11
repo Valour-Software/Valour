@@ -63,10 +63,12 @@
 	private IJSInProcessObjectReference _jsRef;
 	
 	
+	private const int ChannelsTabIndex = 2;
+
 	protected override async Task OnInitializedAsync()
 	{
 		_mainSidebar = this;
-		
+
 		if (await LocalStorage.ContainKeyAsync("sidebar"))
 		{
 			var name = await LocalStorage.GetItemAsStringAsync("sidebar");
@@ -78,8 +80,18 @@
 		{
 			SelectedTab = 0;
 		}
-		
+
 		OnToggleMobileSidebar += OnOpenTabClicked;
+		WindowService.FocusedTabChanged += OnFocusedTabChanged;
+	}
+
+	private void OnFocusedTabChanged(WindowTab tab)
+	{
+		if (tab?.Content?.PlanetId is not null && SelectedTab != ChannelsTabIndex)
+		{
+			SelectedTab = ChannelsTabIndex;
+			StateHasChanged();
+		}
 	}
 
 	public async Task OnSelected(int index, TabStripItem tab)
@@ -91,10 +103,15 @@
 	
 	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
-		await _jsModule.InvokeVoidAsync("cleanup");
-		await _jsModule.DisposeAsync();
-		_thisRef.Dispose();
+		if (_jsModule is not null)
+		{
+			await _jsModule.InvokeVoidAsync("cleanup");
+			await _jsModule.DisposeAsync();
+		}
+
+		_thisRef?.Dispose();
 		OnToggleMobileSidebar -= OnOpenTabClicked;
+		WindowService.FocusedTabChanged -= OnFocusedTabChanged;
 	}
 	
 	protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -340,31 +340,31 @@ else
     {
         _isLoadingPopular = true;
         StateHasChanged();
-        
+
         try
         {
             // Use proper ModelQueryEngine API with QueryOptions
             _popularThemes.SetFilter("search", searchValue, apply: true);
-            
+
             // Reload themes with new filter
             _popularThemesList.Clear();
             _popularThemeCount = await _popularThemes.GetTotalCountAsync();
-            
+
             // Load themes in batches
             int pageSize = 50;
             int currentPage = 0;
-            
+
             while (true)
             {
                 var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
                 if (page == null || page.Count == 0)
                     break;
-                    
+
                 _popularThemesList.AddRange(page);
-                
+
                 if (page.Count < pageSize)
                     break;
-                    
+
                 currentPage++;
             }
         }
@@ -372,6 +372,9 @@ else
         {
             _isLoadingPopular = false;
             StateHasChanged();
+
+            if (_popularCarousel is not null)
+                await _popularCarousel.Reset();
         }
     }
 
@@ -379,31 +382,31 @@ else
     {
         _isLoadingPopular = true;
         StateHasChanged();
-        
+
         try
         {
             // Clear the search filter
             _popularThemes.SetFilter("search", null, apply: true);
-            
+
             // Reload themes without filter
             _popularThemesList.Clear();
             _popularThemeCount = await _popularThemes.GetTotalCountAsync();
-            
+
             // Load themes in batches
             int pageSize = 50;
             int currentPage = 0;
-            
+
             while (true)
             {
                 var page = await _popularThemes.GetPageAsync(currentPage, pageSize);
                 if (page == null || page.Count == 0)
                     break;
-                    
+
                 _popularThemesList.AddRange(page);
-                
+
                 if (page.Count < pageSize)
                     break;
-                    
+
                 currentPage++;
             }
         }
@@ -411,6 +414,9 @@ else
         {
             _isLoadingPopular = false;
             StateHasChanged();
+
+            if (_popularCarousel is not null)
+                await _popularCarousel.Reset();
         }
     }
     
@@ -501,10 +507,13 @@ else
     private async Task ConfirmChangesAsync()
     {
         if (_editingTheme is null)
-            
+            return;
 
-        if (_myThemes.Any(t=>t.Name == _editingTheme.Name))
+        // Prevent duplicate names for new themes only
+        if (_editingTheme.Id == 0 && _myThemes != null && _myThemes.Any(t => t.Name == _editingTheme.Name))
         {
+            _editingResult = new TaskResult<Theme>(false, "You already have a theme with that name.");
+            StateHasChanged();
             return;
         }
 

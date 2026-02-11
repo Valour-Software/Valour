@@ -245,12 +245,16 @@
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
-        _thisRef.Dispose();
+        _thisRef?.Dispose();
 
-        await _jsCtx.InvokeVoidAsync("cleanup");
-        
-        await _jsModule.DisposeAsync();
-        await _jsCtx.DisposeAsync();
+        if (_jsCtx is not null)
+        {
+            await _jsCtx.InvokeVoidAsync("cleanup");
+            await _jsCtx.DisposeAsync();
+        }
+
+        if (_jsModule is not null)
+            await _jsModule.DisposeAsync();
     }
 
     public async Task NotifyChannelLoadedAsync()

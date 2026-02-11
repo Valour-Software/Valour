@@ -188,13 +188,19 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Incorrect node for planet.");
         }
 
+        if (HubConnection.State != HubConnectionState.Connected)
+        {
+            LogError($"Cannot join planet {planet.Id} - hub connection is not active (State: {HubConnection.State})");
+            return TaskResult.FromFailure("Hub connection is not active.");
+        }
+
         var result = await HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
 
         if (result.Success)
         {
             _realtimePlanets.TryAdd(planet.Id, 1);
         }
-        
+
         return result;
     }
 
@@ -229,15 +235,23 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Node is not connected to planet.");
         }
 
+        if (HubConnection.State != HubConnectionState.Connected)
+        {
+            LogError($"Cannot leave planet {planet.Id} - hub connection is not active (State: {HubConnection.State})");
+            _realtimePlanets.TryRemove(planet.Id, out _);
+            await CheckShouldDisconnect();
+            return TaskResult.FromFailure("Hub connection is not active.");
+        }
+
         var result = await HubConnection.InvokeAsync<TaskResult>("LeavePlanet", planet.Id);
 
         if (result.Success)
         {
             _realtimePlanets.TryRemove(planet.Id, out _);
         }
-        
+
         await CheckShouldDisconnect();
-        
+
         return result;
     }
     
@@ -263,13 +277,19 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Incorrect node for channel.");
         }
 
+        if (HubConnection.State != HubConnectionState.Connected)
+        {
+            LogError($"Cannot join channel {channel.Id} - hub connection is not active (State: {HubConnection.State})");
+            return TaskResult.FromFailure("Hub connection is not active.");
+        }
+
         var result = await HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
 
         if (result.Success)
         {
             _realtimeChannels.TryAdd(channel.Id, 1);
         }
-        
+
         return result;
     }
     
@@ -287,15 +307,23 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.FromFailure("Node is not connected to channel.");
         }
 
+        if (HubConnection.State != HubConnectionState.Connected)
+        {
+            LogError($"Cannot leave channel {channel.Id} - hub connection is not active (State: {HubConnection.State})");
+            _realtimeChannels.TryRemove(channel.Id, out _);
+            await CheckShouldDisconnect();
+            return TaskResult.FromFailure("Hub connection is not active.");
+        }
+
         var result = await HubConnection.InvokeAsync<TaskResult>("LeaveChannel", channel.Id);
 
         if (result.Success)
         {
             _realtimeChannels.TryRemove(channel.Id, out _);
         }
-        
+
         await CheckShouldDisconnect();
-        
+
         return result;
     }
 
@@ -662,9 +690,15 @@ public class Node : ServiceBase // each node acts like a service
         }
     }
 
-    private Task<TaskResult> ConnectToUserSignalRChannel()
+    private async Task<TaskResult> ConnectToUserSignalRChannel()
     {
-        return HubConnection.InvokeAsync<TaskResult>("JoinUser", IsPrimary);
+        if (HubConnection.State != HubConnectionState.Connected)
+        {
+            LogError("Cannot join user channel - hub connection is not active.");
+            return TaskResult.FromFailure("Hub connection is not active.");
+        }
+
+        return await HubConnection.InvokeAsync<TaskResult>("JoinUser", IsPrimary);
     }
 
     #endregion
