@@ -5,75 +5,54 @@ namespace Valour.Server.API;
 
 public static class RateLimitDefs
 {
+    /// <summary>
+    /// Helper to create a per-IP fixed window rate limiter policy.
+    /// </summary>
+    private static Func<HttpContext, RateLimitPartition<string>> PerIpFixedWindow(
+        int permitLimit, TimeSpan window, int queueLimit = 1)
+    {
+        return context => RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = window,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = queueLimit,
+            });
+    }
+
     public static void AddRateLimitDefs(IServiceCollection services)
     {
         services.AddRateLimiter(_ =>
         {
-            // Login attempts - strict limit
-            _.AddFixedWindowLimiter("login", options =>
-            {
-                options.PermitLimit = 5;
-                options.Window = TimeSpan.FromSeconds(60);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 2;
-            });
+            // Login attempts - strict limit (per-IP)
+            _.AddPolicy("login", PerIpFixedWindow(
+                permitLimit: 5, window: TimeSpan.FromSeconds(60), queueLimit: 2));
 
             // Registration - prevent spam account creation (per-IP)
-            _.AddPolicy("register", context =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 3,
-                        Window = TimeSpan.FromMinutes(10),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 1,
-                    }));
+            _.AddPolicy("register", PerIpFixedWindow(
+                permitLimit: 3, window: TimeSpan.FromMinutes(10)));
 
-            // Password reset - prevent email spam and enumeration attacks
-            _.AddFixedWindowLimiter("password-reset", options =>
-            {
-                options.PermitLimit = 3;
-                options.Window = TimeSpan.FromMinutes(15);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 1;
-            });
+            // Password reset - prevent email spam and enumeration attacks (per-IP)
+            _.AddPolicy("password-reset", PerIpFixedWindow(
+                permitLimit: 3, window: TimeSpan.FromMinutes(15)));
 
-            // Email verification - prevent brute force code guessing
-            _.AddFixedWindowLimiter("email-verify", options =>
-            {
-                options.PermitLimit = 10;
-                options.Window = TimeSpan.FromMinutes(5);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 2;
-            });
+            // Email verification - prevent brute force code guessing (per-IP)
+            _.AddPolicy("email-verify", PerIpFixedWindow(
+                permitLimit: 10, window: TimeSpan.FromMinutes(5), queueLimit: 2));
 
-            // MFA operations - prevent brute force code guessing
-            _.AddFixedWindowLimiter("mfa", options =>
-            {
-                options.PermitLimit = 5;
-                options.Window = TimeSpan.FromMinutes(5);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 1;
-            });
+            // MFA operations - prevent brute force code guessing (per-IP)
+            _.AddPolicy("mfa", PerIpFixedWindow(
+                permitLimit: 5, window: TimeSpan.FromMinutes(5)));
 
-            // Password change - prevent brute force
-            _.AddFixedWindowLimiter("password-change", options =>
-            {
-                options.PermitLimit = 3;
-                options.Window = TimeSpan.FromMinutes(10);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 1;
-            });
+            // Password change - prevent brute force (per-IP)
+            _.AddPolicy("password-change", PerIpFixedWindow(
+                permitLimit: 3, window: TimeSpan.FromMinutes(10)));
 
-            // OAuth token exchange - prevent brute force
-            _.AddFixedWindowLimiter("oauth", options =>
-            {
-                options.PermitLimit = 10;
-                options.Window = TimeSpan.FromMinutes(5);
-                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                options.QueueLimit = 2;
-            });
+            // OAuth token exchange - prevent brute force (per-IP)
+            _.AddPolicy("oauth", PerIpFixedWindow(
+                permitLimit: 10, window: TimeSpan.FromMinutes(5), queueLimit: 2));
 
             _.OnRejected = async (OnRejectedContext ctx, CancellationToken token) =>
             {
