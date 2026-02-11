@@ -3,23 +3,21 @@
 @inject NotificationService NotificationService
 
 <div class="quick-notif">
-    @for (int i = 0; i < _showing.Count; i++)
+    @foreach (var notif in _showing.ToList())
     {
-        var ii = i;
-        
         <TooltipTrigger Position="left">
             <ChildContent>
                 <div
-                    class="item @(_showing[ii].Animating ? "animate" : "")"
-                    @key="@_showing[ii].Notification.Id"
-                    @onmouseenter="@(() => OnMouseEnter(_showing[ii]))"
-                    @onmousedown="@((e) => OnMouseDown(e, _showing[ii]))"
+                    class="item @(notif.Animating ? "animate" : "")"
+                    @key="@notif.Notification.Id"
+                    @onmouseenter="@(() => OnMouseEnter(notif))"
+                    @onmousedown="@((e) => OnMouseDown(e, notif))"
                 >
-                    <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" @onerror="@(() => OnImageError(ii))" />
+                    <img alt="Notification: @notif.Notification.Title" class="icon" src="@notif.ImageUrl" @onerror="@(() => OnImageError(notif))" />
                 </div>
             </ChildContent>
             <TooltipContent>
-                <span>@_showing[ii].Notification.Title</span>
+                <span>@notif.Notification.Title</span>
             </TooltipContent>
         </TooltipTrigger>
     }
@@ -44,9 +42,9 @@
         NotificationService.NotificationsCleared += NotificationsClearedHandler;
     }
 
-    private void OnImageError(int index)
+    private void OnImageError(QuickNotif notif)
     {
-        _showing[index].ImageUrl = FailedImageUrl;
+        notif.ImageUrl = FailedImageUrl;
         StateHasChanged();
     }
 
