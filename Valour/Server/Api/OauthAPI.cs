@@ -37,7 +37,7 @@ public class OauthAPI : BaseAPI
         app.MapGet("api/users/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
-        app.MapGet("api/oauth/token", Token).RequireRateLimiting("oauth");
+        app.MapGet("api/oauth/token", Token);
 
         // Start background cleanup task for expired OAuth codes
         _ = Task.Run(CleanupExpiredCodesAsync);

@@ -208,7 +208,7 @@ public partial class Program
         app.MapStaticAssets();
         
         app.UseRouting();
-        app.UseRateLimiter();
+
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapRazorPages();
@@ -275,7 +275,7 @@ public partial class Program
             ConfigureBundle(scopedCssBundle);
         });
 
-        RateLimitDefs.AddRateLimitDefs(services);
+
 
         services.AddSignalR();
 

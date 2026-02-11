@@ -100,7 +100,6 @@ public class UserApi
     }
 
     // This HAS to be GET so that we can forward it from the generic valour.gg domain
-    [RateLimit("email-verify")]
     [ValourRoute(HttpVerbs.Get, "api/users/verify/{code}")]
     public static async Task<IResult> VerifyEmailRouteAsync(
         string code,
@@ -227,7 +226,6 @@ public class UserApi
         return Results.Json(channelStates);
     }
 
-    [RateLimit("login")]
     [ValourRoute(HttpVerbs.Post, "api/users/token")]
     public static async Task<IResult> GetTokenRouteAsync(
         [FromBody] TokenRequest tokenRequest,
@@ -292,7 +290,6 @@ public class UserApi
         });
     }
 
-    [RateLimit("password-reset")]
     [ValourRoute(HttpVerbs.Post, "api/users/me/recovery")]
     public static async Task<IResult> RecoverPasswordRouteAsync(
         [FromBody] PasswordRecoveryRequest request,
@@ -321,7 +318,6 @@ public class UserApi
         return Results.NoContent();
     }
 
-    [RateLimit("register")]
     [ValourRoute(HttpVerbs.Post, "api/users/register")]
     public static async Task<IResult> RegisterUserRouteAsync(
         [FromBody] RegisterUserRequest request, 
@@ -344,7 +340,6 @@ public class UserApi
         return Results.Ok("Your confirmation email has been sent!");
     }
 
-    [RateLimit("email-verify")]
     [ValourRoute(HttpVerbs.Post, "api/users/resendemail")]
     public static async Task<IResult> ResendRegistrationEmail(
         [FromBody] RegisterUserRequest request,
@@ -370,7 +365,6 @@ public class UserApi
         return ValourResult.Ok("Confirmation email has been resent!");
     }
 
-    [RateLimit("password-reset")]
     [ValourRoute(HttpVerbs.Post, "api/users/resetpassword")]
     public static async Task<IResult> ResetPasswordRouteAsync(
         [FromBody] string email,
@@ -459,7 +453,6 @@ public class UserApi
         return Results.Json(result);
     }
     
-    [RateLimit("mfa")]
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> SetupMultiFactorRouteAsync(
@@ -476,7 +469,6 @@ public class UserApi
         return Results.Json(result.Data);
     }
     
-    [RateLimit("mfa")]
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/remove")]
     public static async Task<IResult> RemoveMultiFactorRouteAsync(
         [FromBody] RemoveMfaRequest request,
@@ -506,7 +498,6 @@ public class UserApi
         return Results.Json(new { newToken = rotateResult.Data.Id, message = "MFA removed. All other sessions have been logged out." });
     }
     
-    [RateLimit("mfa")]
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/verify/{code}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> VerifyMultiFactorRouteAsync(
@@ -537,7 +528,6 @@ public class UserApi
         return Results.Json(await userService.GetReferralDataAsync(userId));
     }
     
-    [RateLimit("password-change")]
     [ValourRoute(HttpVerbs.Post, "api/users/me/password")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> ChangePasswordRouteAsync(
