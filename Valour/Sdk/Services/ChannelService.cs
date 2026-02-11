@@ -183,32 +183,33 @@ public class ChannelService : ServiceBase
         // Clear existing
         _directChatChannels.Clear();
         _directChatChannelsLookup.Clear();
-        
+        _cache.DmChannelKeyToId.Clear();
+
         foreach (var channel in response.Data)
         {
             // Custom cache insert behavior
             if (channel.Members is not null && channel.Members.Count > 0)
             {
-                var id0 = channel.Members[0].Id;
-                
+                var userId0 = channel.Members[0].UserId;
+
                 // Self channel
                 if (channel.Members.Count == 1)
                 {
-                    var key = new DirectChannelKey(id0, id0);
-                    _cache.DmChannelKeyToId.Add(key, channel.Id);
+                    var key = new DirectChannelKey(userId0, userId0);
+                    _cache.DmChannelKeyToId[key] = channel.Id;
                 }
                 // Other channel
                 else if (channel.Members.Count == 2)
                 {
-                    var id1 = channel.Members[1].Id;
-                    var key = new DirectChannelKey(id0, id1);
-                    _cache.DmChannelKeyToId.Add(key, channel.Id);
+                    var userId1 = channel.Members[1].UserId;
+                    var key = new DirectChannelKey(userId0, userId1);
+                    _cache.DmChannelKeyToId[key] = channel.Id;
                 }
             }
 
             var cached = channel.Sync(_client);
             _directChatChannels.Add(cached);
-            _directChatChannelsLookup.Add(cached.Id, cached);
+            _directChatChannelsLookup[cached.Id] = cached;
         }
         
         Log($"Loaded {DirectChatChannels.Count} direct chat channels...");
