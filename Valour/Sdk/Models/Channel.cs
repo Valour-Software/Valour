@@ -376,6 +376,9 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         // No permission rules for non-planet channels (at least for now)
         if (PlanetId is null)
             return true;
+        
+        if (member is null)
+            return false;
 
         // Member is from another planet
         if (member.PlanetId != PlanetId)
@@ -429,6 +432,11 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
             TargetId = Id,
             TargetType = ChannelType
         };
+
+        if (member is null)
+        {
+            return dummyNode;
+        }
         
         // Easy cheat for owner
         if (Planet.OwnerId == member.UserId)
@@ -621,6 +629,13 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         
         if (PlanetId is not null)
         {
+            await Planet.EnsureReadyAsync();
+
+            if (Planet.MyMember is null)
+            {
+                return TaskResult<Message>.FromFailure("Could not find your planet membership. Try reopening the planet.");
+            }
+
             msg.AuthorMemberId = Planet.MyMember.Id;
         }
         

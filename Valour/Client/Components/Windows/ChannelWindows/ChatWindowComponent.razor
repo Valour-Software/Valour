@@ -302,9 +302,16 @@ else
             // Planet stuff
             if (Channel.PlanetId is not null)
             {
+                await Channel.Planet.EnsureReadyAsync();
+                var myMember = Channel.Planet.MyMember;
+                if (myMember is null)
+                {
+                    throw new Exception("Planet membership was not found while setting up this channel.");
+                }
+
                 Channel.Planet.Deleted += OnPlanetDeleted;
-                Channel.Planet.MyMember.Deleted += OnSelfMemberDeleted;
-                ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(Channel.Planet.MyMember.Id);
+                myMember.Deleted += OnSelfMemberDeleted;
+                ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(myMember.Id);
             }
 
             Channel.Updated += OnChatChannelUpdate;

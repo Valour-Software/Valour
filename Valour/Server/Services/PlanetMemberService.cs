@@ -109,21 +109,22 @@ public class PlanetMemberService
             var member = await _db.PlanetMembers
                 .Include(x => x.User)
                 .FirstOrDefaultAsync(x => x.Id == memberId);
-            return member.ToModel();
-        }
-        else
-        {
-            var member = await _db.PlanetMembers
-                .Include(x => x.User)
-                .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
-            
+
             if (member is not null)
-            {
-                MemberIdLookup.TryAdd((userId, planetId), member.Id);
-            }
-            
-            return member.ToModel();
+                return member.ToModel();
+
+            // Self-heal stale cache entries so future lookups can recover.
+            MemberIdLookup.TryRemove((userId, planetId), out _);
         }
+
+        var byUser = await _db.PlanetMembers
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+        
+        if (byUser is not null)
+            MemberIdLookup[(userId, planetId)] = byUser.Id;
+        
+        return byUser.ToModel();
     }
 
 

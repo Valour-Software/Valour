@@ -337,6 +337,7 @@ public partial class Program
         });
 
         services.AddSingleton<SignalRConnectionService>();
+        services.AddSingleton<UserOnlineQueueService>();
 
         services.AddSingleton<CdnMemoryCache>();
         services.AddSingleton<ModelCacheService>();
@@ -365,7 +366,6 @@ public partial class Program
         services.AddScoped<BotService>();
         services.AddScoped<TokenService>();
         services.AddScoped<UserFriendService>();
-        services.AddScoped<UserOnlineService>();
         services.AddScoped<UserService>();
         services.AddScoped<UnreadService>();
         services.AddScoped<EcoService>();
@@ -395,6 +395,7 @@ public partial class Program
         services.AddHostedService<PlanetMessageWorker>();
         services.AddHostedService<StatWorker>();
         services.AddHostedService<ChannelWatchingWorker>();
+        services.AddHostedService<UserOnlineWorker>();
         services.AddHostedService<NodeStateWorker>();
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<MigrationWorker>();

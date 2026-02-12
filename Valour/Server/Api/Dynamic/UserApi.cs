@@ -27,12 +27,12 @@ public class UserApi
     [ValourRoute(HttpVerbs.Get, "api/users/ping")]
     [UserRequired]
     public static async Task PingOnlineAsync(
-        UserOnlineService onlineService, 
+        UserOnlineQueueService onlineQueue,
         UserService userService,
         [FromQuery] bool isMobile = false)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-        await onlineService.UpdateOnlineState(userId);
+        onlineQueue.Enqueue(userId, isMobile);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/users/{id}")]

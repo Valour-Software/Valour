@@ -115,6 +115,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The member for the current user in this planet. Can be null if not a member.
     /// </summary>
     [JsonIgnore]
+    [IgnoreRealtimeChanges]
     public PlanetMember MyMember { get; private set; }
 
     /// <summary>

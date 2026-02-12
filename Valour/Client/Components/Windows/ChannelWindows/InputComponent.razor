@@ -262,6 +262,7 @@
         var planet = ChatComponent.Channel.Planet;
         if (planet is not null)
         {
+            await planet.EnsureReadyAsync();
             CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
         }
         else

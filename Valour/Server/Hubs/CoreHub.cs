@@ -18,34 +18,31 @@ public class CoreHub : Hub
 
     private readonly ValourDb _db;
     private readonly CoreHubService _hubService;
-    private readonly UserOnlineService _onlineService;
     private readonly PlanetMemberService _memberService;
     private readonly UnreadService _unreadService;
     private readonly TokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
-    private readonly ILogger<CoreHub> _logger;
+    private readonly UserOnlineQueueService _onlineQueue;
 
     public CoreHub(
         ValourDb db, 
         CoreHubService hubService, 
-        UserOnlineService onlineService,
         PlanetMemberService memberService,
         UnreadService unreadService,
         TokenService tokenService,
         IConnectionMultiplexer redis, 
         SignalRConnectionService connectionTracker,
-        ILogger<CoreHub> logger)
+        UserOnlineQueueService onlineQueue)
     {
         _db = db;
         _hubService = hubService;
-        _onlineService = onlineService;
         _redis = redis;
         _connectionTracker = connectionTracker;
         _memberService = memberService;
         _unreadService = unreadService;
         _tokenService = tokenService;
-        _logger = logger;
+        _onlineQueue = onlineQueue;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -204,23 +201,11 @@ public class CoreHub : Hub
             var authToken = _connectionTracker.GetToken(Context.ConnectionId);
             if (authToken is not null)
             {
-                _ = UpdateOnlineStateSafeAsync(authToken.UserId);
+                _onlineQueue.Enqueue(authToken.UserId);
             }
         }
 
         return Task.FromResult("pong");
-    }
-
-    private async Task UpdateOnlineStateSafeAsync(long userId)
-    {
-        try
-        {
-            await _onlineService.UpdateOnlineState(userId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to update online state from Ping for user {UserId}", userId);
-        }
     }
 }
 
