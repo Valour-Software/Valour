@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Threading;
 using Microsoft.Extensions.ObjectPool;
 using Valour.Server.Utilities;
 using Valour.Shared.Authorization;
@@ -96,6 +97,15 @@ public class PlanetPermissionsCache
     private readonly ConcurrentDictionary<PlanetRoleMembership, uint?> _authorityCache = new();
     private readonly ConcurrentDictionary<PlanetRoleMembership, long?> _planetPermissionsCache = new();
 
+    /// <summary>
+    /// Generation counter incremented on every cache invalidation.
+    /// Used to detect when a long-running permission computation has been
+    /// racing with a concurrent invalidation, preventing stale data from
+    /// being written back to the cache after the invalidation cleared it.
+    /// </summary>
+    private long _generation;
+    public long Generation => Volatile.Read(ref _generation);
+
     // Replacing the roles-to-combos mapping with a thread-safe dictionary of hash sets.
     private readonly ConcurrentDictionary<long, ConcurrentHashSet<PlanetRoleMembership>> _rolesToCombos = new();
 
@@ -150,6 +160,7 @@ public class PlanetPermissionsCache
 
     public void ClearCacheForCombo(PlanetRoleMembership roleMembership)
     {
+        Interlocked.Increment(ref _generation);
         _accessCache.TryRemove(roleMembership, out _);
         _authorityCache.TryRemove(roleMembership, out _);
         _planetPermissionsCache.TryRemove(roleMembership, out _);
@@ -159,6 +170,7 @@ public class PlanetPermissionsCache
 
     public void ClearCacheForComboAndChannel(PlanetRoleMembership roleMembership, long channelId)
     {
+        Interlocked.Increment(ref _generation);
         _accessCache.TryRemove(roleMembership, out _);
         foreach (var cache in _channelPermissionCachesByType)
             cache.ClearCacheForCombo(roleMembership, channelId);
@@ -166,6 +178,7 @@ public class PlanetPermissionsCache
 
     public void ClearCacheForChannel(long channelId)
     {
+        Interlocked.Increment(ref _generation);
         foreach (var cache in _channelPermissionCachesByType)
             cache.ClearCacheForChannel(channelId);
 
@@ -174,12 +187,14 @@ public class PlanetPermissionsCache
 
     public void ClearCacheForComboInChannel(PlanetRoleMembership roleMembership, long channelId, ChannelTypeEnum type)
     {
+        Interlocked.Increment(ref _generation);
         var cache = GetChannelCache(type);
         cache.Remove(roleMembership, channelId);
     }
 
     public void Clear()
     {
+        Interlocked.Increment(ref _generation);
         foreach (var cache in _channelPermissionCachesByType)
             cache.Clear();
 
@@ -188,6 +203,15 @@ public class PlanetPermissionsCache
         _planetPermissionsCache.Clear();
         _rolesToCombos.Clear();
         ChannelAccessRoleComboCache.Clear();
+    }
+
+    /// <summary>
+    /// Removes a specific entry from the access cache without incrementing the generation counter.
+    /// Used to clean up after detecting that a stale computation raced with an invalidation.
+    /// </summary>
+    public void EvictAccessCacheEntry(PlanetRoleMembership roleMembership)
+    {
+        _accessCache.TryRemove(roleMembership, out _);
     }
 
     public void SetAuthority(PlanetRoleMembership roleMembership, uint authority) => _authorityCache[roleMembership] = authority;

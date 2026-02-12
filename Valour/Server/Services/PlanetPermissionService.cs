@@ -266,8 +266,25 @@ public class PlanetPermissionService
             hostedPlanet.PermissionCache.ClearCacheForCombo(member.RoleMembership);
         }
 
-        var access = await GenerateChannelAccessAsync(member);
-        return access.Snapshot;
+        // If invalidations race with permission computation, retry once using the
+        // latest cache generation to avoid returning stale snapshots.
+        const int maxAttempts = 2;
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var generation = hostedPlanet.PermissionCache.Generation;
+            var access = await GenerateChannelAccessAsync(member, generation);
+
+            if (hostedPlanet.PermissionCache.Generation == generation)
+            {
+                return access.Snapshot;
+            }
+
+            hostedPlanet.PermissionCache.EvictAccessCacheEntry(member.RoleMembership);
+        }
+
+        // Fallback: return the latest computation even if churn continues.
+        var fallback = await GenerateChannelAccessAsync(member, hostedPlanet.PermissionCache.Generation);
+        return fallback.Snapshot;
     }
 
     private static bool IsChannelAccessSnapshotStale(
@@ -294,10 +311,10 @@ public class PlanetPermissionService
     }
 
     private async Task<SortedServerModelList<Channel, long>> GenerateChannelAccessAsync(
-        Valour.Database.PlanetMember member)
+        Valour.Database.PlanetMember member, long generation)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
-        
+
         var allChannels = hostedPlanet.Channels;
         var roles = RoleListPool.Get();
         bool isAdmin = false;
@@ -306,7 +323,7 @@ public class PlanetPermissionService
             var role = hostedPlanet.GetRoleByIndex(roleIndex);
             if (role is null)
                 continue;
-            
+
             hostedPlanet.PermissionCache.AddKnownComboToRole(role.Id, member.RoleMembership);
             if (role.IsAdmin)
             {
@@ -369,20 +386,32 @@ public class PlanetPermissionService
             long? perms = channel.ChannelType switch
             {
                 ChannelTypeEnum.PlanetChat => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, effectiveChannel,
-                    hostedPlanet, ChannelTypeEnum.PlanetChat),
+                    hostedPlanet, ChannelTypeEnum.PlanetChat, generation),
                 ChannelTypeEnum.PlanetCategory => await GenerateChannelPermissionsAsync(member.RoleMembership, roles,
-                    effectiveChannel, hostedPlanet, ChannelTypeEnum.PlanetCategory),
+                    effectiveChannel, hostedPlanet, ChannelTypeEnum.PlanetCategory, generation),
                 ChannelTypeEnum.PlanetVoice => await GenerateChannelPermissionsAsync(member.RoleMembership, roles, effectiveChannel,
-                    hostedPlanet, ChannelTypeEnum.PlanetVoice),
+                    hostedPlanet, ChannelTypeEnum.PlanetVoice, generation),
                 _ => throw new Exception("Invalid channel type!")
             };
 
             if (Permission.HasPermission(perms.Value, ChannelPermissions.View))
                 access.Add(channel);
         }
-        
+
         RoleListPool.Return(roles);
-        var result = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, access);
+        
+        SortedServerModelList<Channel, long> result;
+        if (hostedPlanet.PermissionCache.Generation == generation)
+        {
+            result = hostedPlanet.PermissionCache.SetChannelAccess(member.RoleMembership, access);
+        }
+        else
+        {
+            // Avoid poisoning access cache with stale data if invalidated mid-computation.
+            result = new SortedServerModelList<Channel, long>();
+            result.Set(access);
+        }
+        
         PlanetPermissionsCache.AccessListPool.Return(access);
         return result;
     }
@@ -486,18 +515,21 @@ public class PlanetPermissionService
                 continue;
             }
 
+            // Register this combo so that cache invalidation (HandleNodeChange/HandleRoleChange)
+            // can find and clear per-channel entries created through this path.
+            hosted.PermissionCache.AddKnownComboToRole(role.Id, member.RoleMembership);
             roles.Add(role);
         }
 
         // Roles need to be ordered by position descending (weakest to strongest)
         roles.Sort(ISortable.ComparerDescending);
 
+        var generation = hosted.PermissionCache.Generation;
+
         var computedPerms =
-            await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel, hosted, targetType);
+            await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel, hosted, targetType, generation);
 
         RoleListPool.Return(roles);
-
-        cache.Set(member.RoleMembership, channel.Id, computedPerms);
 
         return computedPerms;
     }
@@ -507,7 +539,8 @@ public class PlanetPermissionService
         List<PlanetRole> roles,
         ISharedChannel channel,
         HostedPlanet hostedPlanet,
-        ChannelTypeEnum targetType)
+        ChannelTypeEnum targetType,
+        long expectedGeneration)
     {
         var channelKey = PlanetPermissionUtils.GetRoleChannelComboKey(roleMembership, channel.Id);
         // Use targetType for cache, not channel.ChannelType - the effective channel may be
@@ -520,13 +553,15 @@ public class PlanetPermissionService
 
         if (roles.Count == 0)
         {
-            permCache.Set(roleMembership, channel.Id, 0);
+            if (hostedPlanet.PermissionCache.Generation == expectedGeneration)
+                permCache.Set(roleMembership, channel.Id, 0);
             return 0;
         }
 
         if (roles.Any(x => x.IsAdmin))
         {
-            permCache.Set(roleMembership, channel.Id, Permission.FULL_CONTROL);
+            if (hostedPlanet.PermissionCache.Generation == expectedGeneration)
+                permCache.Set(roleMembership, channel.Id, Permission.FULL_CONTROL);
             return Permission.FULL_CONTROL;
         }
 
@@ -541,7 +576,12 @@ public class PlanetPermissionService
 
         var permissions = PermissionCalculator.GetChannelPermissions(roles, targetType, permNodes);
 
-        permCache.Set(roleMembership, channel.Id, permissions);
+        // Only cache if the permission data hasn't been invalidated during computation.
+        // This prevents a long-running computation from writing back stale data after
+        // a concurrent invalidation cleared the cache.
+        if (hostedPlanet.PermissionCache.Generation == expectedGeneration)
+            permCache.Set(roleMembership, channel.Id, permissions);
+
         return permissions;
     }
 }
