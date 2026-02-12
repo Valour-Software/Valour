@@ -55,7 +55,17 @@ jobs:
         java-version: '17'
 
     - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+      run: |
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o tools.zip
+        unzip -q tools.zip
+        mv cmdline-tools latest
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
     - name: Install MAUI workload
       run: dotnet workload install maui-android
@@ -76,7 +86,7 @@ jobs:
         path: '.'
 
     - name: Restore dependencies
-      run: dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory=$ANDROID_HOME
+      run: dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
 
     - name: Build APK
       run: >
@@ -84,7 +94,7 @@ jobs:
         -f net10.0-android
         -c Release
         -o ./artifacts
-        -p:AndroidSdkDirectory=$ANDROID_HOME
+        -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
 
     - name: Find APK
       id: find-apk
