@@ -54,6 +54,9 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
     - name: Install MAUI workload
       run: dotnet workload install maui-android
 
