@@ -306,6 +306,8 @@
 
     private async Task OnRoleDrop(PlanetRole droppedOn)
     {
+        if (_draggingRole is null)
+            return;
 
         var _roles = Planet.Roles.ToList();
         
@@ -318,7 +320,7 @@
         _roles.Remove(_draggingRole);
         _roles.Insert(droppedOnIndex, _draggingRole);
 
-        var ids = _roles.Select(x => x.Id);
+        var ids = _roles.Select(x => x.Id).ToArray();
 
         var result = await droppedOn.Node.PostAsync($"api/planets/{droppedOn.PlanetId}/roles/order", ids);
 

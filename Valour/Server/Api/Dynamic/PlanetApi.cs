@@ -273,9 +273,11 @@ public class PlanetApi
         [FromBody] long[] order,
         long planetId,
         PlanetMemberService memberService,
-        PlanetService planetService,
-        PlanetRoleService roleService)
+        PlanetService planetService)
     {
+        if (order is null || order.Length == 0)
+            return ValourResult.BadRequest("Role order cannot be empty.");
+
         if (order.Length > 256)
             return ValourResult.BadRequest("Too many roles in order.");
 
@@ -295,27 +297,56 @@ public class PlanetApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
+        var roles = (await planetService.GetRolesAsync(planetId))
+            .OrderBy(x => x.Position)
+            .ToArray();
+
+        if (order.Length > roles.Length)
+            return ValourResult.BadRequest("Order contains more roles than exist on the planet.");
+
+        var roleById = roles.ToDictionary(x => x.Id);
+        foreach (var roleId in order)
+        {
+            if (!roleById.ContainsKey(roleId))
+                return ValourResult.BadRequest($"One or more given roles do not exist on this planet ({roleId}).");
+        }
+
+        long[] normalizedOrder;
+        if (order.Length == roles.Length)
+        {
+            normalizedOrder = order;
+        }
+        else
+        {
+            // Keep omitted roles fixed in-place, and only reorder the subset provided by the client.
+            var provided = seen;
+            var queue = new Queue<long>(order);
+            normalizedOrder = new long[roles.Length];
+
+            for (int i = 0; i < roles.Length; i++)
+            {
+                var currentRoleId = roles[i].Id;
+                normalizedOrder[i] = provided.Contains(currentRoleId) ? queue.Dequeue() : currentRoleId;
+            }
+        }
+
         var authority = await memberService.GetAuthorityAsync(member);
         
         // Make sure that there is permission for any changes
-        var pos = 0;
-        foreach (var roleId in order)
+        for (int pos = 0; pos < normalizedOrder.Length; pos++)
         {
-            var role = await roleService.GetAsync(planetId, roleId);
-            if (role is null)
-                return ValourResult.BadRequest("One or more of the given roles does not exist.");
+            var roleId = normalizedOrder[pos];
+            var role = roleById[roleId];
             
             // Only need to check permission if the position is being changed
             if (pos != role.Position && role.GetAuthority() >= authority)
                 return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");
             
-            if (role.IsDefault && pos != order.Length - 1)
+            if (role.IsDefault && pos != normalizedOrder.Length - 1)
                 return ValourResult.Forbid("The default role must be last in the order.");
-            
-            pos++;
         }
 
-        var result = await planetService.SetRoleOrderAsync(planetId, order);
+        var result = await planetService.SetRoleOrderAsync(planetId, normalizedOrder);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
         

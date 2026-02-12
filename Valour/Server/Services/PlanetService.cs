@@ -262,7 +262,16 @@ public class PlanetService
 
             // Ensure all the roles are included in the order
             if (order.Count != planetRoles.Length)
-                return new TaskResult(false, "Your order does not contain all the planet roles.");
+            {
+                var planetRoleIds = planetRoles.Select(x => x.Id).ToHashSet();
+                var orderedRoleIds = order.ToHashSet();
+
+                var missing = planetRoleIds.Except(orderedRoleIds).Take(10);
+                var extra = orderedRoleIds.Except(planetRoleIds).Take(10);
+
+                return new TaskResult(false,
+                    $"Your order does not contain all the planet roles. Missing: [{string.Join(",", missing)}], Extra: [{string.Join(",", extra)}]");
+            }
             
             await _db.SaveChangesAsync();
             await tran.CommitAsync();

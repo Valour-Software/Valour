@@ -140,15 +140,22 @@ public class NotificationService
             return;
 
         baseNotification.Body ??= "";
-        
-        // Create db notifications
-        
-        // TODO: this could be a lot of data to move. may want a sequence or something on the db
-        // at some point to handle this.
-        var notifications = await _db.PlanetMembers
+
+        var userIds = await _db.PlanetMembers
             .AsNoTracking()
             .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
-            .Select(x => new Valour.Database.Notification()
+            .Select(x => x.UserId)
+            .Distinct()
+            .ToArrayAsync();
+
+        if (userIds.Length == 0)
+            return;
+
+        const int batchSize = 500;
+        foreach (var userBatch in userIds.Chunk(batchSize))
+        {
+            var timeSent = DateTime.UtcNow;
+            var notifications = userBatch.Select(userId => new Valour.Database.Notification()
             {
                 Id = Guid.NewGuid(),
                 Title = baseNotification.Title,
@@ -159,12 +166,16 @@ public class NotificationService
                 ChannelId = baseNotification.ChannelId,
                 Source = NotificationSource.PlanetRoleMention,
                 SourceId = baseNotification.SourceId,
-                UserId = x.UserId,
-                TimeSent = DateTime.UtcNow,
-            }).ToArrayAsync();
-        
-        await _db.Notifications.AddRangeAsync(notifications);
-        await _db.SaveChangesAsync();
+                UserId = userId,
+                TimeSent = timeSent,
+            }).ToArray();
+
+            await _db.Notifications.AddRangeAsync(notifications);
+            await _db.SaveChangesAsync();
+
+            // Prevent long-lived tracking growth for large role fanouts.
+            _db.ChangeTracker.Clear();
+        }
         
         // Send push notifications
         await _pushNotificationWorker.QueueNotificationAction(new SendRolePushNotification()
@@ -178,6 +189,8 @@ public class NotificationService
             },
             RoleId = roleId
         });
+
+        _logger.LogInformation("Queued role mention notifications for {RecipientCount} users on role {RoleId}", userIds.Length, roleId);
     }
 
     public async Task HandleReplyAsync(
@@ -358,6 +371,10 @@ public class NotificationService
             ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}"
         };
 
-        await SendRoleNotificationsAsync(mention.TargetId, baseNotification);
+        await _pushNotificationWorker.QueueNotificationAction(new QueueRoleMentionNotification()
+        {
+            RoleId = mention.TargetId,
+            Notification = baseNotification
+        });
     }
 }

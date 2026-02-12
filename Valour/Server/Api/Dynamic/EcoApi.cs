@@ -89,11 +89,11 @@ public class EcoApi
         EcoService ecoService,
         PlanetMemberService planetMemberService)
     {
-        if (currency.Id != id)
-            return ValourResult.BadRequest("Id mismatch");
-        
         if (currency is null)
             return ValourResult.BadRequest("Include currency in body");
+
+        if (currency.Id != id)
+            return ValourResult.BadRequest("Id mismatch");
 
         var member = await planetMemberService.GetCurrentAsync(currency.PlanetId);
         if (member is null)
@@ -260,6 +260,9 @@ public class EcoApi
         EcoService ecoService,
         PlanetMemberService memberService)
     {
+        if (request is null)
+            return ValourResult.BadRequest("Include search request in body");
+
         var member = await memberService.GetCurrentAsync(request.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
@@ -355,6 +358,9 @@ public class EcoApi
         EcoService ecoService,
         PlanetMemberService memberService)
     {
+        if (account is null)
+            return ValourResult.BadRequest("Include account in body");
+
         var token = await tokenService.GetCurrentTokenAsync();
         
         if (account.UserId != token.UserId)
@@ -376,6 +382,9 @@ public class EcoApi
         }
 
         var member = await memberService.GetCurrentAsync(account.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
@@ -395,6 +404,9 @@ public class EcoApi
         EcoService ecoService,
         PlanetMemberService memberService)
     {
+        if (account is null)
+            return ValourResult.BadRequest("Include account in body");
+
         if (id != account.Id)
             return ValourResult.BadRequest("Id mismatch");
         
@@ -419,6 +431,9 @@ public class EcoApi
         }
 
         var member = await memberService.GetCurrentAsync(account.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
@@ -451,6 +466,8 @@ public class EcoApi
         var token = await tokenService.GetCurrentTokenAsync();
 
         var account = await ecoService.GetAccountAsync(id);
+        if (account is null)
+            return ValourResult.NotFound("Account not found");
         
         if (account.BalanceValue != 0)
             return ValourResult.BadRequest("You cannot delete an account with a balance");
@@ -472,6 +489,9 @@ public class EcoApi
         else
         {
             var member = await memberService.GetCurrentAsync(account.PlanetId);
+            if (member is null)
+                return ValourResult.NotPlanetMember();
+
             if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
                     return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
         }

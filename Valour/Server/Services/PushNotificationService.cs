@@ -115,7 +115,7 @@ public class PushNotificationService
             await _webPushClient.SendNotificationAsync(webSub, payload, _vapidDetails,
                 cancellationToken: cancellationToken);
             
-            _logger.LogInformation("Sent notification to {Endpoint}", sub.Endpoint);
+            _logger.LogDebug("Sent notification to {Endpoint}", sub.Endpoint);
         }
         catch (WebPushException ex)
         {

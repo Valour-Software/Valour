@@ -36,6 +36,12 @@ public class SendMemberPushNotification : PushNotificationAction
     public NotificationContent Content;
 }
 
+public class QueueRoleMentionNotification : PushNotificationAction
+{
+    public long RoleId;
+    public Models.Notification Notification;
+}
+
 public class PushNotificationWorker : IHostedService, IDisposable
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -48,6 +54,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
     // Fields to manage the background processing task.
     private Task? _executingTask;
     private CancellationTokenSource? _cts;
+    private bool _pushEnabled;
 
     public PushNotificationWorker(ILogger<PushNotificationWorker> logger,
                                   IServiceScopeFactory serviceScopeFactory, 
@@ -68,14 +75,17 @@ public class PushNotificationWorker : IHostedService, IDisposable
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        // If no hub client is available, log a warning and do nothing.
-        if (NotificationsConfig.Current is null || string.IsNullOrWhiteSpace(NotificationsConfig.Current.PrivateKey))
+        _pushEnabled = NotificationsConfig.Current is not null &&
+                       !string.IsNullOrWhiteSpace(NotificationsConfig.Current.PrivateKey);
+
+        if (!_pushEnabled)
         {
-            _logger.LogWarning("Notifications config missing - disabling push worker");
-            return;
+            _logger.LogWarning("Notifications config missing - push sends will be disabled");
         }
-        
-        await ClearExpiredSubscriptions();
+        else
+        {
+            await ClearExpiredSubscriptions();
+        }
 
         // Create a linked cancellation token and start the background loop.
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -135,13 +145,19 @@ public class PushNotificationWorker : IHostedService, IDisposable
                 await ProcessUnsubscribe(unsubscribe.Subscription);
                 break;
             case SendRolePushNotification roleMention:
-                await ProcessRoleNotification(roleMention.RoleId, roleMention.Content);
+                if (_pushEnabled)
+                    await ProcessRoleNotification(roleMention.RoleId, roleMention.Content);
                 break;
             case SendUserPushNotification userMention:
-                await ProcessUserNotification(userMention.UserId, userMention.Content);
+                if (_pushEnabled)
+                    await ProcessUserNotification(userMention.UserId, userMention.Content);
                 break;
             case SendMemberPushNotification memberMention:
-                await ProcessMemberNotification(memberMention.MemberId, memberMention.Content);
+                if (_pushEnabled)
+                    await ProcessMemberNotification(memberMention.MemberId, memberMention.Content);
+                break;
+            case QueueRoleMentionNotification roleMentionNotification:
+                await ProcessRoleMentionNotification(roleMentionNotification.RoleId, roleMentionNotification.Notification);
                 break;
             default:
                 _logger.LogWarning("Unknown notification action: {ActionType}", action.GetType().Name);
@@ -194,6 +210,16 @@ public class PushNotificationWorker : IHostedService, IDisposable
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.SendMemberPushNotificationAsync(memberId, content);
+    }
+
+    private async Task ProcessRoleMentionNotification(long roleId, Models.Notification notification)
+    {
+        var sw = Stopwatch.StartNew();
+        using var scope = _serviceScopeFactory.CreateScope();
+        var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+        await notificationService.SendRoleNotificationsAsync(roleId, notification);
+        sw.Stop();
+        _logger.LogInformation("Role mention notification fanout processed in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
     }
 
     /// <summary>

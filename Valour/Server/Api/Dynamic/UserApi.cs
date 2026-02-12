@@ -272,8 +272,8 @@ public class UserApi
             }
             else
             {
-                var mfaValid = multiAuthService.VerifyAppMultiAuth(userPrivateInfo.UserId, tokenRequest.MultiFactorCode);
-                if (!mfaValid.Result.Success)
+                var mfaValid = await multiAuthService.VerifyAppMultiAuth(userPrivateInfo.UserId, tokenRequest.MultiFactorCode);
+                if (!mfaValid.Success)
                     return ValourResult.Forbid("Invalid code.");
             }
         }

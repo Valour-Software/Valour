@@ -157,29 +157,32 @@ public class EcoService
     /// </summary>
     public static TaskResult ValidateCurrency(Currency currency)
     {
+        if (currency is null)
+            return TaskResult.FromFailure("Given value is null");
+
+        if (string.IsNullOrWhiteSpace(currency.Name))
+            return TaskResult.FromFailure("Currency must have a name");
+
         if (currency.Name.Length > 20)
             return TaskResult.FromFailure("Max name length is 20 characters");
 
-        if (string.IsNullOrEmpty(currency.Name))
-            return TaskResult.FromFailure("Currency must have a name");
+        if (string.IsNullOrWhiteSpace(currency.PluralName))
+            return TaskResult.FromFailure("Currency must have a plural name");
 
         if (currency.PluralName.Length > 20)
             return TaskResult.FromFailure("Max name plural length is 20 characters");
 
-        if (string.IsNullOrEmpty(currency.PluralName))
-            return TaskResult.FromFailure("Currency must have a plural name");
+        if (string.IsNullOrWhiteSpace(currency.ShortCode))
+            return TaskResult.FromFailure("Currency must have a shortcode");
 
         if (currency.ShortCode.Length > 5)
             return TaskResult.FromFailure("Max shortcode length is 5 characters");
 
-        if (string.IsNullOrEmpty(currency.ShortCode))
-            return TaskResult.FromFailure("Currency must have a shortcode");
+        if (string.IsNullOrWhiteSpace(currency.Symbol))
+            return TaskResult.FromFailure("Currency must have a symbol");
 
         if (currency.Symbol.Length > 5)
             return TaskResult.FromFailure("Max symbol length is 5 characters");
-
-        if (string.IsNullOrEmpty(currency.Symbol))
-            return TaskResult.FromFailure("Currency must have a symbol");
 
         if (currency.DecimalPlaces > 8)
             return TaskResult.FromFailure("Currency can have max 8 decimals");

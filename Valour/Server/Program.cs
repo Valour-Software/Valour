@@ -280,6 +280,8 @@ public partial class Program
         services.AddSignalR(options =>
         {
             options.MaximumParallelInvocationsPerClient = 5;
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
         });
 
         services.AddHttpClient();

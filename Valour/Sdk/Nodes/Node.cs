@@ -403,7 +403,7 @@ public class Node : ServiceBase // each node acts like a service
             })
             .Build();
 
-        HubConnection.ServerTimeout = TimeSpan.FromSeconds(20);
+        HubConnection.ServerTimeout = TimeSpan.FromSeconds(60);
 
         HubConnection.Closed += OnSignalRClosed;
         HubConnection.Reconnected += OnHubReconnect;
