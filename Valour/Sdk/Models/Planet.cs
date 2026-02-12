@@ -24,6 +24,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     private Node _node;
     private readonly SemaphoreSlim _ensureReadyLock = new(1, 1);
+    private readonly SemaphoreSlim _channelAccessRefreshLock = new(1, 1);
 
     /// <summary>
     /// In the case that the roles list for some reason has not loaded,
@@ -472,14 +473,45 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public async Task FetchChannelsAsync()
     {
-        var newData = (await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels")).Data;
-        if (newData is null)
+        var result = await Node.GetJsonAsync<List<Channel>>($"{IdRoute}/channels");
+        if (!result.Success || result.Data is null)
             return;
 
+        var newData = result.Data;
+        var channelIds = new HashSet<long>(newData.Select(x => x.Id));
+
         newData.SyncAll(Client, ModelInsertFlags.Batched);
+
+        // Access-filtered channel fetches must remove channels that are no longer visible.
+        var staleChannels = Channels.Where(x => !channelIds.Contains(x.Id)).ToList();
+        foreach (var stale in staleChannels)
+        {
+            stale.RemoveFromCache();
+        }
         
         Channels.Sort();
         Channels.NotifySet();
+    }
+
+    internal void QueueChannelAccessRefresh()
+    {
+        _ = QueueChannelAccessRefreshAsync();
+    }
+
+    private async Task QueueChannelAccessRefreshAsync()
+    {
+        // Coalesce concurrent requests to avoid duplicate fetches.
+        if (!await _channelAccessRefreshLock.WaitAsync(0))
+            return;
+
+        try
+        {
+            await FetchChannelsAsync();
+        }
+        finally
+        {
+            _channelAccessRefreshLock.Release();
+        }
     }
     
     public async Task<Channel> FetchPrimaryChatChannelAsync()

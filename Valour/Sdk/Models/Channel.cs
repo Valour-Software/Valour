@@ -156,6 +156,10 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
     protected override void OnUpdated(ModelUpdatedEvent<Channel> eventData)
     {
+        if (eventData.Changes.On(x => x.InheritsPerms))
+        {
+            Planet.QueueChannelAccessRefresh();
+        }
     }
     
     protected override void OnDeleted()
