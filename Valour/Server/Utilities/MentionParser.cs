@@ -1,5 +1,4 @@
 using Valour.Shared.Models;
-using Markdig.Helpers;
 
 namespace Valour.Server.Utilities;
 
@@ -52,7 +51,7 @@ public static class MentionParser
             int offset = 4;
             string idChars = "";
             while (offset < remainingLength &&
-                   (c = text[pos + offset]).IsDigit())
+                   char.IsDigit(c = text[pos + offset]))
             {
                 idChars += c;
                 offset++;

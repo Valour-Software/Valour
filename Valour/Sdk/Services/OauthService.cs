@@ -3,7 +3,6 @@ using Valour.Sdk.Requests;
 using Valour.Sdk.Models;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
-using System.Net.Http.Json;
 using Valour.Shared;
 using Valour.Sdk.ModelLogic;
 
@@ -232,21 +231,17 @@ public class OauthService : ServiceBase
     {
         try
         {
-            // Build query parameters
-            var queryParams = new List<string>
+            var tokenRequest = new OauthTokenExchangeRequest
             {
-                $"client_id={request.ClientId}",
-                $"client_secret={Uri.EscapeDataString(request.ClientSecret)}",
-                $"grant_type={Uri.EscapeDataString(request.GrantType)}",
-                $"code={Uri.EscapeDataString(request.Code)}",
-                $"redirect_uri={Uri.EscapeDataString(request.RedirectUri)}"
+                ClientId = request.ClientId,
+                ClientSecret = request.ClientSecret,
+                GrantType = request.GrantType,
+                Code = request.Code,
+                RedirectUri = request.RedirectUri,
+                State = request.State
             };
 
-            if (!string.IsNullOrEmpty(request.State))
-                queryParams.Add($"state={Uri.EscapeDataString(request.State)}");
-
-            var queryString = string.Join("&", queryParams);
-            var response = await _client.PrimaryNode.GetJsonAsync<AuthToken>($"api/oauth/token?{queryString}");
+            var response = await _client.PrimaryNode.PostAsyncWithResponse<AuthToken>("api/oauth/token", tokenRequest);
             
             if (!response.Success)
                 return new TaskResult<AuthToken>(false, response.Message);

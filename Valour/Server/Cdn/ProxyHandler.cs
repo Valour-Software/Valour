@@ -3,11 +3,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using Valour.Database;
 using Valour.Sdk.Models;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
-using SixLabors.ImageSharp;
-using Valour.Database;
 using Valour.Server.Utilities;
 
 namespace Valour.Server.Cdn;
@@ -16,6 +15,7 @@ public class ProxyHandler
 {
     private readonly HttpClient _http;
     private readonly ILogger<ProxyHandler> _logger;
+    private static int _cleanupStarted;
 
     // Cache for oEmbed responses (15 minute expiration)
     private static readonly ConcurrentDictionary<string, CachedOEmbed> _oembedCache = new();
@@ -44,8 +44,9 @@ public class ProxyHandler
         _http = http;
         _logger = logger;
 
-        // Start background cache cleanup
-        _ = Task.Run(CleanupCacheAsync);
+        // Start one cleanup loop for all ProxyHandler instances.
+        if (Interlocked.Exchange(ref _cleanupStarted, 1) == 0)
+            _ = Task.Run(CleanupCacheAsync);
     }
 
     private static async Task CleanupCacheAsync()
@@ -92,18 +93,25 @@ public class ProxyHandler
     /// </summary>
     public async Task<MessageAttachment> GetAttachmentFromUrl(string url, ValourDb db)
     {
-        var uri = new Uri(url.Replace("www.", ""));
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return null;
+
+        if (!await OutboundUrlSafetyValidator.IsSafeAsync(uri, _logger))
+            return null;
+
+        var normalizedHost = NormalizeHost(uri.Host);
+        var canonicalUrl = uri.AbsoluteUri;
 
         // Determine if this is a 'virtual' attachment. Like YouTube!
         // these attachments do not have an actual file - usually they use an iframe.
-        var isVirtual = CdnUtils.VirtualAttachmentMap.TryGetValue(uri.Host, out var virtualType);
+        var isVirtual = CdnUtils.VirtualAttachmentMap.TryGetValue(normalizedHost, out var virtualType);
         if (isVirtual)
         {
-            return await HandleVirtualAttachment(url, uri, virtualType);
+            return await HandleVirtualAttachment(canonicalUrl, uri, virtualType);
         }
         else
         {
-            return await HandleMediaAttachment(url, uri, db);
+            return await HandleMediaAttachment(canonicalUrl, uri, db);
         }
     }
 
@@ -476,11 +484,11 @@ public class ProxyHandler
         try
         {
             // GitHub Gist embed
-            if (uri.Host == "gist.github.com")
+            if (uri.Host.Equals("gist.github.com", StringComparison.OrdinalIgnoreCase))
             {
-                // Gists use script embeds, so we'll create the embed HTML
-                attachment.Location = url;
-                attachment.Html = $"<script src=\"{url}.js\"></script>";
+                // Keep canonical gist URL and let the client load the known embed script directly.
+                attachment.Location = $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}".TrimEnd('/');
+                attachment.Html = null;
                 return attachment;
             }
 
@@ -539,12 +547,15 @@ public class ProxyHandler
         if (_openGraphCache.TryGetValue(url, out var cached) && !cached.IsExpired)
             return cached.Data;
 
+        if (!await OutboundUrlSafetyValidator.IsSafeAsync(url, _logger))
+            return null;
+
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("User-Agent", "Mozilla/5.0 (compatible; ValourBot/1.0)");
 
-            var response = await _http.SendAsync(request);
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             if (!response.IsSuccessStatusCode)
                 return null;
 
@@ -667,6 +678,9 @@ public class ProxyHandler
     /// </summary>
     private async Task<MessageAttachment> HandleMediaAttachment(string url, Uri uri, ValourDb db)
     {
+        if (!await OutboundUrlSafetyValidator.IsSafeAsync(uri, _logger))
+            return null;
+
         // We have to determine the type of the attachment
         var name = Path.GetFileName(uri.AbsoluteUri);
         var ext = Path.GetExtension(name).ToLower();
@@ -706,7 +720,8 @@ public class ProxyHandler
         }
 
         // Bypass our own CDN for known good sources
-        if (CdnUtils.MediaBypassList.Contains(uri.Host))
+        var normalizedHost = NormalizeHost(uri.Host);
+        if (CdnUtils.MediaBypassList.Contains(normalizedHost))
         {
             return new MessageAttachment(type)
             {
@@ -734,7 +749,7 @@ public class ProxyHandler
             {
                 if (type == MessageAttachmentType.Image)
                 {
-                    var imageMeta = await ImageSizeFetcher.GetImageDimensionsAsync(uri.AbsoluteUri);
+                    var imageMeta = await ImageSizeFetcher.GetImageDimensionsAsync(uri.AbsoluteUri, _http, _logger);
                     if (imageMeta is not null)
                     {
                         attachment.Width = imageMeta.Value.width;
@@ -762,6 +777,9 @@ public class ProxyHandler
             }
             else
             {
+                if (!await OutboundUrlSafetyValidator.IsSafeAsync(item.Origin, _logger))
+                    return null;
+
                 attachment.Location = item.Url;
                 attachment.Width = item.Width ?? 0;
                 attachment.Height = item.Height ?? 0;
@@ -769,6 +787,14 @@ public class ProxyHandler
 
             return attachment;
         }
+    }
+
+    private static string NormalizeHost(string host)
+    {
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            return host[4..];
+
+        return host;
     }
 
     #endregion

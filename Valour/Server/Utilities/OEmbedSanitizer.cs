@@ -1,26 +1,20 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace Valour.Server.Utilities;
 
 /// <summary>
-/// Sanitizes oEmbed HTML content to prevent XSS attacks.
-/// Allows only safe HTML elements and attributes from trusted oEmbed providers.
+/// Sanitizes oEmbed HTML content to reduce XSS risk.
 /// </summary>
 public static class OEmbedSanitizer
 {
-    /// <summary>
-    /// Allowed HTML tags for oEmbed content
-    /// </summary>
     private static readonly HashSet<string> AllowedTags = new(StringComparer.OrdinalIgnoreCase)
     {
         "blockquote", "a", "p", "br", "div", "span", "img", "iframe",
         "strong", "em", "b", "i", "u", "time", "cite"
     };
 
-    /// <summary>
-    /// Allowed attributes for all tags
-    /// </summary>
     private static readonly HashSet<string> AllowedAttributes = new(StringComparer.OrdinalIgnoreCase)
     {
         "href", "src", "alt", "title", "class", "id", "data-instgrm-captioned",
@@ -30,24 +24,6 @@ public static class OEmbedSanitizer
         "data-lang", "data-dnt", "data-theme", "data-width", "data-height"
     };
 
-    /// <summary>
-    /// Trusted domains for script sources
-    /// </summary>
-    private static readonly HashSet<string> TrustedScriptDomains = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "platform.twitter.com",
-        "embed.reddit.com",
-        "www.instagram.com",
-        "platform.instagram.com",
-        "connect.facebook.net",
-        "www.tiktok.com",
-        "embed.bsky.app",
-        "w.soundcloud.com",
-    };
-
-    /// <summary>
-    /// Trusted domains for iframe sources
-    /// </summary>
     private static readonly HashSet<string> TrustedIframeDomains = new(StringComparer.OrdinalIgnoreCase)
     {
         // Video platforms
@@ -69,156 +45,165 @@ public static class OEmbedSanitizer
         // Music platforms
         "open.spotify.com",
         "w.soundcloud.com",
-
-        // Developer platforms
-        "gist.github.com",
     };
 
-    /// <summary>
-    /// Dangerous event handler attributes that must be removed
-    /// </summary>
     private static readonly Regex EventHandlerPattern = new(
-        @"\s+on\w+\s*=\s*[""'][^""']*[""']",
+        @"\s+on\w+\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>
-    /// Pattern to match javascript: URLs
-    /// </summary>
     private static readonly Regex JavaScriptUrlPattern = new(
         @"(?:href|src)\s*=\s*[""']?\s*javascript:",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>
-    /// Pattern to match data: URLs (except safe image types)
-    /// </summary>
     private static readonly Regex DataUrlPattern = new(
         @"(?:href|src)\s*=\s*[""']?\s*data:(?!image/(?:png|jpg|jpeg|gif|webp))",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>
-    /// Pattern to extract script src values
-    /// </summary>
-    private static readonly Regex ScriptSrcPattern = new(
-        @"<script[^>]*\ssrc\s*=\s*[""']([^""']+)[""'][^>]*>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    /// <summary>
-    /// Pattern to extract iframe src values
-    /// </summary>
-    private static readonly Regex IframeSrcPattern = new(
-        @"<iframe[^>]*\ssrc\s*=\s*[""']([^""']+)[""'][^>]*>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    /// <summary>
-    /// Pattern to match inline scripts (script tags without src)
-    /// </summary>
     private static readonly Regex InlineScriptPattern = new(
-        @"<script(?![^>]*\ssrc\s*=)[^>]*>[\s\S]*?</script>",
+        @"<script[^>]*>[\s\S]*?</script>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>
-    /// Sanitizes oEmbed HTML content from a trusted provider.
-    /// </summary>
-    /// <param name="html">The raw HTML from the oEmbed provider</param>
-    /// <returns>Sanitized HTML safe for rendering, or null if content is deemed unsafe</returns>
+    private static readonly Regex TagPattern = new(
+        @"<(?<close>/)?(?<tag>[a-zA-Z0-9]+)(?<attrs>[^>]*)>",
+        RegexOptions.Compiled);
+
+    private static readonly Regex AttributePattern = new(
+        @"(?<name>[^\s=/>]+)(?:\s*=\s*(?<value>""[^""]*""|'[^']*'|[^\s""'=<>`]+))?",
+        RegexOptions.Compiled);
+
     public static string Sanitize(string html)
     {
         if (string.IsNullOrWhiteSpace(html))
             return html;
 
-        // Remove any javascript: URLs
-        if (JavaScriptUrlPattern.IsMatch(html))
-        {
-            html = JavaScriptUrlPattern.Replace(html, "href=\"#\"");
-        }
+        html = html.Replace("\0", string.Empty);
+        html = EventHandlerPattern.Replace(html, string.Empty);
+        html = InlineScriptPattern.Replace(html, string.Empty);
+        html = JavaScriptUrlPattern.Replace(html, "href=\"#\"");
+        html = DataUrlPattern.Replace(html, "src=\"\"");
 
-        // Remove dangerous data: URLs (keep safe image types)
-        if (DataUrlPattern.IsMatch(html))
-        {
-            html = DataUrlPattern.Replace(html, "src=\"\"");
-        }
-
-        // Remove all event handlers (onclick, onerror, onload, etc.)
-        html = EventHandlerPattern.Replace(html, "");
-
-        // Remove inline scripts (no src attribute)
-        html = InlineScriptPattern.Replace(html, "");
-
-        // Validate script sources - only allow from trusted domains
-        var scriptMatches = ScriptSrcPattern.Matches(html);
-        foreach (Match match in scriptMatches)
-        {
-            var src = match.Groups[1].Value;
-            if (!IsScriptSourceTrusted(src))
-            {
-                // Remove untrusted script tags
-                html = html.Replace(match.Value, "<!-- script removed -->");
-            }
-        }
-
-        // Validate iframe sources - only allow from trusted domains
-        var iframeMatches = IframeSrcPattern.Matches(html);
-        foreach (Match match in iframeMatches)
-        {
-            var src = match.Groups[1].Value;
-            if (!IsIframeSourceTrusted(src))
-            {
-                // Remove untrusted iframe tags
-                html = html.Replace(match.Value, "<!-- iframe removed -->");
-            }
-        }
-
-        // Remove style attributes that could contain expressions
-        html = Regex.Replace(html, @"\sstyle\s*=\s*[""'][^""']*expression[^""']*[""']", "", RegexOptions.IgnoreCase);
-
-        return html;
+        return TagPattern.Replace(html, BuildSanitizedTag);
     }
 
-    /// <summary>
-    /// Checks if a script source URL is from a trusted domain
-    /// </summary>
-    private static bool IsScriptSourceTrusted(string src)
+    private static string BuildSanitizedTag(Match match)
     {
-        if (string.IsNullOrWhiteSpace(src))
-            return false;
+        var tagName = match.Groups["tag"].Value.ToLowerInvariant();
+        var isClosingTag = match.Groups["close"].Success;
 
-        try
-        {
-            var uri = new Uri(src, UriKind.RelativeOrAbsolute);
-            if (!uri.IsAbsoluteUri)
-                return false;
+        if (!AllowedTags.Contains(tagName))
+            return string.Empty;
 
-            // Must be HTTPS
-            if (uri.Scheme != "https")
-                return false;
+        if (isClosingTag)
+            return $"</{tagName}>";
 
-            return TrustedScriptDomains.Contains(uri.Host);
-        }
-        catch
-        {
-            return false;
-        }
+        var attrs = match.Groups["attrs"].Value;
+        var sanitizedAttrs = BuildSanitizedAttributes(tagName, attrs);
+        var selfClosing = match.Value.EndsWith("/>");
+
+        if (selfClosing)
+            return $"<{tagName}{sanitizedAttrs} />";
+
+        return $"<{tagName}{sanitizedAttrs}>";
     }
 
-    /// <summary>
-    /// Checks if an iframe source URL is from a trusted domain
-    /// </summary>
+    private static string BuildSanitizedAttributes(string tagName, string rawAttributes)
+    {
+        if (string.IsNullOrWhiteSpace(rawAttributes))
+            return string.Empty;
+
+        var sb = new StringBuilder();
+
+        foreach (Match attrMatch in AttributePattern.Matches(rawAttributes))
+        {
+            var name = attrMatch.Groups["name"].Value.Trim();
+            if (string.IsNullOrWhiteSpace(name) || name == "/" || name.StartsWith("/"))
+                continue;
+
+            if (name.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!AllowedAttributes.Contains(name))
+                continue;
+
+            var lowerName = name.ToLowerInvariant();
+            var hasValue = attrMatch.Groups["value"].Success;
+
+            if (!hasValue)
+            {
+                if (lowerName == "allowfullscreen")
+                    sb.Append(" allowfullscreen");
+                continue;
+            }
+
+            var value = TrimQuotes(attrMatch.Groups["value"].Value);
+            if (!IsAttributeValueSafe(tagName, lowerName, value))
+                continue;
+
+            sb.Append(' ')
+                .Append(lowerName)
+                .Append("=\"")
+                .Append(HttpUtility.HtmlAttributeEncode(value))
+                .Append('"');
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsAttributeValueSafe(string tagName, string attrName, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        if (value.Contains('\0'))
+            return false;
+
+        if (value.StartsWith("//"))
+            return false;
+
+        if (value.Contains("javascript:", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("vbscript:", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (attrName is "href" or "src" or "cite")
+        {
+            if (!Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out var uri))
+                return false;
+
+            if (uri.IsAbsoluteUri && uri.Scheme is not ("http" or "https"))
+                return false;
+
+            if (attrName == "src" && !uri.IsAbsoluteUri)
+                return false;
+
+            if (tagName == "iframe" && attrName == "src")
+                return IsIframeSourceTrusted(value);
+        }
+
+        return true;
+    }
+
+    private static string TrimQuotes(string value)
+    {
+        if (value.Length >= 2 &&
+            ((value.StartsWith('"') && value.EndsWith('"')) ||
+             (value.StartsWith('\'') && value.EndsWith('\''))))
+        {
+            return value[1..^1];
+        }
+
+        return value;
+    }
+
     private static bool IsIframeSourceTrusted(string src)
     {
-        if (string.IsNullOrWhiteSpace(src))
-            return false;
-
         try
         {
             var uri = new Uri(src, UriKind.RelativeOrAbsolute);
-            if (!uri.IsAbsoluteUri)
-                return false;
-
-            // Must be HTTPS
-            if (uri.Scheme != "https")
-                return false;
-
-            return TrustedIframeDomains.Contains(uri.Host);
+            return uri.IsAbsoluteUri &&
+                   uri.Scheme == "https" &&
+                   TrustedIframeDomains.Contains(uri.Host);
         }
         catch
         {

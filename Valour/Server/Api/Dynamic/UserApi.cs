@@ -11,6 +11,9 @@ namespace Valour.Server.Api.Dynamic;
 
 public class UserApi
 {
+    private const string GenericAuthFailureMessage = "The credentials were incorrect.";
+    private const string GenericRecoveryResponse = "If an account exists for that email, a message has been sent.";
+
     [ValourRoute(HttpVerbs.Get, "api/users/count")]
     public static async Task<IResult> GetCountRouteAsync(
         UserService userService)
@@ -236,61 +239,62 @@ public class UserApi
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
 
-        UserPrivateInfo userPrivateInfo = await userService.GetUserPrivateInfoAsync(tokenRequest.Email);
+        tokenRequest.Email = UserUtils.SanitizeEmail(tokenRequest.Email);
+        if (string.IsNullOrWhiteSpace(tokenRequest.Email))
+            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage });
 
-        if (userPrivateInfo is null)
-            return ValourResult.InvalidToken();
+        var validResult = await userService.ValidateCredentialAsync(
+            CredentialType.PASSWORD,
+            tokenRequest.Email,
+            tokenRequest.Password);
+
+        // Keep credential failures indistinguishable from account state failures.
+        if (!validResult.Success || validResult.Data is null)
+            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage });
+
+        var user = validResult.Data;
+        var userPrivateInfo = await userService.GetUserPrivateInfoAsync(tokenRequest.Email);
+        if (userPrivateInfo is null || userPrivateInfo.UserId != user.Id)
+            return Results.Json(new AuthResult { Success = false, Message = GenericAuthFailureMessage });
 
         if (!userPrivateInfo.Verified)
+        {
             return Results.Json(new AuthResult
             {
                 Success = false,
-                Message = "This account needs email verification.",
+                Message = GenericAuthFailureMessage,
                 RequiresEmailVerification = true
             });
+        }
 
-        var user = await userService.GetAsync(userPrivateInfo.UserId);
-
-        if (user.Disabled)
-            return ValourResult.Forbid("Your account is disabled.");
-
-        Models.AuthToken? token = null;
-        
-        // Check for multi auth
-        var multiAuths = await multiAuthService.GetAppMultiAuthTypes(userPrivateInfo.UserId);
-        var requiresMultiAuth = multiAuths.Count > 0;
-        if (requiresMultiAuth){
+        var multiAuths = await multiAuthService.GetAppMultiAuthTypes(user.Id);
+        if (multiAuths.Count > 0)
+        {
             if (string.IsNullOrWhiteSpace(tokenRequest.MultiFactorCode))
             {
                 return Results.Json(new AuthResult
                 {
                     Success = true,
                     Token = null,
-                    Message = "Multi-auth is required for this account.",
+                    Message = "Multi-factor authentication is required.",
                     RequiresMultiAuth = true
                 });
             }
-            else
-            {
-                var mfaValid = await multiAuthService.VerifyAppMultiAuth(userPrivateInfo.UserId, tokenRequest.MultiFactorCode);
-                if (!mfaValid.Success)
-                    return ValourResult.Forbid("Invalid code.");
-            }
+
+            var mfaValid = await multiAuthService.VerifyAppMultiAuth(user.Id, tokenRequest.MultiFactorCode);
+            if (!mfaValid.Success)
+                return ValourResult.Forbid("Invalid code.");
         }
 
-        var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, tokenRequest.Email, tokenRequest.Password);
-        if (validResult.Success) {            
-            var result = await userService.GetTokenAfterLoginAsync(ctx, userPrivateInfo.UserId);
-            if (!result.Success)
-                return ValourResult.Problem(result.Message);
+        var result = await userService.GetTokenAfterLoginAsync(ctx, user.Id);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-            token = result.Data;
-        }
-
-        return Results.Json(new AuthResult {
-            Success = validResult.Success,
-            Token = token,
-            Message = validResult.Message,
+        return Results.Json(new AuthResult
+        {
+            Success = true,
+            Token = result.Data,
+            Message = "Succeeded",
             RequiresMultiAuth = false
         });
     }
@@ -367,17 +371,14 @@ public class UserApi
 
         UserPrivateInfo userPrivateInfo = await userService.GetUserPrivateInfoAsync(request.Email);
 
-        if (userPrivateInfo is null)
-            return ValourResult.NotFound("Could not find user. Retry registration?");
+        if (userPrivateInfo is not null && !userPrivateInfo.Verified)
+        {
+            var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
+            if (!result.Success)
+                return ValourResult.Problem(result.Message);
+        }
 
-        if (userPrivateInfo.Verified)
-            return Results.Ok("You are already verified, you can close this!");
-
-        var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
-        if (!result.Success)
-            return ValourResult.Problem(result.Message);
-
-        return ValourResult.Ok("Confirmation email has been resent!");
+        return ValourResult.Ok(GenericRecoveryResponse);
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/resetpassword")]
@@ -392,13 +393,13 @@ public class UserApi
 
         var userEmail = await userService.GetUserPrivateInfoAsync(email, true);
 
-        if (userEmail is null)
-            return ValourResult.NotFound<UserPrivateInfo>();
-
-        var result = await userService.SendPasswordResetEmail(userEmail, userEmail.Email, ctx);
-        if (!result.Success)
-            return ValourResult.Problem(result.Message);
-
+        if (userEmail is not null)
+        {
+            var result = await userService.SendPasswordResetEmail(userEmail, userEmail.Email, ctx);
+            if (!result.Success)
+                return ValourResult.Problem(result.Message);
+        }
+	
         return Results.NoContent();
     }
 
@@ -489,6 +490,7 @@ public class UserApi
     }
     
     [ValourRoute(HttpVerbs.Post, "api/users/me/multiAuth/remove")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> RemoveMultiFactorRouteAsync(
         [FromBody] RemoveMfaRequest request,
         HttpContext ctx,
@@ -496,10 +498,18 @@ public class UserApi
         TokenService tokenService,
         MultiAuthService multiAuthService)
     {
+        if (request is null || string.IsNullOrWhiteSpace(request.Password))
+            return ValourResult.BadRequest("Password is required.");
+
         var userId = await userService.GetCurrentUserIdAsync();
         var currentToken = await tokenService.GetCurrentTokenAsync();
+        if (currentToken is null)
+            return ValourResult.InvalidToken();
 
         var currentCredential = await userService.GetCredentialAsync(userId);
+        if (currentCredential is null || string.IsNullOrWhiteSpace(currentCredential.Identifier))
+            return ValourResult.Forbid("Password authentication is not available for this account.");
+
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.Password);
         if (!validResult.Success)
             return ValourResult.Forbid(validResult.Message);
@@ -510,7 +520,7 @@ public class UserApi
 
         // Rotate session token after MFA removal for security
         var rotateResult = await userService.RotateSessionTokenAsync(ctx, userId, currentToken.Id);
-        if (!rotateResult.Success)
+        if (!rotateResult.Success || rotateResult.Data is null)
             return ValourResult.Problem("MFA removed but failed to rotate session: " + rotateResult.Message);
 
         // Return the new token so the client can update their auth

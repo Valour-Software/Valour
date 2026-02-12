@@ -406,30 +406,28 @@ public class PlanetMemberService
         if (old.UserId != member.UserId)
             return new TaskResult<PlanetMember>(false, "Cannot change user of member.");
 
-        if (old.MemberAvatar != member.MemberAvatar)
-            return new TaskResult<PlanetMember>(false, "Profile image can only be changed via cdn.");
-
+        member.Nickname ??= string.Empty;
         var nameValid = ISharedPlanetMember.ValidateName(member);
         if (!nameValid.Success)
             return new TaskResult<PlanetMember>(false, nameValid.Message);
 
         try
         {
-            _db.Entry(old).CurrentValues.SetValues(member);
+            // Self-updates should only modify nickname; role/avatar updates are managed by dedicated flows.
+            old.Nickname = member.Nickname;
             _db.PlanetMembers.Update(old);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Failed to update planet member {MemberId}", member.Id);
             return new TaskResult<PlanetMember>(false, "An unexpected error occurred.");
         }
-        
-        _coreHub.NotifyPlanetItemChange(member);
 
-        // ensure user model is included
-        member.User = old.User.ToModel();
+        var updated = old.ToModel();
+        _coreHub.NotifyPlanetItemChange(updated);
 
-        return new TaskResult<PlanetMember>(true, "Success", member);
+        return new TaskResult<PlanetMember>(true, "Success", updated);
     }
 
     public async Task<TaskResult> AddRoleAsync(long planetId, long memberId, long roleId)

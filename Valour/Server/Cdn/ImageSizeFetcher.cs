@@ -1,5 +1,6 @@
 using System.Buffers;
 using SixLabors.ImageSharp;
+using Microsoft.Extensions.Logging;
 
 namespace Valour.Server.Cdn;
 
@@ -10,9 +11,19 @@ public class ImageSizeFetcher
     /// </summary>
     public static async Task<(int width, int height, string format)?> GetImageDimensionsAsync(
         string url,
+        HttpClient? client = null,
+        ILogger? logger = null,
         int maxBytes = 32768)
     {
-        using var client = new HttpClient();
+        if (!await OutboundUrlSafetyValidator.IsSafeAsync(url, logger))
+            return null;
+
+        var ownsClient = client is null;
+        client ??= new HttpClient(new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false
+        });
+
         var buffer = ArrayPool<byte>.Shared.Rent(maxBytes);
         int bytesFetched = 0;
 
@@ -44,7 +55,7 @@ public class ImageSizeFetcher
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(rangeStart, rangeEnd);
 
-                using var response = await client.SendAsync(request);
+                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
@@ -76,6 +87,8 @@ public class ImageSizeFetcher
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+            if (ownsClient)
+                client.Dispose();
         }
 
         // Gave up after maxBytes

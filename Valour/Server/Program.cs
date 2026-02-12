@@ -334,6 +334,19 @@ public partial class Program
         services.AddHttpClient<ProxyHandler>(client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false
+        });
+
+        services.AddHttpClient("ProxyFetch", client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false
         });
 
         services.AddSingleton<SignalRConnectionService>();

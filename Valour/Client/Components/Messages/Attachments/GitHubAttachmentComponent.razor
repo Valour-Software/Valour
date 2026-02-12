@@ -36,9 +36,33 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !string.IsNullOrEmpty(Attachment.Html))
+        if (!firstRender)
+            return;
+
+        var gistScriptSrc = GetGistScriptSrc();
+        if (!string.IsNullOrWhiteSpace(gistScriptSrc))
+        {
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, null, gistScriptSrc);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(Attachment.Html))
         {
             await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Html, null);
         }
+    }
+
+    private string? GetGistScriptSrc()
+    {
+        if (string.IsNullOrWhiteSpace(Attachment.Location))
+            return null;
+
+        if (!Uri.TryCreate(Attachment.Location, UriKind.Absolute, out var uri))
+            return null;
+
+        if (!string.Equals(uri.Host, "gist.github.com", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath.TrimEnd('/')}.js";
     }
 }

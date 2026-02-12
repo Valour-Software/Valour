@@ -243,16 +243,148 @@ function positionRelativeTo(id, x, y, corner) {
     }
 }
 
+const trustedEmbedScriptHosts = new Set([
+    "platform.twitter.com",
+    "embed.reddit.com",
+    "www.tiktok.com",
+    "gist.github.com"
+]);
+
+const trustedEmbedIframeHosts = new Set([
+    "www.youtube.com",
+    "youtube.com",
+    "music.youtube.com",
+    "player.vimeo.com",
+    "vimeo.com",
+    "player.twitch.tv",
+    "clips.twitch.tv",
+    "www.tiktok.com",
+    "platform.twitter.com",
+    "twitter.com",
+    "www.instagram.com",
+    "embed.bsky.app",
+    "open.spotify.com",
+    "w.soundcloud.com"
+]);
+
+const allowedEmbedTags = new Set([
+    "blockquote", "a", "p", "br", "div", "span", "img", "iframe",
+    "strong", "em", "b", "i", "u", "time", "cite"
+]);
+
+const allowedEmbedAttributes = new Set([
+    "href", "src", "alt", "title", "class", "id", "data-instgrm-captioned",
+    "data-instgrm-permalink", "data-instgrm-version", "datetime",
+    "width", "height", "frameborder", "allowfullscreen", "allow",
+    "data-tweet-id", "data-embed-theme", "cite", "data-conversation",
+    "data-lang", "data-dnt", "data-theme", "data-width", "data-height"
+]);
+
+function isTrustedEmbedScriptSource(scriptSrc) {
+    try {
+        const parsed = new URL(scriptSrc, window.location.origin);
+        return parsed.protocol === "https:" && trustedEmbedScriptHosts.has(parsed.hostname.toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
+function isTrustedEmbedIframeSource(iframeSrc) {
+    try {
+        const parsed = new URL(iframeSrc, window.location.origin);
+        return parsed.protocol === "https:" && trustedEmbedIframeHosts.has(parsed.hostname.toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
+function isSafeEmbedUrl(urlValue, requiresTrustedIframe = false) {
+    if (typeof urlValue !== "string" || urlValue.length === 0) {
+        return false;
+    }
+
+    const lowered = urlValue.trim().toLowerCase();
+    if (lowered.startsWith("javascript:") || lowered.startsWith("vbscript:") || lowered.startsWith("data:") || lowered.startsWith("//")) {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(urlValue, window.location.origin);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return false;
+        }
+
+        if (requiresTrustedIframe) {
+            return isTrustedEmbedIframeSource(parsed.toString());
+        }
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function sanitizeEmbedHtml(html) {
+    if (typeof html !== "string" || html.length === 0) {
+        return "";
+    }
+
+    const template = document.createElement("template");
+    template.innerHTML = html;
+
+    const elements = Array.from(template.content.querySelectorAll("*"));
+    for (const element of elements) {
+        const tag = element.tagName.toLowerCase();
+
+        if (!allowedEmbedTags.has(tag)) {
+            element.remove();
+            continue;
+        }
+
+        let removed = false;
+        for (const attribute of Array.from(element.attributes)) {
+            const name = attribute.name.toLowerCase();
+            const value = attribute.value ?? "";
+
+            if (name.startsWith("on") || !allowedEmbedAttributes.has(name)) {
+                element.removeAttribute(attribute.name);
+                continue;
+            }
+
+            if (name === "src" && tag === "iframe" && !isSafeEmbedUrl(value, true)) {
+                element.remove();
+                removed = true;
+                break;
+            }
+
+            if ((name === "href" || name === "src" || name === "cite") && !isSafeEmbedUrl(value, false)) {
+                element.removeAttribute(attribute.name);
+            }
+        }
+
+        if (!removed && tag === "iframe" && !element.getAttribute("src")) {
+            element.remove();
+        }
+    }
+
+    return template.innerHTML;
+}
+
 async function injectTwitter(id, data) {
     const container = document.getElementById(id);
     if (!container) {
         return;
     }
     
-    container.innerHTML = data;
+    container.innerHTML = sanitizeEmbedHtml(data);
     
+    const twitterScriptSrc = "https://platform.twitter.com/widgets.js";
+    if (!isTrustedEmbedScriptSource(twitterScriptSrc)) {
+        return;
+    }
+
     let twitterScript = document.createElement('script');
-    twitterScript.src = "https://platform.twitter.com/widgets.js";
+    twitterScript.src = twitterScriptSrc;
     twitterScript.async = true;
     twitterScript.charset = "utf-8";
     container.appendChild(twitterScript);
@@ -265,10 +397,15 @@ async function injectReddit(id, data) {
     }
 
     container.setAttribute('data-embed-theme', 'dark');
-    container.innerHTML = data;
+    container.innerHTML = sanitizeEmbedHtml(data);
+
+    const redditScriptSrc = "https://embed.reddit.com/widgets.js";
+    if (!isTrustedEmbedScriptSource(redditScriptSrc)) {
+        return;
+    }
 
     let redditScript = document.createElement('script');
-    redditScript.src = "https://embed.reddit.com/widgets.js";
+    redditScript.src = redditScriptSrc;
     redditScript.async = true;
     redditScript.charset = "utf-8";
     container.appendChild(redditScript);
@@ -282,10 +419,14 @@ async function injectEmbed(id, html, scriptSrc) {
         return;
     }
 
-    container.innerHTML = html;
+    container.innerHTML = sanitizeEmbedHtml(html);
 
     // If a script source is provided, load it
     if (scriptSrc) {
+        if (!isTrustedEmbedScriptSource(scriptSrc)) {
+            return;
+        }
+
         // Check if script is already loaded
         const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
         if (!existingScript) {

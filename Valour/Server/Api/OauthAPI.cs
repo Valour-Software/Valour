@@ -37,7 +37,7 @@ public class OauthAPI : BaseAPI
         app.MapGet("api/users/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
-        app.MapGet("api/oauth/token", Token);
+        app.MapPost("api/oauth/token", Token);
 
         // Start background cleanup task for expired OAuth codes
         _ = Task.Run(CleanupExpiredCodesAsync);
@@ -116,46 +116,53 @@ public class OauthAPI : BaseAPI
 
     public static async Task<IResult> Token(
         ValourDb db,
-        long client_id,
-        string client_secret,
-        string grant_type,
-        string code,
-        string redirect_uri,
-        string state
+        [FromBody] OauthTokenExchangeRequest request
     )
     {
-        OauthReqCache.TryGetValue(code, out var cached);
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
+
+        if (request.ClientId <= 0 ||
+            string.IsNullOrWhiteSpace(request.ClientSecret) ||
+            string.IsNullOrWhiteSpace(request.GrantType) ||
+            string.IsNullOrWhiteSpace(request.Code) ||
+            string.IsNullOrWhiteSpace(request.RedirectUri))
+        {
+            return ValourResult.BadRequest("Missing required OAuth token parameters.");
+        }
+
+        OauthReqCache.TryGetValue(request.Code, out var cached);
         if (cached is null)
             return ValourResult.Forbid("Invalid or expired authorization code.");
 
         // Check if the code has expired (10 minute lifetime per RFC 6749)
         if (cached.IsExpired)
         {
-            OauthReqCache.TryRemove(code, out _);
+            OauthReqCache.TryRemove(request.Code, out _);
             return ValourResult.Forbid("Authorization code has expired. Please re-authorize.");
         }
 
         var model = cached.Model;
-        if (model.ClientId != client_id ||
-            model.RedirectUri != redirect_uri ||
-            model.State != state)
+        if (model.ClientId != request.ClientId ||
+            model.RedirectUri != request.RedirectUri ||
+            model.State != request.State)
             return ValourResult.Forbid("Parameters are invalid.");
 
-        var app = await db.OauthApps.FindAsync(client_id);
-        if (app.Secret != client_secret)
+        var app = await db.OauthApps.FindAsync(request.ClientId);
+        if (app is null || app.Secret != request.ClientSecret)
             return ValourResult.Forbid("Parameters are invalid.");
 
         // Remove the code from cache - codes are single-use per RFC 6749
-        OauthReqCache.TryRemove(code, out _);
+        OauthReqCache.TryRemove(request.Code, out _);
 
-        switch (grant_type)
+        switch (request.GrantType)
         {
             case "authorization_code":
                 {
                     AuthToken newToken = new AuthToken()
                     {
                         Id = "val-" + Guid.NewGuid().ToString(),
-                        AppId = client_id.ToString(),
+                        AppId = request.ClientId.ToString(),
                         Scope = model.Scope,
                         TimeCreated = DateTime.UtcNow,
                         TimeExpires = DateTime.UtcNow.AddDays(7),

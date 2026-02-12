@@ -87,13 +87,28 @@ public class PlanetMemberApi
         PlanetMemberService service,
         UserService userService)
     {
+        if (member is null)
+            return ValourResult.BadRequest("Include member in body.");
+
+        if (member.Id != id)
+            return ValourResult.BadRequest("Route id does not match member id.");
+
+        var targetMember = await service.GetAsync(id);
+        if (targetMember is null)
+            return ValourResult.NotFound("Member not found");
+
         var selfId = await userService.GetCurrentUserIdAsync();
-        if (selfId != member.UserId)
-            return Results.BadRequest("You can only modify your own membership.");
+        if (selfId != targetMember.UserId)
+            return ValourResult.Forbid("You can only modify your own membership.");
 
-        await service.UpdateAsync(member);
+        // Prevent mass-assignment by only allowing nickname updates via this endpoint.
+        targetMember.Nickname = member.Nickname;
 
-        return Results.Json(member);
+        var result = await service.UpdateAsync(targetMember);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/members/{id}")]
