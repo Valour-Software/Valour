@@ -270,4 +270,13 @@ public class HostedPlanet : ServerModel<long>
             inheritors.Clear();
         }
     }
+
+    /// <summary>
+    /// Clears all channel inheritance cache state for this planet.
+    /// </summary>
+    public void ClearAllInheritanceCaches()
+    {
+        _inheritanceMap.Clear();
+        _inheritanceLists.Clear();
+    }
 }

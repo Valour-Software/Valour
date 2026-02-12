@@ -194,6 +194,18 @@ public class PlanetPermissionService
         hostedPlanet.PermissionCache.Clear();
     }
 
+    /// <summary>
+    /// Clears all channel-access and inheritance caches for a planet.
+    /// This is intentionally broad and used after channel topology changes
+    /// (create/delete/move/update) to avoid serving stale access snapshots.
+    /// </summary>
+    public async Task HandleChannelTopologyChange(long planetId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        hostedPlanet.PermissionCache.Clear();
+        hostedPlanet.ClearAllInheritanceCaches();
+    }
+
     public async ValueTask<bool> HasChannelAccessAsync(long memberId, long channelId)
     {
         var access = await GetChannelAccessAsync(memberId);
@@ -240,10 +252,45 @@ public class PlanetPermissionService
 
         var cached = hostedPlanet.PermissionCache.GetChannelAccess(member.RoleMembership);
         if (cached is not null)
-            return cached;
+        {
+            // Self-heal stale snapshots instead of requiring a node restart.
+            if (!IsChannelAccessSnapshotStale(cached, hostedPlanet.Channels))
+                return cached;
+
+            _logger.LogWarning(
+                "Detected stale channel-access cache for member {MemberId} in planet {PlanetId}; rebuilding.",
+                memberId,
+                member.PlanetId
+            );
+
+            hostedPlanet.PermissionCache.ClearCacheForCombo(member.RoleMembership);
+        }
 
         var access = await GenerateChannelAccessAsync(member);
         return access.Snapshot;
+    }
+
+    private static bool IsChannelAccessSnapshotStale(
+        ModelListSnapshot<Channel, long> cachedAccess,
+        ModelListSnapshot<Channel, long> allChannels)
+    {
+        // If the planet has channels but cached access is empty, this is almost always stale.
+        if (allChannels.List.Count > 0 && cachedAccess.List.Count == 0)
+            return true;
+
+        // Every cached channel should still exist in the hosted planet channel list.
+        foreach (var channel in cachedAccess.List)
+        {
+            if (!allChannels.Contains(channel.Id))
+                return true;
+        }
+
+        // Default channel should always be visible to members.
+        var defaultChannel = allChannels.List.FirstOrDefault(x => x.IsDefault);
+        if (defaultChannel is not null && !cachedAccess.Contains(defaultChannel.Id))
+            return true;
+
+        return false;
     }
 
     private async Task<SortedServerModelList<Channel, long>> GenerateChannelAccessAsync(

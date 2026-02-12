@@ -157,6 +157,9 @@ public class ChannelService
         // Remove from hosted planet
         hostedPlanet.RemoveChannel(dbChannel.Id);
 
+        // Channel topology changed; clear cached channel access snapshots.
+        await _planetPermissionService.HandleChannelTopologyChange(planetId);
+
         var model = dbChannel.ToModel();
 
         if (model.PlanetId is not null)
@@ -246,6 +249,7 @@ public class ChannelService
         if (hostedPlanet is not null)
         {
             hostedPlanet.UpsertChannel(channel);
+            await _planetPermissionService.HandleChannelTopologyChange(channel.PlanetId!.Value);
             _coreHub.NotifyPlanetItemChange(channel.PlanetId!.Value, channel);
         }
 
@@ -313,6 +317,7 @@ public class ChannelService
         if (hostedPlanet is not null)
         {
             hostedPlanet.UpsertChannel(updated);
+            await _planetPermissionService.HandleChannelTopologyChange(updated.PlanetId!.Value);
             _coreHub.NotifyPlanetItemChange(updated.PlanetId!.Value, updated);
         }
 
@@ -969,6 +974,8 @@ public class ChannelService
             await _db.SaveChangesAsync();
             
             await trans.CommitAsync();
+
+            await _planetPermissionService.HandleChannelTopologyChange(planetId);
             
             _coreHub.NotifyChannelsMoved(eventData);
         }

@@ -61,7 +61,44 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
     [Fact]
     public async Task GetAllRoleCombosWithRole()
     {
-        // TODO: Come up with this test, it's important (sob)
+        var planet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(planet);
+
+        var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, planet.Id);
+        Assert.NotNull(member);
+
+        PlanetRole? createdRole = null;
+        try
+        {
+            var createRoleResult = await _roleService.CreateAsync(new PlanetRole()
+            {
+                Name = $"combo-role-{Guid.NewGuid():N}".Substring(0, 20),
+                PlanetId = planet.Id,
+                Permissions = 0,
+                ChatPermissions = 0,
+                CategoryPermissions = 0,
+                VoicePermissions = 0
+            });
+
+            Assert.True(createRoleResult.Success, createRoleResult.Message);
+            Assert.NotNull(createRoleResult.Data);
+            createdRole = createRoleResult.Data;
+
+            var addRoleResult = await _planetMemberService.AddRoleAsync(planet.Id, member.Id, createdRole.Id);
+            Assert.True(addRoleResult.Success, addRoleResult.Message);
+
+            var combos = await _permissionService.GetAllUniqueRoleCombinationsForPlanet(planet.Id);
+            Assert.NotEmpty(combos);
+            Assert.Contains(combos, combo => combo.HasRole(createdRole.FlagBitIndex));
+        }
+        finally
+        {
+            if (createdRole is not null)
+            {
+                await _planetMemberService.RemoveRoleAsync(planet.Id, member.Id, createdRole.Id);
+                await _roleService.DeleteAsync(planet.Id, createdRole.Id);
+            }
+        }
     }
 
     [Fact]
@@ -255,5 +292,324 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
         canAccess = channelAccess?.Contains(adminChannel.Id) ?? false;
         
         Assert.False(canAccess, "Member should not have access to admin channel");
+    }
+
+    [Fact]
+    public async Task ChannelAccessCacheInvalidatesOnChannelCreate()
+    {
+        var planet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(planet);
+
+        var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, planet.Id);
+        Assert.NotNull(member);
+
+        // Prime cache for this role membership.
+        var before = await _planetService.GetMemberChannelsAsync(member.Id);
+        Assert.NotNull(before);
+
+        var channel = new Channel()
+        {
+            Name = $"cache-invalidate-{Guid.NewGuid():N}".Substring(0, 24),
+            PlanetId = planet.Id,
+            ParentId = null,
+            ChannelType = ChannelTypeEnum.PlanetChat,
+            Description = "Regression test channel",
+            InheritsPerms = false,
+            RawPosition = 0
+        };
+
+        Channel? createdChannel = null;
+        try
+        {
+            var createResult = await _channelService.CreateAsync(channel);
+            Assert.True(createResult.Success, createResult.Message);
+            Assert.NotNull(createResult.Data);
+            createdChannel = createResult.Data;
+
+            var after = await _planetService.GetMemberChannelsAsync(member.Id);
+            Assert.NotNull(after);
+            Assert.True(after.Contains(createdChannel.Id),
+                "Newly created channel should be visible immediately after cache invalidation.");
+        }
+        finally
+        {
+            if (createdChannel is not null)
+            {
+                await _channelService.DeletePlanetChannelAsync(planet.Id, createdChannel.Id);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PlanetPermissionCacheInvalidatesOnRolePermissionUpdate()
+    {
+        var planet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(planet);
+
+        var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, planet.Id);
+        Assert.NotNull(member);
+
+        PlanetRole? role = null;
+        try
+        {
+            var createRoleResult = await _roleService.CreateAsync(new PlanetRole()
+            {
+                Name = $"perm-update-{Guid.NewGuid():N}".Substring(0, 20),
+                PlanetId = planet.Id,
+                Permissions = 0,
+                ChatPermissions = 0,
+                CategoryPermissions = 0,
+                VoicePermissions = 0
+            });
+            Assert.True(createRoleResult.Success, createRoleResult.Message);
+            Assert.NotNull(createRoleResult.Data);
+            role = createRoleResult.Data;
+
+            var addRoleResult = await _planetMemberService.AddRoleAsync(planet.Id, member.Id, role.Id);
+            Assert.True(addRoleResult.Success, addRoleResult.Message);
+
+            // Prime cache in deny state.
+            var before = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
+            Assert.False(before);
+
+            role.Permissions = PlanetPermissions.Manage.Value;
+
+            var updateRoleResult = await _roleService.UpdateAsync(role);
+            Assert.True(updateRoleResult.Success, updateRoleResult.Message);
+
+            var after = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
+            Assert.True(after, "Role permission update should invalidate and rebuild planet permission cache.");
+        }
+        finally
+        {
+            if (role is not null)
+            {
+                await _planetMemberService.RemoveRoleAsync(planet.Id, member.Id, role.Id);
+                await _roleService.DeleteAsync(planet.Id, role.Id);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RoleDeletionRemovesGrantedPlanetPermission()
+    {
+        var planet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(planet);
+
+        var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, planet.Id);
+        Assert.NotNull(member);
+
+        PlanetRole? role = null;
+        var roleFlagBitIndex = -1;
+        try
+        {
+            var createRoleResult = await _roleService.CreateAsync(new PlanetRole()
+            {
+                Name = $"perm-delete-{Guid.NewGuid():N}".Substring(0, 20),
+                PlanetId = planet.Id,
+                Permissions = PlanetPermissions.Manage.Value,
+                ChatPermissions = 0,
+                CategoryPermissions = 0,
+                VoicePermissions = 0
+            });
+            Assert.True(createRoleResult.Success, createRoleResult.Message);
+            Assert.NotNull(createRoleResult.Data);
+            role = createRoleResult.Data;
+            roleFlagBitIndex = role.FlagBitIndex;
+
+            var addRoleResult = await _planetMemberService.AddRoleAsync(planet.Id, member.Id, role.Id);
+            Assert.True(addRoleResult.Success, addRoleResult.Message);
+
+            var hasManageBeforeDelete = await _planetMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
+            Assert.True(hasManageBeforeDelete);
+
+            var deleteRoleResult = await _roleService.DeleteAsync(planet.Id, role.Id);
+            Assert.True(deleteRoleResult.Success, deleteRoleResult.Message);
+
+            // Role is now deleted; clear local reference to avoid cleanup calling delete again.
+            role = null;
+
+            // Verify with a fresh service scope (same behavior as a new API request),
+            // so ExecuteUpdate/ExecuteDelete tracker staleness can't hide regressions.
+            using var verifyScope = _factory.Services.CreateScope();
+            var verifyMemberService = verifyScope.ServiceProvider.GetRequiredService<PlanetMemberService>();
+
+            var memberAfterDelete = await verifyMemberService.GetAsync(member.Id);
+            Assert.False(memberAfterDelete.RoleMembership.HasRole(roleFlagBitIndex));
+
+            var hasManageAfterDelete = await verifyMemberService.HasPermissionAsync(member.Id, PlanetPermissions.Manage);
+            Assert.False(hasManageAfterDelete, "Deleting a role should remove its granted planet permissions.");
+        }
+        finally
+        {
+            if (role is not null)
+            {
+                await _planetMemberService.RemoveRoleAsync(planet.Id, member.Id, role.Id);
+                await _roleService.DeleteAsync(planet.Id, role.Id);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RemovingRoleRevokesChannelAccessGrantedByRoleNode()
+    {
+        var planet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(planet);
+
+        var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, planet.Id);
+        Assert.NotNull(member);
+
+        var defaultRole = await _planetService.GetDefaultRole(planet.Id);
+        Assert.NotNull(defaultRole);
+
+        PlanetRole? role = null;
+        Channel? channel = null;
+        try
+        {
+            var createRoleResult = await _roleService.CreateAsync(new PlanetRole()
+            {
+                Name = $"channel-role-{Guid.NewGuid():N}".Substring(0, 20),
+                PlanetId = planet.Id,
+                Permissions = 0,
+                ChatPermissions = 0,
+                CategoryPermissions = 0,
+                VoicePermissions = 0
+            });
+
+            Assert.True(createRoleResult.Success, createRoleResult.Message);
+            Assert.NotNull(createRoleResult.Data);
+            role = createRoleResult.Data;
+
+            var createChannelResult = await _channelService.CreateAsync(new Channel()
+            {
+                Name = $"role-access-{Guid.NewGuid():N}".Substring(0, 24),
+                PlanetId = planet.Id,
+                ParentId = null,
+                ChannelType = ChannelTypeEnum.PlanetChat,
+                Description = "Role node access test",
+                InheritsPerms = false,
+                RawPosition = 0
+            }, new List<PermissionsNode>()
+            {
+                new PermissionsNode()
+                {
+                    PlanetId = planet.Id,
+                    RoleId = defaultRole.Id,
+                    Mask = Permission.FULL_CONTROL,
+                    Code = 0
+                },
+                new PermissionsNode()
+                {
+                    PlanetId = planet.Id,
+                    RoleId = role.Id,
+                    Mask = Permission.FULL_CONTROL,
+                    Code = Permission.FULL_CONTROL
+                }
+            });
+
+            Assert.True(createChannelResult.Success, createChannelResult.Message);
+            Assert.NotNull(createChannelResult.Data);
+            channel = createChannelResult.Data;
+
+            var beforeRole = await _planetService.GetMemberChannelsAsync(member.Id);
+            Assert.NotNull(beforeRole);
+            Assert.False(beforeRole.Contains(channel.Id));
+
+            var addRoleResult = await _planetMemberService.AddRoleAsync(planet.Id, member.Id, role.Id);
+            Assert.True(addRoleResult.Success, addRoleResult.Message);
+
+            var withRole = await _planetService.GetMemberChannelsAsync(member.Id);
+            Assert.NotNull(withRole);
+            Assert.True(withRole.Contains(channel.Id));
+
+            var removeRoleResult = await _planetMemberService.RemoveRoleAsync(planet.Id, member.Id, role.Id);
+            Assert.True(removeRoleResult.Success, removeRoleResult.Message);
+
+            var afterRoleRemoval = await _planetService.GetMemberChannelsAsync(member.Id);
+            Assert.NotNull(afterRoleRemoval);
+            Assert.False(afterRoleRemoval.Contains(channel.Id),
+                "Removing a role should revoke channel access granted exclusively by that role.");
+        }
+        finally
+        {
+            if (channel is not null)
+            {
+                await _channelService.DeletePlanetChannelAsync(planet.Id, channel.Id);
+            }
+
+            if (role is not null)
+            {
+                await _planetMemberService.RemoveRoleAsync(planet.Id, member.Id, role.Id);
+                await _roleService.DeleteAsync(planet.Id, role.Id);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ChannelAccessCacheRemainsIsolatedAcrossPlanets()
+    {
+        var primaryPlanet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(primaryPlanet);
+
+        var primaryMember = await _planetMemberService.GetByUserAsync(_client.Me.Id, primaryPlanet.Id);
+        Assert.NotNull(primaryMember);
+
+        var primaryChannel = await _planetService.GetPrimaryChannelAsync(primaryPlanet.Id);
+        Assert.NotNull(primaryChannel);
+
+        var primaryAccessBefore = await _planetService.GetMemberChannelsAsync(primaryMember.Id);
+        Assert.NotNull(primaryAccessBefore);
+        Assert.True(primaryAccessBefore.Contains(primaryChannel.Id));
+
+        var alternateOwnerId = primaryPlanet.OwnerId != _client.Me.Id
+            ? primaryPlanet.OwnerId
+            : await _db.Users.AsNoTracking()
+                .Where(x => x.Id != _client.Me.Id)
+                .Select(x => x.Id)
+                .FirstOrDefaultAsync();
+        Assert.NotEqual(0, alternateOwnerId);
+
+        var alternateOwner = await _userService.GetAsync(alternateOwnerId);
+        Assert.NotNull(alternateOwner);
+
+        Planet? secondaryPlanet = null;
+        try
+        {
+            var createPlanetResult = await _planetService.CreateAsync(new Planet()
+            {
+                Name = $"cache-isolation-{Guid.NewGuid():N}".Substring(0, 24),
+                Description = "Role cache isolation regression test",
+                OwnerId = alternateOwner.Id,
+                Public = false,
+                Discoverable = false,
+                Nsfw = false
+            }, alternateOwner);
+
+            Assert.True(createPlanetResult.Success, createPlanetResult.Message);
+            Assert.NotNull(createPlanetResult.Data);
+            secondaryPlanet = createPlanetResult.Data;
+
+            var addMemberResult = await _planetMemberService.AddMemberAsync(secondaryPlanet.Id, _client.Me.Id);
+            Assert.True(addMemberResult.Success, addMemberResult.Message);
+            Assert.NotNull(addMemberResult.Data);
+
+            var secondaryMember = addMemberResult.Data;
+            var secondaryAccess = await _planetService.GetMemberChannelsAsync(secondaryMember.Id);
+            Assert.NotNull(secondaryAccess);
+            Assert.NotEmpty(secondaryAccess);
+
+            var primaryAccessAfter = await _planetService.GetMemberChannelsAsync(primaryMember.Id);
+            Assert.NotNull(primaryAccessAfter);
+            Assert.True(primaryAccessAfter.Contains(primaryChannel.Id),
+                "Accessing another planet should not poison channel access for the original planet.");
+            Assert.DoesNotContain(primaryAccessAfter.List, c => c.PlanetId != primaryPlanet.Id);
+        }
+        finally
+        {
+            if (secondaryPlanet is not null)
+            {
+                await _planetService.DeleteAsync(secondaryPlanet.Id);
+            }
+        }
     }
 }
