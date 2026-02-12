@@ -285,7 +285,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         // of sanity, whenever there's a change to a role, we just nuke the membership
         // cache. It's just easier. It's not intensive to rebuild.
         _membershipToRoles.Clear();
-        Client.Logger.Log<Planet>("Role change detected, clearing membership cache", "magenta");
+        Client?.Logger?.Log<Planet>("Role change detected, clearing membership cache", "magenta");
 
         switch (changeEvent)
         {
@@ -296,10 +296,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
                 _indexToRole.TryRemove(removed.Model.FlagBitIndex, out _);
                 break;
             case ModelUpdatedEvent<PlanetRole> updated:
-                if (updated.Changes.On(x => x.FlagBitIndex, out var oldIndex, out var newIndex))
+                if (updated.Changes is not null &&
+                    updated.Changes.On(x => x.FlagBitIndex, out var oldIndex, out var newIndex))
                 {
                     _indexToRole.TryRemove(oldIndex, out _); // Remove old
                     _indexToRole[newIndex] = updated.Model; // Add new
+                }
+                else
+                {
+                    // SortedModelStore can emit update events with no recorded property changes.
+                    // Ensure the current index map still points at the latest role instance.
+                    _indexToRole[updated.Model.FlagBitIndex] = updated.Model;
                 }
                 break;
         }
