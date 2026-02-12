@@ -119,18 +119,22 @@
         if (message.Id != Message.Id)
             return Task.CompletedTask;
 
-        Message.EmbedData = message.EmbedData;
-		//Console.WriteLine(update.NewEmbedContent);
-		Message.SetEmbedParsed(false);
-		embed = Message.Embed;
-		ProcessPageChange = true;
-		StateHasChanged();
-		return Task.CompletedTask;
+        return InvokeAsync(() =>
+        {
+            Message.EmbedData = message.EmbedData;
+            Message.SetEmbedParsed(false);
+            embed = Message.Embed;
+            ProcessPageChange = true;
+            StateHasChanged();
+        });
     }
 
-	public async Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
+	public Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
 	{
-		if (update.TargetMessageId == Message.Id)
+		if (update.TargetMessageId != Message.Id)
+			return Task.CompletedTask;
+
+		return InvokeAsync(() =>
 		{
 			int currentpage = embed.currentPage;
 			Message.EmbedData = update.NewEmbedContent;
@@ -143,18 +147,21 @@
 			else
 				embed.currentPage = currentpage;
 
-			if (embed.currentPage >= embed.Pages.Count) 
+			if (embed.currentPage >= embed.Pages.Count)
 				embed.currentPage = embed.StartPage;
 			ProcessPageChange = true;
 			ProcessingEmbedUpdate = true;
 			UpdateItems();
 			ProcessingEmbedUpdate = false;
-		}
+		});
 	}
 
-	public async Task OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
+	public Task OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
 	{
-		if (update.TargetMessageId == Message.Id)
+		if (update.TargetMessageId != Message.Id)
+			return Task.CompletedTask;
+
+		return InvokeAsync(() =>
 		{
 			try
 			{
@@ -291,7 +298,7 @@
 				Console.WriteLine(e.Message);
 				Console.WriteLine(e.StackTrace);
 			}
-		}
+		});
 	}
 
 	protected override Task OnAfterRenderAsync(bool firstRender)

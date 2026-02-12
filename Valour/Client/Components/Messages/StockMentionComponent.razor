@@ -38,7 +38,7 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
 
     private string _summaryId = "summary-" + Guid.NewGuid().ToString();
     private string _chartId = "chart-" + Guid.NewGuid().ToString();
@@ -55,7 +55,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Messages/StockMentionComponent.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Messages/StockMentionComponent.razor.js");
         }
         else
         {

@@ -1,4 +1,4 @@
-@inject ILocalStorageService LocalStorage
+@inject IAppStorage LocalStorage
 
 @if (!_show)
 {
@@ -38,13 +38,13 @@
         var version = typeof(ValourClient).Assembly.GetName().Version.ToString();
         var versionSplit = version.Split('.');
 
-        if (!await LocalStorage.ContainKeyAsync("LastVersion"))
+        if (!await LocalStorage.ContainsKeyAsync("LastVersion"))
         {
             _show = true;
         }
         else
         {
-            var newVersionStr = await LocalStorage.GetItemAsync<string>("LastVersion");
+            var newVersionStr = await LocalStorage.GetAsync<string>("LastVersion");
             string[] newVersionSplit = newVersionStr.Split('.');
 
             // Should be 4, technically
@@ -58,7 +58,7 @@
             }
         }
         
-        await LocalStorage.SetItemAsync<string>("LastVersion", version);
+        await LocalStorage.SetAsync<string>("LastVersion", version);
         StateHasChanged();
     }
     

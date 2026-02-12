@@ -26,7 +26,7 @@
     private void Refresh()
     {
         _render = true;
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
     
     protected override void OnInitialized()

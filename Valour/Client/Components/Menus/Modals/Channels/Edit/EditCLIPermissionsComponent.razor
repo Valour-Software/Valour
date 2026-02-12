@@ -287,29 +287,32 @@
         Target.Planet.PermissionsNodes.Changed += OnPermissionNodeUpdate;
     }
 
-    private async Task OnPermissionNodeUpdate(IModelEvent<PermissionsNode> eventData)
+    private Task OnPermissionNodeUpdate(IModelEvent<PermissionsNode> eventData)
     {
-        switch (eventData)
+        return InvokeAsync(async () =>
         {
-            case ModelAddedEvent<PermissionsNode> added:
+            switch (eventData)
             {
-                if (added.Model.TargetId == Target.Id)
+                case ModelAddedEvent<PermissionsNode> added:
                 {
-                    await OnRoleChange(await PlanetService.FetchRoleAsync(added.Model.RoleId, Target.Planet));
-                }
+                    if (added.Model.TargetId == Target.Id)
+                    {
+                        await OnRoleChange(await PlanetService.FetchRoleAsync(added.Model.RoleId, Target.Planet));
+                    }
 
-                break;
-            }
-            case ModelUpdatedEvent<PermissionsNode> updated:
-            {
-                if (updated.Model.TargetId == Target.Id)
+                    break;
+                }
+                case ModelUpdatedEvent<PermissionsNode> updated:
                 {
-                    await OnRoleChange(await PlanetService.FetchRoleAsync(updated.Model.RoleId, Target.Planet));
-                }
+                    if (updated.Model.TargetId == Target.Id)
+                    {
+                        await OnRoleChange(await PlanetService.FetchRoleAsync(updated.Model.RoleId, Target.Planet));
+                    }
 
-                break;
+                    break;
+                }
             }
-         }
+        });
     }
 
     private async Task OnRoleSelect(ChangeEventArgs e)

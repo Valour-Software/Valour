@@ -17,5 +17,7 @@ public class NotificationsConfig
     
     public string AzureConnectionString { get; set; }
     public string AzureHubName { get; set; }
+
+    public string FirebaseCredentialPath { get; set; }
 }
 

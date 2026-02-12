@@ -58,7 +58,7 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
     
     /// <summary>
     /// Dotnet object reference for use in Javascript
@@ -168,7 +168,7 @@
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Upload/TenorMenuComponent.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Menus/Upload/TenorMenuComponent.razor.js");
             await _jsModule.InvokeVoidAsync("setupHide", "tenor-bg-" + ChannelWindow.WindowCtx.Id, _thisRef);
         }
         

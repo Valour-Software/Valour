@@ -192,7 +192,7 @@ public class WindowTab
         // Let dock know to save new state
         // Note to future self: this needs to run AFTER the new content
         // has loaded its properties that need to be saved
-        Layout.DockComponent.SaveLayout();
+        await Layout.DockComponent.SaveLayout();
     }
 
     public void NotifyLayoutChanged()

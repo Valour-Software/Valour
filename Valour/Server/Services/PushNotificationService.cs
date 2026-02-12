@@ -102,10 +102,24 @@ public class PushNotificationService
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async Task SendNotificationAsync(
-        ISharedPushNotificationSubscription sub, 
-        string payload, 
-        ConcurrentBag<string> unsubscribes, 
+    private Task SendNotificationAsync(
+        ISharedPushNotificationSubscription sub,
+        string payload,
+        ConcurrentBag<string> unsubscribes,
+        CancellationToken cancellationToken
+    )
+    {
+        return sub.DeviceType switch
+        {
+            NotificationDeviceType.AndroidFcm => SendFcmNotificationAsync(sub, payload, unsubscribes),
+            _ => SendWebPushNotificationAsync(sub, payload, unsubscribes, cancellationToken),
+        };
+    }
+
+    private async Task SendWebPushNotificationAsync(
+        ISharedPushNotificationSubscription sub,
+        string payload,
+        ConcurrentBag<string> unsubscribes,
         CancellationToken cancellationToken
     )
     {
@@ -114,7 +128,7 @@ public class PushNotificationService
         {
             await _webPushClient.SendNotificationAsync(webSub, payload, _vapidDetails,
                 cancellationToken: cancellationToken);
-            
+
             _logger.LogDebug("Sent notification to {Endpoint}", sub.Endpoint);
         }
         catch (WebPushException ex)
@@ -128,6 +142,53 @@ public class PushNotificationService
             {
                 _logger.LogError(ex, "Failed to send notification to {Endpoint}", sub.Endpoint);
             }
+        }
+    }
+
+    private async Task SendFcmNotificationAsync(
+        ISharedPushNotificationSubscription sub,
+        string payload,
+        ConcurrentBag<string> unsubscribes
+    )
+    {
+        if (FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance is null)
+        {
+            _logger.LogWarning("Firebase not initialized, skipping FCM notification to {Endpoint}", sub.Endpoint);
+            return;
+        }
+
+        // Deserialize the payload to get notification fields
+        var content = JsonSerializer.Deserialize<JsonElement>(payload);
+        var title = content.GetProperty("title").GetString() ?? "";
+        var body = content.GetProperty("message").GetString() ?? "";
+        var iconUrl = content.TryGetProperty("iconUrl", out var icon) ? icon.GetString() : null;
+        var url = content.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
+
+        var message = new FirebaseAdmin.Messaging.Message
+        {
+            Token = sub.Endpoint,
+            Notification = new FirebaseAdmin.Messaging.Notification
+            {
+                Title = title,
+                Body = body,
+                ImageUrl = iconUrl,
+            },
+            Data = new Dictionary<string, string> { ["url"] = url ?? "" },
+        };
+
+        try
+        {
+            await FirebaseAdmin.Messaging.FirebaseMessaging.DefaultInstance.SendAsync(message);
+            _logger.LogDebug("Sent FCM notification to {Endpoint}", sub.Endpoint);
+        }
+        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex) when (ex.MessagingErrorCode == FirebaseAdmin.Messaging.MessagingErrorCode.Unregistered)
+        {
+            _logger.LogInformation("FCM token {Endpoint} is no longer valid", sub.Endpoint);
+            unsubscribes.Add(sub.Endpoint);
+        }
+        catch (FirebaseAdmin.Messaging.FirebaseMessagingException ex)
+        {
+            _logger.LogError(ex, "Failed to send FCM notification to {Endpoint}", sub.Endpoint);
         }
     }
     

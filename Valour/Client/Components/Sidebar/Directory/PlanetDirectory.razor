@@ -101,9 +101,12 @@
 
     private void OnChannelsChanged(IModelEvent<Channel> eventData)
     {
-        Console.WriteLine("Channels changed");
-        DetermineRootChannels();
-        StateHasChanged();
+        InvokeAsync(() =>
+        {
+            Console.WriteLine("Channels changed");
+            DetermineRootChannels();
+            StateHasChanged();
+        });
     }
     
     public bool GetVisible(Channel channel)

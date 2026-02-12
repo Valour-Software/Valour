@@ -38,14 +38,14 @@
 
 	private void OnRoleUpdate(IModelEvent<PlanetRole> eventData)
 	{
-		StateHasChanged();
+		InvokeAsync(StateHasChanged);
 	}
 
 	private void OnMemberUpdate(ModelUpdatedEvent<PlanetMember> eventData)
 	{
 		if (eventData.Changes.On(x => x.RoleMembership))
 		{
-			StateHasChanged();
+			InvokeAsync(StateHasChanged);
 		}
 	}
 

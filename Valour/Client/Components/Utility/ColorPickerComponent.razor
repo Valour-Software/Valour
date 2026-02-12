@@ -23,7 +23,7 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
 
     private DotNetObjectReference<ColorPickerComponent> _dotnetRef;
 
@@ -34,7 +34,7 @@
         if (firstRender)
         {
             _dotnetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/ColorPickerComponent.razor.js?version=$(SHORTHASH)");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/ColorPickerComponent.razor.js?version=$(SHORTHASH)");
             await _jsModule.InvokeVoidAsync("init", _id, _dotnetRef, StartColor, UseAsButton);
         }
     }

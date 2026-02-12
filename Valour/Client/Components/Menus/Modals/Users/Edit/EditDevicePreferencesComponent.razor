@@ -1,4 +1,4 @@
-@inject ILocalStorageService LocalStorage
+@inject IAppStorage LocalStorage
 
 <h3>Device Preferences</h3>
 <p class="subtitle">SAVED PER DEVICE</p>
@@ -53,7 +53,7 @@
     private async Task SwitchAutoEmojis()
     {
         DevicePreferences.AutoEmoji = !DevicePreferences.AutoEmoji;
-        await LocalStorage.SetItemAsync("AutoEmoji", DevicePreferences.AutoEmoji);
+        await LocalStorage.SetAsync("AutoEmoji", DevicePreferences.AutoEmoji);
         MarkdownManager.RegenPipeline();
     }
 }

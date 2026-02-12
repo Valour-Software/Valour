@@ -196,8 +196,8 @@ else
     // Interop references
     public ElementReference MessageWrapperEl;
     private DotNetObjectReference<ChatWindowComponent> _thisRef;
-    private IJSInProcessObjectReference _jsModule;
-    private IJSInProcessObjectReference _jsService;
+    private IJSObjectReference _jsModule;
+    private IJSObjectReference _jsService;
     
     // Child references
     public InputComponent InputComponent;
@@ -357,8 +357,8 @@ else
         if (firstRender)
         {
             await SetupNewChannelAsync();
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
-            _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, MessageWrapperEl);
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
+            _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
 
             await ScrollToBottom(true);
         }

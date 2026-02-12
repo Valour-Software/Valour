@@ -1,6 +1,6 @@
 ﻿@implements IAsyncDisposable
 @inject ValourClient InjectedClient
-@inject ISyncLocalStorageService LocalStorage
+@inject IAppStorage LocalStorage
 @inject IJSRuntime JsRuntime
 @using Valour.Client.Pages
 
@@ -51,7 +51,7 @@
         var loaded = false;
         
         // check if state is saved
-        var layoutJson = LocalStorage.GetItemAsString("coreLayout");
+        var layoutJson = await LocalStorage.GetStringAsync("coreLayout");
         if (!string.IsNullOrWhiteSpace(layoutJson))
         {
             try
@@ -64,13 +64,13 @@
                 Console.WriteLine("Failed to load saved layout: " + e.Message);
                 await Reset();
             }
-            
+
             loaded = true;
         }
 
         if (!DeviceInfo.IsMobile)
         {
-            var floatersJson = LocalStorage.GetItemAsString("coreFloaters");
+            var floatersJson = await LocalStorage.GetStringAsync("coreFloaters");
             if (!string.IsNullOrWhiteSpace(floatersJson))
             {
                 try
@@ -92,7 +92,7 @@
         else
         {
             Layout.RecalculatePosition();
-            NotifyLayoutChanged(false, false);
+            await NotifyLayoutChanged(false, false);
             Layout.ReRenderRecursive();
         }
     }
@@ -101,32 +101,32 @@
     /// Notifies this dock that the layout has changed.
     /// This will update the tabs and splits, and re-render if necessary.
     /// </summary>
-    public void NotifyLayoutChanged(bool notifyService = true, bool saveLayout = true)
+    public async Task NotifyLayoutChanged(bool notifyService = true, bool saveLayout = true)
     {
         // Clear old lists
         Tabs.Clear();
         Splits.Clear();
-        
+
         // Get new tabs and splits
         Layout.GetTabs(Tabs);
         Tabs.AddRange(_floaters);
-        
+
         Layout.GetSplits(Splits);
-        
+
         if (notifyService)
         {
             // Notify global window service
             WindowService.NotifyDockLayoutUpdated();
         }
-        
+
         // Actually render changes
         Render();
-        
+
         // Save layout
-        SaveLayout();
-        
+        await SaveLayout();
+
         // Save floaters
-        SaveFloaters();
+        await SaveFloaters();
     }
     
     public async Task AddFloatingTab(WindowContent content, FloatingWindowProps floatingProps)
@@ -158,10 +158,10 @@
         tab.SetFloatingProps(floatingProps);
         
         await tab.SetLayout(null);
-        
-        NotifyLayoutChanged();
+
+        await NotifyLayoutChanged();
     }
-    
+
     public async Task RemoveFloatingTab(WindowContent content)
     {
         var tab = content.Tab;
@@ -177,7 +177,7 @@
         
         tab.SetFloatingProps(null);
         _floaters.Remove(tab);
-        NotifyLayoutChanged();
+        await NotifyLayoutChanged();
     }
 
     public async Task Reset(bool notifyService = true, bool saveLayout = true)
@@ -188,21 +188,21 @@
 
         Layout = new WindowLayout(this);
         await Layout.AddTab(HomeWindowComponent.DefaultContent);
-        
-        NotifyLayoutChanged(notifyService, saveLayout);
+
+        await NotifyLayoutChanged(notifyService, saveLayout);
     }
     
-    public void SaveLayout()
+    public async Task SaveLayout()
     {
         var layoutJson = _saveLoadAdapter.SerializeLayout(Layout);
         // Console.WriteLine(layoutJson);
-        LocalStorage.SetItemAsString("coreLayout", layoutJson);
+        await LocalStorage.SetStringAsync("coreLayout", layoutJson);
     }
-    
-    public void SaveFloaters()
+
+    public async Task SaveFloaters()
     {
         var floatersJson = _saveLoadAdapter.SerializeFloaters(_floaters);
-        LocalStorage.SetItemAsString("coreFloaters", floatersJson);
+        await LocalStorage.SetStringAsync("coreFloaters", floatersJson);
     }
 
     

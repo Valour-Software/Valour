@@ -56,8 +56,11 @@
 
     private void OnTimerFire(object? state)
     {
-        Subtext = _loadingBlurbs[new Random().Next(0, _loadingBlurbs.Length)];
-        StateHasChanged();
+        InvokeAsync(() =>
+        {
+            Subtext = _loadingBlurbs[new Random().Next(0, _loadingBlurbs.Length)];
+            StateHasChanged();
+        });
     }
     
     public async ValueTask DisposeAsync()

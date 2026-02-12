@@ -15,8 +15,8 @@
 
     // Interop variables
     private static DotNetObjectReference<MouseListener> _thisRef;
-    private static IJSInProcessObjectReference _jsModule;
-    private static IJSInProcessObjectReference _jsService;
+    private static IJSObjectReference _jsModule;
+    private static IJSObjectReference _jsService;
     
     public static MousePosition Position { get; private set; }
     
@@ -53,10 +53,10 @@
         {
             // Set up interop
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/MouseListener.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/MouseListener.razor.js");
             
             // Initialize
-            _jsService = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef);
+            _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef);
             
             // init listeners
             await _jsService.InvokeVoidAsync("startMoveListener");
@@ -107,8 +107,8 @@
         await _jsService.InvokeVoidAsync("stopUpListener");
         
         _thisRef?.Dispose();
-        _jsModule?.Dispose();
-        _jsService?.Dispose();
+        if (_jsModule is not null) await _jsModule.DisposeAsync();
+        if (_jsService is not null) await _jsService.DisposeAsync();
         
         // Unsubscribe all
         OnMouseMove = null;

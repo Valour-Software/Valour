@@ -1,6 +1,6 @@
 @inject HttpClient Http
 @inject NavigationManager NavManager
-@inject ILocalStorageService LocalStorage
+@inject IAppStorage LocalStorage
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
 @inject AuthService AuthService
@@ -246,7 +246,7 @@
     private async Task OnLoginSuccess()
     {
         _resultSpan = "Logging in...";
-        await LocalStorage.SetItemAsStringAsync("token", AuthService.Token);
+        await LocalStorage.SetStringAsync("token", AuthService.Token);
 
         if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
         {

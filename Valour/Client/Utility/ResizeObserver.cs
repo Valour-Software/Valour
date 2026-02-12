@@ -11,8 +11,8 @@ public class ResizeObserver : IAsyncDisposable
     private ElementReference _element;
     private IJSRuntime _runtime;
     
-    private IJSInProcessObjectReference _jsModule;
-    private IJSInProcessObjectReference _service;
+    private IJSObjectReference _jsModule;
+    private IJSObjectReference _service;
     
     private DotNetObjectReference<ResizeObserver> _dotnetRef;
     
@@ -23,8 +23,8 @@ public class ResizeObserver : IAsyncDisposable
         
         _dotnetRef = DotNetObjectReference.Create(this);
         
-        _jsModule = await _runtime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/ts/ResizeObserver.js");
-        _service = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _element, _dotnetRef, debounce);
+        _jsModule = await _runtime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/ResizeObserver.js");
+        _service = await _jsModule.InvokeAsync<IJSObjectReference>("init", _element, _dotnetRef, debounce);
         await _service.InvokeVoidAsync("observe");
     }
     

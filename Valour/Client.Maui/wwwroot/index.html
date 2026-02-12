@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover" />
+    <title>Valour</title>
+    <base href="/" />
+
+    <link rel="apple-touch-icon" sizes="180x180" href="_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="_content/Valour.Client/media/favicon/favicon-16x16.png">
+
+    <!-- prefetch font -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    <link rel="preload" href="_content/Valour.Client/css/fonts/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin>
+
+    <meta name="msapplication-TileColor" content="#040d14">
+    <meta name="description" content="Valour is a community social platform based on privacy and transparency.">
+    <meta name="keywords" content="Chat, Communication, Gaming, Privacy">
+    <meta property="og:site_name" content="Valour">
+    <meta name="twitter:image:alt" content="The Valour logo">
+    <meta name="theme-color" content="#040d14">
+
+    <!-- Build-time generated CSS bundle (same files the server bundles at runtime) -->
+    <link rel="stylesheet" href="_content/Valour.Client/css/bundled.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="Valour.Client.Maui.styles.css" />
+    <link rel="stylesheet" href="_content/Valour.Client/Valour.Client.bundle.scp.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+
+    <script>
+        window.getValourHostMode = function () {
+            return "hybrid";
+        };
+    </script>
+</head>
+
+<body style="max-width:100vw; height:100dvh; touch-action: manipulation;">
+    <div class="status-bar-safe-area"></div>
+
+    <app>
+        <div class="loading-container">
+            <div class="loading-center">
+                <img alt="Valour logo" src="_content/Valour.Client/media/logo/logo-256.webp" class="loading-logo color-shift">
+                <p class="loading-title">Valour</p>
+            </div>
+        </div>
+    </app>
+
+    <div id="blazor-error-ui" data-nosnippet>
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+
+    <script>
+        window.updateAvailable = Promise.resolve(false);
+    </script>
+    <script src="_content/Valour.Client/js/main.js"></script>
+    <script async src="_content/Valour.Client/js/channel.js"></script>
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+    <script async src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script async src="_content/Valour.Client/js/twemoji.min.js"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script async type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script async src="_content/Valour.Client/js/protoo-client.min.js"></script>
+    <script async src="_content/Valour.Client/js/mediasoup-client.min.js"></script>
+    <script async src="_content/Valour.Client/js/bowser.js"></script>
+    <script async src="_content/Valour.Client/js/driver.js"></script>
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
+</body>
+</html>

@@ -11,8 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-    <PackageReference Include="EmojiMartBlazor" Version="1.0.4" />
+<PackageReference Include="EmojiMartBlazor" Version="1.0.4" />
     <PackageReference Include="ExCSS" Version="4.3.1" />
     <PackageReference Include="FastDragBlazor" Version="1.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.3" />
@@ -68,4 +67,48 @@
     <Exec Command="dotnet script ./BuildScripts/CleanupJs.csx" />
   </Target>
   -->
+
+  <!-- Build-time CSS bundling: concatenates static CSS files into a single bundled.css -->
+  <UsingTask TaskName="BundleCssFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <InputFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+var sb = new System.Text.StringBuilder();
+sb.AppendLine("/* Auto-generated CSS bundle - do not edit directly */");
+foreach (var item in InputFiles)
+{
+    var path = item.ItemSpec;
+    if (!System.IO.File.Exists(path))
+    {
+        Log.LogWarning("CSS bundle: file not found: " + path);
+        continue;
+    }
+    sb.AppendLine("/* --- " + System.IO.Path.GetFileName(path) + " --- */");
+    sb.AppendLine(System.IO.File.ReadAllText(path));
+}
+System.IO.File.WriteAllText(OutputFile, sb.ToString());
+Log.LogMessage(MessageImportance.High, "CSS bundle generated: " + OutputFile);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="GenerateCssBundle"
+          BeforeTargets="ResolveProjectStaticWebAssets"
+          Inputs="wwwroot/css/reboot.min.css;wwwroot/css/app.css;wwwroot/css/globals.css;wwwroot/css/bootstrap-icons.css;wwwroot/css/hljs-theme.min.css;wwwroot/css/pickr.min.css;wwwroot/css/driver.min.css"
+          Outputs="wwwroot/css/bundled.css">
+    <ItemGroup>
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/reboot.min.css" />
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/app.css" />
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/globals.css" />
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/bootstrap-icons.css" />
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/hljs-theme.min.css" />
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/pickr.min.css" />
+      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/driver.min.css" />
+    </ItemGroup>
+    <BundleCssFiles InputFiles="@(CssBundleInput)" OutputFile="$(MSBuildProjectDirectory)/wwwroot/css/bundled.css" />
+  </Target>
+
 </Project>

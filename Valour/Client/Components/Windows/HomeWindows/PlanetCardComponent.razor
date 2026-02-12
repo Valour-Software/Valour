@@ -108,10 +108,12 @@
     {
         if (notification.PlanetId != Planet.Id)
             return;
-        
-        // Unread
-        _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
-        StateHasChanged();
+
+        InvokeAsync(() =>
+        {
+            _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
+            StateHasChanged();
+        });
     }
     
     private void GenerateAutoGraphic()
@@ -125,11 +127,12 @@
 
     private Task Refresh()
     {
-        _isUnread = UnreadService.IsPlanetUnread(Planet.Id);
-        _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
-        StateHasChanged();
-
-        return Task.CompletedTask;
+        return InvokeAsync(() =>
+        {
+            _isUnread = UnreadService.IsPlanetUnread(Planet.Id);
+            _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
+            StateHasChanged();
+        });
     }
     
     private async Task OnClick()

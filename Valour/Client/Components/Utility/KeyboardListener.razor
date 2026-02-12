@@ -33,13 +33,13 @@
     
     public static HybridEvent<KeyboardEvent> KeyDown;
     
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/KeyboardListener.razor.js?version=$(SHORTHASH)");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/KeyboardListener.razor.js?version=$(SHORTHASH)");
             await _jsModule.InvokeVoidAsync("init", DotNetObjectReference.Create(this));
         }
     }

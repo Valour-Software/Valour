@@ -208,10 +208,10 @@ public class WindowLayout
 
         if (render)
         {
-            DockComponent.NotifyLayoutChanged();
+            await DockComponent.NotifyLayoutChanged();
         }
     }
-    
+
     public async Task<WindowTab> AddTab(WindowContent content, bool render = true)
     {
         var tab = new WindowTab(content);
@@ -254,12 +254,12 @@ public class WindowLayout
         // Notify base dock that a change has occurred
         if (render)
         {
-            DockComponent.NotifyLayoutChanged();
+            await DockComponent.NotifyLayoutChanged();
         }
-        
+
         // Notify tabs of tab-stack change
         NotifyTabsOfChange();
-        
+
         // Let the tab know it has been opened
         await tab.NotifyOpened();
     }
@@ -346,7 +346,8 @@ public class WindowLayout
             }
             else
             {
-                Parent?.RemoveChild(this);
+                if (Parent is not null)
+                    await Parent.RemoveChild(this);
             }
         }
         else
@@ -357,9 +358,9 @@ public class WindowLayout
 
         if (render)
         {
-            DockComponent.NotifyLayoutChanged();
+            await DockComponent.NotifyLayoutChanged();
         }
-        
+
         // Notify tabs of tab-stack change
         NotifyTabsOfChange();
     }
@@ -380,7 +381,7 @@ public class WindowLayout
             Console.WriteLine("Tried to split a split layout. This should not happen.");
         }
 
-        AddSplit(tab, location);
+        await AddSplit(tab, location);
     }
 
     /// <summary>
@@ -422,9 +423,9 @@ public class WindowLayout
             Console.WriteLine("Tried to split a split layout. This should not happen.");
         }
 
-        AddSplit(tab, location);
+        await AddSplit(tab, location);
     }
-    
+
     public async Task OnChannelDropped(Channel channel, WindowTab droppedOn)
     {
         // Create a new chat window
@@ -435,7 +436,7 @@ public class WindowLayout
         await OnTabDropped(tab, droppedOn);
     }
 
-    private void AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)
+    private async Task AddSplit(WindowTab startingTab, WindowDropTargets.DropLocation location)
     {
         // If we are already split, we cannot split further
         if (IsSplit)
@@ -491,12 +492,12 @@ public class WindowLayout
         Tabs = null;
         
         RecalculatePosition();
-        
+
         // Re-render layouts
-        DockComponent.NotifyLayoutChanged();
+        await DockComponent.NotifyLayoutChanged();
     }
 
-    public void RemoveChild(WindowLayout child)
+    public async Task RemoveChild(WindowLayout child)
     {
         // Both children get removed but the other one becomes the tab stack
         if (ChildOne == child)
@@ -538,7 +539,7 @@ public class WindowLayout
             tab.NotifyLayoutChanged();
         }
         
-        DockComponent.NotifyLayoutChanged();
+        await DockComponent.NotifyLayoutChanged();
     }
 
     public float GetwidthPx()
