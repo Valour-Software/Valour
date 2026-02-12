@@ -76,7 +76,7 @@ jobs:
         path: '.'
 
     - name: Restore dependencies
-      run: dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj
+      run: dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory=$ANDROID_HOME
 
     - name: Build APK
       run: >
@@ -84,6 +84,7 @@ jobs:
         -f net10.0-android
         -c Release
         -o ./artifacts
+        -p:AndroidSdkDirectory=$ANDROID_HOME
 
     - name: Find APK
       id: find-apk
