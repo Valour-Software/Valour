@@ -596,7 +596,7 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
             var secondaryMember = addMemberResult.Data;
             var secondaryAccess = await _planetService.GetMemberChannelsAsync(secondaryMember.Id);
             Assert.NotNull(secondaryAccess);
-            Assert.NotEmpty(secondaryAccess);
+            Assert.NotEmpty(secondaryAccess.List);
 
             var primaryAccessAfter = await _planetService.GetMemberChannelsAsync(primaryMember.Id);
             Assert.NotNull(primaryAccessAfter);
