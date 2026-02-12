@@ -16,10 +16,12 @@ namespace Valour.Server.Cdn.Api
         private static async Task<IResult> ProxyRoute(
             CdnMemoryCache cache,
             IHttpClientFactory clientFactory,
-            ILogger<ProxyApi> logger,
+            ILoggerFactory loggerFactory,
             ValourDb db,
             string hash)
         {
+            var logger = loggerFactory.CreateLogger("ProxyApi");
+
             if (string.IsNullOrEmpty(hash))
                 return Results.BadRequest("Missing hash parameter");
 
