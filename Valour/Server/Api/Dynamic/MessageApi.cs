@@ -23,10 +23,12 @@ public class MessageApi
     {
         var token = await tokenService.GetCurrentTokenAsync();
         var userId = token.UserId;
-        
+
         if (message is null)
             return ValourResult.BadRequest("Include message in body");
         
+        message.AuthorUserId = userId;
+
         var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
         if (channel is null)
             return ValourResult.NotFound("Channel not found");
@@ -132,10 +134,20 @@ public class MessageApi
         
         if (message.Id != id)
             return ValourResult.BadRequest("Message id in body does not match message id in route");
-        
-        if (message.AuthorUserId != token.UserId)
+
+        // Verify ownership against stored message
+        var existing = await messageService.GetMessageNoReplyAsync(id);
+        if (existing is null)
+        {
+            // Check staged messages too
+            existing = PlanetMessageWorker.GetStagedMessage(id);
+            if (existing is null)
+                return ValourResult.NotFound("Message not found");
+        }
+
+        if (existing.AuthorUserId != token.UserId)
             return ValourResult.Forbid("You are not the author of this message");
-        
+
         var result = await messageService.EditMessageAsync(message);
         if (!result.Success)
         {
