@@ -11,13 +11,13 @@ namespace Valour.Server.Workers
         private static readonly BlockingCollection<Message> MessageQueue = new(new ConcurrentQueue<Message>());
         
         // A map from channel id to the messages currently queued for that channel
-        private static readonly ConcurrentDictionary<long, List<Message>> StagedChannelMessages = new();
+        private static readonly ConcurrentDictionary<long, ConcurrentQueue<Message>> StagedChannelMessages = new();
         
         // A map from message id to the message queued
         private static readonly ConcurrentDictionary<long, Message> StagedMessages = new();
 
         // Prevents deleted messages from being staged
-        private static readonly HashSet<long> BlockSet = new();
+        private static readonly ConcurrentDictionary<long, byte> BlockSet = new();
 
         /// <summary>
         /// Holds the long-running queue task
@@ -26,6 +26,7 @@ namespace Valour.Server.Workers
         
         // Timer for executing timed tasks
         private Timer _timer;
+        private int _isFlushing;
         
         public PlanetMessageWorker(ILogger<PlanetMessageWorker> logger,
                                    IServiceProvider serviceProvider)
@@ -48,11 +49,9 @@ namespace Valour.Server.Workers
 
         public static void RemoveFromQueue(Message message)
         {
-            // Remove currently staged
-            StagedChannelMessages.Remove(message.Id, out _);
-
-            // Protect from being staged
-            BlockSet.Add(message.Id);
+            StagedMessages.TryRemove(message.Id, out _);
+            RemoveStagedMessageFromChannel(message);
+            BlockSet[message.Id] = 0;
         }
 
         public static Message GetStagedMessage(long messageId)
@@ -63,8 +62,10 @@ namespace Valour.Server.Workers
         
         public static List<Message> GetStagedMessages(long channelId)
         {
-            StagedChannelMessages.TryGetValue(channelId, out var stagedList);
-            return stagedList ?? new List<Message>();
+            if (StagedChannelMessages.TryGetValue(channelId, out var stagedQueue))
+                return stagedQueue.ToList();
+
+            return new List<Message>();
         }
         
         public Task StartAsync(CancellationToken stoppingToken)
@@ -82,6 +83,11 @@ namespace Valour.Server.Workers
 
         private async void DoWork(object state)
         {
+            if (Interlocked.Exchange(ref _isFlushing, 1) == 1)
+                return;
+
+            try
+            {
             // First check if queue task is running
             if (_queueTask.IsCompleted)
             {
@@ -92,7 +98,7 @@ namespace Valour.Server.Workers
             }
             
             // Don't work if there's no staged messages
-            if (!StagedMessages.Any())
+            if (StagedMessages.IsEmpty)
                 return;
 
             /* Get required services in new scope */
@@ -103,39 +109,15 @@ namespace Valour.Server.Workers
                                              Queue size: {QueueSize}
                                              Saving {StagedCount} messages to DB", DateTimeOffset.Now, MessageQueue.Count, StagedMessages.Count);
 
-            List<long> cleanup = null;
-            int stagedMessages = 0;
-            
-            /* Update channel last active for all channels where we are saving message update */
-            foreach (var channelMessages in StagedChannelMessages)
-            {
-                stagedMessages += channelMessages.Value.Count;
-                
-                // If there are no messages to be posted to a channel, we can remove the staging list
-                // and save memory
-                if (channelMessages.Value.Count == 0)
-                {
-                    if (cleanup is null)
-                        cleanup = new List<long>(){ channelMessages.Key };
-                    else
-                        cleanup.Add(channelMessages.Key);
-                }
-            }
-
-            var messages = new List<Valour.Database.Message>(stagedMessages);
-            foreach (var message in StagedMessages.Values)
+            var stagedSnapshot = StagedMessages.Values.ToArray();
+            var messages = new List<Valour.Database.Message>(stagedSnapshot.Length);
+            foreach (var message in stagedSnapshot)
             {
                 messages.Add(message.ToDatabase());
             }
-            
-            // Perform cleanup
-            if (cleanup is not null)
-            {
-                foreach (var channelId in cleanup)
-                {
-                    StagedChannelMessages.Remove(channelId, out _);
-                }
-            }
+
+            if (messages.Count == 0)
+                return;
 
             try
             {
@@ -155,8 +137,9 @@ namespace Valour.Server.Workers
                     {
                         await db.Messages.AddAsync(message);
                         await db.SaveChangesAsync();
-                        BlockSet.Add(message.Id);
-                        StagedMessages.Remove(message.Id, out _);
+                        BlockSet[message.Id] = 0;
+                        StagedMessages.TryRemove(message.Id, out _);
+                        RemoveStagedMessageFromChannel(message.ChannelId, message.Id);
                     }
                     catch (Exception ex)
                     {
@@ -169,6 +152,11 @@ namespace Valour.Server.Workers
             StagedMessages.Clear();
             StagedChannelMessages.Clear();
             _logger.LogInformation($"Saved successfully.");
+            }
+            finally
+            {
+                Volatile.Write(ref _isFlushing, 0);
+            }
         }
 
         /// <summary>
@@ -188,7 +176,7 @@ namespace Valour.Server.Workers
             // This is a stream and will run forever
             foreach (var message in MessageQueue.GetConsumingEnumerable())
             {
-                if (BlockSet.Contains(message.Id))
+                if (BlockSet.ContainsKey(message.Id))
                     continue; // It's going to get cleared anyways
 
                 message.TimeSent = DateTime.UtcNow;
@@ -207,13 +195,27 @@ namespace Valour.Server.Workers
                 StagedMessages[message.Id] = message;
 
                 // Add message to channel-specific staging
-                StagedChannelMessages.TryGetValue(message.ChannelId, out var channelStaged);
-                if (channelStaged is null)
-                {
-                    channelStaged = new List<Message>();
-                    StagedChannelMessages[message.ChannelId] = channelStaged;
-                }
-                channelStaged.Add(message);
+                var channelStaged = StagedChannelMessages.GetOrAdd(message.ChannelId, _ => new ConcurrentQueue<Message>());
+                channelStaged.Enqueue(message);
+            }
+        }
+
+        private static void RemoveStagedMessageFromChannel(Message message)
+            => RemoveStagedMessageFromChannel(message.ChannelId, message.Id);
+
+        private static void RemoveStagedMessageFromChannel(long channelId, long messageId)
+        {
+            if (!StagedChannelMessages.TryGetValue(channelId, out var stagedQueue))
+                return;
+
+            var remaining = stagedQueue.Where(m => m.Id != messageId).ToArray();
+            if (remaining.Length == 0)
+            {
+                StagedChannelMessages.TryRemove(channelId, out _);
+            }
+            else
+            {
+                StagedChannelMessages[channelId] = new ConcurrentQueue<Message>(remaining);
             }
         }
         

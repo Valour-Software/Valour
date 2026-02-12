@@ -212,7 +212,8 @@ public class RegisterService
                 _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
                 await _db.SaveChangesAsync();
 
-                Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
+                using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+                Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode, emailTimeout.Token);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -304,7 +305,8 @@ public class RegisterService
             _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
             await _db.SaveChangesAsync();
 
-            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
+            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode, emailTimeout.Token);
             if (!result.IsSuccessStatusCode)
             {
                 _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
@@ -324,7 +326,11 @@ public class RegisterService
         return new(true, "Success");
     }
 
-    private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
+    private static async Task<Response> SendRegistrationEmail(
+        HttpRequest request,
+        string email,
+        string code,
+        CancellationToken cancellationToken = default)
     {
         var host = request.Host.ToUriComponent();
         string link = $"{request.Scheme}://{host}/api/users/verify/{code}";
@@ -344,7 +350,7 @@ public class RegisterService
 
         string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\n{link}";
 
-        var result = await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
+        var result = await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg, cancellationToken: cancellationToken);
         return result;
     }
 }

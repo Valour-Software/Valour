@@ -282,7 +282,13 @@ public class UserService
 
             string rawmsg = $"To reset your password, please go to the following link:\n{link}";
 
-            var result = await EmailManager.SendEmailAsync(email, "Valour Password Recovery", rawmsg, emsg);
+            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            var result = await EmailManager.SendEmailAsync(
+                email,
+                "Valour Password Recovery",
+                rawmsg,
+                emsg,
+                cancellationToken: emailTimeout.Token);
 
             if (!result.IsSuccessStatusCode)
             {

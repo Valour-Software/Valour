@@ -18,20 +18,31 @@ public class CoreHubService
     // Map of channelids to users typing from prev channel update
     public static ConcurrentDictionary<long, List<long>> PrevCurrentlyTyping = new();
     private static readonly ConcurrentDictionary<long, long?> ChannelToPlanetIdCache = new();
+    private static readonly ConcurrentDictionary<long, long> ChannelViewUpdateTimes = new();
+    private static readonly TimeSpan ChannelViewUpdateCooldown = TimeSpan.FromSeconds(2);
+    private static readonly SemaphoreSlim ChannelViewUpdateSemaphore = new(4, 4);
     
     private readonly IHubContext<CoreHub> _hub;
     private readonly ValourDb _db;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
+    private readonly ILogger<CoreHubService> _logger;
 
-    public CoreHubService(ValourDb db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis, SignalRConnectionService connectionTracker)
+    public CoreHubService(
+        ValourDb db,
+        IServiceProvider serviceProvider,
+        IHubContext<CoreHub> hub,
+        IConnectionMultiplexer redis,
+        SignalRConnectionService connectionTracker,
+        ILogger<CoreHubService> logger)
     {
         _db = db;
         _hub = hub;
         _serviceProvider = serviceProvider;
         _redis = redis;
         _connectionTracker = connectionTracker;
+        _logger = logger;
     }
     
     public void RelayMessage(Message message)
@@ -39,7 +50,8 @@ public class CoreHubService
         var groupId = $"c-{message.ChannelId}";
 
         if (NodeConfig.Instance.LogInfo)
-            Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying message {message.Id} to group {groupId}");
+            _logger.LogDebug("[{Node}] Relaying message {MessageId} to group {GroupId}",
+                NodeConfig.Instance.Name, message.Id, groupId);
 
         // Fire-and-forget broadcast (matches pattern used by every other relay method)
         _ = _hub.Clients.Group(groupId).SendAsync("Relay", message);
@@ -48,25 +60,60 @@ public class CoreHubService
         // blocking the message pipeline. Uses a separate DbContext so the
         // long-lived worker DbContext is never accessed concurrently.
         var viewingIds = _connectionTracker.GetGroupUserIds(groupId);
-        if (viewingIds.Length > 0)
+        if (viewingIds.Length > 0 && ShouldScheduleChannelViewUpdate(message.ChannelId))
         {
             _ = UpdateChannelViewStatesAsync(viewingIds, message.ChannelId);
         }
     }
 
+    private static bool ShouldScheduleChannelViewUpdate(long channelId)
+    {
+        var nowTicks = DateTime.UtcNow.Ticks;
+
+        while (true)
+        {
+            if (ChannelViewUpdateTimes.TryGetValue(channelId, out var lastTicks))
+            {
+                if (nowTicks - lastTicks < ChannelViewUpdateCooldown.Ticks)
+                    return false;
+
+                if (ChannelViewUpdateTimes.TryUpdate(channelId, nowTicks, lastTicks))
+                    return true;
+
+                continue;
+            }
+
+            if (ChannelViewUpdateTimes.TryAdd(channelId, nowTicks))
+                return true;
+        }
+    }
+
     private async Task UpdateChannelViewStatesAsync(long[] viewingIds, long channelId)
     {
+        await ChannelViewUpdateSemaphore.WaitAsync();
         try
         {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             await using var scope = _serviceProvider.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-            await db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});",
-                viewingIds, channelId, DateTime.UtcNow);
+            await db.Database.ExecuteSqlRawAsync(
+                "CALL batch_user_channel_state_update({0}, {1}, {2});",
+                new object[] { viewingIds, channelId, DateTime.UtcNow },
+                timeout.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Non-critical: channel state will self-correct when the user next opens the channel.
+            _logger.LogWarning("Timed out updating channel view states for channel {ChannelId}", channelId);
         }
         catch (Exception ex)
         {
             // Non-critical: channel state will self-correct when the user next opens the channel
-            Console.Error.WriteLine($"Failed to update channel view states for channel {channelId}: {ex.Message}");
+            _logger.LogWarning(ex, "Failed to update channel view states for channel {ChannelId}", channelId);
+        }
+        finally
+        {
+            ChannelViewUpdateSemaphore.Release();
         }
     }
     
@@ -78,7 +125,8 @@ public class CoreHubService
         var group = _hub.Clients.Group(groupId);
         
         if (NodeConfig.Instance.LogInfo)
-            Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying edited message {message.Id} to group {groupId}");
+            _logger.LogDebug("[{Node}] Relaying edited message {MessageId} to group {GroupId}",
+                NodeConfig.Instance.Name, message.Id, groupId);
 
         _ = group.SendAsync("RelayEdit", message);
     }

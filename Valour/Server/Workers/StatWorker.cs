@@ -9,6 +9,7 @@ public class StatWorker : IHostedService, IDisposable
     private readonly ILogger<StatWorker> _logger;
     private Timer _timer;
     private static int _messageCount;
+    private int _isRunning;
 
     public StatWorker(ILogger<StatWorker> logger,
                         IServiceScopeFactory scopeFactory)
@@ -34,6 +35,11 @@ public class StatWorker : IHostedService, IDisposable
 
     private async void DoWork(object state)
     {
+        if (Interlocked.Exchange(ref _isRunning, 1) == 1)
+            return;
+
+        try
+        {
         using var scope = _scopeFactory.CreateScope();
             
         ValourDb context = scope.ServiceProvider.GetRequiredService<ValourDb>();
@@ -58,6 +64,11 @@ public class StatWorker : IHostedService, IDisposable
         }
             
         _logger.LogInformation("Stat Worker running at: {Time}", DateTimeOffset.Now.ToString());
+        }
+        finally
+        {
+            Volatile.Write(ref _isRunning, 0);
+        }
     }
 
     public Task StopAsync(CancellationToken stoppingToken)

@@ -8,6 +8,7 @@ public class SubscriptionWorker : IHostedService, IDisposable
 
     // Timer for executing timed tasks
     private Timer _timer;
+    private int _isRunning;
     
     public SubscriptionWorker(ILogger<SubscriptionWorker> logger,
         IServiceProvider serviceProvider)
@@ -27,12 +28,22 @@ public class SubscriptionWorker : IHostedService, IDisposable
     
     private async void UpdateSubscriptions(object state)
     {
+        if (Interlocked.Exchange(ref _isRunning, 1) == 1)
+            return;
+
+        try
+        {
         using var scope = _serviceProvider.CreateScope();
         
         var service = scope.ServiceProvider.GetRequiredService<SubscriptionService>();
         
         // get users who have now expired
         await service.ProcessActiveDue();
+        }
+        finally
+        {
+            Volatile.Write(ref _isRunning, 0);
+        }
     }
     
     public Task StopAsync(CancellationToken stoppingToken)

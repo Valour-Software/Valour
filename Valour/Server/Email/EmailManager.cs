@@ -22,7 +22,12 @@ public class EmailManager
     /// <summary>
     /// Sends an email using SendGrid API
     /// </summary>
-    public static async Task<Response> SendEmailAsync(string address, string subject, string message, string html = null)
+    public static async Task<Response> SendEmailAsync(
+        string address,
+        string subject,
+        string message,
+        string html = null,
+        CancellationToken cancellationToken = default)
     {
         // Case if someone doesn't have an HTML version of email
         if (html == null)
@@ -43,6 +48,6 @@ public class EmailManager
         email.SetClickTracking(false, false);
 
         // Send the email
-        return await client.SendEmailAsync(email);
+        return await client.SendEmailAsync(email, cancellationToken);
     }
 }
