@@ -1,0 +1,67 @@
+@inject StaffService StaffService
+
+<div class="verify-user-container">
+    <h5>Manual Email Verification</h5>
+    <p class="verify-user-help">
+        Enter an email, username, or <code>username#tag</code>.
+        If a username has multiple matches, use <code>username#tag</code>.
+    </p>
+
+    <div class="verify-user-row">
+        <input class="form-control"
+               placeholder="user@example.com or SpikeViper#A1B2"
+               @bind-value="_identifier"
+               @onkeydown="OnIdentifierKeyDown" />
+        <button class="v-btn primary"
+                disabled="@_isSubmitting"
+                @onclick="VerifyUserAsync">
+            Verify
+        </button>
+    </div>
+
+    @if (_result is not null)
+    {
+        <span class="@(_result.Success ? "text-info" : "text-danger")">@_result.Message</span>
+    }
+</div>
+
+@code {
+    private string _identifier = string.Empty;
+    private ITaskResult _result;
+    private bool _isSubmitting;
+
+    private async Task OnIdentifierKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await VerifyUserAsync();
+    }
+
+    private async Task VerifyUserAsync()
+    {
+        if (_isSubmitting)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_identifier))
+        {
+            _result = TaskResult.FromFailure("Please enter a username, username#tag, or email.");
+            return;
+        }
+
+        _isSubmitting = true;
+
+        var toastData = new ProgressToastData<TaskResult>()
+        {
+            Title = "Manual Verification",
+            Message = "Verifying account...",
+            SuccessMessage = "User verification updated.",
+            ProgressTask = StaffService.VerifyUserAsync(_identifier.Trim())
+        };
+
+        _result = await ToastContainer.Instance.WaitToastWithTaskResult(toastData);
+
+        if (_result.Success)
+            _identifier = string.Empty;
+
+        _isSubmitting = false;
+    }
+}

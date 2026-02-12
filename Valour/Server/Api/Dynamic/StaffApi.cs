@@ -104,8 +104,29 @@ public class StaffApi
         var result = await staffService.DeleteUserAsync(request.UserId);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
-        
+
         return ValourResult.Ok();
+    }
+
+    [StaffRequired]
+    [ValourRoute(HttpVerbs.Post, "api/staff/users/verify")]
+    public static async Task<IResult> VerifyUserAsync(
+        StaffService staffService,
+        [FromBody] VerifyUserRequest request)
+    {
+        if (request is null || string.IsNullOrWhiteSpace(request.Identifier))
+            return ValourResult.BadRequest("Please include an identifier.");
+
+        var result = await staffService.VerifyUserByIdentifierAsync(request.Identifier);
+        if (result.Success)
+            return ValourResult.Ok(result.Message);
+
+        return result.Code switch
+        {
+            404 => ValourResult.NotFound(result.Message),
+            409 => Results.Conflict(result.Message),
+            _ => ValourResult.BadRequest(result.Message)
+        };
     }
 
     [StaffRequired]

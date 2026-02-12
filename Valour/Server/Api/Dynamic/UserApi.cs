@@ -361,6 +361,10 @@ public class UserApi
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
+        request.Email = UserUtils.SanitizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return ValourResult.BadRequest("Email is required.");
+
         UserPrivateInfo userPrivateInfo = await userService.GetUserPrivateInfoAsync(request.Email);
 
         if (userPrivateInfo is null)
@@ -382,12 +386,16 @@ public class UserApi
         UserService userService,
         HttpContext ctx)
     {
+        email = UserUtils.SanitizeEmail(email);
+        if (string.IsNullOrWhiteSpace(email))
+            return ValourResult.BadRequest("Email is required.");
+
         var userEmail = await userService.GetUserPrivateInfoAsync(email, true);
 
         if (userEmail is null)
             return ValourResult.NotFound<UserPrivateInfo>();
 
-        var result = await userService.SendPasswordResetEmail(userEmail, email, ctx);
+        var result = await userService.SendPasswordResetEmail(userEmail, userEmail.Email, ctx);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

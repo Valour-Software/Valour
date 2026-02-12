@@ -556,8 +556,8 @@ public class MessageService
         if (count < 1)
             return [];
         
-        if (count > 50)
-            count = 50;
+        if (count > 64)
+            count = 64;
         
         // For default latest messages, use the cache
         if (index == long.MaxValue && count == 50)

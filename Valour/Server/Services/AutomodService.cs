@@ -172,6 +172,11 @@ public class AutomodService
             var dbItem = await _db.AutomodTriggers.FindAsync(trigger.Id);
             if (dbItem != null)
             {
+                // Delete logs first to satisfy installations that enforce FK(trigger_id -> automod_triggers.id)
+                var logs = await _db.AutomodLogs.Where(x => x.TriggerId == trigger.Id).ToListAsync();
+                if (logs.Count > 0)
+                    _db.AutomodLogs.RemoveRange(logs);
+
                 // Cascade delete actions
                 var actions = await _db.AutomodActions.Where(x => x.TriggerId == trigger.Id).ToListAsync();
                 if (actions.Count > 0)
@@ -304,6 +309,7 @@ public class AutomodService
         var memberService = scope.ServiceProvider.GetRequiredService<PlanetMemberService>();
         var banService = scope.ServiceProvider.GetRequiredService<PlanetBanService>();
         var messageService = scope.ServiceProvider.GetRequiredService<MessageService>();
+        var planetService = scope.ServiceProvider.GetRequiredService<PlanetService>();
 
         foreach (var action in actions)
         {
@@ -338,25 +344,57 @@ public class AutomodService
                         await messageService.DeleteMessageAsync(message.Id);
                     break;
                 case AutomodActionType.Respond:
-                    if (message is not null && message.AuthorMemberId is not null)
-                    {
-                        var response = new Message
-                        {
-                            Id = IdManager.Generate(),
-                            ChannelId = message.ChannelId,
-                            AuthorMemberId = null,
-                            AuthorUserId = ISharedUser.VictorUserId,
-                            Content = $"«@m-{message.AuthorMemberId}» "  + action.Message,
-                            TimeSent = DateTime.UtcNow,
-                            PlanetId = message.PlanetId,
-                            Fingerprint = Guid.NewGuid().ToString(),
-                            MentionsData = JsonSerializer.Serialize(new List<Mention>()
-                            {
-                                new Mention(){ TargetId = message.AuthorMemberId.Value, Type = MentionType.PlanetMember}
-                            })
-                        };
+                    long targetMemberId;
+                    long targetChannelId;
+                    long targetPlanetId;
 
-                        await messageService.PostMessageAsync(response);
+                    if (message is not null)
+                    {
+                        if (message.AuthorMemberId is null)
+                            break;
+
+                        targetMemberId = message.AuthorMemberId.Value;
+                        targetChannelId = message.ChannelId;
+                        targetPlanetId = message.PlanetId ?? member.PlanetId;
+                    }
+                    else
+                    {
+                        var defaultChannel = await planetService.GetPrimaryChannelAsync(member.PlanetId);
+                        if (defaultChannel is null)
+                        {
+                            _logger.LogWarning(
+                                "Automod respond action {ActionId} could not find default channel for planet {PlanetId}",
+                                action.Id, member.PlanetId);
+                            break;
+                        }
+
+                        targetMemberId = member.Id;
+                        targetChannelId = defaultChannel.Id;
+                        targetPlanetId = member.PlanetId;
+                    }
+
+                    var response = new Message
+                    {
+                        Id = IdManager.Generate(),
+                        ChannelId = targetChannelId,
+                        AuthorMemberId = null,
+                        AuthorUserId = ISharedUser.VictorUserId,
+                        Content = $"«@m-{targetMemberId}» {action.Message ?? string.Empty}",
+                        TimeSent = DateTime.UtcNow,
+                        PlanetId = targetPlanetId,
+                        Fingerprint = Guid.NewGuid().ToString(),
+                        MentionsData = JsonSerializer.Serialize(new List<Mention>()
+                        {
+                            new Mention(){ TargetId = targetMemberId, Type = MentionType.PlanetMember}
+                        })
+                    };
+
+                    var responseResult = await messageService.PostMessageAsync(response);
+                    if (!responseResult.Success)
+                    {
+                        _logger.LogWarning(
+                            "Automod respond action {ActionId} failed to post message in planet {PlanetId}: {Reason}",
+                            action.Id, targetPlanetId, responseResult.Message);
                     }
                     break;
             }

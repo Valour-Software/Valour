@@ -223,6 +223,7 @@ else
         Client.Logger.Log<ChatWindowComponent>("Initializing channel window component.", "cyan");
         
         Client.NodeService.NodeReconnected += OnNodeReconnect;
+        BrowserUtils.Focused += OnBrowserFocused;
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;
@@ -504,7 +505,7 @@ else
     
     public async Task LoadRecentMessages(int count)
     {
-        var messages = await Channel.GetLastMessagesAsync(64);
+        var messages = await Channel.GetLastMessagesAsync(count);
         await AddMessages(messages, true, true);
     }
 
@@ -554,19 +555,26 @@ else
     
     public async Task AddMessages(List<Message> messages, bool render = true, bool scroll = false)
     {
+        if (messages is null || messages.Count == 0)
+            return;
+
+        var existingIds = DisplayedMessages.Select(x => x.Id).ToHashSet();
+        var uniqueNew = new List<Message>(messages.Count);
+
         foreach (var msg in messages)
         {
-            // No duplicates
-            if (DisplayedMessages.Any(x => x.Id == msg.Id))
-            {
+            if (msg is null)
                 continue;
-            }
-            
-            // Resort
-            DisplayedMessages.Sort(MessageComparerInstance);
+
+            if (existingIds.Add(msg.Id))
+                uniqueNew.Add(msg);
         }
-        
-        DisplayedMessages.AddRange(messages);
+
+        if (uniqueNew.Count == 0)
+            return;
+
+        DisplayedMessages.AddRange(uniqueNew);
+        DisplayedMessages.Sort(MessageComparerInstance);
 
         if (render)
         {
@@ -639,7 +647,14 @@ else
     {
         public int Compare(Message a, Message b)
         {
-            return a?.Id > b?.Id ? 1 : -1;
+            if (ReferenceEquals(a, b))
+                return 0;
+            if (a is null)
+                return -1;
+            if (b is null)
+                return 1;
+
+            return a.Id.CompareTo(b.Id);
         }
     }
     
@@ -802,28 +817,132 @@ else
     
     public async Task OnNodeReconnect(Node node)
     {
-        // We only need to get latest messages if we're scrolled to the bottom
-        var isAtBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
-        
-        if (!isAtBottom)
-            return;
-        
         if (Channel.PlanetId is null)
         {
             if (node.Name == Client.PrimaryNode.Name)
             {
-                ClearMessages(false);
-                await LoadRecentMessages(64);
+                await RecoverMissedMessages();
             }
         }
         else
         {
             if (node.Name == Channel.Planet.NodeName)
             {
-                ClearMessages(false);
-                await LoadRecentMessages(64);
+                await RecoverMissedMessages();
             }
         }
+    }
+
+    private DateTime _lastRecoverAttempt = DateTime.MinValue;
+    private bool _recoveringMessages;
+
+    private async Task OnBrowserFocused()
+    {
+        if (Channel?.PlanetId is not null && Channel.ChannelType == ChannelTypeEnum.PlanetChat)
+        {
+            try
+            {
+                var joinResult = await Channel.ConnectToRealtime();
+                if (!joinResult.Success)
+                {
+                    Client.Logger.Log<ChatWindowComponent>(
+                        $"Channel rejoin check failed for {Channel.Id}: {joinResult.Message}", "yellow");
+                }
+            }
+            catch (Exception e)
+            {
+                Client.Logger.Log<ChatWindowComponent>(
+                    $"Channel rejoin check threw for {Channel?.Id}: {e.Message}", "yellow");
+            }
+        }
+
+        await RecoverMissedMessages();
+    }
+
+    private async Task RecoverMissedMessages()
+    {
+        if (_loading || Channel is null || _jsService is null || _recoveringMessages)
+            return;
+
+        // Avoid hammering the API when focus/reconnect events happen in a burst.
+        if ((DateTime.UtcNow - _lastRecoverAttempt).TotalMilliseconds < 750)
+            return;
+
+        _lastRecoverAttempt = DateTime.UtcNow;
+        _recoveringMessages = true;
+
+        try
+        {
+            long maxDisplayedId = DisplayedMessages
+                .Where(x => x.Id > 0 && x.Id < long.MaxValue)
+                .Select(x => x.Id)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            var latest = await GetRecoveryCandidates(maxDisplayedId);
+            if (latest.Count == 0)
+                return;
+
+            var toAdd = latest
+                .Where(m => m.Id > maxDisplayedId)
+                .OrderBy(m => m.Id)
+                .ToList();
+
+            if (toAdd.Count == 0)
+                return;
+
+            var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
+            await AddMessages(toAdd, render: false, scroll: false);
+
+            ReRender();
+
+            if (atBottom)
+                await ScrollToBottom();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChatWindowComponent>($"Failed recovering missed messages: {e.Message}", "yellow");
+        }
+        finally
+        {
+            _recoveringMessages = false;
+        }
+    }
+
+    private async Task<List<Message>> GetRecoveryCandidates(long maxDisplayedId)
+    {
+        var latest = await Channel.GetLastMessagesAsync(64);
+        if (latest is null || latest.Count == 0)
+            return [];
+
+        if (maxDisplayedId == 0)
+            return latest;
+
+        var recovered = new List<Message>(latest);
+        var earliestId = latest[0].Id;
+        var rounds = 0;
+
+        // Bridge larger gaps by walking backwards in batches.
+        while (earliestId > maxDisplayedId + 1 && rounds < 12)
+        {
+            var older = await Channel.GetMessagesAsync(earliestId, 64);
+            if (older is null || older.Count == 0)
+                break;
+
+            recovered.InsertRange(0, older);
+
+            var newEarliest = older[0].Id;
+            if (newEarliest >= earliestId)
+                break;
+
+            earliestId = newEarliest;
+            rounds++;
+
+            if (older.Any(x => x.Id <= maxDisplayedId))
+                break;
+        }
+
+        return recovered;
     }
     
     public async Task NotifyMessageMouseEnter(MessageComponent message)
@@ -865,6 +984,7 @@ else
         
         WindowCtx.Tab.OnStartFloating -= OnStartFloating;
         Client.NodeService.NodeReconnected -= OnNodeReconnect;
+        BrowserUtils.Focused -= OnBrowserFocused;
         
         if (Channel.PlanetId is not null)
         {
@@ -889,4 +1009,3 @@ else
         }
     }
 }
-

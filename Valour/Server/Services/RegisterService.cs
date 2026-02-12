@@ -11,6 +11,7 @@ namespace Valour.Server.Services;
 
 public class RegisterService
 {
+    private const int EmailTimeoutSeconds = 20;
     private const string ValourWelcome = "## Welcome to Valour!\nI'm *Victor*, the Valour mascot. I'm here to help you get started. " +
                                          "If you have any questions, feel free to ask me. I may not be fast to respond (I am run by humans!) " +
                                          "You can also ask other users, or check out the Valour Central planet for more information." +
@@ -48,6 +49,10 @@ public class RegisterService
     
     public async Task<TaskResult<User>> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx, bool skipEmail = false, long? forceId = null)
     {
+        request.Email = UserUtils.SanitizeEmail(request.Email);
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return new(false, "Email was invalid.");
+
         var now = DateTime.Today;
         var age = now.Year - request.DateOfBirth.Year;
         if (request.DateOfBirth > now.AddYears(-age)) age--;
@@ -212,7 +217,7 @@ public class RegisterService
                 _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
                 await _db.SaveChangesAsync();
 
-                using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+                using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(EmailTimeoutSeconds));
                 Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode, emailTimeout.Token);
 
                 if (!result.IsSuccessStatusCode)
@@ -305,8 +310,8 @@ public class RegisterService
             _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
             await _db.SaveChangesAsync();
 
-            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode, emailTimeout.Token);
+            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(EmailTimeoutSeconds));
+            Response result = await SendRegistrationEmail(ctx.Request, userPrivateInfo.Email, emailCode, emailTimeout.Token);
             if (!result.IsSuccessStatusCode)
             {
                 _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");

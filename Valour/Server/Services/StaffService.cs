@@ -9,11 +9,13 @@ public class StaffService
 {
     private readonly ValourDb _db;
     private readonly UserService _userService;
+    private readonly ILogger<StaffService> _logger;
     
-    public StaffService(ValourDb db, UserService userService)
+    public StaffService(ValourDb db, UserService userService, ILogger<StaffService> logger)
     {
         _db = db;
         _userService = userService;
+        _logger = logger;
     }
 
     
@@ -159,5 +161,90 @@ public class StaffService
         await _db.SaveChangesAsync();
 
         return TaskResult.SuccessResult;
+    }
+
+    public async Task<TaskResult> VerifyUserByIdentifierAsync(string identifier)
+    {
+        identifier = identifier?.Trim();
+        if (string.IsNullOrWhiteSpace(identifier))
+            return TaskResult.FromFailure("Please provide a username, username#tag, or email.", errorCode: 400);
+
+        Valour.Database.User user = null;
+        Valour.Database.UserPrivateInfo privateInfo = null;
+
+        if (identifier.Contains('@'))
+        {
+            var sanitized = UserUtils.SanitizeEmail(identifier);
+            var validEmail = UserUtils.TestEmail(sanitized);
+            if (!validEmail.Success)
+                return TaskResult.FromFailure("Invalid email format.", errorCode: 400);
+
+            var normalizedEmail = validEmail.Data.ToLower();
+            privateInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedEmail);
+            if (privateInfo is null)
+                return TaskResult.FromFailure("No account found with that email.", errorCode: 404);
+
+            user = await _db.Users.FindAsync(privateInfo.UserId);
+        }
+        else if (identifier.Contains('#'))
+        {
+            var split = identifier.Split('#', 2);
+            if (split.Length != 2 || string.IsNullOrWhiteSpace(split[0]) || string.IsNullOrWhiteSpace(split[1]))
+                return TaskResult.FromFailure("Invalid format. Use username#tag.", errorCode: 400);
+
+            var username = split[0].Trim();
+            var tag = split[1].Trim().ToUpper();
+
+            user = await _db.Users.FirstOrDefaultAsync(x =>
+                x.Name.ToLower() == username.ToLower() && x.Tag == tag);
+
+            if (user is null)
+                return TaskResult.FromFailure("No account found with that username#tag.", errorCode: 404);
+
+            privateInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == user.Id);
+        }
+        else
+        {
+            var username = identifier;
+            var normalizedUsername = username.ToLower();
+            var matches = await _db.Users
+                .Where(x => x.Name.ToLower() == normalizedUsername)
+                .OrderBy(x => x.Tag)
+                .Select(x => new { x.Id, x.Name, x.Tag })
+                .Take(5)
+                .ToListAsync();
+
+            if (matches.Count == 0)
+                return TaskResult.FromFailure("No account found with that username.", errorCode: 404);
+
+            if (matches.Count > 1)
+            {
+                var matchList = string.Join(", ", matches.Select(x => $"{x.Name}#{x.Tag}"));
+                return TaskResult.FromFailure(
+                    $"Multiple users match '{username}'. Retry with username#tag. Matches: {matchList}",
+                    errorCode: 409);
+            }
+
+            var userId = matches[0].Id;
+            user = await _db.Users.FindAsync(userId);
+            privateInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == userId);
+        }
+
+        if (user is null || privateInfo is null)
+            return TaskResult.FromFailure("Could not find complete user records for this account.", errorCode: 404);
+
+        if (privateInfo.Verified)
+            return TaskResult.FromSuccess($"{user.Name}#{user.Tag} is already verified.");
+
+        privateInfo.Verified = true;
+
+        // Clean up pending codes now that verification was done manually.
+        _db.EmailConfirmCodes.RemoveRange(_db.EmailConfirmCodes.Where(x => x.UserId == user.Id));
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Manual staff verification completed for user {UserId} ({Name}#{Tag}).", user.Id, user.Name, user.Tag);
+
+        return TaskResult.FromSuccess($"Verified {user.Name}#{user.Tag} ({privateInfo.Email}).");
     }
 }

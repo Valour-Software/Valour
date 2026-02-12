@@ -354,6 +354,10 @@ public class Node : ServiceBase // each node acts like a service
             if (HubConnection.State != HubConnectionState.Connected)
             {
                 LogError($"Ping failed. Hub state is: {HubConnection.State.ToString()}");
+                if (HubConnection.State == HubConnectionState.Disconnected)
+                {
+                    _ = Reconnect();
+                }
                 return;
             }
 
@@ -371,12 +375,32 @@ public class Node : ServiceBase // each node acts like a service
             else
             {
                 LogError($"Ping failed. Response: {response}");
+                await ForceReconnectAfterHeartbeatFailure();
             }
         }
         catch (Exception ex)
         {
             LogError("Ping failed.", ex);
+            await ForceReconnectAfterHeartbeatFailure();
         }
+    }
+
+    private async Task ForceReconnectAfterHeartbeatFailure()
+    {
+        if (IsReconnecting || HubConnection is null)
+            return;
+
+        try
+        {
+            if (HubConnection.State != HubConnectionState.Disconnected)
+                await HubConnection.StopAsync();
+        }
+        catch (Exception stopEx)
+        {
+            LogError("Failed to stop SignalR during heartbeat recovery.", stopEx);
+        }
+
+        _ = Reconnect();
     }
 
     #region SignalR
@@ -557,12 +581,55 @@ public class Node : ServiceBase // each node acts like a service
         if (!IsRealtimeSetup || HubConnection is null)
             return;
 
+        _ = CheckConnectionInternal();
+    }
+
+    private async Task CheckConnectionInternal()
+    {
+        if (IsReconnecting || HubConnection is null)
+            return;
+
         LogWarning("Refresh has been requested.");
         LogWarning("SignalR state is " + HubConnection.State);
 
         if (HubConnection.State == HubConnectionState.Disconnected)
         {
             LogError("Disconnect has been detected. Reconnecting...");
+            _ = Reconnect();
+            return;
+        }
+
+        if (HubConnection.State != HubConnectionState.Connected)
+        {
+            LogWarning("SignalR not connected; skipping heartbeat check.");
+            return;
+        }
+
+        try
+        {
+            var pingTask = HubConnection.InvokeAsync<string>("ping");
+            var completed = await Task.WhenAny(pingTask, Task.Delay(TimeSpan.FromSeconds(6)));
+
+            if (completed != pingTask)
+                throw new TimeoutException("SignalR ping timed out.");
+
+            var response = await pingTask;
+            if (response != "pong")
+                throw new Exception("Unexpected ping response: " + response);
+        }
+        catch (Exception ex)
+        {
+            LogError("SignalR heartbeat failed. Forcing reconnect...", ex);
+
+            try
+            {
+                await HubConnection.StopAsync();
+            }
+            catch (Exception stopEx)
+            {
+                LogError("Failed to stop SignalR before reconnect.", stopEx);
+            }
+
             _ = Reconnect();
         }
     }
@@ -588,6 +655,14 @@ public class Node : ServiceBase // each node acts like a service
         catch (System.Exception ex)
         {
             LogError("Hub reports connection, but ping failed. Will attempt reconnect...", ex);
+            try
+            {
+                await HubConnection.StopAsync();
+            }
+            catch (System.Exception stopEx)
+            {
+                LogError("Failed to stop SignalR after ping failure.", stopEx);
+            }
         }
 
         while (HubConnection.State == HubConnectionState.Disconnected)

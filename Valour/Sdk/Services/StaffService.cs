@@ -45,6 +45,16 @@ public class StaffService : ServiceBase
         return await _client.PrimaryNode.PostAsync($"api/staff/delete", request);
     }
 
+    public async Task<TaskResult> VerifyUserAsync(string identifier)
+    {
+        var request = new VerifyUserRequest()
+        {
+            Identifier = identifier
+        };
+
+        return await _client.PrimaryNode.PostAsync("api/staff/users/verify", request);
+    }
+
     public async Task<Message> GetMessageAsync(long messageId)
     {
         var result = await _client.PrimaryNode.GetJsonAsync<Message>($"api/staff/messages/{messageId}");

@@ -20,6 +20,8 @@ namespace Valour.Server.Services;
 
 public class UserService
 {
+    private const int EmailTimeoutSeconds = 20;
+
     private readonly ValourDb _db;
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
@@ -282,7 +284,7 @@ public class UserService
 
             string rawmsg = $"To reset your password, please go to the following link:\n{link}";
 
-            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(EmailTimeoutSeconds));
             var result = await EmailManager.SendEmailAsync(
                 email,
                 "Valour Password Recovery",
