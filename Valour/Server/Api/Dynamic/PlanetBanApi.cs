@@ -24,7 +24,7 @@ public class PlanetBanApi
             return ValourResult.NotPlanetMember();
 
         // You can retrieve your own ban
-        if (ban.TargetId != member.Id)
+        if (ban.TargetId != member.UserId)
         {
             if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
                 return ValourResult.LacksPermission(PlanetPermissions.Ban);
