@@ -21,6 +21,7 @@ namespace Valour.Server.Services;
 public class UserService
 {
     private const int EmailTimeoutSeconds = 20;
+    private static readonly TimeSpan PasswordRecoveryCodeLifetime = TimeSpan.FromMinutes(10);
 
     private readonly ValourDb _db;
     private readonly TokenService _tokenService;
@@ -105,7 +106,7 @@ public class UserService
     }
 
     public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
-        (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
+        (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code && x.ExpiresAt > DateTime.UtcNow)).ToModel();
 
     public async Task<UserProfile> GetUserProfileAsync(long userId) =>
         (await _db.UserProfiles.FirstOrDefaultAsync(x => x.Id == userId)).ToModel();
@@ -186,7 +187,7 @@ public class UserService
     }
 
     public async Task<PasswordRecovery> GetPasswordRecoveryAsync(string code) =>
-        (await _db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
+        (await _db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == code && x.ExpiresAt > DateTime.UtcNow)).ToModel();
 
     public async Task<Valour.Database.Credential> GetCredentialAsync(long userId) =>
         await _db.Credentials.FirstOrDefaultAsync(x => x.UserId == userId);
@@ -257,10 +258,13 @@ public class UserService
 
             string recoveryCode = Guid.NewGuid().ToString();
 
+            var createdAt = DateTime.UtcNow;
             PasswordRecovery recovery = new()
             {
                 Code = recoveryCode,
-                UserId = userPrivateInfo.UserId
+                UserId = userPrivateInfo.UserId,
+                CreatedAt = createdAt,
+                ExpiresAt = createdAt.Add(PasswordRecoveryCodeLifetime)
             };
 
             await _db.PasswordRecoveries.AddAsync(recovery.ToDatabase());
@@ -457,7 +461,7 @@ public class UserService
     public async Task<TaskResult> VerifyAsync(string code)
     {
         await using var tran = await _db.Database.BeginTransactionAsync();
-        var confirmCode = await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code);
+        var confirmCode = await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code && x.ExpiresAt > DateTime.UtcNow);
         if (confirmCode is null)
             return new TaskResult(false, "Code not found.");
         

@@ -12,6 +12,8 @@ namespace Valour.Server.Services;
 public class RegisterService
 {
     private const int EmailTimeoutSeconds = 20;
+    public const string EmailAlreadyRegisteredCode = "EMAIL_ALREADY_REGISTERED";
+    private static readonly TimeSpan EmailConfirmCodeLifetime = TimeSpan.FromMinutes(10);
     private const string ValourWelcome = "## Welcome to Valour!\nI'm *Victor*, the Valour mascot. I'm here to help you get started. " +
                                          "If you have any questions, feel free to ask me. I may not be fast to respond (I am run by humans!) " +
                                          "You can also ask other users, or check out the Valour Central planet for more information." +
@@ -62,11 +64,7 @@ public class RegisterService
         
         var existingInfo = await _db.PrivateInfos.FirstOrDefaultAsync(x => x.Email.ToLower() == request.Email);
         if (existingInfo != null)
-        {
-            if (!existingInfo.Verified)
-                return new(false, "EMAIL_NOT_VERIFIED");
-            return new(false, "This email has already been used");
-        }
+            return new(false, EmailAlreadyRegisteredCode);
 
         var emailValid = UserUtils.TestEmail(request.Email);
         if (!emailValid.Success)
@@ -208,10 +206,13 @@ public class RegisterService
             if (!skipEmail && EmailConfig.Instance.ApiKey != "fake-value")
             {
                 var emailCode = Guid.NewGuid().ToString();
+                var createdAt = DateTime.UtcNow;
                 EmailConfirmCode confirmCode = new()
                 {
                     Code = emailCode,
-                    UserId = user.Id
+                    UserId = user.Id,
+                    CreatedAt = createdAt,
+                    ExpiresAt = createdAt.Add(EmailConfirmCodeLifetime)
                 };
 
                 _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
@@ -301,10 +302,13 @@ public class RegisterService
             _db.EmailConfirmCodes.RemoveRange(_db.EmailConfirmCodes.Where(x => x.UserId == userPrivateInfo.UserId));
 
             var emailCode = Guid.NewGuid().ToString();
+            var createdAt = DateTime.UtcNow;
             EmailConfirmCode confirmCode = new()
             {
                 Code = emailCode,
-                UserId = userPrivateInfo.UserId
+                UserId = userPrivateInfo.UserId,
+                CreatedAt = createdAt,
+                ExpiresAt = createdAt.Add(EmailConfirmCodeLifetime)
             };
 
             _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());

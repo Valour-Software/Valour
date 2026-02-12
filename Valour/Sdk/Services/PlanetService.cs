@@ -109,9 +109,23 @@ public class PlanetService : ServiceBase
     public async ValueTask<Planet> FetchPlanetAsync(long id, bool skipCache = false)
     {
         if (!skipCache && _client.Cache.Planets.TryGet(id, out var cached))
-            return cached;
+        {
+            if (cached.MyMember is null)
+            {
+                await cached.EnsureReadyAsync();
+            }
 
-        var planet = (await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
+            return cached;
+        }
+
+        var planetResult = await _client.PrimaryNode.GetJsonAsync<Planet>($"api/planets/{id}");
+        if (!planetResult.Success || planetResult.Data is null)
+        {
+            LogError($"Failed to fetch planet {id}: {planetResult.Message}");
+            return null;
+        }
+
+        var planet = planetResult.Data;
 
         planet = planet.Sync(_client);
         
@@ -126,6 +140,9 @@ public class PlanetService : ServiceBase
     public async Task<TaskResult> FetchInitialPlanetDataAsync(long planetId)
     {
         var planet = await FetchPlanetAsync(planetId);
+        if (planet is null)
+            return TaskResult.FromFailure($"Planet {planetId} could not be loaded.");
+
         return await FetchInitialPlanetDataAsync(planet);
     }
     
@@ -242,7 +259,15 @@ public class PlanetService : ServiceBase
             return TaskResult.FromFailure("Planet is null");
 
         // Make sure planet is ready (should be, but just in case)
-        await planet.EnsureReadyAsync();
+        try
+        {
+            await planet.EnsureReadyAsync();
+        }
+        catch (Exception ex)
+        {
+            LogError($"Failed to prepare planet {planet.Id} for opening.", ex);
+            return TaskResult.FromFailure("Failed to prepare planet connection.");
+        }
         
         if (PlanetLocks.ContainsKey(key))
         {
@@ -491,6 +516,9 @@ public class PlanetService : ServiceBase
     public async ValueTask<PlanetRole> FetchRoleAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return null;
+
         return await FetchRoleAsync(id, planet, skipCache);
     }
 
@@ -507,6 +535,9 @@ public class PlanetService : ServiceBase
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)
     {
         var planet = await FetchPlanetAsync(planetId);
+        if (planet is null)
+            return new Dictionary<long, int>();
+
         return await FetchRoleMembershipCountsAsync(planet);
     }
 
@@ -519,6 +550,9 @@ public class PlanetService : ServiceBase
     public async ValueTask<PlanetMember> FetchMemberByUserAsync(long userId, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return null;
+
         return await FetchMemberByUserAsync(userId, planet, skipCache);
     }
 
@@ -530,16 +564,29 @@ public class PlanetService : ServiceBase
             planet.Members.TryGet(id, out var cached))
             return cached;
 
-        var member =
-            (await planet.Node.GetJsonAsync<PlanetMember>(
-                $"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true)).Data;
+        var response = await planet.Node.GetJsonAsync<PlanetMember>(
+            $"{ISharedPlanetMember.BaseRoute}/byuser/{planet.Id}/{userId}", true);
+        if (!response.Success)
+        {
+            LogError($"Failed to fetch member by user ({userId}) in planet {planet.Id}: {response.Message}");
+            return null;
+        }
 
-        return member.Sync(_client);
+        if (response.Data is null)
+        {
+            LogWarning($"Planet member lookup returned null for user {userId} in planet {planet.Id}.");
+            return null;
+        }
+
+        return response.Data.Sync(_client);
     }
 
     public async ValueTask<PlanetMember> FetchMemberAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return null;
+
         return await FetchMemberAsync(id, planet, skipCache);
     }
 
@@ -556,12 +603,18 @@ public class PlanetService : ServiceBase
     public async Task<TaskResult> AddMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return TaskResult.FromFailure($"Planet {planetId} could not be loaded.");
+
         return await planet.Node.PostAsync($"api/planets/{planetId}/members/{memberId}/roles/{roleId}", null);
     }
     
     public async Task<TaskResult> RemoveMemberRoleAsync(long memberId, long roleId, long planetId, bool skipCache = false)
     {
         var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return TaskResult.FromFailure($"Planet {planetId} could not be loaded.");
+
         return await planet.Node.DeleteAsync($"api/planets/{planetId}/members/{memberId}/roles/{roleId}");
     }
 

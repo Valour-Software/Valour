@@ -10,7 +10,9 @@ public static class EmailConfirmCodeMapper
         return new EmailConfirmCode()
         {
             UserId = code.UserId,
-            Code = code.Code
+            Code = code.Code,
+            CreatedAt = code.CreatedAt,
+            ExpiresAt = code.ExpiresAt
         };
     }
     
@@ -22,7 +24,9 @@ public static class EmailConfirmCodeMapper
         return new Valour.Database.EmailConfirmCode()
         {
             UserId = code.UserId,
-            Code = code.Code
+            Code = code.Code,
+            CreatedAt = code.CreatedAt,
+            ExpiresAt = code.ExpiresAt
         };
     }
 }

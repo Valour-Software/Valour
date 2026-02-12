@@ -10,7 +10,9 @@ public static class PasswordRecoveryMapper
         return new PasswordRecovery()
         {
             Code = state.Code,
-            UserId = state.UserId
+            UserId = state.UserId,
+            CreatedAt = state.CreatedAt,
+            ExpiresAt = state.ExpiresAt
         };
     }
     
@@ -22,7 +24,9 @@ public static class PasswordRecoveryMapper
         return new Valour.Database.PasswordRecovery()
         {
             Code = state.Code,
-            UserId = state.UserId
+            UserId = state.UserId,
+            CreatedAt = state.CreatedAt,
+            ExpiresAt = state.ExpiresAt
         };
     }
 }

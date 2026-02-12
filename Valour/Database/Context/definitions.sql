@@ -109,6 +109,8 @@ CREATE TABLE IF NOT EXISTS credentials (
 CREATE TABLE IF NOT EXISTS email_confirm_codes (
     code VARCHAR(36) NOT NULL PRIMARY KEY,
     user_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    expires_at TIMESTAMP NOT NULL DEFAULT ((NOW() AT TIME ZONE 'utc') + interval '1 day'),
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );
@@ -138,6 +140,8 @@ CREATE TABLE IF NOT EXISTS oauth_apps (
 CREATE TABLE IF NOT EXISTS password_recoveries (
     code VARCHAR(36) NOT NULL PRIMARY KEY,
     user_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    expires_at TIMESTAMP NOT NULL DEFAULT ((NOW() AT TIME ZONE 'utc') + interval '1 hour'),
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );

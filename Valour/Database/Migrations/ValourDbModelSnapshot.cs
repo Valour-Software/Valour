@@ -576,11 +576,21 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("code");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
 
                     b.HasKey("Code");
+
+                    b.HasIndex("ExpiresAt");
 
                     b.HasIndex("UserId");
 
@@ -895,11 +905,21 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("code");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
 
                     b.HasKey("Code");
+
+                    b.HasIndex("ExpiresAt");
 
                     b.HasIndex("UserId");
 

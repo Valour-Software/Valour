@@ -23,6 +23,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         ISharedPlanet.BaseRoute;
 
     private Node _node;
+    private readonly SemaphoreSlim _ensureReadyLock = new(1, 1);
 
     /// <summary>
     /// In the case that the roles list for some reason has not loaded,
@@ -337,17 +338,58 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public async Task EnsureReadyAsync()
     {
-        if (_node is null)
-        {
-            if (NodeName is not null)
-                _node = await Client.NodeService.GetByName(NodeName);
-            else
-                _node = await Client.NodeService.GetNodeForPlanetAsync(Id);
-        }
+        if (_node is not null && MyMember is not null)
+            return;
 
-        // Always also get member of client
-        if (MyMember is null)
-            MyMember = await FetchMemberByUserAsync(Client.Me.Id);
+        await _ensureReadyLock.WaitAsync();
+        try
+        {
+            if (_node is null)
+            {
+                if (NodeName is not null)
+                    _node = await Client.NodeService.GetByName(NodeName);
+                else
+                    _node = await Client.NodeService.GetNodeForPlanetAsync(Id);
+            }
+
+            if (MyMember is not null)
+                return;
+
+            if (Client?.Me is null)
+            {
+                Client?.Logger?.Log<Planet>(
+                    $"Skipping self-member load for planet {Id} because current user is unavailable.",
+                    "yellow");
+                return;
+            }
+
+            var lastError = string.Empty;
+            for (var attempt = 1; attempt <= 3; attempt++)
+            {
+                var member = await FetchMemberByUserAsync(Client.Me.Id, skipCache: attempt > 1);
+                if (member is not null)
+                {
+                    MyMember = member;
+                    return;
+                }
+
+                lastError = $"Attempt {attempt}/3 returned no member for user {Client.Me.Id} in planet {Id}.";
+                Client.Logger?.Log<Planet>(lastError, "yellow");
+
+                if (attempt < 3)
+                {
+                    await Task.Delay(100 * attempt);
+                }
+            }
+
+            Client?.Logger?.Log<Planet>(
+                $"Failed to resolve self membership for planet {Id} after retries. Last result: {lastError}",
+                "red");
+        }
+        finally
+        {
+            _ensureReadyLock.Release();
+        }
     }
 
     public Task<TaskResult> FetchInitialDataAsync() =>

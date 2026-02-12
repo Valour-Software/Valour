@@ -13,6 +13,7 @@ public class UserApi
 {
     private const string GenericAuthFailureMessage = "The credentials were incorrect.";
     private const string GenericRecoveryResponse = "If an account exists for that email, a message has been sent.";
+    private const string GenericRegistrationResponse = "If registration can be completed, a confirmation email has been sent.";
 
     [ValourRoute(HttpVerbs.Get, "api/users/count")]
     public static async Task<IResult> GetCountRouteAsync(
@@ -109,7 +110,7 @@ public class UserApi
         UserService userService,
         ValourDb db)
     {
-        var confirmCode = await db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code);
+        var confirmCode = await userService.GetEmailConfirmCode(code);
         if (confirmCode is null)
             return ValourResult.NotFound("Invalid code.");
         
@@ -123,7 +124,7 @@ public class UserApi
         var query = "";
 
         var userInfo = await db.PrivateInfos.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
-        if (!string.IsNullOrWhiteSpace(userInfo.JoinInviteCode))
+        if (!string.IsNullOrWhiteSpace(userInfo?.JoinInviteCode))
         {
             query = $"?redirect=/i/{userInfo.JoinInviteCode}";
         }
@@ -347,12 +348,12 @@ public class UserApi
         var result = await registerService.RegisterUserAsync(request, ctx);
         if (!result.Success)
         {
-            if (result.Message == "EMAIL_NOT_VERIFIED")
-                return Results.Conflict("This email is registered but not yet verified.");
+            if (result.Message == RegisterService.EmailAlreadyRegisteredCode)
+                return ValourResult.Ok(GenericRegistrationResponse);
             return ValourResult.Problem(result.Message);
         }
 
-        return Results.Ok("Your confirmation email has been sent!");
+        return ValourResult.Ok(GenericRegistrationResponse);
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/resendemail")]

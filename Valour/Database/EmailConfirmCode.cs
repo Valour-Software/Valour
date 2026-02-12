@@ -32,5 +32,11 @@ public class EmailConfirmCode
     /// </summary>
     [Column("user_id")]
     public long UserId { get; set; }
+
+    [Column("created_at")]
+    public DateTime CreatedAt { get; set; }
+
+    [Column("expires_at")]
+    public DateTime ExpiresAt { get; set; }
 }
 
