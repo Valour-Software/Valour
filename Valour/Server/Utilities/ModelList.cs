@@ -412,10 +412,17 @@ public class SortedServerModelList<TModel, TId> : ServerModelList<TModel, TId>
 
                 if (oldPosition != newPosition)
                 {
-                    var cachedIndex = List.BinarySearch(cached, ISortable.Comparer);
-                    if (cachedIndex >= 0)
+                    // BinarySearch compares by sort position only, so when
+                    // multiple items share the same position it can return the
+                    // wrong item's index.  Use a reference-equality scan to
+                    // guarantee we remove the correct entry.
+                    for (int i = 0; i < List.Count; i++)
                     {
-                        List.RemoveAt(cachedIndex);
+                        if (ReferenceEquals(List[i], cached))
+                        {
+                            List.RemoveAt(i);
+                            break;
+                        }
                     }
 
                     model.CopyAllTo(cached);
