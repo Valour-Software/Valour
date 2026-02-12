@@ -156,7 +156,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
 
     protected override void OnUpdated(ModelUpdatedEvent<Channel> eventData)
     {
-        if (eventData.Changes.On(x => x.InheritsPerms))
+        if (eventData.Changes is not null && eventData.Changes.On(x => x.InheritsPerms))
         {
             Planet.QueueChannelAccessRefresh();
         }
@@ -655,19 +655,23 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return await Client.MessageService.SendMessage(msg);
     }
 
-    public async Task Open(string key)
+    public async Task<TaskResult> OpenWithResult(string key)
     {
         switch (ChannelType)
         {
             case ChannelTypeEnum.PlanetChat:
-                await Client.ChannelService.TryOpenPlanetChannelConnection(this, key);
-                break;
+                return await Client.ChannelService.TryOpenPlanetChannelConnection(this, key);
             case ChannelTypeEnum.DirectChat:
                 await UpdateUserState(DateTime.UtcNow); // Update the user state
-                break;
+                return TaskResult.SuccessResult;
             default:
-                break;
+                return TaskResult.SuccessResult;
         }
+    }
+
+    public async Task Open(string key)
+    {
+        _ = await OpenWithResult(key);
     }
 
     public async Task Close(string key)

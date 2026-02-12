@@ -60,9 +60,9 @@ public class HostedPlanetService
         // Repair any broken channel positions before loading into cache
         await RepairChannelPositionsAsync(planetId);
 
-        // Load data that should be cached
+        // Load data that should be cached (exclude soft-deleted channels)
         var channels = await _db.Channels
-            .Where(c => c.PlanetId == planetId)
+            .Where(c => c.PlanetId == planetId && !c.IsDeleted)
             .Select(c => c.ToModel())
             .ToListAsync();
         

@@ -109,7 +109,7 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     
     protected override void OnUpdated(ModelUpdatedEvent<PlanetMember> eventData)
     {
-        if (eventData.Changes.On(x => x.RoleMembership))
+        if (eventData.Changes is not null && eventData.Changes.On(x => x.RoleMembership))
         {
             // Clear cached roles
             _roles = null;

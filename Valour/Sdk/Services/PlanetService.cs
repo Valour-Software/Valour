@@ -295,44 +295,53 @@ public class PlanetService : ServiceBase
 
         sw.Start();
 
-        // Joins SignalR group
-        var result = await planet.ConnectToRealtime();
+        try
+        {
+            // Joins SignalR group
+            var result = await planet.ConnectToRealtime();
 
-        if (!result.Success)
+            if (!result.Success)
+            {
+                HandlePlanetConnectionFailure(result, planet, key);
+                return result;
+            }
+
+            Log(result.Message);
+
+            var initialDataResult = await planet.FetchInitialDataAsync();
+            if (!initialDataResult.Success)
+            {
+                HandlePlanetConnectionFailure(initialDataResult, planet, key);
+                return initialDataResult;
+            }
+
+            // Mark as opened only after successful setup
+            _connectedPlanets.Add(planet);
+            _connectedPlanetsLookup[planet.Id] = planet;
+
+            sw.Stop();
+
+            ConnectedPlanetsUpdated?.Invoke();
+
+            Log($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
+
+            // Log success
+            Log($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
+
+            PlanetConnected?.Invoke(planet);
+
+            return TaskResult.SuccessResult;
+        }
+        catch (Exception ex)
+        {
+            LogError($"Unexpected exception opening planet {planet.Id}: {ex.Message}");
+            HandlePlanetConnectionFailure(TaskResult.FromFailure("Unexpected exception opening planet connection."), planet, key);
+            return TaskResult.FromFailure("Unexpected exception opening planet connection.");
+        }
+        finally
         {
             _connectingPlanets.Remove(planet.Id);
-            HandlePlanetConnectionFailure(result, planet, key);
-            return result;
         }
-
-        Log(result.Message);
-
-        var initialDataResult = await planet.FetchInitialDataAsync();
-        if (!initialDataResult.Success)
-        {
-            _connectingPlanets.Remove(planet.Id);
-            HandlePlanetConnectionFailure(initialDataResult, planet, key);
-            return initialDataResult;
-        }
-
-        // Mark as opened only after successful setup
-        _connectedPlanets.Add(planet);
-        _connectedPlanetsLookup[planet.Id] = planet;
-
-        _connectingPlanets.Remove(planet.Id);
-
-        sw.Stop();
-
-        ConnectedPlanetsUpdated?.Invoke();
-
-        Log($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
-
-        // Log success
-        Log($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
-
-        PlanetConnected?.Invoke(planet);
-
-        return TaskResult.SuccessResult;
     }
 
     /// <summary>

@@ -378,7 +378,13 @@ public class PlanetPermissionService
                         walkChannel = parent;
                     }
 
-                    hostedPlanet.SetInheritanceTarget(channel.Id, walkChannel.Id);
+                    // Only cache the inheritance mapping if no topology change occurred
+                    // during this computation.  A racing HandleChannelTopologyChange clears
+                    // the inheritance cache; writing after that clear would poison it with
+                    // stale mappings that subsequent computations would trust.
+                    if (hostedPlanet.PermissionCache.Generation == generation)
+                        hostedPlanet.SetInheritanceTarget(channel.Id, walkChannel.Id);
+
                     effectiveChannel = walkChannel;
                 }
             }
@@ -466,6 +472,9 @@ public class PlanetPermissionService
         if (member.UserId == hosted.Planet.OwnerId)
             return Permission.FULL_CONTROL;
 
+        // Capture generation early so we can guard inheritance cache writes below.
+        var generation = hosted.PermissionCache.Generation;
+
         var initialChannelId = channel.Id;
         if (channel.InheritsPerms)
         {
@@ -490,8 +499,9 @@ public class PlanetPermissionService
                     channel = parent;
                 }
 
-                // Cache the inheritance target
-                hosted.SetInheritanceTarget(initialChannelId, channel.Id);
+                // Only cache if no topology change occurred; see GenerateChannelAccessAsync.
+                if (hosted.PermissionCache.Generation == generation)
+                    hosted.SetInheritanceTarget(initialChannelId, channel.Id);
             }
         }
 
@@ -523,8 +533,6 @@ public class PlanetPermissionService
 
         // Roles need to be ordered by position descending (weakest to strongest)
         roles.Sort(ISortable.ComparerDescending);
-
-        var generation = hosted.PermissionCache.Generation;
 
         var computedPerms =
             await GenerateChannelPermissionsAsync(member.RoleMembership, roles, channel, hosted, targetType, generation);

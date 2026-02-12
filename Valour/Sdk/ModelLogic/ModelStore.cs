@@ -397,6 +397,11 @@ public class SortedModelStore<TModel, TId> : ModelStore<TModel, TId>
         {
             case ModelUpdatedEvent<TModel> update:
                 updateEvent = update;
+                if (updateEvent.Changes is null && updateEvent.PositionChange is null)
+                {
+                    // Nothing actually changed - skip events entirely
+                    return baseResult;
+                }
                 if (updateEvent.PositionChange is null)
                 {
                     // No position change - just fire events and return

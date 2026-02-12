@@ -289,6 +289,14 @@ else
     
     public async Task SetupNewChannelAsync()
     {
+        if (Channel is null)
+        {
+            Client.Logger.Log<ChatWindowComponent>("Cannot set up chat window because channel data is null.", "red");
+            _loading = false;
+            ReRender();
+            return;
+        }
+
         if (!_loading)
         {
             _loading = true;
@@ -297,7 +305,12 @@ else
 
         try
         {
-            await Channel.Open(WindowChannelKey);
+            var openResult = await Channel.OpenWithResult(WindowChannelKey);
+            if (!openResult.Success)
+                throw new Exception($"Failed to open channel connection: {openResult.Message}");
+
+            if (Channel.Node is null)
+                throw new Exception("Channel node is unavailable after opening connection.");
 
             // Planet stuff
             if (Channel.PlanetId is not null)
@@ -322,18 +335,25 @@ else
         }
         catch (Exception e)
         {
-            Client.Logger.Log<ChatWindowComponent>($"Error setting up channel: {e.Message}", "red");
+            Client.Logger.Log<ChatWindowComponent>($"Error setting up channel: {e}", "red");
         }
 
         _loading = false;
 
-        await InputComponent.NotifyChannelLoadedAsync();
+        if (InputComponent is not null)
+            await InputComponent.NotifyChannelLoadedAsync();
 
         ReRender();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (Channel is null)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+            return;
+        }
+
         if (firstRender)
         {
             await SetupNewChannelAsync();
