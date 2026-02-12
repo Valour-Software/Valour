@@ -42,22 +42,70 @@ Valour Nodes are designed to be able to run independently of any central server 
 
 ## Contribute
 
-To contribute to Valour, getting a mock server environment set up is crucial. Here's a simple walkthough:
+To contribute to Valour, set up a local server + client environment first.
 
-1. Install .Net 9 at [https://dotnet.microsoft.com/en-us/download/dotnet/9.0](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-2. We suggest using Rider or Visual Studio, but any IDE supporting dotnet should work. Make sure it supports .Net 9
-3. Open the .sln file in the root project folder with your IDE. Open the terminal and run `dotnet workload restore`
-4. Now we can run Valour, but it will immediately crash because required services are missing.
-5. Install locally or deploy PostreSQL to a server [https://www.postgresql.org/](https://www.postgresql.org/)
-6. There are two database schemas in the project you should use on this postgres server. Both are named `definitions.sql` and when run will create all the necessary tables. One is located in `Valour.Database/Context` and the other is at `Valour.Server/Cdn/definitions.sql`. The first is critical to make Valour function, and the second is needed for uploading media.
-7. You will also need to deploy or run locally a redis instance [https://redis.com/](https://redis.com/)
-8. Edit appsettings.json to reflect your services and their locations.
-9. (OPTIONAL) For the media system to work, you will need an s3-compliant bucket. Cloudflare provides these for free with Cloudflare R2 with very generous limitations
-10. (OPTIONAL) You will need to verify emails manually in the database unless you create a sendgrid account [https://sendgrid.com/](https://sendgrid.com/) and use an API key
-11. (OPTIONAL) To make notifications work, you will need a valid vapid key and details.
-12. There is a `appsettings.helper.json` file to help you
-13. Also note that we release docker images for every merge, which you can find here on github. You will still need supporting services to run these images and valid appsettings. We run Valour on kubernetes ourselves.
-14. Important note: When developing locally, change the `BaseAddress` in `ValourClient.cs`, otherwise nothing will function. And to just test the client, point it to `https://app.valour.gg` and it will use the official Valour servers.
+### 1) Prerequisites
+
+1. Install .NET SDK 10 (the repo is pinned to `10.0.100` in `global.json`): [https://dotnet.microsoft.com/en-us/download/dotnet/10.0](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+2. Use any IDE/editor with modern .NET support (Rider, Visual Studio, VS Code, etc.)
+3. Install PostgreSQL: [https://www.postgresql.org/](https://www.postgresql.org/)
+4. Install Redis: [https://redis.com/](https://redis.com/)
+
+### 2) Restore dependencies
+
+From the repo root:
+
+```bash
+dotnet workload restore
+dotnet restore
+```
+
+### 3) Configure local settings
+
+1. Create `Valour/Server/appsettings.json` (the file is gitignored).
+2. You can start from `Config/appsettings.helper.json`.
+3. Fill in at least these required sections for local startup:
+   - `Database` (`Host`, `Database`, `Username`, `Password`)
+   - `Redis` (`ConnectionString`)
+   - `Node` (`Key`, `Name`, `Location`)
+4. Optional integrations:
+   - `CDN` for uploads / media storage (S3-compatible)
+   - `Email` for real email delivery
+   - `Notifications` for push notifications
+   - `Cloudflare` for Cloudflare-backed features
+
+### 4) Database setup
+
+Valour now applies EF Core migrations automatically on server startup (`db.Database.Migrate()`), so manual `definitions.sql` execution is no longer the primary setup path.
+
+### 5) Run locally
+
+Run the server project (it serves API + SignalR + client assets):
+
+```bash
+cd Valour/Server
+dotnet run
+```
+
+Default local URLs:
+
+- `https://localhost:5001`
+- `http://localhost:5000`
+
+### 6) Build and test
+
+From the repo root:
+
+```bash
+dotnet build
+dotnet test
+```
+
+### Notes
+
+- The active web app flow is centered on `Valour.Client.Blazor` + server-hosted assets.
+- You generally should not need to manually edit `ValourClient.cs` `BaseAddress` for normal local development.
+- Docker images are published by CI, but still require valid appsettings and backing services (Postgres/Redis/etc.).
 
 ## Trademark Notice
 

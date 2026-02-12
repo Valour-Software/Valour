@@ -381,7 +381,14 @@ public class Node : ServiceBase // each node acts like a service
         catch (Exception ex)
         {
             LogError("Ping failed.", ex);
-            await ForceReconnectAfterHeartbeatFailure();
+            if (ShouldForceReconnectForHeartbeatException(ex))
+            {
+                await ForceReconnectAfterHeartbeatFailure();
+            }
+            else
+            {
+                LogWarning("Ping invocation failed due to server-side hub error; skipping forced reconnect.");
+            }
         }
     }
 
@@ -619,6 +626,12 @@ public class Node : ServiceBase // each node acts like a service
         }
         catch (Exception ex)
         {
+            if (!ShouldForceReconnectForHeartbeatException(ex))
+            {
+                LogWarning("SignalR heartbeat ping failed with a non-transport server error; keeping the current connection.");
+                return;
+            }
+
             LogError("SignalR heartbeat failed. Forcing reconnect...", ex);
 
             try
@@ -632,6 +645,37 @@ public class Node : ServiceBase // each node acts like a service
 
             _ = Reconnect();
         }
+    }
+
+    private static bool ShouldForceReconnectForHeartbeatException(Exception ex)
+    {
+        // Heartbeat checks should only force reconnect for transport-level failures.
+        // Server-side invocation errors can be transient business-logic issues and
+        // reconnecting repeatedly causes message loss windows.
+        if (IsPingInvocationFailure(ex))
+            return false;
+
+        if (ex is TimeoutException || ex is TaskCanceledException || ex is OperationCanceledException)
+            return false;
+
+        return true;
+    }
+
+    private static bool IsPingInvocationFailure(Exception ex)
+    {
+        var current = ex;
+        while (current is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(current.Message) &&
+                current.Message.Contains("Failed to invoke 'Ping'", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            current = current.InnerException;
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -24,6 +24,7 @@ public class CoreHub : Hub
     private readonly TokenService _tokenService;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
+    private readonly ILogger<CoreHub> _logger;
 
     public CoreHub(
         ValourDb db, 
@@ -33,7 +34,8 @@ public class CoreHub : Hub
         UnreadService unreadService,
         TokenService tokenService,
         IConnectionMultiplexer redis, 
-        SignalRConnectionService connectionTracker)
+        SignalRConnectionService connectionTracker,
+        ILogger<CoreHub> logger)
     {
         _db = db;
         _hubService = hubService;
@@ -43,6 +45,7 @@ public class CoreHub : Hub
         _memberService = memberService;
         _unreadService = unreadService;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -194,18 +197,30 @@ public class CoreHub : Hub
     public async Task LeaveInteractionGroup(long planetId) =>
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
 
-    public async Task<string> Ping(bool userState = false)
+    public Task<string> Ping(bool userState = false)
     {
         if (userState)
         {
             var authToken = _connectionTracker.GetToken(Context.ConnectionId);
-            if (authToken is null)
-                return "pong: not authenticated";
-            
-            await _onlineService.UpdateOnlineState(authToken.UserId);
+            if (authToken is not null)
+            {
+                _ = UpdateOnlineStateSafeAsync(authToken.UserId);
+            }
         }
-        
-        return "pong";
+
+        return Task.FromResult("pong");
+    }
+
+    private async Task UpdateOnlineStateSafeAsync(long userId)
+    {
+        try
+        {
+            await _onlineService.UpdateOnlineState(userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to update online state from Ping for user {UserId}", userId);
+        }
     }
 }
 
