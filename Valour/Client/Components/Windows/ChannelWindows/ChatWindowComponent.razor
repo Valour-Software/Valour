@@ -605,14 +605,14 @@ else
 
         if (render)
         {
-            ReRender();
+            await ReRender();
         }
-        
+
         if (scroll)
         {
             await ScrollToBottom();
         }
-        
+
         InputComponent.Refresh();
     }
 
@@ -644,7 +644,7 @@ else
         // Flag for UI refresh
         if (render)
         {
-            ReRender();
+            await ReRender();
         }
 
         await ScrollToBottom();

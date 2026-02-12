@@ -1,0 +1,77 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<div id="@_id" class="@CssClass" style="@(_shown ? "" : "display: none")">
+</div>
+
+@code {
+
+    private string _id = "emoji-mart-wrapper" + Guid.NewGuid().ToString();
+
+    [Parameter]
+    public string CssClass { get; set; }
+
+    [Parameter]
+    public bool StartShown { get; set; } = false;
+
+    [Parameter]
+    public string EmojiSet { get; set; } = "native";
+
+    [Parameter]
+    public Func<EmojiClickEvent, Task> OnEmojiClick { get; set; }
+
+    [Parameter]
+    public Func<OutsidePickerClickEvent, Task> OnClickOutside { get; set; }
+
+    private IJSObjectReference _module;
+    private DotNetObjectReference<EmojiMart> _dotNetReference;
+
+    private bool _shown;
+
+    protected override void OnInitialized()
+    {
+        _shown = StartShown;
+        StateHasChanged();
+    }
+
+    public void ToggleVisible()
+    {
+        _shown = !_shown;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetReference = DotNetObjectReference.Create(this);
+            _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/EmojiMart/EmojiMart.razor.js");
+            await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            await _module.DisposeAsync();
+        }
+    }
+
+    [JSInvokable]
+    public async Task EmojiClick(EmojiClickEvent e)
+    {
+        if (OnEmojiClick is not null)
+            await OnEmojiClick.Invoke(e);
+    }
+
+    [JSInvokable]
+    public async Task ClickOutside(OutsidePickerClickEvent e)
+    {
+        if (!_shown)
+            return;
+
+        if (OnClickOutside is not null)
+            await OnClickOutside.Invoke(e);
+    }
+}
