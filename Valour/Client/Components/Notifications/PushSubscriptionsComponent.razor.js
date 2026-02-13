@@ -1,16 +1,5 @@
 const publicKey = 'BBySvfFjJ4IihseXSujDGj4MsAd3ZAwDwy1Q2XxnMY6V3rCXjuqwm3utGvACAyjl0zEhj4Rk4Eoumy-znN_Y2VQ';
-const isSupported = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
 export function init() {
-    if (!isSupported) {
-        return {
-            notificationsEnabled: () => false,
-            getPermissionState: () => 'denied',
-            askForPermission: () => 'denied',
-            requestSubscription: () => ({ success: false, error: 'Push notifications are not supported in this environment' }),
-            getSubscription: () => ({ success: false, error: 'Push notifications are not supported in this environment' }),
-            unsubscribe: () => {}
-        };
-    }
     return {
         notificationsEnabled: async () => {
             const registration = await navigator.serviceWorker.ready;

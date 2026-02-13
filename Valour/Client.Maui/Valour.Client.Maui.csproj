@@ -50,14 +50,15 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+        <Version>0.3.70.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#0c06fd"/>
+        <!-- App Icon (square logo scaled to fit adaptive icon safe zone) -->
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#040d14" ForegroundScale="0.7"/>
 
-        <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#1a0a2e" BaseSize="256,256"/>
+        <!-- Splash Screen (round logo on dark background) -->
+        <MauiSplashScreen Include="Resources\Splash\splash.png" Color="#040d14" BaseSize="256,256"/>
 
         <!-- Images -->
         <MauiImage Include="Resources\Images\*"/>
