@@ -62,8 +62,8 @@ public class MauiPushNotificationService : IPushNotificationService
             {
                 UserId = _client.Me.Id,
                 Endpoint = token,
-                Key = null,
-                Auth = null,
+                Key = "",
+                Auth = "",
                 DeviceType = NotificationDeviceType.AndroidFcm,
             };
 
@@ -111,8 +111,8 @@ public class MauiPushNotificationService : IPushNotificationService
                 {
                     UserId = _client.Me.Id,
                     Endpoint = token,
-                    Key = null,
-                    Auth = null,
+                    Key = "",
+                    Auth = "",
                     DeviceType = NotificationDeviceType.AndroidFcm,
                 };
 
