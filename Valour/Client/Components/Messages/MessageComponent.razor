@@ -714,7 +714,7 @@ else
         if (_user != null)
             _user.Updated += OnUserUpdated;
         
-        if (!_isInnerReply && !_ghost)
+        if (!_isInnerReply && !_ghost && _chat is not null)
         {
             _chat.AddRenderedMessage(this);
         }
@@ -738,6 +738,7 @@ else
 
         _message.ReactionAdded += OnReactionAdded;
         _message.ReactionRemoved += OnReactionRemoved;
+
     }
     
     /// <summary>

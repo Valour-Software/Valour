@@ -430,9 +430,12 @@ else
             UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
 
             await AddMessage(message);
-            InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());
-            InputComponent.PreviewMessageComponent.CheckMinimal();
-            await InputComponent.PreviewMessageComponent.ReRender();
+            if (InputComponent?.PreviewMessageComponent is not null)
+            {
+                InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());
+                InputComponent.PreviewMessageComponent.CheckMinimal();
+                await InputComponent.PreviewMessageComponent.ReRender();
+            }
         });
     }
     
