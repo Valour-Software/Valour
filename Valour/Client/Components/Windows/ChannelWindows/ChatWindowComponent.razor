@@ -378,9 +378,9 @@ else
         await InputComponent.OnStopEdit(cancel);
     }
     
-    public void OnChatChannelUpdate(ModelUpdatedEvent<Channel> eventData)
+    public async Task OnChatChannelUpdate(ModelUpdatedEvent<Channel> eventData)
     {
-        ReRender();
+        await ReRender();
     }
 
     public virtual async Task OnReceiveMessage(Message message)
@@ -388,14 +388,17 @@ else
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
             return;
-        
-        // TODO: Eventually move to message render with a specific time of message sent
-        UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
-        
-        await AddMessage(message);
-        InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());
-        InputComponent.PreviewMessageComponent.CheckMinimal();
-        InputComponent.PreviewMessageComponent.ReRender();
+
+        await InvokeAsync(async () =>
+        {
+            // TODO: Eventually move to message render with a specific time of message sent
+            UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
+
+            await AddMessage(message);
+            InputComponent.PreviewMessageComponent.SetLast(GetLastMessage());
+            InputComponent.PreviewMessageComponent.CheckMinimal();
+            await InputComponent.PreviewMessageComponent.ReRender();
+        });
     }
     
     public virtual async Task OnReceiveMessageEdit(Message message)
@@ -404,25 +407,28 @@ else
         if (message.ChannelId != Channel.Id)
             return;
 
-        foreach (var messageComponent in RenderedMessages)
+        await InvokeAsync(async () =>
         {
-            if (messageComponent.ParamData.Message.Id == message.Id)
+            foreach (var messageComponent in RenderedMessages)
             {
-                var msg = messageComponent.ParamData.Message;
-                
-                msg.EditedTime = DateTime.UtcNow;
-                msg.Content = message.Content;
-                msg.AttachmentsData = message.AttachmentsData;
-                msg.MentionsData = message.MentionsData;
-
-                if (messageComponent.Edit)
+                if (messageComponent.ParamData.Message.Id == message.Id)
                 {
-                    await messageComponent.CloseEditMode();
+                    var msg = messageComponent.ParamData.Message;
+
+                    msg.EditedTime = DateTime.UtcNow;
+                    msg.Content = message.Content;
+                    msg.AttachmentsData = message.AttachmentsData;
+                    msg.MentionsData = message.MentionsData;
+
+                    if (messageComponent.Edit)
+                    {
+                        await messageComponent.CloseEditMode();
+                    }
+
+                    messageComponent.BuildMessage(true);
                 }
-                
-                messageComponent.BuildMessage(true);
             }
-        }
+        });
     }
 
     public async Task OnClickWindow()
@@ -628,10 +634,12 @@ else
 
     public async Task AddMessage(Message message, bool render = true)
     {
-        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
-
         //Get current window scroll pos
         var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
+
+        // Remove ghost and add real message atomically (no yield between)
+        // to avoid a flash where neither is rendered.
+        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
 
         // check if there's too many messages
         if (atBottom && DisplayedMessages.Count > 120)
@@ -687,27 +695,30 @@ else
     
     // Events
     
-    public void OnDeleteMessage(Message message)
+    public async Task OnDeleteMessage(Message message)
     {
-        DisplayedMessages.RemoveAll(x => x.Id == message.Id);
-        QueuedMessages.RemoveAll(x => x.Id == message.Id);
+        await InvokeAsync(async () =>
+        {
+            DisplayedMessages.RemoveAll(x => x.Id == message.Id);
+            QueuedMessages.RemoveAll(x => x.Id == message.Id);
 
-        var nextMessage = RenderedMessages.FirstOrDefault(x => x.ParamData.Message.Id > message.Id);
-        if (nextMessage != null){
-            var lastMessage = RenderedMessages
-                .OrderByDescending(x => x.ParamData.Message.Id)
-                .FirstOrDefault(x => x.ParamData.Message.Id < message.Id);
-            
-            if (lastMessage is not null)
-                nextMessage.SetLast(lastMessage.ParamData.Message);
-            
-            nextMessage.RefreshMessage();
-            nextMessage.ReRender();
-        }
+            var nextMessage = RenderedMessages.FirstOrDefault(x => x.ParamData.Message.Id > message.Id);
+            if (nextMessage != null){
+                var lastMessage = RenderedMessages
+                    .OrderByDescending(x => x.ParamData.Message.Id)
+                    .FirstOrDefault(x => x.ParamData.Message.Id < message.Id);
 
-        ReRender();
+                if (lastMessage is not null)
+                    nextMessage.SetLast(lastMessage.ParamData.Message);
+
+                nextMessage.RefreshMessage();
+                await nextMessage.ReRender();
+            }
+
+            await ReRender();
+        });
     }
-    
+
     /////////////////////
     // JS Interop Zone //
     /////////////////////
@@ -844,20 +855,23 @@ else
     
     public async Task OnNodeReconnect(Node node)
     {
-        if (Channel.PlanetId is null)
+        await InvokeAsync(async () =>
         {
-            if (node.Name == Client.PrimaryNode.Name)
+            if (Channel.PlanetId is null)
             {
-                await RecoverMissedMessages();
+                if (node.Name == Client.PrimaryNode.Name)
+                {
+                    await RecoverMissedMessages();
+                }
             }
-        }
-        else
-        {
-            if (node.Name == Channel.Planet.NodeName)
+            else
             {
-                await RecoverMissedMessages();
+                if (node.Name == Channel.Planet.NodeName)
+                {
+                    await RecoverMissedMessages();
+                }
             }
-        }
+        });
     }
 
     private DateTime _lastRecoverAttempt = DateTime.MinValue;
@@ -865,25 +879,28 @@ else
 
     private async Task OnBrowserFocused()
     {
-        if (Channel?.PlanetId is not null && Channel.ChannelType == ChannelTypeEnum.PlanetChat)
+        await InvokeAsync(async () =>
         {
-            try
+            if (Channel?.PlanetId is not null && Channel.ChannelType == ChannelTypeEnum.PlanetChat)
             {
-                var joinResult = await Channel.ConnectToRealtime();
-                if (!joinResult.Success)
+                try
+                {
+                    var joinResult = await Channel.ConnectToRealtime();
+                    if (!joinResult.Success)
+                    {
+                        Client.Logger.Log<ChatWindowComponent>(
+                            $"Channel rejoin check failed for {Channel.Id}: {joinResult.Message}", "yellow");
+                    }
+                }
+                catch (Exception e)
                 {
                     Client.Logger.Log<ChatWindowComponent>(
-                        $"Channel rejoin check failed for {Channel.Id}: {joinResult.Message}", "yellow");
+                        $"Channel rejoin check threw for {Channel?.Id}: {e.Message}", "yellow");
                 }
             }
-            catch (Exception e)
-            {
-                Client.Logger.Log<ChatWindowComponent>(
-                    $"Channel rejoin check threw for {Channel?.Id}: {e.Message}", "yellow");
-            }
-        }
 
-        await RecoverMissedMessages();
+            await RecoverMissedMessages();
+        });
     }
 
     private async Task RecoverMissedMessages()
@@ -921,7 +938,7 @@ else
             var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
             await AddMessages(toAdd, render: false, scroll: false);
 
-            ReRender();
+            await ReRender();
 
             if (atBottom)
                 await ScrollToBottom();

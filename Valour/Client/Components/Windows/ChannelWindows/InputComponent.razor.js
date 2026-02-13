@@ -169,11 +169,11 @@ export function init(dotnet, inputEl) {
             ctx.inputEl.innerText = content;
         },
         submitMessage: async (keepOpen = false) => {
-            if (keepOpen)
-                ctx.focus();
             ctx.inputEl.innerHTML = '';
             await ctx.dotnet.invokeMethodAsync('OnChatboxSubmit');
             await ctx.dotnet.invokeMethodAsync('OnCaretUpdate', '');
+            if (keepOpen)
+                ctx.focus();
         },
         moveCursorToEnd() {
             this.focus();

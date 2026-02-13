@@ -81,7 +81,8 @@
         </button>
         
         @if (DeviceInfo.IsMobile && CanUserPost){
-            <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
+            <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true"
+                 onmousedown="event.preventDefault()">
                 <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
             </div>
         }
