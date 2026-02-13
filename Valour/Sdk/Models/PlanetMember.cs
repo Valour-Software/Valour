@@ -41,17 +41,8 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     public User User { get; set; }
     public ISharedUser GetSharedUser() => User;
     
-    private ImmutableList<PlanetRole>? _roles = null;
-    
     [JsonIgnore]
-    public ImmutableList<PlanetRole> Roles
-    {
-        get
-        {
-            _roles ??= Planet.GetRolesFromMembership(RoleMembership);
-            return _roles;
-        }
-    }
+    public ImmutableList<PlanetRole> Roles => Planet.GetRolesFromMembership(RoleMembership);
     
     // User related properties //
     
@@ -107,15 +98,6 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     private PlanetMember() : base() {}
     public PlanetMember(ValourClient client) : base(client) { }
     
-    protected override void OnUpdated(ModelUpdatedEvent<PlanetMember> eventData)
-    {
-        if (eventData.Changes is not null && eventData.Changes.On(x => x.RoleMembership))
-        {
-            // Clear cached roles
-            _roles = null;
-        }
-    }
-
     protected override void OnDeleted()
     {
     }
