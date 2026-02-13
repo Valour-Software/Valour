@@ -18,10 +18,10 @@ RUN apt-get install libatomic1
 COPY . .
 
 # Restore workloads
-RUN dotnet workload restore
+RUN dotnet workload restore Valour/Valour.sln
 
 # Restore the app's dependencies
-RUN dotnet restore
+RUN dotnet restore Valour/Valour.sln
 
 # Remove .js files that have corresponding .ts files
 # RUN find . -name "*.ts" | while read tsfile; do \
@@ -33,7 +33,7 @@ RUN dotnet restore
 #    done
 
 # Build the app
-RUN dotnet publish -c Release -o out
+RUN dotnet publish Valour/Server/Valour.Server.csproj -c Release -o out
 
 # Start with a smaller runtime image for the final image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
