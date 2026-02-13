@@ -362,7 +362,7 @@
 
     private void OnRolesChanged(IModelEvent<PlanetRole> eventData)
     {
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnClickEdit(PlanetRole editRole)

@@ -94,7 +94,7 @@
 
     public void OnPlanetInvitesChange(IModelEvent<PlanetInvite> eventData)
     {
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     public async Task OnCheckPublic()

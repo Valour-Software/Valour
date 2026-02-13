@@ -104,27 +104,29 @@
         _ = Task.Run(async () =>
         {
             await Task.Delay(500);
-        
-            await toast.Card.ShrinkAndRemove();
-        
-            StateHasChanged();
+
+            await InvokeAsync(async () =>
+            {
+                await toast.Card.ShrinkAndRemove();
+                StateHasChanged();
+            });
         });
-        
+
         return toast.ProgressTask.Result;
     }
-    
+
     public async Task<TaskResult> WaitToastWithTaskResult(ProgressToastData<TaskResult> toast)
     {
         AddToast(toast);
 
         try {
-            var result = await Task.Run(async () => await toast.ProgressTask);
+            var result = await toast.ProgressTask;
 
             if (toast.Card is null)
             {
                 RemoveToast(toast);
             }
-            
+
             toast.Message = result.Message;
 
             if (result.Success)
@@ -133,7 +135,7 @@
                 {
                     toast.Message = toast.SuccessMessage;
                 }
-                
+
                 toast.Card.SetProgressState(ToastProgressState.Success);
             }
             else
@@ -142,7 +144,7 @@
                 {
                     toast.Message = toast.FailureMessage;
                 }
-                
+
                 toast.Card.SetProgressState(ToastProgressState.Failure);
             }
         }
@@ -152,17 +154,19 @@
             toast.Card.SetProgressState(ToastProgressState.Failure);
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
-        
+
         // Fire this off async so it doesn't block task completion
         _ = Task.Run(async () =>
         {
             await Task.Delay(500);
-        
-            await toast.Card.ShrinkAndRemove();
-        
-            StateHasChanged();
+
+            await InvokeAsync(async () =>
+            {
+                await toast.Card.ShrinkAndRemove();
+                StateHasChanged();
+            });
         });
-        
+
         return toast.ProgressTask.Result;
     }
 

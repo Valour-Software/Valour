@@ -24,8 +24,8 @@
         public Action OnCancel { get; init; }
     }
 
-    private IJSInProcessObjectReference _jsModule;
-    private IJSInProcessObjectReference _jsService;
+    private IJSObjectReference _jsModule;
+    private IJSObjectReference _jsService;
     
     private string _imgId = $"cropper-{Guid.NewGuid():N}";
     private bool _initialized;
@@ -34,8 +34,8 @@
     {
         if (!_initialized)
         {
-            _jsModule ??= await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/ImageCropperModal.razor.js");
-            _jsService ??= await _jsModule.InvokeAsync<IJSInProcessObjectReference>("initCropper", _imgId, Data.AspectRatio);
+            _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/ImageCropperModal.razor.js");
+            _jsService ??= await _jsModule.InvokeAsync<IJSObjectReference>("initCropper", _imgId, Data.AspectRatio);
             _initialized = true;
         }
     }

@@ -231,70 +231,76 @@
 
     private void OnUserUpdate(ModelUpdatedEvent<User> eventData)
     {
-        var render = false;
-        
-        if (eventData.Changes.On(x => x.HasAnimatedAvatar) ||
-            eventData.Changes.On(x => x.Version))
+        InvokeAsync(() =>
         {
-            render = true;
-            CalculateAvatar();
-        }
-        if (eventData.Changes.On(x => x.Name))
-        {
-            render = true;
-            CalculateName();
-        }
-        if (eventData.Changes.On(x => x.Tag))
-        {
-            render = true;
-            CalculateTag();
-        }
-        if (eventData.Changes.On(x => x.Status))
-        {
-            render = true;
-            CalculateStatus();
-        }
-        if (eventData.Changes.On(x => x.UserStateCode))
-        {
-            render = true;
-            CalculateStatusCode();
-        }
-        
-        if (render)
-        {
-            StateHasChanged();
-        }
-    }
- 
-    private void OnMemberUpdate(ModelUpdatedEvent<PlanetMember> eventData)
-    {
-        var render = false;
+            var render = false;
 
-        if (eventData.Changes.On(x => x.MemberAvatar))
-        {
-            render = true;
-            CalculateAvatar();
-        }
-        
-        if (eventData.Changes.On(x => x.Nickname))
-        {
-            render = true;
-            CalculateName();
-        }
-
-        if (eventData.Changes.On(x => x.RoleMembership))
-        {
-            // We can skip for update because it's the same role
-            if (DetermineColorChange())
+            if (eventData.Changes.On(x => x.HasAnimatedAvatar) ||
+                eventData.Changes.On(x => x.Version))
             {
                 render = true;
+                CalculateAvatar();
             }
-        }
-        
-        if (render)
+            if (eventData.Changes.On(x => x.Name))
+            {
+                render = true;
+                CalculateName();
+            }
+            if (eventData.Changes.On(x => x.Tag))
+            {
+                render = true;
+                CalculateTag();
+            }
+            if (eventData.Changes.On(x => x.Status))
+            {
+                render = true;
+                CalculateStatus();
+            }
+            if (eventData.Changes.On(x => x.UserStateCode))
+            {
+                render = true;
+                CalculateStatusCode();
+            }
+
+            if (render)
+            {
+                StateHasChanged();
+            }
+        });
+    }
+
+    private void OnMemberUpdate(ModelUpdatedEvent<PlanetMember> eventData)
+    {
+        InvokeAsync(() =>
         {
-            StateHasChanged();
-        }
+            var render = false;
+
+            if (eventData.Changes.On(x => x.MemberAvatar))
+            {
+                render = true;
+                CalculateAvatar();
+            }
+
+            if (eventData.Changes.On(x => x.Nickname))
+            {
+                render = true;
+                CalculateName();
+            }
+
+            if (eventData.Changes.On(x => x.RoleMembership))
+            {
+                // We can skip for update because it's the same role
+                if (DetermineColorChange())
+                {
+                    render = true;
+                }
+            }
+
+            if (render)
+            {
+                StateHasChanged();
+            }
+        });
     }
     
     private async Task ShowProfileAsync(MouseEventArgs e = null)

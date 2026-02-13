@@ -1,5 +1,5 @@
 @inject IJSRuntime JsRuntime
-@inject ILocalStorageService LocalStorage
+@inject IAppStorage LocalStorage
 @implements IAsyncDisposable
 
 <div class="sidebar-container @ActiveClass @FlipClass">
@@ -58,9 +58,9 @@
 	/// <summary>
 	/// Module for calling Javascript functions
 	/// </summary>
-	private IJSInProcessObjectReference _jsModule;
+	private IJSObjectReference _jsModule;
 
-	private IJSInProcessObjectReference _jsRef;
+	private IJSObjectReference _jsRef;
 	
 	
 	private const int ChannelsTabIndex = 2;
@@ -69,9 +69,9 @@
 	{
 		_mainSidebar = this;
 
-		if (await LocalStorage.ContainKeyAsync("sidebar"))
+		if (await LocalStorage.ContainsKeyAsync("sidebar"))
 		{
-			var name = await LocalStorage.GetItemAsStringAsync("sidebar");
+			var name = await LocalStorage.GetStringAsync("sidebar");
 			SelectedTab = _tabItems.FindIndex(x => x.Name == name);
 			if (SelectedTab == -1)
 				SelectedTab = 0;
@@ -87,16 +87,19 @@
 
 	private void OnFocusedTabChanged(WindowTab tab)
 	{
-		if (tab?.Content?.PlanetId is not null && SelectedTab != ChannelsTabIndex)
+		InvokeAsync(() =>
 		{
-			SelectedTab = ChannelsTabIndex;
-			StateHasChanged();
-		}
+			if (tab?.Content?.PlanetId is not null && SelectedTab != ChannelsTabIndex)
+			{
+				SelectedTab = ChannelsTabIndex;
+				StateHasChanged();
+			}
+		});
 	}
 
 	public async Task OnSelected(int index, TabStripItem tab)
 	{
-		await LocalStorage.SetItemAsStringAsync("sidebar", tab.Name);
+		await LocalStorage.SetStringAsync("sidebar", tab.Name);
 		SelectedTab = index;
 		StateHasChanged();
 	}
@@ -119,8 +122,8 @@
 		if (firstRender)
 		{
 			_thisRef = DotNetObjectReference.Create(this);
-			_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
-			_jsRef = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, _id);
+			_jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
+			_jsRef = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, _id);
 		}
 	}
 

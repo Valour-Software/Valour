@@ -23,7 +23,7 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
     
     private string _id = Guid.NewGuid().ToString();
 
@@ -31,7 +31,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/SmoothDraggable.razor.js?version=$(SHORTHASH)");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/SmoothDraggable.razor.js?version=$(SHORTHASH)");
             await _jsModule.InvokeVoidAsync("initialize", _id, StartX, StartY, FromRight);
         }
     }

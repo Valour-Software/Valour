@@ -1,5 +1,6 @@
 # Settings
 */appsettings.json
+*/google-services.json
 
 # DB Credentials
 *Config.json
@@ -404,3 +405,9 @@ dotnet-install.sh
 
 /Valour/Server/appsettings.json
 /Valour/Config/appsettings.helper.json
+
+# Build-generated CSS bundle
+**/wwwroot/css/bundled.css
+
+# Firebase credentials
+google-services.json

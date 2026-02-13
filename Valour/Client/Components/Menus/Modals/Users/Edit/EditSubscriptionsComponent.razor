@@ -214,7 +214,7 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
     
     private DotNetObjectReference<EditSubscriptionsComponent> _dotNetRef;
 
@@ -255,7 +255,7 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Modals/Users/Edit/EditSubscriptionsComponent.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Menus/Modals/Users/Edit/EditSubscriptionsComponent.razor.js");
             await _jsModule.InvokeVoidAsync("setupPaypal", _dotNetRef, Client.BaseAddress, _paypalElementId, Client.AuthService.Token, Client.PrimaryNode.Name);
         }
 

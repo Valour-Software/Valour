@@ -31,8 +31,11 @@
 
     private void OnFriendsListUpdate(FriendEventData e)
     {
-        CalculateFriends();
-        StateHasChanged();
+        InvokeAsync(() =>
+        {
+            CalculateFriends();
+            StateHasChanged();
+        });
     }
 
     private void CalculateFriends()

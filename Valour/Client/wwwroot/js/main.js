@@ -35,16 +35,18 @@ function IsEmbedded() {
 // Web lock
 // The idea here is to *force* the tab to stay active
 
-// Capture promise control functions:
-let resolve, reject;
-const p = new Promise((res, rej) => { resolve = res; reject = rej; });
+if (navigator.locks && navigator.locks.request) {
+    // Capture promise control functions:
+    let resolve, reject;
+    const p = new Promise((res, rej) => { resolve = res; reject = rej; });
 
-// Request the lock:
-navigator.locks.request('valour_lock', lock => {
-    // Lock is acquired.
-    return p;
-    // Now lock will be held until either resolve() or reject() is called.
-});
+    // Request the lock:
+    navigator.locks.request('valour_lock', lock => {
+        // Lock is acquired.
+        return p;
+        // Now lock will be held until either resolve() or reject() is called.
+    });
+}
 
 function SetDate() {
     if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
@@ -56,7 +58,9 @@ function SetDate() {
 
 window.blazorFuncs = {
     registerClient: function (caller) {
-        window['updateAvailable']
+        const updateAvailablePromise = window['updateAvailable'] || Promise.resolve(false);
+
+        updateAvailablePromise
             .then(isAvailable => {
                 if (isAvailable) {
                     DotNet.invokeMethodAsync("Valour.Client", "OnServiceUpdateAvailable").then(r => console.log(r));
@@ -64,6 +68,9 @@ window.blazorFuncs = {
                 else {
                     DotNet.invokeMethodAsync("Valour.Client", "OnServiceUpdateUnavailable").then(r => console.log(r));
                 }
+            })
+            .catch(error => {
+                console.log('Update availability check skipped:', error);
             });
     }
 };

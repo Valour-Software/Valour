@@ -69,25 +69,28 @@
     /// Updates when SignalR sends a channel watching update
     /// This is virtual to allow specific channels to change how it works
     /// </summary>
-    public virtual async Task OnWatchingUpdate(ChannelWatchingUpdate update)
+    public virtual Task OnWatchingUpdate(ChannelWatchingUpdate update)
     {
         if (update.ChannelId != Channel.Id)
-            return;
+            return Task.CompletedTask;
 
-        DisplayData.Clear();
-
-        // Take first ten
-        foreach (var userId in update.UserIds.Take(10))
+        return InvokeAsync(async () =>
         {
-            var user = await UserService.FetchUserAsync(userId);
-            if (user is not null)
+            DisplayData.Clear();
+
+            // Take first ten
+            foreach (var userId in update.UserIds.Take(10))
             {
-                DisplayData.Add(user);
+                var user = await UserService.FetchUserAsync(userId);
+                if (user is not null)
+                {
+                    DisplayData.Add(user);
+                }
             }
-        }
 
-        TotalCount = update.UserIds.Count();
+            TotalCount = update.UserIds.Count();
 
-        StateHasChanged();
+            StateHasChanged();
+        });
     }
 }

@@ -1,5 +1,5 @@
 ﻿@using ExCSS
-@inject ILocalStorageService LocalStorage
+@inject IAppStorage LocalStorage
 
 <div id="theme">
     <style>
@@ -51,15 +51,15 @@
     public async Task InstallTheme(Theme theme)
     {
         CurrentTheme = theme;
-        await LocalStorage.SetItemAsStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
+        await LocalStorage.SetStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
         StateHasChanged();
         OnThemeChanged?.Invoke();
     }
     public async Task UninstallThemeAsync()
     {
         CurrentTheme = Theme.Default;
-        if (await LocalStorage.ContainKeyAsync("ACTIVE_THEME"))
-            await LocalStorage.RemoveItemAsync("ACTIVE_THEME");
+        if (await LocalStorage.ContainsKeyAsync("ACTIVE_THEME"))
+            await LocalStorage.RemoveAsync("ACTIVE_THEME");
         StateHasChanged();
         OnThemeChanged?.Invoke();
     }
@@ -123,9 +123,9 @@
         Instance = this;
         
         // Load from local storage
-        if (await LocalStorage.ContainKeyAsync("ACTIVE_THEME"))
+        if (await LocalStorage.ContainsKeyAsync("ACTIVE_THEME"))
         {
-            CurrentTheme = JsonSerializer.Deserialize<Theme>(await LocalStorage.GetItemAsStringAsync("ACTIVE_THEME"));
+            CurrentTheme = JsonSerializer.Deserialize<Theme>(await LocalStorage.GetStringAsync("ACTIVE_THEME"));
             StateHasChanged();
         }
     }

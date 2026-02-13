@@ -16,9 +16,9 @@ public abstract class ControlledRenderComponentBase : ComponentBase
         _canRender = false;
     }
     
-    public void ReRender()
+    public async Task ReRender()
     {
         _canRender = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 }

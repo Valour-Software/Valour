@@ -5,7 +5,7 @@
     
     public static TutorialComponent Instance { get; private set; }
     
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
 
     protected override void OnInitialized()
     {
@@ -16,7 +16,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/ts/tutorial.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/tutorial.js");
             await ShowStartTutorial();
         }
     }

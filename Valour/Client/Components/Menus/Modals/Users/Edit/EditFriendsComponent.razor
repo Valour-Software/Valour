@@ -79,8 +79,7 @@
 
     private Task FriendEventHandler(FriendEventData eventData)
     {
-        StateHasChanged();
-        return Task.CompletedTask;
+        return InvokeAsync(StateHasChanged);
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)

@@ -38,11 +38,11 @@
 
     private void HandleNotificationReceived(Notification notification)
     {
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     private void HandleNotificationsCleared()
     {
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 }

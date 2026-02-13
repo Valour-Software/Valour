@@ -7,15 +7,15 @@
 @inject IJSRuntime JsRuntime
 
 @code {
-    private static IJSInProcessObjectReference JsModule { get; set; }
-    private static IJSInProcessObjectReference JsService { get; set; }
+    private static IJSObjectReference JsModule { get; set; }
+    private static IJSObjectReference JsService { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            JsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowTargetScanner.razor.js");
-            JsService = await JsModule.InvokeAsync<IJSInProcessObjectReference>("init");
+            JsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/DockWindows/WindowTargetScanner.razor.js");
+            JsService = await JsModule.InvokeAsync<IJSObjectReference>("init");
         }
     }
     

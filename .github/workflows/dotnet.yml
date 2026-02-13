@@ -105,19 +105,19 @@ jobs:
         dotnet-version: 10.0.100
 
     - name: Restore workload
-      run: dotnet workload restore
+      run: dotnet workload restore Valour/Valour.sln
 
     - name: Clean
-      run: dotnet clean
+      run: dotnet clean Valour/Valour.sln
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Valour/Valour.sln
 
     - name: Clean
-      run: dotnet clean
+      run: dotnet clean Valour/Valour.sln
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build Valour/Valour.sln --no-restore
 
     - name: Test
       env:
@@ -128,7 +128,7 @@ jobs:
         TEST_REDIS: "localhost:6379,abortConnect=False"
         NODE_NAME: "emma"
         APPLY_MIGRATIONS: true
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test Valour/Valour.sln --no-build --verbosity normal
       continue-on-error: true
 
     - name: Publish Test Results

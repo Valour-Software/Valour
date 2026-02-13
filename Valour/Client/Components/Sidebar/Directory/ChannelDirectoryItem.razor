@@ -600,7 +600,7 @@
     public void Refresh()
     {
         _render = true;
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
     
     protected override bool ShouldRender() => _render;

@@ -167,15 +167,18 @@
 
     private void Reload(object state)
     {
-        foreach (var list in _displayedRoleMembers.Values)
+        InvokeAsync(() =>
         {
-            list.Clear();
-        }
+            foreach (var list in _displayedRoleMembers.Values)
+            {
+                list.Clear();
+            }
 
-        if (_planet != null)
-        {
-            BuildRoleLists();
-        }
+            if (_planet != null)
+            {
+                BuildRoleLists();
+            }
+        });
     }
 
     public Task OnMemberDelete(PlanetMember member)
@@ -183,17 +186,19 @@
         if (member.PlanetId != WindowService.FocusedPlanet.Id)
             return Task.CompletedTask;
 
-        var lastRole = _lastMemberRoles[member.Id];
-        _displayedRoleMembers[lastRole].Remove(member);
-        StateHasChanged();
-        return Task.CompletedTask;
+        return InvokeAsync(() =>
+        {
+            var lastRole = _lastMemberRoles[member.Id];
+            _displayedRoleMembers[lastRole].Remove(member);
+            StateHasChanged();
+        });
     }
-    
+
     public void DetermineDisplayedRole(PlanetMember member)
     {
         if (member is null)
             return;
-        
+
         var lastRole = _lastMemberRoles[member.Id];
         var newRole = DetermineDisplayRoleId(member);
 
@@ -251,110 +256,94 @@
     
     private void OnPlanetRolesChange(IModelEvent<PlanetRole> eventData)
     {
-        switch (eventData)
+        InvokeAsync(() =>
         {
-            case ModelsSetEvent<PlanetRole>:
+            switch (eventData)
             {
-                // Reset
-                _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
-                return;
-            }
-            case ModelAddedEvent<PlanetRole> added:
-            {
-                var role = added.Model;
-                
-                if (role.HasPermission(PlanetPermissions.DisplayRole))
+                case ModelsSetEvent<PlanetRole>:
                 {
-                    // Add as new displayed role
-                    _displayedRoleMembers[role.Id] = new();
-                    _displayedRoles.Add(role);
-
-                    // Unfortunately for this change we need to recalculate 
-                    // everything (since any number of people could have the role)
-                    // (this can probably be optimized further)
-                    BuildRoleLists();
+                    _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
+                    return;
                 }
-
-                return;
-            }
-            case ModelUpdatedEvent<PlanetRole> updated:
-            {
-                var role = updated.Model;
-                
-                // Check if it's a displayed role
-                if (_displayedRoleMembers.ContainsKey(role.Id))
+                case ModelAddedEvent<PlanetRole> added:
                 {
-                    // Role should no longer be displayed
-                    if (!role.HasPermission(PlanetPermissions.DisplayRole))
-                    {
-                        // Recalculate all in that role
-                        foreach (var member in _displayedRoleMembers[role.Id])
-                        {
-                            var newRoleId = DetermineDisplayRoleId(member);
-                            var newRoleList = _displayedRoleMembers[newRoleId];
-                            newRoleList.Add(member);
-                            newRoleList.Sort(_comparer);
-                            _lastMemberRoles[member.Id] = newRoleId;
-                        }
+                    var role = added.Model;
 
-                        // Remove role from displayed
-                        _displayedRoles.Remove(role);
-                        _displayedRoleMembers.Remove(role.Id);
-                    }
-
-                    // Only re-render if we're displaying the updated role
-                    StateHasChanged();
-                }
-                else
-                {
-                    // Role is now being displayed - we need to recalculate this 
-                    // (this can probably be optimized further)
                     if (role.HasPermission(PlanetPermissions.DisplayRole))
                     {
-                        // Add as new displayed role
                         _displayedRoleMembers[role.Id] = new();
                         _displayedRoles.Add(role);
-                        _displayedRoles.Sort((a, b) => a.Position.CompareTo(b.Position));
-
-                        // Unfortunately for this change we need to recalculate 
-                        // everything (since any number of people could have the role)
                         BuildRoleLists();
                     }
-                }
 
-                return;
-            }
-            case ModelRemovedEvent<PlanetRole> removed:
-            {
-                var role = removed.Model;
-                
-                if (role.PlanetId != WindowService.FocusedPlanet.Id)
-                    return;
-
-                if (!_displayedRoleMembers.TryGetValue(role.Id, out var members))
-                {
                     return;
                 }
-                
-                // Recalculate all members with role and
-                // remove it from display
-                foreach (var member in members)
+                case ModelUpdatedEvent<PlanetRole> updated:
                 {
-                    var newRoleId = DetermineDisplayRoleId(member, exclude: role.Id);
-                    var newRoleList = _displayedRoleMembers[newRoleId];
-                    newRoleList.Add(member);
-                    newRoleList.Sort(_comparer);
-                    _lastMemberRoles[member.Id] = newRoleId;
+                    var role = updated.Model;
+
+                    if (_displayedRoleMembers.ContainsKey(role.Id))
+                    {
+                        if (!role.HasPermission(PlanetPermissions.DisplayRole))
+                        {
+                            foreach (var member in _displayedRoleMembers[role.Id])
+                            {
+                                var newRoleId = DetermineDisplayRoleId(member);
+                                var newRoleList = _displayedRoleMembers[newRoleId];
+                                newRoleList.Add(member);
+                                newRoleList.Sort(_comparer);
+                                _lastMemberRoles[member.Id] = newRoleId;
+                            }
+
+                            _displayedRoles.Remove(role);
+                            _displayedRoleMembers.Remove(role.Id);
+                        }
+
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        if (role.HasPermission(PlanetPermissions.DisplayRole))
+                        {
+                            _displayedRoleMembers[role.Id] = new();
+                            _displayedRoles.Add(role);
+                            _displayedRoles.Sort((a, b) => a.Position.CompareTo(b.Position));
+                            BuildRoleLists();
+                        }
+                    }
+
+                    return;
                 }
+                case ModelRemovedEvent<PlanetRole> removed:
+                {
+                    var role = removed.Model;
 
-                _displayedRoleMembers.Remove(role.Id);
-                _displayedRoles.Remove(role);
+                    if (role.PlanetId != WindowService.FocusedPlanet.Id)
+                        return;
 
-                StateHasChanged();
+                    if (!_displayedRoleMembers.TryGetValue(role.Id, out var members))
+                    {
+                        return;
+                    }
 
-                return;
+                    foreach (var member in members)
+                    {
+                        var newRoleId = DetermineDisplayRoleId(member, exclude: role.Id);
+                        var newRoleList = _displayedRoleMembers[newRoleId];
+                        newRoleList.Add(member);
+                        newRoleList.Sort(_comparer);
+                        _lastMemberRoles[member.Id] = newRoleId;
+                    }
+
+                    _displayedRoleMembers.Remove(role.Id);
+                    _displayedRoles.Remove(role);
+
+                    StateHasChanged();
+
+                    return;
+                }
             }
-        }
+        });
     }
 
     private void BuildRoleLists()
@@ -435,53 +424,52 @@
 
     private void OnPlanetDisconnected(Planet planet)
     {
-        if (_planet.Id != planet.Id)
-            return;
+        InvokeAsync(() =>
+        {
+            if (_planet.Id != planet.Id)
+                return;
 
-        ClearForNewPlanet();
-        _planet = null;
-        
-        StateHasChanged();
+            ClearForNewPlanet();
+            _planet = null;
+
+            StateHasChanged();
+        });
     }
 
     public void OnPlanetChange(Planet planet)
     {
-        //var t = Task.Run(async () =>
-        //{
-
-        try
+        InvokeAsync(() =>
         {
-            
-            _planet = planet;
-
-            if (planet != null)
+            try
             {
-                _planet.Roles.Changed += OnPlanetRolesChange;
-                _planet.Members.Changed += OnMemberListChange;
-                
-                Client.Logger.Log<MemberListComponent>($"Member list is updating to {planet.Name}", "cyan");
+                _planet = planet;
 
-                _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
-                ClearForNewPlanet();
+                if (planet != null)
+                {
+                    _planet.Roles.Changed += OnPlanetRolesChange;
+                    _planet.Members.Changed += OnMemberListChange;
+
+                    Client.Logger.Log<MemberListComponent>($"Member list is updating to {planet.Name}", "cyan");
+
+                    _displayedRoles = _planet.Roles.Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
+                    ClearForNewPlanet();
+                }
+                else
+                {
+                    ClearForNewPlanet();
+                }
+
+                BuildRoleLists();
+
+                Client.Logger.Log<MemberListComponent>($"Starting with {_planet.Roles.Count} members.", "cyan");
+                StateHasChanged();
             }
-            else
+            catch (System.Exception e)
             {
-                ClearForNewPlanet();
+                string bad = e.Message;
+                string stack = e.StackTrace;
             }
-
-            BuildRoleLists();
-
-            Client.Logger.Log<MemberListComponent>($"Starting with {_planet.Roles.Count} members.", "cyan");
-            StateHasChanged();
-
-        }
-        catch(System.Exception e)
-        {
-            string bad = e.Message;
-            string stack = e.StackTrace;
-        }
-
-        //});
+        });
     }
     
     public void ToggleVisible()

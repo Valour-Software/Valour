@@ -23,6 +23,8 @@ using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
 using Valour.Server.Middleware;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using WebOptimizer;
 
 namespace Valour.Server;
@@ -46,6 +48,15 @@ public partial class Program
 
         // Initialize Email Manager
         EmailManager.SetupClient();
+
+        // Initialize Firebase for FCM push notifications
+        if (!string.IsNullOrWhiteSpace(NotificationsConfig.Current?.FirebaseCredentialPath))
+        {
+            FirebaseApp.Create(new AppOptions
+            {
+                Credential = GoogleCredential.FromFile(NotificationsConfig.Current.FirebaseCredentialPath)
+            });
+        }
 
 #if !DEBUG
             builder.WebHost.ConfigureKestrel((context, options) =>

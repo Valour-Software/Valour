@@ -914,13 +914,13 @@ else
         Minimal = false;
     }
 
-    public void ReRender()
+    public async Task ReRender()
     {
         if (_ghost && _isInnerReply) return;
 
         ShouldRenderValue = true;
-        
-        StateHasChanged();
+
+        await InvokeAsync(StateHasChanged);
 
         ShouldRenderValue = false;
     }

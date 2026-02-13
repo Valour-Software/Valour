@@ -56,37 +56,39 @@
     
     private Task NotificationsClearedHandler()
     {
-        _showing.Clear();
-        StateHasChanged();
-
-        return Task.CompletedTask;
+        return InvokeAsync(() =>
+        {
+            _showing.Clear();
+            StateHasChanged();
+        });
     }
 
     private Task NotificationHandler(Notification notification)
     {
-        bool render = false;
-        
-        if (notification.TimeRead is null)
+        return InvokeAsync(() =>
         {
-            _showing.Add(new QuickNotif()
-            {
-                Notification = notification,
-                Animating = true,
-                ImageUrl = notification.ImageUrl ?? FailedImageUrl
-            });
-            render = true;
-        }
-        else
-        {
-            var removed = _showing.RemoveAll(x => x.Notification.Id == notification.Id);
-            if (removed > 0)
-                render = true;
-        }
-        
-        if (render)
-            StateHasChanged();
+            bool render = false;
 
-        return Task.CompletedTask;
+            if (notification.TimeRead is null)
+            {
+                _showing.Add(new QuickNotif()
+                {
+                    Notification = notification,
+                    Animating = true,
+                    ImageUrl = notification.ImageUrl ?? FailedImageUrl
+                });
+                render = true;
+            }
+            else
+            {
+                var removed = _showing.RemoveAll(x => x.Notification.Id == notification.Id);
+                if (removed > 0)
+                    render = true;
+            }
+
+            if (render)
+                StateHasChanged();
+        });
     }
 
     private void OnMouseEnter(QuickNotif notif)

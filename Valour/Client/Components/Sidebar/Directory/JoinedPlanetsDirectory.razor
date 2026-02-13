@@ -69,11 +69,13 @@
                     NotificationService.LoadUnreadNotificationsAsync(),
                 ]
             );
-            
-            OnJoinedPlanetsUpdated(); // Needs to rebuild render info
-            ReRender();
+
+            await InvokeAsync(() =>
+            {
+                OnJoinedPlanetsUpdated(); // Needs to rebuild render info
+            });
         });
-        
+
         OnJoinedPlanetsUpdated();
     }
     
@@ -97,8 +99,11 @@
     
     private void OnJoinedPlanetsUpdated()
     {
-        CalculatePlanets();
-        ReRender();
+        _ = InvokeAsync(() =>
+        {
+            CalculatePlanets();
+            ReRender();
+        });
     }
 
     private async Task OnClickExplore()

@@ -53,7 +53,7 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
     
     /// <summary>
     /// All the open modals in the application
@@ -145,7 +145,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Modals/ModalRoot.razor.js?version=$(SHORTHASH)");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Modals/ModalRoot.razor.js?version=$(SHORTHASH)");
         }
     }
 }

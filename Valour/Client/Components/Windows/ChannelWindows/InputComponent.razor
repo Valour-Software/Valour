@@ -150,12 +150,12 @@
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
 
     /// <summary>
     /// Js context for the input
     /// </summary>
-    private IJSInProcessObjectReference _jsCtx;
+    private IJSObjectReference _jsCtx;
 
     /// <summary>
     /// If the current user is able to post messages using this input
@@ -309,8 +309,8 @@
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
-            _jsCtx = await _jsModule.InvokeAsync<IJSInProcessObjectReference>("init", _thisRef, InnerInputRef);
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
+            _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef);
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();

@@ -3,6 +3,7 @@
 public enum NotificationDeviceType
 {
     WebPush,
+    AndroidFcm,
 }
 
 public interface ISharedPushNotificationSubscription

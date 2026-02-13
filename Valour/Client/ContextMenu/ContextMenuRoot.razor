@@ -19,7 +19,7 @@
     [Parameter]
     public RenderFragment ChildContent { get; set; }
     
-    private IJSInProcessObjectReference _jsModule;
+    private IJSObjectReference _jsModule;
     private ElementReference _element;
     
     private Type _currentMenuType;
@@ -70,7 +70,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/ContextMenu/ContextMenuRoot.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ContextMenu/ContextMenuRoot.razor.js");
             await _jsModule.InvokeVoidAsync("init");
         }
     }
