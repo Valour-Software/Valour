@@ -1,7 +1,5 @@
-@inject IJSRuntime JsRuntime
+﻿@inject IJSRuntime JsRuntime
 @inject ValourClient Client
-
-<h3>Notification Settings</h3>
 
 <div class="perm-list-item">
     <div class="perm-list-name mb-1">
@@ -32,15 +30,32 @@
     </div>
 </div>
 
+<div class="perm-list-item">
+    <div class="perm-list-name mb-1">
+        Error Reporting
+    </div>
+    <div type="button" style="float:right">
+        <label class="switch">
+            <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
+            <span class="slider round"></span>
+        </label>
+    </div>
+    <div class="perm-list-desc mt-1">
+        <span>Share anonymous error reports to help improve Valour.</span>
+    </div>
+</div>
+
 @code {
 
     public string NotificationState = "null";
     private bool _notificationsEnabled = false;
     private bool _notificationsBlocked = false;
+    private bool _errorReportingEnabled = false;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshPermissionStateAsync();
+        await LoadErrorReportingStateAsync();
     }
 
     private async Task RefreshPermissionStateAsync()
@@ -84,5 +99,24 @@
     private async Task OnOpenSettingsClick()
     {
         await PushSubscriptionsComponent.Instance.OpenNotificationSettingsAsync();
+    }
+
+    private async Task LoadErrorReportingStateAsync()
+    {
+        var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+        if (response.Success && response.Data is not null)
+        {
+            _errorReportingEnabled = response.Data.ErrorReportingState == ErrorReportingState.All;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnErrorReportingClick()
+    {
+        _errorReportingEnabled = !_errorReportingEnabled;
+        var state = _errorReportingEnabled ? ErrorReportingState.All : ErrorReportingState.None;
+        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)state}", null);
+        SentryGate.IsEnabled = _errorReportingEnabled;
+        StateHasChanged();
     }
 }

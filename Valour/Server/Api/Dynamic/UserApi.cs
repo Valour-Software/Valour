@@ -6,6 +6,7 @@ using Valour.Shared.Queries;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
 using User = Valour.Server.Models.User;
 using UserPrivateInfo = Valour.Server.Models.UserPrivateInfo;
+using DbUserPreferences = Valour.Database.UserPreferences;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -669,5 +670,59 @@ public class UserApi
         var result = await userService.SetTutorialStepFinishedAsync(userId, id, value);
         return Results.Json(result);
     }
-    
+
+    [ValourRoute(HttpVerbs.Get, "api/users/me/preferences")]
+    [UserRequired]
+    public static async Task<IResult> GetPreferencesAsync(
+        UserService userService,
+        ValourDb db)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        var prefs = await db.UserPreferences.FindAsync(userId);
+        if (prefs is null)
+        {
+            prefs = new DbUserPreferences
+            {
+                Id = userId,
+                ErrorReportingState = ErrorReportingState.Unset
+            };
+            db.UserPreferences.Add(prefs);
+            await db.SaveChangesAsync();
+        }
+
+        return Results.Json(prefs.ToModel());
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/errorReporting/{state}")]
+    [UserRequired]
+    public static async Task<IResult> SetErrorReportingAsync(
+        ErrorReportingState state,
+        UserService userService,
+        ValourDb db)
+    {
+        if (!Enum.IsDefined(state))
+            return ValourResult.BadRequest("Invalid error reporting state.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        var prefs = await db.UserPreferences.FindAsync(userId);
+        if (prefs is null)
+        {
+            prefs = new DbUserPreferences
+            {
+                Id = userId,
+                ErrorReportingState = state
+            };
+            db.UserPreferences.Add(prefs);
+        }
+        else
+        {
+            prefs.ErrorReportingState = state;
+        }
+
+        await db.SaveChangesAsync();
+        return Results.Json(prefs.ToModel());
+    }
+
 }

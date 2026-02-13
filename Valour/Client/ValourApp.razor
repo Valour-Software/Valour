@@ -45,6 +45,7 @@ else
     const bool USE_PROD = false;
 
     private bool _triedInitialLogin;
+    private bool _needsErrorReportingCheck;
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,6 +117,7 @@ else
 
                     if (result.Success) {
                         Log("App", $"Auto-logged user {Client.Me.Name}", "magenta");
+                        _needsErrorReportingCheck = true;
                     }
                 }
             }
@@ -130,6 +132,55 @@ else
             Log("App", $"Tried initial login. Status: {Client.IsLoggedIn}", "magenta");
 
             StateHasChanged();
+        }
+        else if (_needsErrorReportingCheck)
+        {
+            _needsErrorReportingCheck = false;
+            await CheckErrorReportingPreference();
+        }
+    }
+
+    private async Task CheckErrorReportingPreference()
+    {
+        try
+        {
+            var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+            if (!response.Success || response.Data is null)
+                return;
+
+            var prefs = response.Data;
+
+            if (prefs.ErrorReportingState == ErrorReportingState.All)
+            {
+                SentryGate.IsEnabled = true;
+                return;
+            }
+
+            if (prefs.ErrorReportingState == ErrorReportingState.None)
+                return;
+
+            // State is Unset — prompt the user
+            var modalData = new ConfirmModalComponent.ModalParams(
+                "Help Improve Valour",
+                "Would you like to share anonymous error reports to help us find and fix bugs?",
+                "Yes",
+                "No",
+                async () =>
+                {
+                    await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)ErrorReportingState.All}", null);
+                    SentryGate.IsEnabled = true;
+                },
+                async () =>
+                {
+                    await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)ErrorReportingState.None}", null);
+                }
+            );
+
+            ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+        }
+        catch
+        {
+            // Don't block login on preference fetch failure
         }
     }
 

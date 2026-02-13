@@ -22,6 +22,7 @@ public class Program
         {
             options.Dsn = "https://6cfc20b598b8831b69f8a30629325213@o4510867505479680.ingest.us.sentry.io/4510869629435904";
             options.MinimumEventLevel = LogLevel.Error;
+            options.SetBeforeSend((e, _) => SentryGate.IsEnabled ? e : null);
         });
         
         builder.Services.AddSingleton<IAppStorage, BrowserStorageService>();

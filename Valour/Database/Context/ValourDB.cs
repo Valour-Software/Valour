@@ -56,6 +56,11 @@ public partial class ValourDb : DbContext
     /// Table for Valour user profiles
     /// </summary>
     public DbSet<UserProfile> UserProfiles { get; set; }
+
+    /// <summary>
+    /// Table for Valour user preferences
+    /// </summary>
+    public DbSet<UserPreferences> UserPreferences { get; set; }
   
     /// <summary>
     /// Table for Valour user friends
