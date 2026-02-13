@@ -22,6 +22,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="NUglify" Version="1.21.15" GeneratePathProperty="true" />
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.2.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.2" />
   </ItemGroup>
@@ -76,6 +77,9 @@
       <OutputFile ParameterType="System.String" Required="true" />
     </ParameterGroup>
     <Task>
+      <Reference Include="$(PkgNUglify)/lib/netstandard2.0/NUglify.dll" />
+      <Using Namespace="NUglify" />
+      <Using Namespace="NUglify.Css" />
       <Code Type="Fragment" Language="cs"><![CDATA[
 var sb = new System.Text.StringBuilder();
 
@@ -105,7 +109,6 @@ if (System.IO.File.Exists(ScopedCssAggregator))
             var importPath = match.Groups[1].Value.TrimStart('/');
             var fileName = System.IO.Path.GetFileName(importPath);
             bool found = false;
-            // Search each root for the file by direct path or by scanning for the filename
             foreach (var root in roots)
             {
                 var trimmed = root.Trim();
@@ -157,14 +160,32 @@ else
     Log.LogWarning("CSS bundle: scoped CSS aggregator not found: " + ScopedCssAggregator);
 }
 
-// 3. Minify: strip block comments, collapse whitespace
-var css = sb.ToString();
-css = System.Text.RegularExpressions.Regex.Replace(css, @"/\*[\s\S]*?\*/", string.Empty);
-css = System.Text.RegularExpressions.Regex.Replace(css, @"\s+", " ");
-css = css.Trim();
+// 3. Minify with NUglify (same settings as old BlazorCssBundleService)
+var cssSettings = new CssSettings
+{
+    CommentMode = CssComment.None,
+    OutputMode = OutputMode.SingleLine,
+    ColorNames = CssColor.Hex,
+    Indent = string.Empty,
+    TermSemicolons = true,
+    RemoveEmptyBlocks = true,
+    DecodeEscapes = true,
+    MinifyExpressions = true,
+};
 
+var combined = sb.ToString();
+var minified = Uglify.Css(combined, cssSettings);
+
+if (minified.HasErrors)
+{
+    foreach (var error in minified.Errors)
+        Log.LogWarning("CSS minification error: " + error);
+}
+
+var css = minified.Code ?? combined;
 System.IO.File.WriteAllText(OutputFile, css);
-Log.LogMessage(MessageImportance.High, "CSS bundle generated: " + OutputFile + " (" + css.Length + " bytes)");
+Log.LogMessage(MessageImportance.High,
+    "CSS bundle generated: " + OutputFile + " (" + css.Length + " bytes, from " + combined.Length + " combined)");
       ]]></Code>
     </Task>
   </UsingTask>
