@@ -21,6 +21,7 @@ COPY . .
 RUN dotnet workload restore Valour/Valour.sln
 
 # Restore the app's dependencies
+RUN dotnet restore Valour/BuildTools/CssBundler/CssBundler.csproj
 RUN dotnet restore Valour/Valour.sln
 
 # Remove .js files that have corresponding .ts files

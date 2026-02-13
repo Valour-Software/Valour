@@ -1,10 +1,12 @@
 name: Android APK
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'Valour/Client.Maui/Valour.Client.Maui.csproj'
+      - 'Valour/Client.Maui/**'
+      - 'Valour/Client/**'
 
 jobs:
   check-version:
@@ -14,25 +16,21 @@ jobs:
       version: ${{ steps.check.outputs.version }}
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
 
-    - name: Check if version changed
+    - name: Check if release already exists
       id: check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Extract current version
         CURRENT=$(grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' Valour/Client.Maui/Valour.Client.Maui.csproj)
-        # Extract previous version
-        PREVIOUS=$(git show HEAD~1:Valour/Client.Maui/Valour.Client.Maui.csproj 2>/dev/null | grep -oP '(?<=<ApplicationDisplayVersion>)[^<]+' || echo "")
-
-        echo "Previous: $PREVIOUS"
-        echo "Current:  $CURRENT"
         echo "version=$CURRENT" >> $GITHUB_OUTPUT
 
-        if [ "$CURRENT" != "$PREVIOUS" ]; then
-          echo "changed=true" >> $GITHUB_OUTPUT
-        else
+        if gh release view "v$CURRENT" > /dev/null 2>&1; then
+          echo "Release v$CURRENT already exists, skipping build"
           echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "No release for v$CURRENT, will build"
+          echo "changed=true" >> $GITHUB_OUTPUT
         fi
 
   build-android:
@@ -54,12 +52,6 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
@@ -76,13 +68,18 @@ jobs:
         regex: '\$\(SHORTHASH\)'
         replacement: '${{ steps.short-sha.outputs.short_sha }}'
         flags: "g"
-        include: '.*'
+        include: '\.(js|cs|razor|cshtml|html)$'
         exclude: '.^'
         encoding: 'utf8'
         path: '.'
 
     - name: Restore dependencies
-      run: dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
+      run: |
+        dotnet restore Valour/BuildTools/CssBundler/CssBundler.csproj
+        dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
+
+    - name: Build CSS bundle
+      run: dotnet build Valour/Client/Valour.Client.csproj -c Release -t:Restore,BundleScopedCssFiles,GenerateCssBundle
 
     - name: Build APK
       run: >
