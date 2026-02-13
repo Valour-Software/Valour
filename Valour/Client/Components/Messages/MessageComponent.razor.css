@@ -353,6 +353,23 @@
     display: block;
 }
 
+/* Highlighted message (e.g. from notification navigation) */
+.message.highlighted {
+    animation: message-highlight-flash 3s ease-out;
+}
+
+@keyframes message-highlight-flash {
+    0% {
+        background-color: rgba(100, 180, 255, 0.35);
+    }
+    50% {
+        background-color: rgba(100, 180, 255, 0.2);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
 /* Ensure loading messages are greyed out */
 .message.ghost {
     opacity: 0.7 !important;

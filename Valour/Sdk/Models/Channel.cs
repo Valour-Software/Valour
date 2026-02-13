@@ -511,6 +511,28 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         return result.Data;
     }
     
+    /// <summary>
+    /// Returns (count) messages with Id greater than afterId, in ascending order
+    /// </summary>
+    public async Task<List<Message>> GetMessagesAfterAsync(long afterId, int count = 10)
+    {
+        if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))
+            return new List<Message>();
+
+        var result = await Node.GetJsonAsync<List<Message>>(
+            $"{IdRoute}/messages/after?afterId={afterId}&count={count}");
+
+        if (!result.Success)
+        {
+            Client.Logger.Log("Channel", $"Failed to get messages after {afterId} from {Id}: {result.Message}", "Yellow");
+            return new List<Message>();
+        }
+
+        result.Data.SyncAll(Client);
+
+        return result.Data;
+    }
+
     public async Task<List<Message>> SearchMessagesAsync(string searchText, int count = 20)
     {
         if (!ISharedChannel.ChatChannelTypes.Contains(ChannelType))

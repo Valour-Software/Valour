@@ -12,7 +12,7 @@ public static class NotificationNavigator
     public static async Task NavigateTo(Notification notification)
     {
         var client = notification.Client;
-        
+
         switch (notification.Source)
         {
             case NotificationSource.PlanetMemberMention:
@@ -21,7 +21,10 @@ public static class NotificationNavigator
             case NotificationSource.PlanetHereMention:
             case NotificationSource.PlanetEveryoneMention:
             {
-                var planet = await client.PlanetService.FetchPlanetAsync(notification.PlanetId!.Value);
+                if (notification.PlanetId is null || notification.ChannelId is null)
+                    break;
+
+                var planet = await client.PlanetService.FetchPlanetAsync(notification.PlanetId.Value);
                 if (planet is null)
                     break;
 
@@ -30,6 +33,11 @@ public static class NotificationNavigator
                     break;
 
                 var content = await ChatWindowComponent.GetDefaultContent(channel);
+
+                // Navigate to the specific message if available
+                if (notification.SourceId is not null)
+                    content.TargetMessageId = notification.SourceId;
+
                 await WindowService.OpenWindowAtFocused(content);
 
                 break;
@@ -38,11 +46,19 @@ public static class NotificationNavigator
             case NotificationSource.DirectReply:
             case NotificationSource.DirectMessage:
             {
-                var channel = await client.ChannelService.FetchDirectChannelAsync(notification.ChannelId!.Value);
+                if (notification.ChannelId is null)
+                    break;
+
+                var channel = await client.ChannelService.FetchDirectChannelAsync(notification.ChannelId.Value);
                 if (channel is null)
                     break;
 
                 var content = await ChatWindowComponent.GetDefaultContent(channel);
+
+                // Navigate to the specific message if available
+                if (notification.SourceId is not null)
+                    content.TargetMessageId = notification.SourceId;
+
                 await WindowService.OpenWindowAtFocused(content);
 
                 break;

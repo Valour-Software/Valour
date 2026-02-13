@@ -110,6 +110,8 @@
         // Displayed messages
         foreach (var message in _searchResults)
         {
+            var msg = message; // capture for lambda
+
             var messageParams = new MessageComponent.Params()
             {
                 ChatComponent = ChatComponent,
@@ -119,12 +121,30 @@
                 Ghost = false,
             };
 
-            builder.OpenComponent<MessageComponent>(0);
-            builder.AddAttribute(1, "ParamData", messageParams);
+            // Wrapper div for result + jump button
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "search-result-item");
             builder.SetKey(message.Id);
+
+            builder.OpenComponent<MessageComponent>(2);
+            builder.AddAttribute(3, "ParamData", messageParams);
             builder.CloseComponent();
+
+            builder.OpenElement(4, "div");
+            builder.AddAttribute(5, "class", "jump-to-message");
+            builder.AddAttribute(6, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this, () => JumpToMessage(msg)));
+            builder.AddContent(7, "Jump to message");
+            builder.CloseElement();
+
+            builder.CloseElement();
         }
     };
+
+    private async Task JumpToMessage(Message message)
+    {
+        CloseSearch();
+        await ChatComponent.LoadAroundMessageAsync(message.Id);
+    }
     
     private void CloseSearch()
     {

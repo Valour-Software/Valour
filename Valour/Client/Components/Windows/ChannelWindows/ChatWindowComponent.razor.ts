@@ -8,6 +8,7 @@ type Channel = {
     lastTopLoadPos: number;
     stickToBottom: boolean;
     scrollUpTimer: number;
+    scrollDownTimer: number;
     scrollTimer: number;
     
     hookEvents(): void;
@@ -21,6 +22,7 @@ type Channel = {
     scrollToBottom(force: boolean): void;
     scrollToBottomAnimated(): void;
     handleChatWindowScroll(e: MouseEvent): void;
+    scrollToMessage(elementId: string): void;
 };
 
 export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Channel{
@@ -33,6 +35,7 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         lastTopLoadPos: 0,
         stickToBottom: true,
         scrollUpTimer: Date.now(),
+        scrollDownTimer: Date.now(),
         scrollTimer: Date.now(),
         
         updateScrollPosition(){
@@ -84,6 +87,13 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
                     await channel.dotnet.invokeMethodAsync('OnScrollTopInvoke');
                 }
                 
+                // User has reached bottom of scroll
+                const distFromBottom = this.scrollHeight - (this.scrollTop + this.clientHeight);
+                if (distFromBottom < 2000 && channel.scrollDownTimer < (Date.now() - 500)) {
+                    channel.scrollDownTimer = Date.now();
+                    await channel.dotnet.invokeMethodAsync('OnScrollBottomInvoke');
+                }
+
                 // Normal scroll event
                 if (channel.scrollTimer < (Date.now() - 500)) {
                     await channel.dotnet.invokeMethodAsync('OnDebouncedScroll');
@@ -93,6 +103,13 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
             channel.checkBottomSticky();
         },
         
+        scrollToMessage(elementId: string){
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        },
+
         hookEvents(){
             this.messageWrapperEl.addEventListener('scroll', this.handleChatWindowScroll);
         },

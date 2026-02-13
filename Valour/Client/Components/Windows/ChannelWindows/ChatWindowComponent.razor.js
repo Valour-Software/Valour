@@ -7,6 +7,7 @@ export function init(dotnet, messageWrapperEl) {
         lastTopLoadPos: 0,
         stickToBottom: true,
         scrollUpTimer: Date.now(),
+        scrollDownTimer: Date.now(),
         scrollTimer: Date.now(),
         updateScrollPosition() {
             this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
@@ -47,12 +48,24 @@ export function init(dotnet, messageWrapperEl) {
                     channel.scrollUpTimer = Date.now();
                     await channel.dotnet.invokeMethodAsync('OnScrollTopInvoke');
                 }
+                // User has reached bottom of scroll
+                const distFromBottom = this.scrollHeight - (this.scrollTop + this.clientHeight);
+                if (distFromBottom < 2000 && channel.scrollDownTimer < (Date.now() - 500)) {
+                    channel.scrollDownTimer = Date.now();
+                    await channel.dotnet.invokeMethodAsync('OnScrollBottomInvoke');
+                }
                 // Normal scroll event
                 if (channel.scrollTimer < (Date.now() - 500)) {
                     await channel.dotnet.invokeMethodAsync('OnDebouncedScroll');
                 }
             }
             channel.checkBottomSticky();
+        },
+        scrollToMessage(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
         },
         hookEvents() {
             this.messageWrapperEl.addEventListener('scroll', this.handleChatWindowScroll);

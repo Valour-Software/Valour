@@ -593,6 +593,49 @@ public class MessageService
         return messages;
     }
 
+    public async Task<IEnumerable<Message>?> GetChannelMessagesAfterAsync(long? planetId, long channelId, long afterId, int count = 50)
+    {
+        var channel = await _channelService.GetChannelAsync(planetId, channelId);
+        if (channel is null)
+            return null;
+
+        if (!ISharedChannel.ChatChannelTypes.Contains(channel.ChannelType))
+            return null;
+
+        if (count < 1)
+            return [];
+
+        if (count > 64)
+            count = 64;
+
+        List<Message>? staged = null;
+
+        if (channel.ChannelType == ChannelTypeEnum.PlanetChat)
+        {
+            staged = PlanetMessageWorker.GetStagedMessages(channel.Id)?
+                .Where(x => x.Id > afterId)
+                .ToList();
+        }
+
+        var messages = await _db.Messages
+            .AsNoTracking()
+            .Where(x => x.ChannelId == channel.Id && x.Id > afterId)
+            .Include(x => x.ReplyToMessage)
+            .Include(x => x.Reactions)
+            .OrderBy(x => x.Id)
+            .Take(count)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+        if (staged is not null)
+        {
+            messages.AddRange(staged);
+            messages = messages.OrderBy(x => x.Id).Take(count).ToList();
+        }
+
+        return messages;
+    }
+
     public async Task<List<Message>> SearchChannelMessagesAsync(long? planetId, long channelId, string search, int count = 20)
     {
         var channel = await _channelService.GetChannelAsync(planetId, channelId);

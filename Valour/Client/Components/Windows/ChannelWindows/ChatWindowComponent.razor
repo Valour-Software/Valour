@@ -187,6 +187,26 @@ else
     public Channel Channel;
     public PermissionsNode ChannelPermissions { get; set; }
     
+    // Virtual window constants and state
+    // TrimThreshold: how many messages before we actually cut.
+    // TargetMessages: how many to keep after trimming.
+    // The gap between them prevents trim-on-every-load bouncing.
+    private const int TrimThreshold = 360;
+    private const int TargetMessages = 120;
+    private bool _isCaughtUp = true;
+    private bool _loadingForward = false;
+
+    /// <summary>
+    /// The message ID to highlight (e.g. from notification navigation). 0 = none.
+    /// </summary>
+    public long HighlightedMessageId { get; set; }
+
+    /// <summary>
+    /// When true, suppresses auto-scroll behaviors (ShiftScrollPosition, ScrollToBottom)
+    /// so that LoadAroundMessageAsync / ScrollToMessage isn't fought by loading messages.
+    /// </summary>
+    public bool SuppressAutoScroll { get; set; }
+
     // Stores for messages (Always initialized so don't bother null checking)
     // TODO: Replace with CircularBuffer
     public List<Message> DisplayedMessages { get; set; } = new();
@@ -330,7 +350,22 @@ else
             Channel.Updated += OnChatChannelUpdate;
 
             ClearMessages(false);
-            await LoadRecentMessages(64);
+            _isCaughtUp = true;
+            _loadingForward = false;
+
+            // Check if we should load around a specific message (e.g. from notification)
+            var targetMessageId = (WindowCtx as Content)?.TargetMessageId;
+            if (targetMessageId is not null && targetMessageId.Value != 0)
+            {
+                await LoadAroundMessageAsync(targetMessageId.Value);
+                // Clear so re-setup doesn't re-navigate
+                ((Content)WindowCtx).TargetMessageId = null;
+            }
+            else
+            {
+                await LoadRecentMessages(64);
+            }
+
             await Channel.UpdateUserState(DateTime.UtcNow);
         }
         catch (Exception e)
@@ -387,6 +422,11 @@ else
     {
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
+            return;
+
+        // Skip real-time messages when we're scrolled away from the present —
+        // they'll be fetched via forward loading when the user scrolls back down.
+        if (!_isCaughtUp)
             return;
 
         await InvokeAsync(async () =>
@@ -544,8 +584,82 @@ else
         await AddMessages(messages, true, true);
     }
 
+    /// <summary>
+    /// Loads messages around a target message and highlights it.
+    /// Used for notification click-through and search result navigation.
+    /// </summary>
+    public async Task LoadAroundMessageAsync(long messageId)
+    {
+        ClearMessages(false);
+        _isCaughtUp = false;
+        _loadingForward = false;
+        HighlightedMessageId = messageId;
+        SuppressAutoScroll = true;
+
+        // Fetch messages up to and including the target (Id < messageId+1 gets Id <= messageId)
+        var before = await Channel.GetMessagesAsync(messageId + 1, 32);
+        // Fetch messages after the target
+        var after = await Channel.GetMessagesAfterAsync(messageId, 32);
+
+        var combined = new List<Message>();
+        if (before is not null)
+            combined.AddRange(before);
+        if (after is not null)
+            combined.AddRange(after);
+
+        if (combined.Count == 0)
+        {
+            // Target not found — fall back to recent messages
+            _isCaughtUp = true;
+            HighlightedMessageId = 0;
+            SuppressAutoScroll = false;
+            await LoadRecentMessages(64);
+            return;
+        }
+
+        await AddMessages(combined, render: false, scroll: false);
+
+        // If we got fewer than requested after, we're caught up to the present
+        if (after is null || after.Count < 32)
+            _isCaughtUp = true;
+
+        ReRender();
+
+        // Scroll to the target message after render
+        await ScrollToMessage(messageId);
+
+        // Keep suppressing auto-scroll while messages finish loading
+        // (avatars, embeds, etc. trigger ShiftScrollPosition which would
+        // fight our position). Release after content has settled.
+        _ = ReleaseSuppressAfterDelay();
+
+        // Auto-clear highlight after a delay
+        _ = ClearHighlightAfterDelay();
+    }
+
+    private async Task ReleaseSuppressAfterDelay()
+    {
+        await Task.Delay(1500);
+        SuppressAutoScroll = false;
+    }
+
+    private async Task ClearHighlightAfterDelay()
+    {
+        await Task.Delay(3000);
+        HighlightedMessageId = 0;
+        await InvokeAsync(ReRender);
+    }
+
     public async Task AddQueuedMessage(Message message)
     {
+        // If not caught up, snap back to live mode before sending
+        if (!_isCaughtUp)
+        {
+            _isCaughtUp = true;
+            ClearMessages(false);
+            await LoadRecentMessages(64);
+        }
+
         // Guard against duplicate if already pre-queued (e.g. from OnChatboxSubmit)
         if (!QueuedMessages.Contains(message))
             QueuedMessages.Add(message);
@@ -650,9 +764,9 @@ else
         DisplayedMessages.Add(message);
 
         // check if there's too many messages
-        if (atBottom && DisplayedMessages.Count > 120)
+        if (atBottom && DisplayedMessages.Count > TrimThreshold)
         {
-            DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - 120);
+            DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - TargetMessages);
         }
 
         // Flag for UI refresh
@@ -731,9 +845,12 @@ else
 
     public ValueTask ScrollToBottom(bool force = false)
     {
+        if (SuppressAutoScroll)
+            return ValueTask.CompletedTask;
+
         if (_jsService is not null)
             return _jsService.InvokeVoidAsync("scrollToBottom", force);
-        
+
         return ValueTask.CompletedTask;
     }
 
@@ -742,8 +859,69 @@ else
     public ValueTask UpdateScrollPosition() => _jsService.InvokeVoidAsync("updateScrollPosition");
 
     public ValueTask ScaleScrollPosition() => _jsService.InvokeVoidAsync("scaleScrollPosition");
-    
-    public ValueTask ShiftScrollPosition(float amount) => _jsService.InvokeVoidAsync("shiftScrollPosition", amount);
+
+    public ValueTask ShiftScrollPosition(float amount)
+    {
+        if (SuppressAutoScroll)
+            return ValueTask.CompletedTask;
+
+        return _jsService.InvokeVoidAsync("shiftScrollPosition", amount);
+    }
+
+    public ValueTask ScrollToMessage(long messageId) => _jsService.InvokeVoidAsync("scrollToMessage", $"m-{Channel.Id}-{messageId}");
+
+    [JSInvokable("OnScrollBottomInvoke")]
+    public async Task OnScrollBottom()
+    {
+        if (_isCaughtUp || _loadingForward)
+            return;
+
+        if (DisplayedMessages == null || DisplayedMessages.Count == 0)
+            return;
+
+        _loadingForward = true;
+
+        try
+        {
+            var lastId = DisplayedMessages[^1].Id;
+
+            var messages = await Channel.GetMessagesAfterAsync(lastId, 64);
+
+            if (messages is null || messages.Count == 0)
+            {
+                _isCaughtUp = true;
+                return;
+            }
+
+            // Step 1: Append newer messages below viewport.
+            // Content below doesn't affect scroll position, so no adjustment needed.
+            DisplayedMessages.AddRange(messages);
+            ReRender();
+
+            // Step 2: Trim from the top if we exceed the cap.
+            // ScaleScrollPosition correctly handles removal-from-above:
+            // newHeight < oldHeight → scrollTop decreases by the removed height.
+            if (DisplayedMessages.Count > TrimThreshold)
+            {
+                var excess = DisplayedMessages.Count - TargetMessages;
+                DisplayedMessages.RemoveRange(0, excess);
+
+                await UpdateScrollPosition();
+                ReRender();
+                await ScaleScrollPosition();
+            }
+
+            // If fewer than requested, we've reached the present
+            if (messages.Count < 64)
+            {
+                _isCaughtUp = true;
+            }
+        }
+        finally
+        {
+            _loadingForward = false;
+        }
+    }
 
     [JSInvokable("OnDebouncedScroll")]
     public void OnDebouncedScroll()
@@ -769,12 +947,23 @@ else
 
         if (messages is null || !messages.Any())
             return;
-        
-        await UpdateScrollPosition(); // This saves the scroll position
 
-        InsertMessages(0, messages);
+        // Step 1: Insert older messages above and fix scroll position.
+        // ScaleScrollPosition only works correctly when content changes
+        // happen on one side, so we must NOT trim in the same render pass.
+        await UpdateScrollPosition();
+        InsertMessages(0, messages); // renders
+        await ScaleScrollPosition();
 
-        await ScaleScrollPosition(); // This ensures the page doesnt move harshly
+        // Step 2: Trim from the bottom if we exceed the cap.
+        // Removed content is below the viewport so scroll is unaffected.
+        if (DisplayedMessages.Count > TrimThreshold)
+        {
+            var excess = DisplayedMessages.Count - TargetMessages;
+            DisplayedMessages.RemoveRange(DisplayedMessages.Count - excess, excess);
+            _isCaughtUp = false;
+            ReRender();
+        }
     }
     
     ///////////////////////////////
@@ -789,6 +978,11 @@ else
 
     public class Content : WindowContent<ChatWindowComponent, Channel>
     {
+        /// <summary>
+        /// When set, the chat will load around this message and highlight it
+        /// </summary>
+        public long? TargetMessageId { get; set; }
+
         public override async Task ImportData(string data, ValourClient client)
         {
             var imported = JsonSerializer.Deserialize<StateData>(data);
@@ -948,6 +1142,8 @@ else
 
             if (atBottom)
                 await ScrollToBottom();
+
+            _isCaughtUp = true;
         }
         catch (Exception e)
         {
