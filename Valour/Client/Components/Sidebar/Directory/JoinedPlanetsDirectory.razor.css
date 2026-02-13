@@ -1,9 +1,10 @@
 .joined-planets {
     display: flex;
     flex-direction: column;
-    margin-bottom: 1em;
+    margin-bottom: 0;
     padding: 0.5em;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 .joined-planets .list {
@@ -12,6 +13,8 @@
     overflow-y: auto;
     border-radius: 8px;
     background-color: var(--main-3);
+    flex: 1;
+    min-height: 0;
 }
 
 .joined-planets .list::-webkit-scrollbar {

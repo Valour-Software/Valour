@@ -1,0 +1,21 @@
+.planets-dm-directory {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.top-half {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.bottom-half {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}

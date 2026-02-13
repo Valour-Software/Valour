@@ -1,0 +1,137 @@
+@inherits ControlledRenderComponentBase
+@inject ChannelService ChannelService
+@inject UserService UserService
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
+@inject ValourClient Client
+
+<div class="dm-container">
+    <p class="subtitle mb-2">Direct Messages</p>
+    <div class="v-gradient-underline"></div>
+
+    <input @oninput="@OnFilterInput" type="text" placeholder="Search..." class="form-control mb-2 v-bg-medium" />
+    <div class="list">
+        @if (_renderDms.Count == 0)
+        {
+            <div class="empty-state">
+                @if (string.IsNullOrWhiteSpace(_filterText))
+                {
+                    <i class="bi bi-chat-dots"></i>
+                    <span>No conversations yet</span>
+                }
+                else
+                {
+                    <span>No results</span>
+                }
+            </div>
+        }
+        else
+        {
+            @foreach (var dm in _renderDms)
+            {
+                <div class="dm-row" @onclick="@(() => OnDmClick(dm.Channel))">
+                    <div class="left">
+                        <img alt="@dm.OtherUser.Name Avatar" src="@dm.OtherUser.GetAvatar(AvatarFormat.Webp64)" />
+                        <span>@dm.OtherUser.Name</span>
+                    </div>
+                    <div class="right">
+                        @if (dm.Notifications > 0)
+                        {
+                            <div class="unread-badge notification">
+                                <span>@dm.Notifications</span>
+                            </div>
+                        }
+                        else if (dm.IsUnread)
+                        {
+                            <div class="unread-badge"></div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+
+    private class DmRenderInfo
+    {
+        public Channel Channel { get; set; }
+        public User OtherUser { get; set; }
+        public bool IsUnread { get; set; }
+        public int Notifications { get; set; }
+    }
+
+    private List<DmRenderInfo> _renderDms = new();
+    private List<DmRenderInfo> _allDms = new();
+    private string _filterText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDmsAsync();
+        await ReRender();
+    }
+
+    private async Task LoadDmsAsync()
+    {
+        _allDms.Clear();
+
+        foreach (var channel in ChannelService.DirectChatChannels)
+        {
+            var otherMember = channel.Members?.FirstOrDefault(m => m.UserId != Client.Me.Id);
+            if (otherMember is null)
+                continue;
+
+            var user = await UserService.FetchUserAsync(otherMember.UserId);
+            if (user is null)
+                continue;
+
+            _allDms.Add(new DmRenderInfo
+            {
+                Channel = channel,
+                OtherUser = user,
+                IsUnread = UnreadService.IsChannelUnread(null, channel.Id),
+                Notifications = NotificationService.GetChannelNotifications(channel.Id)
+            });
+        }
+
+        _allDms = _allDms.OrderByDescending(d => d.Channel.LastUpdateTime).ToList();
+        CalculateDms();
+    }
+
+    private void OnFilterInput(ChangeEventArgs e)
+    {
+        _filterText = e.Value?.ToString();
+        CalculateDms();
+        ReRender();
+    }
+
+    private void CalculateDms()
+    {
+        // Refresh unread state
+        foreach (var dm in _allDms)
+        {
+            dm.IsUnread = UnreadService.IsChannelUnread(null, dm.Channel.Id);
+            dm.Notifications = NotificationService.GetChannelNotifications(dm.Channel.Id);
+        }
+
+        if (string.IsNullOrWhiteSpace(_filterText))
+        {
+            _renderDms = _allDms.ToList();
+            return;
+        }
+
+        _renderDms = _allDms
+            .Where(d => d.OtherUser.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(d => d.OtherUser.Name.StartsWith(_filterText, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenByDescending(d => d.Channel.LastUpdateTime)
+            .ToList();
+    }
+
+    private async Task OnDmClick(Channel channel)
+    {
+        var content = await ChatWindowComponent.GetDefaultContent(channel);
+        await WindowService.OpenWindowAtFocused(content);
+        await Sidebar.ToggleMobileSidebar();
+    }
+}

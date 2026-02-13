@@ -1,0 +1,113 @@
+.dm-container {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5em;
+    flex: 1;
+    min-height: 0;
+}
+
+.dm-container .list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-radius: 8px;
+    background-color: var(--main-3);
+    flex: 1;
+    min-height: 0;
+}
+
+.dm-container .list::-webkit-scrollbar {
+
+}
+
+.dm-container .list::-webkit-scrollbar-track {
+    border-radius: var(--main-radius);
+}
+
+.dm-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: center;
+    padding: 4px 0 4px 4px;
+    font-size: 14px;
+}
+
+.dm-row:hover {
+    cursor: pointer;
+    background-color: var(--main-4);
+}
+
+.dm-row .left {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    gap: 6px;
+    max-width: 90%;
+}
+
+.dm-row .left img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.dm-row .left span {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+}
+
+.dm-row .right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.dm-row .right .unread-badge {
+    background-color: var(--strong-tint);
+    border-radius: 8px 0 0 8px;
+    height: 16px;
+    min-width: 8px;
+    transition: min-width 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dm-row:hover .right .unread-badge {
+    min-width: 16px;
+}
+
+.dm-row .right .unread-badge.notification {
+    background-color: var(--p-red);
+}
+
+.unread-badge span {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    gap: 8px;
+}
+
+.empty-state i {
+    font-size: 40px;
+    opacity: 0.4;
+}
+
+.empty-state span {
+    opacity: 0.6;
+}
