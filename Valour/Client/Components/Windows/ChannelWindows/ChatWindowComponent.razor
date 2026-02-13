@@ -479,7 +479,7 @@ else
     private RenderFragment MessagesFragment => builder =>
     {
         _messageSet.Clear();
-        
+
         Message lastMessage = null;
 
         // Displayed messages
@@ -506,11 +506,13 @@ else
             builder.CloseComponent();
 
             lastMessage = message;
-            
+
             _messageSet.Add(message.Id);
         }
-        
-        // Queued messages
+
+        // Queued (ghost) messages — ghosts are removed from this list
+        // before rendering when their real message arrives, so no
+        // fingerprint-skip logic is needed here.
         foreach (var message in QueuedMessages)
         {
             var messageParams = new MessageComponent.Params()
@@ -524,12 +526,12 @@ else
 
             builder.OpenComponent<MessageComponent>(0);
             builder.AddAttribute(1, "ParamData", messageParams);
-            builder.SetKey($"q-{message.Fingerprint}"); // Use fingerprint because they don't have IDs assigned yet
+            builder.SetKey($"q-{message.Fingerprint}");
             builder.CloseComponent();
 
             lastMessage = message;
         }
-        
+
     };
     
     //////////////////////
@@ -542,11 +544,14 @@ else
         await AddMessages(messages, true, true);
     }
 
-    public void AddQueuedMessage(Message message)
+    public async Task AddQueuedMessage(Message message)
     {
-        //Console.WriteLine("Queued Message");
-        QueuedMessages.Add(message);
-        ReRender();
+        // Guard against duplicate if already pre-queued (e.g. from OnChatboxSubmit)
+        if (!QueuedMessages.Contains(message))
+            QueuedMessages.Add(message);
+
+        await ReRender();
+        await ScrollToBottom();
     }
 
     public void RemoveQueuedMessage(string fingerprint)
@@ -637,17 +642,18 @@ else
         //Get current window scroll pos
         var atBottom = await _jsService.InvokeAsync<bool>("isAtBottom");
 
-        // Remove ghost and add real message atomically (no yield between)
-        // to avoid a flash where neither is rendered.
-        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+        // Remove the matching ghost BEFORE rendering so the ghost removal and
+        // real message insertion appear in the same render frame with no gap.
+        if (!string.IsNullOrEmpty(message.Fingerprint))
+            QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+
+        DisplayedMessages.Add(message);
 
         // check if there's too many messages
         if (atBottom && DisplayedMessages.Count > 120)
         {
             DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - 120);
         }
-
-        DisplayedMessages.Add(message);
 
         // Flag for UI refresh
         if (render)

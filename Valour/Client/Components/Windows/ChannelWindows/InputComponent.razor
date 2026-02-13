@@ -652,7 +652,7 @@
         // New message
         if (message.Id == 0)
         {
-            ChatComponent.AddQueuedMessage(message);
+            await ChatComponent.AddQueuedMessage(message);
             
             var result = await message.PostAsync();
 
@@ -844,14 +844,21 @@
         var postMessage = PreviewMessage;
         InsertInviteAttachments(postMessage);
 
+        // Queue ghost message BEFORE clearing the preview so both changes
+        // are batched into the same render frame (no layout shift gap).
+        ChatComponent.QueuedMessages.Add(postMessage);
+
         // New message for preview
         PreviewMessage = BuildNewMessage();
         PreviewMessageComponent.SetMessage(PreviewMessage);
 
+        // Queue a chat re-render so the ghost appears in the same paint
+        // as the preview clearing (both flush at the next yield).
+        _ = ChatComponent.ReRender();
+
         await OnChatboxUpdate(null, "");
 
         // Post message to server
-        //StateHasChanged();
         await PostMessage(postMessage);
     }
 }

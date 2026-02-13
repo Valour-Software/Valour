@@ -354,6 +354,6 @@
 }
 
 /* Ensure loading messages are greyed out */
-.message .ghost {
+.message.ghost {
     opacity: 0.7 !important;
 }
