@@ -22,7 +22,7 @@ type Channel = {
     scrollToBottom(force: boolean): void;
     scrollToBottomAnimated(): void;
     handleChatWindowScroll(e: MouseEvent): void;
-    scrollToMessage(elementId: string): void;
+    scrollToMessage(elementId: string, highlight: boolean): void;
 };
 
 export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Channel{
