@@ -20,6 +20,32 @@ public class MauiPushNotificationService : IPushNotificationService
     {
         try
         {
+            // Ensure we have notification permission before subscribing
+            var permissionState = await GetPermissionStateAsync();
+            if (permissionState == "denied")
+            {
+                return new PushSubscriptionResult
+                {
+                    Success = false,
+                    Error = "Notification permission denied. Please enable notifications in your device settings."
+                };
+            }
+
+            if (permissionState != "granted")
+            {
+                await AskForPermissionAsync();
+
+                permissionState = await GetPermissionStateAsync();
+                if (permissionState != "granted")
+                {
+                    return new PushSubscriptionResult
+                    {
+                        Success = false,
+                        Error = "Notification permission was not granted."
+                    };
+                }
+            }
+
             await CrossFirebaseCloudMessaging.Current.CheckIfValidAsync();
             var token = await CrossFirebaseCloudMessaging.Current.GetTokenAsync();
 
@@ -135,21 +161,52 @@ public class MauiPushNotificationService : IPushNotificationService
         }
     }
 
-    public Task<bool> IsNotificationsEnabledAsync()
+    public async Task<bool> IsNotificationsEnabledAsync()
     {
-        // On Android, if we have a valid FCM token, notifications are enabled
-        return Task.FromResult(true);
+        var state = await GetPermissionStateAsync();
+        return state == "granted";
     }
 
-    public Task<string> GetPermissionStateAsync()
+    public async Task<string> GetPermissionStateAsync()
     {
-        return Task.FromResult("granted");
+#if ANDROID
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+            return status switch
+            {
+                PermissionStatus.Granted => "granted",
+                PermissionStatus.Denied => "denied",
+                _ => "default"
+            };
+        }
+
+        // Pre-Android 13: notifications are allowed by default
+        return "granted";
+#else
+        return "granted";
+#endif
     }
 
-    public Task AskForPermissionAsync()
+    public async Task AskForPermissionAsync()
     {
-        // Android 13+ POST_NOTIFICATIONS permission is handled at the platform level
-        // The Plugin.Firebase.CloudMessaging handles this internally
+#if ANDROID
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            await Permissions.RequestAsync<Permissions.PostNotifications>();
+        }
+#endif
+    }
+
+    public Task OpenNotificationSettingsAsync()
+    {
+#if ANDROID
+        var context = Platform.CurrentActivity ?? Platform.AppContext;
+        var intent = new Android.Content.Intent(Android.Provider.Settings.ActionAppNotificationSettings);
+        intent.PutExtra(Android.Provider.Settings.ExtraAppPackage, context.PackageName);
+        intent.AddFlags(Android.Content.ActivityFlags.NewTask);
+        context.StartActivity(intent);
+#endif
         return Task.CompletedTask;
     }
 }

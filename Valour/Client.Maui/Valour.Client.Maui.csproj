@@ -82,7 +82,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <GoogleServicesJson Include="google-services.json" Condition="Exists('google-services.json')" />
+        <GoogleServicesJson Include="Platforms\Android\google-services.json" Condition="Exists('Platforms\Android\google-services.json')" />
     </ItemGroup>
 
     <ItemGroup>

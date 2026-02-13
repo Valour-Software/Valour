@@ -1,4 +1,4 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
@@ -15,6 +15,9 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
+        CreateNotificationChannel();
+        _ = RequestNotificationPermissionAsync();
+
         if (Window is null)
             return;
 
@@ -28,6 +31,35 @@ public class MainActivity : MauiAppCompatActivity
             content.SetBackgroundColor(Android.Graphics.Color.Black);
             ViewCompat.SetOnApplyWindowInsetsListener(content, new SystemBarsPaddingListener());
         }
+    }
+
+    private void CreateNotificationChannel()
+    {
+        if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+            return;
+
+        var channel = new NotificationChannel(
+            "valour_default",
+            "Valour Notifications",
+            NotificationImportance.Default)
+        {
+            Description = "Notifications from Valour"
+        };
+
+        var manager = (NotificationManager?)GetSystemService(NotificationService);
+        manager?.CreateNotificationChannel(channel);
+    }
+
+    private async Task RequestNotificationPermissionAsync()
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(33))
+            return;
+
+        var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+        if (status == PermissionStatus.Granted)
+            return;
+
+        await Permissions.RequestAsync<Permissions.PostNotifications>();
     }
 
     private class SystemBarsPaddingListener : Java.Lang.Object, IOnApplyWindowInsetsListener

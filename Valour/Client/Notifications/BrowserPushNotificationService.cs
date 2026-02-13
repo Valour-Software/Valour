@@ -119,4 +119,10 @@ public class BrowserPushNotificationService : IPushNotificationService
         await EnsureInitializedAsync();
         await _jsService!.InvokeVoidAsync("askForPermission");
     }
+
+    public Task OpenNotificationSettingsAsync()
+    {
+        // Browser doesn't support opening notification settings directly
+        return Task.CompletedTask;
+    }
 }

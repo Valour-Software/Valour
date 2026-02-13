@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JsRuntime
+@inject IJSRuntime JsRuntime
 @inject ValourClient Client
 
 <h3>Notification Settings</h3>
@@ -8,13 +8,27 @@
         Enable Push Notifications
     </div>
     <div type="button" style="float:right">
-        <label class="switch">
-            <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled" disabled="@_notificationsBlocked">
-            <span class="slider round"></span>
-        </label>
+        @if (_notificationsBlocked)
+        {
+            <button class="btn btn-sm v-btn" @onclick="OnOpenSettingsClick">Go to Settings</button>
+        }
+        else
+        {
+            <label class="switch">
+                <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled">
+                <span class="slider round"></span>
+            </label>
+        }
     </div>
     <div class="perm-list-desc mt-1">
-        This will allow your device to recieve push notifications.
+        @if (_notificationsBlocked)
+        {
+            <span>Notifications are blocked. Tap "Go to Settings" to enable them.</span>
+        }
+        else
+        {
+            <span>This will allow your device to receive push notifications.</span>
+        }
     </div>
 </div>
 
@@ -23,10 +37,17 @@
     public string NotificationState = "null";
     private bool _notificationsEnabled = false;
     private bool _notificationsBlocked = false;
-    
+
     protected override async Task OnInitializedAsync()
     {
-        _notificationsEnabled = await PushSubscriptionsComponent.Instance.IsNotificationsEnabledAsync();
+        await RefreshPermissionStateAsync();
+    }
+
+    private async Task RefreshPermissionStateAsync()
+    {
+        var permissionState = await PushSubscriptionsComponent.Instance.GetPermissionStateAsync();
+        _notificationsBlocked = permissionState == "denied";
+        _notificationsEnabled = !_notificationsBlocked && await PushSubscriptionsComponent.Instance.IsNotificationsEnabledAsync();
         StateHasChanged();
     }
 
@@ -50,8 +71,18 @@
             {
                 _notificationsEnabled = true;
             }
+            else
+            {
+                // Re-check permission state in case the user denied the prompt
+                await RefreshPermissionStateAsync();
+            }
         }
 
         StateHasChanged();
+    }
+
+    private async Task OnOpenSettingsClick()
+    {
+        await PushSubscriptionsComponent.Instance.OpenNotificationSettingsAsync();
     }
 }

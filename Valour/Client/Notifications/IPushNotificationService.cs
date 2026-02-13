@@ -10,4 +10,5 @@ public interface IPushNotificationService
     Task<bool> IsNotificationsEnabledAsync();
     Task<string> GetPermissionStateAsync();
     Task AskForPermissionAsync();
+    Task OpenNotificationSettingsAsync();
 }

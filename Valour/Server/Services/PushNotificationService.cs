@@ -173,6 +173,13 @@ public class PushNotificationService
                 Body = body,
                 ImageUrl = iconUrl,
             },
+            Android = new FirebaseAdmin.Messaging.AndroidConfig
+            {
+                Notification = new FirebaseAdmin.Messaging.AndroidNotification
+                {
+                    ChannelId = "valour_default",
+                },
+            },
             Data = new Dictionary<string, string> { ["url"] = url ?? "" },
         };
 
