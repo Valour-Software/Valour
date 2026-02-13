@@ -21,66 +21,8 @@
     <meta property="og:site_name" content="Valour">
     <meta name="twitter:image:alt" content="The Valour logo">
     <meta name="theme-color" content="#040d14">
-    <link id="bundled-css" href="_content/Valour.Client/css/bundled.min.css?version=$(SHORTHASH)" rel="stylesheet" />
+    <link href="_content/Valour.Client/css/bundled.min.css?version=$(SHORTHASH)" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
-    
-    <script>
-        const MAX_CSS_RETRIES = 10;
-
-        function ensureCss(retryCount = 0) {
-            let cssLink = document.getElementById('bundled-css');
-
-            if (cssLink) {
-                cssLink.addEventListener('error', function handleError() {
-                    console.warn('bundled.min.css failed to load! Retrying...');
-
-                    if (!window.__cssReloaded) {
-                        window.__cssReloaded = true;
-
-                        setTimeout(() => {
-                            tryLoadCss(retryCount + 1, cssLink);
-                        }, 200 * retryCount);
-                    }
-                });
-            }
-        }
-
-        function tryLoadCss(retryCount, oldLink) {
-            if (retryCount > MAX_CSS_RETRIES) {
-                console.error('CSS failed to load after multiple attempts.');
-                // Optionally, show a user message here
-                return;
-            }
-
-            const newLink = document.createElement('link');
-            newLink.rel = 'stylesheet';
-            newLink.id = 'bundled-css';
-            newLink.href =
-                '_content/Valour.Client/css/bundled.min.css?retry=' + Date.now();
-
-            newLink.onload = function () {
-                console.log('CSS reloaded successfully');
-                if (oldLink.parentNode) {
-                    oldLink.parentNode.removeChild(oldLink);
-                }
-                // Optionally, reset window.__cssReloaded here if you want to allow future reloads
-            };
-
-            newLink.onerror = function () {
-                console.warn(
-                    `Retry #${retryCount} to load CSS failed. Retrying again...`
-                );
-                setTimeout(() => {
-                    tryLoadCss(retryCount + 1, newLink);
-                }, 500); // Wait a bit longer between retries
-            };
-
-            // Insert the new link after the old one
-            oldLink.parentNode.insertBefore(newLink, oldLink.nextSibling);
-        }
-
-        ensureCss();
-    </script>
 </head>
 
 <body style="max-width:100vw; height:100dvh; touch-action: manipulation;">

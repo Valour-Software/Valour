@@ -22,11 +22,8 @@ using Microsoft.OpenApi;
 using Valour.Config.Configs;
 using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
-using Valour.Server.Middleware;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
-using WebOptimizer;
-
 namespace Valour.Server;
 
 public partial class Program
@@ -200,9 +197,6 @@ public partial class Program
 
         app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"); });
 
-        // Add CSS injector middleware
-        app.UseMiddleware<BlazorCssInjector>();
-        
         app.UseWebSockets();
 
         if (app.Configuration.GetSection("Sentry").Exists())
@@ -210,11 +204,6 @@ public partial class Program
             app.UseSentryTracing();
         }
 
-        
-        // app.UseStartupWait();
-
-        // app.UseBlazorCssMinifier();
-        // app.UseWebOptimizer();
         app.UseBlazorFrameworkFiles();
         app.MapStaticAssets();
         
@@ -264,30 +253,6 @@ public partial class Program
         
         services.AddMemoryCache();
         
-        services.AddWebOptimizer(pipeline =>
-        {
-            // Helper function to configure CSS bundles
-            void ConfigureBundle(IAsset bundle)
-            {
-                if (true || !builder.Environment.IsDevelopment())
-                {
-                    bundle.MinifyCss()
-                        .AdjustRelativePaths()
-                        .UseContentRoot();
-                }
-            }
-            
-            // Blazor scoped CSS - use specific route but glob pattern for sources
-            var scopedCssBundle = pipeline.AddCssBundle(
-                "/_content/Valour.Client/Valour.Client.styles.css", // Fixed route
-                "/_content/**/*.bundle.scp.css" // Source files can use glob pattern
-            );
-            
-            ConfigureBundle(scopedCssBundle);
-        });
-
-
-
         services.AddSignalR(options =>
         {
             options.MaximumParallelInvocationsPerClient = 5;
@@ -408,9 +373,6 @@ public partial class Program
 
         services.AddSingleton<NodeLifecycleService>();
         
-        // Add the CSS bundling service
-        // builder.Services.AddSingleton<BlazorCssBundleService>();
-        
         // Register PushNotificationWorker as a singleton.
         services.AddSingleton<PushNotificationWorker>();
         // Register it as the IHostedService.
@@ -423,8 +385,6 @@ public partial class Program
         services.AddHostedService<NodeStateWorker>();
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<MigrationWorker>();
-        services.AddHostedService<BlazorCssBundleService>();
-
         services.AddEndpointsApiExplorer();
 
         services.AddSwaggerGen(c =>

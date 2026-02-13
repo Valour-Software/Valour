@@ -407,7 +407,7 @@ dotnet-install.sh
 /Valour/Config/appsettings.helper.json
 
 # Build-generated CSS bundle
-**/wwwroot/css/bundled.css
+**/wwwroot/css/bundled.min.css
 
 # Firebase credentials
 google-services.json
