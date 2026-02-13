@@ -35,7 +35,7 @@
         <!-- Display name -->
         <ApplicationTitle>Valour</ApplicationTitle>
 
-        <!-- App Identifier -->
+        <!-- App Identifier --> 
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
