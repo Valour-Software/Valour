@@ -67,12 +67,12 @@
 .header .right .unread-badge {
     background-color: var(--strong-tint);
     border-radius: 8px;
-    height: 13px;
-    min-width: 13px;
+    height: 16px;
+    min-width: 16px;
     transition: min-width, height 0.2s ease-in-out;
-    display: flex;
-    flex-direction: row;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
 }
 
 .header-wrapper:hover .header .right .unread-badge {
@@ -94,9 +94,10 @@
 
 .unread-badge span {
     font-size: 10px;
-    padding: 0;
-    margin-left: 3px;
-    margin-right: 2px;
+    font-weight: bold;
+    color: white;
+    padding: 0 4px;
+    line-height: 1;
 }
 
 .planet-about {

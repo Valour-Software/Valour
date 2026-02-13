@@ -63,19 +63,21 @@
                 <div class="path" depth="@Depth"></div>
             }
             
-            @if (_notificationCount > 0)
-            {
-                <p class="notif-count">@_notificationCount</p>
-            }
-
             @if (IsPrivate)
             {
                 <img alt="Locked" class="lock-icon" src="_content/Valour.Client/media/channel-list/lock.svg"/>
             }
-            
+
             <p class="name">
                 @Channel.Name
             </p>
+
+            @if (_notificationCount > 0)
+            {
+                <div class="notif-badge">
+                    <span>@_notificationCount</span>
+                </div>
+            }
 
         </div>
         @if (DragManager.DragOverId == Channel.Id &&
@@ -181,9 +183,6 @@
             if (IsNested)
                 css += " nested";
 
-            if (_notificationCount > 0)
-                css += " has-notif";
-            
             return css;
         }
     }

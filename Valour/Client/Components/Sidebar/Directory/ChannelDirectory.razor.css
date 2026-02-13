@@ -131,17 +131,27 @@
     background-color: transparent;
 }
 
-::deep .channel .notif-count {
+::deep .channel .notif-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--p-red);
+    border-radius: 8px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
     position: absolute;
-    left: 13px;
-    top: 9px;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 1;
-    font-size: 8px;
-    color: white;
 }
 
-::deep .channel.has-notif .channel-icon {
-    color: var(--v-purple);
+::deep .channel .notif-badge span {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    line-height: 1;
 }
 
 ::deep .channel-wrapper .drop {

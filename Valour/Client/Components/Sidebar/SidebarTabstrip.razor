@@ -1,4 +1,5 @@
 @implements IDisposable
+@inject NotificationService NotificationService
 
 <div class="tabstrip">
     @for (var i = 0; i < TabItems.Count; i++)
@@ -11,6 +12,12 @@
                 <ChildContent>
                     <div class="icon-holder">
                         <i aria-label="@item.Name" style="font-size: @(item.Size)px" class="bi bi-@item.Icon"></i>
+                        @if (item.Name == "Notifications" && _totalNotifications > 0)
+                        {
+                            <div class="notif-badge">
+                                <span>@_totalNotifications</span>
+                            </div>
+                        }
                     </div>
                 </ChildContent>
                 <TooltipContent>
@@ -22,18 +29,43 @@
 </div>
 
 @code {
-    
+
     [Parameter]
     public Sidebar Sidebar { get; set; }
-    
+
     [Parameter]
     public bool Flip { get; set; }
-    
+
     [Parameter]
     public List<TabStripItem> TabItems { get; set; }
-    
+
+    private int _totalNotifications;
+
+    protected override void OnInitialized()
+    {
+        _totalNotifications = NotificationService.GetUnreadInternal().Count;
+        NotificationService.NotificationReceived += OnNotificationChanged;
+        NotificationService.NotificationsCleared += OnNotificationsCleared;
+    }
+
+    private Task OnNotificationChanged(Notification notification)
+    {
+        _totalNotifications = NotificationService.GetUnreadInternal().Count;
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
+    private Task OnNotificationsCleared()
+    {
+        _totalNotifications = 0;
+        InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
+    }
+
     void IDisposable.Dispose()
     {
+        NotificationService.NotificationReceived -= OnNotificationChanged;
+        NotificationService.NotificationsCleared -= OnNotificationsCleared;
     }
 
     private async Task OnClick(int index, TabStripItem item)

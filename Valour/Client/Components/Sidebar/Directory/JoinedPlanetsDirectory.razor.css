@@ -68,16 +68,16 @@
 .planet-row .right .unread-badge {
     background-color: var(--strong-tint);
     border-radius: 8px 0 0 8px;
-    height: 13px;
+    height: 16px;
     min-width: 8px;
     transition: min-width 0.2s ease-in-out;
-    display: flex;
-    flex-direction: row;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
 }
 
 .planet-row:hover .right .unread-badge {
-    min-width: 14px;
+    min-width: 16px;
 }
 
 .planet-row .right .unread-badge.notification {
@@ -86,9 +86,10 @@
 
 .unread-badge span {
     font-size: 10px;
-    padding: 0;
-    margin-left: 3px;
-    margin-right: 2px;
+    font-weight: bold;
+    color: white;
+    padding: 0 4px;
+    line-height: 1;
 }
 
 .planet-row .right .edit {

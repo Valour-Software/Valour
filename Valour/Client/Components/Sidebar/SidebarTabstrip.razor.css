@@ -24,6 +24,33 @@
     border-bottom: 4px solid var(--main-5);
 }
 
+.tabstrip .icon-holder {
+    position: relative;
+    display: inline-block;
+}
+
+.tabstrip .icon-holder .notif-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--p-red);
+    border-radius: 8px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    z-index: 1;
+}
+
+.tabstrip .icon-holder .notif-badge span {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    line-height: 1;
+}
+
 .tabstrip .icon {
     height: 12px;
     margin: 4px;
