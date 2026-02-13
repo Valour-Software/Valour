@@ -4,6 +4,14 @@
     max-width: 100%;
     justify-content: space-between;
     word-break: initial;
+    padding: 2px;
+    border-radius: var(--main-radius);
+    transition: background 0.15s ease;
+    cursor: pointer;
+}
+
+.user-info:hover {
+    background: var(--main-4);
 }
 
 .left-block {
@@ -11,10 +19,6 @@
     flex-direction: row;
     align-items: center;
     position: relative;
-}
-
-.avatar-holder {
-    
 }
 
 .avatar {
@@ -34,7 +38,7 @@
 .state-circle {
     width: 12px;
     height: 12px;
-    background: #05FF00;
+    background: #4ade80;
     border-radius: 50%;
     position: absolute;
     left: 22px;
@@ -57,19 +61,19 @@
 }
 
 .state-circle.online {
-    background: #05FF00;
+    background: #4ade80;
 }
 
 .state-circle.away {
-    background: #F0E62E;
+    background: #facc15;
 }
 
 .state-circle.do-not-disturb {
-    background: #F21F1F;
+    background: var(--p-red);
 }
 
 .state-circle.offline {
-    background: #B3B3B3;
+    background: var(--font-alt-color);
 }
 
 .name-status {
@@ -96,23 +100,6 @@
 
 .username:hover {
     text-decoration: underline;
-}
-
-.user-info:hover .tag {
-    opacity: 1;
-    width: auto;
-}
-
-.tag {
-    color: #c8c8c8;
-    font-family: Ubuntu, sans-serif;
-    display: inline-block;
-    width: 0;
-    font-size: 14px;
-    font-weight: 400;
-    margin: 0;
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
 }
 
 .user-badge {

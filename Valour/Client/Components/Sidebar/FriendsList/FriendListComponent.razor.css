@@ -11,12 +11,30 @@
     overflow-anchor: none;
     background-color: var(--main-3);
     border-radius: var(--main-radius);
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+    gap: 4px;
 }
 
 .friend-container .list::-webkit-scrollbar {
     display: none;
 }
 
-.friend-search {
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    gap: 8px;
+}
 
+.empty-state i {
+    font-size: 40px;
+    opacity: 0.4;
+}
+
+.empty-state span {
+    opacity: 0.6;
 }

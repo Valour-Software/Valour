@@ -6,9 +6,26 @@
 
     <input @oninput="@OnFilterInput" type="text" placeholder="Search..." class="form-control mb-2 v-bg-medium friend-search" />
     <div class="list">
-        <Virtualize Items="@_renderFriends">
-            <UserInfoComponent User="@context" @key="@context.Id" />
-        </Virtualize>
+        @if (_renderFriends.Count == 0)
+        {
+            <div class="empty-state">
+                @if (string.IsNullOrWhiteSpace(_filterText))
+                {
+                    <i class="bi bi-people"></i>
+                    <span>No friends yet</span>
+                }
+                else
+                {
+                    <span>No results</span>
+                }
+            </div>
+        }
+        else
+        {
+            <Virtualize Items="@_renderFriends">
+                <UserInfoComponent User="@context" @key="@context.Id" />
+            </Virtualize>
+        }
     </div>
 </div>
 
