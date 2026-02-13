@@ -1,4 +1,4 @@
-﻿.notifications-container {
+.notifications-container {
     padding: 1em;
     padding-top: 0;
     display: flex;
@@ -11,6 +11,10 @@
     flex-direction: column-reverse;
     max-height: 100%;
     overflow-y: auto;
+    background: var(--main-3);
+    border-radius: var(--main-radius);
+    padding: 4px;
+    gap: 4px;
 }
 
 .clear-wrapper {
@@ -21,4 +25,25 @@
     margin-top: 10px;
     margin-left: auto;
     margin-right: auto;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    gap: 8px;
+}
+
+.empty-state i {
+    font-size: 40px;
+    color: var(--font-alt-color);
+    opacity: 0.4;
+}
+
+.empty-state span {
+    font-size: 14px;
+    color: var(--font-alt-color);
+    opacity: 0.6;
 }

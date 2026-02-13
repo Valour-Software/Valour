@@ -34,7 +34,7 @@ public class MultiAuthService
             return TaskResult<CreateAppMultiAuthResponse>.FromFailure("User already has an app multi auth");
 
         // Generate a cryptographically secure random key
-        byte[] keyBytes = new byte[6];
+        byte[] keyBytes = new byte[20];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(keyBytes);
         var key = Convert.ToBase64String(keyBytes);

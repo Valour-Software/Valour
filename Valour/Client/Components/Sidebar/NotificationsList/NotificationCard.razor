@@ -1,18 +1,17 @@
 @inject NotificationService NotificationService
 
 <div class="notification" @key="@Notification.Id">
-    <div class="title-bar">
+    <div class="top-row">
         <img alt="Notification icon" class="image" src="@_imageUrl" @onerror="@OnImageError" />
-        <p class="title">@Notification.Title</p>
+        <div class="title-content">
+            <p class="title">@Notification.Title</p>
+            <span class="time">@GetRelativeTime()</span>
+        </div>
     </div>
     <p class="body">@Notification.Body</p>
     <div class="button-holder">
-        <button @onclick="@OnClickClear">
-            <img alt="Trash can" src="_content/Valour.Client/media/Trash-Can-Icon.svg"/>
-        </button>
-        <button @onclick="@OnClickView">
-            <img alt="Channel" src="_content/Valour.Client/media/Eye-Icon.svg"/>
-        </button>
+        <button @onclick="@OnClickView" title="View"><i class="bi bi-arrow-right-short"></i> View</button>
+        <button class="danger" @onclick="@OnClickClear" title="Dismiss"><i class="bi bi-x-lg"></i> Dismiss</button>
     </div>
 </div>
 
@@ -21,7 +20,7 @@
     public Notification Notification { get; set; }
 
     private string _imageUrl;
-    
+
     protected override void OnInitialized()
     {
         if (string.IsNullOrWhiteSpace(Notification.ImageUrl))
@@ -33,12 +32,36 @@
             _imageUrl = Notification.ImageUrl;
         }
     }
-    
+
+    private string GetRelativeTime()
+    {
+        var span = DateTime.UtcNow - Notification.TimeSent;
+
+        if (span.TotalMinutes < 1) return "Just now";
+        if (span.TotalMinutes < 60)
+        {
+            var mins = (int)span.TotalMinutes;
+            return mins == 1 ? "1 min ago" : $"{mins} mins ago";
+        }
+        if (span.TotalHours < 24)
+        {
+            var hours = (int)span.TotalHours;
+            return hours == 1 ? "1 hour ago" : $"{hours} hours ago";
+        }
+        if (span.TotalDays < 30)
+        {
+            var days = (int)span.TotalDays;
+            return days == 1 ? "1 day ago" : $"{days} days ago";
+        }
+        var months = (int)(span.TotalDays / 30);
+        return months == 1 ? "1 month ago" : $"{months} months ago";
+    }
+
     private async Task OnClickView()
     {
         await NotificationNavigator.NavigateTo(Notification);
     }
-    
+
     private async Task OnClickClear()
     {
         await NotificationService.MarkNotificationRead(Notification, true);

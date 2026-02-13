@@ -1,24 +1,34 @@
-﻿@implements IDisposable
+@implements IDisposable
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
 
 <div class="notifications-container">
     <p class="subtitle mb-2">Notifications</p>
     <div class="v-gradient-underline"></div>
-    <!-- This wrapper flips the order. Why? Because we sent the notifications in reverse order. Why? -->
-    <!-- Because adding new items to the end of a list is a lot faster than inserting to the start. -->
-    <div class="item-wrapper">
-        <Virtualize TItem="Notification" Items="@NotificationService.GetUnreadInternal()">
-            <NotificationCard @key="@context.Id" Notification="@context"/>
-        </Virtualize>
-    </div>
-    <div style="flex-grow: 1; height: 0"></div>
-    <div class="clear-wrapper">
-        <button class="v-btn clear-btn" @onclick="OnClickClearNotifications">Clear All</button>
-    </div>
+    @if (NotificationService.GetUnreadInternal().Count > 0)
+    {
+        <!-- This wrapper flips the order. Why? Because we sent the notifications in reverse order. Why? -->
+        <!-- Because adding new items to the end of a list is a lot faster than inserting to the start. -->
+        <div class="item-wrapper">
+            <Virtualize TItem="Notification" Items="@NotificationService.GetUnreadInternal()">
+                <NotificationCard @key="@context.Id" Notification="@context"/>
+            </Virtualize>
+        </div>
+        <div style="flex-grow: 1; height: 0"></div>
+        <div class="clear-wrapper">
+            <button class="v-btn danger clear-btn" @onclick="OnClickClearNotifications">Clear All</button>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="bi bi-bell"></i>
+            <span>No notifications</span>
+        </div>
+    }
 </div>
 @code {
-    
+
     protected override void OnInitialized()
     {
         NotificationService.NotificationReceived += HandleNotificationReceived;
@@ -30,7 +40,7 @@
         NotificationService.NotificationReceived -= HandleNotificationReceived;
         NotificationService.NotificationsCleared -= HandleNotificationsCleared;
     }
-    
+
     private async Task OnClickClearNotifications()
     {
         await NotificationService.ClearNotificationsAsync();

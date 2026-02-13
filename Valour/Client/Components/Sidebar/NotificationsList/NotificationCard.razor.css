@@ -1,65 +1,92 @@
 .notification {
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--main-5);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--main-3);
+    border-radius: var(--main-radius);
+    padding: 8px;
+    transition: background 0.15s ease;
 }
 
-.notification .title-bar {
+.notification:hover {
+    background: var(--main-4);
+}
+
+.top-row {
     display: flex;
     align-items: center;
+    gap: 8px;
+    min-width: 0;
 }
 
-.notification .image {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    margin: 6px;
+.image {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    object-fit: cover;
 }
 
-.notification .title {
-    font-family: Ubuntu, sans-serif;
-    font-style: normal;
-    font-size: 14px;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    margin: 0;
-    vertical-align: top;
-}
-
-.notification .body {
-    font-size: 12px;
-    color: #7A7A7A;
-    margin: 0;
-    margin-left: 6px;
-}
-
-.notification .button-holder {
+.title-content {
     display: flex;
-    justify-content: space-evenly;
-    padding-top: 0;
-    height: 0;
-    overflow-y: hidden;
-    /* transition: height 0.1s ease-in-out, padding-top 0.1s ease-in-out; */
+    flex-direction: column;
+    min-width: 0;
 }
 
-.notification:hover .button-holder {
-    padding-top: 8px;
-    height: 30px;
+.title {
+    font-size: 13px;
+    color: white;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.notification .button-holder button {
-    padding: 0px;
-    background-color: transparent;
+.time {
+    font-size: 11px;
+    color: var(--font-alt-color);
+}
+
+.body {
+    font-size: 12px;
+    color: var(--font-alt-color);
+    margin: 0;
+    padding-top: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+.button-holder {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.button-holder button {
+    height: 26px;
+    padding: 0 8px;
+    border-radius: var(--small-radius);
+    background: transparent;
     border: none;
     outline: none;
-    width: 50%;
-    height: 22px;
-    border-radius: 6px;
+    color: var(--font-alt-color);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    font-size: 12px;
 }
 
-.notification .button-holder button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+.button-holder button:hover {
+    background: var(--medium-tint);
+    color: white;
 }
 
-.notification .button-holder button img {
-    width: 18px
+.button-holder button.danger:hover {
+    background: rgba(var(--p-red-rgb), 0.2);
+    color: var(--p-red);
 }
