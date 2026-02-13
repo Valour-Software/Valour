@@ -103,11 +103,20 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
             channel.checkBottomSticky();
         },
         
-        scrollToMessage(elementId: string){
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            }
+        scrollToMessage(elementId: string, highlight: boolean){
+            // Wait for layout, then instant-scroll, then trigger highlight animation.
+            requestAnimationFrame(() => {
+                const el = document.getElementById(elementId);
+                if (!el) return;
+                el.scrollIntoView({ block: 'center', behavior: 'instant' });
+                if (highlight) {
+                    // Force animation restart by removing and re-adding the class
+                    el.classList.remove('highlighted');
+                    void el.offsetWidth; // trigger reflow
+                    el.classList.add('highlighted');
+                    setTimeout(() => el.classList.remove('highlighted'), 3000);
+                }
+            });
         },
 
         hookEvents(){

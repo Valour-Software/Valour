@@ -451,9 +451,6 @@ else
         if (_message.ReplyTo is not null)
             newClass += " hasreply";
 
-        if (_chat is not null && _chat.HighlightedMessageId == _message.Id)
-            newClass += " highlighted";
-
         _class = newClass;
     }
 

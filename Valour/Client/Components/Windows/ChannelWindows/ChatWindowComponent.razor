@@ -197,11 +197,6 @@ else
     private bool _loadingForward = false;
 
     /// <summary>
-    /// The message ID to highlight (e.g. from notification navigation). 0 = none.
-    /// </summary>
-    public long HighlightedMessageId { get; set; }
-
-    /// <summary>
     /// When true, suppresses auto-scroll behaviors (ShiftScrollPosition, ScrollToBottom)
     /// so that LoadAroundMessageAsync / ScrollToMessage isn't fought by loading messages.
     /// </summary>
@@ -593,7 +588,6 @@ else
         ClearMessages(false);
         _isCaughtUp = false;
         _loadingForward = false;
-        HighlightedMessageId = messageId;
         SuppressAutoScroll = true;
 
         // Fetch messages up to and including the target (Id < messageId+1 gets Id <= messageId)
@@ -611,7 +605,6 @@ else
         {
             // Target not found — fall back to recent messages
             _isCaughtUp = true;
-            HighlightedMessageId = 0;
             SuppressAutoScroll = false;
             await LoadRecentMessages(64);
             return;
@@ -625,29 +618,21 @@ else
 
         ReRender();
 
-        // Scroll to the target message after render
-        await ScrollToMessage(messageId);
+        // Scroll to the target message and trigger highlight animation.
+        // Uses instant scroll so it can't be interrupted by DOM changes.
+        // The highlight class is added/removed by JS after scrolling.
+        await ScrollToMessage(messageId, highlight: true);
 
         // Keep suppressing auto-scroll while messages finish loading
         // (avatars, embeds, etc. trigger ShiftScrollPosition which would
         // fight our position). Release after content has settled.
         _ = ReleaseSuppressAfterDelay();
-
-        // Auto-clear highlight after a delay
-        _ = ClearHighlightAfterDelay();
     }
 
     private async Task ReleaseSuppressAfterDelay()
     {
         await Task.Delay(1500);
         SuppressAutoScroll = false;
-    }
-
-    private async Task ClearHighlightAfterDelay()
-    {
-        await Task.Delay(3000);
-        HighlightedMessageId = 0;
-        await InvokeAsync(ReRender);
     }
 
     public async Task AddQueuedMessage(Message message)
@@ -868,7 +853,7 @@ else
         return _jsService.InvokeVoidAsync("shiftScrollPosition", amount);
     }
 
-    public ValueTask ScrollToMessage(long messageId) => _jsService.InvokeVoidAsync("scrollToMessage", $"m-{Channel.Id}-{messageId}");
+    public ValueTask ScrollToMessage(long messageId, bool highlight = false) => _jsService.InvokeVoidAsync("scrollToMessage", $"m-{Channel.Id}-{messageId}", highlight);
 
     [JSInvokable("OnScrollBottomInvoke")]
     public async Task OnScrollBottom()
