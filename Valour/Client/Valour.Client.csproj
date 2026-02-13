@@ -22,7 +22,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NUglify" Version="1.21.15" GeneratePathProperty="true" />
+
     <PackageReference Include="Valour.Markdig.Blazor" Version="1.2.0" />
     <PackageReference Include="Valour.TenorTwo" Version="1.0.2" />
   </ItemGroup>
@@ -68,145 +68,18 @@
   </Target>
   -->
 
-  <!-- Build-time CSS bundling: concatenates global + scoped CSS files and minifies into bundled.min.css -->
-  <UsingTask TaskName="BundleCssFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <InputFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
-      <ScopedCssAggregator ParameterType="System.String" Required="true" />
-      <SearchPaths ParameterType="System.String" Required="true" />
-      <OutputFile ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Reference Include="$(PkgNUglify)/lib/netstandard2.0/NUglify.dll" />
-      <Using Namespace="NUglify" />
-      <Using Namespace="NUglify.Css" />
-      <Code Type="Fragment" Language="cs"><![CDATA[
-var sb = new System.Text.StringBuilder();
-
-// 1. Append global CSS files
-foreach (var item in InputFiles)
-{
-    var path = item.ItemSpec;
-    if (!System.IO.File.Exists(path))
-    {
-        Log.LogWarning("CSS bundle: file not found: " + path);
-        continue;
-    }
-    sb.Append(System.IO.File.ReadAllText(path));
-    sb.Append('\n');
-}
-
-// 2. Append scoped CSS: read the aggregator file and resolve @import lines
-if (System.IO.File.Exists(ScopedCssAggregator))
-{
-    var roots = SearchPaths.Split(';');
-    var importRegex = new System.Text.RegularExpressions.Regex(@"@import\s+['""](.+?)['""]\s*;");
-    foreach (var line in System.IO.File.ReadLines(ScopedCssAggregator))
-    {
-        var match = importRegex.Match(line);
-        if (match.Success)
-        {
-            var importPath = match.Groups[1].Value.TrimStart('/');
-            var fileName = System.IO.Path.GetFileName(importPath);
-            bool found = false;
-            foreach (var root in roots)
-            {
-                var trimmed = root.Trim();
-                if (string.IsNullOrEmpty(trimmed)) continue;
-                // Try direct path join first
-                var candidate = System.IO.Path.Combine(trimmed, importPath);
-                if (System.IO.File.Exists(candidate))
-                {
-                    Log.LogMessage(MessageImportance.High, "CSS bundle: resolved import " + importPath);
-                    sb.Append(System.IO.File.ReadAllText(candidate));
-                    sb.Append('\n');
-                    found = true;
-                    break;
-                }
-                // For _content/PackageName/file.css imports, search NuGet package staticwebassets
-                if (importPath.StartsWith("_content/") && System.IO.Directory.Exists(trimmed))
-                {
-                    var parts = importPath.Split('/');
-                    if (parts.Length >= 3)
-                    {
-                        var pkgName = parts[1].ToLowerInvariant();
-                        var pkgDir = System.IO.Path.Combine(trimmed, pkgName);
-                        if (System.IO.Directory.Exists(pkgDir))
-                        {
-                            var matches = System.IO.Directory.GetFiles(pkgDir, fileName, System.IO.SearchOption.AllDirectories);
-                            if (matches.Length > 0)
-                            {
-                                Log.LogMessage(MessageImportance.High, "CSS bundle: resolved import " + importPath + " -> " + matches[0]);
-                                sb.Append(System.IO.File.ReadAllText(matches[0]));
-                                sb.Append('\n');
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            if (!found)
-                Log.LogWarning("CSS bundle: could not resolve import: " + importPath);
-        }
-        else
-        {
-            sb.AppendLine(line);
-        }
-    }
-}
-else
-{
-    Log.LogWarning("CSS bundle: scoped CSS aggregator not found: " + ScopedCssAggregator);
-}
-
-// 3. Minify with NUglify (same settings as old BlazorCssBundleService)
-var cssSettings = new CssSettings
-{
-    CommentMode = CssComment.None,
-    OutputMode = OutputMode.SingleLine,
-    ColorNames = CssColor.Hex,
-    Indent = string.Empty,
-    TermSemicolons = true,
-    RemoveEmptyBlocks = true,
-    DecodeEscapes = true,
-    MinifyExpressions = true,
-};
-
-var combined = sb.ToString();
-var minified = Uglify.Css(combined, cssSettings);
-
-if (minified.HasErrors)
-{
-    foreach (var error in minified.Errors)
-        Log.LogWarning("CSS minification error: " + error);
-}
-
-var css = minified.Code ?? combined;
-System.IO.File.WriteAllText(OutputFile, css);
-Log.LogMessage(MessageImportance.High,
-    "CSS bundle generated: " + OutputFile + " (" + css.Length + " bytes, from " + combined.Length + " combined)");
-      ]]></Code>
-    </Task>
-  </UsingTask>
-
+  <!-- Build-time CSS bundling: concatenates global + scoped CSS files and minifies with NUglify -->
   <Target Name="GenerateCssBundle"
           DependsOnTargets="BundleScopedCssFiles"
           BeforeTargets="ResolveProjectStaticWebAssets">
-    <ItemGroup>
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/reboot.min.css" />
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/app.css" />
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/globals.css" />
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/bootstrap-icons.css" />
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/hljs-theme.min.css" />
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/pickr.min.css" />
-      <CssBundleInput Include="$(MSBuildProjectDirectory)/wwwroot/css/driver.min.css" />
-    </ItemGroup>
-    <BundleCssFiles
-      InputFiles="@(CssBundleInput)"
-      ScopedCssAggregator="$(IntermediateOutputPath)scopedcss/bundle/Valour.Client.styles.css"
-      SearchPaths="$(NuGetPackageRoot);$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/scopedcss/"
-      OutputFile="$(MSBuildProjectDirectory)/wwwroot/css/bundled.min.css" />
+    <PropertyGroup>
+      <_CssBundlerProject>$(MSBuildProjectDirectory)/../BuildTools/CssBundler/CssBundler.csproj</_CssBundlerProject>
+      <_CssBundleInputs>$(MSBuildProjectDirectory)/wwwroot/css/reboot.min.css;$(MSBuildProjectDirectory)/wwwroot/css/app.css;$(MSBuildProjectDirectory)/wwwroot/css/globals.css;$(MSBuildProjectDirectory)/wwwroot/css/bootstrap-icons.css;$(MSBuildProjectDirectory)/wwwroot/css/hljs-theme.min.css;$(MSBuildProjectDirectory)/wwwroot/css/pickr.min.css;$(MSBuildProjectDirectory)/wwwroot/css/driver.min.css</_CssBundleInputs>
+      <_ScopedCssAggregator>$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/scopedcss/bundle/Valour.Client.styles.css</_ScopedCssAggregator>
+      <_CssBundleSearchPaths>$(NuGetPackageRoot);$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/scopedcss/</_CssBundleSearchPaths>
+      <_CssBundleOutput>$(MSBuildProjectDirectory)/wwwroot/css/bundled.min.css</_CssBundleOutput>
+    </PropertyGroup>
+    <Exec Command="dotnet run --project &quot;$(_CssBundlerProject)&quot; -- &quot;$(_CssBundleInputs)&quot; &quot;$(_ScopedCssAggregator)&quot; &quot;$(_CssBundleSearchPaths)&quot; &quot;$(_CssBundleOutput)&quot;" />
   </Target>
 
 </Project>

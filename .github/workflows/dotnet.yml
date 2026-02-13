@@ -82,7 +82,7 @@ jobs:
         regex: '\$\(SHORTHASH\)'
         replacement: '${{ steps.short-sha.outputs.short_sha }}'
         flags: "g"
-        include: '.*'
+        include: '\.(js|cs|razor|cshtml|html)$'
         exclude: '.^'
         encoding: 'utf8'
         path: '.'
