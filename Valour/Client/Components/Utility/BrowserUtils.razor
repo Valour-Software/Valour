@@ -22,6 +22,7 @@
     protected override void OnInitialized()
     {
         _dotnetRef = DotNetObjectReference.Create(this);
+        AppLifecycle.Resumed += OnRefocus;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -122,6 +123,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        AppLifecycle.Resumed -= OnRefocus;
         _dotnetRef.Dispose();
         await _jsModule.DisposeAsync();
     }

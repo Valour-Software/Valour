@@ -78,6 +78,8 @@ public class MauiPushNotificationService : IPushNotificationService
                 };
             }
 
+            Preferences.Set("push_subscribed", true);
+
             return new PushSubscriptionResult
             {
                 Success = true,
@@ -118,6 +120,8 @@ public class MauiPushNotificationService : IPushNotificationService
 
                 await _client.PrimaryNode.PostAsync("api/notifications/unsubscribe", pushNotificationSubscription);
             }
+
+            Preferences.Set("push_subscribed", false);
         }
         catch (Exception)
         {
@@ -161,10 +165,9 @@ public class MauiPushNotificationService : IPushNotificationService
         }
     }
 
-    public async Task<bool> IsNotificationsEnabledAsync()
+    public Task<bool> IsNotificationsEnabledAsync()
     {
-        var state = await GetPermissionStateAsync();
-        return state == "granted";
+        return Task.FromResult(Preferences.Get("push_subscribed", false));
     }
 
     public async Task<string> GetPermissionStateAsync()

@@ -33,6 +33,12 @@ public class MainActivity : MauiAppCompatActivity
         }
     }
 
+    protected override void OnResume()
+    {
+        base.OnResume();
+        AppLifecycle.NotifyResumed();
+    }
+
     private void CreateNotificationChannel()
     {
         if (Build.VERSION.SdkInt < BuildVersionCodes.O)
