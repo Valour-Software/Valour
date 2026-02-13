@@ -98,6 +98,20 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     private PlanetMember() : base() {}
     public PlanetMember(ValourClient client) : base(client) { }
     
+    protected override void OnUpdated(ModelUpdatedEvent<PlanetMember> eventData)
+    {
+        if (eventData.Changes is null || !eventData.Changes.On(x => x.RoleMembership))
+            return;
+
+        // When our own role membership changes, channel access may change.
+        // Trigger an access-refetch so the sidebar reflects current permissions.
+        if (Planet.MyMember?.Id == Id)
+        {
+            Planet.SetMyMember(this);
+            Planet.QueueChannelAccessRefresh();
+        }
+    }
+
     protected override void OnDeleted()
     {
     }

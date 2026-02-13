@@ -343,8 +343,20 @@ public class ChannelService
     /// Returns if the given category id is the last remaining category
     /// in its planet (used to prevent deletion of the last category)
     /// </summary>
-    public async Task<bool> IsLastCategory(long categoryId) =>
-        await _db.Channels.CountAsync(x => x.PlanetId == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
+    public async Task<bool> IsLastCategory(long categoryId)
+    {
+        var category = await _db.Channels
+            .Where(x => x.Id == categoryId && x.ChannelType == ChannelTypeEnum.PlanetCategory)
+            .Select(x => new { x.PlanetId })
+            .FirstOrDefaultAsync();
+
+        if (category?.PlanetId is null)
+            return false;
+
+        return await _db.Channels.CountAsync(x =>
+            x.PlanetId == category.PlanetId &&
+            x.ChannelType == ChannelTypeEnum.PlanetCategory) < 2;
+    }
     
     public async Task<bool> HasAccessAsync(Channel channel, long userId)
     {

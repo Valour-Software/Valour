@@ -155,7 +155,7 @@ public class PermissionsNodeApi
             }
         }  
 
-        if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
+        if (role.GetAuthority() >= await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("The target node's role has higher authority than you.");
 
         if (await permissionsNodeService.GetAsync(node.TargetId, node.RoleId, node.TargetType) is not null)

@@ -96,7 +96,9 @@
     
     private void DetermineRootChannels()
     {
-        RootChannels = Planet.Channels.Where(x => (x.RawPosition & 0x00FFFFFF) == 0).ToList();
+        RootChannels = Planet.Channels
+            .Where(x => x.ParentId is null || !Planet.Channels.ContainsId(x.ParentId.Value))
+            .ToList();
     }
 
     private void OnChannelsChanged(IModelEvent<Channel> eventData)

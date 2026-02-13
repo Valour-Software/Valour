@@ -546,6 +546,83 @@ public class PlanetPermissionsServiceTests : IClassFixture<WebApplicationFactory
     }
 
     [Fact]
+    public async Task MemberChannelAccessIncludesAncestorCategories()
+    {
+        var planet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);
+        Assert.NotNull(planet);
+
+        var member = await _planetMemberService.GetByUserAsync(_client.Me.Id, planet.Id);
+        Assert.NotNull(member);
+
+        var memberRoles = await _planetMemberService.GetRolesAsync(member);
+        Assert.NotEmpty(memberRoles);
+
+        Channel? category = null;
+        Channel? child = null;
+        try
+        {
+            var createCategoryResult = await _channelService.CreateAsync(new Channel()
+            {
+                Name = $"ancestor-cat-{Guid.NewGuid():N}".Substring(0, 24),
+                PlanetId = planet.Id,
+                ParentId = null,
+                ChannelType = ChannelTypeEnum.PlanetCategory,
+                Description = "Ancestor access test category",
+                InheritsPerms = false,
+                RawPosition = 0
+            });
+
+            Assert.True(createCategoryResult.Success, createCategoryResult.Message);
+            Assert.NotNull(createCategoryResult.Data);
+            category = createCategoryResult.Data;
+
+            // Deny category visibility for all roles this member currently has.
+            foreach (var role in memberRoles)
+            {
+                var denyCategoryNodeResult = await _nodeService.CreateAsync(new PermissionsNode()
+                {
+                    PlanetId = planet.Id,
+                    RoleId = role.Id,
+                    TargetId = category.Id,
+                    TargetType = ChannelTypeEnum.PlanetCategory,
+                    Mask = Permission.FULL_CONTROL,
+                    Code = 0
+                });
+                Assert.True(denyCategoryNodeResult.Success, denyCategoryNodeResult.Message);
+            }
+
+            var createChildResult = await _channelService.CreateAsync(new Channel()
+            {
+                Name = $"ancestor-child-{Guid.NewGuid():N}".Substring(0, 24),
+                PlanetId = planet.Id,
+                ParentId = category.Id,
+                ChannelType = ChannelTypeEnum.PlanetChat,
+                Description = "Ancestor access test channel",
+                InheritsPerms = false,
+                RawPosition = 0
+            });
+
+            Assert.True(createChildResult.Success, createChildResult.Message);
+            Assert.NotNull(createChildResult.Data);
+            child = createChildResult.Data;
+
+            var access = await _planetService.GetMemberChannelsAsync(member.Id);
+            Assert.NotNull(access);
+            Assert.True(access.Contains(child.Id), "Child channel should still be visible.");
+            Assert.True(access.Contains(category.Id),
+                "Visible child channels should include ancestor categories so the sidebar can render.");
+        }
+        finally
+        {
+            if (child is not null)
+                await _channelService.DeletePlanetChannelAsync(planet.Id, child.Id);
+
+            if (category is not null)
+                await _channelService.DeletePlanetChannelAsync(planet.Id, category.Id);
+        }
+    }
+
+    [Fact]
     public async Task ChannelAccessCacheRemainsIsolatedAcrossPlanets()
     {
         var primaryPlanet = await _planetService.GetAsync(ISharedPlanet.ValourCentralId);

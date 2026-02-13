@@ -344,11 +344,13 @@ public class PlanetPermissionService
         // Sort roles by position ascending (lower position = higher authority = first)
         roles.Sort(ISortable.Comparer);
         var access = hostedPlanet.PermissionCache.GetEmptyAccessList();
+        var accessIds = new HashSet<long>();
         foreach (var channel in allChannels.List)
         {
             if (channel.IsDefault)
             {
-                access.Add(channel);
+                if (accessIds.Add(channel.Id))
+                    access.Add(channel);
                 continue;
             }
 
@@ -400,8 +402,30 @@ public class PlanetPermissionService
                 _ => throw new Exception("Invalid channel type!")
             };
 
-            if (Permission.HasPermission(perms.Value, ChannelPermissions.View))
+            if (Permission.HasPermission(perms.Value, ChannelPermissions.View) && accessIds.Add(channel.Id))
                 access.Add(channel);
+        }
+
+        // Ensure tree renderability: if a nested channel is visible, include its
+        // ancestors so clients can build the directory hierarchy from roots down.
+        if (access.Count > 0)
+        {
+            var visibleChannels = access.ToArray();
+            foreach (var channel in visibleChannels)
+            {
+                var parentId = channel.ParentId;
+                while (parentId is not null)
+                {
+                    var parent = hostedPlanet.GetChannel(parentId.Value);
+                    if (parent is null)
+                        break;
+
+                    if (accessIds.Add(parent.Id))
+                        access.Add(parent);
+
+                    parentId = parent.ParentId;
+                }
+            }
         }
 
         RoleListPool.Return(roles);
