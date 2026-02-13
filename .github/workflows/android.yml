@@ -78,8 +78,8 @@ jobs:
         dotnet restore Valour/BuildTools/CssBundler/CssBundler.csproj
         dotnet restore Valour/Client.Maui/Valour.Client.Maui.csproj -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
 
-    - name: Build CSS bundle
-      run: dotnet build Valour/Client/Valour.Client.csproj -c Release -t:Restore,BundleScopedCssFiles,GenerateCssBundle
+    - name: Build Client (generates CSS bundle)
+      run: dotnet build Valour/Client/Valour.Client.csproj -c Release
 
     - name: Build APK
       run: >
