@@ -247,12 +247,6 @@ else
         WindowCtx.Tab.OnStartFloating += OnStartFloating;
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (TutorialComponent.Instance is not null)
-            await TutorialComponent.Instance.ShowChatTutorial();
-    }
-
     private async Task OnReactionSelectedAsync(EmojiClickEvent e)
     {
         // toggle visible

@@ -1022,30 +1022,8 @@ public class UserService
 
         return tag;
     }
-    
-    public async Task<TaskResult> SetTutorialStepFinishedAsync(long userId, int id, bool value)
-    {
-        var user = await _db.Users.FindAsync(userId);
-        if (user is null)
-            return TaskResult.FromFailure("User not found.");
 
-        // Tutorial steps are represented by a bitmask
-        // We need to set the bit at the given index to 1
-        // Example: if id = 3, we need to set the 3rd bit to 1
-        if (value)
-        {
-            user.TutorialState |= (uint)(1 << id);
-        }
-        else
-        {
-            user.TutorialState &= (uint)~(1 << id);
-        }
 
-        await _db.SaveChangesAsync();
-
-        return TaskResult.SuccessResult;
-    }
-    
     // TODO: Prevent the one in 1.6 million chance that you will get the tag F***, along with other 'bad words'
     // Just passed by this and realized the chances are far higher when accounting for similar-looking characters
     private string GenerateRandomTag()

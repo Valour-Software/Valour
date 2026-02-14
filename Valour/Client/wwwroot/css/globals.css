@@ -1046,18 +1046,6 @@ td .button-row button {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Tutorial */
-
-.driver-popover.tutorial-popover {
-    background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 100%);
-    color: var(--font-color);
-    border: 2px solid var(--p-cyan);
-    box-shadow:
-        0 10px 40px rgba(0, 0, 0, 0.4),
-        0 0 20px rgba(55, 164, 206, 0.2);
-    border-radius: var(--card-radius);
-}
-
 /* Nebula Background */
 
 @keyframes stars-move-1 {

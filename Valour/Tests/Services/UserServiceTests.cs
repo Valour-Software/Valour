@@ -78,17 +78,6 @@ public class UserServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SetTutorialStepFinished_SetsBit()
-    {
-        var me = _client.Me;
-        var before = (await _db.Users.FindAsync(me.Id)).TutorialState;
-        var result = await _userService.SetTutorialStepFinishedAsync(me.Id, 2, true);
-        Assert.True(result.Success);
-        var after = (await _db.Users.FindAsync(me.Id)).TutorialState;
-        Assert.Equal(before | (1u << 2), after);
-    }
-
-    [Fact]
     public void GetYearsOld_CalculatesCorrectly()
     {
         var birthday = DateTime.Today.AddYears(-20).AddDays(-1);
