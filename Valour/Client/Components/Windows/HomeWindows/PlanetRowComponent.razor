@@ -49,8 +49,29 @@
     [Parameter]
     public WindowContent WindowCtx { get; set; }
 
+    /// <summary>
+    /// When set, subscribes to OnRerenderPlanetCards for self-managed unread state.
+    /// </summary>
     [Parameter]
     public HomeWindowComponent HomeWindowComponent { get; set; }
+
+    /// <summary>
+    /// External unread state — used when HomeWindowComponent is null.
+    /// </summary>
+    [Parameter]
+    public bool IsUnread { get; set; }
+
+    /// <summary>
+    /// External notification count — used when HomeWindowComponent is null.
+    /// </summary>
+    [Parameter]
+    public int NotificationCount { get; set; }
+
+    /// <summary>
+    /// Custom click handler. If set, called instead of the default planet-open behavior.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClicked { get; set; }
 
     private const string DefaultImage = "_content/Valour.Client/media/logo-circle-icon.svg";
 
@@ -59,6 +80,7 @@
     private float _iconTextFontSize = 14f;
     private bool _isUnread;
     private int _notificationCount;
+    private bool _selfManaged;
 
     protected override void OnInitialized()
     {
@@ -73,8 +95,21 @@
             _iconTextFontSize = 36f / (_iconText.Length + 1);
         }
 
-        HomeWindowComponent.OnRerenderPlanetCards += Refresh;
-        NotificationService.NotificationReceived += OnNotification;
+        if (HomeWindowComponent is not null)
+        {
+            _selfManaged = true;
+            HomeWindowComponent.OnRerenderPlanetCards += Refresh;
+            NotificationService.NotificationReceived += OnNotification;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!_selfManaged)
+        {
+            _isUnread = IsUnread;
+            _notificationCount = NotificationCount;
+        }
     }
 
     private void OnNotification(Notification notification)
@@ -111,6 +146,12 @@
 
     private async Task OnClick()
     {
+        if (OnClicked.HasDelegate)
+        {
+            await OnClicked.InvokeAsync();
+            return;
+        }
+
         var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(Planet);
 
         if (newWindowContent is null)

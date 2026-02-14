@@ -18,85 +18,40 @@
 }
 
 .joined-planets .list::-webkit-scrollbar {
-    
+
 }
 
 .joined-planets .list::-webkit-scrollbar-track {
     border-radius: var(--main-radius);
 }
 
-.planet-row {
+/* Bottom pinned actions */
+.bottom-actions {
+    flex-shrink: 0;
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-content: center;
-    padding: 4px 0 4px 4px;
-    font-size: 14px;
+    gap: 4px;
+    padding: 8px 0 0;
 }
 
-.planet-row:hover {
-    cursor: pointer;
-    background-color: var(--main-4);
-}
-
-.planet-row .left {
+.bottom-actions .action-btn {
+    flex: 1;
     display: flex;
-    flex-direction: row;
-    justify-content: start;
-    align-items: center;
-    gap: 6px;
-    max-width: 90%;
-}
-
-.planet-row .left img {
-    width: 24px;
-    height: 24px;
-    border-radius: var(--small-radius);
-}
-
-.planet-row .left span {
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex-shrink: 1;
-}
-
-.planet-row .right {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-}
-
-.planet-row .right .unread-badge {
-    background-color: var(--strong-tint);
-    border-radius: 8px 0 0 8px;
-    height: 16px;
-    min-width: 8px;
-    transition: min-width 0.2s ease-in-out;
-    display: inline-flex;
     align-items: center;
     justify-content: center;
-}
-
-.planet-row:hover .right .unread-badge {
-    min-width: 16px;
-}
-
-.planet-row .right .unread-badge.notification {
-    background-color: var(--p-red);
-}
-
-.unread-badge span {
-    font-size: 10px;
-    font-weight: bold;
-    color: white;
-    padding: 0 4px;
-    line-height: 1;
-}
-
-.planet-row .right .edit {
+    gap: 8px;
+    padding: 8px 12px;
+    background: none;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--small-radius);
+    color: var(--font-alt-color);
+    font-size: 13px;
+    font-family: Ubuntu, sans-serif;
     cursor: pointer;
+    transition: all 0.15s ease;
 }
 
-
+.bottom-actions .action-btn:hover {
+    background-color: var(--main-4);
+    color: var(--font-color);
+    border-color: var(--medium-tint);
+}

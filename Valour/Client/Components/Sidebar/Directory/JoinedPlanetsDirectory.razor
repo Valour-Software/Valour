@@ -7,29 +7,19 @@
     <div class="list">
         @foreach (var joinedPlanet in _renderPlanets)
         {
-            <div class="directory" @onclick="@(async () => await OnPlanetClick(joinedPlanet.Planet))">
-                <div class="planet-row">
-                    <div class="left">
-                        <img alt="@joinedPlanet.Planet.Name Icon" src="@joinedPlanet.Planet.GetIconUrl(IconFormat.Webp64)"/>
-                        <span>@joinedPlanet.Planet.Name</span>
-                    </div>
-                    <div class="right">
-                        @if (joinedPlanet.Notifications > 0)
-                        {   
-                            <div class="unread-badge notification">
-                                <span>@joinedPlanet.Notifications</span>
-                            </div>
-                        } 
-                        else if (joinedPlanet.HasUnread)
-                        {
-                            <div class="unread-badge"></div>
-                        }
-                    </div>
-                </div>
-            </div>
+            <PlanetRowComponent @key='joinedPlanet.Planet.Id'
+                                Planet='joinedPlanet.Planet'
+                                IsUnread='joinedPlanet.HasUnread'
+                                NotificationCount='joinedPlanet.Notifications'
+                                OnClicked='new EventCallback(this, async () => await OnPlanetClick(joinedPlanet.Planet))' />
         }
     </div>
-    <button class="v-btn mt-2 v-bg-medium" @onclick="@OnClickExplore">Explore Planets</button>
+    <div class="bottom-actions">
+        <button class="action-btn" @onclick="@OnClickExplore">
+            <i class="bi bi-compass"></i>
+            <span>Discover Planets</span>
+        </button>
+    </div>
 </div>
 
 @code {

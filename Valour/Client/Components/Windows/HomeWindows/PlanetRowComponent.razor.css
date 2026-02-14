@@ -84,15 +84,15 @@
     background-color: var(--strong-tint);
     border-radius: 8px;
     height: 16px;
-    min-width: 8px;
+    min-width: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
 .planet-row .right .unread-badge.notification {
-    background-color: var(--v-purple);
-    min-width: 20px;
+    background-color: var(--p-red);
+    min-width: 16px;
     padding: 0 4px;
 }
 
