@@ -846,7 +846,11 @@
 
         // Queue ghost message BEFORE clearing the preview so both changes
         // are batched into the same render frame (no layout shift gap).
-        ChatComponent.QueuedMessages.Add(postMessage);
+        // Only for new messages — edits are already visible in the chat.
+        if (EditingMessageComponent is null)
+        {
+            ChatComponent.QueuedMessages.Add(postMessage);
+        }
 
         // New message for preview
         PreviewMessage = BuildNewMessage();
