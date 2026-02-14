@@ -16,8 +16,7 @@ public class MainActivity : MauiAppCompatActivity
         base.OnCreate(savedInstanceState);
 
         CreateNotificationChannel();
-        _ = RequestNotificationPermissionAsync();
-        _ = RequestMicrophonePermissionAsync();
+        _ = RequestPermissionsAsync();
 
         if (Window is null)
             return;
@@ -57,28 +56,21 @@ public class MainActivity : MauiAppCompatActivity
         manager?.CreateNotificationChannel(channel);
     }
 
-    private async Task RequestNotificationPermissionAsync()
+    private async Task RequestPermissionsAsync()
     {
-        if (!OperatingSystem.IsAndroidVersionAtLeast(33))
-            return;
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            var notifStatus = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+            if (notifStatus != PermissionStatus.Granted)
+                await Permissions.RequestAsync<Permissions.PostNotifications>();
+        }
 
-        var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
-        if (status == PermissionStatus.Granted)
-            return;
-
-        await Permissions.RequestAsync<Permissions.PostNotifications>();
-    }
-
-    private async Task RequestMicrophonePermissionAsync()
-    {
-        if (!OperatingSystem.IsAndroidVersionAtLeast(23))
-            return;
-
-        var status = await Permissions.CheckStatusAsync<Permissions.Microphone>();
-        if (status == PermissionStatus.Granted)
-            return;
-
-        await Permissions.RequestAsync<Permissions.Microphone>();
+        if (OperatingSystem.IsAndroidVersionAtLeast(23))
+        {
+            var micStatus = await Permissions.CheckStatusAsync<Permissions.Microphone>();
+            if (micStatus != PermissionStatus.Granted)
+                await Permissions.RequestAsync<Permissions.Microphone>();
+        }
     }
 
     private class SystemBarsPaddingListener : Java.Lang.Object, IOnApplyWindowInsetsListener
