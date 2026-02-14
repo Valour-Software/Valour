@@ -88,14 +88,18 @@ function Log(message, color) {
 // Hack for IOS stupidity
 
 let playedDummy = false
+let soundContext = null;
+const soundLayerGains = new Map();
+const soundBufferCache = new Map();
 
 document.addEventListener('pointerdown', function () {
     if (playedDummy)
         return;
 
+    void unlockSoundContext();
     dummySound();
     playedDummy = true;
-})
+}, { passive: true })
 
 // Literally HAVE to do this so IOS works. Apple literally hates developers.
 const audioSources = [new Audio(), new Audio(), new Audio(), new Audio(), new Audio(),
@@ -119,16 +123,137 @@ function dummySound() {
     }
 }
 
-function playSound(name) {
-    playSound(name, 0.4);
+function getOrCreateSoundContext() {
+    if (soundContext !== null)
+        return soundContext;
+
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor)
+        return null;
+
+    soundContext = new AudioContextCtor();
+    return soundContext;
 }
 
-function playSound(name, volume) {
+async function unlockSoundContext() {
+    const context = getOrCreateSoundContext();
+    if (context === null || context.state !== "suspended")
+        return;
+
+    try {
+        await context.resume();
+    }
+    catch (_) {
+        // No-op: fallback HTML audio still handles playback.
+    }
+}
+
+function getLayerGain(layer) {
+    const context = getOrCreateSoundContext();
+    if (context === null)
+        return null;
+
+    const layerName = typeof layer === "string" && layer.length > 0
+        ? layer
+        : "default";
+
+    if (soundLayerGains.has(layerName))
+        return soundLayerGains.get(layerName);
+
+    const gainNode = context.createGain();
+    gainNode.gain.value = 1;
+    gainNode.connect(context.destination);
+    soundLayerGains.set(layerName, gainNode);
+    return gainNode;
+}
+
+async function getSoundBuffer(name) {
+    if (soundBufferCache.has(name))
+        return soundBufferCache.get(name);
+
+    const loadPromise = (async function () {
+        const context = getOrCreateSoundContext();
+        if (context === null)
+            return null;
+
+        const response = await fetch("./_content/Valour.Client/media/sounds/" + name);
+        if (!response.ok)
+            throw new Error("Failed to load sound: " + name);
+
+        const encoded = await response.arrayBuffer();
+        return await context.decodeAudioData(encoded);
+    })();
+
+    soundBufferCache.set(name, loadPromise);
+
+    try {
+        return await loadPromise;
+    }
+    catch (error) {
+        soundBufferCache.delete(name);
+        throw error;
+    }
+}
+
+function clampVolume(volume) {
+    const numeric = Number(volume);
+    if (Number.isNaN(numeric))
+        return 0.4;
+    return Math.min(1, Math.max(0, numeric));
+}
+
+async function playSoundInLayer(name, volume, layer) {
+    const context = getOrCreateSoundContext();
+    if (context === null)
+        return false;
+
+    if (context.state === "suspended")
+        await unlockSoundContext();
+
+    if (context.state !== "running")
+        return false;
+
+    try {
+        const buffer = await getSoundBuffer(name);
+        const layerGain = getLayerGain(layer);
+        if (buffer === null || layerGain === null)
+            return false;
+
+        const sourceNode = context.createBufferSource();
+        sourceNode.buffer = buffer;
+
+        const gainNode = context.createGain();
+        gainNode.gain.value = clampVolume(volume);
+
+        sourceNode.connect(gainNode);
+        gainNode.connect(layerGain);
+        sourceNode.start(0);
+
+        return true;
+    }
+    catch (error) {
+        console.warn("WebAudio playback failed, falling back to HTMLAudio.", error);
+        return false;
+    }
+}
+
+function playSoundFallback(name, volume) {
     const source = getAudioSource();
     source.loop = false;
-    source.volume = volume;
+    source.volume = clampVolume(volume);
     source.src = "./_content/Valour.Client/media/sounds/" + name;
-    source.play();
+    source.play().catch(() => {
+        // Ignore autoplay errors; they are expected before user interaction.
+    });
+}
+
+async function playSound(name, volume = 0.4, layer = "effects") {
+    if (typeof name !== "string" || name.length === 0)
+        return;
+
+    const played = await playSoundInLayer(name, volume, layer);
+    if (!played)
+        playSoundFallback(name, volume);
 }
 
 function SetCardTitle(id, name) {

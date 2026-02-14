@@ -16,7 +16,7 @@
     }
 
     public async Task PlaySound(string name) => 
-        await JsRuntime.InvokeVoidAsync("playSound", name, 0.2);
+        await JsRuntime.InvokeVoidAsync("playSound", name, 0.2, "notifications");
 
 
     private async Task OnNotification(Notification notification)
