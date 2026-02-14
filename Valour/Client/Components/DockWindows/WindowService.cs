@@ -93,6 +93,20 @@ public static class WindowService
 
     public static async Task OpenWindowAtFocused(WindowContent content)
     {
+        // If a channel window for the same channel is already open, focus it instead
+        if (content is ChatWindowComponent.Content chatContent && chatContent.Data is not null)
+        {
+            var existingTab = GlobalTabs.FirstOrDefault(t =>
+                t.Content is ChatWindowComponent.Content existing &&
+                existing.Data?.Id == chatContent.Data.Id);
+
+            if (existingTab?.Layout is not null)
+            {
+                await existingTab.Layout.SetFocusedTab(existingTab);
+                return;
+            }
+        }
+
         var tab = new WindowTab(content);
         await OpenWindowAtFocused(tab);
     }
