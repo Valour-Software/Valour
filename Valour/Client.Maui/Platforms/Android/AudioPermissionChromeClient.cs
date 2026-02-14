@@ -3,15 +3,38 @@ using Android.Webkit;
 namespace Valour.Client.Maui;
 
 /// <summary>
-/// WebChromeClient that grants WebRTC media permissions (microphone, camera)
-/// when requested by the BlazorWebView content.
+/// WebChromeClient that requests the Android system microphone permission
+/// and grants WebRTC media access when the BlazorWebView content calls getUserMedia.
 /// </summary>
 public class AudioPermissionChromeClient : WebChromeClient
 {
     public override void OnPermissionRequest(PermissionRequest? request)
     {
-        // Grant all requested resources — this is a first-party WebView,
-        // not a general-purpose browser, so granting is safe.
-        request?.Grant(request.GetResources());
+        if (request?.GetResources() is null)
+        {
+            base.OnPermissionRequest(request);
+            return;
+        }
+
+        _ = HandlePermissionRequestAsync(request);
+    }
+
+    private static async Task HandlePermissionRequestAsync(PermissionRequest request)
+    {
+        try
+        {
+            var status = await Permissions.CheckStatusAsync<Permissions.Microphone>();
+            if (status != PermissionStatus.Granted)
+                status = await Permissions.RequestAsync<Permissions.Microphone>();
+
+            if (status == PermissionStatus.Granted)
+                request.Grant(request.GetResources());
+            else
+                request.Deny();
+        }
+        catch
+        {
+            request.Deny();
+        }
     }
 }

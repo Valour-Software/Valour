@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.WebView.Maui;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using Plugin.Firebase.CloudMessaging;
@@ -30,6 +31,15 @@ public static class MauiProgram
         });
 
         builder.Services.AddMauiBlazorWebView();
+
+#if ANDROID
+        BlazorWebViewHandler.BlazorWebViewMapper.AppendToMapping("WebViewAudioConfig", (handler, _) =>
+        {
+            var webView = handler.PlatformView;
+            webView.Settings.MediaPlaybackRequiresUserGesture = false;
+            webView.SetWebChromeClient(new AudioPermissionChromeClient());
+        });
+#endif
         builder.Services.AddSingleton<IAppStorage, MauiStorageService>();
         builder.Services.AddSingleton<IPushNotificationService, MauiPushNotificationService>();
         builder.Services.AddValourClientServices("https://app.valour.gg");
