@@ -153,15 +153,39 @@ jobs:
         -p:AndroidSigningKeyAlias="$ANDROID_SIGNING_KEY_ALIAS"
         -p:AndroidSigningKeyPass="$ANDROID_SIGNING_KEY_PASSWORD"
         -p:AndroidPackageFormat=apk
+        -p:AndroidUseApkSigner=true
         -p:AndroidApkSignerAdditionalArguments=--verbose
         -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
 
-    - name: Find APK
+    - name: Find Signed APK
       id: find-apk
       run: |
-        APK_PATH=$(find ./artifacts -name '*.apk' | head -1)
+        echo "APK candidates found in ./artifacts:"
+        find ./artifacts -name '*.apk' | sort || true
+
+        APKSIGNER=$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner | sort -V | tail -1)
+        if [ -z "$APKSIGNER" ]; then
+          echo "Could not find apksigner in ${ANDROID_HOME}/build-tools"
+          exit 1
+        fi
+
+        APK_PATH=""
+        while IFS= read -r CANDIDATE; do
+          if "$APKSIGNER" verify "$CANDIDATE" > /dev/null 2>&1; then
+            APK_PATH="$CANDIDATE"
+            break
+          fi
+        done < <(find ./artifacts -name '*.apk' | sort)
+
+        if [ -z "$APK_PATH" ]; then
+          echo "No signed APK was found. Refusing to create a release from unsigned artifacts."
+          exit 1
+        fi
+
+        echo "Signed APK selected: $APK_PATH"
+        "$APKSIGNER" verify --print-certs "$APK_PATH"
+
         echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-        echo "Found APK: $APK_PATH"
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
