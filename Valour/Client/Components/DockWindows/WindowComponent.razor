@@ -300,6 +300,12 @@
     
     private Task OnClickWindow()
     {
+        // If the layout's focus has already moved to a different tab
+        // (e.g. a click handler inside this window focused another window),
+        // don't override that change.
+        if (Layout?.FocusedTab != null && Layout.FocusedTab != WindowTab)
+            return Task.CompletedTask;
+
         return SetFocused();
     }
     

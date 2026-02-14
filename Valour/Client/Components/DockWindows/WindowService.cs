@@ -9,19 +9,20 @@ public static class WindowService
 {
     public static HybridEvent<WindowTab> FocusedTabChanged;
     public static HybridEvent<Planet> FocusedPlanetChanged;
-    
+
     public static event Action<WindowTab> OnTabDragging;
     public static WindowTab DraggingTab { get; set; }
-    
+
     public static List<WindowDockComponent> Docks { get; private set; } = new();
     public static WindowDockComponent MainDock { get; private set; }
-    
+
     public static List<WindowTab> GlobalTabs { get; private set; } = new();
     public static List<ChatWindowComponent> GlobalChatTabs { get; private set; } = new();
-    
+
     public static WindowTab FocusedTab { get; private set; }
-    
+
     public static Planet FocusedPlanet { get; private set; }
+
     
     public static async Task SetFocusedTab(WindowTab tab)
     {
@@ -103,6 +104,7 @@ public static class WindowService
             if (existingTab?.Layout is not null)
             {
                 await existingTab.Layout.SetFocusedTab(existingTab);
+                await existingTab.Layout.DockComponent.NotifyLayoutChanged();
                 return;
             }
         }
@@ -164,4 +166,5 @@ public static class WindowService
         
         await MainDock.AddFloatingTab(content, props);
     }
+
 }
