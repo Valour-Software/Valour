@@ -17,6 +17,7 @@ public class MainActivity : MauiAppCompatActivity
 
         CreateNotificationChannel();
         _ = RequestNotificationPermissionAsync();
+        _ = RequestMicrophonePermissionAsync();
 
         if (Window is null)
             return;
@@ -66,6 +67,18 @@ public class MainActivity : MauiAppCompatActivity
             return;
 
         await Permissions.RequestAsync<Permissions.PostNotifications>();
+    }
+
+    private async Task RequestMicrophonePermissionAsync()
+    {
+        if (!OperatingSystem.IsAndroidVersionAtLeast(23))
+            return;
+
+        var status = await Permissions.CheckStatusAsync<Permissions.Microphone>();
+        if (status == PermissionStatus.Granted)
+            return;
+
+        await Permissions.RequestAsync<Permissions.Microphone>();
     }
 
     private class SystemBarsPaddingListener : Java.Lang.Object, IOnApplyWindowInsetsListener
