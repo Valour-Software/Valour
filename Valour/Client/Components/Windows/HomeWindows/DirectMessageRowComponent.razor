@@ -1,0 +1,41 @@
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
+
+<div class="dm-row" @onclick="OnClick">
+    <div class="left">
+        <img alt="@OtherUser.Name Avatar" src="@OtherUser.GetAvatar(AvatarFormat.Webp64)" />
+        <span>@OtherUser.Name</span>
+    </div>
+    <div class="right">
+        @if (Notifications > 0)
+        {
+            <div class="unread-badge notification">
+                <span>@Notifications</span>
+            </div>
+        }
+        else if (IsUnread)
+        {
+            <div class="unread-badge"></div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Channel Channel { get; set; }
+
+    [Parameter]
+    public User OtherUser { get; set; }
+
+    [Parameter]
+    public bool IsUnread { get; set; }
+
+    [Parameter]
+    public int Notifications { get; set; }
+
+    private async Task OnClick()
+    {
+        var content = await ChatWindowComponent.GetDefaultContent(Channel);
+        await WindowService.OpenWindowAtFocused(content);
+    }
+}

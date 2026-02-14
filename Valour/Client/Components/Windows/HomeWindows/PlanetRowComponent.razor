@@ -1,0 +1,127 @@
+@inject ContextMenuService ContextMenuService
+@inject NotificationService NotificationService
+@inject ChannelStateService ChannelStateService
+@inject PlanetService PlanetService
+@inject UnreadService UnreadService
+
+<div class="planet-row" @onclick="OnClick" @oncontextpress="OnContextPress">
+    <div class="left">
+        @if (!string.IsNullOrWhiteSpace(_iconText))
+        {
+            <div class="row-icon text-icon">
+                <span style="font-size: @(_iconTextFontSize)px;">@_iconText</span>
+            </div>
+        }
+        else
+        {
+            <img alt="@Planet.Name" src="@_iconUrl" class="row-icon" />
+        }
+        <div class="info">
+            <span class="name">@Planet.Name</span>
+            @if (!string.IsNullOrWhiteSpace(Planet.Description))
+            {
+                <span class="description">@Planet.Description</span>
+            }
+        </div>
+    </div>
+    <div class="right">
+        @if (Planet.Nsfw)
+        {
+            <span class="nsfw-tag">NSFW</span>
+        }
+        @if (_notificationCount > 0)
+        {
+            <div class="unread-badge notification">
+                <span>@(_notificationCount > 9 ? "9+" : _notificationCount)</span>
+            </div>
+        }
+        else if (_isUnread)
+        {
+            <div class="unread-badge"></div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [Parameter]
+    public WindowContent WindowCtx { get; set; }
+
+    [Parameter]
+    public HomeWindowComponent HomeWindowComponent { get; set; }
+
+    private const string DefaultImage = "_content/Valour.Client/media/logo-circle-icon.svg";
+
+    private string _iconUrl = DefaultImage;
+    private string _iconText;
+    private float _iconTextFontSize = 14f;
+    private bool _isUnread;
+    private int _notificationCount;
+
+    protected override void OnInitialized()
+    {
+        if (Planet.HasCustomIcon)
+        {
+            _iconUrl = Planet.GetIconUrl(IconFormat.Webp64);
+        }
+        else
+        {
+            _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
+            _iconText = ISharedPlanet.GetCommunityShortCode(Planet);
+            _iconTextFontSize = 36f / (_iconText.Length + 1);
+        }
+
+        HomeWindowComponent.OnRerenderPlanetCards += Refresh;
+        NotificationService.NotificationReceived += OnNotification;
+    }
+
+    private void OnNotification(Notification notification)
+    {
+        if (notification.PlanetId != Planet.Id)
+            return;
+
+        InvokeAsync(() =>
+        {
+            _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
+            StateHasChanged();
+        });
+    }
+
+    private void OnContextPress(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<PlanetContextMenu>(e,
+            new PlanetContextMenu.PlanetContextParams()
+            {
+                Planet = Planet
+            }
+        );
+    }
+
+    private Task Refresh()
+    {
+        return InvokeAsync(() =>
+        {
+            _isUnread = UnreadService.IsPlanetUnread(Planet.Id);
+            _notificationCount = NotificationService.GetPlanetNotifications(Planet.Id);
+            StateHasChanged();
+        });
+    }
+
+    private async Task OnClick()
+    {
+        var newWindowContent = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(Planet);
+
+        if (newWindowContent is null)
+        {
+            await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>(
+                "Failure loading planet",
+                "",
+                Task.Run(() => new TaskResult(false, "Error accessing this planet."))));
+            return;
+        }
+
+        await WindowService.OpenWindowAtFocused(newWindowContent);
+    }
+}

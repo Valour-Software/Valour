@@ -1,0 +1,70 @@
+.friend-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: var(--small-radius);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.friend-row:hover {
+    background-color: var(--main-4);
+}
+
+.friend-row .left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.friend-row .left .row-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.friend-row .left .name {
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.friend-row .right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.friend-row .right .unread-badge {
+    background-color: var(--strong-tint);
+    border-radius: 8px;
+    height: 16px;
+    min-width: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.friend-row .right .unread-badge.notification {
+    background-color: var(--v-purple);
+    min-width: 20px;
+    padding: 0 4px;
+}
+
+.friend-row .right .unread-badge span {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    line-height: 1;
+}

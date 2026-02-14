@@ -1,53 +1,131 @@
-.home-window {
-    height: 100%;
-}
-
 .inner-window {
     height: 100%;
-    overflow-y: auto;
-    position: relative;
-    padding-bottom: 50px;
-}
-
-.channel-info {
-    padding: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--main-5);
-    position: relative;
-}
-
-.channel-info .button-watching-bar {
-    min-width: 200px;
-}
-
-.channel-info .description {
-    display: inline-block;
-    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: bottom;
-    margin-bottom: 8px;
-    max-width: 200px;
-    margin-right: 150px;
 }
 
-.channel-info .title {
-    vertical-align: top;
-    display: inline-block;
-    font-size: 20px;
-    margin-right: 150px;
+/* Toolbar: search left, toggles right */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    flex-shrink: 0;
 }
 
-.title-box {
-    height: 35px;
+.toolbar .search-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--small-radius);
+    color: var(--font-color);
+    padding: 6px 10px;
+    font-size: 14px;
+    font-family: Ubuntu, sans-serif;
+    outline: none;
+    transition: border-color 0.2s ease;
 }
 
-.icons-title {
-    font-size: 1.7em;
-    font-weight: 250;
+.toolbar .search-input:focus {
+    border-color: var(--p-cyan);
 }
 
-/* New window CSS */
+.toolbar .search-input::placeholder {
+    color: var(--font-alt-color);
+}
+
+.toolbar .toggle-btn {
+    background: none;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--small-radius);
+    color: var(--font-alt-color);
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.toolbar .toggle-btn:hover {
+    background-color: var(--slight-tint);
+    color: var(--font-color);
+}
+
+.toolbar .toggle-btn.active {
+    background-color: var(--main-4);
+    color: var(--font-color);
+    border-color: var(--p-cyan);
+}
+
+/* Make the tab container fill remaining space */
+::deep .v-tab-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+::deep .v-tab-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scrollable area within each tab */
+.tab-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Bottom pinned actions */
+.bottom-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--slight-tint);
+    background-color: var(--main-2);
+}
+
+.bottom-actions .action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: none;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--small-radius);
+    color: var(--font-alt-color);
+    font-size: 13px;
+    font-family: Ubuntu, sans-serif;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bottom-actions .action-btn:hover {
+    background-color: var(--main-4);
+    color: var(--font-color);
+    border-color: var(--medium-tint);
+}
+
+.bottom-actions .action-btn .inline-badge {
+    background-color: var(--p-red);
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+/* Icon grid (card view) */
 .icon-container {
     padding: 20px;
     display: grid;
@@ -55,13 +133,39 @@
     grid-gap: 0rem;
     justify-content: space-evenly;
     overflow: hidden;
-    border: 4px solid var(--main-5);
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 40px;
-    margin: 20px;
+    border: 1px solid var(--slight-tint);
+    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
+    border-radius: var(--card-radius);
+    margin: 12px;
 }
 
-/* New icon CSS */
+/* Row list container */
+.row-list {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px;
+}
+
+/* Empty state for DMs */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    gap: 8px;
+}
+
+.empty-state i {
+    font-size: 40px;
+    opacity: 0.4;
+}
+
+.empty-state span {
+    opacity: 0.6;
+}
+
+/* Card animation styles (shared by PlanetCard, FriendCard, and inline create/add buttons) */
 
 ::deep .flipper {
     display: inline-block;
@@ -108,7 +212,7 @@
     z-index: 1;
 }
 
-::deep .outer-circle .noti.purple{
+::deep .outer-circle .noti.purple {
     background-color: var(--v-purple);
 }
 
@@ -135,7 +239,6 @@
     top: 0;
 }
 
-
 ::deep .rect-slide {
     position: absolute;
     width: 100%;
@@ -144,24 +247,19 @@
     z-index: 0;
     border-radius: 9999px;
     pointer-events: none;
-    
     opacity: 0;
-
     transition: width 0.2s ease-in-out, opacity 0.1s ease-in-out;
 }
 
 ::deep .outer-circle:hover .rect-slide {
     z-index: 2;
+    opacity: 1;
+    width: 240px;
+    box-shadow: cyan 0px 0px 10px;
 }
 
 ::deep .flipper.flip .rect-slide {
     right: 0;
-}
-
-::deep .outer-circle:hover .rect-slide {
-    opacity: 1;
-    width: 240px;
-    box-shadow: cyan 0px 0px 10px;
 }
 
 ::deep .inner-circle {
@@ -234,7 +332,7 @@
     font-family: 'Ubuntu';
     text-align: center;
     margin: 0;
-    text-shadow: 0 0 5px black,  0 0 10px black;
+    text-shadow: 0 0 5px black, 0 0 10px black;
     color: var(--font-color);
 }
 
@@ -244,7 +342,6 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    
     display: flex;
     justify-content: center;
     align-items: center;

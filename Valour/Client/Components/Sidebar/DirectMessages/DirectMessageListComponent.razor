@@ -6,15 +6,11 @@
 @inject ValourClient Client
 
 <div class="dm-container">
-    <p class="subtitle mb-2">Direct Messages</p>
-    <div class="v-gradient-underline"></div>
-
-    <input @oninput="@OnFilterInput" type="text" placeholder="Search..." class="form-control mb-2 v-bg-medium" />
     <div class="list">
         @if (_renderDms.Count == 0)
         {
             <div class="empty-state">
-                @if (string.IsNullOrWhiteSpace(_filterText))
+                @if (string.IsNullOrWhiteSpace(FilterText))
                 {
                     <i class="bi bi-chat-dots"></i>
                     <span>No conversations yet</span>
@@ -62,14 +58,27 @@
         public int Notifications { get; set; }
     }
 
+    [Parameter]
+    public string FilterText { get; set; }
+
     private List<DmRenderInfo> _renderDms = new();
     private List<DmRenderInfo> _allDms = new();
-    private string _filterText;
+    private string _lastFilterText;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadDmsAsync();
         await ReRender();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_lastFilterText != FilterText)
+        {
+            _lastFilterText = FilterText;
+            CalculateDms();
+            ReRender();
+        }
     }
 
     private async Task LoadDmsAsync()
@@ -99,13 +108,6 @@
         CalculateDms();
     }
 
-    private void OnFilterInput(ChangeEventArgs e)
-    {
-        _filterText = e.Value?.ToString();
-        CalculateDms();
-        ReRender();
-    }
-
     private void CalculateDms()
     {
         // Refresh unread state
@@ -115,15 +117,15 @@
             dm.Notifications = NotificationService.GetChannelNotifications(dm.Channel.Id);
         }
 
-        if (string.IsNullOrWhiteSpace(_filterText))
+        if (string.IsNullOrWhiteSpace(FilterText))
         {
             _renderDms = _allDms.ToList();
             return;
         }
 
         _renderDms = _allDms
-            .Where(d => d.OtherUser.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(d => d.OtherUser.Name.StartsWith(_filterText, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .Where(d => d.OtherUser.Name.Contains(FilterText, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(d => d.OtherUser.Name.StartsWith(FilterText, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenByDescending(d => d.Channel.LastUpdateTime)
             .ToList();
     }

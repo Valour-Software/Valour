@@ -1,0 +1,104 @@
+.planet-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: var(--small-radius);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.planet-row:hover {
+    background-color: var(--main-4);
+}
+
+.planet-row .left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.planet-row .left .row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+.planet-row .left .row-icon.text-icon {
+    background-color: var(--main-5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-family: 'Ubuntu', sans-serif;
+    color: var(--font-color);
+}
+
+.planet-row .left .info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.planet-row .left .info .name {
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.planet-row .left .info .description {
+    font-size: 12px;
+    color: var(--font-alt-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.planet-row .right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.planet-row .right .nsfw-tag {
+    font-size: 10px;
+    font-weight: bold;
+    background-color: var(--p-red);
+    color: white;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.planet-row .right .unread-badge {
+    background-color: var(--strong-tint);
+    border-radius: 8px;
+    height: 16px;
+    min-width: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.planet-row .right .unread-badge.notification {
+    background-color: var(--v-purple);
+    min-width: 20px;
+    padding: 0 4px;
+}
+
+.planet-row .right .unread-badge span {
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    line-height: 1;
+}

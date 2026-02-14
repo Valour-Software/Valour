@@ -1,4 +1,4 @@
-﻿<div class="v-tab-container">
+﻿<div class="v-tab-container @(_sizeClass)">
     <div class="v-tab-header">
         @if (TabOne is not null)
         {
@@ -69,6 +69,14 @@
     
     [Parameter]
     public string ContentStyle { get; set; }
+
+    /// <summary>
+    /// Size variant: null/empty for default, "small" for compact tabs.
+    /// </summary>
+    [Parameter]
+    public string Size { get; set; }
+
+    private string _sizeClass => string.IsNullOrEmpty(Size) ? "" : $"v-tab-{Size}";
 
     [Parameter]
     public string[] Titles { get; set; }

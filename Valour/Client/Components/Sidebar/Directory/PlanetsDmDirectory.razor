@@ -1,8 +1,31 @@
+@inherits ControlledRenderComponentBase
+
 <div class="planets-dm-directory">
-    <div class="top-half">
-        <JoinedPlanetsDirectory />
+    <div class="search-bar">
+        <input @oninput="OnFilterInput" type="text" placeholder="Search..." class="search-input" />
     </div>
-    <div class="bottom-half">
-        <DirectMessageListComponent />
-    </div>
+
+    <TabContainerComponent Titles='new[] { "Planets", "DMs" }'
+                           IconOne="globe-americas"
+                           IconTwo="chat-dots"
+                           Size="small"
+                           MaxHeight="none"
+                           ContentStyle="padding: 0; display: flex; flex-direction: column; flex: 1; min-height: 0;">
+        <TabOne>
+            <JoinedPlanetsDirectory FilterText="@_filterText" />
+        </TabOne>
+        <TabTwo>
+            <DirectMessageListComponent FilterText="@_filterText" />
+        </TabTwo>
+    </TabContainerComponent>
 </div>
+
+@code {
+    private string _filterText;
+
+    private void OnFilterInput(ChangeEventArgs e)
+    {
+        _filterText = e.Value?.ToString();
+        ReRender();
+    }
+}
