@@ -1,5 +1,11 @@
 let meeting = null;
 
+const DEFAULT_AUDIO_CONSTRAINTS = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true
+};
+
 const SDK_POLL_INTERVAL_MS = 50;
 const SDK_SCRIPT_PATH = "_content/Valour.Client/js/realtimekit.js";
 let sdkScriptLoadPromise = null;
@@ -221,6 +227,17 @@ function getMeetingOrThrow() {
     return meeting;
 }
 
+async function applyDefaultAudioConstraints(activeMeeting) {
+    try {
+        const track = activeMeeting.self?.audioTrack;
+        if (track && typeof track.applyConstraints === "function") {
+            await track.applyConstraints(DEFAULT_AUDIO_CONSTRAINTS);
+        }
+    } catch {
+        // Browser does not support applying these constraints — silently continue.
+    }
+}
+
 function resolveTargetPath(root, path) {
     const segments = path.split('.');
     let current = root;
@@ -279,6 +296,7 @@ export async function leaveRoom(endCall = false) {
 export async function enableAudio() {
     const activeMeeting = getMeetingOrThrow();
     await activeMeeting.self.enableAudio();
+    await applyDefaultAudioConstraints(activeMeeting);
 }
 
 export async function disableAudio() {
@@ -309,6 +327,10 @@ export async function disableScreenShare() {
 export async function setDevice(device) {
     const activeMeeting = getMeetingOrThrow();
     await activeMeeting.self.setDevice(device);
+
+    if (device?.kind === "audioinput") {
+        await applyDefaultAudioConstraints(activeMeeting);
+    }
 }
 
 export async function getAllDevices() {
@@ -486,7 +508,7 @@ export function getParticipantsSnapshot() {
     };
 }
 
-export function syncParticipantAudio(elementId, participantId, muteOthersLocally = false) {
+export function syncParticipantAudio(elementId, participantId, volume = 1.0) {
     const activeMeeting = getMeetingOrThrow();
     const audioElement = getAudioElement(elementId);
     if (!audioElement) {
@@ -496,7 +518,7 @@ export function syncParticipantAudio(elementId, participantId, muteOthersLocally
     const participant = getParticipantById(activeMeeting, participantId);
     const audioTrack = participant?.audioTrack;
     const isSelfParticipant = participant?.id === activeMeeting?.self?.id;
-    const shouldPlayAudio = !isSelfParticipant && !muteOthersLocally && !!participant?.audioEnabled && !!audioTrack;
+    const shouldPlayAudio = !isSelfParticipant && !!participant?.audioEnabled && !!audioTrack;
 
     audioElement.autoplay = true;
     audioElement.playsInline = true;
@@ -510,6 +532,8 @@ export function syncParticipantAudio(elementId, participantId, muteOthersLocally
     if (!existingTrack || existingTrack.id !== audioTrack.id) {
         audioElement.srcObject = new MediaStream([audioTrack]);
     }
+
+    audioElement.volume = Math.max(0, Math.min(1, volume));
 
     const playResult = audioElement.play();
     if (playResult && typeof playResult.catch === "function") {

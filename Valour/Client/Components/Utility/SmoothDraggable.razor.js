@@ -29,6 +29,11 @@ export function initialize(id, x, y, right = false){
 }
 
 function onDown(e, id) {
+    // Don't initiate drag from interactive form controls
+    if (e.target.closest('input, select, textarea')) {
+        return;
+    }
+
     e.preventDefault();
     const evt = e.type === 'touchstart' ? e.changedTouches[0] : e;
     activeId = id;

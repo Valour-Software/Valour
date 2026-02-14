@@ -35,7 +35,7 @@
 
     private string? _error;
     private bool _pendingParticipantAudioSync;
-    private HashSet<string> _locallyMutedPeerIds = new();
+    private Dictionary<string, int> _participantVolumes = new();
     private List<VoiceParticipantState> _participants = new();
     private CancellationTokenSource? _participantRefreshLoopCts;
     private Task? _participantRefreshLoopTask;
@@ -48,7 +48,15 @@
     private string StatusText => _connecting ? "Connecting" : _joined ? "Connected" : "Disconnected";
     private string StatusBadgeClass => _connecting ? "connecting" : _joined ? "connected" : "disconnected";
 
-    private bool IsParticipantLocallyMuted(string peerId) => _locallyMutedPeerIds.Contains(peerId);
+    private int GetParticipantVolume(string peerId) =>
+        _participantVolumes.TryGetValue(peerId, out var vol) ? vol : 100;
+
+    private static string GetVolumeIcon(int volume) => volume switch
+    {
+        0 => "bi-volume-mute-fill",
+        <= 50 => "bi-volume-down-fill",
+        _ => "bi-volume-up-fill"
+    };
 
     private RenderFragment InnerContent =>
         @<div class="call-container">
@@ -117,12 +125,18 @@
                                 else
                                 {
                                     var peerId = participant.PeerId;
-                                    var isMuted = IsParticipantLocallyMuted(peerId);
-                                    <button class="participant-mute-btn @(isMuted ? "muted" : "")"
-                                            @onmousedown="() => ToggleParticipantMute(peerId)"
-                                            title="@(isMuted ? "Unmute" : "Mute")">
-                                        <i class="bi @(isMuted ? "bi-volume-mute-fill" : "bi-volume-up-fill")"></i>
-                                    </button>
+                                    var volume = GetParticipantVolume(peerId);
+                                    <div class="participant-volume">
+                                        <input type="range" min="0" max="100"
+                                               value="@volume"
+                                               @oninput="(e) => OnParticipantVolumeChanged(peerId, e)"
+                                               class="participant-volume-slider" />
+                                        <button class="participant-volume-btn @(volume == 0 ? "muted" : "")"
+                                                @onmousedown="() => ToggleParticipantMute(peerId)"
+                                                title="@(volume == 0 ? "Unmute" : "Mute")">
+                                            <i class="bi @GetVolumeIcon(volume)"></i>
+                                        </button>
+                                    </div>
                                 }
                                 <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
                             </div>
@@ -191,7 +205,7 @@
                 BaseUri = "realtime.cloudflare.com",
                 Defaults = new RealtimeKitMediaDefaults
                 {
-                    Audio = true,
+                    Audio = false,
                     Video = false
                 }
             });
@@ -201,7 +215,17 @@
             _joined = true;
             _connecting = false;
 
-            await SetMic(DevicePreferences.MicrophoneDeviceId);
+            // Attempt to enable microphone — not required to participate
+            try
+            {
+                await _rtk.EnableAudioAsync();
+                await SetMic(DevicePreferences.MicrophoneDeviceId);
+            }
+            catch
+            {
+                _audioEnabled = false;
+            }
+
             await RefreshStateFromSdkAsync();
             await RefreshParticipantsAsync();
             StartParticipantRefreshLoop();
@@ -322,7 +346,7 @@
         _joined = false;
         _connecting = false;
         _audioEnabled = true;
-        _locallyMutedPeerIds = new HashSet<string>();
+        _participantVolumes = new Dictionary<string, int>();
         _participants = new List<VoiceParticipantState>();
         _pendingParticipantAudioSync = false;
 
@@ -428,21 +452,31 @@
             if (string.IsNullOrWhiteSpace(participant.PeerId))
                 continue;
 
-            var isMuted = _locallyMutedPeerIds.Contains(participant.PeerId);
+            var volume = GetParticipantVolume(participant.PeerId) / 100.0;
             await _rtk.SyncParticipantAudioAsync(
                 GetParticipantAudioElementId(participant.PeerId),
                 participant.PeerId,
-                isMuted);
+                volume);
         }
     }
 
     private Task ToggleParticipantMute(string peerId)
     {
-        if (!_locallyMutedPeerIds.Remove(peerId))
-            _locallyMutedPeerIds.Add(peerId);
-
+        var current = GetParticipantVolume(peerId);
+        _participantVolumes[peerId] = current == 0 ? 100 : 0;
         _pendingParticipantAudioSync = true;
         StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnParticipantVolumeChanged(string peerId, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var volume))
+        {
+            _participantVolumes[peerId] = Math.Clamp(volume, 0, 100);
+            _pendingParticipantAudioSync = true;
+            StateHasChanged();
+        }
         return Task.CompletedTask;
     }
 

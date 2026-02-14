@@ -462,6 +462,7 @@ body {
 }
 
 .channel-and-topbar {
+    position: relative;
     display: flex;
     margin: 0;
     background-color: var(--main-1);

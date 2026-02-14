@@ -204,6 +204,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    max-height: 50vh;
+    overflow-y: auto;
 }
 
 .call-participants-header {
@@ -267,9 +269,71 @@
     overflow: hidden;
 }
 
-/* ── Per-user mute button ── */
+/* ── Per-user volume control ── */
 
-.participant-mute-btn {
+.participant-volume {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 2px;
+}
+
+.participant-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 14px;
+    width: 0;
+    background: transparent;
+    outline: none;
+    opacity: 0;
+    transition: width 0.2s ease, opacity 0.15s ease;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+}
+
+.voice-participant:hover .participant-volume-slider {
+    width: 60px;
+    opacity: 1;
+}
+
+/* Track */
+.participant-volume-slider::-webkit-slider-runnable-track {
+    height: 3px;
+    background: var(--main-5);
+    border-radius: 2px;
+}
+
+.participant-volume-slider::-moz-range-track {
+    height: 3px;
+    background: var(--main-5);
+    border-radius: 2px;
+    border: none;
+}
+
+/* Thumb */
+.participant-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--p-cyan);
+    cursor: pointer;
+    margin-top: -4.5px;
+    box-shadow: 0 0 4px rgba(55, 164, 206, 0.3);
+}
+
+.participant-volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--p-cyan);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(55, 164, 206, 0.3);
+}
+
+.participant-volume-btn {
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -287,26 +351,31 @@
     outline: none;
 }
 
-.voice-participant:hover .participant-mute-btn {
+.voice-participant:hover .participant-volume-btn {
     opacity: 0.65;
 }
 
-.participant-mute-btn:hover {
+.participant-volume-btn:hover {
     opacity: 1 !important;
     background: var(--slight-tint);
 }
 
-.participant-mute-btn.muted {
+.participant-volume-btn.muted {
     opacity: 1;
     color: var(--p-red);
 }
 
-.participant-mute-btn.muted:hover {
+.participant-volume-btn.muted:hover {
     background: rgba(205, 94, 94, 0.12);
 }
 
-/* Mobile: always show mute buttons */
-.mobile .participant-mute-btn {
+/* Mobile: always show volume controls */
+.mobile .participant-volume-slider {
+    width: 50px;
+    opacity: 0.7;
+}
+
+.mobile .participant-volume-btn {
     opacity: 0.55;
 }
 

@@ -128,13 +128,13 @@
         return await module.InvokeAsync<RealtimeKitParticipantsSnapshot>("getParticipantsSnapshot");
     }
 
-    public async Task SyncParticipantAudioAsync(string elementId, string participantId, bool muteOthersLocally = false)
+    public async Task SyncParticipantAudioAsync(string elementId, string participantId, double volume = 1.0)
     {
         if (string.IsNullOrWhiteSpace(elementId) || string.IsNullOrWhiteSpace(participantId))
             return;
 
         var module = await GetModuleAsync();
-        await module.InvokeVoidAsync("syncParticipantAudio", elementId, participantId, muteOthersLocally);
+        await module.InvokeVoidAsync("syncParticipantAudio", elementId, participantId, volume);
     }
 
     public async Task<T?> InvokeAsync<T>(string path, params object?[] args)
