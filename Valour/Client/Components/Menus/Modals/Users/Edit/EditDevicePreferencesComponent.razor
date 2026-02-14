@@ -22,32 +22,157 @@
 
 <br />
 
-@if (_mics is not null)
-{
-    <p>Input Device (Microphone)</p>
-    <select style="margin-top: 12px" class="form-select" @onchange="@OnChooseMic" >
-        @for (int i = 0; i < _mics.Length; i++)
-        {
-            var ii = i;
-            var mic = _mics[ii];
-            <option selected="@(DevicePreferences.MicrophoneDeviceId == mic.DeviceId)" value="@mic.DeviceId">@mic.Label</option>
-        }
-    </select>
-}
+<div class="perm-list-item">
+    <div class="perm-list-name mb-1">
+        Input Device (Microphone)
+    </div>
+    <div class="perm-list-desc mt-1">
+        @GetMicPermissionDescription()
+    </div>
+
+    @if (_isLoadingMics)
+    {
+        <p class="help-text mt-2">Loading microphone devices...</p>
+    }
+    else if (_mics.Length == 0)
+    {
+        <p class="help-text mt-2">No microphones found yet.</p>
+    }
+    else
+    {
+        <select style="margin-top: 12px" class="form-select" value="@(_selectedMicId ?? string.Empty)" @onchange="@OnChooseMic">
+            @for (int i = 0; i < _mics.Length; i++)
+            {
+                var mic = _mics[i];
+                <option value="@mic.DeviceId">@mic.Label</option>
+            }
+        </select>
+    }
+
+    @if (ShouldShowPermissionButton)
+    {
+        <button class="v-btn mt-2 mr-2" disabled="@_isRequestingMicPermission" @onclick="OnRequestMicrophonePermissionAsync">
+            @(_isRequestingMicPermission ? "Requesting Access..." : "Enable Microphone Access")
+        </button>
+    }
+
+    <button class="v-btn mt-2" disabled="@_isLoadingMics" @onclick="OnRefreshMicsAsync">Refresh Devices</button>
+
+    @if (!string.IsNullOrWhiteSpace(_micError))
+    {
+        <p class="help-text mt-2" style="color: var(--v-red);">@_micError</p>
+    }
+</div>
 
 
 @code {
 
-    private InputMic[] _mics;
+    private InputMic[] _mics = Array.Empty<InputMic>();
+    private string? _selectedMicId;
+    private string _micPermissionState = "unknown";
+    private string? _micError;
+    private bool _isLoadingMics;
+    private bool _isRequestingMicPermission;
+
+    private bool ShouldShowPermissionButton =>
+        string.Equals(_micPermissionState, "prompt", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(_micPermissionState, "unknown", StringComparison.OrdinalIgnoreCase);
 
     private async Task OnChooseMic(ChangeEventArgs e)
     {
-        await DevicePreferences.SetMicrophoneDeviceId(e.Value?.ToString(), LocalStorage);
+        var selectedMicId = e.Value?.ToString() ?? string.Empty;
+        _selectedMicId = selectedMicId;
+        await DevicePreferences.SetMicrophoneDeviceId(selectedMicId, LocalStorage);
     }
 
     protected override async Task OnInitializedAsync()
     {
-        _mics = await CallComponent.Instance.UpdateMics();
+        await RefreshMicsAsync();
+    }
+
+    private async Task OnRefreshMicsAsync()
+    {
+        await RefreshMicsAsync();
+    }
+
+    private async Task OnRequestMicrophonePermissionAsync()
+    {
+        _isRequestingMicPermission = true;
+        await RefreshMicsAsync(requestPermission: true);
+        _isRequestingMicPermission = false;
+        StateHasChanged();
+    }
+
+    private async Task RefreshMicsAsync(bool requestPermission = false)
+    {
+        _isLoadingMics = true;
+        _micError = null;
+        StateHasChanged();
+
+        var callComponent = CallComponent.Instance;
+        if (callComponent is null)
+        {
+            _mics = Array.Empty<InputMic>();
+            _micPermissionState = "unsupported";
+            _isLoadingMics = false;
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            if (requestPermission)
+            {
+                var granted = await callComponent.RequestMicrophonePermissionAsync();
+                if (!granted)
+                {
+                    _micError = "Microphone permission was not granted.";
+                }
+            }
+
+            _micPermissionState = await callComponent.GetMicrophonePermissionStateAsync();
+            _mics = await callComponent.UpdateMics();
+
+            if (_mics.Length == 0)
+            {
+                _selectedMicId = null;
+
+                if (string.Equals(_micPermissionState, "denied", StringComparison.OrdinalIgnoreCase))
+                {
+                    _micError ??= "Microphone access is blocked. Enable it in browser site settings, then refresh devices.";
+                }
+            }
+            else
+            {
+                var savedDeviceId = DevicePreferences.MicrophoneDeviceId;
+                var hasSavedSelection = !string.IsNullOrWhiteSpace(savedDeviceId)
+                    && _mics.Any(x => x.DeviceId == savedDeviceId);
+
+                if (hasSavedSelection)
+                {
+                    _selectedMicId = savedDeviceId;
+                }
+                else
+                {
+                    _selectedMicId = _mics[0].DeviceId;
+
+                    if (!string.IsNullOrWhiteSpace(_selectedMicId))
+                    {
+                        await DevicePreferences.SetMicrophoneDeviceId(_selectedMicId, LocalStorage);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _mics = Array.Empty<InputMic>();
+            _micError = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load microphone devices." : ex.Message;
+        }
+        finally
+        {
+            _isLoadingMics = false;
+            StateHasChanged();
+        }
     }
 
     private async Task SwitchAutoEmojis()
@@ -55,5 +180,22 @@
         DevicePreferences.AutoEmoji = !DevicePreferences.AutoEmoji;
         await LocalStorage.SetAsync("AutoEmoji", DevicePreferences.AutoEmoji);
         MarkdownManager.RegenPipeline();
+    }
+
+    private string GetMicPermissionDescription()
+    {
+        if (string.Equals(_micPermissionState, "granted", StringComparison.OrdinalIgnoreCase))
+            return "Microphone access is enabled for this site.";
+
+        if (string.Equals(_micPermissionState, "denied", StringComparison.OrdinalIgnoreCase))
+            return "Microphone access is blocked in your browser.";
+
+        if (string.Equals(_micPermissionState, "prompt", StringComparison.OrdinalIgnoreCase))
+            return "Microphone access has not been granted yet.";
+
+        if (string.Equals(_micPermissionState, "unsupported", StringComparison.OrdinalIgnoreCase))
+            return "This browser does not support microphone device access for this feature.";
+
+        return "Microphone permission state is unavailable on this browser. Use 'Enable Microphone Access' to request access.";
     }
 }

@@ -98,6 +98,7 @@ public partial class Program
         BaseAPI.AddRoutes(app);
         EmbedAPI.AddRoutes(app);
         OauthAPI.AddRoutes(app);
+        VoiceSignallingApi.AddRoutes(app);
         
         // s3 (r2) setup
         
@@ -330,6 +331,7 @@ public partial class Program
 
         services.AddSingleton<CdnMemoryCache>();
         services.AddSingleton<ModelCacheService>();
+        services.AddSingleton<RealtimeKitService>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         services.AddScoped<HostedPlanetService>();

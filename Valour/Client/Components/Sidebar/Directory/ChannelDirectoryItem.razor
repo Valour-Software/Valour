@@ -301,7 +301,10 @@
         }
         else if (ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
         {
-            await CallComponent.Instance.Initialize(Channel);
+            if (CallComponent.Instance is not null)
+            {
+                await CallComponent.Instance.Initialize(Channel);
+            }
         }
         else if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
         {

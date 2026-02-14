@@ -1,0 +1,182 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@code {
+    private IJSObjectReference? _jsModule;
+
+    private async Task<IJSObjectReference> GetModuleAsync()
+    {
+        _jsModule ??= await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Calls/RealtimeKitComponent.razor.js");
+
+        return _jsModule;
+    }
+
+    public async Task<bool> IsSdkLoadedAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<bool>("sdkLoaded");
+    }
+
+    public async Task<bool> IsInitializedAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<bool>("isInitialized");
+    }
+
+    public async Task InitializeAsync(RealtimeKitInitOptions options, int sdkLoadTimeoutMs = 20000)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (string.IsNullOrWhiteSpace(options.AuthToken))
+            throw new ArgumentException("RealtimeKit auth token is required.", nameof(options));
+
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("init", options, sdkLoadTimeoutMs);
+    }
+
+    public async Task JoinRoomAsync(int joinTimeoutMs = 25000)
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("joinRoom", joinTimeoutMs);
+    }
+
+    public async Task LeaveRoomAsync(bool endCall = false)
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("leaveRoom", endCall);
+    }
+
+    public async Task EnableAudioAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("enableAudio");
+    }
+
+    public async Task DisableAudioAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("disableAudio");
+    }
+
+    public async Task EnableVideoAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("enableVideo");
+    }
+
+    public async Task DisableVideoAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("disableVideo");
+    }
+
+    public async Task EnableScreenShareAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("enableScreenShare");
+    }
+
+    public async Task DisableScreenShareAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("disableScreenShare");
+    }
+
+    public async Task SetDeviceAsync(RealtimeKitDeviceSelection device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("setDevice", device);
+    }
+
+    public async Task<JsonElement> GetAllDevicesAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<JsonElement>("getAllDevices");
+    }
+
+    public async Task<InputMic[]> GetAudioInputDevicesAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<InputMic[]>("getAudioInputDevices");
+    }
+
+    public async Task<string> GetMicrophonePermissionStateAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<string>("getMicrophonePermissionState");
+    }
+
+    public async Task<bool> RequestMicrophonePermissionAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<bool>("requestMicrophonePermission");
+    }
+
+    public async Task<RealtimeKitSelfState?> GetSelfStateAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<RealtimeKitSelfState>("getSelfState");
+    }
+
+    public async Task<RealtimeKitParticipantsSnapshot?> GetParticipantsSnapshotAsync()
+    {
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<RealtimeKitParticipantsSnapshot>("getParticipantsSnapshot");
+    }
+
+    public async Task SyncParticipantAudioAsync(string elementId, string participantId, bool muteOthersLocally = false)
+    {
+        if (string.IsNullOrWhiteSpace(elementId) || string.IsNullOrWhiteSpace(participantId))
+            return;
+
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("syncParticipantAudio", elementId, participantId, muteOthersLocally);
+    }
+
+    public async Task<T?> InvokeAsync<T>(string path, params object?[] args)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Method path is required.", nameof(path));
+
+        var module = await GetModuleAsync();
+        return await module.InvokeAsync<T>("invoke", path, args);
+    }
+
+    public async Task InvokeVoidAsync(string path, params object?[] args)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Method path is required.", nameof(path));
+
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("invoke", path, args);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is null)
+            return;
+
+        try
+        {
+            await _jsModule.InvokeVoidAsync("reset");
+            await _jsModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Ignore if the runtime is already disconnected.
+        }
+
+        _jsModule = null;
+        GC.SuppressFinalize(this);
+    }
+
+    public async Task ResetAsync()
+    {
+        var module = await GetModuleAsync();
+        await module.InvokeVoidAsync("reset");
+    }
+}

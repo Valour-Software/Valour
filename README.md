@@ -73,6 +73,7 @@ dotnet restore
    - `Email` for real email delivery
    - `Notifications` for push notifications
    - `Cloudflare` for Cloudflare-backed features
+     - For RealtimeKit voice, set `RealtimeAccountId`, `RealtimeAppId`, and `RealtimeApiToken`
 
 ### 4) Database setup
 

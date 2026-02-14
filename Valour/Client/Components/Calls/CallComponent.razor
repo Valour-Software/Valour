@@ -1,6 +1,7 @@
-﻿@inject ValourClient Client
-@inject IJSRuntime JsRuntime
+@inject ValourClient Client
 @implements IAsyncDisposable
+
+<RealtimeKitComponent @ref="_rtk" />
 
 @if (ActiveChannel is not null)
 {
@@ -19,45 +20,83 @@
 }
 
 @code {
-    
     [CascadingParameter]
-    public ModalRoot ModalRoot { get; set; }
+    public ModalRoot? ModalRoot { get; set; }
+
+    private RealtimeKitComponent? _rtk;
+    private readonly SemaphoreSlim _joinLock = new(1, 1);
+    private static readonly TimeSpan JoinTimeout = TimeSpan.FromSeconds(25);
+    private static readonly TimeSpan LeaveTimeout = TimeSpan.FromSeconds(8);
+
+    private bool _joined;
+    private bool _connecting;
+
+    private bool _audioEnabled = true;
+
+    private string? _error;
+    private bool _pendingParticipantAudioSync;
+    private bool _muteOthersLocally;
+    private List<VoiceParticipantState> _participants = new();
+    private CancellationTokenSource? _participantRefreshLoopCts;
+    private Task? _participantRefreshLoopTask;
+    private int _participantRefreshInProgress;
+
+    public static CallComponent? Instance { get; private set; }
+
+    public Channel? ActiveChannel { get; private set; }
+
+    private string StatusText => _connecting ? "Connecting..." : _joined ? "Connected" : "Disconnected";
 
     private RenderFragment InnerContent =>
         @<div class="call-container">
-            <h6>Active Call: @ActiveChannel.Name</h6>
+            <h6>Active Call: @ActiveChannel!.Name</h6>
+            <p class="call-status">@StatusText</p>
 
-            <div style="max-height: 200px">
-                @foreach (var peer in VisiblePeers)
-                {
-                    <MediaPeerComponent @key="@peer.PeerId" Parent="@this" Peer="@peer"/>
-                }
-            </div>
+            <button class="v-btn large call-button" @onmousedown="OnClickSettings"><i class="bi bi-gear-fill"></i></button>
 
-            <button class="v-btn large call-button" @onmousedown="@OnClickSettings"><i class="bi bi-gear-fill"></i></button>
-            <button class="v-btn large call-button" @onmousedown="@OnClickMute">@(_muted ? "Unmute" : "Mute") Self</button>
-            <button class="v-btn large call-button" @onmousedown="@OnClickLeave"><i class="bi bi-box-arrow-right"></i></button>
+            @if (!_joined)
+            {
+                <button class="v-btn large call-button" disabled="@_connecting" @onmousedown="OnClickReconnect">Connect</button>
+            }
+            else
+            {
+                <button class="v-btn large call-button" @onmousedown="OnClickMute">@(_audioEnabled ? "Mute" : "Unmute")</button>
+            }
+
+            <button class="v-btn large call-button" @onmousedown="OnClickLeave"><i class="bi bi-box-arrow-right"></i></button>
+
+            @if (_joined)
+            {
+                <div class="participants-list">
+                    <div class="participants-header">
+                        <p class="participants-title">Voice Participants</p>
+                        <button class="v-btn participants-mute-btn" @onmousedown="OnToggleMuteOthersLocally">
+                            @(_muteOthersLocally ? "Unmute Others" : "Mute Others")
+                        </button>
+                    </div>
+
+                    @if (_participants.Count == 0)
+                    {
+                        <p class="participants-empty">Nobody is in voice yet.</p>
+                    }
+                    else
+                    {
+                        @foreach (var participant in _participants)
+                        {
+                            <div class="@GetParticipantClass(participant)" @key="participant.PeerId">
+                                <UserInfoComponent UserId="@participant.UserId" Style="width: 100%;" />
+                                <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
+                            </div>
+                        }
+                    }
+                </div>
+            }
 
             @if (!string.IsNullOrWhiteSpace(_error))
             {
-                <p style="color: red; margin-top: 12px">@_error</p>
+                <p class="call-error">@_error</p>
             }
         </div>;
-        
-    
-    public Channel ActiveChannel { get; set; }
-    
-    public List<VisiblePeer> VisiblePeers { get; set; } = new List<VisiblePeer>();
-    
-    public List<MediaPeerComponent> PeerComponents { get; set; } = new List<MediaPeerComponent>();
-
-    public static CallComponent Instance { get; private set; }
-    
-    private string _lastActiveSpeakerId = null;
-    
-    private string _error = null;
-    
-    private bool _muted = false;
 
     protected override void OnInitialized()
     {
@@ -65,335 +104,524 @@
         DevicePreferences.OnMicrophoneDeviceIdChanged += OnMicrophoneSelected;
     }
 
+    public async Task Initialize(Channel channel)
+    {
+        if (!ISharedChannel.VoiceChannelTypes.Contains(channel.ChannelType))
+            return;
+
+        if (_rtk is null)
+        {
+            _error = "Voice system is still loading. Try again.";
+            StateHasChanged();
+            return;
+        }
+
+        await _joinLock.WaitAsync();
+
+        try
+        {
+            _error = null;
+            ActiveChannel = channel;
+            _connecting = true;
+            StateHasChanged();
+
+            if (_joined)
+            {
+                await SafeLeaveRoomInternalAsync(closePanel: false);
+            }
+
+            var tokenResult = await Client.PrimaryNode.PostAsyncWithResponse<RealtimeKitVoiceTokenResponse>(
+                $"api/voice/realtimekit/token/{channel.Id}");
+
+            if (!tokenResult.Success || tokenResult.Data is null || string.IsNullOrWhiteSpace(tokenResult.Data.AuthToken))
+            {
+                _error = string.IsNullOrWhiteSpace(tokenResult.Message)
+                    ? "Failed to fetch a voice token from the server."
+                    : tokenResult.Message;
+                _connecting = false;
+                StateHasChanged();
+                return;
+            }
+
+            await _rtk.InitializeAsync(new RealtimeKitInitOptions
+            {
+                AuthToken = tokenResult.Data.AuthToken,
+                BaseUri = "realtime.cloudflare.com",
+                Defaults = new RealtimeKitMediaDefaults
+                {
+                    Audio = true,
+                    Video = false
+                }
+            });
+
+            await _rtk.JoinRoomAsync((int)JoinTimeout.TotalMilliseconds);
+
+            _joined = true;
+            _connecting = false;
+
+            await SetMic(DevicePreferences.MicrophoneDeviceId);
+            await RefreshStateFromSdkAsync();
+            await RefreshParticipantsAsync();
+            StartParticipantRefreshLoop();
+        }
+        catch (Exception ex)
+        {
+            _error = GetExceptionMessage(ex, "Failed to connect to voice.");
+            _connecting = false;
+            await SafeLeaveRoomInternalAsync(closePanel: false);
+        }
+        finally
+        {
+            _joinLock.Release();
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshStateFromSdkAsync()
+    {
+        if (_rtk is null || !_joined)
+            return;
+
+        var state = await _rtk.GetSelfStateAsync();
+        if (state is null)
+            return;
+
+        _audioEnabled = state.AudioEnabled;
+    }
+
     public async Task OnMicrophoneSelected(string id)
     {
         await SetMic(id);
     }
 
-    /// <summary>
-    /// Module for calling Javascript functions
-    /// </summary>
-    private IJSObjectReference _jsModule;
-    private string _clientId = "undefined";
-
-    /// <summary>
-    /// Dotnet object reference for use in Javascript
-    /// </summary>
-    private DotNetObjectReference<CallComponent> _thisRef;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task OnClickReconnect()
     {
-        if (firstRender)
-        {
-            _thisRef = DotNetObjectReference.Create(this);
-            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Calls/CallComponent.razor.js");
-        }
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        _thisRef?.Dispose();
-
-        if (_jsModule is not null)
-            await _jsModule.DisposeAsync();
-    }
-
-    public async Task NotifyPeerElementReady(MediaPeerComponent component)
-    {
-        if (!PeerComponents.Contains(component))
-            PeerComponents.Add(component);
-        
-        // Hook up the peer's media track to the element
-        if (!string.IsNullOrWhiteSpace(component.Peer.ConsumerId))
-        {
-            await HookPeerElementMediaTrack(component.ElementId, component.Peer.ConsumerId, component.Peer.Kind);
-        }
-    }
-
-    /* Methods that invoke JS */
-
-    public async Task Initialize(Channel channel)
-    {
-        if (!ISharedChannel.VoiceChannelTypes.Contains(channel.ChannelType))
-        {
+        if (ActiveChannel is null)
             return;
-        }
-        
-        if (ActiveChannel is not null)
-        {
-            // Cleanup old call
-            PeerComponents.Clear();
-            await LeaveRoom();
-        }
 
-        ActiveChannel = channel;
-        
-        _clientId = Guid.NewGuid().ToString() + ":" + channel.Planet.MyMember.Id.ToString();
-        
-        await _jsModule.InvokeVoidAsync("initialize", _thisRef, _clientId, channel.Id, null, DevicePreferences.MicrophoneDeviceId);
-        
-        await Join();
+        await Initialize(ActiveChannel);
     }
 
-    public async Task Join()
+    private async Task OnClickMute()
     {
-        await _jsModule.InvokeVoidAsync("join");
-        StateHasChanged();
-    }
+        if (_rtk is null || !_joined)
+            return;
 
-    public async Task OnClickMute()
-    {
-        if (_muted)
+        try
         {
-            // Unmute
-            await _jsModule.InvokeVoidAsync("unmuteMic");
+            if (_audioEnabled)
+            {
+                await _rtk.DisableAudioAsync();
+            }
+            else
+            {
+                await _rtk.EnableAudioAsync();
+            }
+
+            await RefreshStateFromSdkAsync();
         }
-        else
+        catch (Exception ex)
         {
-            // Mute
-            await _jsModule.InvokeVoidAsync("muteMic");
+            _error = ex.Message;
         }
-        
-        _muted = !_muted;
-        
+
         StateHasChanged();
     }
 
     private void OnClickSettings()
     {
-        var data = new EditUserComponent.ModalParams()
+        if (ModalRoot is null)
+            return;
+
+        var data = new EditUserComponent.ModalParams
         {
             User = Client.Me,
             StartCategory = "General Settings",
             StartItem = "Device Preferences"
         };
-        
+
         ModalRoot.OpenModal<EditUserComponent>(data);
     }
-    
+
     private async Task OnClickLeave()
     {
-        ActiveChannel = null;
         await LeaveRoom();
         StateHasChanged();
     }
 
-    public async Task JoinRoom() => 
-        await _jsModule.InvokeVoidAsync("joinRoom");
-    
-    public async Task EnableMic() => 
-        await _jsModule.InvokeVoidAsync("enableMic");
-
-    public async Task<SendCameraStreamResponse> SendCameraStreams() =>
-        await _jsModule.InvokeAsync<SendCameraStreamResponse>("sendCameraStreams");
-
-    public async Task<StartScreenshareResponse> StartScreenshare() =>
-        await _jsModule.InvokeAsync<StartScreenshareResponse>("startScreenshare");
-
-    public async Task<StartCameraResponse> StartCamera() =>
-        await _jsModule.InvokeAsync<StartCameraResponse>("startCamera");
-
-    public async Task<CycleCameraResponse> CycleCamera() =>
-        await _jsModule.InvokeAsync<CycleCameraResponse>("cycleCamera");
-
-    public async Task<StopStreamsResponse> StopStreams() =>
-        await _jsModule.InvokeAsync<StopStreamsResponse>("stopStreams");
-
-    public async Task<LeaveRoomResponse> LeaveRoom() =>
-        await _jsModule.InvokeAsync<LeaveRoomResponse>("close");
-
-    public async Task<SubscribeToTrackResponse> SubscribeToTrack(string peerId, string mediaTag) =>
-        await _jsModule.InvokeAsync<SubscribeToTrackResponse>("subscribeToTrack", peerId, mediaTag);
-
-    public async Task<UnsubscribeFromTrackResponse> UnsubscribeFromTrack(string peerId, string mediaTag) =>
-        await _jsModule.InvokeAsync<UnsubscribeFromTrackResponse>("unsubscribeFromTrack", peerId, mediaTag);
-
-    public async Task SetMicPaused(bool value) =>
-        await _jsModule.InvokeVoidAsync("setMicPaused", value);
-
-    public async Task SetCamPaused(bool value) =>
-        await _jsModule.InvokeVoidAsync("setCamPaused", value);
-
-    public async Task SetScreenPaused(bool value) =>
-        await _jsModule.InvokeVoidAsync("setScreenPaused", value);
-
-    public async Task SetScreenAudioPaused(bool value) =>
-        await _jsModule.InvokeVoidAsync("setScreenAudioPaused", value);
-
-    public async Task HookPeerElementMediaTrack(string elementId, string consumerId, string mediaTag) =>
-        await _jsModule.InvokeVoidAsync("hookPeerElementMediaTrack", elementId, consumerId, mediaTag);
-    
-    public async Task<InputMic[]> UpdateMics() => 
-        await _jsModule.InvokeAsync<InputMic[]>("updateMics");
-    
-    public async Task SetMic(string deviceId) => 
-        await _jsModule.InvokeVoidAsync("changeMic", deviceId);
-    
-    public ValueTask SetPeerConsumerLocalMutedAsync(string consumerId, bool value)
+    public async Task LeaveRoom()
     {
-        if (value)
-        {
-            return _jsModule.InvokeVoidAsync("pauseConsumerById", consumerId);
-        }
-        else
-        {
-            return _jsModule.InvokeVoidAsync("resumeConsumerById", consumerId);
-        }
-    }
-    
-    public ValueTask SetPeerLocalVolumeAsync(string elementId, float volume)
-    {
-        return _jsModule.InvokeVoidAsync("setPeerConsumerVolume", elementId, volume);
+        await SafeLeaveRoomInternalAsync(closePanel: true);
     }
 
-
-    /* Methods that are invoked by JS */
-    
-    [JSInvokable]
-    public async Task NotifyPeerConsumer(string peerId, string consumerId, string type, string codec, string kind)
+    private async Task SafeLeaveRoomInternalAsync(bool closePanel)
     {
-        Console.WriteLine("dotnet: notify peer consumer " + peerId);
-        
-        // Replace with more complete peer
-        var old = VisiblePeers.FirstOrDefault(x => x.PeerId == peerId);
-        if (old is null)
+        if (_rtk is not null)
         {
-            VisiblePeers.Add(new VisiblePeer()
+            try
             {
-                PeerId = peerId,
-                Kind = kind,
-                Codec = codec,
-                Type = type,
-                ConsumerId = consumerId
+                if (_joined)
+                {
+                    await _rtk.LeaveRoomAsync().WaitAsync(LeaveTimeout);
+                }
+                else
+                {
+                    await _rtk.ResetAsync();
+                }
+            }
+            catch
+            {
+                // Ignore leave failures during teardown.
+            }
+        }
+
+        await StopParticipantRefreshLoopAsync();
+
+        _joined = false;
+        _connecting = false;
+        _audioEnabled = true;
+        _muteOthersLocally = false;
+        _participants = new List<VoiceParticipantState>();
+        _pendingParticipantAudioSync = false;
+
+        if (closePanel)
+        {
+            ActiveChannel = null;
+            _error = null;
+        }
+    }
+
+    public async Task<InputMic[]> UpdateMics()
+    {
+        if (_rtk is null)
+            return Array.Empty<InputMic>();
+
+        var mics = await _rtk.GetAudioInputDevicesAsync();
+        return mics
+            .Where(x => !string.IsNullOrWhiteSpace(x.DeviceId))
+            .Select((x, index) => new InputMic
+            {
+                DeviceId = x.DeviceId,
+                Label = string.IsNullOrWhiteSpace(x.Label) ? $"Microphone {index + 1}" : x.Label
+            })
+            .ToArray();
+    }
+
+    public async Task<string> GetMicrophonePermissionStateAsync()
+    {
+        if (_rtk is null)
+            return "unsupported";
+
+        try
+        {
+            return await _rtk.GetMicrophonePermissionStateAsync();
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+
+    public async Task<bool> RequestMicrophonePermissionAsync()
+    {
+        if (_rtk is null)
+            return false;
+
+        try
+        {
+            return await _rtk.RequestMicrophonePermissionAsync();
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task SetMic(string? deviceId)
+    {
+        if (_rtk is null || !_joined || string.IsNullOrWhiteSpace(deviceId))
+            return;
+
+        try
+        {
+            await _rtk.SetDeviceAsync(new RealtimeKitDeviceSelection
+            {
+                DeviceId = deviceId,
+                Kind = "audioinput"
             });
-            
-            StateHasChanged();
-            return;
+
+            await RefreshStateFromSdkAsync();
         }
-        
-        old.Kind = kind;
-        old.Codec = codec;
-        old.Type = type;
-        old.ConsumerId = consumerId;
-        
-        // Notify peer component
-        var component = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);
-        
-        if (component is null)
-            return;
-        
-        await component.NotifyPeerUpdated();
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
     }
-    
-    [JSInvokable]
-    public Task NotifyStartingPeers(VisiblePeer[] peers)
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Console.WriteLine("dotnet: notify starting peers");
-        
-        if (ActiveChannel is null) return Task.CompletedTask;
-        
-        VisiblePeers.Clear();
-        VisiblePeers.AddRange(peers);
+        if (!_pendingParticipantAudioSync || !_joined || _rtk is null)
+            return;
+
+        _pendingParticipantAudioSync = false;
+
+        try
+        {
+            await SyncParticipantAudioElementsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = GetExceptionMessage(ex, "Failed to sync participant audio.");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SyncParticipantAudioElementsAsync()
+    {
+        if (_rtk is null)
+            return;
+
+        foreach (var participant in _participants)
+        {
+            if (string.IsNullOrWhiteSpace(participant.PeerId))
+                continue;
+
+            await _rtk.SyncParticipantAudioAsync(
+                GetParticipantAudioElementId(participant.PeerId),
+                participant.PeerId,
+                _muteOthersLocally);
+        }
+    }
+
+    private Task OnToggleMuteOthersLocally()
+    {
+        _muteOthersLocally = !_muteOthersLocally;
+        _pendingParticipantAudioSync = true;
         StateHasChanged();
         return Task.CompletedTask;
     }
 
-    [JSInvokable]
-    public Task NotifyNewPeer(string peerId)
+    private async Task RefreshParticipantsAsync()
     {
-        Console.WriteLine("dotnet: new peer " + peerId);
-        
-        if (VisiblePeers.Any(x => x.PeerId == peerId))
-            return Task.CompletedTask;
+        if (_rtk is null || !_joined)
+            return;
 
-        VisiblePeers.Add(new VisiblePeer()
+        if (Interlocked.Exchange(ref _participantRefreshInProgress, 1) == 1)
+            return;
+
+        try
         {
-            PeerId = peerId
-        });
-        
-        StateHasChanged();
-        return Task.CompletedTask;
+            var snapshot = await _rtk.GetParticipantsSnapshotAsync();
+            var nextParticipants = BuildParticipantState(snapshot);
+
+            if (AreParticipantsEqual(_participants, nextParticipants))
+                return;
+
+            _participants = nextParticipants;
+            _pendingParticipantAudioSync = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _error = GetExceptionMessage(ex, "Failed to refresh voice participants.");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _participantRefreshInProgress, 0);
+        }
     }
 
-    [JSInvokable]
-    public Task NotifyActiveSpeaker(string peerId)
+    private void StartParticipantRefreshLoop()
     {
-        if (peerId == _lastActiveSpeakerId)
-            return Task.CompletedTask;
+        if (_participantRefreshLoopTask is { IsCompleted: false })
+            return;
 
-        var oldActive = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == _lastActiveSpeakerId);
-        if (oldActive is not null)
-        {
-            oldActive.SetActiveSpeaker(false);
-        }
+        _participantRefreshLoopCts?.Dispose();
+        _participantRefreshLoopCts = new CancellationTokenSource();
+        var cancellationToken = _participantRefreshLoopCts.Token;
 
-        if (peerId is not null)
+        _participantRefreshLoopTask = Task.Run(async () =>
         {
-            var newActive = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);
-            if (newActive is not null)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                newActive.SetActiveSpeaker(true);
+                try
+                {
+                    await RefreshParticipantsAsync();
+                    await Task.Delay(350, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch
+                {
+                    // Keep the participant refresh loop alive across transient SDK failures.
+                }
+            }
+        }, cancellationToken);
+    }
+
+    private async Task StopParticipantRefreshLoopAsync()
+    {
+        if (_participantRefreshLoopCts is null)
+            return;
+
+        var cts = _participantRefreshLoopCts;
+        var refreshTask = _participantRefreshLoopTask;
+
+        _participantRefreshLoopCts = null;
+        _participantRefreshLoopTask = null;
+
+        try
+        {
+            cts.Cancel();
+            if (refreshTask is not null)
+            {
+                await refreshTask;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when stopping the refresh loop.
+        }
+        finally
+        {
+            cts.Dispose();
+        }
+    }
+
+    private static string GetParticipantClass(VoiceParticipantState participant)
+    {
+        return participant.IsActiveSpeaker
+            ? "voice-participant active-speaker"
+            : "voice-participant";
+    }
+
+    private static string GetParticipantAudioElementId(string peerId)
+    {
+        var normalizedPeerId = string.IsNullOrWhiteSpace(peerId) ? "unknown" : peerId;
+        var idBytes = System.Text.Encoding.UTF8.GetBytes(normalizedPeerId);
+        var idSuffix = Convert.ToHexString(idBytes).ToLowerInvariant();
+        return $"voice-audio-{idSuffix}";
+    }
+
+    private List<VoiceParticipantState> BuildParticipantState(RealtimeKitParticipantsSnapshot? snapshot)
+    {
+        if (snapshot?.Participants is null || snapshot.Participants.Length == 0)
+            return new List<VoiceParticipantState>();
+
+        var activeSpeakerPeerId = snapshot.ActiveSpeakerPeerId;
+
+        return snapshot.Participants
+            .Where(x => !string.IsNullOrWhiteSpace(x.PeerId))
+            .Select(x => new VoiceParticipantState
+            {
+                PeerId = x.PeerId!,
+                UserId = ResolveUserId(x),
+                DisplayName = string.IsNullOrWhiteSpace(x.Name) ? "Unknown Participant" : x.Name,
+                AudioEnabled = x.AudioEnabled,
+                HasAudioTrack = x.HasAudioTrack,
+                AudioTrackId = x.AudioTrackId,
+                IsSelf = x.IsSelf,
+                IsActiveSpeaker = string.Equals(x.PeerId, activeSpeakerPeerId, StringComparison.Ordinal)
+            })
+            .OrderByDescending(x => x.IsSelf)
+            .ThenBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static long ResolveUserId(RealtimeKitParticipantState participant)
+    {
+        if (TryParseUserId(participant.CustomParticipantId, out var customId))
+            return customId;
+
+        if (long.TryParse(participant.UserId, out var userId) && userId > 0)
+            return userId;
+
+        return 0;
+    }
+
+    private static bool TryParseUserId(string? source, out long userId)
+    {
+        userId = 0;
+        if (string.IsNullOrWhiteSpace(source))
+            return false;
+
+        var delimiterIndex = source.IndexOf(':');
+        var candidate = delimiterIndex > 0 ? source[..delimiterIndex] : source;
+        return long.TryParse(candidate, out userId) && userId > 0;
+    }
+
+    private static bool AreParticipantsEqual(IReadOnlyList<VoiceParticipantState> current, IReadOnlyList<VoiceParticipantState> next)
+    {
+        if (current.Count != next.Count)
+            return false;
+
+        for (int i = 0; i < current.Count; i++)
+        {
+            var left = current[i];
+            var right = next[i];
+
+            if (!string.Equals(left.PeerId, right.PeerId, StringComparison.Ordinal))
+                return false;
+
+            if (left.UserId != right.UserId)
+                return false;
+
+            if (!string.Equals(left.DisplayName, right.DisplayName, StringComparison.Ordinal))
+                return false;
+
+            if (left.AudioEnabled != right.AudioEnabled
+                || left.HasAudioTrack != right.HasAudioTrack
+                || !string.Equals(left.AudioTrackId, right.AudioTrackId, StringComparison.Ordinal)
+                || left.IsSelf != right.IsSelf
+                || left.IsActiveSpeaker != right.IsActiveSpeaker)
+            {
+                return false;
             }
         }
 
-        _lastActiveSpeakerId = peerId;
-        return Task.CompletedTask;
-    }
-    
-    [JSInvokable]
-    public Task NotifyPeerClosed(string peerId)
-    {
-        VisiblePeers.RemoveAll(x => x.PeerId == peerId);
-        PeerComponents.RemoveAll(x => x.Peer.PeerId == peerId);
-        
-        StateHasChanged();
-        return Task.CompletedTask;
+        return true;
     }
 
-    [JSInvokable]
-    public async Task NotifyPeerConsumerClosed(string peerId, string consumerId)
+    private sealed class VoiceParticipantState
     {
-        var peer = VisiblePeers.FirstOrDefault(x => x.PeerId == peerId);
-        if (peer is null)
-            return;
-        
-        if (peer.ConsumerId == consumerId)
+        public string PeerId { get; init; } = string.Empty;
+
+        public long UserId { get; init; }
+
+        public string DisplayName { get; init; } = "Unknown Participant";
+
+        public bool AudioEnabled { get; init; }
+
+        public bool HasAudioTrack { get; init; }
+
+        public string? AudioTrackId { get; init; }
+
+        public bool IsSelf { get; init; }
+
+        public bool IsActiveSpeaker { get; init; }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        DevicePreferences.OnMicrophoneDeviceIdChanged -= OnMicrophoneSelected;
+        if (ReferenceEquals(Instance, this))
         {
-            peer.ConsumerId = null;
-            
-            var component = PeerComponents.FirstOrDefault(x => x.Peer.PeerId == peerId);
-            if (component is not null)
-            {
-                await component.NotifyPeerUpdated();
-            }
+            Instance = null;
         }
-    }
-    
-    [JSInvokable]
-    public Task NotifyPeerConsumerPaused(string consumerId)
-    {
-        var component = PeerComponents.FirstOrDefault(x => x.Peer.ConsumerId == consumerId);
-        if (component is null) return Task.CompletedTask;
 
-        component.SetRemoteMuted(true);
-        return Task.CompletedTask;
-    }
-    
-    [JSInvokable]
-    public Task NotifyPeerConsumerResumed(string consumerId)
-    {
-        var component = PeerComponents.FirstOrDefault(x => x.Peer.ConsumerId == consumerId);
-        if (component is null) return Task.CompletedTask;
-
-        component.SetRemoteMuted(false);
-        return Task.CompletedTask;
+        await SafeLeaveRoomInternalAsync(closePanel: true);
     }
 
-    [JSInvokable]
-    public Task NotifyError(string error)
+    private static string GetExceptionMessage(Exception exception, string fallbackMessage)
     {
-        _error = error;
-        StateHasChanged();
-        return Task.CompletedTask;
+        if (!string.IsNullOrWhiteSpace(exception.Message))
+            return exception.Message;
+
+        if (exception.InnerException is not null && !string.IsNullOrWhiteSpace(exception.InnerException.Message))
+            return exception.InnerException.Message;
+
+        return fallbackMessage;
     }
 }

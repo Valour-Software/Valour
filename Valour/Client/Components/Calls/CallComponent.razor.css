@@ -1,13 +1,25 @@
-﻿.call-container {
+.call-container {
     z-index: 1;
     font-size: 12px;
     padding: 16px;
     background-color: var(--main-2);
     border-radius: 8px;
     text-align: center;
-    width: max-content;
+    width: min(360px, 90vw);
     position: absolute;
-    max-width: 250px;
+    max-width: 360px;
+    box-shadow: 0 0 10px black;
+}
+
+.call-status {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    opacity: 0.85;
+}
+
+.call-error {
+    color: red;
+    margin-top: 12px;
 }
 
 .mobile .call-container {
@@ -26,4 +38,52 @@
     margin-top: 12px;
     width: auto;
     display: inline-block;
+}
+
+.participants-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+}
+
+.participants-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.participants-title {
+    margin: 0;
+    opacity: 0.8;
+}
+
+.participants-mute-btn {
+    margin-top: 0;
+    margin-left: auto;
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.participants-empty {
+    margin: 0;
+    opacity: 0.75;
+}
+
+.voice-participant {
+    border: 1px solid transparent;
+    border-radius: var(--main-radius);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.voice-participant.active-speaker {
+    border-color: #4ade80;
+    background-color: rgba(74, 222, 128, 0.08);
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.25);
+}
+
+.participant-audio {
+    display: none;
 }
