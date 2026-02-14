@@ -35,7 +35,7 @@
 
     private string? _error;
     private bool _pendingParticipantAudioSync;
-    private bool _muteOthersLocally;
+    private HashSet<string> _locallyMutedPeerIds = new();
     private List<VoiceParticipantState> _participants = new();
     private CancellationTokenSource? _participantRefreshLoopCts;
     private Task? _participantRefreshLoopTask;
@@ -45,46 +45,85 @@
 
     public Channel? ActiveChannel { get; private set; }
 
-    private string StatusText => _connecting ? "Connecting..." : _joined ? "Connected" : "Disconnected";
+    private string StatusText => _connecting ? "Connecting" : _joined ? "Connected" : "Disconnected";
+    private string StatusBadgeClass => _connecting ? "connecting" : _joined ? "connected" : "disconnected";
+
+    private bool IsParticipantLocallyMuted(string peerId) => _locallyMutedPeerIds.Contains(peerId);
 
     private RenderFragment InnerContent =>
         @<div class="call-container">
-            <h6>Active Call: @ActiveChannel!.Name</h6>
-            <p class="call-status">@StatusText</p>
+            <div class="call-header">
+                <div class="call-header-info">
+                    <span class="call-channel-name">@ActiveChannel!.Name</span>
+                </div>
+                <div class="call-status-badge @StatusBadgeClass">
+                    <span class="call-status-dot"></span>
+                    <span>@StatusText</span>
+                </div>
+            </div>
 
-            <button class="v-btn large call-button" @onmousedown="OnClickSettings"><i class="bi bi-gear-fill"></i></button>
+            <div class="call-controls">
+                @if (!_joined)
+                {
+                    <button class="call-ctrl-btn reconnect" disabled="@_connecting" @onmousedown="OnClickReconnect" title="Connect">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                }
+                else
+                {
+                    <button class="call-ctrl-btn @(_audioEnabled ? "" : "toggled-danger")" @onmousedown="OnClickMute" title="@(_audioEnabled ? "Mute" : "Unmute")">
+                        <i class="bi @(_audioEnabled ? "bi-mic-fill" : "bi-mic-mute-fill")"></i>
+                    </button>
+                }
 
-            @if (!_joined)
-            {
-                <button class="v-btn large call-button" disabled="@_connecting" @onmousedown="OnClickReconnect">Connect</button>
-            }
-            else
-            {
-                <button class="v-btn large call-button" @onmousedown="OnClickMute">@(_audioEnabled ? "Mute" : "Unmute")</button>
-            }
+                <button class="call-ctrl-btn" @onmousedown="OnClickSettings" title="Settings">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
 
-            <button class="v-btn large call-button" @onmousedown="OnClickLeave"><i class="bi bi-box-arrow-right"></i></button>
+                <button class="call-ctrl-btn danger" @onmousedown="OnClickLeave" title="Leave Call">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </div>
 
             @if (_joined)
             {
-                <div class="participants-list">
-                    <div class="participants-header">
-                        <p class="participants-title">Voice Participants</p>
-                        <button class="v-btn participants-mute-btn" @onmousedown="OnToggleMuteOthersLocally">
-                            @(_muteOthersLocally ? "Unmute Others" : "Mute Others")
-                        </button>
+                <div class="call-participants">
+                    <div class="call-participants-header">
+                        <span class="call-participants-label">Participants</span>
+                        <span class="call-participants-count">@_participants.Count</span>
                     </div>
 
                     @if (_participants.Count == 0)
                     {
-                        <p class="participants-empty">Nobody is in voice yet.</p>
+                        <p class="call-participants-empty">No one else is here yet.</p>
                     }
                     else
                     {
                         @foreach (var participant in _participants)
                         {
                             <div class="@GetParticipantClass(participant)" @key="participant.PeerId">
-                                <UserInfoComponent UserId="@participant.UserId" Style="width: 100%;" />
+                                <div class="participant-info">
+                                    <UserInfoComponent UserId="@participant.UserId" Style="width: 100%;" />
+                                </div>
+                                @if (participant.IsSelf)
+                                {
+                                    @if (!_audioEnabled)
+                                    {
+                                        <span class="participant-self-muted" title="You are muted">
+                                            <i class="bi bi-mic-mute-fill"></i>
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    var peerId = participant.PeerId;
+                                    var isMuted = IsParticipantLocallyMuted(peerId);
+                                    <button class="participant-mute-btn @(isMuted ? "muted" : "")"
+                                            @onmousedown="() => ToggleParticipantMute(peerId)"
+                                            title="@(isMuted ? "Unmute" : "Mute")">
+                                        <i class="bi @(isMuted ? "bi-volume-mute-fill" : "bi-volume-up-fill")"></i>
+                                    </button>
+                                }
                                 <audio id="@GetParticipantAudioElementId(participant.PeerId)" class="participant-audio" autoplay playsinline></audio>
                             </div>
                         }
@@ -94,7 +133,10 @@
 
             @if (!string.IsNullOrWhiteSpace(_error))
             {
-                <p class="call-error">@_error</p>
+                <div class="call-error">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>@_error</span>
+                </div>
             }
         </div>;
 
@@ -280,7 +322,7 @@
         _joined = false;
         _connecting = false;
         _audioEnabled = true;
-        _muteOthersLocally = false;
+        _locallyMutedPeerIds = new HashSet<string>();
         _participants = new List<VoiceParticipantState>();
         _pendingParticipantAudioSync = false;
 
@@ -386,16 +428,19 @@
             if (string.IsNullOrWhiteSpace(participant.PeerId))
                 continue;
 
+            var isMuted = _locallyMutedPeerIds.Contains(participant.PeerId);
             await _rtk.SyncParticipantAudioAsync(
                 GetParticipantAudioElementId(participant.PeerId),
                 participant.PeerId,
-                _muteOthersLocally);
+                isMuted);
         }
     }
 
-    private Task OnToggleMuteOthersLocally()
+    private Task ToggleParticipantMute(string peerId)
     {
-        _muteOthersLocally = !_muteOthersLocally;
+        if (!_locallyMutedPeerIds.Remove(peerId))
+            _locallyMutedPeerIds.Add(peerId);
+
         _pendingParticipantAudioSync = true;
         StateHasChanged();
         return Task.CompletedTask;

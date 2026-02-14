@@ -1,31 +1,27 @@
+/* ── Container ── */
+
 .call-container {
     z-index: 1;
-    font-size: 12px;
-    padding: 16px;
-    background-color: var(--main-2);
-    border-radius: 8px;
-    text-align: center;
-    width: min(360px, 90vw);
+    padding: 0;
+    background: linear-gradient(145deg, var(--main-2) 0%, var(--main-3) 100%);
+    border-radius: var(--card-radius);
+    width: min(340px, 90vw);
     position: absolute;
-    max-width: 360px;
-    box-shadow: 0 0 10px black;
-}
-
-.call-status {
-    margin-top: 8px;
-    margin-bottom: 8px;
-    opacity: 0.85;
-}
-
-.call-error {
-    color: red;
-    margin-top: 12px;
+    max-width: 340px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.45),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--slight-tint);
+    font-size: 13px;
+    overflow: hidden;
 }
 
 .mobile .call-container {
     max-width: 100vw;
     width: 100vw;
     position: relative;
+    border-radius: 0;
 }
 
 .drag-area {
@@ -34,56 +30,319 @@
     width: 100%;
 }
 
-.call-button {
-    margin-top: 12px;
-    width: auto;
-    display: inline-block;
-}
+/* ── Header ── */
 
-.participants-list {
-    margin-top: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    text-align: left;
-}
-
-.participants-header {
+.call-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 14px 16px;
+    gap: 10px;
+    border-bottom: 1px solid var(--slight-tint);
+}
+
+.call-header-info {
+    display: flex;
+    align-items: center;
     gap: 8px;
+    min-width: 0;
+    flex: 1;
 }
 
-.participants-title {
-    margin: 0;
-    opacity: 0.8;
+.call-channel-name {
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.participants-mute-btn {
-    margin-top: 0;
-    margin-left: auto;
-    padding: 4px 8px;
+/* ── Status badge ── */
+
+.call-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
     font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+    letter-spacing: 0.01em;
 }
 
-.participants-empty {
-    margin: 0;
-    opacity: 0.75;
+.call-status-badge.connected {
+    background: rgba(74, 222, 128, 0.1);
+    color: #4ade80;
 }
+
+.call-status-badge.connecting {
+    background: rgba(250, 204, 21, 0.1);
+    color: #facc15;
+}
+
+.call-status-badge.disconnected {
+    background: rgba(205, 94, 94, 0.1);
+    color: var(--p-red);
+}
+
+.call-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.call-status-badge.connected .call-status-dot {
+    background: #4ade80;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.call-status-badge.connecting .call-status-dot {
+    background: #facc15;
+    animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.call-status-badge.disconnected .call-status-dot {
+    background: var(--p-red);
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ── Controls bar ── */
+
+.call-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.call-ctrl-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--slight-tint);
+    background: var(--main-4);
+    color: var(--font-color);
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+    outline: none;
+}
+
+.call-ctrl-btn:hover {
+    background: var(--main-5);
+    border-color: var(--medium-tint);
+    transform: scale(1.08);
+}
+
+.call-ctrl-btn:active {
+    transform: scale(0.94);
+}
+
+.call-ctrl-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.call-ctrl-btn.danger {
+    background: rgba(205, 94, 94, 0.12);
+    border-color: rgba(205, 94, 94, 0.25);
+    color: var(--p-red);
+}
+
+.call-ctrl-btn.danger:hover {
+    background: var(--p-red);
+    border-color: var(--p-red);
+    color: white;
+}
+
+.call-ctrl-btn.toggled-danger {
+    background: rgba(205, 94, 94, 0.18);
+    border-color: rgba(205, 94, 94, 0.35);
+    color: var(--p-red);
+}
+
+.call-ctrl-btn.toggled-danger:hover {
+    background: rgba(205, 94, 94, 0.28);
+    border-color: rgba(205, 94, 94, 0.5);
+}
+
+.call-ctrl-btn.reconnect {
+    color: var(--p-cyan);
+}
+
+.call-ctrl-btn.reconnect:hover {
+    background: rgba(55, 164, 206, 0.15);
+    border-color: rgba(55, 164, 206, 0.3);
+}
+
+.call-ctrl-btn.reconnect:disabled i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ── Participants ── */
+
+.call-participants {
+    padding: 10px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.call-participants-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px 6px;
+}
+
+.call-participants-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.45;
+}
+
+.call-participants-count {
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--slight-tint);
+    padding: 1px 7px;
+    border-radius: 10px;
+    opacity: 0.45;
+}
+
+.call-participants-empty {
+    margin: 0;
+    padding: 6px 4px;
+    opacity: 0.4;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* ── Participant row ── */
 
 .voice-participant {
+    display: flex;
+    align-items: center;
+    padding: 4px 6px;
+    border-radius: var(--small-radius);
     border: 1px solid transparent;
-    border-radius: var(--main-radius);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    gap: 4px;
+}
+
+.voice-participant:hover {
+    background: var(--slight-tint);
 }
 
 .voice-participant.active-speaker {
-    border-color: #4ade80;
-    background-color: rgba(74, 222, 128, 0.08);
-    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.25);
+    border-color: rgba(74, 222, 128, 0.25);
+    background: rgba(74, 222, 128, 0.05);
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.08);
 }
+
+.participant-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ── Per-user mute button ── */
+
+.participant-mute-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--font-color);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.35;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+    outline: none;
+}
+
+.voice-participant:hover .participant-mute-btn {
+    opacity: 0.65;
+}
+
+.participant-mute-btn:hover {
+    opacity: 1 !important;
+    background: var(--slight-tint);
+}
+
+.participant-mute-btn.muted {
+    opacity: 1;
+    color: var(--p-red);
+}
+
+.participant-mute-btn.muted:hover {
+    background: rgba(205, 94, 94, 0.12);
+}
+
+/* Mobile: always show mute buttons */
+.mobile .participant-mute-btn {
+    opacity: 0.55;
+}
+
+/* ── Self muted indicator ── */
+
+.participant-self-muted {
+    font-size: 13px;
+    color: var(--p-red);
+    opacity: 0.6;
+    flex-shrink: 0;
+    padding-right: 2px;
+}
+
+/* ── Hidden audio element ── */
 
 .participant-audio {
     display: none;
+}
+
+/* ── Error ── */
+
+.call-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 12px 12px;
+    padding: 8px 12px;
+    border-radius: var(--small-radius);
+    background: rgba(205, 94, 94, 0.08);
+    border: 1px solid rgba(205, 94, 94, 0.15);
+    color: var(--p-red);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.call-error i {
+    flex-shrink: 0;
+    margin-top: 1px;
 }
