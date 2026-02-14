@@ -137,12 +137,12 @@ else
     }
 
     private async Task OnClickCopyMemberId(){
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Id);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Member ID copied to clipboard", ToastProgressState.Success));
     }
 
     private async Task OnClickCopyUserId(){
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.UserId);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Member.UserId.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "User ID copied to clipboard", ToastProgressState.Success));
     }
 
