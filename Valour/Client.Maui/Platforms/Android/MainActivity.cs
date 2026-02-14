@@ -1,4 +1,5 @@
 using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
@@ -17,6 +18,9 @@ public class MainActivity : MauiAppCompatActivity
 
         CreateNotificationChannel();
         _ = RequestNotificationPermissionAsync();
+
+        AppLifecycle.CallStarted += CallForegroundService.Start;
+        AppLifecycle.CallEnded += CallForegroundService.Stop;
 
         if (Window is null)
             return;
@@ -37,6 +41,17 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnResume();
         AppLifecycle.NotifyResumed();
+    }
+
+    protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
+    {
+        if (requestCode == AudioPermissionChromeClient.FileChooserRequestCode)
+        {
+            AudioPermissionChromeClient.HandleFileChooserResult(resultCode, data);
+            return;
+        }
+
+        base.OnActivityResult(requestCode, resultCode, data);
     }
 
     private void CreateNotificationChannel()

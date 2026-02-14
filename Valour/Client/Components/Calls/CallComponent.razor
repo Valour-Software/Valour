@@ -158,6 +158,7 @@
     {
         Instance = this;
         DevicePreferences.OnMicrophoneDeviceIdChanged += OnMicrophoneSelected;
+        BrowserUtils.Focused += OnAppResumed;
     }
 
     public async Task Initialize(Channel channel)
@@ -215,6 +216,8 @@
             _joined = true;
             _connecting = false;
 
+            AppLifecycle.NotifyCallStarted();
+
             // Attempt to enable microphone — not required to participate
             try
             {
@@ -258,6 +261,28 @@
     public async Task OnMicrophoneSelected(string id)
     {
         await SetMic(id);
+    }
+
+    private async Task OnAppResumed()
+    {
+        if (!_joined || ActiveChannel is null || _rtk is null)
+            return;
+
+        // Check if the RTK meeting is still alive after returning from background
+        try
+        {
+            await _rtk.GetSelfStateAsync();
+        }
+        catch
+        {
+            // Meeting is dead — reconnect
+            await InvokeAsync(async () =>
+            {
+                var channel = ActiveChannel;
+                if (channel is not null)
+                    await Initialize(channel);
+            });
+        }
     }
 
     private async Task OnClickReconnect()
@@ -349,6 +374,8 @@
         _participantVolumes = new Dictionary<string, int>();
         _participants = new List<VoiceParticipantState>();
         _pendingParticipantAudioSync = false;
+
+        AppLifecycle.NotifyCallEnded();
 
         if (closePanel)
         {
@@ -685,6 +712,7 @@
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         DevicePreferences.OnMicrophoneDeviceIdChanged -= OnMicrophoneSelected;
+        BrowserUtils.Focused -= OnAppResumed;
         if (ReferenceEquals(Instance, this))
         {
             Instance = null;
