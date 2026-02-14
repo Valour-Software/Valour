@@ -15,8 +15,11 @@
         NotificationService.NotificationReceived += OnNotification;
     }
 
-    public async Task PlaySound(string name) => 
-        await JsRuntime.InvokeVoidAsync("playSound", name, 0.2, "notifications");
+    public async Task PlaySound(string name, double? volume = null)
+    {
+        var playbackVolume = volume ?? SoundManager.NotificationVolume / 100d;
+        await JsRuntime.InvokeVoidAsync("playSound", name, playbackVolume, "notifications");
+    }
 
 
     private async Task OnNotification(Notification notification)

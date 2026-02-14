@@ -10,7 +10,9 @@ public static class UserPreferencesMapper
         return new UserPreferences()
         {
             Id = prefs.Id,
-            ErrorReportingState = prefs.ErrorReportingState
+            ErrorReportingState = prefs.ErrorReportingState,
+            NotificationVolume = prefs.NotificationVolume,
+            EnabledNotificationSources = prefs.EnabledNotificationSources
         };
     }
 
@@ -22,7 +24,9 @@ public static class UserPreferencesMapper
         return new Valour.Database.UserPreferences()
         {
             Id = prefs.Id,
-            ErrorReportingState = prefs.ErrorReportingState
+            ErrorReportingState = prefs.ErrorReportingState,
+            NotificationVolume = prefs.NotificationVolume,
+            EnabledNotificationSources = prefs.EnabledNotificationSources
         };
     }
 }

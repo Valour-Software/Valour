@@ -1,5 +1,5 @@
-﻿@inject IJSRuntime JsRuntime
-@inject ValourClient Client
+﻿@inject ValourClient Client
+@inject SoundManager SoundManager
 
 <div class="perm-list-item">
     <div class="perm-list-name mb-1">
@@ -32,30 +32,58 @@
 
 <div class="perm-list-item">
     <div class="perm-list-name mb-1">
-        Error Reporting
-    </div>
-    <div type="button" style="float:right">
-        <label class="switch">
-            <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
-            <span class="slider round"></span>
-        </label>
+        Notification Volume
     </div>
     <div class="perm-list-desc mt-1">
-        <span>Share anonymous error reports to help improve Valour.</span>
+        <input type="range"
+               min="@NotificationPreferences.MinNotificationVolume"
+               max="@NotificationPreferences.MaxNotificationVolume"
+               value="@_notificationVolume"
+               @onchange="OnNotificationVolumeChanged"
+               style="width:100%;" />
+        <span>Adjusts notification sound loudness (@_notificationVolume%).</span>
     </div>
 </div>
 
+<div class="perm-list-item">
+    <div class="perm-list-name mb-1">
+        Notification Types
+    </div>
+    <div class="perm-list-desc mt-1">
+        <span>Choose which notification types you want to receive.</span>
+    </div>
+</div>
+
+@foreach (var source in NotificationPreferences.ConfigurableSources)
+{
+    var isEnabled = NotificationPreferences.IsSourceEnabled(_enabledNotificationSources, source);
+    <div class="perm-list-item">
+        <div class="perm-list-name mb-1">
+            @GetNotificationSourceName(source)
+        </div>
+        <div type="button" style="float:right">
+            <label class="switch">
+                <input type="checkbox" @onclick="() => OnNotificationSourceToggled(source)" checked="@isEnabled">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="perm-list-desc mt-1">
+            <span>@GetNotificationSourceDescription(source)</span>
+        </div>
+    </div>
+}
+
 @code {
 
-    public string NotificationState = "null";
     private bool _notificationsEnabled = false;
     private bool _notificationsBlocked = false;
-    private bool _errorReportingEnabled = false;
+    private int _notificationVolume = NotificationPreferences.DefaultNotificationVolume;
+    private long _enabledNotificationSources = NotificationPreferences.AllNotificationSourcesMask;
 
     protected override async Task OnInitializedAsync()
     {
         await RefreshPermissionStateAsync();
-        await LoadErrorReportingStateAsync();
+        await LoadPreferencesAsync();
     }
 
     private async Task RefreshPermissionStateAsync()
@@ -101,22 +129,91 @@
         await PushSubscriptionsComponent.Instance.OpenNotificationSettingsAsync();
     }
 
-    private async Task LoadErrorReportingStateAsync()
+    private async Task LoadPreferencesAsync()
     {
         var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
         if (response.Success && response.Data is not null)
         {
-            _errorReportingEnabled = response.Data.ErrorReportingState == ErrorReportingState.All;
+            _notificationVolume = NotificationPreferences.ClampVolume(response.Data.NotificationVolume);
+            _enabledNotificationSources = response.Data.EnabledNotificationSources;
+            SoundManager.SetNotificationVolume(_notificationVolume);
             StateHasChanged();
         }
     }
 
-    private async Task OnErrorReportingClick()
+    private async Task OnNotificationVolumeChanged(ChangeEventArgs e)
     {
-        _errorReportingEnabled = !_errorReportingEnabled;
-        var state = _errorReportingEnabled ? ErrorReportingState.All : ErrorReportingState.None;
-        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)state}", null);
-        SentryGate.IsEnabled = _errorReportingEnabled;
+        if (!int.TryParse(e.Value?.ToString(), out var parsed))
+            return;
+
+        var volume = NotificationPreferences.ClampVolume(parsed);
+        if (_notificationVolume == volume)
+            return;
+
+        _notificationVolume = volume;
+        SoundManager.SetNotificationVolume(volume);
+
+        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/notificationVolume/{volume}", null);
+        await SoundManager.PlaySound("Notification.mp3");
+
         StateHasChanged();
     }
+
+    private async Task OnNotificationSourceToggled(NotificationSource source)
+    {
+        var currentlyEnabled = NotificationPreferences.IsSourceEnabled(_enabledNotificationSources, source);
+        var shouldEnable = !currentlyEnabled;
+
+        var result = await Client.PrimaryNode.PostAsync(
+            $"api/users/me/preferences/notificationSource/{(int)source}/enabled/{shouldEnable.ToString().ToLowerInvariant()}",
+            null);
+
+        if (!result.Success)
+            return;
+
+        _enabledNotificationSources = NotificationPreferences.SetSourceEnabled(_enabledNotificationSources, source, shouldEnable);
+        StateHasChanged();
+    }
+
+    private static string GetNotificationSourceName(NotificationSource source) =>
+        source switch
+        {
+            NotificationSource.Platform => "Platform Updates",
+            NotificationSource.DirectMention => "Direct Mentions",
+            NotificationSource.DirectReply => "Direct Replies",
+            NotificationSource.PlanetMemberMention => "Planet Mentions",
+            NotificationSource.PlanetMemberReply => "Planet Replies",
+            NotificationSource.PlanetRoleMention => "Role Mentions",
+            NotificationSource.PlanetHereMention => "@here Mentions",
+            NotificationSource.PlanetEveryoneMention => "@everyone Mentions",
+            NotificationSource.FriendRequest => "Friend Requests",
+            NotificationSource.FriendRequestAccepted => "Friend Request Accepted",
+            NotificationSource.TransactionReceived => "Transactions Received",
+            NotificationSource.TradeProposed => "Trade Proposals",
+            NotificationSource.TradeAccepted => "Trade Accepted",
+            NotificationSource.TradeDeclined => "Trade Declined",
+            NotificationSource.DirectMessage => "Direct Messages",
+            _ => source.ToString()
+        };
+
+    private static string GetNotificationSourceDescription(NotificationSource source) =>
+        source switch
+        {
+            NotificationSource.Platform => "System and platform-level notices.",
+            NotificationSource.DirectMention => "When someone mentions you in direct messages.",
+            NotificationSource.DirectReply => "When someone replies to you in direct messages.",
+            NotificationSource.PlanetMemberMention => "When someone mentions you in a planet.",
+            NotificationSource.PlanetMemberReply => "When someone replies to your message in a planet.",
+            NotificationSource.PlanetRoleMention => "When one of your roles is mentioned.",
+            NotificationSource.PlanetHereMention => "When @here is used in channels you can access.",
+            NotificationSource.PlanetEveryoneMention => "When @everyone is used in channels you can access.",
+            NotificationSource.FriendRequest => "When someone sends you a friend request.",
+            NotificationSource.FriendRequestAccepted => "When someone accepts your friend request.",
+            NotificationSource.TransactionReceived => "When you receive an economy transaction.",
+            NotificationSource.TradeProposed => "When someone proposes a trade.",
+            NotificationSource.TradeAccepted => "When your trade is accepted.",
+            NotificationSource.TradeDeclined => "When your trade is declined.",
+            NotificationSource.DirectMessage => "When you receive a new direct message.",
+            _ => string.Empty
+        };
 }

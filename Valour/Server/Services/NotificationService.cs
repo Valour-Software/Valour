@@ -109,6 +109,9 @@ public class NotificationService
     {
         notification.UserId = userId;
         notification.TimeSent = DateTime.UtcNow;
+        
+        if (!await IsNotificationSourceEnabledForUserAsync(userId, notification.Source))
+            return;
 
         notification.Id = Guid.NewGuid();
 
@@ -151,8 +154,42 @@ public class NotificationService
         if (userIds.Length == 0)
             return;
 
+        var preferenceMasks = await _db.UserPreferences
+            .AsNoTracking()
+            .Where(x => userIds.Contains(x.Id))
+            .Select(x => new
+            {
+                x.Id,
+                x.EnabledNotificationSources
+            })
+            .ToDictionaryAsync(x => x.Id, x => x.EnabledNotificationSources);
+
+        var filteredUserIds = userIds
+            .Where(userId =>
+            {
+                if (!preferenceMasks.TryGetValue(userId, out var enabledSourcesMask))
+                    return true;
+
+                return NotificationPreferences.IsSourceEnabled(
+                    enabledSourcesMask,
+                    NotificationSource.PlanetRoleMention
+                );
+            })
+            .ToArray();
+
+        if (filteredUserIds.Length == 0)
+            return;
+
+        var pushContent = new NotificationContent()
+        {
+            Title = baseNotification.Title,
+            Message = baseNotification.Body,
+            IconUrl = baseNotification.ImageUrl,
+            Url = baseNotification.ClickUrl,
+        };
+
         const int batchSize = 500;
-        foreach (var userBatch in userIds.Chunk(batchSize))
+        foreach (var userBatch in filteredUserIds.Chunk(batchSize))
         {
             var timeSent = DateTime.UtcNow;
             var notifications = userBatch.Select(userId => new Valour.Database.Notification()
@@ -173,24 +210,24 @@ public class NotificationService
             await _db.Notifications.AddRangeAsync(notifications);
             await _db.SaveChangesAsync();
 
+            foreach (var userId in userBatch)
+            {
+                await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
+                {
+                    UserId = userId,
+                    Content = pushContent
+                });
+            }
+
             // Prevent long-lived tracking growth for large role fanouts.
             _db.ChangeTracker.Clear();
         }
-        
-        // Send push notifications
-        await _pushNotificationWorker.QueueNotificationAction(new SendRolePushNotification()
-        {
-            Content = new NotificationContent()
-            {
-                Title = baseNotification.Title,
-                Message = baseNotification.Body,
-                IconUrl = baseNotification.ImageUrl,
-                Url = baseNotification.ClickUrl,
-            },
-            RoleId = roleId
-        });
 
-        _logger.LogInformation("Queued role mention notifications for {RecipientCount} users on role {RoleId}", userIds.Length, roleId);
+        _logger.LogInformation(
+            "Queued role mention notifications for {RecipientCount} users on role {RoleId}",
+            filteredUserIds.Length,
+            roleId
+        );
     }
 
     public async Task HandleReplyAsync(
@@ -376,5 +413,22 @@ public class NotificationService
             RoleId = mention.TargetId,
             Notification = baseNotification
         });
+    }
+
+    private async Task<bool> IsNotificationSourceEnabledForUserAsync(long userId, NotificationSource source)
+    {
+        if (!NotificationPreferences.IsSingleSource(source))
+            return true;
+
+        var enabledMask = await _db.UserPreferences
+            .AsNoTracking()
+            .Where(x => x.Id == userId)
+            .Select(x => (long?)x.EnabledNotificationSources)
+            .FirstOrDefaultAsync();
+
+        if (enabledMask is null)
+            return true;
+
+        return NotificationPreferences.IsSourceEnabled(enabledMask.Value, source);
     }
 }

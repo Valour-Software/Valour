@@ -13,4 +13,10 @@ public class UserPreferences : ISharedUserPreferences
 
     [Column("error_reporting_state")]
     public ErrorReportingState ErrorReportingState { get; set; }
+
+    [Column("notification_volume")]
+    public int NotificationVolume { get; set; } = NotificationPreferences.DefaultNotificationVolume;
+
+    [Column("enabled_notification_sources")]
+    public long EnabledNotificationSources { get; set; } = NotificationPreferences.AllNotificationSourcesMask;
 }
