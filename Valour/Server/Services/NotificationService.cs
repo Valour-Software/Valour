@@ -142,6 +142,10 @@ public class NotificationService
         if (role is null)
             return;
 
+        var notificationSource = NotificationPreferences.IsSingleSource(baseNotification.Source)
+            ? baseNotification.Source
+            : NotificationSource.PlanetRoleMention;
+
         baseNotification.Body ??= "";
 
         var userIds = await _db.PlanetMembers
@@ -172,7 +176,7 @@ public class NotificationService
 
                 return NotificationPreferences.IsSourceEnabled(
                     enabledSourcesMask,
-                    NotificationSource.PlanetRoleMention
+                    notificationSource
                 );
             })
             .ToArray();
@@ -188,40 +192,53 @@ public class NotificationService
             Url = baseNotification.ClickUrl,
         };
 
-        const int batchSize = 500;
-        foreach (var userBatch in filteredUserIds.Chunk(batchSize))
+        const int insertBatchSize = 2_000;
+        var originalAutoDetect = _db.ChangeTracker.AutoDetectChangesEnabled;
+        _db.ChangeTracker.AutoDetectChangesEnabled = false;
+        var notificationsToRelay = new List<Models.Notification>(filteredUserIds.Length);
+
+        try
         {
-            var timeSent = DateTime.UtcNow;
-            var notifications = userBatch.Select(userId => new Valour.Database.Notification()
+            foreach (var userBatch in filteredUserIds.Chunk(insertBatchSize))
             {
-                Id = Guid.NewGuid(),
-                Title = baseNotification.Title,
-                Body = baseNotification.Body,
-                ImageUrl = baseNotification.ImageUrl,
-                ClickUrl = baseNotification.ClickUrl,
-                PlanetId = baseNotification.PlanetId,
-                ChannelId = baseNotification.ChannelId,
-                Source = NotificationSource.PlanetRoleMention,
-                SourceId = baseNotification.SourceId,
-                UserId = userId,
-                TimeSent = timeSent,
-            }).ToArray();
-
-            await _db.Notifications.AddRangeAsync(notifications);
-            await _db.SaveChangesAsync();
-
-            foreach (var userId in userBatch)
-            {
-                await _pushNotificationWorker.QueueNotificationAction(new SendUserPushNotification()
+                var timeSent = DateTime.UtcNow;
+                var notifications = userBatch.Select(userId => new Valour.Database.Notification()
                 {
+                    Id = Guid.NewGuid(),
+                    Title = baseNotification.Title,
+                    Body = baseNotification.Body,
+                    ImageUrl = baseNotification.ImageUrl,
+                    ClickUrl = baseNotification.ClickUrl,
+                    PlanetId = baseNotification.PlanetId,
+                    ChannelId = baseNotification.ChannelId,
+                    Source = notificationSource,
+                    SourceId = baseNotification.SourceId,
                     UserId = userId,
-                    Content = pushContent
-                });
+                    TimeSent = timeSent,
+                }).ToArray();
+
+                await _db.Notifications.AddRangeAsync(notifications);
+                notificationsToRelay.AddRange(notifications.Select(x => x.ToModel()));
             }
 
-            // Prevent long-lived tracking growth for large role fanouts.
+            await _db.SaveChangesAsync();
+        }
+        finally
+        {
+            _db.ChangeTracker.AutoDetectChangesEnabled = originalAutoDetect;
             _db.ChangeTracker.Clear();
         }
+
+        foreach (var notification in notificationsToRelay)
+        {
+            _coreHub.RelayNotification(notification, _nodeLifecycleService);
+        }
+
+        await _pushNotificationWorker.QueueNotificationAction(new SendUsersPushNotification()
+        {
+            UserIds = filteredUserIds,
+            Content = pushContent
+        });
 
         _logger.LogInformation(
             "Queued role mention notifications for {RecipientCount} users on role {RoleId}",
@@ -393,8 +410,9 @@ public class NotificationService
         var targetRole = await _db.PlanetRoles.FindAsync(mention.TargetId);
         if (targetRole is null)
             return;
-	        
+
         var content = message.Content.Replace($"«@r-{mention.TargetId}»", $"@{targetRole.Name}");
+        var mentionSource = GetRoleMentionSource(targetRole);
 
         var baseNotification = new Notification()
         {
@@ -404,6 +422,7 @@ public class NotificationService
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
             PlanetId = planet.Id,
             ChannelId = channel.Id,
+            Source = mentionSource,
             SourceId = message.Id,
             ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}"
         };
@@ -413,6 +432,17 @@ public class NotificationService
             RoleId = mention.TargetId,
             Notification = baseNotification
         });
+    }
+
+    private static NotificationSource GetRoleMentionSource(ISharedPlanetRole role)
+    {
+        if (role.IsDefault || string.Equals(role.Name, "everyone", StringComparison.OrdinalIgnoreCase))
+            return NotificationSource.PlanetEveryoneMention;
+
+        if (string.Equals(role.Name, "here", StringComparison.OrdinalIgnoreCase))
+            return NotificationSource.PlanetHereMention;
+
+        return NotificationSource.PlanetRoleMention;
     }
 
     private async Task<bool> IsNotificationSourceEnabledForUserAsync(long userId, NotificationSource source)

@@ -42,6 +42,11 @@ public interface ISharedPlanetRole : ISharedPlanetModel<long>, ISortable
     /// The voice channel permissions for the role
     /// </summary>
     long VoicePermissions { get; set; }
+    
+    /// <summary>
+    /// The name of the role
+    /// </summary>
+    string Name { get; set; }
 
     /// <summary>
     /// The hex color of the role
