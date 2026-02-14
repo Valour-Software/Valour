@@ -93,6 +93,27 @@ jobs:
           exit 1
         fi
 
+    - name: Validate keystore and alias
+      env:
+        ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+      run: |
+        keytool -list \
+          -keystore "${{ steps.signing-keystore.outputs.keystore_path }}" \
+          -storepass "$ANDROID_SIGNING_STORE_PASSWORD" > /dev/null
+
+        if ! keytool -list \
+          -keystore "${{ steps.signing-keystore.outputs.keystore_path }}" \
+          -storepass "$ANDROID_SIGNING_STORE_PASSWORD" \
+          -alias "$ANDROID_SIGNING_KEY_ALIAS" > /dev/null; then
+          echo "Alias '$ANDROID_SIGNING_KEY_ALIAS' was not found in the keystore."
+          echo "Configured aliases are:"
+          keytool -list \
+            -keystore "${{ steps.signing-keystore.outputs.keystore_path }}" \
+            -storepass "$ANDROID_SIGNING_STORE_PASSWORD"
+          exit 1
+        fi
+
     - name: Get short SHA
       id: short-sha
       run: echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
@@ -117,6 +138,10 @@ jobs:
       run: dotnet build Valour/Client/Valour.Client.csproj -c Release
 
     - name: Build APK
+      env:
+        ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+        ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
       run: >
         dotnet publish Valour/Client.Maui/Valour.Client.Maui.csproj
         -f net10.0-android
@@ -124,10 +149,11 @@ jobs:
         -o ./artifacts
         -p:AndroidKeyStore=true
         -p:AndroidSigningKeyStore="${{ steps.signing-keystore.outputs.keystore_path }}"
-        -p:AndroidSigningStorePass="${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}"
-        -p:AndroidSigningKeyAlias="${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}"
-        -p:AndroidSigningKeyPass="${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}"
+        -p:AndroidSigningStorePass="$ANDROID_SIGNING_STORE_PASSWORD"
+        -p:AndroidSigningKeyAlias="$ANDROID_SIGNING_KEY_ALIAS"
+        -p:AndroidSigningKeyPass="$ANDROID_SIGNING_KEY_PASSWORD"
         -p:AndroidPackageFormat=apk
+        -p:AndroidApkSignerAdditionalArguments=--verbose
         -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
 
     - name: Find APK
