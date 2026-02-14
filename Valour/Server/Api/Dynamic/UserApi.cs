@@ -667,18 +667,7 @@ public class UserApi
         ValourDb db)
     {
         var userId = await userService.GetCurrentUserIdAsync();
-
-        var prefs = await db.UserPreferences.FindAsync(userId);
-        if (prefs is null)
-        {
-            prefs = new DbUserPreferences
-            {
-                Id = userId,
-                ErrorReportingState = ErrorReportingState.Unset
-            };
-            db.UserPreferences.Add(prefs);
-            await db.SaveChangesAsync();
-        }
+        var prefs = await EnsurePreferencesAsync(userId, db);
 
         return Results.Json(prefs.ToModel());
     }
@@ -694,24 +683,80 @@ public class UserApi
             return ValourResult.BadRequest("Invalid error reporting state.");
 
         var userId = await userService.GetCurrentUserIdAsync();
-
-        var prefs = await db.UserPreferences.FindAsync(userId);
-        if (prefs is null)
-        {
-            prefs = new DbUserPreferences
-            {
-                Id = userId,
-                ErrorReportingState = state
-            };
-            db.UserPreferences.Add(prefs);
-        }
-        else
-        {
-            prefs.ErrorReportingState = state;
-        }
+        var prefs = await EnsurePreferencesAsync(userId, db);
+        prefs.ErrorReportingState = state;
 
         await db.SaveChangesAsync();
         return Results.Json(prefs.ToModel());
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/notificationVolume/{volume}")]
+    [UserRequired]
+    public static async Task<IResult> SetNotificationVolumeAsync(
+        int volume,
+        UserService userService,
+        ValourDb db)
+    {
+        var clamped = NotificationPreferences.ClampVolume(volume);
+        var userId = await userService.GetCurrentUserIdAsync();
+        var prefs = await EnsurePreferencesAsync(userId, db);
+        prefs.NotificationVolume = clamped;
+
+        await db.SaveChangesAsync();
+        return Results.Json(prefs.ToModel());
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/users/me/preferences/notificationSource/{source}/enabled/{enabled}")]
+    [UserRequired]
+    public static async Task<IResult> SetNotificationSourceEnabledAsync(
+        int source,
+        bool enabled,
+        UserService userService,
+        ValourDb db)
+    {
+        if (!Enum.IsDefined(typeof(NotificationSource), source))
+            return ValourResult.BadRequest("Invalid notification source.");
+
+        var sourceEnum = (NotificationSource)source;
+        if (!NotificationPreferences.IsSingleSource(sourceEnum))
+            return ValourResult.BadRequest("Notification source must be a single value.");
+
+        if (!NotificationPreferences.IsConfigurableSource(sourceEnum))
+            return ValourResult.BadRequest("Notification source is not configurable.");
+
+        var userId = await userService.GetCurrentUserIdAsync();
+        var prefs = await EnsurePreferencesAsync(userId, db);
+
+        prefs.EnabledNotificationSources = NotificationPreferences.SetSourceEnabled(
+            prefs.EnabledNotificationSources,
+            sourceEnum,
+            enabled
+        );
+
+        await db.SaveChangesAsync();
+        return Results.Json(prefs.ToModel());
+    }
+
+    private static async Task<DbUserPreferences> EnsurePreferencesAsync(long userId, ValourDb db)
+    {
+        var prefs = await db.UserPreferences.FindAsync(userId);
+        if (prefs is not null)
+            return prefs;
+
+        prefs = CreateDefaultPreferences(userId);
+        db.UserPreferences.Add(prefs);
+        await db.SaveChangesAsync();
+        return prefs;
+    }
+
+    private static DbUserPreferences CreateDefaultPreferences(long userId)
+    {
+        return new DbUserPreferences
+        {
+            Id = userId,
+            ErrorReportingState = ErrorReportingState.Unset,
+            NotificationVolume = NotificationPreferences.DefaultNotificationVolume,
+            EnabledNotificationSources = NotificationPreferences.AllNotificationSourcesMask
+        };
+    }
 }

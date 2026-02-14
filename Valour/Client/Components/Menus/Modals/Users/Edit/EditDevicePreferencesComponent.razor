@@ -1,7 +1,8 @@
 @inject IAppStorage LocalStorage
+@inject ValourClient Client
 
 <h3>Device Preferences</h3>
-<p class="subtitle">SAVED PER DEVICE</p>
+<p class="subtitle">DEVICE + ACCOUNT SETTINGS</p>
 
 <div class="perm-section">
     <div class="perm-list-item">
@@ -16,6 +17,21 @@
         </div>
         <div class="perm-list-desc mt-1">
             When true, faces like :) will be automatically turned into emojis in chat.
+        </div>
+    </div>
+
+    <div class="perm-list-item">
+        <div class="perm-list-name mb-1">
+            Error Reporting
+        </div>
+        <div type="button" style="float:right">
+            <label class="switch">
+                <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="perm-list-desc mt-1">
+            <span>Share anonymous error reports to help improve Valour.</span>
         </div>
     </div>
 </div>
@@ -73,6 +89,7 @@
     private string? _micError;
     private bool _isLoadingMics;
     private bool _isRequestingMicPermission;
+    private bool _errorReportingEnabled;
 
     private bool ShouldShowPermissionButton =>
         string.Equals(_micPermissionState, "prompt", StringComparison.OrdinalIgnoreCase) ||
@@ -87,6 +104,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadErrorReportingStateAsync();
         await RefreshMicsAsync();
     }
 
@@ -197,5 +215,23 @@
             return "This browser does not support microphone device access for this feature.";
 
         return "Microphone permission state is unavailable on this browser. Use 'Enable Microphone Access' to request access.";
+    }
+
+    private async Task LoadErrorReportingStateAsync()
+    {
+        var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+        if (response.Success && response.Data is not null)
+        {
+            _errorReportingEnabled = response.Data.ErrorReportingState == ErrorReportingState.All;
+        }
+    }
+
+    private async Task OnErrorReportingClick()
+    {
+        _errorReportingEnabled = !_errorReportingEnabled;
+        var state = _errorReportingEnabled ? ErrorReportingState.All : ErrorReportingState.None;
+        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)state}", null);
+        SentryGate.IsEnabled = _errorReportingEnabled;
+        StateHasChanged();
     }
 }

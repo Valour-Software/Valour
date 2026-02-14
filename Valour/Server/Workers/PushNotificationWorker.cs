@@ -30,6 +30,12 @@ public class SendUserPushNotification : PushNotificationAction
     public NotificationContent Content;
 }
 
+public class SendUsersPushNotification : PushNotificationAction
+{
+    public long[] UserIds;
+    public NotificationContent Content;
+}
+
 public class SendMemberPushNotification : PushNotificationAction
 {
     public long MemberId;
@@ -152,6 +158,10 @@ public class PushNotificationWorker : IHostedService, IDisposable
                 if (_pushEnabled)
                     await ProcessUserNotification(userMention.UserId, userMention.Content);
                 break;
+            case SendUsersPushNotification usersMention:
+                if (_pushEnabled)
+                    await ProcessUsersNotification(usersMention.UserIds, usersMention.Content);
+                break;
             case SendMemberPushNotification memberMention:
                 if (_pushEnabled)
                     await ProcessMemberNotification(memberMention.MemberId, memberMention.Content);
@@ -203,6 +213,13 @@ public class PushNotificationWorker : IHostedService, IDisposable
         using var scope = _serviceScopeFactory.CreateScope();
         var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
         await pushService.SendUserPushNotificationAsync(userId, content);
+    }
+
+    private async Task ProcessUsersNotification(long[] userIds, NotificationContent content)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var pushService = scope.ServiceProvider.GetRequiredService<PushNotificationService>();
+        await pushService.SendUsersPushNotificationAsync(userIds, content);
     }
 
     private async Task ProcessMemberNotification(long memberId, NotificationContent content)

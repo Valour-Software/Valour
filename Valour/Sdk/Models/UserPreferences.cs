@@ -9,6 +9,8 @@ public class UserPreferences : ClientModel<UserPreferences, long>, ISharedUserPr
     public override string BaseRoute => "api/users/me/preferences";
 
     public ErrorReportingState ErrorReportingState { get; set; }
+    public int NotificationVolume { get; set; }
+    public long EnabledNotificationSources { get; set; }
 
     [JsonConstructor]
     private UserPreferences() : base() { }

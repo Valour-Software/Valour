@@ -2,6 +2,7 @@
 @inject LoggingService Logger
 @inject IJSRuntime JsRuntime
 @inject IAppStorage LocalStorage
+@inject SoundManager SoundManager
 
 <BrowserUtils OnReady="@ReadyAsync" />
 
@@ -149,6 +150,7 @@ else
                 return;
 
             var prefs = response.Data;
+            SoundManager.SetNotificationVolume(prefs.NotificationVolume);
 
             if (prefs.ErrorReportingState == ErrorReportingState.All)
             {

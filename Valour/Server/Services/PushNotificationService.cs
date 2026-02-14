@@ -234,6 +234,38 @@ public class PushNotificationService
         
         await SendParallelNotificationsAsync(subs, payload);
     }
+
+    /// <summary>
+    /// Sends a notification to the given users.
+    /// </summary>
+    public async Task SendUsersPushNotificationAsync(long[] userIds, NotificationContent content)
+    {
+        if (userIds is null || userIds.Length == 0)
+            return;
+
+        var dedupedUserIds = userIds.Distinct().ToArray();
+        if (dedupedUserIds.Length == 0)
+            return;
+
+        const int userChunkSize = 2_000;
+        var allSubs = new List<Valour.Database.PushNotificationSubscription>();
+        foreach (var userBatch in dedupedUserIds.Chunk(userChunkSize))
+        {
+            var subs = await _db.PushNotificationSubscriptions
+                .AsNoTracking()
+                .Where(x => userBatch.Contains(x.UserId))
+                .ToArrayAsync();
+
+            if (subs.Length > 0)
+                allSubs.AddRange(subs);
+        }
+
+        if (allSubs.Count == 0)
+            return;
+
+        var payload = GetPayload(content);
+        await SendParallelNotificationsAsync(allSubs.ToArray(), payload);
+    }
     
     /// <summary>
     /// Sends a notification to the given member
