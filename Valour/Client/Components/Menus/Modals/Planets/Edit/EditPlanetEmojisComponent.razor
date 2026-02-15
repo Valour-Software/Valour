@@ -12,7 +12,7 @@
 
     @if (_loading)
     {
-        <p>Loading emojis...</p>
+        <p class="emoji-loading">Loading emojis...</p>
     }
     else
     {
@@ -27,23 +27,25 @@
 
         <div class="emoji-upload">
             <div class="emoji-inputs">
-                <input class="v-input" placeholder="emoji_name" @bind-value="_emojiName" maxlength="32" />
-                <button class="v-btn secondary" onclick="document.getElementById('planet-emoji-upload').click()">Choose Image</button>
-                <span class="emoji-file-name">@(_selectedFile?.Name ?? "No file selected")</span>
+                <input class="v-input emoji-name-input" placeholder="emoji_name" @bind-value="_emojiName" maxlength="32" />
+                <button class="v-btn secondary emoji-choose-btn" onclick="document.getElementById('planet-emoji-upload').click()">Choose Image</button>
+                <span class="emoji-file-name" title="@(_selectedFile?.Name ?? "No file selected")">@(_selectedFile?.Name ?? "No file selected")</span>
                 <InputFile @ref="_fileInput"
                            id="planet-emoji-upload"
                            OnChange="OnFileSelected"
                            style="display:none"
                            accept=".png,.jpg,.jpeg,.gif,.webp" />
             </div>
-            <button class="v-btn primary"
+            <button class="v-btn primary emoji-upload-btn"
                     disabled="@(!_canManage || _uploading)"
                     @onclick="UploadEmojiAsync">
                 @(_uploading ? "Uploading..." : "Upload Emoji")
             </button>
         </div>
 
-        <ResultLabel Result="@_result" />
+        <div class="emoji-result-wrap">
+            <ResultLabel Result="@_result" />
+        </div>
 
         @if (Planet.Emojis.Count == 0)
         {
@@ -57,8 +59,8 @@
                     <div class="emoji-card">
                         <img class="emoji-preview" src="@ISharedPlanetEmoji.GetCdnUrl(emoji)" alt="@($":{emoji.Name}:")" />
                         <div class="emoji-meta">
-                            <span class="emoji-name">:@emoji.Name:</span>
-                            <button class="v-btn danger"
+                            <span class="emoji-name" title="@($":{emoji.Name}:")">:@emoji.Name:</span>
+                            <button class="v-btn danger emoji-delete-btn"
                                     disabled="@(!_canManage)"
                                     @onclick="() => DeleteEmojiAsync(emoji)">
                                 Delete
