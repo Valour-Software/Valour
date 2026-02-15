@@ -22,6 +22,7 @@ public class ValourEmojiParser : InlineParser
         for (int i = 0x2700; i <= 0x27BF; i++) openers.Add((char)i);
         for (int i = 0x1F300; i <= 0x1F5FF; i++) if (i <= 0xFFFF) openers.Add((char)i);
         for (int i = 0x1F600; i <= 0x1F64F; i++) if (i <= 0xFFFF) openers.Add((char)i);
+        openers.Add('«');
         OpeningCharacters = openers.ToArray();
     }
 

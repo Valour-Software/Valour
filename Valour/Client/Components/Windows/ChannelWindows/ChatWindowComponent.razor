@@ -5,6 +5,7 @@
 @inject UnreadService UnreadService
 @using Valour.Client.Emojis
 @using Valour.Sdk.Nodes
+@using Valour.Shared.Models
 @using Channel = Valour.Sdk.Models.Channel
 
 @if (_loading)
@@ -184,6 +185,7 @@ else
     private Message _currentlyReactingMessage;
     private string _reactionSelectorLeft;
     private string _reactionSelectorTop;
+    private bool _pendingReactionEmojiRefresh;
     
     private bool _loading = true;
 
@@ -270,15 +272,20 @@ else
     private Task RefreshReactionEmojiPickerAsync()
     {
         if (_reactionSelector is null)
+        {
+            _pendingReactionEmojiRefresh = true;
             return Task.CompletedTask;
+        }
 
         var custom = PlanetEmojiMapper.GetPickerItems(Channel?.Planet);
-        return _reactionSelector.SetCustomEmojisAsync(custom);
+        var categoryName = string.IsNullOrWhiteSpace(Channel?.Planet?.Name) ? "Planet" : Channel.Planet.Name;
+        var categoryIcon = Channel?.Planet?.GetIconUrl(IconFormat.Webp64);
+        return _reactionSelector.SetCustomEmojisAsync(custom, categoryIcon, categoryName);
     }
     
     private Task OnClickOutsideReactionPicker(OutsidePickerClickEvent e)
     {
-        if (e.Target.ToLower().Contains("option"))
+        if ((e.Target ?? string.Empty).ToLower().Contains("option"))
             return Task.CompletedTask;
         
         _reactionSelector.ToggleVisible();
@@ -383,11 +390,10 @@ else
         }
 
         _loading = false;
+        _pendingReactionEmojiRefresh = true;
 
         if (InputComponent is not null)
             await InputComponent.NotifyChannelLoadedAsync();
-
-        await RefreshReactionEmojiPickerAsync();
 
         ReRender();
     }
@@ -407,6 +413,12 @@ else
             _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
 
             await ScrollToBottom(true);
+        }
+
+        if (_pendingReactionEmojiRefresh && !_loading && _reactionSelector is not null)
+        {
+            _pendingReactionEmojiRefresh = false;
+            await RefreshReactionEmojiPickerAsync();
         }
         
         UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);

@@ -21,8 +21,9 @@ public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
                 var alt = obj.Match ?? $"custom-emoji-{obj.CustomId.Value}";
                 renderer.OpenElement("img")
                     .AddAttribute("draggable", "false")
-                    .AddAttribute("class", "emoji")
+                    .AddAttribute("class", "emoji custom-emoji")
                     .AddAttribute("alt", alt)
+                    .AddAttribute("title", alt)
                     .AddAttribute("src", ISharedPlanetEmoji.GetCdnUrl(planetId.Value, obj.CustomId.Value))
                     .CloseElement();
                 return;
@@ -34,10 +35,12 @@ public class ValourEmojiRenderer : BlazorObjectRenderer<ValourEmojiInline>
 
         if (!string.IsNullOrWhiteSpace(obj.Native))
         {
+            var alt = obj.Match ?? string.Empty;
             renderer.OpenElement("img")
                 .AddAttribute("draggable", "false")
                 .AddAttribute("class", "emoji")
-                .AddAttribute("alt", obj.Match ?? string.Empty)
+                .AddAttribute("alt", alt)
+                .AddAttribute("title", alt)
                 .AddAttribute("src", EmojiSourceProvider.GetSrcUrlByCodePoints(obj.Native))
                 .CloseElement();
             return;

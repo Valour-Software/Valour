@@ -298,18 +298,24 @@ export function init(dotnet, inputEl) {
             if (isCustom) {
                 const token = customToken || (text ? `:${text}:` : '');
                 const src = customSrc || '';
+                const tooltip = shortcodes || token;
                 if (!src) {
                     return;
                 }
                 img.src = src;
                 img.setAttribute('data-text', token);
-                img.alt = shortcodes || token;
+                img.alt = tooltip;
+                img.title = tooltip;
+                img.setAttribute('aria-label', tooltip);
                 img.classList.add('custom-emoji');
             }
             else {
+                const tooltip = shortcodes || native;
                 img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
                 img.setAttribute('data-text', native);
-                img.alt = native;
+                img.alt = tooltip;
+                img.title = tooltip;
+                img.setAttribute('aria-label', tooltip);
             }
             img.classList.add('emoji');
             img.style.width = '1em';

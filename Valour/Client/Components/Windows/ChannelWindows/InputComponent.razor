@@ -6,6 +6,7 @@
 @using System.Text.RegularExpressions
 @using Valour.Client.Emojis
 @using Valour.Shared.Cdn
+@using Valour.Shared.Models
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
 
@@ -51,9 +52,9 @@
             <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
         </div>
         <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
-        <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
-
     }
+    
+    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
@@ -173,6 +174,7 @@
 
     private EmojiMart _emojis;
     private Planet _emojiPlanetSubscription;
+    private bool _pendingCustomEmojiRefresh;
 
     private async Task OnClickTextbox()
     {
@@ -224,11 +226,16 @@
     private Task RefreshCustomEmojiPickerAsync()
     {
         if (_emojis is null)
+        {
+            _pendingCustomEmojiRefresh = true;
             return Task.CompletedTask;
+        }
 
         var planet = ChatComponent?.Channel?.Planet;
         var custom = PlanetEmojiMapper.GetPickerItems(planet);
-        return _emojis.SetCustomEmojisAsync(custom);
+        var categoryName = string.IsNullOrWhiteSpace(planet?.Name) ? "Planet" : planet.Name;
+        var categoryIcon = planet?.GetIconUrl(IconFormat.Webp64);
+        return _emojis.SetCustomEmojisAsync(custom, categoryIcon, categoryName);
     }
 
     protected override bool ShouldRender()
@@ -304,6 +311,7 @@
         if (planet is not null)
         {
             await planet.EnsureReadyAsync();
+            await planet.LoadEmojisAsync();
             CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
             await AttachEmojiPlanetSubscriptionAsync(planet);
         }
@@ -318,6 +326,7 @@
         PreviewMessage = BuildNewMessage();
 
         _loading = false;
+        _pendingCustomEmojiRefresh = true;
         
         Refresh();
     }
@@ -368,6 +377,12 @@
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
 
             await OnAfterJsSetupAsync();
+        }
+
+        if (_pendingCustomEmojiRefresh && !_loading && _emojis is not null)
+        {
+            _pendingCustomEmojiRefresh = false;
+            await RefreshCustomEmojiPickerAsync();
         }
 
         CanRenderFlag = false;

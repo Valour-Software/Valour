@@ -144,7 +144,7 @@ else
                 var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
                 
                 <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
-                    <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)"/>
+                    <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
                     <span class="reaction-count">@reaction.count</span>
                 </div>
             }

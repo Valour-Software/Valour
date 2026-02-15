@@ -1,30 +1,53 @@
+const PICKER_RENDER_RETRY_MS = 75;
+const MAX_PICKER_RENDER_ATTEMPTS = 80;
+
 let searchInitialized = false;
 const pickerStates = new Map();
 
 function ensureSearchInitialized() {
     if (searchInitialized) {
-        return;
+        return true;
     }
 
-    if (typeof EmojiMart?.init === 'function') {
-        EmojiMart.init({});
+    if (typeof EmojiMart?.init !== 'function') {
+        return false;
     }
 
+    EmojiMart.init({});
     searchInitialized = true;
+    return true;
+}
+
+function asNonEmptyString(...values) {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim().length > 0) {
+            return value;
+        }
+    }
+
+    return '';
+}
+
+function asStringArray(value) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(x => typeof x === 'string' && x.length > 0);
 }
 
 function normalizeNativeResult(entry) {
-    const emoji = entry?.emoji ?? entry;
-    const skin = emoji?.skins?.[0] ?? {};
+    const emoji = entry?.emoji ?? entry?.Emoji ?? entry;
+    const skin = emoji?.skins?.[0] ?? emoji?.Skins?.[0] ?? {};
 
-    const aliases = Array.isArray(emoji?.aliases) ? emoji.aliases : [];
-    const keywords = Array.isArray(emoji?.keywords) ? emoji.keywords : [];
+    const aliases = asStringArray(emoji?.aliases ?? emoji?.Aliases);
+    const keywords = asStringArray(emoji?.keywords ?? emoji?.Keywords);
 
-    const id = emoji?.id ?? '';
-    const shortcodes = emoji?.shortcodes ?? (id ? `:${id}:` : null);
+    const id = asNonEmptyString(emoji?.id, emoji?.Id);
+    const shortcodes = asNonEmptyString(emoji?.shortcodes, emoji?.Shortcodes, (id ? `:${id}:` : ''));
 
-    const native = skin.native ?? emoji?.native ?? '';
-    const unified = skin.unified ?? emoji?.unified ?? '';
+    const native = asNonEmptyString(skin?.native, skin?.Native, emoji?.native, emoji?.Native);
+    const unified = asNonEmptyString(skin?.unified, skin?.Unified, emoji?.unified, emoji?.Unified);
 
     if (!native || !unified) {
         return null;
@@ -34,7 +57,7 @@ function normalizeNativeResult(entry) {
         aliases,
         id,
         keywords,
-        name: emoji?.name ?? id,
+        name: asNonEmptyString(emoji?.name, emoji?.Name, id),
         native,
         unified,
         shortcodes,
@@ -60,62 +83,128 @@ function normalizeCustomId(rawCustomId) {
     return null;
 }
 
-function normalizeCustomResult(entry) {
-    const emoji = entry?.emoji ?? entry;
-    const skin = emoji?.skins?.[0] ?? {};
+function toCustomMetadata(entry) {
+    const id = asNonEmptyString(entry?.id, entry?.Id, entry?.name, entry?.Name);
+    const src = asNonEmptyString(entry?.src, entry?.Src);
 
-    const src = skin.src ?? emoji?.src ?? '';
-    if (!src) {
+    if (!id || !src) {
         return null;
     }
 
-    const aliases = Array.isArray(emoji?.aliases) ? emoji.aliases : [];
-    const keywords = Array.isArray(emoji?.keywords) ? emoji.keywords : [];
-    const id = emoji?.id ?? '';
-    const shortcodes = emoji?.shortcodes ?? (id ? `:${id}:` : '');
-    const token = emoji?.token ?? '';
-    const customId = normalizeCustomId(emoji?.customId);
+    return {
+        aliases: asStringArray(entry?.aliases ?? entry?.Aliases),
+        id,
+        keywords: asStringArray(entry?.keywords ?? entry?.Keywords),
+        name: asNonEmptyString(entry?.name, entry?.Name, id),
+        shortcodes: asNonEmptyString(entry?.shortcodes, entry?.Shortcodes, `:${id}:`),
+        customId: normalizeCustomId(entry?.customId ?? entry?.CustomId),
+        token: asNonEmptyString(entry?.token, entry?.Token),
+        src,
+    };
+}
+
+function rebuildCustomLookup(state) {
+    state.normalizedCustom = [];
+    state.customByPickerId.clear();
+    state.customById.clear();
+    state.customBySrc.clear();
+
+    const entries = Array.isArray(state.custom) ? state.custom : [];
+    let fallbackIndex = 0;
+    for (const entry of entries) {
+        const metadata = toCustomMetadata(entry);
+        if (metadata === null) {
+            continue;
+        }
+
+        const pickerId = metadata.customId !== null
+            ? `planet-${metadata.customId}`
+            : `planet-custom-${fallbackIndex++}-${metadata.id}`;
+
+        metadata.pickerId = pickerId;
+        state.normalizedCustom.push(metadata);
+        state.customByPickerId.set(metadata.pickerId, metadata);
+        state.customById.set(metadata.id, metadata);
+        state.customBySrc.set(metadata.src, metadata);
+    }
+}
+
+function normalizeCustomResult(entry, state) {
+    const emoji = entry?.emoji ?? entry?.Emoji ?? entry;
+    const skin = emoji?.skins?.[0] ?? emoji?.Skins?.[0] ?? {};
+
+    const id = asNonEmptyString(emoji?.id, emoji?.Id, entry?.id, entry?.Id);
+    const src = asNonEmptyString(skin?.src, skin?.Src, emoji?.src, emoji?.Src, entry?.src, entry?.Src);
+
+    let mapped = null;
+    if (state !== null) {
+        if (id) {
+            mapped = state.customByPickerId.get(id) ?? state.customById.get(id) ?? null;
+        }
+
+        if (mapped === null && src) {
+            mapped = state.customBySrc.get(src) ?? null;
+        }
+    }
+
+    const resolvedId = asNonEmptyString(mapped?.id, id);
+    const resolvedSrc = asNonEmptyString(src, mapped?.src);
+    if (!resolvedId || !resolvedSrc) {
+        return null;
+    }
+
+    const aliases = asStringArray(emoji?.aliases ?? emoji?.Aliases ?? entry?.aliases ?? entry?.Aliases);
+    const keywords = asStringArray(emoji?.keywords ?? emoji?.Keywords ?? entry?.keywords ?? entry?.Keywords);
+    const shortcodes = asNonEmptyString(
+        emoji?.shortcodes,
+        emoji?.Shortcodes,
+        entry?.shortcodes,
+        entry?.Shortcodes,
+        mapped?.shortcodes,
+        `:${resolvedId}:`);
+    const token = asNonEmptyString(emoji?.token, emoji?.Token, entry?.token, entry?.Token, mapped?.token);
+    const customId = normalizeCustomId(emoji?.customId ?? emoji?.CustomId ?? entry?.customId ?? entry?.CustomId ?? mapped?.customId);
 
     return {
-        aliases,
-        id,
-        keywords,
-        name: emoji?.name ?? id,
-        native: token || shortcodes || (id ? `:${id}:` : ''),
+        aliases: aliases.length > 0 ? aliases : (mapped?.aliases ?? []),
+        id: resolvedId,
+        keywords: keywords.length > 0 ? keywords : (mapped?.keywords ?? []),
+        name: asNonEmptyString(emoji?.name, emoji?.Name, entry?.name, entry?.Name, mapped?.name, resolvedId),
+        native: token || shortcodes,
         unified: '',
         shortcodes,
         isCustom: true,
         customId,
         token,
-        src,
+        src: resolvedSrc,
     };
 }
 
-function normalizeEmojiResult(entry) {
-    return normalizeNativeResult(entry) ?? normalizeCustomResult(entry);
+function normalizeEmojiResult(entry, state = null) {
+    return normalizeNativeResult(entry) ?? normalizeCustomResult(entry, state);
 }
 
 function toPickerCustom(entry) {
-    const id = entry?.id ?? entry?.name ?? '';
-    const src = entry?.src ?? '';
-    if (!id || !src) {
-        return null;
+    return {
+        id: entry.pickerId ?? entry.id,
+        name: entry.name,
+        keywords: entry.keywords,
+        shortcodes: entry.shortcodes,
+        customId: entry.customId,
+        token: entry.token,
+        skins: [{ src: entry.src }],
+    };
+}
+
+function scheduleRenderPicker(state) {
+    if (state.renderTimer !== null) {
+        return;
     }
 
-    const keywords = Array.isArray(entry?.keywords) ? entry.keywords : [];
-    const shortcodes = entry?.shortcodes ?? `:${id}:`;
-    const token = entry?.token ?? '';
-    const customId = normalizeCustomId(entry?.customId);
-
-    return {
-        id,
-        name: entry?.name ?? id,
-        keywords,
-        shortcodes,
-        customId,
-        token,
-        skins: [{ src }],
-    };
+    state.renderTimer = window.setTimeout(() => {
+        state.renderTimer = null;
+        renderPicker(state);
+    }, PICKER_RENDER_RETRY_MS);
 }
 
 function renderPicker(state) {
@@ -124,19 +213,59 @@ function renderPicker(state) {
         return;
     }
 
+    if (typeof EmojiMart?.Picker !== 'function') {
+        if (state.renderAttempts < MAX_PICKER_RENDER_ATTEMPTS) {
+            state.renderAttempts += 1;
+            scheduleRenderPicker(state);
+        }
+        return;
+    }
+
+    state.renderAttempts = 0;
+    ensureSearchInitialized();
+    rebuildCustomLookup(state);
+
     const pickerOptions = {
-        onEmojiSelect: e => onEmojiSelect(state.ref, e),
+        onEmojiSelect: e => onEmojiSelect(state.id, state.ref, e),
         onClickOutside: e => onClickOutside(state.ref, e),
         set: state.emojiSet,
         theme: 'dark',
     };
 
-    const custom = (state.custom ?? [])
+    const custom = state.normalizedCustom
         .map(toPickerCustom)
         .filter(x => x !== null);
 
     if (custom.length > 0) {
-        pickerOptions.custom = custom;
+        const categoryId = 'custom';
+        const categoryName = asNonEmptyString(state.customCategoryName, 'Planet');
+
+        pickerOptions.custom = [{
+            id: categoryId,
+            name: categoryName,
+            emojis: custom,
+        }];
+
+        pickerOptions.categories = [
+            'frequent',
+            'people',
+            'nature',
+            'foods',
+            'activity',
+            'places',
+            'objects',
+            'symbols',
+            'flags',
+            'custom',
+        ];
+
+        if (state.customCategoryIcon) {
+            pickerOptions.categoryIcons = {
+                custom: {
+                    src: state.customCategoryIcon,
+                },
+            };
+        }
     }
 
     const picker = new EmojiMart.Picker(pickerOptions);
@@ -145,33 +274,46 @@ function renderPicker(state) {
     state.picker = picker;
 }
 
-export function init(id, ref, emojiSet, custom = []) {
-    ensureSearchInitialized();
-
+export function init(id, ref, emojiSet, custom = [], customCategoryIcon = '', customCategoryName = 'Planet') {
     const state = {
         id,
         ref,
         emojiSet,
         custom: Array.isArray(custom) ? custom : [],
+        customCategoryId: 'custom',
+        customCategoryIcon: asNonEmptyString(customCategoryIcon),
+        customCategoryName: asNonEmptyString(customCategoryName, 'Planet'),
+        normalizedCustom: [],
+        customByPickerId: new Map(),
+        customById: new Map(),
+        customBySrc: new Map(),
         picker: null,
+        renderAttempts: 0,
+        renderTimer: null,
     };
 
     pickerStates.set(id, state);
+    rebuildCustomLookup(state);
     renderPicker(state);
 }
 
-export function setCustom(id, custom = []) {
+export function setCustom(id, custom = [], customCategoryIcon = '', customCategoryName = 'Planet') {
     const state = pickerStates.get(id);
     if (!state) {
         return;
     }
 
     state.custom = Array.isArray(custom) ? custom : [];
+    state.customCategoryIcon = asNonEmptyString(customCategoryIcon);
+    state.customCategoryName = asNonEmptyString(customCategoryName, 'Planet');
+    rebuildCustomLookup(state);
     renderPicker(state);
 }
 
 export async function search(query, maxResults = 10) {
-    ensureSearchInitialized();
+    if (!ensureSearchInitialized()) {
+        return [];
+    }
 
     const cleanQuery = (query ?? '').trim().replace(/^:/, '');
     if (!cleanQuery || !EmojiMart?.SearchIndex?.search) {
@@ -200,8 +342,9 @@ export async function search(query, maxResults = 10) {
     }
 }
 
-export function onEmojiSelect(ref, e) {
-    const normalized = normalizeEmojiResult(e);
+export function onEmojiSelect(id, ref, e) {
+    const state = pickerStates.get(id) ?? null;
+    const normalized = normalizeEmojiResult(e, state);
     if (normalized !== null) {
         ref.invokeMethodAsync('EmojiClick', normalized);
     }
@@ -209,4 +352,18 @@ export function onEmojiSelect(ref, e) {
 
 export function onClickOutside(ref, e) {
     ref.invokeMethodAsync('ClickOutside', { target: e.target?.id });
+}
+
+export function destroy(id) {
+    const state = pickerStates.get(id);
+    if (!state) {
+        return;
+    }
+
+    if (state.renderTimer !== null) {
+        window.clearTimeout(state.renderTimer);
+        state.renderTimer = null;
+    }
+
+    pickerStates.delete(id);
 }

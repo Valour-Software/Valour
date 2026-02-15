@@ -1,7 +1,7 @@
 @using Valour.Client.Emojis
 
 <div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
-    <img class="icon emoji-icon" src="@_emojiUrl" alt="@_displayCode" />
+    <img class="icon emoji-icon" src="@_emojiUrl" alt="@_displayCode" title="@($":{_displayCode}:")" />
     <p class="title noselect">:@_displayCode:</p>
 </div>
 
