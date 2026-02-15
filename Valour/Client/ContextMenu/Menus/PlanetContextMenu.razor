@@ -94,7 +94,7 @@
 
     private async Task OnClickCopyId()
     {
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Planet.Id);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Planet.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Planet ID copied to clipboard", ToastProgressState.Success));
     }
 
