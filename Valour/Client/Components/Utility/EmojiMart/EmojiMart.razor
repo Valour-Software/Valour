@@ -40,6 +40,15 @@
         StateHasChanged();
     }
 
+    public async Task<List<EmojiClickEvent>> SearchAsync(string query, int maxResults = 10)
+    {
+        if (_module is null || string.IsNullOrWhiteSpace(query))
+            return new();
+
+        var results = await _module.InvokeAsync<EmojiClickEvent[]>("search", query, maxResults);
+        return results?.ToList() ?? new();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)

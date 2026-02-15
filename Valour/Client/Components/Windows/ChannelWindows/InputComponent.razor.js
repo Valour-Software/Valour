@@ -76,7 +76,13 @@ function getElementText(el) {
     return text;
 }
 function isMentionWord(word) {
-    return !!word && (word[0] === '@' || word[0] === '#');
+    if (!word) {
+        return false;
+    }
+    if (word[0] === ':') {
+        return word.length > 1;
+    }
+    return word[0] === '@' || word[0] === '#';
 }
 function insertTextAtCursor(text) {
     const selection = window.getSelection();
@@ -237,7 +243,7 @@ export function init(dotnet, inputEl) {
             }
             ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
         },
-        injectEmoji: async (text, native, unified, shortcodes) => {
+        injectEmoji: async (text, native, unified, shortcodes, deleteCurrentWord = false, appendSpace = false) => {
             let sel = window.getSelection();
             let range;
             if (!ctx.inputEl.contains(sel?.anchorNode)) {
@@ -262,7 +268,32 @@ export function init(dotnet, inputEl) {
                     return;
                 }
             }
-            range.deleteContents();
+            if (deleteCurrentWord) {
+                let endContainer = range.endContainer;
+                let endOffset = range.endOffset;
+                if (endContainer.nodeType !== Node.TEXT_NODE) {
+                    const textNodeData = findTextNodeAndOffset(endContainer, endOffset);
+                    if (textNodeData) {
+                        endContainer = textNodeData.node;
+                        endOffset = textNodeData.offset;
+                    }
+                }
+                if (endContainer.nodeType === Node.TEXT_NODE) {
+                    const currentWord = ctx.getCurrentWord(0);
+                    const startOffset = Math.max(0, endOffset - currentWord.length);
+                    const wordRange = document.createRange();
+                    wordRange.setStart(endContainer, startOffset);
+                    wordRange.setEnd(endContainer, endOffset);
+                    wordRange.deleteContents();
+                    range = wordRange;
+                }
+                else {
+                    range.deleteContents();
+                }
+            }
+            else {
+                range.deleteContents();
+            }
             const img = document.createElement('img');
             img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
             img.setAttribute('data-text', native);
@@ -270,7 +301,14 @@ export function init(dotnet, inputEl) {
             img.classList.add('emoji');
             img.style.width = '1em';
             range.insertNode(img);
-            range.setStartAfter(img);
+            if (appendSpace) {
+                const spacer = document.createTextNode(' ');
+                img.after(spacer);
+                range.setStartAfter(spacer);
+            }
+            else {
+                range.setStartAfter(img);
+            }
             range.collapse(true);
             sel?.removeAllRanges();
             sel?.addRange(range);
@@ -302,7 +340,12 @@ export function init(dotnet, inputEl) {
                         break;
                     if (isMentionWord(ctx.currentWord)) {
                         e.preventDefault();
-                        await ctx.dotnet.invokeMethodAsync('MentionSubmit');
+                        const handled = await ctx.dotnet.invokeMethodAsync('MentionSubmit');
+                        if (!handled) {
+                            if (window["mobile"] && !window["embedded"])
+                                break;
+                            await ctx.submitMessage();
+                        }
                     }
                     else {
                         if (window["mobile"] && !window["embedded"])

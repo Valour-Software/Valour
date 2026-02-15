@@ -1,0 +1,62 @@
+@using Valour.Client.Emojis
+
+<div class="@("item " + SelectedClass)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
+    <img class="icon emoji-icon" src="@_emojiUrl" alt="@_displayCode" />
+    <p class="title noselect">:@_displayCode:</p>
+</div>
+
+@code {
+    private string _emojiUrl;
+    private string _displayCode;
+
+    [Parameter]
+    public int Index { get; set; }
+
+    [Parameter]
+    public MentionSelectComponent Parent { get; set; }
+
+    [Parameter]
+    public EmojiClickEvent Emoji { get; set; }
+
+    [Parameter]
+    public bool Selected { get; set; }
+
+    private string SelectedClass
+    {
+        get
+        {
+            if (Selected)
+                return "selected";
+
+            return "";
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        _displayCode = Emoji?.Id;
+        if (string.IsNullOrWhiteSpace(_displayCode) && Emoji?.Aliases is not null && Emoji.Aliases.Length > 0)
+            _displayCode = Emoji.Aliases[0];
+        if (string.IsNullOrWhiteSpace(_displayCode))
+            _displayCode = "emoji";
+
+        if (!string.IsNullOrWhiteSpace(Emoji?.Unified))
+        {
+            _emojiUrl = EmojiSourceProvider.GetSrcUrlByCodePoints(Emoji.Unified.ToLowerInvariant());
+        }
+        else if (!string.IsNullOrWhiteSpace(Emoji?.Native))
+        {
+            _emojiUrl = EmojiSourceProvider.GetSrcUrlFromNative(Emoji.Native);
+        }
+        else
+        {
+            _emojiUrl = string.Empty;
+        }
+    }
+
+    private async Task OnClickAsync()
+    {
+        Parent.Selected = Index;
+        await Parent.Submit();
+    }
+}

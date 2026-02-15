@@ -36,6 +36,10 @@
     border-radius: 50%;
 }
 
+::deep .item .icon.emoji-icon {
+    border-radius: 0;
+}
+
 ::deep .item .title {
     font-size: 16px;
     display: inline-block;

@@ -297,7 +297,7 @@
 
     private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
     {
-        await InjectEmojiAsync(e.Id, e.Native, e.Unified, e.Shortcodes);
+        await InjectEmojiAsync(e.Id, e.Native, e.Unified, e.Shortcodes, false, false);
     }
 
     public ValueTask SetInputContent(string content)
@@ -582,20 +582,39 @@
 
     public async Task UpdateMentionMenu(string text)
     {
-        //Console.WriteLine(text);
-
-        if (text.StartsWith('@') || text.StartsWith('#'))
+        if (string.IsNullOrWhiteSpace(text))
         {
-            if (!MentionSelector.Visible)
+            if (MentionSelector.Visible)
             {
-                await MentionSelector.SetVisible(true, text[0]);
+                await MentionSelector.SetVisible(false);
+            }
+
+            Refresh();
+            return;
+        }
+
+        var mode = text[0];
+        var isAutocompleteToken = mode == '@' || mode == '#' || mode == ':';
+
+        // ":" autocomplete should wait until the user has typed at least one character.
+        if (mode == ':' && text.Length <= 1)
+        {
+            isAutocompleteToken = false;
+        }
+
+        if (isAutocompleteToken)
+        {
+            if (!MentionSelector.Visible || MentionSelector.Mode != mode)
+            {
+                await MentionSelector.SetVisible(true, mode);
             }
 
             await MentionSelector.SetText(text);
         }
         else
         {
-            if (MentionSelector.Visible){
+            if (MentionSelector.Visible)
+            {
                 await MentionSelector.SetVisible(false);
             }
         }
@@ -717,9 +736,22 @@
         return _jsCtx.InvokeVoidAsync("injectElement", text, coverText, classList, styleList);
     }
     
-    public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes)
+    public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes, bool deleteCurrentWord = false, bool appendSpace = false)
     {
-        return _jsCtx.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes);
+        return _jsCtx.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, deleteCurrentWord, appendSpace);
+    }
+
+    public ValueTask<List<EmojiClickEvent>> SearchEmojisAsync(string query, int maxResults = 10)
+    {
+        if (_emojis is null)
+            return ValueTask.FromResult(new List<EmojiClickEvent>());
+
+        return new ValueTask<List<EmojiClickEvent>>(_emojis.SearchAsync(query, maxResults));
+    }
+
+    public ValueTask InjectEmojiForAutocompleteAsync(EmojiClickEvent emoji)
+    {
+        return InjectEmojiAsync(emoji.Id, emoji.Native, emoji.Unified, emoji.Shortcodes, true, true);
     }
 
     public async Task OnSubmitClick()
@@ -782,10 +814,11 @@
     }
 
     [JSInvokable]
-    public async Task MentionSubmit()
+    public async Task<bool> MentionSubmit()
     {
-        await MentionSelector.Submit();
+        var handled = await MentionSelector.Submit();
         Refresh();
+        return handled;
     }
 
     [JSInvokable]

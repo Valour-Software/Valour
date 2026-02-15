@@ -3,29 +3,27 @@
 @if (Visible)
 {
     <div class="mention-select">
-        @{
-            var i = 0;
-
-            foreach (var match in _matches)
+        @for (var i = 0; i < _matches.Count; i++)
+        {
+            var x = i;
+            var match = _matches[i];
+            switch (match.Item)
             {
-                var x = i;
-                switch (match.Item)
-                {
-                    case PlanetRole role:
-                        <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" />
-                        break;
-                    case PlanetMember member:
-                        <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)" />
-                        break;
-                    case User user:
-                        <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" />
-                        break;
-                    case Channel channel:
-                        <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" />
-                        break;
-                }
-
-                i++;
+                case PlanetRole role:
+                    <MentionSelectRoleComponent @key="@role.Id" Index="x" Parent="this" Role="@role" Selected="(x == Selected)" />
+                    break;
+                case PlanetMember member:
+                    <MentionSelectMemberComponent @key="member.Id" Index="x" Parent="this" Member="member" Selected="(x == Selected)" />
+                    break;
+                case User user:
+                    <MentionSelectUserComponent @key="user.Id" Index="x" Parent="this" User="user" Selected="(x == Selected)" />
+                    break;
+                case Channel channel:
+                    <MentionSelectChannelComponent @key="channel.Id" Index="x" Parent="this" Channel="channel" Selected="(x == Selected)" />
+                    break;
+                case EmojiClickEvent emoji:
+                    <MentionSelectEmojiComponent @key="@match.Key" Index="x" Parent="this" Emoji="@emoji" Selected="(x == Selected)" />
+                    break;
             }
         }
     </div>
@@ -46,7 +44,7 @@
 
     private class MentionMatch
     {
-        public long Id { get; set; }
+        public string Key { get; set; }
         public object Item { get; set; }
     }
 
@@ -64,23 +62,33 @@
     {
         Visible = value;
 
-        if (value)
+        if (!value)
         {
-            // On made visible, fetch all needed data
-            if (ChannelComponent.Channel.PlanetId is null)
-            {
-                _users = await ChannelComponent.Channel.GetChannelMemberUsersAsync();
-            }
-
-            // Set mode
-            this.Mode = mode;
+            Mode = ' ';
+            Selected = 0;
+            _matches.Clear();
+            StateHasChanged();
+            return;
         }
+
+        // On made visible, fetch all needed data
+        if (ChannelComponent.Channel.PlanetId is null)
+        {
+            _users = await ChannelComponent.Channel.GetChannelMemberUsersAsync();
+        }
+
+        // Set mode
+        Mode = mode;
+        Selected = 0;
 
         StateHasChanged();
     }
 
-    public async Task Submit()
+    public async Task<bool> Submit()
     {
+        if (!Visible || _matches.Count == 0 || Selected < 0 || Selected >= _matches.Count)
+            return false;
+
         var selected = _matches[Selected].Item;
         switch (selected)
         {
@@ -122,16 +130,22 @@
                     await ChannelComponent.InputComponent.InjectElementAsync(tag, text, classlist, "");
                     break;
                 }
+            case EmojiClickEvent emoji:
+                {
+                    await ChannelComponent.InputComponent.InjectEmojiForAutocompleteAsync(emoji);
+                    break;
+                }
         }
 
         await SetVisible(false);
 
         Selected = 0;
+        return true;
     }
 
     public async Task SetText(string newText)
     {
-        Text = newText.TrimStart(Mode).ToLower();
+        Text = newText.TrimStart(Mode).ToLowerInvariant();
 
         _matches.Clear();
 
@@ -142,7 +156,7 @@
                 if (string.IsNullOrEmpty(Text))
                 {
                     _matches.AddRange((await ChannelComponent.GetLastChatMembers(10))
-                        .Select(x => new MentionMatch { Id = x.Id, Item = x }));
+                        .Select(x => new MentionMatch { Key = x.Id.ToString(), Item = x }));
                 }
                 else
                 {
@@ -151,7 +165,7 @@
                                      .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                                      .ThenBy(x => x.Name.Length)
                                      .Take(10)
-                                     .Select(x => new MentionMatch() { Id = x.Id, Item = x });
+                                     .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x });
 
                     _matches.AddRange(members);
 
@@ -173,7 +187,7 @@
                         roleQuery.OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                         .ThenBy(x => x.Name.Length)
                         .Take(5)
-                        .Select(x => new MentionMatch() { Id = x.Id, Item = x });
+                        .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x });
 
                     _matches.AddRange(roles);
                 }
@@ -184,7 +198,7 @@
                                                  .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                                                  .ThenBy(x => x.Name.Length)
                                                  .Take(10)
-                                                 .Select(x => new MentionMatch() { Id = x.Id, Item = x }));
+                                                 .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x }));
             }
         }
         else if (Mode == '#')
@@ -193,7 +207,29 @@
                              .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                              .ThenBy(x => x.Name.Length)
                              .Take(10)
-                             .Select(x => new MentionMatch() { Id = x.Id, Item = x }));
+                             .Select(x => new MentionMatch() { Key = x.Id.ToString(), Item = x }));
+        }
+        else if (Mode == ':')
+        {
+            if (!string.IsNullOrWhiteSpace(Text))
+            {
+                // Native emoji source; custom emoji matches can be merged here later.
+                var emojis = await ChannelComponent.InputComponent.SearchEmojisAsync(Text, 10);
+                _matches.AddRange(emojis.Select(x => new MentionMatch()
+                {
+                    Key = x.Id ?? x.Unified ?? x.Native,
+                    Item = x
+                }));
+            }
+        }
+
+        if (_matches.Count == 0)
+        {
+            Selected = 0;
+        }
+        else if (Selected < 0 || Selected >= _matches.Count)
+        {
+            Selected = 0;
         }
 
         StateHasChanged();
@@ -201,6 +237,12 @@
 
     public void MoveSelect(int n)
     {
+        if (_matches.Count == 0)
+        {
+            Selected = 0;
+            return;
+        }
+
         Selected += n;
 
         if (Selected > _matches.Count - 1)
