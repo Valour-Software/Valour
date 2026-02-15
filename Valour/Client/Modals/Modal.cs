@@ -15,6 +15,6 @@ public class Modal<T> : ComponentBase
 
     public virtual void Close()
     {
-        ModalRoot.CloseModal(ModalId);
+        ModalRoot?.CloseModal(ModalId);
     }
 }

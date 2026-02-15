@@ -3,44 +3,54 @@
 @inject IJSRuntime JsRuntime
 @inject IAppStorage LocalStorage
 @inject SoundManager SoundManager
+@inject NavigationManager NavigationManager
 
-<BrowserUtils OnReady="@ReadyAsync" />
+<ErrorBoundary>
+    <ChildContent>
+        <BrowserUtils OnReady="@ReadyAsync" />
 
-<UpdateBanner />
+        <UpdateBanner />
 
-<!-- Enable app sounds -->
-<SoundsComponent @key="@("sounds-component")"></SoundsComponent>
+        <!-- Enable app sounds -->
+        <SoundsComponent @key="@("sounds-component")"></SoundsComponent>
 
-<!-- Enable event listeners -->
-<KeyboardListener />
-<MouseListener />
+        <!-- Enable event listeners -->
+        <KeyboardListener />
+        <MouseListener />
 
-<!-- Enable themes -->
-<ThemeComponent />
+        <!-- Enable themes -->
+        <ThemeComponent />
 
-<!-- Window Target helper -->
-<WindowTargetScanner />
+        <!-- Window Target helper -->
+        <WindowTargetScanner />
 
-<TooltipRoot />
+        <TooltipRoot />
 
-@if (_triedInitialLogin)
-{
-    <!-- Main routing component -->
-    <Router AppAssembly="@typeof(Valour.Client.Pages.Index).Assembly">
-        <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p>Sorry, there's nothing at this address.</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
-}
-else
-{
-    <Loading Subtext='Logging you in...'></Loading>
-}
+        @if (_triedInitialLogin)
+        {
+            <!-- Main routing component -->
+            <Router AppAssembly="@typeof(Valour.Client.Pages.Index).Assembly">
+                <Found Context="routeData">
+                    <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+                </Found>
+                <NotFound>
+                    <LayoutView Layout="@typeof(MainLayout)">
+                        <p>Sorry, there's nothing at this address.</p>
+                    </LayoutView>
+                </NotFound>
+            </Router>
+        }
+        else
+        {
+            <Loading Subtext='Logging you in...'></Loading>
+        }
+    </ChildContent>
+    <ErrorContent Context="exception">
+        <div class="fatal-error-overlay">
+            <ErrorModal Data="@BuildFatalErrorModal(exception)" />
+        </div>
+    </ErrorContent>
+</ErrorBoundary>
 
 @code{
     const bool USE_PROD = false;
@@ -189,6 +199,21 @@ else
     public void Log(string prefix, string msg, string color)
     {
         _ = JsRuntime.InvokeVoidAsync("Log", $"[{prefix}] {msg}", color);
+    }
+
+    private ErrorModal.ModalParams BuildFatalErrorModal(Exception exception)
+    {
+        var message = string.IsNullOrWhiteSpace(exception.Message)
+            ? "A fatal client error occurred."
+            : exception.Message;
+
+        var details = $"Time (UTC): {DateTime.UtcNow:O}\nUri: {NavigationManager.Uri}\n\n{exception}";
+
+        return new ErrorModal.ModalParams
+        {
+            Result = new TaskResult(false, message, details),
+            ShowReload = true
+        };
     }
 
     /* TODO: Fix push subscriptions

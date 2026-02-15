@@ -247,6 +247,7 @@
     {
         _resultSpan = "Logging in...";
         await LocalStorage.SetStringAsync("token", AuthService.Token);
+        await EnsurePushPermissionAfterLoginAsync();
 
         if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
         {
@@ -261,8 +262,33 @@
         }
         
         StateHasChanged();
+    }
 
-        await PushSubscriptionsComponent.Instance.RequestSubscriptionAsync();
+    private async Task EnsurePushPermissionAfterLoginAsync()
+    {
+        var pushComponent = PushSubscriptionsComponent.Instance;
+        if (pushComponent is null)
+            return;
+
+        try
+        {
+            var permissionState = await pushComponent.GetPermissionStateAsync();
+
+            if (permissionState == "default")
+            {
+                await pushComponent.AskForPermissionAsync();
+                permissionState = await pushComponent.GetPermissionStateAsync();
+            }
+
+            if (permissionState == "granted")
+            {
+                await pushComponent.RequestSubscriptionAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Client.Logger.Log<LoginComponent>($"Push notification setup failed: {ex.Message}", "salmon");
+        }
     }
 
     private void OnClickRegister(MouseEventArgs e)

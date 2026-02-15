@@ -1,5 +1,6 @@
 @inherits Modal<ErrorModal.ModalParams>
 @inject IJSRuntime JsRuntime
+@inject NavigationManager NavigationManager
 
 <BasicModalLayout Title="@($"Error Details {CodeText}")" Icon="bug-fill" MaxWidth="600px">
     <MainArea>
@@ -11,7 +12,14 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnClickCopyAsync" class="v-btn">Copy Details</button>
-            <button @onclick="@OnClickClose" class="v-btn">Close</button>
+            @if (Data.ShowReload)
+            {
+                <button @onclick="@OnClickReload" class="v-btn">Reload</button>
+            }
+            @if (ModalRoot is not null)
+            {
+                <button @onclick="@OnClickClose" class="v-btn">Close</button>
+            }
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -20,6 +28,7 @@
     public class ModalParams
     {
         public ITaskResult Result;
+        public bool ShowReload;
     }
     
     private string CodeText =>
@@ -30,6 +39,11 @@
     private async Task OnClickCopyAsync()
     {
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Result.Details);
-        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Error details copied to clipboard", ToastProgressState.Success));
+        ToastContainer.Instance?.AddToast(new ToastData("Copied!", "Error details copied to clipboard", ToastProgressState.Success));
+    }
+
+    private void OnClickReload()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }
 }

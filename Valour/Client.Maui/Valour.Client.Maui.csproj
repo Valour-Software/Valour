@@ -5,8 +5,7 @@
         <JavaSdkDirectory Condition="$([MSBuild]::IsOSPlatform('osx'))">/Applications/Android Studio.app/Contents/jbr/Contents/Home</JavaSdkDirectory>
         <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
         <TargetFrameworks>net10.0-android</TargetFrameworks>
-        <!-- iOS/macCatalyst require Xcode 26.x; uncomment when available -->
-        <!--<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>-->
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-maccatalyst</TargetFrameworks>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
         <!-- Note for MacCatalyst:
@@ -34,6 +33,8 @@
 
         <!-- Display name -->
         <ApplicationTitle>Valour</ApplicationTitle>
+        <!-- Keep desktop Apple bundle naming stable for debug runners that infer .app paths early. -->
+        <_AppBundleName Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst' Or $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'macos'">Valour</_AppBundleName>
 
         <!-- App Identifier --> 
         <ApplicationId>gg.valour.app</ApplicationId>
@@ -75,6 +76,9 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.31" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.3" />
         <PackageReference Include="Microsoft.Maui.Core" Version="10.0.31" />
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
         <PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.1" />
         <PackageReference Include="Xamarin.GooglePlayServices.Base" Version="118.9.0" />
         <PackageReference Include="Xamarin.GooglePlayServices.Basement" Version="118.9.0" />
@@ -87,5 +91,14 @@
     <ItemGroup>
         <ProjectReference Include="..\Client\Valour.Client.csproj" />
     </ItemGroup>
+
+    <Target Name="CreateMacCatalystAppAlias"
+            AfterTargets="Build"
+            Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
+        <!-- Some IDE debug flows derive the app bundle path from AssemblyName. Keep a compatibility alias. -->
+        <Exec WorkingDirectory="$(TargetDir)"
+              Command="/bin/ln -sfn Valour.app Valour.Client.Maui.app"
+              Condition="Exists('$(TargetDir)Valour.app')" />
+    </Target>
 
 </Project>

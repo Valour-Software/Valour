@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components.WebView.Maui;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
-using Plugin.Firebase.CloudMessaging;
 #if ANDROID
+using Plugin.Firebase.CloudMessaging;
 using Plugin.Firebase.Core.Platforms.Android;
 #endif
 using Valour.Client;
