@@ -105,7 +105,7 @@ public class ValourEmojiParser : InlineParser
         {
             StringBuilder emojiBuilder = new(":");
             char currentChar = slice.PeekChar(4);
-            for (int i = 0; i < 30; i++)
+            for (int i = 0; i < 40; i++)
             {
                 if (currentChar == '»')
                 {

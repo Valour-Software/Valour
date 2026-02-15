@@ -17,7 +17,10 @@ type InputContext = {
         unified: string,
         shortcodes: string,
         deleteCurrentWord?: boolean,
-        appendSpace?: boolean
+        appendSpace?: boolean,
+        isCustom?: boolean,
+        customToken?: string,
+        customSrc?: string
     ) => Promise<void>;
     openUploadFile: (uploadEl: HTMLElement) => void;
     pasteHandler: (e: ClipboardEvent) => void;
@@ -299,7 +302,10 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             unified: string,
             shortcodes: string,
             deleteCurrentWord = false,
-            appendSpace = false
+            appendSpace = false,
+            isCustom = false,
+            customToken = '',
+            customSrc = ''
         ) => {
             let sel = window.getSelection();
             let range: Range;
@@ -350,9 +356,25 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
             }
 
             const img = document.createElement('img');
-            img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
-            img.setAttribute('data-text', native);
-            img.alt = native;
+
+            if (isCustom) {
+                const token = customToken || (text ? `:${text}:` : '');
+                const src = customSrc || '';
+
+                if (!src) {
+                    return;
+                }
+
+                img.src = src;
+                img.setAttribute('data-text', token);
+                img.alt = shortcodes || token;
+                img.classList.add('custom-emoji');
+            } else {
+                img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
+                img.setAttribute('data-text', native);
+                img.alt = native;
+            }
+
             img.classList.add('emoji');
             img.style.width = '1em';
             range.insertNode(img);

@@ -1,0 +1,192 @@
+@using System.Net.Http.Headers
+@using Valour.Shared.Models
+@using Valour.Shared.Utilities
+@implements IDisposable
+
+<div class="emoji-settings">
+    <h3 class="emoji-title">
+        <i class="bi bi-emoji-smile"></i>
+        Custom Emojis
+    </h3>
+    <p class="subtitle">Upload up to @ISharedPlanetEmoji.MaxPerPlanet custom 128x128 emojis for this planet.</p>
+
+    @if (_loading)
+    {
+        <p>Loading emojis...</p>
+    }
+    else
+    {
+        <div class="emoji-header">
+            <p class="emoji-usage">@Planet.Emojis.Count / @ISharedPlanetEmoji.MaxPerPlanet used</p>
+        </div>
+
+        @if (!_canManage)
+        {
+            <p class="emoji-warning">You need the Manage Planet permission to add or remove custom emojis.</p>
+        }
+
+        <div class="emoji-upload">
+            <div class="emoji-inputs">
+                <input class="v-input" placeholder="emoji_name" @bind-value="_emojiName" maxlength="32" />
+                <button class="v-btn secondary" onclick="document.getElementById('planet-emoji-upload').click()">Choose Image</button>
+                <span class="emoji-file-name">@(_selectedFile?.Name ?? "No file selected")</span>
+                <InputFile @ref="_fileInput"
+                           id="planet-emoji-upload"
+                           OnChange="OnFileSelected"
+                           style="display:none"
+                           accept=".png,.jpg,.jpeg,.gif,.webp" />
+            </div>
+            <button class="v-btn primary"
+                    disabled="@(!_canManage || _uploading)"
+                    @onclick="UploadEmojiAsync">
+                @(_uploading ? "Uploading..." : "Upload Emoji")
+            </button>
+        </div>
+
+        <ResultLabel Result="@_result" />
+
+        @if (Planet.Emojis.Count == 0)
+        {
+            <p class="emoji-empty">No custom emojis added yet.</p>
+        }
+        else
+        {
+            <div class="emoji-grid">
+                @foreach (var emoji in Planet.Emojis.OrderBy(x => x.Name))
+                {
+                    <div class="emoji-card">
+                        <img class="emoji-preview" src="@ISharedPlanetEmoji.GetCdnUrl(emoji)" alt="@($":{emoji.Name}:")" />
+                        <div class="emoji-meta">
+                            <span class="emoji-name">:@emoji.Name:</span>
+                            <button class="v-btn danger"
+                                    disabled="@(!_canManage)"
+                                    @onclick="() => DeleteEmojiAsync(emoji)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _loading = true;
+    private bool _uploading;
+    private bool _canManage;
+
+    private string _emojiName = string.Empty;
+    private IBrowserFile? _selectedFile;
+    private ITaskResult? _result;
+    private InputFile _fileInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+        _canManage = Planet?.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
+
+        if (Planet is not null)
+        {
+            Planet.Emojis.Changed += OnEmojisChanged;
+            await Planet.LoadEmojisAsync();
+        }
+
+        _loading = false;
+    }
+
+    private Task OnEmojisChanged(IModelEvent<PlanetEmoji> _)
+    {
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task UploadEmojiAsync()
+    {
+        if (!_canManage)
+        {
+            _result = TaskResult.FromFailure("You lack permission to manage custom emojis.");
+            return;
+        }
+
+        if (Planet.Emojis.Count >= ISharedPlanetEmoji.MaxPerPlanet)
+        {
+            _result = TaskResult.FromFailure($"Planets can only have {ISharedPlanetEmoji.MaxPerPlanet} custom emojis.");
+            return;
+        }
+
+        var normalizedName = PlanetEmojiText.NormalizeName(_emojiName);
+        if (!PlanetEmojiText.IsValidName(normalizedName))
+        {
+            _result = TaskResult.FromFailure("Emoji name must be 2-32 characters and use only lowercase letters, numbers, or underscores.");
+            return;
+        }
+
+        if (_selectedFile is null)
+        {
+            _result = TaskResult.FromFailure("Select an image file first.");
+            return;
+        }
+
+        if (_selectedFile.Size > 10 * 1024 * 1024)
+        {
+            _result = TaskResult.FromFailure("Emoji image must be 10MB or smaller.");
+            return;
+        }
+
+        _uploading = true;
+        _result = null;
+
+        try
+        {
+            var bytes = new byte[_selectedFile.Size];
+            await _selectedFile.OpenReadStream(10 * 1024 * 1024).ReadAsync(bytes);
+
+            var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(bytes);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(_selectedFile.ContentType);
+            content.Add(fileContent, _selectedFile.Name, _selectedFile.Name);
+
+            var route = $"upload/planetemoji/{Planet.Id}?name={Uri.EscapeDataString(normalizedName)}";
+            var result = await Planet.Node.PostMultipartDataWithResponse<PlanetEmoji>(route, content);
+            _result = result;
+
+            if (result.Success)
+            {
+                _emojiName = string.Empty;
+                _selectedFile = null;
+            }
+        }
+        finally
+        {
+            _uploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteEmojiAsync(PlanetEmoji emoji)
+    {
+        if (!_canManage)
+        {
+            _result = TaskResult.FromFailure("You lack permission to manage custom emojis.");
+            return;
+        }
+
+        _result = await emoji.DeleteAsync();
+    }
+
+    public void Dispose()
+    {
+        if (Planet is not null)
+            Planet.Emojis.Changed -= OnEmojisChanged;
+    }
+}

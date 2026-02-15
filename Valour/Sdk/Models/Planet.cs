@@ -83,6 +83,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The loaded bans of this planet
     /// </summary>
     public readonly ModelStore<PlanetBan, long> Bans = new();
+
+    /// <summary>
+    /// The loaded custom emojis of this planet
+    /// </summary>
+    public readonly ModelStore<PlanetEmoji, long> Emojis = new();
     
     /// <summary>
     /// A map from role membership to the contained roles
@@ -201,6 +206,12 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public ValueTask<PlanetRole> FetchRoleAsync(long id, bool skipCache = false) =>
         Client.PlanetService.FetchRoleAsync(id, this, skipCache);
+
+    /// <summary>
+    /// Returns the custom emoji for the given id
+    /// </summary>
+    public ValueTask<PlanetEmoji> FetchEmojiAsync(long id, bool skipCache = false) =>
+        Client.PlanetService.FetchEmojiAsync(id, this, skipCache);
 
     /// <summary>
     /// Returns the permissions node for the given key
@@ -335,6 +346,7 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Invites.Dispose();
         PermissionsNodes.Dispose();
         Bans.Dispose();
+        Emojis.Dispose();
     }
 
     public async Task EnsureReadyAsync()
@@ -634,6 +646,20 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Roles.Sort();
 
         Roles.NotifySet();
+    }
+
+    /// <summary>
+    /// Loads the planet's custom emojis from the server.
+    /// </summary>
+    public async Task LoadEmojisAsync()
+    {
+        var emojis = (await Node.GetJsonAsync<List<PlanetEmoji>>(ISharedPlanetEmoji.GetBaseRoute(Id))).Data;
+        if (emojis is null)
+            return;
+
+        Emojis.Clear(true);
+        emojis.SyncAll(Client, ModelInsertFlags.Batched);
+        Emojis.NotifySet();
     }
 
     public void NotifyRoleOrderChange(RoleOrderEvent e)

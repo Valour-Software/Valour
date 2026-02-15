@@ -243,7 +243,7 @@ export function init(dotnet, inputEl) {
             }
             ctx.dotnet.invokeMethodAsync('OnChatboxUpdate', safeForInterop(getElementText(ctx.inputEl)), safeForInterop(ctx.currentWord));
         },
-        injectEmoji: async (text, native, unified, shortcodes, deleteCurrentWord = false, appendSpace = false) => {
+        injectEmoji: async (text, native, unified, shortcodes, deleteCurrentWord = false, appendSpace = false, isCustom = false, customToken = '', customSrc = '') => {
             let sel = window.getSelection();
             let range;
             if (!ctx.inputEl.contains(sel?.anchorNode)) {
@@ -295,9 +295,22 @@ export function init(dotnet, inputEl) {
                 range.deleteContents();
             }
             const img = document.createElement('img');
-            img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
-            img.setAttribute('data-text', native);
-            img.alt = native;
+            if (isCustom) {
+                const token = customToken || (text ? `:${text}:` : '');
+                const src = customSrc || '';
+                if (!src) {
+                    return;
+                }
+                img.src = src;
+                img.setAttribute('data-text', token);
+                img.alt = shortcodes || token;
+                img.classList.add('custom-emoji');
+            }
+            else {
+                img.src = `https://cdn.jsdelivr.net/npm/emoji-datasource-twitter@14.0.0/img/twitter/64/${unified}.png`;
+                img.setAttribute('data-text', native);
+                img.alt = native;
+            }
             img.classList.add('emoji');
             img.style.width = '1em';
             range.insertNode(img);

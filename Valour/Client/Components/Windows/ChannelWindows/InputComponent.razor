@@ -4,6 +4,7 @@
 
 @using System.Net.Http.Headers
 @using System.Text.RegularExpressions
+@using Valour.Client.Emojis
 @using Valour.Shared.Cdn
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
@@ -171,6 +172,7 @@
     private string _uploadMenuStyle = "display: none;";
 
     private EmojiMart _emojis;
+    private Planet _emojiPlanetSubscription;
 
     private async Task OnClickTextbox()
     {
@@ -190,6 +192,43 @@
         _emojis.ToggleVisible();
 
         return Task.CompletedTask;
+    }
+
+    private void DetachEmojiPlanetSubscription()
+    {
+        if (_emojiPlanetSubscription is null)
+            return;
+
+        _emojiPlanetSubscription.Emojis.Changed -= OnPlanetEmojiChanged;
+        _emojiPlanetSubscription = null;
+    }
+
+    private async Task AttachEmojiPlanetSubscriptionAsync(Planet planet)
+    {
+        if (_emojiPlanetSubscription?.Id == planet.Id)
+            return;
+
+        DetachEmojiPlanetSubscription();
+
+        _emojiPlanetSubscription = planet;
+        _emojiPlanetSubscription.Emojis.Changed += OnPlanetEmojiChanged;
+
+        await RefreshCustomEmojiPickerAsync();
+    }
+
+    private Task OnPlanetEmojiChanged(IModelEvent<PlanetEmoji> _)
+    {
+        return RefreshCustomEmojiPickerAsync();
+    }
+
+    private Task RefreshCustomEmojiPickerAsync()
+    {
+        if (_emojis is null)
+            return Task.CompletedTask;
+
+        var planet = ChatComponent?.Channel?.Planet;
+        var custom = PlanetEmojiMapper.GetPickerItems(planet);
+        return _emojis.SetCustomEmojisAsync(custom);
     }
 
     protected override bool ShouldRender()
@@ -247,6 +286,7 @@
     {
         _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
         _thisRef?.Dispose();
+        DetachEmojiPlanetSubscription();
 
         if (_jsCtx is not null)
         {
@@ -265,10 +305,14 @@
         {
             await planet.EnsureReadyAsync();
             CanUserPost = await ChatComponent.Channel.HasPermissionAsync(planet.MyMember, ChatChannelPermissions.PostMessages);
+            await AttachEmojiPlanetSubscriptionAsync(planet);
         }
         else
         {
             CanUserPost = await ChatComponent.Channel.HasPermissionAsync(Client.Me.Id, ChatChannelPermissions.PostMessages);
+            DetachEmojiPlanetSubscription();
+            if (_emojis is not null)
+                await _emojis.SetCustomEmojisAsync(Array.Empty<EmojiClickEvent>());
         }
 
         PreviewMessage = BuildNewMessage();
@@ -297,7 +341,16 @@
 
     private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
     {
-        await InjectEmojiAsync(e.Id, e.Native, e.Unified, e.Shortcodes, false, false);
+        await InjectEmojiAsync(
+            e.Id,
+            e.Native,
+            e.Unified,
+            e.Shortcodes,
+            false,
+            false,
+            e.IsCustom,
+            e.Token,
+            e.Src);
     }
 
     public ValueTask SetInputContent(string content)
@@ -331,6 +384,8 @@
             await SetInputContent("");
             RefreshPreviewMessage();
         }
+
+        await RefreshCustomEmojiPickerAsync();
     }
 
     #region File Drop System
@@ -736,22 +791,65 @@
         return _jsCtx.InvokeVoidAsync("injectElement", text, coverText, classList, styleList);
     }
     
-    public ValueTask InjectEmojiAsync(string emoji, string native, string unified, string shortcodes, bool deleteCurrentWord = false, bool appendSpace = false)
+    public ValueTask InjectEmojiAsync(
+        string emoji,
+        string native,
+        string unified,
+        string shortcodes,
+        bool deleteCurrentWord = false,
+        bool appendSpace = false,
+        bool isCustom = false,
+        string customToken = null,
+        string customSrc = null)
     {
-        return _jsCtx.InvokeVoidAsync("injectEmoji", emoji, native, unified, shortcodes, deleteCurrentWord, appendSpace);
+        return _jsCtx.InvokeVoidAsync(
+            "injectEmoji",
+            emoji,
+            native,
+            unified,
+            shortcodes,
+            deleteCurrentWord,
+            appendSpace,
+            isCustom,
+            customToken,
+            customSrc);
     }
 
-    public ValueTask<List<EmojiClickEvent>> SearchEmojisAsync(string query, int maxResults = 10)
+    public async ValueTask<List<EmojiClickEvent>> SearchEmojisAsync(string query, int maxResults = 10)
     {
-        if (_emojis is null)
-            return ValueTask.FromResult(new List<EmojiClickEvent>());
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<EmojiClickEvent>();
 
-        return new ValueTask<List<EmojiClickEvent>>(_emojis.SearchAsync(query, maxResults));
+        List<EmojiClickEvent> native = _emojis is null
+            ? new List<EmojiClickEvent>()
+            : await _emojis.SearchAsync(query, maxResults);
+
+        var custom = PlanetEmojiMapper.Search(ChatComponent?.Channel?.Planet, query, maxResults);
+        if (custom.Count == 0)
+            return native.Take(maxResults).ToList();
+
+        var merged = custom
+            .Concat(native)
+            .GroupBy(x => x.IsCustom ? $"c-{x.CustomId ?? 0}" : $"n-{x.Unified ?? x.Native ?? x.Id}")
+            .Select(x => x.First())
+            .Take(maxResults)
+            .ToList();
+
+        return merged;
     }
 
     public ValueTask InjectEmojiForAutocompleteAsync(EmojiClickEvent emoji)
     {
-        return InjectEmojiAsync(emoji.Id, emoji.Native, emoji.Unified, emoji.Shortcodes, true, true);
+        return InjectEmojiAsync(
+            emoji.Id,
+            emoji.Native,
+            emoji.Unified,
+            emoji.Shortcodes,
+            true,
+            true,
+            emoji.IsCustom,
+            emoji.Token,
+            emoji.Src);
     }
 
     public async Task OnSubmitClick()

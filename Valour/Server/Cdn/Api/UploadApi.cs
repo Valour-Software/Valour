@@ -11,6 +11,8 @@ using Valour.Server.Cdn.Extensions;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Cdn;
+using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Server.Cdn.Api;
 
@@ -83,6 +85,7 @@ public class UploadApi
         app.MapPost("/upload/image/plus", ImageRoutePlus);
         app.MapPost("/upload/planet/{planetId}", PlanetImageRoute);
         app.MapPost("/upload/planetbg/{planetId}", PlanetBackgroundImageRoute);
+        app.MapPost("/upload/planetemoji/{planetId}", PlanetEmojiImageRoute);
         app.MapPost("/upload/app/{appId}", AppImageRoute);
         app.MapPost("/upload/file", FileRouteNonPlus);
         app.MapPost("/upload/file/plus", FileRoutePlus);
@@ -446,6 +449,89 @@ public class UploadApi
     {
         new(256), new(128), new(64)
     };
+    
+    public static readonly ImageSize[] PlanetEmojiSizes =
+    {
+        new(128)
+    };
+
+    [FileUploadOperation.FileContentType]
+    [RequestSizeLimit(10240000)]
+    private static async Task<IResult> PlanetEmojiImageRoute(
+        HttpContext ctx,
+        TokenService tokenService,
+        PlanetMemberService memberService,
+        PlanetEmojiService emojiService,
+        CdnBucketService bucketService,
+        long planetId,
+        [FromQuery] string name,
+        [FromHeader] string authorization)
+    {
+        var authToken = await tokenService.GetCurrentTokenAsync();
+        if (authToken is null)
+            return ValourResult.InvalidToken();
+
+        var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var normalizedName = PlanetEmojiText.NormalizeName(name);
+        if (!PlanetEmojiText.IsValidName(normalizedName))
+        {
+            return ValourResult.BadRequest(
+                "Emoji name must be 2-32 characters and use only lowercase letters, numbers, or underscores.");
+        }
+
+        var file = ctx.Request.Form.Files.FirstOrDefault();
+        if (file is null)
+            return Results.BadRequest("Please attach a file");
+
+        if (!CdnUtils.ImageSharpSupported.Contains(file.ContentType))
+            return Results.BadRequest("Unsupported file type");
+
+        var createResult = await emojiService.CreateAsync(planetId, authToken.UserId, normalizedName, notify: false);
+        if (!createResult.Success || createResult.Data is null)
+            return ValourResult.BadRequest(createResult.Message);
+
+        var emoji = createResult.Data;
+
+        try
+        {
+            using var image = await Image.LoadAsync(
+                new() { TargetSize = new(PlanetEmojiSizes[0].Width, PlanetEmojiSizes[0].Height) },
+                file.OpenReadStream()
+            );
+
+            HandleExif(image);
+
+            var uploadResult = await UploadPublicImageVariants(
+                bucketService,
+                image,
+                "planetemojis",
+                $"{planetId}/{emoji.Id}",
+                PlanetEmojiSizes,
+                0,
+                doAnimated: false,
+                doTransparency: true);
+
+            if (!uploadResult.Success)
+            {
+                await emojiService.DeleteAsync(planetId, emoji.Id, notify: false);
+                return ValourResult.Problem(uploadResult.Message);
+            }
+
+            emojiService.NotifyCreated(emoji);
+            return Results.Json(emoji);
+        }
+        catch (Exception)
+        {
+            await emojiService.DeleteAsync(planetId, emoji.Id, notify: false);
+            return ValourResult.BadRequest("Unable to process image. Check format and size.");
+        }
+    }
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(10240000)]

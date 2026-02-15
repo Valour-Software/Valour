@@ -71,8 +71,13 @@ public class HostedPlanetService
             .Where(r => r.PlanetId == planetId)
             .Select(r => r.ToModel())
             .ToListAsync();
+
+        var emojis = await _db.PlanetEmojis
+            .Where(e => e.PlanetId == planetId)
+            .Select(e => e.ToModel())
+            .ToListAsync();
         
-        var hostedPlanet = new HostedPlanet(planet, channels, roles);
+        var hostedPlanet = new HostedPlanet(planet, channels, roles, emojis);
         
         _cache.HostedPlanets.Set(hostedPlanet);
         

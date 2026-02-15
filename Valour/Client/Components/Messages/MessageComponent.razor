@@ -144,7 +144,7 @@ else
                 var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
                 
                 <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
-                    <img class="emoji" src="@EmojiSourceProvider.GetSrcUrlFromNative(reaction.emoji)" alt="@reaction.emoji"/>
+                    <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)"/>
                     <span class="reaction-count">@reaction.count</span>
                 </div>
             }
@@ -274,6 +274,12 @@ else
     private HashSet<string> _newReactions;
     private List<(string emoji, int count)> _reactionsToRender = new();
     private bool _showAllReactions = false;
+
+    private string GetReactionSrc(string emoji) =>
+        EmojiSourceProvider.GetSrcUrlFromReaction(emoji, _message?.PlanetId);
+
+    private string GetReactionAlt(string emoji) =>
+        EmojiSourceProvider.GetAltFromReaction(emoji);
     
     
     private void CalculateReactions()

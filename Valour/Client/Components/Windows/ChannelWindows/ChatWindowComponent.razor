@@ -3,6 +3,7 @@
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
 @inject UnreadService UnreadService
+@using Valour.Client.Emojis
 @using Valour.Sdk.Nodes
 @using Channel = Valour.Sdk.Models.Channel
 
@@ -121,6 +122,8 @@ else
                 
                 // Re-render JUST the emoji selector
                 _reactionSelectorRenderWrapper.ReRender();
+
+                _ = RefreshReactionEmojiPickerAsync();
                 
                 _reactionSelector.ToggleVisible();
                 
@@ -253,7 +256,24 @@ else
         _reactionSelector.ToggleVisible();
         
         if (_currentlyReactingMessage is null) return;
-        await _currentlyReactingMessage.AddReactionAsync(e.Native);
+
+        var reactionValue = e.IsCustom
+            ? (e.Token ?? e.Shortcodes)
+            : e.Native;
+
+        if (string.IsNullOrWhiteSpace(reactionValue))
+            return;
+
+        await _currentlyReactingMessage.AddReactionAsync(reactionValue);
+    }
+
+    private Task RefreshReactionEmojiPickerAsync()
+    {
+        if (_reactionSelector is null)
+            return Task.CompletedTask;
+
+        var custom = PlanetEmojiMapper.GetPickerItems(Channel?.Planet);
+        return _reactionSelector.SetCustomEmojisAsync(custom);
     }
     
     private Task OnClickOutsideReactionPicker(OutsidePickerClickEvent e)
@@ -366,6 +386,8 @@ else
 
         if (InputComponent is not null)
             await InputComponent.NotifyChannelLoadedAsync();
+
+        await RefreshReactionEmojiPickerAsync();
 
         ReRender();
     }

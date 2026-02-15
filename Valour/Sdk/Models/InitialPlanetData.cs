@@ -15,4 +15,9 @@ public class InitialPlanetData
     /// All the roles in the planet
     /// </summary>
     public List<PlanetRole> Roles { get; set; }
+
+    /// <summary>
+    /// Custom emojis available in the planet
+    /// </summary>
+    public List<PlanetEmoji> Emojis { get; set; }
 }

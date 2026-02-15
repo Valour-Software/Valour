@@ -157,6 +157,7 @@ public class PlanetService : ServiceBase
             var data = result.Data;
             data.Roles.SyncAll(_client);
             data.Channels.SyncAll(_client);
+            data.Emojis?.SyncAll(_client);
         }
         
         return result.WithoutData();
@@ -539,6 +540,25 @@ public class PlanetService : ServiceBase
         var role = (await planet.Node.GetJsonAsync<PlanetRole>($"{ISharedPlanetRole.GetBaseRoute(planet.Id)}/{id}")).Data;
 
         return role.Sync(_client);
+    }
+
+    public async ValueTask<PlanetEmoji> FetchEmojiAsync(long id, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return null;
+
+        return await FetchEmojiAsync(id, planet, skipCache);
+    }
+
+    public async ValueTask<PlanetEmoji> FetchEmojiAsync(long id, Planet planet, bool skipCache = false)
+    {
+        if (!skipCache && planet.Emojis.TryGet(id, out var cached))
+            return cached;
+
+        var emoji = (await planet.Node.GetJsonAsync<PlanetEmoji>($"{ISharedPlanetEmoji.GetBaseRoute(planet.Id)}/{id}")).Data;
+
+        return emoji?.Sync(_client);
     }
 
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)

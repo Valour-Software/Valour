@@ -40,7 +40,11 @@
         if (string.IsNullOrWhiteSpace(_displayCode))
             _displayCode = "emoji";
 
-        if (!string.IsNullOrWhiteSpace(Emoji?.Unified))
+        if (Emoji?.IsCustom == true && !string.IsNullOrWhiteSpace(Emoji.Src))
+        {
+            _emojiUrl = Emoji.Src;
+        }
+        else if (!string.IsNullOrWhiteSpace(Emoji?.Unified))
         {
             _emojiUrl = EmojiSourceProvider.GetSrcUrlByCodePoints(Emoji.Unified.ToLowerInvariant());
         }

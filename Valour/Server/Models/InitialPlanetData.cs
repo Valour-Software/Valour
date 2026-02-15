@@ -17,4 +17,9 @@ public class InitialPlanetData
     /// All the roles in the planet
     /// </summary>
     public IEnumerable<PlanetRole> Roles { get; set; }
+
+    /// <summary>
+    /// Custom emojis available in the planet
+    /// </summary>
+    public IEnumerable<PlanetEmoji> Emojis { get; set; }
 }

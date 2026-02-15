@@ -503,6 +503,7 @@ public enum PlanetPermissionsEnum
     ManageEcoAccounts,
     ForceTransactions,
     BypassAutomod,
+    UseCustomEmojis,
 }
 
 /// <summary>
@@ -512,7 +513,7 @@ public enum PlanetPermissionsEnum
 public static class PlanetPermissions
 {
     public static readonly long Default =
-        Permission.CreateCode(View, UseEconomy);
+        Permission.CreateCode(View, UseEconomy, UseCustomEmojis);
 
     /// <summary>
     /// Contains every planet permission
@@ -541,6 +542,7 @@ public static class PlanetPermissions
 
                 MentionAll,
                 BypassAutomod,
+                UseCustomEmojis,
         };
     }
 
@@ -564,6 +566,7 @@ public static class PlanetPermissions
 
     public static readonly PlanetPermission MentionAll = new PlanetPermission(0x1000, "Mention All", "Allow members to mention all roles.");
     public static readonly PlanetPermission BypassAutomod = new PlanetPermission(0x2000, "Bypass Automod", "Ignore automod triggers for members with this role.");
+    public static readonly PlanetPermission UseCustomEmojis = new PlanetPermission(0x4000, "Use Custom Emojis", "Allow members to use custom planet emojis in chat.");
 }
 
 public enum PermissionState

@@ -1,4 +1,5 @@
 let searchInitialized = false;
+const pickerStates = new Map();
 
 function ensureSearchInitialized() {
     if (searchInitialized) {
@@ -12,7 +13,7 @@ function ensureSearchInitialized() {
     searchInitialized = true;
 }
 
-function normalizeEmojiResult(entry) {
+function normalizeNativeResult(entry) {
     const emoji = entry?.emoji ?? entry;
     const skin = emoji?.skins?.[0] ?? {};
 
@@ -37,22 +38,136 @@ function normalizeEmojiResult(entry) {
         native,
         unified,
         shortcodes,
+        isCustom: false,
+        customId: null,
+        token: null,
+        src: null,
     };
 }
 
-export function init(id, ref, emojiSet) {
-    ensureSearchInitialized();
+function normalizeCustomId(rawCustomId) {
+    if (typeof rawCustomId === 'number' && Number.isFinite(rawCustomId)) {
+        return rawCustomId;
+    }
+
+    if (typeof rawCustomId === 'string') {
+        const parsed = Number.parseInt(rawCustomId, 10);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+
+    return null;
+}
+
+function normalizeCustomResult(entry) {
+    const emoji = entry?.emoji ?? entry;
+    const skin = emoji?.skins?.[0] ?? {};
+
+    const src = skin.src ?? emoji?.src ?? '';
+    if (!src) {
+        return null;
+    }
+
+    const aliases = Array.isArray(emoji?.aliases) ? emoji.aliases : [];
+    const keywords = Array.isArray(emoji?.keywords) ? emoji.keywords : [];
+    const id = emoji?.id ?? '';
+    const shortcodes = emoji?.shortcodes ?? (id ? `:${id}:` : '');
+    const token = emoji?.token ?? '';
+    const customId = normalizeCustomId(emoji?.customId);
+
+    return {
+        aliases,
+        id,
+        keywords,
+        name: emoji?.name ?? id,
+        native: token || shortcodes || (id ? `:${id}:` : ''),
+        unified: '',
+        shortcodes,
+        isCustom: true,
+        customId,
+        token,
+        src,
+    };
+}
+
+function normalizeEmojiResult(entry) {
+    return normalizeNativeResult(entry) ?? normalizeCustomResult(entry);
+}
+
+function toPickerCustom(entry) {
+    const id = entry?.id ?? entry?.name ?? '';
+    const src = entry?.src ?? '';
+    if (!id || !src) {
+        return null;
+    }
+
+    const keywords = Array.isArray(entry?.keywords) ? entry.keywords : [];
+    const shortcodes = entry?.shortcodes ?? `:${id}:`;
+    const token = entry?.token ?? '';
+    const customId = normalizeCustomId(entry?.customId);
+
+    return {
+        id,
+        name: entry?.name ?? id,
+        keywords,
+        shortcodes,
+        customId,
+        token,
+        skins: [{ src }],
+    };
+}
+
+function renderPicker(state) {
+    const wrapper = document.getElementById(state.id);
+    if (!wrapper) {
+        return;
+    }
 
     const pickerOptions = {
-        onEmojiSelect: e => onEmojiSelect(ref, e),
-        onClickOutside: e => onClickOutside(ref, e),
-        set: emojiSet,
+        onEmojiSelect: e => onEmojiSelect(state.ref, e),
+        onClickOutside: e => onClickOutside(state.ref, e),
+        set: state.emojiSet,
         theme: 'dark',
     };
 
+    const custom = (state.custom ?? [])
+        .map(toPickerCustom)
+        .filter(x => x !== null);
+
+    if (custom.length > 0) {
+        pickerOptions.custom = custom;
+    }
+
     const picker = new EmojiMart.Picker(pickerOptions);
-    const wrapper = document.getElementById(id);
+    wrapper.innerHTML = '';
     wrapper.appendChild(picker);
+    state.picker = picker;
+}
+
+export function init(id, ref, emojiSet, custom = []) {
+    ensureSearchInitialized();
+
+    const state = {
+        id,
+        ref,
+        emojiSet,
+        custom: Array.isArray(custom) ? custom : [],
+        picker: null,
+    };
+
+    pickerStates.set(id, state);
+    renderPicker(state);
+}
+
+export function setCustom(id, custom = []) {
+    const state = pickerStates.get(id);
+    if (!state) {
+        return;
+    }
+
+    state.custom = Array.isArray(custom) ? custom : [];
+    renderPicker(state);
 }
 
 export async function search(query, maxResults = 10) {
@@ -78,7 +193,7 @@ export async function search(query, maxResults = 10) {
 
         return results
             .slice(0, maxResults)
-            .map(normalizeEmojiResult)
+            .map(normalizeNativeResult)
             .filter(x => x !== null);
     } catch (_) {
         return [];
@@ -86,7 +201,10 @@ export async function search(query, maxResults = 10) {
 }
 
 export function onEmojiSelect(ref, e) {
-    ref.invokeMethodAsync('EmojiClick', e);
+    const normalized = normalizeEmojiResult(e);
+    if (normalized !== null) {
+        ref.invokeMethodAsync('EmojiClick', normalized);
+    }
 }
 
 export function onClickOutside(ref, e) {

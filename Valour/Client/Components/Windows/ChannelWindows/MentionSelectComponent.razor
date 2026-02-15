@@ -213,11 +213,10 @@
         {
             if (!string.IsNullOrWhiteSpace(Text))
             {
-                // Native emoji source; custom emoji matches can be merged here later.
                 var emojis = await ChannelComponent.InputComponent.SearchEmojisAsync(Text, 10);
                 _matches.AddRange(emojis.Select(x => new MentionMatch()
                 {
-                    Key = x.Id ?? x.Unified ?? x.Native,
+                    Key = x.IsCustom ? $"c-{x.CustomId ?? 0}" : (x.Id ?? x.Unified ?? x.Native),
                     Item = x
                 }));
             }

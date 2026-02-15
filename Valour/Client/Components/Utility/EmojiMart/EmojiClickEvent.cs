@@ -24,4 +24,16 @@ public class EmojiClickEvent
 
     [JsonPropertyName("shortcodes")]
     public string Shortcodes { get; set; }
+
+    [JsonPropertyName("isCustom")]
+    public bool IsCustom { get; set; }
+
+    [JsonPropertyName("customId")]
+    public long? CustomId { get; set; }
+
+    [JsonPropertyName("token")]
+    public string Token { get; set; }
+
+    [JsonPropertyName("src")]
+    public string Src { get; set; }
 }

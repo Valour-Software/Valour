@@ -25,6 +25,7 @@
 
     private IJSObjectReference _module;
     private DotNetObjectReference<EmojiMart> _dotNetReference;
+    private List<EmojiClickEvent> _customEmojis = new();
 
     private bool _shown;
 
@@ -49,13 +50,23 @@
         return results?.ToList() ?? new();
     }
 
+    public async Task SetCustomEmojisAsync(IEnumerable<EmojiClickEvent>? emojis)
+    {
+        _customEmojis = emojis?.ToList() ?? new();
+
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("setCustom", _id, _customEmojis);
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _dotNetReference = DotNetObjectReference.Create(this);
             _module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Utility/EmojiMart/EmojiMart.razor.js");
-            await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet);
+            await _module.InvokeVoidAsync("init", _id, _dotNetReference, EmojiSet, _customEmojis);
         }
     }
 

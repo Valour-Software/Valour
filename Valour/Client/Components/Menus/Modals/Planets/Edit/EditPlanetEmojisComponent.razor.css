@@ -1,0 +1,87 @@
+.emoji-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.emoji-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.emoji-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.emoji-usage {
+    margin: 0;
+    font-weight: 600;
+}
+
+.emoji-warning {
+    margin: 0;
+    color: var(--p-yellow);
+}
+
+.emoji-upload {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.emoji-inputs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+}
+
+.emoji-file-name {
+    opacity: 0.85;
+    font-size: 0.9rem;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.emoji-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.emoji-preview {
+    width: 36px;
+    height: 36px;
+    image-rendering: auto;
+}
+
+.emoji-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    gap: 10px;
+}
+
+.emoji-name {
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+.emoji-empty {
+    margin: 8px 0 0;
+    opacity: 0.85;
+}

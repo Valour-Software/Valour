@@ -6,6 +6,7 @@ using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Models.MessageReactions;
+using Valour.Shared.Utilities;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -19,7 +20,8 @@ public class MessageApi
         ChannelService channelService,
         PlanetMemberService memberService,
         TokenService tokenService,
-        PlanetRoleService roleService)
+        PlanetRoleService roleService,
+        PlanetEmojiService planetEmojiService)
     {
         var token = await tokenService.GetCurrentTokenAsync();
         var userId = token.UserId;
@@ -99,6 +101,28 @@ public class MessageApi
                 {
                     message.MentionsData = null;
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(message.Content))
+            {
+                var customEmojiIds = PlanetEmojiText.ExtractCustomEmojiIds(message.Content);
+                if (customEmojiIds.Count > 0)
+                {
+                    if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseCustomEmojis))
+                        return ValourResult.LacksPermission(PlanetPermissions.UseCustomEmojis);
+
+                    if (!await planetEmojiService.AreAllIdsValidForPlanetAsync(channel.PlanetId.Value, customEmojiIds))
+                        return ValourResult.BadRequest("Message contains invalid custom emoji.");
+                }
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(message.Content))
+            {
+                var customEmojiIds = PlanetEmojiText.ExtractCustomEmojiIds(message.Content);
+                if (customEmojiIds.Count > 0)
+                    return ValourResult.BadRequest("Custom planet emojis can only be used in planet channels.");
             }
         }
         
@@ -257,15 +281,21 @@ public class MessageApi
         ChannelService channelService,
         PlanetMemberService memberService,
         UserService userService,
-        TokenService tokenService)
+        TokenService tokenService,
+        PlanetEmojiService planetEmojiService)
     {
         if (request is null)
             return ValourResult.BadRequest("Include reaction in body");
         
         if (string.IsNullOrWhiteSpace(request.Emoji))
             return ValourResult.BadRequest("Include emoji in body");
-        
-        if (request.Emoji.Length > 32)
+
+        var isCustomEmoji = PlanetEmojiText.TryParseToken(request.Emoji, out _, out var customEmojiId);
+
+        if (!isCustomEmoji && request.Emoji.Length > 32)
+            return ValourResult.BadRequest("Emoji is invalid");
+
+        if (isCustomEmoji && request.Emoji.Length > 96)
             return ValourResult.BadRequest("Emoji is invalid");
         
         var token = await tokenService.GetCurrentTokenAsync();
@@ -294,6 +324,19 @@ public class MessageApi
             // Check for reaction permissions
             if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.UseReactions))
                 return ValourResult.Forbid("You lack permission to react to messages in this channel");
+
+            if (isCustomEmoji)
+            {
+                if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseCustomEmojis))
+                    return ValourResult.LacksPermission(PlanetPermissions.UseCustomEmojis);
+
+                if (!await planetEmojiService.AreAllIdsValidForPlanetAsync(channel.PlanetId.Value, new[] { customEmojiId }))
+                    return ValourResult.BadRequest("Invalid custom emoji.");
+            }
+        }
+        else if (isCustomEmoji)
+        {
+            return ValourResult.BadRequest("Custom planet emojis can only be used in planet channels.");
         }
 
         // Use member user if available, otherwise fetch user

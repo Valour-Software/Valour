@@ -23,6 +23,9 @@ public class Planet : ISharedPlanet
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
+
+    [InverseProperty("Planet")]
+    public virtual ICollection<PlanetEmoji> Emojis { get; set; }
     
     public virtual ICollection<Message> Messages { get; set; }
     

@@ -16,6 +16,7 @@ public class HostedPlanet : ServerModel<long>
 {
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
+    private readonly ServerModelList<PlanetEmoji, long> _emojis = new();
 
     // Fixed-size array for local-to-global role mapping.
     private readonly long[] _localToGlobalRoleId = new long[256];
@@ -40,12 +41,13 @@ public class HostedPlanet : ServerModel<long>
     
     public Planet Planet { get; }
     
-    public HostedPlanet(Planet planet, List<Channel> channels, List<PlanetRole> roles)
+    public HostedPlanet(Planet planet, List<Channel> channels, List<PlanetRole> roles, List<PlanetEmoji> emojis)
     {
         Planet = planet;
         Id = planet.Id;
         SetChannels(channels);
         SetRoles(roles);
+        SetEmojis(emojis);
     }
     
     public void Update(Planet updated)
@@ -229,6 +231,27 @@ public class HostedPlanet : ServerModel<long>
     }
 
     public ModelListSnapshot<PlanetRole, long> Roles => _roles.Snapshot;
+
+    // Emojis //
+
+    public ModelListSnapshot<PlanetEmoji, long> Emojis => _emojis.Snapshot;
+
+    public PlanetEmoji? GetEmoji(long id) => _emojis.Get(id);
+
+    public void SetEmojis(List<PlanetEmoji> emojis)
+    {
+        _emojis.Set(emojis);
+    }
+
+    public void UpsertEmoji(PlanetEmoji emoji)
+    {
+        _emojis.Upsert(emoji);
+    }
+
+    public void RemoveEmoji(long id)
+    {
+        _emojis.Remove(id);
+    }
 
     // Channel Inheritance //
 
