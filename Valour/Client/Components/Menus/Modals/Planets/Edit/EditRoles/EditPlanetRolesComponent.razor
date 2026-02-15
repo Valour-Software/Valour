@@ -19,9 +19,8 @@
             </div>
             <div class="form-group mt-2" style="margin-left: 8px">
                 <label>Color</label>
-                <div class="color-wrapper">
-                    <input type="color" class="form-control color-picker" value="@_role.Color" @oninput="@OnColorChange" />
-                </div>
+                <ColorPickerComponent StartColor="@_role.Color"
+                    OnColorChange="@OnColorChange" />
             </div>
 
         </div>
@@ -296,12 +295,10 @@
         _draggingRole = role;
     }
 
-    private void OnColorChange(ChangeEventArgs e)
+    private async Task OnColorChange(string color)
     {
-        var color = e.Value?.ToString() ?? "#ffffff";
         _role.Color = color;
-        
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task OnRoleDrop(PlanetRole droppedOn)
