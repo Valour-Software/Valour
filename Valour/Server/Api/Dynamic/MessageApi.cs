@@ -65,7 +65,7 @@ public class MessageApi
             if (member is null)
                 return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
 
-            message.AuthorMemberId = member.UserId;
+            message.AuthorMemberId = member.Id;
             
             // NOTE: We don't have to check View permission because lacking view will
             // cause every other permission check to fail
