@@ -64,6 +64,8 @@ public class MessageApi
             var member = await memberService.GetCurrentAsync(channel.PlanetId.Value);
             if (member is null)
                 return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
+
+            message.AuthorMemberId = member.UserId;
             
             // NOTE: We don't have to check View permission because lacking view will
             // cause every other permission check to fail
