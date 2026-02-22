@@ -24,12 +24,30 @@ SHORT_HASH="$(printf '%s' "$SHORT_HASH" | cut -c1-8)"
 echo "Using SHORTHASH=${SHORT_HASH}"
 export VALOUR_SHORT_HASH="$SHORT_HASH"
 
-# Patch the shared version constant before compile so UI version text does not show $(SHORTHASH).
-VERSION_FILE="Valour/Shared/Version.cs"
-VERSION_FILE_BAK="$(mktemp)"
-cp "$VERSION_FILE" "$VERSION_FILE_BAK"
-trap 'cp "$VERSION_FILE_BAK" "$VERSION_FILE"; rm -f "$VERSION_FILE_BAK"' EXIT
-perl -pi -e 's/\$\(SHORTHASH\)/$ENV{VALOUR_SHORT_HASH}/g' "$VERSION_FILE"
+# Replace SHORTHASH placeholders in source before publish so:
+# - compiled constants (e.g. Valour.Shared.Version.ShortHash) are correct
+# - published static assets keep valid Blazor service-worker SRI hashes
+SHORTHASH_FILE_LIST="$(mktemp)"
+SHORTHASH_BACKUP_DIR="$(mktemp -d)"
+trap '
+  if [ -f "$SHORTHASH_FILE_LIST" ]; then
+    while IFS= read -r file; do
+      if [ -f "$SHORTHASH_BACKUP_DIR/$file" ]; then
+        cp "$SHORTHASH_BACKUP_DIR/$file" "$file"
+      fi
+    done < "$SHORTHASH_FILE_LIST"
+  fi
+  rm -rf "$SHORTHASH_BACKUP_DIR"
+  rm -f "$SHORTHASH_FILE_LIST"
+' EXIT
+
+grep -RIl '\$(SHORTHASH)' Valour > "$SHORTHASH_FILE_LIST" || true
+while IFS= read -r file; do
+  [ -n "$file" ] || continue
+  mkdir -p "$SHORTHASH_BACKUP_DIR/$(dirname "$file")"
+  cp "$file" "$SHORTHASH_BACKUP_DIR/$file"
+  perl -pi -e 's/\$\(SHORTHASH\)/$ENV{VALOUR_SHORT_HASH}/g' "$file"
+done < "$SHORTHASH_FILE_LIST"
 
 # Cloudflare Pages expects the configured output directory to contain index.html at its root.
 # dotnet publish for Blazor WASM places the site in <publish>/wwwroot, so flatten it into ./output.
@@ -55,10 +73,8 @@ fi
 
 cp -R "$PUBLISH_WEBROOT"/. "$OUTPUT_DIR"/
 
-# Ensure referenced Razor Class Library assets exist at the expected static-web-assets path.
-# In this project, the host page references `_content/Valour.Client/...` directly.
-mkdir -p "$OUTPUT_DIR"/_content/Valour.Client
-cp -R Valour/Client/wwwroot/. "$OUTPUT_DIR"/_content/Valour.Client/
+# Ensure the runtime config path exists under the published RCL static assets.
+mkdir -p "$OUTPUT_DIR"/_content/Valour.Client/js
 
 # Explicit runtime API origin for static Pages deployments.
 # Set VALOUR_API_ORIGIN to override, or set it to an empty string for same-origin.
@@ -70,14 +86,16 @@ printf 'window.valourRuntimeConfig = window.valourRuntimeConfig || {};\nwindow.v
 # Ensure Cloudflare Pages has a root index.html to serve.
 cp Valour/Client/wwwroot/index.html "$OUTPUT_DIR"/index.html
 
-# Replace literal build placeholders used by the app for cache-busting/version display.
-grep -RIl '\$(SHORTHASH)' "$OUTPUT_DIR" 2>/dev/null | while IFS= read -r file; do
-  perl -pi -e 's/\$\(SHORTHASH\)/$ENV{VALOUR_SHORT_HASH}/g' "$file"
-done || true
-
 # Fail the build if the output is incomplete; otherwise Pages will serve index.html
 # via the SPA fallback and browsers will report MIME type errors for missing assets.
-for required in index.html _framework/blazor.webassembly.js manifest.json service-worker.js; do
+for required in \
+  index.html \
+  _framework/blazor.webassembly.js \
+  manifest.json \
+  service-worker.js \
+  _content/Valour.Client/js/main.js \
+  _content/Valour.Client/css/bundled.min.css
+do
   if [ ! -e "$OUTPUT_DIR/$required" ]; then
     echo "Missing required output file: $OUTPUT_DIR/$required"
     exit 1
