@@ -73,6 +73,12 @@ fi
 
 cp -R "$PUBLISH_WEBROOT"/. "$OUTPUT_DIR"/
 
+# Ensure referenced RCL static assets exist at the expected path.
+# This is safe now because SHORTHASH replacement happens before publish, so copied bytes
+# match the published service-worker SRI expectations.
+mkdir -p "$OUTPUT_DIR"/_content/Valour.Client
+cp -R Valour/Client/wwwroot/. "$OUTPUT_DIR"/_content/Valour.Client/
+
 # Ensure the runtime config path exists under the published RCL static assets.
 mkdir -p "$OUTPUT_DIR"/_content/Valour.Client/js
 
