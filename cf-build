@@ -55,7 +55,16 @@ PUBLISH_DIR=cf-publish
 OUTPUT_DIR=output
 
 rm -rf "$PUBLISH_DIR" "$OUTPUT_DIR"
-dotnet publish Valour/Client.Blazor/Valour.Client.Blazor.csproj -c Release -o "$PUBLISH_DIR"
+
+# Cloudflare Pages can kill MSBuild child nodes during the native WASM/AOT pipeline on larger apps.
+# Default to a stable non-native WASM publish here; override with VALOUR_PAGES_WASM_NATIVE=true.
+PAGES_WASM_NATIVE="${VALOUR_PAGES_WASM_NATIVE-false}"
+PUBLISH_PROPS="-m:1"
+if [ "$PAGES_WASM_NATIVE" != "true" ]; then
+  PUBLISH_PROPS="$PUBLISH_PROPS -p:WasmBuildNative=false -p:RunAOTCompilation=false"
+fi
+echo "Using VALOUR_PAGES_WASM_NATIVE=${PAGES_WASM_NATIVE}"
+dotnet publish Valour/Client.Blazor/Valour.Client.Blazor.csproj -c Release -o "$PUBLISH_DIR" $PUBLISH_PROPS
 mkdir -p "$OUTPUT_DIR"
 
 # Blazor publish output layout can vary by SDK/version. Prefer <publish>/wwwroot,
