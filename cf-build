@@ -56,14 +56,16 @@ OUTPUT_DIR=output
 
 rm -rf "$PUBLISH_DIR" "$OUTPUT_DIR"
 
-# Cloudflare Pages can kill MSBuild child nodes during the native WASM/AOT pipeline on larger apps.
-# Default to a stable non-native WASM publish here; override with VALOUR_PAGES_WASM_NATIVE=true.
-PAGES_WASM_NATIVE="${VALOUR_PAGES_WASM_NATIVE-false}"
+# Cloudflare Pages can kill MSBuild child nodes during the WASM pipeline on larger apps.
+# Keep publish single-process for stability. AOT can be toggled separately if needed.
+PAGES_WASM_AOT="${VALOUR_PAGES_WASM_AOT-false}"
 PUBLISH_PROPS="-m:1"
-if [ "$PAGES_WASM_NATIVE" != "true" ]; then
-  PUBLISH_PROPS="$PUBLISH_PROPS -p:WasmBuildNative=false -p:RunAOTCompilation=false"
+if [ "$PAGES_WASM_AOT" = "true" ]; then
+  PUBLISH_PROPS="$PUBLISH_PROPS -p:RunAOTCompilation=true"
+else
+  PUBLISH_PROPS="$PUBLISH_PROPS -p:RunAOTCompilation=false"
 fi
-echo "Using VALOUR_PAGES_WASM_NATIVE=${PAGES_WASM_NATIVE}"
+echo "Using VALOUR_PAGES_WASM_AOT=${PAGES_WASM_AOT}"
 dotnet publish Valour/Client.Blazor/Valour.Client.Blazor.csproj -c Release -o "$PUBLISH_DIR" $PUBLISH_PROPS
 mkdir -p "$OUTPUT_DIR"
 
