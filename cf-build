@@ -90,18 +90,19 @@ cp -R "$PUBLISH_WEBROOT"/. "$OUTPUT_DIR"/
 mkdir -p "$OUTPUT_DIR"/_content/Valour.Client
 cp -R Valour/Client/wwwroot/. "$OUTPUT_DIR"/_content/Valour.Client/
 
-# Ensure the runtime config path exists under the published RCL static assets.
-mkdir -p "$OUTPUT_DIR"/_content/Valour.Client/js
-
 # Explicit runtime API origin for static Pages deployments.
 # Set VALOUR_API_ORIGIN to override, or set it to an empty string for same-origin.
-API_ORIGIN="${VALOUR_API_ORIGIN-https://app.valour.gg/}"
+API_ORIGIN="${VALOUR_API_ORIGIN-https://api.valour.gg/}"
 echo "Using VALOUR_API_ORIGIN=${API_ORIGIN}"
-printf 'window.valourRuntimeConfig = window.valourRuntimeConfig || {};\nwindow.valourRuntimeConfig.apiOrigin = "%s";\n' "$API_ORIGIN" > "$OUTPUT_DIR"/_content/Valour.Client/js/valour-runtime-config.js
 
 # The Blazor host page currently lives in the shared Valour.Client project, not Client.Blazor/wwwroot.
 # Ensure Cloudflare Pages has a root index.html to serve.
 cp Valour/Client/wwwroot/index.html "$OUTPUT_DIR"/index.html
+
+# Override runtime config at the site root (not under _content) so it is not covered by the
+# Blazor service-worker SRI manifest generated during publish.
+printf 'window.valourRuntimeConfig = window.valourRuntimeConfig || {};\nwindow.valourRuntimeConfig.apiOrigin = "%s";\n' "$API_ORIGIN" > "$OUTPUT_DIR"/valour-runtime-config.override.js
+perl -0pi -e 's#(<script src="_content/Valour\.Client/js/valour-runtime-config\.js[^"]*"></script>)#$1\n<script src="valour-runtime-config.override.js?version=$ENV{VALOUR_SHORT_HASH}"></script>#' "$OUTPUT_DIR"/index.html
 
 # Fail the build if the output is incomplete; otherwise Pages will serve index.html
 # via the SPA fallback and browsers will report MIME type errors for missing assets.
@@ -128,6 +129,9 @@ cat > "$OUTPUT_DIR/_headers" <<'EOF'
   Cache-Control: no-store
 
 /_content/Valour.Client/js/valour-runtime-config.js
+  Cache-Control: no-store
+
+/valour-runtime-config.override.js
   Cache-Control: no-store
 
 /service-worker.js
