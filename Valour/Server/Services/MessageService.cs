@@ -223,7 +223,7 @@ public class MessageService
         {
             // Prevent markdown bypassing inline, e.g. [](https://example.com)
             // This is because a direct image link is not proxied and can steal ip addresses
-            message.Content = message.Content.Replace("[](", "(");
+            message.Content = message.Content.Replace("[](", "[]\\("); // Fix: Insert backslash instead of removing [] because users could simply type [][]()
 	        
             var inlineAttachments = await _proxyHandler.GetUrlAttachmentsFromContent(message.Content, _db);
             if (inlineAttachments is not null)
