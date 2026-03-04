@@ -67,6 +67,6 @@ public class EcoAccount : ISharedEcoAccount
     /// The RowVersion column prevents concurrency issues when updating the database
     /// </summary>
     [Timestamp]
-    [Column("row_version")]
+    [NotMapped]
     public uint RowVersion { get; set; }
 }
