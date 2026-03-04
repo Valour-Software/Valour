@@ -250,6 +250,8 @@ public partial class Program
                     .SetIsOriginAllowed(_ => true)
                     .AllowCredentials()
                     .WithOrigins(
+                        "https://app.valour.gg",
+                        "http://app.valour.gg",
                         "https://www.valour.gg",
                         "https://tenor.googleapis.com",
                         "http://www.valour.gg",
