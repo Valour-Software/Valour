@@ -216,6 +216,9 @@ public class CoreHubService
     public void NotifyPlanetItemChange<T>(long planetId, T model, int flags = 0) =>
         _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
     
+    public async void NotifyPlanetItemCreate<T>(T model, int flags = 0) where T : ISharedPlanetModel => 
+        await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Create", model, flags);
+    
     public async void NotifyPlanetItemChange<T>(T model, int flags = 0) where T : ISharedPlanetModel => 
         await _hub.Clients.Group($"p-{model.PlanetId}").SendAsync($"{typeof(T).Name}-Update", model, flags);
 
