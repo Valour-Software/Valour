@@ -386,7 +386,7 @@ public class UserService
     }
 
     public async Task<User> GetUserAsync(string username, string tag)
-        => (await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower() && x.Tag == tag.ToUpper())).ToModel();
+        => (await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower() && x.Tag.ToLower() == tag.ToLower())).ToModel();
 
     
     /// <summary>
@@ -779,7 +779,7 @@ public class UserService
             if (user.NameChangeTime is not null && user.NameChangeTime.Value.AddDays(7) > DateTime.UtcNow)
                 return new TaskResult(false, "You can only change your username once every 7 days.");
             
-            if (await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == user.Tag))
+            if (await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag.ToLower() == user.Tag.ToLower()))
                 return new TaskResult(false, "Username and tag already taken, please change the username or your tag and try again.");
         }
         // If user is NOT a Stargazer, assign new tag and verify it is unique with the new username
@@ -793,7 +793,7 @@ public class UserService
             while (loop)
             {
                 var tag = await GetUniqueTag(newUsername);
-                if (!await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag == tag))
+                if (!await _db.Users.AnyAsync(x => x.Name.ToLower() == newUsername.ToLower() && x.Tag.ToLower() == tag.ToLower()))
                 {
                     user.Tag = tag;
                     loop = false;
@@ -1029,7 +1029,7 @@ public class UserService
     
     public async Task<bool> IsTagTaken(string username, string tag)
     {
-        return await _db.Users.AnyAsync(x => x.Tag == tag && x.Name.ToLower() == username.ToLower());
+        return await _db.Users.AnyAsync(x => x.Tag.ToLower() == tag.ToLower() && x.Name.ToLower() == username.ToLower());
     }
     
     public async Task<string> GetUniqueTag(string username)
@@ -1041,7 +1041,7 @@ public class UserService
         do
         {
             tag = GenerateRandomTag();
-        } while (existing.Contains(tag));
+        } while (existing.Any(e => string.Equals(e, tag, StringComparison.OrdinalIgnoreCase)));
 
         return tag;
     }
