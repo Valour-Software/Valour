@@ -110,6 +110,8 @@ public class PlanetBanApi
     {
         // Get ban
         var ban = await banService.GetAsync(id);
+        if (ban is null)
+            return ValourResult.NotFound<PlanetBan>();
 
         // Get member
         var member = await memberService.GetCurrentAsync(ban.PlanetId);

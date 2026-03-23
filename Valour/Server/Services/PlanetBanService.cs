@@ -220,11 +220,11 @@ public class PlanetBanService
         // Ensure the user unbanning is either the user that made the ban, or someone
         // with equal or higher authority to them
 
-        if (ban.IssuerId != member.Id)
+        if (ban.IssuerId != member.UserId)
         {
-            var banner = await _memberService.GetAsync(ban.IssuerId);
+            var banner = await _memberService.GetByUserAsync(ban.IssuerId, ban.PlanetId);
 
-            if (await _memberService.GetAuthorityAsync(banner) > await _memberService.GetAuthorityAsync(member))
+            if (banner is not null && await _memberService.GetAuthorityAsync(banner) > await _memberService.GetAuthorityAsync(member))
                 return new(false, "The banner of this user has higher authority than you.");
         }
 
