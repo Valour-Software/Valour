@@ -454,6 +454,19 @@ public class PlanetPermissionService
                 access.Add(channel);
         }
 
+        // If a voice/video channel is denied, its associated chat channel should
+        // also be denied — otherwise it leaks as a visible text channel.
+        foreach (var channel in allChannels.List)
+        {
+            if (channel.AssociatedChatChannelId is not null
+                && !accessIds.Contains(channel.Id)
+                && accessIds.Contains(channel.AssociatedChatChannelId.Value))
+            {
+                accessIds.Remove(channel.AssociatedChatChannelId.Value);
+                access.RemoveAll(c => c.Id == channel.AssociatedChatChannelId.Value);
+            }
+        }
+
         // Ensure tree renderability: if a nested channel is visible, include its
         // ancestors so clients can build the directory hierarchy from roots down.
         if (access.Count > 0)
