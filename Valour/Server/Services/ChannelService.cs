@@ -660,6 +660,9 @@ public class ChannelService
     /// </summary>
     private static TaskResult ValidateName(string name)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            return TaskResult.FromFailure("Channel name cannot be empty.");
+
         if (name.Length > 32)
             return TaskResult.FromFailure("Channel names must be 32 characters or less.");
 
@@ -671,9 +674,9 @@ public class ChannelService
     /// </summary>
     private static TaskResult ValidateDescription(string desc)
     {
-        if (desc.Length > 500)
+        if (desc is not null && desc.Length > 500)
         {
-            return TaskResult.FromFailure("Planet descriptions must be 500 characters or less.");
+            return TaskResult.FromFailure("Channel descriptions must be 500 characters or less.");
         }
 
         return TaskResult.SuccessResult;
