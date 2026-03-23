@@ -17,20 +17,25 @@ public class Program
     {
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
         builder.RootComponents.Add<App>("app");
-        
+
         builder.UseSentry(options =>
         {
             options.Dsn = "https://6cfc20b598b8831b69f8a30629325213@o4510867505479680.ingest.us.sentry.io/4510869629435904";
             options.MinimumEventLevel = LogLevel.Error;
             options.SetBeforeSend((e, _) => SentryGate.IsEnabled ? e : null);
         });
-        
+
         builder.Services.AddSingleton<IAppStorage, BrowserStorageService>();
         builder.Services.AddSingleton<IPushNotificationService, BrowserPushNotificationService>();
-        // Default to the API host. Web deploys can override at runtime via valour-runtime-config.js.
-        builder.Services.AddValourClientServices("https://api.valour.gg");
-        
-        var host = builder.Build();
+
+#if DEBUG
+
+        var apiBaseAddress = builder.HostEnvironment.BaseAddress;
+        builder.Services.AddValourClientServices(apiBaseAddress);
+#else
+       builder.Services.AddValourClientServices("https://api.valour.gg");
+#endif
+		var host = builder.Build();
         await host.RunAsync();
     }
 }
