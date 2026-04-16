@@ -80,7 +80,6 @@
 .send-wrapper {
     display: flex;
     align-items: center;
-    margin-left: 1px;
 }
 
 .send-button {
@@ -91,6 +90,7 @@
     text-align: center;
     line-height: 24px;
     cursor: pointer;
+    margin-left: 1px;
 }
 
 .send-wrapper:active .send-button {
@@ -169,8 +169,8 @@
 }
 
 .mobile .upload-menu {
-    bottom: 60px;
-    right: 21px;
+    bottom: 65px;
+    right: 23px;
 }
 
 .upload-menu .content {
