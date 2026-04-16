@@ -6,7 +6,10 @@
 
 <BrowserUtils OnReady="@ReadyAsync" />
 
-<UpdateBanner />
+@if (_browserReady)
+{
+    <UpdateBanner />
+}
 
 <!-- Enable app sounds -->
 <SoundsComponent @key="@("sounds-component")"></SoundsComponent>
@@ -75,13 +78,11 @@ else
             // Host page does not expose a host mode marker.
         }
 
-        var isLocalWebViewOrigin =
+        var isFallbackNativeLoopbackOrigin =
             string.Equals(uriData.Hostname, "0.0.0.1", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(uriData.Hostname, "0.0.0.0", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(uriData.Hostname, "127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(uriData.Hostname, "localhost", StringComparison.OrdinalIgnoreCase);
+            string.Equals(uriData.Hostname, "0.0.0.0", StringComparison.OrdinalIgnoreCase);
 
-        if (hostMode != "hybrid" && !isLocalWebViewOrigin)
+        if (hostMode != "hybrid" && !isFallbackNativeLoopbackOrigin)
         {
             if (!USE_PROD)
             {

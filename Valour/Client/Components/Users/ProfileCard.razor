@@ -2,112 +2,178 @@
 @inject FriendService FriendService
 @inject ChannelService ChannelService
 
-<div id="@Id" class="card-wrapper" style="@CssStyle">
-    <TiltCard ShineCssStyle="border-radius: 20px">
-        <div class="card-glow" style="background-color: @Profile.GlowColor">
-        </div>
-        <div
-            @onclick:stopPropagation="true"
-            class="profile-card">
-            <span class="card-bg" style="@CardBackground"></span>
-            <div class="inner-card">
-                @if (!string.IsNullOrWhiteSpace(Profile.BackgroundImage))
-                {
-                    <div class="inner-bg" style="@BackgroundImage;background-repeat: no-repeat;background-size: cover;filter: brightness(0.4);"></div>
-                }
-                <div class="top-section">
-                    <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
-                    <div class="online-bubble @_statusClass"></div>
-                    <div class="names">
-                        <p class="nickname">@_name</p>
-                        <p class="name-and-tag" style="@CustomText">@_nameAndTag</p>
-                        @if (User.PriorName is not null)
-                        {
-                            <p class="name-and-tag">Formerly: @User.PriorName</p>
-                        }
-                        <div class="status-bubble">
-                            <div class="arrow"></div>
-                            <p class="status-text">"@(_status)"</p>
+<div id="@Id" class="card-wrapper" style="@CardStyle">
+    <div class="card-glow"></div>
+    <div
+        @onclick:stopPropagation="true"
+        class="profile-card">
+        <span class="card-bg @(HasAnimatedBorder ? "animated-border" : null)" style="@CardBackground"></span>
+        <div class="card-shell">
+            @if (HasBackgroundImage)
+            {
+                <div class="inner-bg" style="@BackgroundImage"></div>
+            }
+
+            <div class="shell-overlay"></div>
+
+            <div class="card-content">
+                <section class="hero-section">
+                    <div class="hero-topline">
+                        <div class="presence-pill @_statusClass">
+                            <span class="presence-dot"></span>
+                            <span>@_presenceName</span>
                         </div>
-                    </div>
-                </div>
-                @if (User.UserStateCode == 1 && (DateTime.Now - User.TimeLastActive).TotalSeconds > 0)
-                {
-                    <div class="last-active">
-                        Last online @_lastOnline ago
-                    </div>
-                }
-                @if (User.Id != Client.Me.Id)
-                {
-                    <div class="bottom-btns">
-                        
-                        @{
-                            var friendBtnColor = "#ffffff55";
-                            var messageBtnColor = "#ffffff55";
-                            
-                            if (!string.IsNullOrWhiteSpace(Profile.SecondaryColor))
-                            {
-                                messageBtnColor = Profile.SecondaryColor + "55";
-                            }
-                            
-                            if (!string.IsNullOrWhiteSpace(Profile.TertiaryColor))
-                            {
-                                friendBtnColor = Profile.TertiaryColor + "55";
-                            }
+
+                        @if (!string.IsNullOrWhiteSpace(_lastSeenText))
+                        {
+                            <div class="meta-pill">
+                                <i class="bi bi-clock-history"></i>
+                                <span>@_lastSeenText</span>
+                            </div>
                         }
-                        
-                        <button class="v-btn large" style="background-color: @messageBtnColor;" @onclick="OnClickMessage"><i class="bi bi-envelope-fill"></i> Message</button>
+                    </div>
+
+                    <div class="identity-section">
+                        <div class="identity-main">
+                            <div class="avatar-frame">
+                                <img class="pfp" alt="@_displayName's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
+                            </div>
+
+                            <div class="identity-copy">
+                                <div class="identity-row">
+                                    <div class="name-stack">
+                                        <p class="eyebrow">Profile</p>
+                                        <h2 class="display-name">@_displayName</h2>
+                                        <p class="name-and-tag">@_nameAndTag</p>
+                                    </div>
+                                </div>
+
+                                @if (HasBadges)
+                                {
+                                    <div class="badge-cluster">
+                                        @if (User.HasStargazer)
+                                        {
+                                            <div class="badge-chip stargazer">
+                                                <img alt="Stargazer badge" src="@StarBadge.GetDataUri(User.Id, User.GetStarColor1(), User.GetStarColor2())"/>
+                                                <span>Stargazer</span>
+                                            </div>
+                                        }
+                                        @if (User.Bot)
+                                        {
+                                            <div class="badge-chip bot">
+                                                <i class="bi bi-cpu-fill"></i>
+                                                <span>Bot</span>
+                                            </div>
+                                        }
+                                        @if (User.ValourStaff)
+                                        {
+                                            <div class="badge-chip staff">
+                                                <i class="bi bi-patch-check-fill"></i>
+                                                <span>Staff</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(User?.PriorName))
+                                {
+                                    <p class="meta-line">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        <span>Formerly @User.PriorName</span>
+                                    </p>
+                                }
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                @if (HasHeadline)
+                {
+                    <section class="headline-section">
+                        <p class="headline">@HeadlineText</p>
+                    </section>
+                }
+
+                @if (ShowActions)
+                {
+                    <section class="action-section">
+                        <button class="v-btn large action-button message-button" @onclick="OnClickMessage">
+                            <i class="bi bi-envelope-fill"></i>
+                            <span>Message</span>
+                        </button>
+
                         @if (_isFriend)
                         {
-                            <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Remove Friend</button>
+                            <button class="v-btn large action-button friend-button" @onclick="OnClickRemoveFriend">
+                                <i class="bi bi-person-heart"></i>
+                                <span>Remove Friend</span>
+                            </button>
                         }
                         else if (_isFriendRequested)
                         {
-                            <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickRemoveFriend"><i class="bi bi-person-heart"></i> Cancel Request</button>
+                            <button class="v-btn large action-button friend-button" @onclick="OnClickRemoveFriend">
+                                <i class="bi bi-person-heart"></i>
+                                <span>Cancel Request</span>
+                            </button>
                         }
                         else
                         {
-                            <button class="v-btn large" style="background-color: @friendBtnColor" @onclick="OnClickAddFriend"><i class="bi bi-person-heart"></i> Add Friend</button>
+                            <button class="v-btn large action-button friend-button" @onclick="OnClickAddFriend">
+                                <i class="bi bi-person-heart"></i>
+                                <span>Add Friend</span>
+                            </button>
                         }
-                    </div>
+                    </section>
                 }
-                <p class="headline" style="@CustomText">@Profile.Headline</p>
-                <div class="mid-section">
-                    <b class="card-subtitle" style="@CustomText">Bio</b>
-                    <hr/>
-                    <div class="mid-inner">
-                        <p class="body-text" style="@CustomText">@Profile.Bio</p>
+
+                <section class="details-section">
+                    <div class="feature-panel status-panel">
+                        <p class="panel-label">Status</p>
+                        <p class="status-text">@StatusText</p>
                     </div>
-                </div>
+
+                    <div class="feature-panel bio-panel">
+                        <p class="panel-label">Bio</p>
+                        <div class="bio-scroll">
+                            <p class="body-text">@BioText</p>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
-    </TiltCard>
+    </div>
 </div>
 
 @code {
-    
+
     [Parameter]
     public PlanetMember Member { get; set; }
-    
+
     [Parameter]
     public User User { get; set; }
-    
+
     [Parameter]
     public UserProfile Profile { get; set; }
-    
+
     [Parameter]
     public string CssStyle { get; set; }
 
-    private string CustomText
+    private string CardStyle
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(Profile.TextColor))
-            {
-                return $"color: {Profile.TextColor};";
-            }
+            var baseStyle = string.IsNullOrWhiteSpace(CssStyle)
+                ? string.Empty
+                : $"{CssStyle.Trim().TrimEnd(';')};";
 
-            return string.Empty;
+            return baseStyle +
+                   $"--profile-primary: {GetProfileColor(Profile?.PrimaryColor, "var(--p-cyan-purple)")};" +
+                   $"--profile-secondary: {GetProfileColor(Profile?.SecondaryColor, "var(--p-cyan)")};" +
+                   $"--profile-tertiary: {GetProfileColor(Profile?.TertiaryColor, "var(--v-purple)")};" +
+                   $"--profile-border: {GetProfileColor(Profile?.BorderColor, "var(--main-5)")};" +
+                   $"--profile-glow: {GetProfileColor(Profile?.GlowColor, "var(--p-cyan)")};" +
+                   $"--profile-text: {GetProfileColor(Profile?.TextColor, "var(--font-color)")};";
         }
     }
 
@@ -115,96 +181,133 @@
     {
         get
         {
-            if (User.Subscription == null)
+            if (User?.Subscription == null)
                 return string.Empty;
 
-            if (string.IsNullOrWhiteSpace(Profile.BackgroundImage))
+            if (string.IsNullOrWhiteSpace(Profile?.BackgroundImage))
                 return string.Empty;
 
-            return $"background: url({Profile.BackgroundImage})";
+            return $"background-image: url({Profile.BackgroundImage});";
         }
     }
+
+    private bool HasBackgroundImage => !string.IsNullOrWhiteSpace(BackgroundImage);
 
     private string CardBackground
     {
         get
         {
-            var bg = (string.IsNullOrWhiteSpace(Profile.PrimaryColor) || User.Subscription == null) ?
-                $"background-position: center center; background: {Profile.BorderColor};" :
-                $"background-position: center center; background: linear-gradient(117deg, {Profile.PrimaryColor} 10%, {Profile.SecondaryColor} 50%, {Profile.TertiaryColor} 90%);";
+            var border = GetProfileColor(Profile?.BorderColor, "var(--main-5)");
+            var primary = GetProfileColor(Profile?.PrimaryColor, border);
+            var secondary = GetProfileColor(Profile?.SecondaryColor, primary);
+            var tertiary = GetProfileColor(Profile?.TertiaryColor, secondary);
 
-            if (Profile.AnimatedBorder)
-                bg += "animation: border-spin 5s linear infinite;";
+            var bg = User?.Subscription == null || string.IsNullOrWhiteSpace(Profile?.PrimaryColor)
+                ? $"background: linear-gradient(135deg, {border} 0%, color-mix(in srgb, {border} 60%, black) 100%);"
+                : $"background: conic-gradient(from var(--profile-border-angle) at 50% 50%, {primary} 0deg, {secondary} 120deg, {tertiary} 240deg, {primary} 360deg);";
 
             return bg;
         }
     }
 
+    private bool HasAnimatedBorder => Profile?.AnimatedBorder == true;
+    private bool HasBadges => User?.HasStargazer == true || User?.Bot == true || User?.ValourStaff == true;
+    private bool HasHeadline => !string.IsNullOrWhiteSpace(Profile?.Headline);
+    private bool ShowActions => User is not null && Client.Me is not null && User.Id != Client.Me.Id;
+    private string StatusText => string.IsNullOrWhiteSpace(_status) ? "No status set." : _status;
+    private string HeadlineText => Profile?.Headline?.Trim() ?? string.Empty;
+    private string BioText => string.IsNullOrWhiteSpace(Profile?.Bio) ? "No bio written yet." : Profile.Bio;
+
     public readonly string Id = Guid.NewGuid().ToString();
 
-    /* Values used to actually render the profile */
-    private string _name;
-    private string _nameAndTag;
-    private string _status;
-    private string _pfpUrl;
+    private string _displayName = "Unknown User";
+    private string _nameAndTag = string.Empty;
+    private string _presenceName = "Offline";
+    private string _status = string.Empty;
+    private string _pfpUrl = ISharedUser.DefaultAvatar;
     private string _statusClass = "offline";
-    private string _lastOnline;
+    private string _lastSeenText = string.Empty;
 
     private bool _isFriend;
     private bool _isFriendRequested;
 
     protected override void OnParametersSet()
     {
-        // Set avatar URL immediately when parameters change so the first render
-        // has the correct src, preventing an onerror race condition
-        _pfpUrl = Member?.GetAvatar() ?? User?.GetAvatar() ?? ISharedUser.DefaultAvatar;
+        SyncDisplayState();
     }
 
     public Task LoadDetailsAsync()
     {
-        _isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == User.Id);
-        _isFriend = FriendService.Friends.Any(x => x.Id == User.Id);
-
-        _name = User.Name;
-        _nameAndTag = User.NameAndTag;
-        _status = User.Status;
-        _statusClass = User.UserState.CssClassName;
-        if ((DateTime.Now - User.TimeLastActive).TotalHours >= 24)
-        {
-            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalDays).ToString();
-            if (_lastOnline == "1") _lastOnline += " day";
-            else _lastOnline += " days";
-        }
-        else if ((DateTime.Now - User.TimeLastActive).TotalMinutes>=60)
-        {
-            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalHours).ToString();
-            if (_lastOnline == "1") _lastOnline += " hour";
-            else _lastOnline += " hours";
-        } else if ((DateTime.Now - User.TimeLastActive).TotalSeconds>=60)
-        {
-            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalMinutes).ToString();
-            if (_lastOnline == "1") _lastOnline += " minute";
-            else _lastOnline += " minutes";
-        }
-        else
-        {
-            _lastOnline = Math.Floor((DateTime.Now - User.TimeLastActive).TotalSeconds).ToString();
-            if (_lastOnline == "1") _lastOnline += " second";
-            else _lastOnline += " seconds";
-        }
-
-        _pfpUrl = Member?.GetAvatar() ?? User?.GetAvatar() ?? ISharedUser.DefaultAvatar;
-        
+        SyncDisplayState();
         StateHasChanged();
         return Task.CompletedTask;
     }
 
+    private void SyncDisplayState()
+    {
+        if (User is null)
+            return;
+
+        _isFriendRequested = FriendService.OutgoingRequests.Any(x => x.Id == User.Id);
+        _isFriend = FriendService.Friends.Any(x => x.Id == User.Id);
+
+        _displayName = !string.IsNullOrWhiteSpace(Member?.Nickname) ? Member.Nickname : User.Name;
+        _nameAndTag = User.NameAndTag;
+        _presenceName = User.UserState?.Name ?? "Offline";
+        _status = User.Status;
+        _statusClass = string.IsNullOrWhiteSpace(User.UserState.CssClassName) ? "offline" : User.UserState.CssClassName;
+        _lastSeenText = BuildLastSeenText();
+        _pfpUrl = Member?.GetAvatar() ?? User.GetAvatar() ?? ISharedUser.DefaultAvatar;
+    }
+
+    private string BuildLastSeenText()
+    {
+        if (User is null || User.UserStateCode != 1)
+            return string.Empty;
+
+        var elapsed = DateTime.Now - User.TimeLastActive;
+
+        if (elapsed.TotalSeconds <= 0)
+            return string.Empty;
+
+        return $"Last online {FormatElapsed(elapsed)} ago";
+    }
+
+    private static string FormatElapsed(TimeSpan elapsed)
+    {
+        if (elapsed.TotalHours >= 24)
+        {
+            var days = Math.Floor(elapsed.TotalDays);
+            return days == 1 ? "1 day" : $"{days} days";
+        }
+
+        if (elapsed.TotalMinutes >= 60)
+        {
+            var hours = Math.Floor(elapsed.TotalHours);
+            return hours == 1 ? "1 hour" : $"{hours} hours";
+        }
+
+        if (elapsed.TotalSeconds >= 60)
+        {
+            var minutes = Math.Floor(elapsed.TotalMinutes);
+            return minutes == 1 ? "1 minute" : $"{minutes} minutes";
+        }
+
+        var seconds = Math.Floor(elapsed.TotalSeconds);
+        return seconds == 1 ? "1 second" : $"{seconds} seconds";
+    }
+
+    private static string GetProfileColor(string color, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(color) ? fallback : color;
+    }
+
     private void OnPfpError()
     {
-        _pfpUrl = User.GetFailedAvatar();
+        _pfpUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
         StateHasChanged();
     }
-    
+
     private async Task OnClickAddFriend()
     {
         var result = await FriendService.AddFriendAsync(User.NameAndTag);
@@ -233,7 +336,7 @@
         _isFriendRequested = false;
         StateHasChanged();
     }
-    
+
     private async Task OnClickMessage()
     {
         var channel = await ChannelService.FetchDmChannelAsync(User.Id, true);

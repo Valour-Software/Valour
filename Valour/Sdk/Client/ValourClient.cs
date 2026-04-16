@@ -146,10 +146,13 @@ public class ValourClient
         BaseAddress = origin;
         if (!BaseAddress.EndsWith('/'))
             BaseAddress += '/';
-        _httpClient = new HttpClient()
+
+        if (_httpClient is null)
         {
-            BaseAddress = new Uri(BaseAddress)
-        };
+            _httpClient = new HttpClient();
+        }
+
+        _httpClient.BaseAddress = new Uri(BaseAddress);
     }
 
     /// <summary>

@@ -486,12 +486,27 @@
 
 /* Global animations */
 
+@property --profile-border-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 210deg;
+}
+
 @keyframes border-spin {
     from {
         transform: rotate(0deg) scale(2);
     }
     to {
         transform: rotate(360deg) scale(2);
+    }
+}
+
+@keyframes profile-border-flow {
+    from {
+        --profile-border-angle: 210deg;
+    }
+    to {
+        --profile-border-angle: 570deg;
     }
 }
 
