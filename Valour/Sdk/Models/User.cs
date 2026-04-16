@@ -18,7 +18,7 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
         Name = "Victor",
         Tag = "VALOUR",
         ValourStaff = true,
-        Id = long.MaxValue
+        Id = ISharedUser.VictorUserId
     };
     
     [JsonIgnore]

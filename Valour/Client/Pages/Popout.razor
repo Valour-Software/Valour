@@ -9,24 +9,26 @@
 
 <ToastContainer>
     <ModalRoot>
-        <ContextMenuRoot>
-            @if (!string.IsNullOrWhiteSpace(_error))
-            {
-                <div class="popout-error">
-                    <span>@_error</span>
-                </div>
-            }
-            else if (_tab?.Content is null)
-            {
-                <Loading Title="Opening window..." Spin="@true" />
-            }
-            else
-            {
-                <div class="popout-shell">
-                    @(_tab.Content.RenderContent)
-                </div>
-            }
-        </ContextMenuRoot>
+        <ValourErrorBoundary>
+            <ContextMenuRoot>
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+                    <div class="popout-error">
+                        <span>@_error</span>
+                    </div>
+                }
+                else if (_tab?.Content is null)
+                {
+                    <Loading Title="Opening window..." Spin="@true" />
+                }
+                else
+                {
+                    <div class="popout-shell">
+                        @(_tab.Content.RenderContent)
+                    </div>
+                }
+            </ContextMenuRoot>
+        </ValourErrorBoundary>
     </ModalRoot>
 </ToastContainer>
 

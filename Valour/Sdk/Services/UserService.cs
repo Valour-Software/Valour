@@ -25,7 +25,18 @@ public class UserService : ServiceBase
     {
         if (id == ISharedUser.VictorUserId)
         {
-            return User.Victor;
+            if (!skipCache && _client.Cache.Users.TryGet(id, out var cachedVictor))
+                return cachedVictor;
+
+            return new User(_client)
+            {
+                Bot = User.Victor.Bot,
+                UserStateCode = User.Victor.UserStateCode,
+                Name = User.Victor.Name,
+                Tag = User.Victor.Tag,
+                ValourStaff = User.Victor.ValourStaff,
+                Id = User.Victor.Id
+            }.Sync(_client);
         }
         
         if (!skipCache && _client.Cache.Users.TryGet(id, out var cached))

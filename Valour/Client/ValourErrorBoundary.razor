@@ -1,0 +1,115 @@
+@inherits ErrorBoundary
+@inject LoggingService Logger
+@inject NavigationManager NavigationManager
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else
+{
+    <div class="valour-error-boundary">
+        <span class="message">This view hit an unexpected error.</span>
+        <button class="v-btn" type="button" @onclick="OpenErrorModal">
+            Details
+        </button>
+        <button class="v-btn primary" type="button" @onclick="TryRecover">
+            Try Continue
+        </button>
+        <button class="v-btn" type="button" @onclick="ReloadApp">
+            Reload App
+        </button>
+    </div>
+}
+
+@code {
+    private const int MaxAutomaticRecoveries = 3;
+    private static readonly TimeSpan RecoveryWindow = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ModalDedupWindow = TimeSpan.FromSeconds(2);
+
+    private DateTime _lastErrorAtUtc;
+    private DateTime _lastModalAtUtc;
+    private int _automaticRecoveries;
+    private string? _lastModalFingerprint;
+    private TaskResult _lastResult;
+
+    protected override Task OnErrorAsync(Exception exception)
+    {
+        var now = DateTime.UtcNow;
+        if (now - _lastErrorAtUtc > RecoveryWindow)
+            _automaticRecoveries = 0;
+
+        _lastErrorAtUtc = now;
+        _automaticRecoveries++;
+        _lastResult = TaskResult.FromFailure("An unexpected client error occurred.", null, exception.ToString());
+
+        try
+        {
+            Logger.Log<ValourErrorBoundary>(exception.ToString(), "red");
+        }
+        catch
+        {
+            Console.Error.WriteLine(exception);
+        }
+
+        var modalRoot = ModalRoot.Instance;
+        var shouldAutoRecover = modalRoot is not null && _automaticRecoveries <= MaxAutomaticRecoveries;
+
+        _ = InvokeAsync(() =>
+        {
+            if (modalRoot is not null && ShouldOpenModal(exception, now))
+            {
+                modalRoot.OpenModal<ErrorModal>(new ErrorModal.ModalParams
+                {
+                    Result = _lastResult
+                });
+            }
+
+            if (shouldAutoRecover)
+            {
+                Recover();
+            }
+            else
+            {
+                StateHasChanged();
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private void TryRecover()
+    {
+        _automaticRecoveries = 0;
+        Recover();
+    }
+
+    private void OpenErrorModal()
+    {
+        var modalRoot = ModalRoot.Instance;
+        if (modalRoot is null)
+            return;
+
+        modalRoot.OpenModal<ErrorModal>(new ErrorModal.ModalParams
+        {
+            Result = _lastResult
+        });
+    }
+
+    private void ReloadApp()
+    {
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    private bool ShouldOpenModal(Exception exception, DateTime now)
+    {
+        var fingerprint = $"{exception.GetType().FullName}|{exception.Message}";
+
+        if (_lastModalFingerprint == fingerprint && now - _lastModalAtUtc < ModalDedupWindow)
+            return false;
+
+        _lastModalFingerprint = fingerprint;
+        _lastModalAtUtc = now;
+        return true;
+    }
+}

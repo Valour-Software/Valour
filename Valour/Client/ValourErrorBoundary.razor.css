@@ -1,0 +1,21 @@
+.valour-error-boundary {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    max-width: min(560px, calc(100vw - 40px));
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    background: rgba(7, 15, 23, 0.95);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.valour-error-boundary .message {
+    color: rgba(255, 255, 255, 0.9);
+    margin-right: 4px;
+}
