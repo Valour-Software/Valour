@@ -80,6 +80,7 @@
 .send-wrapper {
     display: flex;
     align-items: center;
+    margin-left: 1px;
 }
 
 .send-button {
@@ -90,7 +91,6 @@
     text-align: center;
     line-height: 24px;
     cursor: pointer;
-    margin-left: 3px;
 }
 
 .send-wrapper:active .send-button {
@@ -99,6 +99,8 @@
 
 .textbox-holder {
     display: flex;
+    align-items: center;
+    gap: 4px;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
@@ -213,7 +215,7 @@
     border: none;
     outline: none;
     filter: grayscale(1);
-    padding-left: 4px;
+    padding: 0;
 }
 
 .emoji-button:hover {
