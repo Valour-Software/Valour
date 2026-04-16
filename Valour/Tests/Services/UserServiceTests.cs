@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using DbReport = Valour.Database.Report;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
@@ -90,11 +91,10 @@ public class UserServiceTests : IAsyncLifetime
         return $"test-{Guid.NewGuid():N}".Substring(0, 10);
     }
 
-    [Fact]
-    public async Task HardDelete_RemovesUser()
+    private async Task<User> RegisterDisposableUserAsync()
     {
         var randomName = RandomName();
-        
+
         var req = new RegisterUserRequest
         {
             Username = $"temp-{randomName}",
@@ -117,12 +117,68 @@ public class UserServiceTests : IAsyncLifetime
         var model = dbUser.ToModel();
         _createdUsers.Add(model);
 
+        return model;
+    }
+
+    [Fact]
+    public async Task HardDelete_RemovesUser()
+    {
+        var model = await RegisterDisposableUserAsync();
+
         var del = await _userService.HardDelete(model);
-        Assert.True(del.Success);
+        Assert.True(del.Success, del.Message);
         _createdUsers.Remove(model);
 
         var check = await _db.Users.FindAsync(model.Id);
         Assert.Null(check);
+    }
+
+    [Fact]
+    public async Task HardDelete_RemovesReportsAndDirectMessageChannels()
+    {
+        var model = await RegisterDisposableUserAsync();
+
+        long dmChannelId;
+        await using (var arrangeScope = _factory.Services.CreateAsyncScope())
+        {
+            var arrangeDb = arrangeScope.ServiceProvider.GetRequiredService<ValourDb>();
+
+            var persistedChannelId = await arrangeDb.Channels
+                .IgnoreQueryFilters()
+                .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+                            x.Members.Any(m => m.UserId == model.Id) &&
+                            x.Members.Any(m => m.UserId == ISharedUser.VictorUserId))
+                .Select(x => (long?)x.Id)
+                .FirstOrDefaultAsync();
+            Assert.NotNull(persistedChannelId);
+
+            dmChannelId = persistedChannelId.Value;
+
+            arrangeDb.Reports.Add(new DbReport
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                TimeCreated = DateTime.UtcNow,
+                ReportingUserId = model.Id,
+                ReasonCode = ReportReasonCode.IsSpam,
+                LongReason = "regression",
+                Reviewed = false,
+                Resolution = ReportResolution.None,
+                StaffNotes = string.Empty
+            });
+
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        var del = await _userService.HardDelete(model);
+        Assert.True(del.Success, del.Message);
+        _createdUsers.Remove(model);
+
+        _db.ChangeTracker.Clear();
+
+        Assert.Null(await _db.Users.FindAsync(model.Id));
+        Assert.Null(await _db.Channels.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == dmChannelId));
+        Assert.Empty(await _db.Reports.IgnoreQueryFilters().Where(x => x.ReportingUserId == model.Id).ToListAsync());
+        Assert.Empty(await _db.ChannelMembers.IgnoreQueryFilters().Where(x => x.ChannelId == dmChannelId).ToListAsync());
     }
 
     [Fact]

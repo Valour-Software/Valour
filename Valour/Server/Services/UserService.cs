@@ -1,3 +1,4 @@
+using System.Data;
 using Valour.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
@@ -6,6 +7,7 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 using Valour.Shared.Queries;
+using Microsoft.EntityFrameworkCore.Storage;
 using AuthToken = Valour.Server.Models.AuthToken;
 using EmailConfirmCode = Valour.Server.Models.EmailConfirmCode;
 using PasswordRecovery = Valour.Server.Models.PasswordRecovery;
@@ -831,9 +833,37 @@ public class UserService
         
         try
         {
+            var directChannelIds = await _db.Channels
+                .IgnoreQueryFilters()
+                .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat &&
+                            x.Members.Any(m => m.UserId == dbUser.Id))
+                .Select(x => x.Id)
+                .ToListAsync();
+
             // Remove messages
             await _db.Messages.IgnoreQueryFilters().Where(x => x.AuthorUserId == dbUser.Id)
                 .ExecuteDeleteAsync();
+
+            // Some older databases still enforce report FKs from legacy schema definitions.
+            // Clear those rows explicitly before deleting the user or any DM channels.
+            await _db.Reports.IgnoreQueryFilters()
+                .Where(x => x.ReportingUserId == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            await _db.Reports.IgnoreQueryFilters()
+                .Where(x => x.ReportedUserId == dbUser.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(r => r.ReportedUserId, (long?)null));
+
+            await _db.Reports.IgnoreQueryFilters()
+                .Where(x => x.ResolvedById == dbUser.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(r => r.ResolvedById, (long?)null));
+
+            if (directChannelIds.Count > 0)
+            {
+                await _db.Reports.IgnoreQueryFilters()
+                    .Where(x => x.ChannelId.HasValue && directChannelIds.Contains(x.ChannelId.Value))
+                    .ExecuteDeleteAsync();
+            }
             
             // Remove message attachments
             var msgAttachments = _db.CdnBucketItems.IgnoreQueryFilters().Where(x => x.UserId == user.Id);
@@ -854,33 +884,40 @@ public class UserService
             await _db.SaveChangesAsync();
             
             // Direct Message Channels
-            var dChannels = await _db.Channels
-                .IgnoreQueryFilters()
-                .Include(x => x.Members)
-                .Where(x => x.ChannelType == ChannelTypeEnum.DirectChat && 
-                                    x.Members.Any(m => m.UserId == dbUser.Id))
-                .ToListAsync();
-
-            foreach (var dc in dChannels)
+            if (directChannelIds.Count > 0)
             {
-                // channel states
-                var st = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
-                _db.UserChannelStates.RemoveRange(st);
-                
-                // notifications
-                var dnots = _db.Notifications.IgnoreQueryFilters().Where(x => x.ChannelId == dc.Id);
-                _db.Notifications.RemoveRange(dnots);
-                
-                await _db.SaveChangesAsync();
+                await _db.Messages.IgnoreQueryFilters()
+                    .Where(x => directChannelIds.Contains(x.ChannelId))
+                    .ExecuteDeleteAsync();
+
+                await _db.UserChannelStates.IgnoreQueryFilters()
+                    .Where(x => directChannelIds.Contains(x.ChannelId))
+                    .ExecuteDeleteAsync();
+
+                await _db.Notifications.IgnoreQueryFilters()
+                    .Where(x => x.ChannelId.HasValue && directChannelIds.Contains(x.ChannelId.Value))
+                    .ExecuteDeleteAsync();
+
+                await _db.ChannelMembers.IgnoreQueryFilters()
+                    .Where(x => directChannelIds.Contains(x.ChannelId))
+                    .ExecuteDeleteAsync();
+
+                await _db.Channels.IgnoreQueryFilters()
+                    .Where(x => directChannelIds.Contains(x.Id))
+                    .ExecuteDeleteAsync();
             }
-            
-            _db.Channels.RemoveRange(dChannels);
-            
-            await _db.SaveChangesAsync();
 
             // Remove friends and friend requests
             var requests = _db.UserFriends.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id || x.FriendId == dbUser.Id);
             _db.UserFriends.RemoveRange(requests);
+
+            await _db.UserBlocks.IgnoreQueryFilters()
+                .Where(x => x.UserId == dbUser.Id || x.BlockedUserId == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            await _db.ThemeVotes.IgnoreQueryFilters()
+                .Where(x => x.UserId == dbUser.Id)
+                .ExecuteDeleteAsync();
 
             // Remove email confirm codes
             var codes = _db.EmailConfirmCodes.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -918,6 +955,10 @@ public class UserService
             await _db.SaveChangesAsync();
             
             // Remove eco stuff
+            await _db.Transactions.IgnoreQueryFilters()
+                .Where(x => x.ForcedBy == dbUser.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(t => t.ForcedBy, (long?)null));
+
             var transactions = _db.Transactions.IgnoreQueryFilters().Where(x => x.UserFromId == dbUser.Id || x.UserToId == dbUser.Id);
             _db.Transactions.RemoveRange(transactions);
 
@@ -961,6 +1002,9 @@ public class UserService
             // Also notifications
             var noots  = _db.Notifications.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.Notifications.RemoveRange(noots);
+
+            await _db.UserPreferences.Where(x => x.Id == dbUser.Id)
+                .ExecuteDeleteAsync();
             
             // Bans
             var bans = _db.PlanetBans.IgnoreQueryFilters().Where(x => x.IssuerId == dbUser.Id || x.TargetId == dbUser.Id);
@@ -969,6 +1013,39 @@ public class UserService
             // Planet invites
             var invites = _db.PlanetInvites.IgnoreQueryFilters().Where(x => x.IssuerId == dbUser.Id);
             _db.PlanetInvites.RemoveRange(invites);
+
+            var dbConnection = _db.Database.GetDbConnection();
+            var shouldCloseConnection = dbConnection.State != ConnectionState.Open;
+            if (shouldCloseConnection)
+                await dbConnection.OpenAsync();
+
+            try
+            {
+                await using var existsCommand = dbConnection.CreateCommand();
+                existsCommand.CommandText = """
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'primary_node_connections'
+                    LIMIT 1
+                    """;
+
+                var currentTransaction = _db.Database.CurrentTransaction;
+                if (currentTransaction is not null)
+                    existsCommand.Transaction = currentTransaction.GetDbTransaction();
+
+                var hasPrimaryNodeConnections = await existsCommand.ExecuteScalarAsync() is not null;
+                if (hasPrimaryNodeConnections)
+                {
+                    await _db.Database.ExecuteSqlInterpolatedAsync(
+                        $"DELETE FROM primary_node_connections WHERE user_id = {dbUser.Id}");
+                }
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                    await dbConnection.CloseAsync();
+            }
 
             await _db.SaveChangesAsync();
             
@@ -1012,7 +1089,8 @@ public class UserService
         catch(System.Exception e)
         {
             await tran.RollbackAsync();
-            _logger.LogError(e, "Error hard deleting user {UserName} ({UserId})", dbUser.Name, dbUser.Id);
+            _logger.LogError(e, "Error hard deleting user {UserName} ({UserId}). Base exception: {BaseExceptionMessage}",
+                dbUser.Name, dbUser.Id, e.GetBaseException().Message);
             
             return new TaskResult(false, "An unexpected Database error occured.");
         }
