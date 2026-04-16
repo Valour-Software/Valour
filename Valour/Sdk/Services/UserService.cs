@@ -31,9 +31,23 @@ public class UserService : ServiceBase
         if (!skipCache && _client.Cache.Users.TryGet(id, out var cached))
             return cached;
         
-        var user = (await _client.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}")).Data;
+        var response = await _client.PrimaryNode.GetJsonAsync<User>($"{ISharedUser.BaseRoute}/{id}");
+        if (!response.Success || response.Data is null)
+        {
+            LogError($"Failed to fetch user {id}: {response.Message}");
 
-        return user.Sync(_client);
+            if (_client.Cache.Users.TryGet(id, out var fallbackCached))
+                return fallbackCached;
+
+            return new User(_client)
+            {
+                Id = id,
+                Name = "Unknown User",
+                Tag = "0000"
+            };
+        }
+
+        return response.Data.Sync(_client);
     }
 
     public async ValueTask<UserProfile> FetchProfileAsync(long userid, bool skipCache)

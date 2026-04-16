@@ -592,14 +592,6 @@ public class MessageService
             return await _chatCacheService.GetLastMessagesAsync(channelId);
         }
 
-        List<Message>? staged = null;
-
-        if (channel.ChannelType == ChannelTypeEnum.PlanetChat
-            && index == long.MaxValue) // ONLY INCLUDE STAGED FOR LATEST
-        {
-            staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
-        }
-        
         var messages = await _db.Messages
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id < index)
@@ -611,10 +603,22 @@ public class MessageService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-        // Not all channels actually stage messages
-        if (staged is not null)
+        // Planet chat messages can still be staged (not yet flushed to DB).
+        // Include staged messages for indexed fetches so notification jump-to-message
+        // works even immediately after message send.
+        if (channel.ChannelType == ChannelTypeEnum.PlanetChat)
         {
-            messages.AddRange(staged);
+            var staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
+            if (staged.Count > 0)
+            {
+                messages = messages
+                    .Concat(staged.Where(x => x.Id < index))
+                    .OrderByDescending(x => x.Id)
+                    .DistinctBy(x => x.Id)
+                    .Take(count)
+                    .OrderBy(x => x.Id)
+                    .ToList();
+            }
         }
 
         return messages;

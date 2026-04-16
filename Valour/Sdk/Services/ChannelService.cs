@@ -89,14 +89,25 @@ public class ChannelService : ServiceBase
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetDirectIdRoute(id))).Data;
+        var response = await _client.PrimaryNode.GetJsonAsync<Channel>(ISharedChannel.GetDirectIdRoute(id));
+        if (!response.Success || response.Data is null)
+        {
+            LogError($"Failed to fetch direct channel {id}: {response.Message}");
+            return null;
+        }
 
-        return channel.Sync(_client);
+        return response.Data.Sync(_client);
     }
 
     public async ValueTask<Channel> FetchPlanetChannelAsync(long id, long planetId, bool skipCache = false)
     {
         var planet = await _client.PlanetService.FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+        {
+            LogError($"Failed to fetch planet channel {id}: could not load planet {planetId}.");
+            return null;
+        }
+
         return await FetchPlanetChannelAsync(id, planet, skipCache);
     }
     
@@ -105,9 +116,20 @@ public class ChannelService : ServiceBase
         if (!skipCache && _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var channel = (await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id))).Data;
+        if (planet?.Node is null)
+        {
+            LogError($"Failed to fetch planet channel {id}: planet node is unavailable.");
+            return null;
+        }
 
-        return channel.Sync(_client);
+        var response = await planet.Node.GetJsonAsync<Channel>(ISharedChannel.GetPlanetIdRoute(planet.Id, id));
+        if (!response.Success || response.Data is null)
+        {
+            LogError($"Failed to fetch planet channel {id} in planet {planet.Id}: {response.Message}");
+            return null;
+        }
+
+        return response.Data.Sync(_client);
     }
 
     public Task<TaskResult<Channel>> CreatePlanetChannelAsync(Planet planet, CreateChannelRequest request)
@@ -129,10 +151,15 @@ public class ChannelService : ServiceBase
             _cache.Channels.TryGet(id, out var cached))
             return cached;
 
-        var dmChannel = (await _client.PrimaryNode.GetJsonAsync<Channel>(
-            $"{ISharedChannel.DirectBaseRoute}/byUser/{otherUserId}?create={create}")).Data;
+        var response = await _client.PrimaryNode.GetJsonAsync<Channel>(
+            $"{ISharedChannel.DirectBaseRoute}/byUser/{otherUserId}?create={create}");
+        if (!response.Success || response.Data is null)
+        {
+            LogError($"Failed to fetch DM channel with user {otherUserId}: {response.Message}");
+            return null;
+        }
 
-        return dmChannel.Sync(_client);
+        return response.Data.Sync(_client);
     }
     
     public async Task<List<PlanetMember>> FetchRecentChattersAsync(Channel channel)

@@ -622,7 +622,9 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         {
             var others = Members.Where(x => x.UserId != Client.Me.Id).ToList();
             if (!others.Any())
-                result =  Client.Me.GetAvatar();
+            {
+                return Client.Me.GetAvatar();
+            }
 
             var other = await Client.UserService.FetchUserAsync(others.First().UserId);
             if (other is not null)
@@ -649,7 +651,7 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         {
             var user = await Client.UserService.FetchUserAsync(other.UserId);
             
-            sb.Append(user.Name);
+            sb.Append(user?.Name ?? "Unknown User");
             if (i < others.Count - 1)
                 sb.Append(", ");
             else
