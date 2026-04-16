@@ -150,7 +150,7 @@
     }
 
     private async Task OnClickCopyId(){
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message ID copied to clipboard", ToastProgressState.Success));
     }
 }
