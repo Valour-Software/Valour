@@ -430,7 +430,7 @@ else
         _errorSpan = null;
         StateHasChanged();
 
-        var response = await Client.PrimaryNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/subscribe/{tier.Name}");
+        var response = await Client.AccountNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/subscribe/{tier.Name}");
         if (!response.Success || response.Data?.SessionUrl is null)
         {
             _errorSpan = response.Message ?? "Failed to create checkout session.";
@@ -545,7 +545,7 @@ else
         _errorSpan = null;
         StateHasChanged();
 
-        var response = await Client.PrimaryNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/checkout/VC{plan}");
+        var response = await Client.AccountNode.PostAsyncWithResponse<CheckoutResponse>($"api/stripe/checkout/VC{plan}");
         if (!response.Success || response.Data?.SessionUrl is null)
         {
             _errorSpan = response.Message ?? "Failed to create checkout session.";

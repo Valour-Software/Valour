@@ -58,7 +58,7 @@ public class TenorService : ServiceBase
     
     public async Task LoadTenorFavoritesAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/users/me/tenorfavorites");
+        var response = await _client.AccountNode.GetJsonAsync<List<TenorFavorite>>("api/users/me/tenorfavorites");
         if (!response.Success)
         {
             LogError("Failed to load Tenor favorites", response);

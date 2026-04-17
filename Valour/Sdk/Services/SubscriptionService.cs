@@ -17,7 +17,7 @@ public class SubscriptionService
     /// </summary>
     public async Task<TaskResult> SubscribeAsync(string type)
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>($"api/subscriptions/{type}/start");
+        var result = await _client.AccountNode.PostAsyncWithResponse<TaskResult>($"api/subscriptions/{type}/start");
         if (!result.Success)
         {
             return new TaskResult(false, result.Message);
@@ -31,7 +31,7 @@ public class SubscriptionService
     /// </summary>
     public async Task<TaskResult> UnsubscribeAsync()
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>($"api/subscriptions/end");
+        var result = await _client.AccountNode.PostAsyncWithResponse<TaskResult>($"api/subscriptions/end");
         if (!result.Success)
         {
             return new TaskResult(false, result.Message);
@@ -42,13 +42,13 @@ public class SubscriptionService
     
     public async Task<decimal> GetSubscriptionPriceAsync(string type)
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<decimal>($"api/subscriptions/{type}/price");
+        var result = await _client.AccountNode.GetJsonAsync<decimal>($"api/subscriptions/{type}/price");
         return result.Data;
     }
 
     public async Task<UserSubscription> GetActiveSubscriptionAsync()
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<UserSubscription>($"api/subscriptions/active", true);
+        var result = await _client.AccountNode.GetJsonAsync<UserSubscription>($"api/subscriptions/active", true);
         return result.Data;
     }
 
@@ -57,7 +57,7 @@ public class SubscriptionService
     /// </summary>
     public async Task<TaskResult> CancelStripeSubscriptionAsync()
     {
-        return await _client.PrimaryNode.PostAsync("api/stripe/subscriptions/cancel", (string)null);
+        return await _client.AccountNode.PostAsync("api/stripe/subscriptions/cancel", (string)null);
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public class SubscriptionService
     /// </summary>
     public async Task<TaskResult> CancelPendingChangeAsync()
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<TaskResult>("api/subscriptions/cancel-pending");
+        var result = await _client.AccountNode.PostAsyncWithResponse<TaskResult>("api/subscriptions/cancel-pending");
         if (!result.Success)
             return new TaskResult(false, result.Message);
         return result.Data;
@@ -76,7 +76,7 @@ public class SubscriptionService
     /// </summary>
     public async Task<TaskResult> ChangeStripeSubscriptionAsync(string tierName)
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<StripeChangeResult>($"api/stripe/subscriptions/change/{tierName}");
+        var result = await _client.AccountNode.PostAsyncWithResponse<StripeChangeResult>($"api/stripe/subscriptions/change/{tierName}");
         if (!result.Success)
             return new TaskResult(false, result.Message);
         return new TaskResult(result.Data?.Success ?? false, result.Data?.Message);

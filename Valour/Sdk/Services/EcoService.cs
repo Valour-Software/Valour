@@ -42,7 +42,7 @@ public class EcoService : ServiceBase
     /// <returns></returns>
     public async Task<TaskResult<List<EcoAccount>>> FetchSelfEcoAccountsAsync()
     {
-        return await _client.PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
+        return await _client.AccountNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
     }
     
     public async Task<EcoAccount> GetSelfGlobalAccountAsync()

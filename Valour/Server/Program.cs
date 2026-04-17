@@ -375,6 +375,7 @@ public partial class Program
         services.AddScoped<BotService>();
         services.AddScoped<CommunityShadowUserService>();
         services.AddScoped<CommunityNodeTokenService>();
+        services.AddScoped<UserCommunityNodeService>();
         services.AddScoped<TokenService>();
         services.AddScoped<UserFriendService>();
         services.AddScoped<UserBlockService>();

@@ -31,7 +31,7 @@ public class BotService : ServiceBase
     /// </summary>
     public async Task<List<BotResponse>> GetMyBotsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<BotResponse>>("api/bots");
+        var response = await _client.AccountNode.GetJsonAsync<List<BotResponse>>("api/bots");
         if (!response.Success)
         {
             LogError($"Failed to get bots: {response.Message}");
@@ -46,7 +46,7 @@ public class BotService : ServiceBase
     public async Task<TaskResult<BotResponse>> CreateBotAsync(string name)
     {
         var request = new CreateBotRequest { Name = name };
-        var response = await _client.PrimaryNode.PostAsyncWithResponse<BotResponse>("api/bots", request);
+        var response = await _client.AccountNode.PostAsyncWithResponse<BotResponse>("api/bots", request);
 
         if (!response.Success)
         {
@@ -62,7 +62,7 @@ public class BotService : ServiceBase
     /// </summary>
     public async Task<TaskResult<BotResponse>> UpdateBotAsync(long botId, UpdateBotRequest request)
     {
-        var response = await _client.PrimaryNode.PutAsyncWithResponse<BotResponse>($"api/bots/{botId}", request);
+        var response = await _client.AccountNode.PutAsyncWithResponse<BotResponse>($"api/bots/{botId}", request);
 
         if (!response.Success)
         {
@@ -78,7 +78,7 @@ public class BotService : ServiceBase
     /// </summary>
     public async Task<TaskResult> DeleteBotAsync(long botId)
     {
-        var response = await _client.PrimaryNode.DeleteAsync($"api/bots/{botId}");
+        var response = await _client.AccountNode.DeleteAsync($"api/bots/{botId}");
 
         if (!response.Success)
         {
@@ -94,7 +94,7 @@ public class BotService : ServiceBase
     /// </summary>
     public async Task<TaskResult<BotResponse>> RegenerateBotTokenAsync(long botId)
     {
-        var response = await _client.PrimaryNode.PostAsyncWithResponse<BotResponse>($"api/bots/{botId}/token/regenerate", null);
+        var response = await _client.AccountNode.PostAsyncWithResponse<BotResponse>($"api/bots/{botId}/token/regenerate", null);
 
         if (!response.Success)
         {
@@ -142,7 +142,7 @@ public class BotService : ServiceBase
     public async Task JoinAllChannelsAsync()
     {
         // Get all joined planets
-        var planets = (await _client.PrimaryNode.GetJsonAsync<List<Planet>>("api/users/me/planets")).Data;
+        var planets = (await _client.AccountNode.GetJsonAsync<List<Planet>>("api/users/me/planets")).Data;
 
         var planetTasks = new List<Task>();
         

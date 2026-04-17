@@ -46,7 +46,7 @@ public class ThemeService : ServiceBase
     
     public async Task<List<ThemeMeta>> GetMyThemes()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<ThemeMeta>>("api/themes/me");
+        var response = await _client.AccountNode.GetJsonAsync<List<ThemeMeta>>("api/themes/me");
         if (!response.Success)
         {
             LogWarning($"Failed to get my themes: {response.Message}");

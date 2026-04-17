@@ -1,7 +1,6 @@
 @using System.Net.Http.Headers
 @using Valour.Shared.Extensions
 @using System.IO
-@inject HttpClient Http
 @inject NavigationManager NavManager
 @inject ValourClient Client
 @inject AuthService AuthService
@@ -477,7 +476,7 @@
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         content.Add(streamContent, "avatar", "avatar");
 
-        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/profile", content);
+        var result = await Client.AccountNode.PostMultipartDataWithResponse<string>($"upload/profile", content);
 
         _pfpChangeResult = result;
 
@@ -634,7 +633,7 @@
 
         content.Add(streamContent, "file", file.Name);
 
-        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/profilebg", content);
+        var result = await Client.AccountNode.PostMultipartDataWithResponse<string>($"upload/profilebg", content);
 
         if (result.Success)
         {

@@ -187,7 +187,7 @@ else
     {
         try
         {
-            var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+            var response = await Client.AccountNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
             if (!response.Success || response.Data is null)
                 return;
 
@@ -214,12 +214,12 @@ else
                 "No",
                 async () =>
                 {
-                    await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)ErrorReportingState.All}", null);
+                    await Client.AccountNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)ErrorReportingState.All}", null);
                     await DevicePreferences.SetErrorReportingEnabled(true, LocalStorage);
                 },
                 async () =>
                 {
-                    await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)ErrorReportingState.None}", null);
+                    await Client.AccountNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)ErrorReportingState.None}", null);
                     await DevicePreferences.SetErrorReportingEnabled(false, LocalStorage);
                 }
             );

@@ -1,4 +1,4 @@
-﻿@inject ValourClient Client
+﻿@inject AuthService AuthService
 @page "/Verify/{Code}"
 
 <body class="login-background" style="background-image: url('./media/Abstract-Background.png')">
@@ -31,8 +31,7 @@
             StateHasChanged();
         }
 
-        StringContent content = new StringContent(Code);
-        _result = await Client.PrimaryNode.PostAsync($"api/users/verify", content);
+        _result = await AuthService.VerifyEmailAsync(Code);
         StateHasChanged();
     }
 }

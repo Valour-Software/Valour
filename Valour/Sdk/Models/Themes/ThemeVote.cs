@@ -1,5 +1,7 @@
-﻿using Valour.Sdk.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
 using Valour.Shared.Models.Themes;
 
 namespace Valour.Sdk.Models.Themes;
@@ -7,6 +9,9 @@ namespace Valour.Sdk.Models.Themes;
 public class ThemeVote : ClientModel<ThemeVote, long>, ISharedThemeVote
 {
     public override string BaseRoute => $"api/themes/{ThemeId}/votes";
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
     
     public long ThemeId { get; set; }
     public long UserId { get; set; } 

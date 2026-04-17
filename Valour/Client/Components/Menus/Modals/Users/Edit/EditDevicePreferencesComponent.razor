@@ -429,7 +429,7 @@
 
     private async Task LoadErrorReportingStateAsync()
     {
-        var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+        var response = await Client.AccountNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
         if (response.Success && response.Data is not null)
         {
             _errorReportingEnabled = response.Data.ErrorReportingState == ErrorReportingState.All;
@@ -441,7 +441,7 @@
     {
         _errorReportingEnabled = !_errorReportingEnabled;
         var state = _errorReportingEnabled ? ErrorReportingState.All : ErrorReportingState.None;
-        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)state}", null);
+        await Client.AccountNode.PostAsync($"api/users/me/preferences/errorReporting/{(int)state}", null);
         await DevicePreferences.SetErrorReportingEnabled(_errorReportingEnabled, LocalStorage);
         StateHasChanged();
     }

@@ -1,4 +1,3 @@
-@inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IAppStorage LocalStorage
 @inject IJSRuntime JsRuntime
@@ -157,9 +156,9 @@
         StateHasChanged();
 
         var request = new RegisterUserRequest() { Email = _email };
-        var response = await Client.Http.PostAsJsonAsync("api/users/resendemail", request);
+        var result = await AuthService.ResendVerificationEmailAsync(request);
 
-        if (response.IsSuccessStatusCode)
+        if (result.Success)
         {
             _resendSpan = "Verification email sent! Please check your inbox.";
             _resendSuccess = true;

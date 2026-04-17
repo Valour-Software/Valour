@@ -1,5 +1,7 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
+using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -7,6 +9,9 @@ namespace Valour.Sdk.Models;
 public class UserProfile : ClientModel<UserProfile, long>, ISharedUserProfile
 {
     public override string BaseRoute => "api/userProfiles";
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
 
     /// <summary>
     /// The 'headline' is the short top text in the profile

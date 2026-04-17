@@ -1,0 +1,206 @@
+@using Valour.Shared.Nodes
+@using Valour.Sdk.Nodes
+@inject ValourClient Client
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-hdd-network-fill"></i>
+        Unofficial Nodes
+    </h3>
+    <p class="subtitle">Add community-run nodes you want this client to keep ready for use.</p>
+    <p class="help-text">Only add nodes you trust. A node can observe the traffic it hosts for you.</p>
+
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+        <input class="form-control"
+               style="flex:1; min-width:18rem;"
+               placeholder="https://community.example.com"
+               @bind="_newOrigin"
+               @bind:event="oninput"
+               @onkeydown="OnOriginKeyDown" />
+        <button class="v-btn primary" @onclick="OnAddNodeAsync" disabled="@_isBusy">Add Node</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_result.Message))
+    {
+        <div class="mt-3">
+            <ResultLabel Result="@_result" />
+        </div>
+    }
+</div>
+
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-diagram-3-fill"></i>
+        Saved Nodes
+    </h3>
+
+    @if (_isLoading)
+    {
+        <div class="loading-state">
+            <div class="loading-indicator"></div>
+            <p>Loading saved community nodes...</p>
+        </div>
+    }
+    else if (_nodes.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-globe2"></i>
+            <h4>No unofficial nodes saved</h4>
+            <p>Add a community node above to keep it available across sessions.</p>
+        </div>
+    }
+    else
+    {
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            @foreach (var node in _nodes)
+            {
+                var status = Client.NodeService.GetSavedCommunityNodeStatus(node.CanonicalOrigin);
+                var connectedNode = Client.NodeService.GetKnownByOrigin(node.CanonicalOrigin);
+                var statusText = GetStatusText(status, connectedNode);
+                var statusClass = GetStatusClass(status, connectedNode);
+
+                <div class="token-item">
+                    <div class="token-header">
+                        <div>
+                            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                                <strong>@node.Name</strong>
+                                <span class="badge @statusClass">@statusText</span>
+                            </div>
+                            <div class="help-text mt-2">@node.CanonicalOrigin</div>
+                            <div class="help-text">Node ID: @node.NodeId</div>
+                            <div class="help-text">Saved @node.TimeAdded.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")</div>
+                            @if (!string.IsNullOrWhiteSpace(status.Message))
+                            {
+                                <div class="help-text">@status.Message</div>
+                            }
+                        </div>
+
+                        <div class="token-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <button class="v-btn secondary"
+                                    @onclick="() => OnRetryHandshakeAsync(node)"
+                                    disabled="@_isBusy">
+                                Retry Handshake
+                            </button>
+                            <button class="v-btn danger"
+                                    @onclick="() => OnRemoveNodeAsync(node)"
+                                    disabled="@_isBusy">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<SavedCommunityNode> _nodes = new();
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string _newOrigin;
+    private TaskResult _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNodesAsync();
+    }
+
+    private async Task LoadNodesAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        var result = await Client.NodeService.LoadSavedCommunityNodesAsync();
+        if (!result.Success)
+            _result = result;
+
+        SyncSavedNodes();
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnAddNodeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newOrigin))
+        {
+            _result = TaskResult.FromFailure("Enter a node URL first.");
+            StateHasChanged();
+            return;
+        }
+
+        _isBusy = true;
+        StateHasChanged();
+
+        var result = await Client.NodeService.AddSavedCommunityNodeAsync(_newOrigin);
+        _result = new TaskResult(result.Success, result.Message, result.Details, result.Code);
+
+        if (result.Success)
+        {
+            _newOrigin = string.Empty;
+            SyncSavedNodes();
+        }
+
+        _isBusy = false;
+        StateHasChanged();
+    }
+
+    private async Task OnRemoveNodeAsync(SavedCommunityNode node)
+    {
+        _isBusy = true;
+        StateHasChanged();
+
+        _result = await Client.NodeService.RemoveSavedCommunityNodeAsync(node.Id);
+        SyncSavedNodes();
+
+        _isBusy = false;
+        StateHasChanged();
+    }
+
+    private async Task OnRetryHandshakeAsync(SavedCommunityNode node)
+    {
+        _isBusy = true;
+        StateHasChanged();
+
+        _result = await Client.NodeService.HandshakeSavedCommunityNodeAsync(node);
+        SyncSavedNodes();
+
+        _isBusy = false;
+        StateHasChanged();
+    }
+
+    private async Task OnOriginKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await OnAddNodeAsync();
+    }
+
+    private void SyncSavedNodes()
+    {
+        _nodes.Clear();
+        _nodes.AddRange(Client.NodeService.SavedCommunityNodes);
+    }
+
+    private static string GetStatusText(TaskResult status, Node connectedNode)
+    {
+        if (connectedNode is not null)
+            return "Connected";
+
+        if (!string.IsNullOrWhiteSpace(status.Message))
+            return status.Success ? "Connected" : "Unavailable";
+
+        return "Pending";
+    }
+
+    private static string GetStatusClass(TaskResult status, Node connectedNode)
+    {
+        if (connectedNode is not null || status.Success)
+            return "badge-primary";
+
+        if (!string.IsNullOrWhiteSpace(status.Message))
+            return "badge-danger";
+
+        return "badge-secondary";
+    }
+}

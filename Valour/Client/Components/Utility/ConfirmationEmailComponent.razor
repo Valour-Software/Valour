@@ -1,5 +1,4 @@
-﻿@inject HttpClient Http
-@inject NavigationManager NavManager
+﻿@inject NavigationManager NavManager
 @inject ValourClient Client
 
 <section>
@@ -45,7 +44,7 @@
             StateHasChanged();
         }
         
-        _responseResult = await Client.PrimaryNode.PostAsync("api/users/resendemail", RegisterRequest);
+        _responseResult = await Client.AuthService.ResendVerificationEmailAsync(RegisterRequest);
 
         _time = DateTime.Now;
 

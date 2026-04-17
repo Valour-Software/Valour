@@ -21,6 +21,15 @@ public class NodeService : ServiceBase
 
     public readonly IReadOnlyDictionary<string, Node> NameToNode;
     private readonly Dictionary<string, Node> _nameToNode = new();
+
+    public readonly IReadOnlyDictionary<string, Node> OriginToNode;
+    private readonly Dictionary<string, Node> _originToNode = new();
+
+    public readonly IReadOnlyList<SavedCommunityNode> SavedCommunityNodes;
+    private readonly List<SavedCommunityNode> _savedCommunityNodes = new();
+
+    public readonly IReadOnlyDictionary<string, TaskResult> SavedCommunityNodeStatuses;
+    private readonly Dictionary<string, TaskResult> _savedCommunityNodeStatuses = new();
     
     private readonly ValourClient _client;
     
@@ -38,6 +47,9 @@ public class NodeService : ServiceBase
         Nodes = _nodes;
         PlanetToNodeName = _planetToNodeName;
         NameToNode = _nameToNode;
+        OriginToNode = _originToNode;
+        SavedCommunityNodes = _savedCommunityNodes;
+        SavedCommunityNodeStatuses = _savedCommunityNodeStatuses;
         
         SetupLogging(client.Logger, LogOptions);
     }
@@ -60,10 +72,66 @@ public class NodeService : ServiceBase
             ? manifest.CanonicalOrigin
             : manifest.AuthorityOrigin);
         
-        // Initialize primary node
-        _client.PrimaryNode = new Node(_client);
-        
-        return await _client.PrimaryNode.InitializeAsync(manifest, true);
+        // Initialize the home/primary node first.
+        _client.HomeNode = new Node(_client);
+        var result = await _client.HomeNode.InitializeAsync(manifest, true);
+        if (!result.Success)
+            return result;
+
+        var authorityResult = await EnsureAuthorityNodeAsync(manifest);
+        if (!authorityResult.Success)
+        {
+            LogWarning($"Failed to initialize authority node: {authorityResult.Message}");
+        }
+
+        return result;
+    }
+
+    public async Task<TaskResult> EnsureAuthorityNodeAsync(NodeManifest homeManifest = null)
+    {
+        var authorityOrigin = _client.AuthorityOrigin;
+        if (string.IsNullOrWhiteSpace(authorityOrigin))
+        {
+            authorityOrigin = string.IsNullOrWhiteSpace(homeManifest?.AuthorityOrigin)
+                ? homeManifest?.CanonicalOrigin ?? _client.BaseAddress
+                : homeManifest.AuthorityOrigin;
+            _client.SetAuthorityOrigin(authorityOrigin);
+        }
+
+        authorityOrigin = NormalizeOrigin(authorityOrigin);
+
+        if (_client.HomeNode is not null &&
+            string.Equals(_client.HomeNode.CanonicalOrigin, authorityOrigin, StringComparison.Ordinal))
+        {
+            _client.AuthorityNode = _client.HomeNode;
+            return TaskResult.SuccessResult;
+        }
+
+        if (_client.AuthorityNode is not null &&
+            string.Equals(_client.AuthorityNode.CanonicalOrigin, authorityOrigin, StringComparison.Ordinal))
+        {
+            return TaskResult.SuccessResult;
+        }
+
+        var authorityManifest = homeManifest;
+        if (authorityManifest is null ||
+            !string.Equals(NormalizeOrigin(authorityManifest.CanonicalOrigin), authorityOrigin, StringComparison.Ordinal))
+        {
+            authorityManifest = await FetchNodeManifestAsync(authorityOrigin);
+        }
+
+        if (authorityManifest is null)
+        {
+            return TaskResult.FromFailure($"Failed to fetch authority node manifest from {authorityOrigin}.");
+        }
+
+        var node = new Node(_client);
+        var result = await node.InitializeAsync(authorityManifest);
+        if (!result.Success)
+            return result;
+
+        _client.AuthorityNode = node;
+        return TaskResult.SuccessResult;
     }
 
     public async Task<NodeManifest> FetchNodeManifestAsync(string origin = null)
@@ -147,6 +215,13 @@ public class NodeService : ServiceBase
         if (manifest is null)
             return null;
 
+        if (!string.IsNullOrWhiteSpace(manifest.CanonicalOrigin))
+        {
+            var normalizedOrigin = NormalizeOrigin(manifest.CanonicalOrigin);
+            if (_originToNode.TryGetValue(normalizedOrigin, out var existingByOrigin))
+                return existingByOrigin;
+        }
+
         if (_nameToNode.TryGetValue(manifest.Name, out var existing) &&
             string.Equals(existing.NodeId, manifest.NodeId, StringComparison.Ordinal))
         {
@@ -154,12 +229,25 @@ public class NodeService : ServiceBase
         }
 
         var node = new Node(_client);
-        await node.InitializeAsync(manifest);
+        var result = await node.InitializeAsync(manifest);
+        if (!result.Success)
+        {
+            LogError($"Failed to initialize node {manifest.Name}: {result.Message}");
+            return null;
+        }
+
         return node;
     }
 
     public async ValueTask<Node> GetByOriginAsync(string origin)
     {
+        if (string.IsNullOrWhiteSpace(origin))
+            return null;
+
+        var normalizedOrigin = NormalizeOrigin(origin);
+        if (_originToNode.TryGetValue(normalizedOrigin, out var existing))
+            return existing;
+
         var manifest = await FetchNodeManifestAsync(origin);
         return await GetByManifestAsync(manifest);
     }
@@ -188,10 +276,194 @@ public class NodeService : ServiceBase
 
     public void RegisterNode(Node node)
     {
-        _nameToNode[node.Name] = node;
+        if (node is null)
+            return;
 
-        if (_nodes.All(x => x.Name != node.Name))
+        var normalizedOrigin = string.IsNullOrWhiteSpace(node.CanonicalOrigin)
+            ? null
+            : NormalizeOrigin(node.CanonicalOrigin);
+
+        if (!string.IsNullOrWhiteSpace(normalizedOrigin))
+            _originToNode[normalizedOrigin] = node;
+
+        if (!_nameToNode.TryGetValue(node.Name, out var existingByName) ||
+            NodesMatch(existingByName, node) ||
+            (existingByName.Mode != NodeMode.Official && node.Mode == NodeMode.Official))
+        {
+            _nameToNode[node.Name] = node;
+        }
+
+        if (_nodes.All(x => !NodesMatch(x, node)))
             _nodes.Add(node);
+    }
+
+    public Node GetKnownByOrigin(string origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin))
+            return null;
+
+        _originToNode.TryGetValue(NormalizeOrigin(origin), out var node);
+        return node;
+    }
+
+    public TaskResult GetSavedCommunityNodeStatus(string origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin))
+            return default;
+
+        _savedCommunityNodeStatuses.TryGetValue(NormalizeOrigin(origin), out var result);
+        return result;
+    }
+
+    public async Task<TaskResult<List<SavedCommunityNode>>> FetchSavedCommunityNodesAsync()
+    {
+        if (_client.AccountNode is null)
+            return TaskResult<List<SavedCommunityNode>>.FromFailure("No account node is available.");
+
+        var response = await _client.AccountNode.GetJsonAsync<List<SavedCommunityNode>>("api/users/me/communitynodes");
+        if (!response.Success)
+            return response;
+
+        ReplaceSavedCommunityNodes(response.Data ?? []);
+        return response;
+    }
+
+    public async Task<TaskResult> LoadSavedCommunityNodesAsync()
+    {
+        try
+        {
+            var fetchResult = await FetchSavedCommunityNodesAsync();
+            if (!fetchResult.Success)
+            {
+                LogWarning($"Failed to fetch saved community nodes: {fetchResult.Message}");
+                return fetchResult.WithoutData();
+            }
+
+            var failures = 0;
+            foreach (var savedNode in _savedCommunityNodes.ToList())
+            {
+                var result = await HandshakeSavedCommunityNodeAsync(savedNode);
+                if (!result.Success)
+                    failures++;
+            }
+
+            if (failures == 0)
+                return TaskResult.FromSuccess("Loaded saved community nodes.");
+
+            return new TaskResult(
+                true,
+                $"Loaded saved community nodes, but {failures} could not be reached.");
+        }
+        catch (Exception ex)
+        {
+            LogError("Failed to load saved community nodes.", ex);
+            return TaskResult.FromFailure("Failed to load saved community nodes.");
+        }
+    }
+
+    public async Task<TaskResult<SavedCommunityNode>> AddSavedCommunityNodeAsync(string origin)
+    {
+        if (_client.AccountNode is null)
+            return TaskResult<SavedCommunityNode>.FromFailure("No account node is available.");
+
+        var response = await _client.AccountNode.PostAsyncWithResponse<SavedCommunityNode>(
+            "api/users/me/communitynodes",
+            new AddCommunityNodeRequest { Origin = origin });
+
+        if (!response.Success || response.Data is null)
+            return response;
+
+        UpsertSavedCommunityNode(response.Data);
+
+        var handshakeResult = await HandshakeSavedCommunityNodeAsync(response.Data);
+        if (!handshakeResult.Success)
+        {
+            return new TaskResult<SavedCommunityNode>(
+                true,
+                $"Node saved, but the client could not connect yet: {handshakeResult.Message}",
+                response.Data);
+        }
+
+        return new TaskResult<SavedCommunityNode>(
+            true,
+            $"Saved {response.Data.Name}.",
+            response.Data);
+    }
+
+    public async Task<TaskResult> RemoveSavedCommunityNodeAsync(long savedNodeId)
+    {
+        if (_client.AccountNode is null)
+            return TaskResult.FromFailure("No account node is available.");
+
+        var result = await _client.AccountNode.DeleteAsync($"api/users/me/communitynodes/{savedNodeId}");
+        if (!result.Success)
+            return result;
+
+        var existing = _savedCommunityNodes.FirstOrDefault(x => x.Id == savedNodeId);
+        if (existing is not null)
+        {
+            _savedCommunityNodes.Remove(existing);
+            if (!string.IsNullOrWhiteSpace(existing.CanonicalOrigin))
+                _savedCommunityNodeStatuses.Remove(NormalizeOrigin(existing.CanonicalOrigin));
+        }
+
+        return result;
+    }
+
+    public async Task<TaskResult> HandshakeSavedCommunityNodeAsync(SavedCommunityNode savedNode)
+    {
+        if (savedNode is null || string.IsNullOrWhiteSpace(savedNode.CanonicalOrigin))
+            return TaskResult.FromFailure("Saved node is missing an origin.");
+
+        var normalizedOrigin = NormalizeOrigin(savedNode.CanonicalOrigin);
+
+        try
+        {
+            var manifest = await FetchNodeManifestAsync(savedNode.CanonicalOrigin);
+            if (manifest is null)
+            {
+                var failed = TaskResult.FromFailure("Could not reach that node.");
+                _savedCommunityNodeStatuses[normalizedOrigin] = failed;
+                return failed;
+            }
+
+            if (manifest.Mode != NodeMode.Community)
+            {
+                var failed = TaskResult.FromFailure("That node no longer advertises community mode.");
+                _savedCommunityNodeStatuses[normalizedOrigin] = failed;
+                return failed;
+            }
+
+            var node = await GetByManifestAsync(manifest);
+            if (node is null)
+            {
+                var failed = TaskResult.FromFailure("Failed to initialize that node.");
+                _savedCommunityNodeStatuses[normalizedOrigin] = failed;
+                return failed;
+            }
+
+            UpsertSavedCommunityNode(new SavedCommunityNode
+            {
+                Id = savedNode.Id,
+                NodeId = node.NodeId,
+                Name = node.Name,
+                CanonicalOrigin = node.CanonicalOrigin,
+                AuthorityOrigin = node.AuthorityOrigin,
+                Mode = node.Mode,
+                TimeAdded = savedNode.TimeAdded
+            });
+
+            var success = TaskResult.FromSuccess($"Connected to {node.Name}.");
+            _savedCommunityNodeStatuses[NormalizeOrigin(node.CanonicalOrigin)] = success;
+            return success;
+        }
+        catch (Exception ex)
+        {
+            LogError($"Failed to handshake saved community node {savedNode.CanonicalOrigin}.", ex);
+            var failed = TaskResult.FromFailure("Failed to connect to that node.");
+            _savedCommunityNodeStatuses[normalizedOrigin] = failed;
+            return failed;
+        }
     }
     
     public void SetKnownByPlanet(long planetId, string nodeName)
@@ -248,5 +520,67 @@ public class NodeService : ServiceBase
     {
         var uri = new Uri(origin, UriKind.Absolute);
         return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+    }
+
+    private void ReplaceSavedCommunityNodes(IEnumerable<SavedCommunityNode> nodes)
+    {
+        _savedCommunityNodes.Clear();
+        _savedCommunityNodeStatuses.Clear();
+
+        foreach (var node in nodes
+                     .Where(x => x is not null && !string.IsNullOrWhiteSpace(x.CanonicalOrigin))
+                     .OrderBy(x => x.Name)
+                     .ThenBy(x => x.CanonicalOrigin))
+        {
+            UpsertSavedCommunityNode(node);
+        }
+    }
+
+    private void UpsertSavedCommunityNode(SavedCommunityNode node)
+    {
+        if (node is null || string.IsNullOrWhiteSpace(node.CanonicalOrigin))
+            return;
+
+        node.CanonicalOrigin = NormalizeOrigin(node.CanonicalOrigin);
+        if (!string.IsNullOrWhiteSpace(node.AuthorityOrigin))
+            node.AuthorityOrigin = NormalizeOrigin(node.AuthorityOrigin);
+
+        var existingIndex = _savedCommunityNodes.FindIndex(x =>
+            x.Id == node.Id ||
+            string.Equals(x.CanonicalOrigin, node.CanonicalOrigin, StringComparison.Ordinal));
+
+        if (existingIndex >= 0)
+            _savedCommunityNodes[existingIndex] = node;
+        else
+            _savedCommunityNodes.Add(node);
+
+        _savedCommunityNodes.Sort((left, right) =>
+        {
+            var nameCompare = string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase);
+            return nameCompare != 0
+                ? nameCompare
+                : string.Compare(left.CanonicalOrigin, right.CanonicalOrigin, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    private static bool NodesMatch(Node left, Node right)
+    {
+        if (left is null || right is null)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(left.CanonicalOrigin) &&
+            !string.IsNullOrWhiteSpace(right.CanonicalOrigin) &&
+            string.Equals(
+                NormalizeOrigin(left.CanonicalOrigin),
+                NormalizeOrigin(right.CanonicalOrigin),
+                StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(left.NodeId) &&
+               !string.IsNullOrWhiteSpace(right.NodeId) &&
+               string.Equals(left.NodeId, right.NodeId, StringComparison.Ordinal) &&
+               left.Mode == right.Mode;
     }
 }

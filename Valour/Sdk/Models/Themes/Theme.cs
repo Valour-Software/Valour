@@ -1,16 +1,21 @@
 ﻿using Microsoft.Extensions.Logging;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Themes;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Valour.Sdk.Models.Themes;
 
 public class Theme : ClientModel<Theme, long>, ISharedTheme
 {
     public override string BaseRoute => "api/themes";
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
 
     public static Theme Default = new Theme(null)
     {

@@ -61,6 +61,11 @@ public partial class ValourDb : DbContext
     /// Table for Valour user preferences
     /// </summary>
     public DbSet<UserPreferences> UserPreferences { get; set; }
+
+    /// <summary>
+    /// Table for saved community nodes per user
+    /// </summary>
+    public DbSet<UserCommunityNode> UserCommunityNodes { get; set; }
   
     /// <summary>
     /// Table for Valour user friends
@@ -286,6 +291,7 @@ public partial class ValourDb : DbContext
         Channel.SetupDbModel(modelBuilder);
         MultiAuth.SetupDbModel(modelBuilder);
         PushNotificationSubscription.SetUpDbModel(modelBuilder);
+        UserCommunityNode.SetupDbModel(modelBuilder);
         UserPrivateInfo.SetupDbModel(modelBuilder);
         Referral.SetupDbModel(modelBuilder);
         PlanetTag.SetupDbModel(modelBuilder);

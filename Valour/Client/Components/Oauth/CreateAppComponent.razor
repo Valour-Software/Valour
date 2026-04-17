@@ -56,7 +56,7 @@
             RedirectUrl = string.Empty
 		};
 
-		var response = await Client.PrimaryNode.PostAsyncWithResponse<long>("api/oauthapps", newApp);
+		var response = await Client.AccountNode.PostAsyncWithResponse<long>("api/oauthapps", newApp);
         
         if (!response.Success){
             _result = new TaskResult(false, response.Message);

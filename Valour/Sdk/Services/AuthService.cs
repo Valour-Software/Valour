@@ -122,11 +122,14 @@ public class AuthService : ServiceBase
         }
         else
         {
-            // Update the token if it's already been set
-            await _client.PrimaryNode.UpdateTokenAsync();
+            // Update the home node token if it's already been set.
+            await _client.HomeNode.UpdateTokenAsync();
+            await _client.NodeService.EnsureAuthorityNodeAsync();
+            if (_client.AuthorityNode is not null && _client.AuthorityNode != _client.HomeNode)
+                await _client.AuthorityNode.UpdateTokenAsync();
         }
 
-        var response = await _client.PrimaryNode!.GetJsonAsync<User>($"api/users/me");
+        var response = await _client.AccountNode!.GetJsonAsync<User>($"api/users/me");
 
         if (!response.Success)
             return response.WithoutData();
@@ -193,6 +196,59 @@ public class AuthService : ServiceBase
         return result;
     }
 
+    public async Task<TaskResult> ResendVerificationEmailAsync(RegisterUserRequest request)
+    {
+        await EnsureAuthorityOriginAsync();
+
+        using var authorityClient = _client.CreateAuthorityHttpClient();
+        var response = await authorityClient.PostAsJsonAsync("api/users/resendemail", request);
+        var message = await response.Content.ReadAsStringAsync();
+
+        return response.IsSuccessStatusCode
+            ? TaskResult.FromSuccess(string.IsNullOrWhiteSpace(message) ? "Verification email sent." : message)
+            : TaskResult.FromFailure(message, (int)response.StatusCode);
+    }
+
+    public async Task<TaskResult> RequestPasswordResetAsync(string email)
+    {
+        await EnsureAuthorityOriginAsync();
+
+        using var authorityClient = _client.CreateAuthorityHttpClient();
+        var response = await authorityClient.PostAsJsonAsync("api/users/resetpassword", email);
+        var message = await response.Content.ReadAsStringAsync();
+
+        return response.IsSuccessStatusCode
+            ? TaskResult.FromSuccess(message)
+            : TaskResult.FromFailure(message, (int)response.StatusCode);
+    }
+
+    public async Task<TaskResult> RecoverPasswordAsync(PasswordRecoveryRequest request)
+    {
+        await EnsureAuthorityOriginAsync();
+
+        using var authorityClient = _client.CreateAuthorityHttpClient();
+        var response = await authorityClient.PostAsJsonAsync("api/users/me/recovery", request);
+        var message = await response.Content.ReadAsStringAsync();
+
+        return response.IsSuccessStatusCode
+            ? TaskResult.FromSuccess(message)
+            : TaskResult.FromFailure(message, (int)response.StatusCode);
+    }
+
+    public async Task<TaskResult> VerifyEmailAsync(string code)
+    {
+        await EnsureAuthorityOriginAsync();
+
+        using var authorityClient = _client.CreateAuthorityHttpClient();
+        using var content = new StringContent(code ?? string.Empty);
+        var response = await authorityClient.PostAsync("api/users/verify", content);
+        var message = await response.Content.ReadAsStringAsync();
+
+        return response.IsSuccessStatusCode
+            ? TaskResult.FromSuccess(message)
+            : TaskResult.FromFailure(message, (int)response.StatusCode);
+    }
+
     private async Task EnsureAuthorityOriginAsync()
     {
         if (!string.IsNullOrWhiteSpace(_client.AuthorityOrigin))
@@ -210,7 +266,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
     {
-        var result = await _client.PrimaryNode.PostAsync($"api/users/me/compliance/{birthDate.ToString("s")}/{locality}", null);
+        var result = await _client.AccountNode.PostAsync($"api/users/me/compliance/{birthDate.ToString("s")}/{locality}", null);
         var taskResult = new TaskResult()
         {
             Success = result.Success,
@@ -225,7 +281,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<List<string>> GetMfaMethodsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<string>>("api/users/me/multiauth");
+        var response = await _client.AccountNode.GetJsonAsync<List<string>>("api/users/me/multiauth");
 
         if (!response.Success)
         {
@@ -242,12 +298,12 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<TaskResult<CreateAppMultiAuthResponse>> SetupMfaAsync()
     {
-        return await _client.PrimaryNode.PostAsyncWithResponse<CreateAppMultiAuthResponse>($"api/users/me/multiAuth", null);
+        return await _client.AccountNode.PostAsyncWithResponse<CreateAppMultiAuthResponse>($"api/users/me/multiAuth", null);
     }
     
     public async Task<TaskResult> VerifyMfaAsync(string code)
     {
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<bool>($"api/users/me/multiAuth/verify/{code}", null);
+        var result = await _client.AccountNode.PostAsyncWithResponse<bool>($"api/users/me/multiAuth/verify/{code}", null);
         
         if (!result.Success)
             return new TaskResult(false, result.Message);
@@ -265,7 +321,7 @@ public class AuthService : ServiceBase
             Password = password
         };
         
-        return await _client.PrimaryNode.PostAsync("api/users/me/multiAuth/remove", request);
+        return await _client.AccountNode.PostAsync("api/users/me/multiAuth/remove", request);
     }
 
     #region Token Management
@@ -275,7 +331,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<List<AuthToken>> GetMyTokensAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<AuthToken>>("api/users/me/tokens");
+        var response = await _client.AccountNode.GetJsonAsync<List<AuthToken>>("api/users/me/tokens");
         return response.Success ? response.Data : new List<AuthToken>();
     }
 
@@ -284,7 +340,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<TaskResult> RevokeTokenAsync(string tokenId)
     {
-        return await _client.PrimaryNode.DeleteAsync($"api/users/me/tokens/{tokenId}");
+        return await _client.AccountNode.DeleteAsync($"api/users/me/tokens/{tokenId}");
     }
 
     /// <summary>
@@ -292,7 +348,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<TaskResult> RevokeAllOtherTokensAsync()
     {
-        return await _client.PrimaryNode.DeleteAsync("api/users/me/tokens");
+        return await _client.AccountNode.DeleteAsync("api/users/me/tokens");
     }
 
     /// <summary>
@@ -300,7 +356,7 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<TaskResult> LogoutAsync()
     {
-        return await _client.PrimaryNode.PostAsync("api/users/me/logout", null);
+        return await _client.AccountNode.PostAsync("api/users/me/logout", null);
     }
 
     #endregion

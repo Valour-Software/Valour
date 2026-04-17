@@ -199,7 +199,7 @@ public class PlanetService : ServiceBase
     /// </summary>
     public async Task<TaskResult> FetchJoinedPlanetsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/me/planets");
+        var response = await _client.AccountNode.GetJsonAsync<List<Planet>>($"api/users/me/planets");
         if (!response.Success)
             return response.WithoutData();
 

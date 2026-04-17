@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -9,6 +10,9 @@ public class User : ClientModel<User, long>, ISharedUser, IMessageAuthor
 {
     public override string BaseRoute =>
             ISharedUser.BaseRoute;
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
 
     [JsonIgnore]
     public static readonly User Victor = new User(null)

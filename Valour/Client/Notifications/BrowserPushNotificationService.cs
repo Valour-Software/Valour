@@ -61,7 +61,7 @@ public class BrowserPushNotificationService : IPushNotificationService
             DeviceType = NotificationDeviceType.WebPush,
         };
 
-        var result = await _client.PrimaryNode.PostAsync("api/notifications/subscribe", pushNotificationSubscription);
+        var result = await _client.AccountNode.PostAsync("api/notifications/subscribe", pushNotificationSubscription);
 
         if (!result.Success)
         {
@@ -92,7 +92,7 @@ public class BrowserPushNotificationService : IPushNotificationService
             };
 
             await _jsService!.InvokeVoidAsync("unsubscribe");
-            await _client.PrimaryNode.PostAsync("api/notifications/unsubscribe", pushNotificationSubscription);
+            await _client.AccountNode.PostAsync("api/notifications/unsubscribe", pushNotificationSubscription);
         }
     }
 

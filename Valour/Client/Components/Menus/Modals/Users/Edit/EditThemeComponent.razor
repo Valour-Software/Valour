@@ -562,7 +562,7 @@ else
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(_uploadedImage.ContentType);
         content.Add(streamContent, _uploadedImage.Name, _uploadedImage.Name);
         
-        var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
+        var result = await Client.AccountNode.PostMultipartDataWithResponse<string>($"upload/themeBanner/{_editingTheme.Id}", content);
         if (!result.Success)
         {
             Console.WriteLine("Failed to upload banner: " + result.Message);
@@ -745,7 +745,7 @@ else
 
     private async Task LoadThemeAssetsAsync(long themeId)
     {
-        var response = await Client.PrimaryNode.GetJsonAsync<List<ThemeAssetInfo>>($"api/themes/{themeId}/assets");
+        var response = await Client.AccountNode.GetJsonAsync<List<ThemeAssetInfo>>($"api/themes/{themeId}/assets");
         if (response.Success)
             _themeAssets = response.Data ?? new();
         else
@@ -817,7 +817,7 @@ else
 
             content.Add(fileContent, fileName, fileName);
 
-            var result = await Client.PrimaryNode.PostMultipartDataWithResponse<ThemeAssetInfo>(
+            var result = await Client.AccountNode.PostMultipartDataWithResponse<ThemeAssetInfo>(
                 $"upload/themeAsset/{_editingTheme.Id}?name={Uri.EscapeDataString(_newAssetName)}", content);
 
             if (!result.Success)
@@ -855,7 +855,7 @@ else
 
     private async Task DeleteAssetAsync(ThemeAssetInfo asset)
     {
-        var result = await Client.PrimaryNode.DeleteAsync($"api/themes/{_editingTheme.Id}/assets/{asset.Id}");
+        var result = await Client.AccountNode.DeleteAsync($"api/themes/{_editingTheme.Id}/assets/{asset.Id}");
         if (result.Success)
         {
             await LoadThemeAssetsAsync(_editingTheme.Id);

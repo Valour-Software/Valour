@@ -34,7 +34,7 @@ public class OauthService : ServiceBase
     /// Fetches all OAuth apps owned by the current user
     /// </summary>
     public async Task<List<OauthApp>> FetchMyOauthAppAsync(){
-        var apps = (await _client.PrimaryNode.GetJsonAsync<List<OauthApp>>("api/oauthapps")).Data;
+        var apps = (await _client.AccountNode.GetJsonAsync<List<OauthApp>>("api/oauthapps")).Data;
         apps.SyncAll(_client);
         return apps;
     }
@@ -43,7 +43,7 @@ public class OauthService : ServiceBase
     /// Fetches a specific OAuth app by ID (must be the owner)
     /// </summary>
     public async Task<OauthApp> FetchAppAsync(long id) {
-        var app = (await _client.PrimaryNode.GetJsonAsync<OauthApp>($"api/oauthapps/{id}")).Data;
+        var app = (await _client.AccountNode.GetJsonAsync<OauthApp>($"api/oauthapps/{id}")).Data;
         app = app.Sync(_client);
         return app;
     }
@@ -52,7 +52,7 @@ public class OauthService : ServiceBase
     /// Fetches public data for an OAuth app (no authentication required)
     /// </summary>
     public async Task<PublicOauthAppData> FetchAppPublicDataAsync(long id) =>
-        (await _client.PrimaryNode.GetJsonAsync<PublicOauthAppData>($"api/oauthapps/public/{id}")).Data;
+        (await _client.AccountNode.GetJsonAsync<PublicOauthAppData>($"api/oauthapps/public/{id}")).Data;
 
     /// <summary>
     /// Creates a new OAuth application
@@ -71,7 +71,7 @@ public class OauthService : ServiceBase
                 Uses = 0
             };
 
-            var response = await _client.PrimaryNode.PostAsyncWithResponse<long>("api/oauthapps", app);
+            var response = await _client.AccountNode.PostAsyncWithResponse<long>("api/oauthapps", app);
             
             if (!response.Success)
                 return new TaskResult<OauthApp>(false, response.Message);
@@ -198,7 +198,7 @@ public class OauthService : ServiceBase
                 State = request.State
             };
 
-            var response = await _client.PrimaryNode.PostAsyncWithResponse<string>("api/oauth/authorize", model);
+            var response = await _client.AccountNode.PostAsyncWithResponse<string>("api/oauth/authorize", model);
             
             if (!response.Success)
                 return new TaskResult<OauthAuthorizationResponse>(false, response.Message);
@@ -242,7 +242,7 @@ public class OauthService : ServiceBase
                 State = request.State
             };
 
-            var response = await _client.PrimaryNode.PostAsyncWithResponse<AuthToken>("api/oauth/token", tokenRequest);
+            var response = await _client.AccountNode.PostAsyncWithResponse<AuthToken>("api/oauth/token", tokenRequest);
             
             if (!response.Success)
                 return new TaskResult<AuthToken>(false, response.Message);
@@ -281,7 +281,11 @@ public class OauthService : ServiceBase
             queryParams.Add($"state={Uri.EscapeDataString(state)}");
 
         var queryString = string.Join("&", queryParams);
-        return $"{_client.PrimaryNode.HttpClient.BaseAddress}/authorize?{queryString}";
+        var baseAddress = _client.AccountNode?.HttpClient.BaseAddress?.ToString()
+                          ?? _client.AuthorityOrigin
+                          ?? _client.BaseAddress;
+
+        return $"{baseAddress.TrimEnd('/')}/authorize?{queryString}";
     }
 
     #endregion

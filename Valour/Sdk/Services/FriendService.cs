@@ -158,7 +158,7 @@ public class FriendService : ServiceBase
         var uri = parts.Length == 2
             ? $"api/userfriends/addByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
             : $"api/userfriends/add/{Uri.EscapeDataString(nameAndTag)}";
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<UserFriend>(uri);
+        var result = await _client.AccountNode.PostAsyncWithResponse<UserFriend>(uri);
 
         if (!result.Success)
             return result;
@@ -206,7 +206,7 @@ public class FriendService : ServiceBase
         var uri = parts.Length == 2
             ? $"api/userfriends/declineByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
             : $"api/userfriends/decline/{Uri.EscapeDataString(nameAndTag)}";
-        var result = await _client.PrimaryNode.PostAsync(uri, null);
+        var result = await _client.AccountNode.PostAsync(uri, null);
 
         if (!result.Success)
             return result;
@@ -240,7 +240,7 @@ public class FriendService : ServiceBase
         var uri = parts.Length == 2
             ? $"api/userfriends/removeByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
             : $"api/userfriends/remove/{Uri.EscapeDataString(nameAndTag)}";
-        var result = await _client.PrimaryNode.PostAsync(uri, null);
+        var result = await _client.AccountNode.PostAsync(uri, null);
 
         if (!result.Success)
             return result;
@@ -281,7 +281,7 @@ public class FriendService : ServiceBase
         var uri = parts.Length == 2
             ? $"api/userfriends/cancelByNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}"
             : $"api/userfriends/cancel/{Uri.EscapeDataString(nameAndTag)}";
-        var result = await _client.PrimaryNode.PostAsync(uri, null);
+        var result = await _client.AccountNode.PostAsync(uri, null);
 
         if (!result.Success)
             return result;
@@ -308,7 +308,7 @@ public class FriendService : ServiceBase
 
     public async Task<List<User>> GetFriendsAsync(long userId)
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<List<User>>(
+        var result = await _client.AccountNode.GetJsonAsync<List<User>>(
             $"{ISharedUser.GetIdRoute(userId)}/friends");
 
         if (!result.Success || result.Data == null)
@@ -321,7 +321,7 @@ public class FriendService : ServiceBase
 
     public async Task<UserFriendData> FetchFriendDataAsync(long userId)
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<UserFriendData>(
+        var result = await _client.AccountNode.GetJsonAsync<UserFriendData>(
             $"{ISharedUser.GetIdRoute(userId)}/frienddata");
         if (!result.Success || result.Data == null)
             return new UserFriendData();

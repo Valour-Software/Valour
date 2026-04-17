@@ -1,5 +1,7 @@
-﻿using Valour.Sdk.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -19,6 +21,9 @@ namespace Valour.Sdk.Models;
 public class UserFriend : ClientModel<UserFriend, long>, ISharedUserFriend
 {
     public override string BaseRoute => ISharedUserFriend.BaseRoute;
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
     
     /// <summary>
     /// The id of the user who added the friend

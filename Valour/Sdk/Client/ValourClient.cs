@@ -87,9 +87,31 @@ public class ValourClient
     public bool IsLoggedIn => Me != null;
 
     /// <summary>
-    /// The primary node this client is connected to
+    /// The home node this client is actively using for day-to-day app activity.
+    /// This remains aliased as <see cref="PrimaryNode"/> for compatibility.
+    /// </summary>
+    public Node HomeNode
+    {
+        get => PrimaryNode;
+        set => PrimaryNode = value;
+    }
+
+    /// <summary>
+    /// The primary node this client is connected to.
+    /// Kept for compatibility with existing callers that treat the home node as primary.
     /// </summary>
     public Node PrimaryNode { get; set; }
+
+    /// <summary>
+    /// The authority node responsible for account ownership and authority-bound APIs.
+    /// This may differ from <see cref="HomeNode"/> when the app is hosted by a community node.
+    /// </summary>
+    public Node AuthorityNode { get; set; }
+
+    /// <summary>
+    /// Returns the best available node for authority-bound/account APIs.
+    /// </summary>
+    public Node AccountNode => AuthorityNode ?? HomeNode;
     
     /// <summary>
     /// Used mostly for testing, allows for a custom HttpClientProvider
@@ -238,6 +260,7 @@ public class ValourClient
             // LoadChannelStatesAsync(), this is already done by the Home component
             FriendService.FetchFriendsAsync(),
             BlockService.FetchBlocksAsync(),
+            NodeService.LoadSavedCommunityNodesAsync(),
             PlanetService.FetchJoinedPlanetsAsync(),
             TenorService.LoadTenorFavoritesAsync(),
             ChannelService.LoadDmChannelsAsync(),
@@ -260,18 +283,18 @@ public class ValourClient
         
     public async Task<TaskResult<List<ReferralDataModel>>> GetMyReferralsAsync()
     {
-        return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/me/referrals");
+        return await AccountNode.GetJsonAsync<List<ReferralDataModel>>("api/users/me/referrals");
     }
     
     public async Task<TaskResult> UpdateMyPasswordAsync(string oldPassword, string newPassword) {
         var model = new ChangePasswordRequest() { OldPassword = oldPassword, NewPassword = newPassword };
-        return await PrimaryNode.PostAsync("api/users/me/password", model);
+        return await AccountNode.PostAsync("api/users/me/password", model);
     }
 
     public async Task<TaskResult> UpdateMyUsernameAsync(string newUsername, string password)
     {
         var model = new ChangeUsernameRequest() { NewUsername = newUsername, Password = password };
-        var result =  await PrimaryNode.PostAsync("api/users/me/username", model);
+        var result =  await AccountNode.PostAsync("api/users/me/username", model);
 
         if (result.Success)
             Me.Name = newUsername;
@@ -283,6 +306,6 @@ public class ValourClient
     public async Task<TaskResult> DeleteMyAccountAsync(string password)
     {
         var model = new DeleteAccountModel() { Password = password };
-        return await PrimaryNode.PostAsync("api/users/me/hardDelete", model);
+        return await AccountNode.PostAsync("api/users/me/hardDelete", model);
     }
 }

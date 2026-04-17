@@ -1,5 +1,7 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
+using System.Text.Json.Serialization;
 using Valour.Shared.Models;
 
 namespace Valour.Sdk.Models;
@@ -8,6 +10,9 @@ public class OauthApp : ClientModel<OauthApp, long>, ISharedOauthApp
 {
     public override string BaseRoute =>
             $"api/oauthapps";
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
     
     /// <summary>
     /// The secret key for the app

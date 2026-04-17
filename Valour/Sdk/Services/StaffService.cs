@@ -32,7 +32,7 @@ public class StaffService : ServiceBase
             Value = value
         };
         
-        return await _client.PrimaryNode.PostAsync($"api/staff/disable", request);
+        return await _client.AccountNode.PostAsync($"api/staff/disable", request);
     }
     
     public async Task<TaskResult> DeleteUserAsync(long userId)
@@ -42,7 +42,7 @@ public class StaffService : ServiceBase
             UserId = userId
         };
         
-        return await _client.PrimaryNode.PostAsync($"api/staff/delete", request);
+        return await _client.AccountNode.PostAsync($"api/staff/delete", request);
     }
 
     public async Task<TaskResult> VerifyUserAsync(string identifier)
@@ -52,7 +52,7 @@ public class StaffService : ServiceBase
             Identifier = identifier
         };
 
-        return await _client.PrimaryNode.PostAsync("api/staff/users/verify", request);
+        return await _client.AccountNode.PostAsync("api/staff/users/verify", request);
     }
 
     public async Task<TaskResult> SendMassEmailAsync(string subject, string htmlBody)
@@ -63,18 +63,18 @@ public class StaffService : ServiceBase
             HtmlBody = htmlBody
         };
 
-        return await _client.PrimaryNode.PostAsync("api/staff/email/send", request);
+        return await _client.AccountNode.PostAsync("api/staff/email/send", request);
     }
 
     public async Task<Message> GetMessageAsync(long messageId)
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<Message>($"api/staff/messages/{messageId}");
+        var result = await _client.AccountNode.GetJsonAsync<Message>($"api/staff/messages/{messageId}");
         return result.Data;
     }
 
     public async Task<Report> GetReportAsync(string reportId)
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<Report>($"api/staff/reports/{reportId}");
+        var result = await _client.AccountNode.GetJsonAsync<Report>($"api/staff/reports/{reportId}");
         return result.Data;
     }
 
@@ -87,6 +87,6 @@ public class StaffService : ServiceBase
             StaffNotes = staffNotes
         };
 
-        return await _client.PrimaryNode.PostAsync("api/staff/reports/resolve", request);
+        return await _client.AccountNode.PostAsync("api/staff/reports/resolve", request);
     }
 }

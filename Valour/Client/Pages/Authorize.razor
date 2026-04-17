@@ -156,7 +156,7 @@
                     State = state
                 };
 
-                var res = await Client.PrimaryNode.PostAsyncWithResponse<string>($"api/oauth/authorize", model);
+                var res = await Client.AccountNode.PostAsyncWithResponse<string>($"api/oauth/authorize", model);
 
                 if (!res.Success)
                 {

@@ -1,5 +1,7 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
+using Valour.Sdk.Nodes;
+using System.Text.Json.Serialization;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -9,6 +11,9 @@ public class TenorFavorite : ClientModel<TenorFavorite, long>, ISharedTenorFavor
 {
     public override string BaseRoute =>
             ISharedTenorFavorite.BaseRoute;
+
+    [JsonIgnore]
+    public override Node Node => Client?.AccountNode;
 
     /// <summary>
     /// The Tenor Id of this favorite

@@ -34,7 +34,7 @@ public class BlockService : ServiceBase
     /// </summary>
     public async Task FetchBlocksAsync()
     {
-        var result = await _client.PrimaryNode.GetJsonAsync<List<UserBlock>>("api/users/me/blocks");
+        var result = await _client.AccountNode.GetJsonAsync<List<UserBlock>>("api/users/me/blocks");
         if (!result.Success || result.Data is null)
         {
             LogError("Error loading blocks.");
@@ -76,7 +76,7 @@ public class BlockService : ServiceBase
         if (IsBlocked(targetUserId))
             return TaskResult<UserBlock>.FromFailure("User is already blocked.");
 
-        var result = await _client.PrimaryNode.PostAsyncWithResponse<UserBlock>($"api/userblocks/{targetUserId}/{(int)blockType}");
+        var result = await _client.AccountNode.PostAsyncWithResponse<UserBlock>($"api/userblocks/{targetUserId}/{(int)blockType}");
         if (result.Success && result.Data is not null)
         {
             lock (_lock)
@@ -97,7 +97,7 @@ public class BlockService : ServiceBase
     /// </summary>
     public async Task<TaskResult> UnblockUserAsync(long targetUserId)
     {
-        var result = await _client.PrimaryNode.DeleteAsync($"api/userblocks/{targetUserId}");
+        var result = await _client.AccountNode.DeleteAsync($"api/userblocks/{targetUserId}");
         if (result.Success)
         {
             lock (_lock)

@@ -131,7 +131,7 @@
 
     private async Task LoadPreferencesAsync()
     {
-        var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+        var response = await Client.AccountNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
         if (response.Success && response.Data is not null)
         {
             _notificationVolume = NotificationPreferences.ClampVolume(response.Data.NotificationVolume);
@@ -153,7 +153,7 @@
         _notificationVolume = volume;
         SoundManager.SetNotificationVolume(volume);
 
-        await Client.PrimaryNode.PostAsync($"api/users/me/preferences/notificationVolume/{volume}", null);
+        await Client.AccountNode.PostAsync($"api/users/me/preferences/notificationVolume/{volume}", null);
         await SoundManager.PlaySound("Notification.mp3");
 
         StateHasChanged();
@@ -164,7 +164,7 @@
         var currentlyEnabled = NotificationPreferences.IsSourceEnabled(_enabledNotificationSources, source);
         var shouldEnable = !currentlyEnabled;
 
-        var result = await Client.PrimaryNode.PostAsync(
+        var result = await Client.AccountNode.PostAsync(
             $"api/users/me/preferences/notificationSource/{(int)source}/enabled/{shouldEnable.ToString().ToLowerInvariant()}",
             null);
 

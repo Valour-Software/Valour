@@ -44,7 +44,7 @@ public class NotificationService
     
     public async Task LoadUnreadNotificationsAsync()
     {
-        var response = await _client.PrimaryNode.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
+        var response = await _client.AccountNode.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
 
         if (!response.Success)
             return;
@@ -74,13 +74,13 @@ public class NotificationService
 
     public async Task<TaskResult> MarkNotificationRead(Notification notification, bool value)
     {
-        var result = await _client.PrimaryNode.PostAsync($"api/notifications/self/{notification.Id}/read/{value}", null);
+        var result = await _client.AccountNode.PostAsync($"api/notifications/self/{notification.Id}/read/{value}", null);
         return result;
     }
 
     public async Task<TaskResult> ClearNotificationsAsync()
     {
-        var result = await _client.PrimaryNode.PostAsync("api/notifications/self/clear", null);
+        var result = await _client.AccountNode.PostAsync("api/notifications/self/clear", null);
         return result;
     }
     

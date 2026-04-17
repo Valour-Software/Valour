@@ -93,7 +93,7 @@
 
     private async Task LoadPreferences()
     {
-        var response = await Client.PrimaryNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
+        var response = await Client.AccountNode.GetJsonAsync<UserPreferences>("api/users/me/preferences");
         if (response.Success && response.Data is not null)
         {
             _dmPolicy = response.Data.DmPolicy;
@@ -126,7 +126,7 @@
 
             _dmPolicy = nextPolicy;
 
-            var result = await Client.PrimaryNode.PostAsyncWithResponse<UserPreferences>(
+            var result = await Client.AccountNode.PostAsyncWithResponse<UserPreferences>(
                 $"api/users/me/preferences/dmPolicy/{val}");
 
             if (result.Success && result.Data is not null)
@@ -165,7 +165,7 @@
 
         // Split username#tag and look up via separate route parameters
         var parts = _blockName.Split('#', 2);
-        var userResponse = await Client.PrimaryNode.GetJsonAsync<User>($"api/users/byNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}");
+        var userResponse = await Client.AccountNode.GetJsonAsync<User>($"api/users/byNameAndTag/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}");
         if (!userResponse.Success || userResponse.Data is null)
         {
             _blockResult = new TaskResult(false, $"User {_blockName} was not found.");
