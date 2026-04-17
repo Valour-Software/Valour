@@ -280,6 +280,23 @@ public static class UserPermissions
     public static readonly UserPermission EconomySendPlanet = new UserPermission(0x200, "Economy (Planets) - Send", "Allows this app to send money from your planet eco accounts.");
     public static readonly UserPermission EconomyViewGlobal = new UserPermission(0x400, "Economy (Global) - View", "Allows this app to view your global (Valour Credits) eco account.");
     public static readonly UserPermission EconomySendGlobal = new UserPermission(0x800, "Economy (Global) - Send", "Allows this app to send money from your global (Valour Credits) eco account.");
+
+    public static readonly UserPermission CommunityDefault = new UserPermission(
+        Minimum.Value |
+        View.Value |
+        Membership.Value |
+        Invites.Value |
+        PlanetManagement.Value |
+        Messages.Value |
+        Friends.Value |
+        DirectMessages.Value |
+        EconomyViewPlanet.Value |
+        EconomySendPlanet.Value |
+        EconomyViewGlobal.Value |
+        EconomySendGlobal.Value,
+        "Community Default",
+        "Standard scope for community-node sessions."
+    );
 }
 
 public enum ChatChannelPermissionsEnum

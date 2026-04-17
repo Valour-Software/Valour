@@ -116,6 +116,7 @@ public class BotService
             var token = new Valour.Database.AuthToken
             {
                 Id = "bot-" + Guid.NewGuid().ToString(),
+                TokenType = "bot",
                 AppId = "BOT",
                 UserId = bot.Id,
                 Scope = UserPermissions.FullControl.Value,
@@ -218,6 +219,7 @@ public class BotService
             var newToken = new Valour.Database.AuthToken
             {
                 Id = "bot-" + Guid.NewGuid().ToString(),
+                TokenType = "bot",
                 AppId = "BOT",
                 UserId = botId,
                 Scope = UserPermissions.FullControl.Value,

@@ -102,6 +102,14 @@ dotnet build
 dotnet test
 ```
 
+## Self-Hosting
+
+A Docker Compose package lives in [deploy/self-host](deploy/self-host/README.md). It is intentionally operator-oriented:
+
+- one `.env` file for hostnames, ports, image tag, node identity, and database credentials
+- bundled `postgres`, `redis`, and `nginx`
+- supports the common single-host setup where the Valour server serves the web app, API, and SignalR together
+
 ### Notes
 
 - The active web app flow is centered on `Valour.Client.Blazor` + server-hosted assets.

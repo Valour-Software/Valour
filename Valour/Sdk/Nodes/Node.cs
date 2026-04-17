@@ -11,7 +11,9 @@ using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Services;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Nodes;
 
 namespace Valour.Sdk.Nodes;
 
@@ -21,6 +23,14 @@ public class Node : ServiceBase // each node acts like a service
     /// The name of this node
     /// </summary>
     public string Name { get; private set; }
+
+    public string NodeId { get; private set; }
+
+    public string CanonicalOrigin { get; private set; }
+
+    public string AuthorityOrigin { get; private set; }
+
+    public NodeMode Mode { get; private set; } = NodeMode.Official;
 
     /// <summary>
     /// The HttpClient for this node. Should be configured to send requests only to this node
@@ -60,6 +70,8 @@ public class Node : ServiceBase // each node acts like a service
 
     public ValourClient Client { get; private set; }
     private readonly NodeService _nodeService;
+    private string _scopedAuthToken;
+    private DateTime _scopedAuthTokenExpires = DateTime.MinValue;
     
     // Tracking realtime connections
     private readonly ConcurrentDictionary<long, byte> _realtimePlanets = new();
@@ -76,8 +88,42 @@ public class Node : ServiceBase // each node acts like a service
         Name = name?.Trim();
         if (string.IsNullOrWhiteSpace(Name))
             return TaskResult.FromFailure("Node name was empty.");
+
+        NodeId = Name;
+        CanonicalOrigin = Client.BaseAddress.TrimEnd('/');
+        AuthorityOrigin = string.IsNullOrWhiteSpace(Client.AuthorityOrigin)
+            ? CanonicalOrigin
+            : NormalizeOrigin(Client.AuthorityOrigin);
+        Mode = NodeMode.Official;
         IsPrimary = isPrimary;
 
+        return await InitializeCoreAsync();
+    }
+
+    public async Task<TaskResult> InitializeAsync(NodeManifest manifest, bool isPrimary = false)
+    {
+        if (manifest is null)
+            return TaskResult.FromFailure("Node manifest was missing.");
+
+        Name = manifest.Name?.Trim();
+        NodeId = string.IsNullOrWhiteSpace(manifest.NodeId) ? Name : manifest.NodeId.Trim();
+        CanonicalOrigin = NormalizeOrigin(string.IsNullOrWhiteSpace(manifest.CanonicalOrigin)
+            ? Client.BaseAddress
+            : manifest.CanonicalOrigin);
+        AuthorityOrigin = NormalizeOrigin(string.IsNullOrWhiteSpace(manifest.AuthorityOrigin)
+            ? CanonicalOrigin
+            : manifest.AuthorityOrigin);
+        Mode = manifest.Mode;
+        IsPrimary = isPrimary;
+
+        if (string.IsNullOrWhiteSpace(Name))
+            Name = NodeId;
+
+        return await InitializeCoreAsync();
+    }
+
+    private async Task<TaskResult> InitializeCoreAsync()
+    {
         var logOptions = new LogOptions(
             "Node " + Name,
             "#036bfc",
@@ -98,10 +144,12 @@ public class Node : ServiceBase // each node acts like a service
             HttpClient = new HttpClient();
         }
 
-        HttpClient.BaseAddress = new Uri(Client.BaseAddress);
+        HttpClient.BaseAddress = new Uri(GetBaseAddress());
 
-        // Set header for node
-        HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
+        if (Mode == NodeMode.Official)
+        {
+            HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
+        }
         
         if (Client.AuthService.Token is null)
         {
@@ -109,7 +157,7 @@ public class Node : ServiceBase // each node acts like a service
             return TaskResult.SuccessResult;
         }
         
-        HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
+        await ApplyAuthorizationHeaderAsync();
 
         // Only the primary node automatically connects.
         // Other nodes wait until a channel is to be connected.
@@ -143,14 +191,11 @@ public class Node : ServiceBase // each node acts like a service
         return TaskResult.SuccessResult;
     }
 
-    public void UpdateToken()
+    public async Task UpdateTokenAsync()
     {
-        if (HttpClient.DefaultRequestHeaders.Authorization is not null)
-        {
-            HttpClient.DefaultRequestHeaders.Remove("Authorization");
-        }
-        
-        HttpClient.DefaultRequestHeaders.Add("Authorization", Client.AuthService.Token);
+        _scopedAuthToken = null;
+        _scopedAuthTokenExpires = DateTime.MinValue;
+        await ApplyAuthorizationHeaderAsync();
     }
 
     private async Task ConnectToUserChannel()
@@ -416,14 +461,17 @@ public class Node : ServiceBase // each node acts like a service
 
     private async Task ConnectSignalRHub()
     {
-        var address = Client.BaseAddress + "hubs/core";
+        var address = GetBaseAddress().TrimEnd('/') + "/hubs/core";
 
         Log("Connecting to Core hub at " + address);
 
         HubConnection = new HubConnectionBuilder()
             .WithUrl(address, options => {
                 {
-                    options.Headers.Add("X-Server-Select", Name);
+                    if (Mode == NodeMode.Official)
+                    {
+                        options.Headers.Add("X-Server-Select", Name);
+                    }
                     options.UseStatefulReconnect = true;
                     
                     // Support in-memory testing
@@ -454,6 +502,9 @@ public class Node : ServiceBase // each node acts like a service
         Log("Authenticating with SignalR hub...");
 
         var response = new TaskResult(false, "Failed to authorize. This is a critical SignalR error.");
+        var authToken = await GetActiveAuthorizationTokenAsync();
+        if (string.IsNullOrWhiteSpace(authToken))
+            return TaskResult.FromFailure("Node authorization token was missing.");
 
         var authorized = false;
         var tries = 0;
@@ -465,7 +516,7 @@ public class Node : ServiceBase // each node acts like a service
 
             try
             {
-                response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Client.AuthService.Token);
+                response = await HubConnection.InvokeAsync<TaskResult>("Authorize", authToken);
                 authorized = response.Success;
 
                 // Token invalid or expired. Clear 
@@ -490,6 +541,66 @@ public class Node : ServiceBase // each node acts like a service
 
         Log(response.Message);
         return TaskResult.SuccessResult;
+    }
+
+    public NodeManifest GetManifest() => new()
+    {
+        NodeId = NodeId,
+        Name = Name,
+        CanonicalOrigin = CanonicalOrigin,
+        AuthorityOrigin = AuthorityOrigin,
+        Mode = Mode
+    };
+
+    private async Task ApplyAuthorizationHeaderAsync()
+    {
+        if (HttpClient.DefaultRequestHeaders.Authorization is not null)
+        {
+            HttpClient.DefaultRequestHeaders.Remove("Authorization");
+        }
+
+        var token = await GetActiveAuthorizationTokenAsync();
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            HttpClient.DefaultRequestHeaders.Add("Authorization", token);
+        }
+    }
+
+    private async Task<string> GetActiveAuthorizationTokenAsync()
+    {
+        if (Mode != NodeMode.Community)
+            return Client.AuthService.Token;
+
+        if (_scopedAuthToken is not null && _scopedAuthTokenExpires > DateTime.UtcNow.AddMinutes(1))
+            return _scopedAuthToken;
+
+        var exchange = await Client.AuthService.ExchangeCommunityTokenAsync(GetManifest());
+        if (exchange is null || string.IsNullOrWhiteSpace(exchange.Token))
+            return null;
+
+        _scopedAuthToken = exchange.Token;
+        _scopedAuthTokenExpires = exchange.TimeExpires;
+        return _scopedAuthToken;
+    }
+
+    private string GetBaseAddress()
+    {
+        var origin = Mode == NodeMode.Community ? CanonicalOrigin : Client.BaseAddress;
+        return origin.EndsWith('/') ? origin : origin + "/";
+    }
+
+    private static string GetRequestUri(string uri)
+    {
+        if (Uri.TryCreate(uri, UriKind.Absolute, out _))
+            return uri;
+
+        return uri.TrimStart('/');
+    }
+
+    private static string NormalizeOrigin(string origin)
+    {
+        var uri = new Uri(origin, UriKind.Absolute);
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
     }
 
     private void HookModelEvents<TModel>(TModel model)
@@ -918,7 +1029,7 @@ public class Node : ServiceBase // each node acts like a service
         try
         {
             var response =
-                await HttpClient.GetAsync(Client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
+                await HttpClient.GetAsync(GetRequestUri(uri), HttpCompletionOption.ResponseHeadersRead);
             if (response.IsSuccessStatusCode)
             {
                 return await TryDeserializeResponse<T>(response, uri);
@@ -971,7 +1082,7 @@ public class Node : ServiceBase // each node acts like a service
         try
         {
             var response =
-                await HttpClient.GetAsync(Client.BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
+                await HttpClient.GetAsync(GetRequestUri(uri), HttpCompletionOption.ResponseHeadersRead);
             var msg = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -1024,7 +1135,7 @@ public class Node : ServiceBase // each node acts like a service
 
         try
         {
-            var response = await HttpClient.PutAsync(Client.BaseAddress + uri, jsonContent);
+            var response = await HttpClient.PutAsync(GetRequestUri(uri), jsonContent);
 
             if (response.IsSuccessStatusCode)
                 return await TryDeserializeResponse<T>(response, uri);
@@ -1071,7 +1182,7 @@ public class Node : ServiceBase // each node acts like a service
 
         try
         {
-            var response = await HttpClient.PostAsync(Client.BaseAddress + uri, jsonContent);
+            var response = await HttpClient.PostAsync(GetRequestUri(uri), jsonContent);
 
             if (response.IsSuccessStatusCode)
                 return await TryDeserializeResponse<T>(response, uri);
@@ -1116,7 +1227,7 @@ public class Node : ServiceBase // each node acts like a service
 
         try
         {
-            var response = await HttpClient.PostAsync(Client.BaseAddress + uri, null);
+            var response = await HttpClient.PostAsync(GetRequestUri(uri), null);
 
             if (response.IsSuccessStatusCode)
                 return await TryDeserializeResponse<T>(response, uri);
@@ -1162,7 +1273,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
     try
     {
         // Use the MultipartFormDataContent directly without converting to JSON
-        var response = await HttpClient.PostAsync(Client.BaseAddress + uri, content);
+        var response = await HttpClient.PostAsync(GetRequestUri(uri), content);
 
         if (response.IsSuccessStatusCode)
         {
@@ -1222,7 +1333,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
         try
         {
-            var response = await HttpClient.PutAsync(Client.BaseAddress + uri, stringContent);
+            var response = await HttpClient.PutAsync(GetRequestUri(uri), stringContent);
             var msg = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -1269,7 +1380,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
         try
         {
-            var response = await HttpClient.PostAsync(Client.BaseAddress + uri, stringContent);
+            var response = await HttpClient.PostAsync(GetRequestUri(uri), stringContent);
             var msg = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -1317,7 +1428,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
         try
         {
-            var response = await HttpClient.PostAsync(Client.BaseAddress + uri, jsonContent);
+            var response = await HttpClient.PostAsync(GetRequestUri(uri), jsonContent);
             var msg = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -1356,7 +1467,7 @@ public async Task<TaskResult<T>> PostMultipartDataWithResponse<T>(string uri, Mu
 
         try
         {
-            var response = await HttpClient.DeleteAsync(Client.BaseAddress + uri);
+            var response = await HttpClient.DeleteAsync(GetRequestUri(uri));
             var msg = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)

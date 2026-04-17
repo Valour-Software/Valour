@@ -1,4 +1,6 @@
-﻿namespace Valour.Config.Configs;
+﻿using Valour.Shared.Nodes;
+
+namespace Valour.Config.Configs;
 
 /// <summary>
 /// Configuration for node system
@@ -9,6 +11,8 @@ public class NodeConfig
 
     public string Key { get; set; }
     
+    public string Id { get; set; }
+    
     //#if DEBUG
     //public string Name => "debug-node";
     //#else
@@ -16,8 +20,22 @@ public class NodeConfig
     //#endif
     
     public bool LogInfo { get; set; }
+
+    public NodeMode Mode { get; set; } = NodeMode.Official;
     
     public string Location { get; set; }
+
+    public string CanonicalOrigin
+    {
+        get => Location;
+        set => Location = value;
+    }
+
+    public string AuthorityOrigin { get; set; }
+
+    public string CommunityTokenPrivateKeyPath { get; set; }
+
+    public string CommunityTokenPublicKeyPath { get; set; }
 
     public NodeConfig()
     {

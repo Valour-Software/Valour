@@ -8,16 +8,21 @@ public class TokenService
     
     private readonly ValourDb _db;
     private readonly IHttpContextAccessor _contextAccessor;
+    private readonly CommunityNodeTokenService _communityNodeTokenService;
 
     /// <summary>
     /// Stores the current token if it has already been grabbed in this context
     /// </summary>
     private AuthToken _currentToken;
     
-    public TokenService(ValourDb db, IHttpContextAccessor contextAccessor)
+    public TokenService(
+        ValourDb db,
+        IHttpContextAccessor contextAccessor,
+        CommunityNodeTokenService communityNodeTokenService)
     {
         _db = db;
         _contextAccessor = contextAccessor;
+        _communityNodeTokenService = communityNodeTokenService;
     }
 
     public void RemoveFromQuickCache(string id)
@@ -34,6 +39,11 @@ public class TokenService
         // If the key is empty or null, return null
         if (string.IsNullOrWhiteSpace(key))
             return null;
+
+        if (CommunityNodeTokenService.IsCommunityToken(key))
+        {
+            return await _communityNodeTokenService.ValidateAsync(key);
+        }
 
         // Try to get a cached auth token
         QuickCache.TryGetValue(key, out var token);

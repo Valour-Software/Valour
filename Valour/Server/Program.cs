@@ -373,6 +373,8 @@ public partial class Program
         services.AddScoped<AutomodService>();
         services.AddScoped<ModerationAuditService>();
         services.AddScoped<BotService>();
+        services.AddScoped<CommunityShadowUserService>();
+        services.AddScoped<CommunityNodeTokenService>();
         services.AddScoped<TokenService>();
         services.AddScoped<UserFriendService>();
         services.AddScoped<UserBlockService>();

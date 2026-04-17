@@ -61,6 +61,12 @@ public class ValourClient
     public string BaseAddress { get; private set; }
 
     /// <summary>
+    /// The origin responsible for official account authority.
+    /// This may differ from <see cref="BaseAddress"/> when the app is loaded from a community node.
+    /// </summary>
+    public string AuthorityOrigin { get; private set; }
+
+    /// <summary>
     /// The user for this client instance
     /// </summary>
     public User Me { get; set; }
@@ -155,6 +161,32 @@ public class ValourClient
         _httpClient.BaseAddress = new Uri(BaseAddress);
     }
 
+    public void SetAuthorityOrigin(string origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin))
+        {
+            AuthorityOrigin = null;
+            return;
+        }
+
+        AuthorityOrigin = NormalizeOrigin(origin) + "/";
+    }
+
+    public HttpClient CreateAuthorityHttpClient(bool includeAuthorization = false)
+    {
+        var client = new HttpClient
+        {
+            BaseAddress = new Uri(AuthorityOrigin ?? BaseAddress)
+        };
+
+        if (includeAuthorization && !string.IsNullOrWhiteSpace(AuthService.Token))
+        {
+            client.DefaultRequestHeaders.Add("Authorization", AuthService.Token);
+        }
+
+        return client;
+    }
+
     /// <summary>
     /// Logs a message to all added loggers
     /// </summary>
@@ -177,6 +209,12 @@ public class ValourClient
         {
             BaseAddress = new Uri(BaseAddress)
         };
+    }
+
+    private static string NormalizeOrigin(string origin)
+    {
+        var uri = new Uri(origin, UriKind.Absolute);
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
     }
 
     /// <summary>

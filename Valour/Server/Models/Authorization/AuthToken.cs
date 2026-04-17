@@ -5,6 +5,8 @@ namespace Valour.Server.Models;
 
 public class AuthToken : ServerModel<string>, ISharedAuthToken
 {
+    public string TokenType { get; set; } = "official";
+
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
@@ -30,6 +32,8 @@ public class AuthToken : ServerModel<string>, ISharedAuthToken
     /// </summary>
     public DateTime TimeExpires { get; set; }
 
+    public string Audience { get; set; }
+
     /// <summary>
     /// The IP address this token was issued to originally
     /// </summary>
@@ -41,4 +45,3 @@ public class AuthToken : ServerModel<string>, ISharedAuthToken
     public bool HasScope(Permission permission) =>
         ISharedAuthToken.HasScope(permission, this);
 }
-

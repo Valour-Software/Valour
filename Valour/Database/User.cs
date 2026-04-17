@@ -196,6 +196,21 @@ namespace Valour.Database
         public string StarColor2 { get; set; }
 
         /// <summary>
+        /// True if this user row is a locally materialized shadow identity sourced from an external authority.
+        /// </summary>
+        public bool IsShadowUser { get; set; }
+
+        /// <summary>
+        /// The authority that owns this identity, such as "official".
+        /// </summary>
+        public string IdentityAuthority { get; set; }
+
+        /// <summary>
+        /// The subject identifier from the external identity authority.
+        /// </summary>
+        public string IdentityAuthorityUserId { get; set; }
+
+        /// <summary>
         /// The user who owns this bot (if applicable).
         /// </summary>
         public virtual User Owner { get; set; }
@@ -308,6 +323,16 @@ namespace Valour.Database
                 e.Property(x => x.StarColor2)
                     .HasColumnName("star_color_2");
 
+                e.Property(x => x.IsShadowUser)
+                    .HasColumnName("is_shadow_user")
+                    .HasDefaultValue(false);
+
+                e.Property(x => x.IdentityAuthority)
+                    .HasColumnName("identity_authority");
+
+                e.Property(x => x.IdentityAuthorityUserId)
+                    .HasColumnName("identity_authority_user_id");
+
                 // Relationships
 
                 e.HasOne(x => x.Owner)
@@ -337,6 +362,8 @@ namespace Valour.Database
                 e.HasIndex(x => x.TimeLastActive);
 
                 e.HasIndex(x => x.OwnerId);
+
+                e.HasIndex(x => new { x.IdentityAuthority, x.IdentityAuthorityUserId });
             });
         }
     }

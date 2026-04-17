@@ -20,6 +20,8 @@ public class AuthToken : ISharedAuthToken
     
     public string Id { get; set; }
 
+    public string TokenType { get; set; } = "official";
+
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
@@ -45,6 +47,8 @@ public class AuthToken : ISharedAuthToken
     /// </summary>
     public DateTime TimeExpires { get; set; }
 
+    public string Audience { get; set; }
+
     /// <summary>
     /// The IP address this token was issued to originally
     /// </summary>
@@ -66,6 +70,11 @@ public class AuthToken : ISharedAuthToken
 
             e.Property(x => x.Id)
                 .HasColumnName("id");
+
+            e.Property(x => x.TokenType)
+                .IsRequired()
+                .HasColumnName("token_type")
+                .HasDefaultValue("official");
             
             e.Property(x => x.AppId)
                 .HasColumnName("app_id");
@@ -89,6 +98,9 @@ public class AuthToken : ISharedAuthToken
                     x => x,
                     x => new DateTime(x.Ticks, DateTimeKind.Utc)
                 );
+
+            e.Property(x => x.Audience)
+                .HasColumnName("audience");
             
             e.Property(x => x.IssuedAddress)
                 .HasColumnName("issued_address");
@@ -107,6 +119,8 @@ public class AuthToken : ISharedAuthToken
             e.HasIndex(x => x.UserId);
 
             e.HasIndex(x => x.Scope);
+
+            e.HasIndex(x => x.TokenType);
         });
     }
 

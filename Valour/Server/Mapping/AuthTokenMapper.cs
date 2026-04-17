@@ -10,11 +10,13 @@ public static class AuthTokenMapper
         return new AuthToken()
         {
             Id = token.Id,
+            TokenType = token.TokenType,
             AppId = token.AppId,
             UserId = token.UserId,
             Scope = token.Scope,
             TimeCreated = token.TimeCreated,
             TimeExpires = token.TimeExpires,
+            Audience = token.Audience,
             IssuedAddress = token.IssuedAddress
         };
     }
@@ -27,11 +29,13 @@ public static class AuthTokenMapper
         return new Valour.Database.AuthToken()
         {
             Id = token.Id,
+            TokenType = token.TokenType,
             AppId = token.AppId,
             UserId = token.UserId,
             Scope = token.Scope,
             TimeCreated = token.TimeCreated,
             TimeExpires = token.TimeExpires,
+            Audience = token.Audience,
             IssuedAddress = token.IssuedAddress
         };
     }

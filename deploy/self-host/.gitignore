@@ -1,0 +1,5 @@
+.env
+config/*
+!config/.gitkeep
+nginx/ssl/*
+!nginx/ssl/.gitkeep

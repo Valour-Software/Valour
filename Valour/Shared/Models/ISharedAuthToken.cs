@@ -6,6 +6,8 @@ public interface ISharedAuthToken
 {
     string Id { get; set; }
 
+    string TokenType { get; set; }
+
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
@@ -30,6 +32,11 @@ public interface ISharedAuthToken
     /// The time that this token will expire
     /// </summary>
     DateTime TimeExpires { get; set; }
+
+    /// <summary>
+    /// Optional audience binding for special token types.
+    /// </summary>
+    string Audience { get; set; }
 
     /// <summary>
     /// Helper method for scope checking

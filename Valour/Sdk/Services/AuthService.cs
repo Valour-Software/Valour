@@ -2,7 +2,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Valour.Sdk.Client;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Shared.Nodes;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -47,6 +49,8 @@ public class AuthService : ServiceBase
     /// </summary>
     public async Task<AuthResult> FetchToken(string email, string password, string multiFactorCode = null)
     {
+        await EnsureAuthorityOriginAsync();
+
         TokenRequest request = new()
         {
             Email = email,
@@ -55,7 +59,8 @@ public class AuthService : ServiceBase
         };
 
         var httpContent = JsonContent.Create(request);
-        var response = await _client.Http.PostAsync($"api/users/token", httpContent);
+        using var authorityClient = _client.CreateAuthorityHttpClient();
+        var response = await authorityClient.PostAsync("api/users/token", httpContent);
         
         
         if (response.IsSuccessStatusCode)
@@ -109,15 +114,6 @@ public class AuthService : ServiceBase
     
     public async Task<TaskResult> LoginAsync()
     {
-        // Ensure any existing auth headers are removed
-        if (_client.Http.DefaultRequestHeaders.Contains("authorization"))
-        {
-            _client.Http.DefaultRequestHeaders.Remove("authorization");
-        }
-        
-        // Add auth header to main http client so we never have to do that again
-        _client.Http.DefaultRequestHeaders.Add("authorization", Token);
-
         if (_client.PrimaryNode is null)
         {
             var nodeResult = await _client.NodeService.SetupPrimaryNodeAsync();
@@ -127,7 +123,7 @@ public class AuthService : ServiceBase
         else
         {
             // Update the token if it's already been set
-            _client.PrimaryNode.UpdateToken();
+            await _client.PrimaryNode.UpdateTokenAsync();
         }
 
         var response = await _client.PrimaryNode!.GetJsonAsync<User>($"api/users/me");
@@ -144,8 +140,11 @@ public class AuthService : ServiceBase
 
     public async Task<TaskResult> RegisterAsync(RegisterUserRequest request)
     {
+        await EnsureAuthorityOriginAsync();
+
         var content = JsonContent.Create(request);
-        var result = await _client.Http.PostAsync("api/users/register", content);
+        using var authorityClient = _client.CreateAuthorityHttpClient();
+        var result = await authorityClient.PostAsync("api/users/register", content);
 
         if (result.IsSuccessStatusCode)
         {
@@ -157,12 +156,53 @@ public class AuthService : ServiceBase
         try
         {
             text = await result.Content.ReadAsStringAsync();
-        } catch (Exception ex)
+        }
+        catch
         {
             text = "Unknown error";
         }
         
         return TaskResult.FromFailure(text, (int)result.StatusCode);
+    }
+
+    public async Task<CommunityNodeTokenExchangeResponse> ExchangeCommunityTokenAsync(NodeManifest manifest)
+    {
+        if (manifest is null)
+            return null;
+
+        await EnsureAuthorityOriginAsync();
+
+        var request = new CommunityNodeTokenExchangeRequest
+        {
+            NodeId = manifest.NodeId,
+            CanonicalOrigin = manifest.CanonicalOrigin
+        };
+
+        using var authorityClient = _client.CreateAuthorityHttpClient(includeAuthorization: true);
+        var response = await authorityClient.PostAsJsonAsync("api/node/community-token", request);
+        if (!response.IsSuccessStatusCode)
+        {
+            LogError($"Failed to exchange community token for node {manifest.Name}: {await response.Content.ReadAsStringAsync()}");
+            return null;
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<CommunityNodeTokenExchangeResponse>();
+        if (result is null)
+            return null;
+
+        return result;
+    }
+
+    private async Task EnsureAuthorityOriginAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_client.AuthorityOrigin))
+            return;
+
+        var manifest = await _client.NodeService.FetchNodeManifestAsync();
+        _client.SetAuthorityOrigin(
+            string.IsNullOrWhiteSpace(manifest?.AuthorityOrigin)
+                ? manifest?.CanonicalOrigin ?? _client.BaseAddress
+                : manifest.AuthorityOrigin);
     }
     
     /// <summary>

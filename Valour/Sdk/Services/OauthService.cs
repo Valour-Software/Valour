@@ -156,7 +156,8 @@ public class OauthService : ServiceBase
             formData.Add(fileContent, "file", fileName);
 
             // Upload to the CDN endpoint
-            var response = await _client.Http.PostAsync($"upload/app/{appId}", formData);
+            using var authorityClient = _client.CreateAuthorityHttpClient(includeAuthorization: true);
+            var response = await authorityClient.PostAsync($"upload/app/{appId}", formData);
             
             if (response.IsSuccessStatusCode)
             {

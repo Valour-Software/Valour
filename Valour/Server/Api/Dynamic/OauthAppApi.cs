@@ -262,6 +262,7 @@ public class OauthAppApi
                 AuthToken newToken = new AuthToken()
                 {
                     Id = "val-" + Guid.NewGuid().ToString(),
+                    TokenType = "oauth",
                     AppId = request.ClientId.ToString(),
                     Scope = model.Scope,
                     TimeCreated = DateTime.UtcNow,

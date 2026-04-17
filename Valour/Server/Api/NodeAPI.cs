@@ -1,35 +1,64 @@
-﻿using Valour.Config.Configs;
+﻿using Microsoft.AspNetCore.Mvc;
+using Valour.Config.Configs;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Hubs;
+using Valour.Shared.Authorization;
+using Valour.Shared.Nodes;
 
 namespace Valour.Server.API
 {
     public class NodeAPI : BaseAPI
 	{
-
-        public class NodeHandshakeResponse
-        {
-            [JsonInclude]
-            [JsonPropertyName("version")]
-            public string Version { get; set; }
-
-            [JsonInclude]
-            [JsonPropertyName("planetIds")]
-            public IEnumerable<long> PlanetIds { get; set; }
-        }
-
-
         /// <summary>
         /// Adds the routes for this API section
         /// </summary>
         public new static void AddRoutes(WebApplication app)
         {
             app.MapGet("api/node/name", () => NodeConfig.Instance.Name);
+
+            app.MapGet("api/node/manifest", (
+                HttpContext ctx,
+                NodeLifecycleService service,
+                HostedPlanetService hostedService) => BuildManifest(ctx, service, hostedService));
             
-            app.MapGet("api/node/handshake", (NodeLifecycleService service, HostedPlanetService hostedService) => new NodeHandshakeResponse()
+            app.MapGet("api/node/handshake", (
+                HttpContext ctx,
+                NodeLifecycleService service,
+                HostedPlanetService hostedService) => BuildManifest(ctx, service, hostedService));
+
+            app.MapPost("api/node/community-token", async (
+                [FromBody] CommunityNodeTokenExchangeRequest request,
+                TokenService tokenService,
+                UserService userService,
+                CommunityNodeTokenService communityNodeTokenService) =>
             {
-                Version = service.Version,
-                PlanetIds = hostedService.GetHostedIds()
+                if (NodeConfig.Instance.Mode != NodeMode.Official)
+                    return ValourResult.Forbid("Only official nodes can mint community tokens.");
+
+                if (request is null ||
+                    string.IsNullOrWhiteSpace(request.NodeId) ||
+                    string.IsNullOrWhiteSpace(request.CanonicalOrigin))
+                {
+                    return ValourResult.BadRequest("NodeId and CanonicalOrigin are required.");
+                }
+
+                var currentToken = await tokenService.GetCurrentTokenAsync();
+                if (currentToken is null)
+                    return ValourResult.InvalidToken();
+
+                if (!currentToken.HasScope(UserPermissions.FullControl))
+                    return ValourResult.LacksPermission(UserPermissions.FullControl);
+
+                var user = await userService.GetCurrentUserAsync();
+                if (user is null)
+                    return ValourResult.NotFound<User>();
+
+                var exchange = await communityNodeTokenService.IssueAsync(
+                    user,
+                    request.NodeId,
+                    request.CanonicalOrigin);
+
+                return Results.Json(exchange);
             });
             
             app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeLifecycleService service, long id) =>
@@ -161,6 +190,31 @@ namespace Valour.Server.API
                 
                 */
             });
+        }
+
+        private static NodeManifest BuildManifest(
+            HttpContext ctx,
+            NodeLifecycleService service,
+            HostedPlanetService hostedService)
+        {
+            var configuredOrigin = NodeConfig.Instance.CanonicalOrigin;
+            var origin = !string.IsNullOrWhiteSpace(configuredOrigin)
+                ? CommunityNodeTokenService.NormalizeOrigin(configuredOrigin)
+                : CommunityNodeTokenService.NormalizeOrigin($"{ctx.Request.Scheme}://{ctx.Request.Host}");
+            var authorityOrigin = !string.IsNullOrWhiteSpace(NodeConfig.Instance.AuthorityOrigin)
+                ? CommunityNodeTokenService.NormalizeOrigin(NodeConfig.Instance.AuthorityOrigin)
+                : origin;
+
+            return new NodeManifest
+            {
+                NodeId = CommunityNodeTokenService.ResolveNodeId(),
+                Name = NodeConfig.Instance.Name,
+                CanonicalOrigin = origin,
+                AuthorityOrigin = authorityOrigin,
+                Version = service.Version,
+                Mode = NodeConfig.Instance.Mode,
+                PlanetIds = hostedService.GetHostedIds()
+            };
         }
     }
 }

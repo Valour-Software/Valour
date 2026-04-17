@@ -1,0 +1,74 @@
+services:
+  dotnetapp:
+    image: ${VALOUR_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      Database__Host: postgres
+      Database__Database: ${POSTGRES_DB}
+      Database__Username: ${POSTGRES_USER}
+      Database__Password: ${POSTGRES_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Node__Name: ${NODE_NAME}
+      Node__Location: ${PUBLIC_API_BASE_URL}
+      Node__Key: ${NODE_KEY}
+    expose:
+      - "5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: ${REDIS_IMAGE}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  nginx:
+    image: ${NGINX_IMAGE}
+    restart: unless-stopped
+    environment:
+      SERVER_NAMES: ${SERVER_NAMES}
+      UPSTREAM_HOST: ${UPSTREAM_HOST}
+      UPSTREAM_PORT: ${UPSTREAM_PORT}
+      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE}
+      PROXY_READ_TIMEOUT: ${PROXY_READ_TIMEOUT}
+      NGINX_ENVSUBST_FILTER: SERVER_NAMES|UPSTREAM_HOST|UPSTREAM_PORT|CLIENT_MAX_BODY_SIZE|PROXY_READ_TIMEOUT
+    depends_on:
+      - dotnetapp
+    ports:
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ${TLS_CERT_PATH}:/etc/nginx/ssl/server.crt:ro
+      - ${TLS_KEY_PATH}:/etc/nginx/ssl/server.key:ro
+
+volumes:
+  postgres-data:
+  redis-data:

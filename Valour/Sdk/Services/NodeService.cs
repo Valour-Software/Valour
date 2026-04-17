@@ -1,6 +1,8 @@
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
+using System.Net.Http.Json;
 using Valour.Shared;
+using Valour.Shared.Nodes;
 using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
@@ -42,34 +44,68 @@ public class NodeService : ServiceBase
     
     public async Task<TaskResult> SetupPrimaryNodeAsync()
     {
-        string nodeName = null;
+        NodeManifest manifest = null;
 
         do
         {
-            // Get primary node identity
-            var nodeNameResponse = await _client.Http.GetAsync("api/node/name");
-            var msg = await nodeNameResponse.Content.ReadAsStringAsync();
-            if (!nodeNameResponse.IsSuccessStatusCode)
+            manifest = await FetchNodeManifestAsync();
+            if (manifest is null)
             {
-                LogError("Failed to get primary node name... trying again in three seconds. Network issues? \n \n" + msg);
+                LogError("Failed to get primary node manifest... trying again in three seconds.");
                 await Task.Delay(3000);
             }
-            else
-            {
-                nodeName = msg?.Trim();
-                if (string.IsNullOrWhiteSpace(nodeName) || nodeName.Contains('<'))
-                {
-                    LogError("Received invalid primary node name response... trying again in three seconds. Response was:\n\n" + msg);
-                    nodeName = null;
-                    await Task.Delay(3000);
-                }
-            }
-        } while (nodeName is null);
+        } while (manifest is null);
+
+        _client.SetAuthorityOrigin(string.IsNullOrWhiteSpace(manifest.AuthorityOrigin)
+            ? manifest.CanonicalOrigin
+            : manifest.AuthorityOrigin);
         
         // Initialize primary node
         _client.PrimaryNode = new Node(_client);
         
-        return await _client.PrimaryNode.InitializeAsync(nodeName, true);
+        return await _client.PrimaryNode.InitializeAsync(manifest, true);
+    }
+
+    public async Task<NodeManifest> FetchNodeManifestAsync(string origin = null)
+    {
+        HttpClient client = null;
+        var createdClient = false;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(origin))
+            {
+                client = _client.Http;
+            }
+            else
+            {
+                createdClient = true;
+                client = new HttpClient();
+                client.BaseAddress = new Uri(NormalizeOrigin(origin) + "/");
+            }
+
+            var response = await client.GetAsync("api/node/manifest");
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var manifest = await response.Content.ReadFromJsonAsync<NodeManifest>();
+            if (manifest is null || string.IsNullOrWhiteSpace(manifest.Name))
+                return null;
+
+            return manifest;
+        }
+        catch (Exception ex)
+        {
+            LogError("Failed to fetch node manifest.", ex);
+            return null;
+        }
+        finally
+        {
+            if (createdClient)
+            {
+                client?.Dispose();
+            }
+        }
     }
     
     
@@ -104,6 +140,28 @@ public class NodeService : ServiceBase
         // TODO: We have a master list of node names so we can probably do a sanity check here
         
         return node;
+    }
+
+    public async ValueTask<Node> GetByManifestAsync(NodeManifest manifest)
+    {
+        if (manifest is null)
+            return null;
+
+        if (_nameToNode.TryGetValue(manifest.Name, out var existing) &&
+            string.Equals(existing.NodeId, manifest.NodeId, StringComparison.Ordinal))
+        {
+            return existing;
+        }
+
+        var node = new Node(_client);
+        await node.InitializeAsync(manifest);
+        return node;
+    }
+
+    public async ValueTask<Node> GetByOriginAsync(string origin)
+    {
+        var manifest = await FetchNodeManifestAsync(origin);
+        return await GetByManifestAsync(manifest);
     }
 
     /// <summary>
@@ -184,5 +242,11 @@ public class NodeService : ServiceBase
         {
             node.CheckConnection();
         }
+    }
+
+    private static string NormalizeOrigin(string origin)
+    {
+        var uri = new Uri(origin, UriKind.Absolute);
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
     }
 }

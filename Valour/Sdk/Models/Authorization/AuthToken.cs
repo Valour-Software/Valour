@@ -7,6 +7,8 @@ public class AuthToken : ISharedAuthToken
 {
     public string Id { get; set; }
 
+    public string TokenType { get; set; } = "official";
+
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
@@ -32,10 +34,11 @@ public class AuthToken : ISharedAuthToken
     /// </summary>
     public DateTime TimeExpires { get; set; }
 
+    public string Audience { get; set; }
+
     /// <summary>
     /// Returns whether the auth token has the given scope
     /// </summary>
     public bool HasScope(Permission permission) =>
         ISharedAuthToken.HasScope(permission, this);
 }
-

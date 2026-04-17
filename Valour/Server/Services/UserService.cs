@@ -707,6 +707,7 @@ public class UserService
             {
                 AppId = "VALOUR",
                 Id = "val-" + Guid.NewGuid().ToString(),
+                TokenType = "official",
                 TimeCreated = DateTime.UtcNow,
                 TimeExpires = DateTime.UtcNow.AddDays(7),
                 Scope = UserPermissions.FullControl.Value,
