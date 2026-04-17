@@ -39,8 +39,8 @@
         <ApplicationId>gg.valour.app</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>0.5.20</ApplicationDisplayVersion>
-        <ApplicationVersion>47</ApplicationVersion>
+        <ApplicationDisplayVersion>0.5.21</ApplicationDisplayVersion>
+        <ApplicationVersion>48</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>

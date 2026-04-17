@@ -46,6 +46,8 @@
     /// </summary>
     public int TotalCount { get; set; }
 
+    private int _watchingUpdateVersion;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -74,21 +76,35 @@
         if (update.ChannelId != Channel.Id)
             return Task.CompletedTask;
 
+        var version = Interlocked.Increment(ref _watchingUpdateVersion);
+        var uniqueUserIds = (update.UserIds ?? [])
+            .Distinct()
+            .Take(10)
+            .ToList();
+        var totalCount = (update.UserIds ?? []).Distinct().Count();
+
         return InvokeAsync(async () =>
         {
-            DisplayData.Clear();
+            var displayData = new List<User>(uniqueUserIds.Count);
 
-            // Take first ten
-            foreach (var userId in update.UserIds.Take(10))
+            foreach (var userId in uniqueUserIds)
             {
                 var user = await UserService.FetchUserAsync(userId);
+
+                if (version != _watchingUpdateVersion)
+                    return;
+
                 if (user is not null)
                 {
-                    DisplayData.Add(user);
+                    displayData.Add(user);
                 }
             }
 
-            TotalCount = update.UserIds.Count();
+            if (version != _watchingUpdateVersion)
+                return;
+
+            DisplayData = displayData;
+            TotalCount = totalCount;
 
             StateHasChanged();
         });

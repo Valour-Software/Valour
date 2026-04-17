@@ -59,20 +59,33 @@
     {
         var options = new List<RadialPalette.Option>();
 
-        var message = _hoverMenuMessage?.ParamData?.Message;
+        var messageComponent = _hoverMenuMessage;
+        var message = messageComponent?.ParamData?.Message;
+        var me = Client.Me;
 
-        if (message is null)
+        if (message is null || me is null)
             return [];
+
+        var isOwnMessage = me.Id == message.AuthorUserId;
+        var canManageMessages =
+            ChannelPermissions?.GetPermissionState(ChatChannelPermissions.ManageMessages) == PermissionState.True;
+        var canUseReactions =
+            ChannelPermissions is null ||
+            ChannelPermissions.GetPermissionState(ChatChannelPermissions.UseReactions) == PermissionState.True;
         
         // If owner, add edit
-        if (Client.Me.Id == message.AuthorUserId)
+        if (isOwnMessage)
         {
             var edit = new RadialPalette.Option()
             {
                 Id = "edit",
                 Icon = "pencil",
                 Name = "Edit",
-                Action = async (_) => await OpenEditMode(_hoverMenuMessage)
+                Action = async (_) =>
+                {
+                    if (messageComponent is not null)
+                        await OpenEditMode(messageComponent);
+                }
             };
             
             options.Add(edit);
@@ -96,8 +109,7 @@
             options.Add(report);
         }
 
-        if (Client.Me.Id == message.Id || 
-            ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages) == PermissionState.True)
+        if (isOwnMessage || canManageMessages)
         {
             var delete = new RadialPalette.Option()
             {
@@ -116,8 +128,7 @@
         }
         
         // Add reaction options if user has permission
-        if (ChannelPermissions is null ||
-            ChannelPermissions.GetPermissionState(ChatChannelPermissions.UseReactions) == PermissionState.True)
+        if (canUseReactions)
         {
             var reaction = new RadialPalette.Option()
             {
@@ -133,14 +144,14 @@
                     _reactionSelectorTop = Math.Min(BrowserUtils.WindowDimensions.Height - e.ClientY, 350) + "px";
 
                     // Re-render JUST the emoji selector
-                    _reactionSelectorRenderWrapper.ReRender();
+                    _reactionSelectorRenderWrapper?.ReRender();
 
                     _ = RefreshReactionEmojiPickerAsync();
 
-                    _reactionSelector.ToggleVisible();
+                    _reactionSelector?.ToggleVisible();
 
                     // Close hover menu
-                    _hoverMenu.SetVisible(false);
+                    _hoverMenu?.SetVisible(false);
 
                     return Task.CompletedTask;
                 }
@@ -1362,6 +1373,13 @@
         if (_hoverMenu is not null)
         {
             _hoverMenuMessage = message;
+            var options = GetHoverMenuOptions();
+
+            if (options.Count == 0)
+            {
+                _hoverMenu.SetVisible(false);
+                return;
+            }
             
             var bounds = await BrowserUtils.GetElementBoundingRectAsync(_hoverMenu.OuterRef);
             var wrapperBounds = await BrowserUtils.GetElementBoundingRectAsync(MessageWrapperEl);
@@ -1370,10 +1388,10 @@
             _hoverMenuTop = (distances.TopDistance + (bounds.Height / 2) - (DeviceInfo.IsMobile ? 70 : 40)) + "px";
             
             _hoverMenuRight = (BrowserUtils.WindowDimensions.Width - wrapperBounds.Right + (bounds.Width / 2) - (DeviceInfo.IsMobile ? 24 : 0 )) + "px"; //(wrapperBounds.Right - wrapperBounds.Width) + "px";
-        
+            
             var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
             
-            _hoverMenu.SetOptions(GetHoverMenuOptions());
+            _hoverMenu.SetOptions(options);
             _hoverMenu.SetPosition(_hoverMenuTop, rightPx: _hoverMenuRight);
             _hoverMenu.SetVisible(true);
         }
@@ -1381,7 +1399,7 @@
     
     public void OnMouseLeaveMessageArea()
     {
-        _hoverMenu.SetVisible(false);
+        _hoverMenu?.SetVisible(false);
     }
     
     /////////////
