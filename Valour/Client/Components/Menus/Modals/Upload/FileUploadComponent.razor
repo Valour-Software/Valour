@@ -1,5 +1,6 @@
 @inherits Modal<FileUploadComponent.ModalParams>
 @inject IJSRuntime JsRuntime
+@inject UploadService UploadSvc
 @implements IDisposable
 
 @if (Data.Attachment is null)
@@ -39,11 +40,11 @@
         @if (_isUploading)
         {
             <div class="upload-progress-container">
-                <div class="upload-progress-bar" style="width: @(_uploadProgress)%"></div>
+                <div class="upload-progress-bar" style="width: @(_progress?.Percent ?? 0)%"></div>
             </div>
             <div class="upload-progress-info">
-                <span class="upload-progress-text">@_uploadProgress%</span>
-                <span class="upload-progress-bytes">@(FormatBytes(_uploadedBytes)) / @(FormatBytes(_totalBytes))</span>
+                <span class="upload-progress-text">@(_progress?.Percent ?? 0)%</span>
+                <span class="upload-progress-bytes">@(_progress?.FormattedUploaded ?? "0 B") / @(_progress?.FormattedTotal ?? "0 B")</span>
             </div>
         }
         @if (_uploadError is not null)
@@ -84,10 +85,10 @@
     private bool _imageReady;
     private bool _loaded = false;
     private bool _isUploading = false;
-    private int _uploadProgress;
-    private long _uploadedBytes;
-    private long _totalBytes;
+    private UploadProgressInfo? _progress;
     private string _uploadError;
+
+    private CancellationTokenSource? _uploadCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,51 +124,6 @@
         StateHasChanged();
     }
 
-    [JSInvokable]
-    public void OnUploadProgress(long loaded, long total)
-    {
-        _uploadedBytes = loaded;
-        _totalBytes = total;
-        _uploadProgress = total > 0 ? (int)Math.Round((double)loaded / total * 100) : 0;
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void OnUploadComplete(string response)
-    {
-        _isUploading = false;
-        _uploadProgress = 100;
-        
-        Data.OnUploadSuccess?.Invoke(response);
-        
-        StateHasChanged();
-        Close();
-    }
-
-    [JSInvokable]
-    public void OnUploadMisdirect(string responseBody, int statusCode)
-    {
-        _isUploading = false;
-        _uploadError = $"Server redirect ({statusCode}). Please try again.";
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void OnUploadError(string error)
-    {
-        _isUploading = false;
-        _uploadError = error;
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void OnUploadCancelled()
-    {
-        _isUploading = false;
-        _uploadProgress = 0;
-        StateHasChanged();
-    }
-
     public async Task OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key.ToLower() == "enter" && !_isUploading)
@@ -176,40 +132,52 @@
 
     public void OnClickCancel() => Close();
 
-    public async Task OnClickCancelUpload()
+    public void OnClickCancelUpload()
     {
-        await JsRuntime.InvokeVoidAsync("abortCurrentUpload");
+        _uploadCts?.Cancel();
     }
 
     public async Task OnClickConfirm()
     {
         if (_isUploading) return;
         
-        // If we have the new upload path, use JS progress upload
+        // New path: use UploadService for real progress
         if (!string.IsNullOrEmpty(Data.UploadUrl))
         {
             _isUploading = true;
-            _uploadProgress = 0;
-            _uploadedBytes = 0;
+            _progress = null;
             _uploadError = null;
+            _uploadCts = new CancellationTokenSource();
             StateHasChanged();
 
-            try
+            var result = await UploadSvc.UploadAsync(
+                Data.UploadUrl,
+                Data.Bytes,
+                Data.Attachment.MimeType,
+                Data.Attachment.FileName,
+                Data.AuthToken,
+                onProgress: p =>
+                {
+                    _progress = p;
+                    InvokeAsync(StateHasChanged);
+                },
+                cancellationToken: _uploadCts.Token);
+
+            _isUploading = false;
+            _uploadCts.Dispose();
+            _uploadCts = null;
+
+            if (result.Success)
             {
-                await JsRuntime.InvokeVoidAsync("uploadWithProgress",
-                    Data.UploadUrl,
-                    Data.Bytes,
-                    Data.Attachment.MimeType,
-                    Data.Attachment.FileName,
-                    _thisRef,
-                    Data.AuthToken);
+                Data.OnUploadSuccess?.Invoke(result.Response);
+                Close();
             }
-            catch (Exception ex)
+            else
             {
-                _isUploading = false;
-                _uploadError = ex.Message;
-                StateHasChanged();
+                _uploadError = result.Error ?? "Unknown error";
             }
+
+            StateHasChanged();
         }
         else
         {
@@ -220,15 +188,10 @@
         }
     }
 
-    private static string FormatBytes(long bytes)
-    {
-        if (bytes < 1024) return $"{bytes} B";
-        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
-        return $"{bytes / (1024.0 * 1024.0):F1} MB";
-    }
-
     public void Dispose()
     {
+        _uploadCts?.Cancel();
+        _uploadCts?.Dispose();
         _thisRef?.Dispose();
     }
 }

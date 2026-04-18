@@ -4,6 +4,7 @@ using Valour.Client.Components.Calls;
 using Valour.Client.Components.Sidebar.Directory;
 using Valour.Client.ContextMenu;
 using Valour.Client.Sounds;
+using Valour.Client.Utility;
 using Valour.Sdk.Client;
 using Valour.Sdk.Services;
 
@@ -34,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RealtimeKitHostService>();
         services.AddScoped<GlobalCallSessionService>();
         services.AddScoped<RealtimeKitDeviceService>();
+        services.AddScoped<UploadService>();
 
         // new services
         services.AddSingleton(client);
