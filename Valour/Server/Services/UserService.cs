@@ -840,6 +840,19 @@ public class UserService
                 .Select(x => x.Id)
                 .ToListAsync();
 
+            // Remove message reactions that reference the user's messages BEFORE deleting the messages
+            // to avoid FK constraint violation (message_reactions_messages_id_fk).
+            // This includes both reactions BY the user and reactions BY OTHER USERS on the user's messages.
+            await _db.MessageReactions.IgnoreQueryFilters()
+                .Where(x => x.AuthorUserId == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            // Also remove reactions from other users on the user's messages (these will become orphaned)
+            await _db.MessageReactions.IgnoreQueryFilters()
+                .Where(x => _db.Messages.IgnoreQueryFilters()
+                    .Any(m => m.AuthorUserId == dbUser.Id && m.Id == x.MessageId))
+                .ExecuteDeleteAsync();
+
             // Remove messages
             await _db.Messages.IgnoreQueryFilters().Where(x => x.AuthorUserId == dbUser.Id)
                 .ExecuteDeleteAsync();
@@ -967,10 +980,7 @@ public class UserService
 
             await _db.SaveChangesAsync();
 
-            // Remove message reactions (before planet members, since reactions FK to both)
-            await _db.MessageReactions.IgnoreQueryFilters()
-                .Where(x => x.AuthorUserId == dbUser.Id)
-                .ExecuteDeleteAsync();
+            // Message reactions were already removed before message deletion to avoid FK violations.
 
             // Remove old planet role members (before planet members, since role members FK to members)
             await _db.OldPlanetRoleMembers.IgnoreQueryFilters()
