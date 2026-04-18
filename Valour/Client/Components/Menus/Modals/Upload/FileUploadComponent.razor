@@ -40,7 +40,7 @@
     <ButtonArea>
         <div class="basic-modal-buttons">
             <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnClickConfirm" class="v-btn primary">Upload</button>
+            <button @onclick="@OnClickConfirm" class="v-btn primary" disabled="@_isUploading">Upload</button>
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -59,6 +59,7 @@
 
     private bool _imageReady;
     private bool _loaded = false;
+    private bool _isUploading = false;
 
     protected override async Task OnInitializedAsync(){
 
@@ -102,6 +103,8 @@
     public void OnClickCancel() => Close();
 
     public async Task OnClickConfirm(){
+        if (_isUploading) return;
+        _isUploading = true;
         await Data.OnConfirm.Invoke();
         Close();
     }
