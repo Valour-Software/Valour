@@ -43,6 +43,12 @@ public class MainActivity : MauiAppCompatActivity
         AppLifecycle.NotifyResumed();
     }
 
+    protected override void OnPause()
+    {
+        base.OnPause();
+        AppLifecycle.NotifyBackground();
+    }
+
     protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
     {
         if (requestCode == AudioPermissionChromeClient.FileChooserRequestCode)
