@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 
 namespace Valour.Server.Workers
 {
@@ -215,8 +215,17 @@ namespace Valour.Server.Workers
                 
                 if (message.ReplyToId is not null && message.ReplyTo is null)
                 {
-                    var replyTo = (await dbService.Messages.FindAsync(message.ReplyToId)).ToModel();
-                    message.ReplyTo = replyTo;
+                    var replyToDb = await dbService.Messages.FindAsync(message.ReplyToId);
+                    if (replyToDb is not null)
+                    {
+                        message.ReplyTo = replyToDb.ToModel();
+                    }
+                    else
+                    {
+                        // The referenced reply-to message no longer exists (deleted).
+                        // Clear ReplyToId to avoid FK constraint violation (fk_replyto) on insert.
+                        message.ReplyToId = null;
+                    }
                 }
                 
                 hubService.RelayMessage(message);
