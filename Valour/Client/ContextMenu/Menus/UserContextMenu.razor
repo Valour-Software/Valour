@@ -115,7 +115,7 @@ else if (!_isSelf)
     }
 
     private async Task OnClickCopyUserId(){
-        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.Id);
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.User.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "User ID copied to clipboard", ToastProgressState.Success));
     }
 	
