@@ -57,11 +57,9 @@ public class StripeReconciliationWorker : IHostedService, IDisposable
             {
                 try
                 {
-                    // Need to expand metadata since list doesn't include it by default
-                    var fullSession = await service.GetAsync(session.Id, new SessionGetOptions
-                    {
-                        Expand = new List<string> { "metadata" }
-                    });
+                    // Metadata is always included in the response; it doesn't need expanding.
+                    // Previously tried to expand "metadata" which caused a StripeException.
+                    var fullSession = await service.GetAsync(session.Id);
 
                     if (fullSession.Mode == "subscription")
                         await Valour.Server.Api.Dynamic.StripeApi.FulfillSubscriptionSessionAsync(fullSession, ecoService, db, _logger);
