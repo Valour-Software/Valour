@@ -36,11 +36,32 @@
                 }
             }
         </div>
+        @if (_isUploading)
+        {
+            <div class="upload-progress-container">
+                <div class="upload-progress-bar" style="width: @(_uploadProgress)%"></div>
+            </div>
+            <div class="upload-progress-info">
+                <span class="upload-progress-text">@_uploadProgress%</span>
+                <span class="upload-progress-bytes">@(FormatBytes(_uploadedBytes)) / @(FormatBytes(_totalBytes))</span>
+            </div>
+        }
+        @if (_uploadError is not null)
+        {
+            <div class="upload-error">Upload failed: @_uploadError</div>
+        }
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
-            <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnClickConfirm" class="v-btn primary" disabled="@_isUploading">Upload</button>
+            @if (_isUploading)
+            {
+                <button @onclick="@OnClickCancelUpload" class="v-btn danger">Cancel Upload</button>
+            }
+            else
+            {
+                <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
+                <button @onclick="@OnClickConfirm" class="v-btn primary">Upload</button>
+            }
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -53,6 +74,9 @@
         public Func<Task> OnConfirm;
         public Message Message;
         public MessageAttachment Attachment;
+        public string UploadUrl { get; set; }
+        public string AuthToken { get; set; }
+        public Action<string> OnUploadSuccess { get; set; }
     }
 
     private DotNetObjectReference<FileUploadComponent> _thisRef;
@@ -60,9 +84,13 @@
     private bool _imageReady;
     private bool _loaded = false;
     private bool _isUploading = false;
+    private int _uploadProgress;
+    private long _uploadedBytes;
+    private long _totalBytes;
+    private string _uploadError;
 
-    protected override async Task OnInitializedAsync(){
-
+    protected override async Task OnInitializedAsync()
+    {
         Console.WriteLine(JsonSerializer.Serialize(Data.Attachment));
         
         _thisRef = DotNetObjectReference.Create(this);
@@ -95,18 +123,108 @@
         StateHasChanged();
     }
 
-    public async Task OnKeyDown(KeyboardEventArgs e){
-        if (e.Key.ToLower() == "enter")
+    [JSInvokable]
+    public void OnUploadProgress(long loaded, long total)
+    {
+        _uploadedBytes = loaded;
+        _totalBytes = total;
+        _uploadProgress = total > 0 ? (int)Math.Round((double)loaded / total * 100) : 0;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnUploadComplete(string response)
+    {
+        _isUploading = false;
+        _uploadProgress = 100;
+        
+        Data.OnUploadSuccess?.Invoke(response);
+        
+        StateHasChanged();
+        Close();
+    }
+
+    [JSInvokable]
+    public void OnUploadMisdirect(string responseBody, int statusCode)
+    {
+        _isUploading = false;
+        _uploadError = $"Server redirect ({statusCode}). Please try again.";
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnUploadError(string error)
+    {
+        _isUploading = false;
+        _uploadError = error;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnUploadCancelled()
+    {
+        _isUploading = false;
+        _uploadProgress = 0;
+        StateHasChanged();
+    }
+
+    public async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key.ToLower() == "enter" && !_isUploading)
             await OnClickConfirm();
     }
 
     public void OnClickCancel() => Close();
 
-    public async Task OnClickConfirm(){
+    public async Task OnClickCancelUpload()
+    {
+        await JsRuntime.InvokeVoidAsync("abortCurrentUpload");
+    }
+
+    public async Task OnClickConfirm()
+    {
         if (_isUploading) return;
-        _isUploading = true;
-        await Data.OnConfirm.Invoke();
-        Close();
+        
+        // If we have the new upload path, use JS progress upload
+        if (!string.IsNullOrEmpty(Data.UploadUrl))
+        {
+            _isUploading = true;
+            _uploadProgress = 0;
+            _uploadedBytes = 0;
+            _uploadError = null;
+            StateHasChanged();
+
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("uploadWithProgress",
+                    Data.UploadUrl,
+                    Data.Bytes,
+                    Data.Attachment.MimeType,
+                    Data.Attachment.FileName,
+                    _thisRef,
+                    Data.AuthToken);
+            }
+            catch (Exception ex)
+            {
+                _isUploading = false;
+                _uploadError = ex.Message;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            // Fallback: old method without progress
+            _isUploading = true;
+            await Data.OnConfirm.Invoke();
+            Close();
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F1} MB";
     }
 
     public void Dispose()
