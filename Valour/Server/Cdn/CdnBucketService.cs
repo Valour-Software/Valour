@@ -1,8 +1,9 @@
-﻿using Amazon.S3;
+using Amazon.S3;
 using Amazon.S3.Model;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using CloudFlare.Client;
 using CloudFlare.Client.Api.Zones;
 using Valour.Config.Configs;
@@ -169,11 +170,22 @@ public class CdnBucketService
                 await db.CdnBucketItems.AddAsync(bucketRecord);
                 await db.SaveChangesAsync();
             }
-            catch (Exception e)
+            catch (DbUpdateException)
             {
+                // Race condition: another request inserted this row between our AnyAsync check and SaveChangesAsync.
+                // Detach the failed entity so the DbContext isn't corrupted for any future operations.
+                var entry = db.Entry(bucketRecord);
+                if (entry.State == EntityState.Added)
+                    entry.State = EntityState.Detached;
+
                 if (await db.CdnBucketItems.AnyAsync(x => x.Id == id))
                     return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
 
+                _logger.LogError("DbUpdateException when adding new route to existing bucket item, and row still not found for {Id}", id);
+                return new TaskResult(false, "Critical error when adding new route to existing bucket item.");
+            }
+            catch (Exception e)
+            {
                 _logger.LogError(e, "Critical error when adding new route to existing bucket item");
                 return new TaskResult(false, "Critical error when adding new route to existing bucket item.");
             }
@@ -192,11 +204,22 @@ public class CdnBucketService
             await db.CdnBucketItems.AddAsync(bucketRecord);
             await db.SaveChangesAsync();
         }
-        catch (Exception e)
+        catch (DbUpdateException)
         {
+            // Race condition: another request inserted this row between our AnyAsync check and SaveChangesAsync.
+            // Detach the failed entity so the DbContext isn't corrupted for any future operations.
+            var entry = db.Entry(bucketRecord);
+            if (entry.State == EntityState.Added)
+                entry.State = EntityState.Detached;
+
             if (await db.CdnBucketItems.AnyAsync(x => x.Id == id))
                 return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
 
+            _logger.LogError("DbUpdateException when adding route to new bucket item, and row still not found for {Id}", id);
+            return new TaskResult(false, "Critical error when adding route to new bucket item.");
+        }
+        catch (Exception e)
+        {
             _logger.LogError(e, "Critical error when adding route to new bucket item");
             return new TaskResult(false, "Critical error when adding route to new bucket item.");
         }
