@@ -57,12 +57,14 @@ public class TokenService
         {
             // Remove expired token from cache and database
             QuickCache.Remove(key, out _);
-            var dbToken = await _db.AuthTokens.FindAsync(key);
-            if (dbToken is not null)
-            {
-                _db.AuthTokens.Remove(dbToken);
-                await _db.SaveChangesAsync();
-            }
+            
+            // Use ExecuteDeleteAsync instead of Remove+SaveChangesAsync to avoid
+            // DbUpdateConcurrencyException when multiple requests try to expire
+            // the same token concurrently.
+            await _db.AuthTokens.IgnoreQueryFilters()
+                .Where(x => x.Id == key)
+                .ExecuteDeleteAsync();
+            
             return null;
         }
 
