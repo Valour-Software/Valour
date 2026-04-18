@@ -1,4 +1,4 @@
-﻿document.addEventListener('contextmenu', event => event.preventDefault());
+document.addEventListener('contextmenu', event => event.preventDefault());
 
 window.clipboardCopy = {
     copyText: function (text) {
@@ -282,6 +282,66 @@ function getImageSize(blobUrl, ref) {
         ref.invokeMethodAsync('SetImageSize', this.width, this.height);
     }
     image.src = blobUrl;
+}
+
+// Upload with progress tracking using XMLHttpRequest
+// Called from .NET with: uploadWithProgress(url, byteArray, mimeType, fileName, dotnetRef, authToken)
+function uploadWithProgress(url, byteArray, mimeType, fileName, dotnetRef, authToken) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                dotnetRef.invokeMethodAsync('OnUploadProgress', e.loaded, e.total);
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                dotnetRef.invokeMethodAsync('OnUploadComplete', xhr.responseText);
+                resolve(xhr.responseText);
+            } else if (xhr.status === 421) {
+                dotnetRef.invokeMethodAsync('OnUploadMisdirect', xhr.responseText, xhr.status);
+                resolve(null);
+            } else {
+                dotnetRef.invokeMethodAsync('OnUploadError', `${xhr.status}: ${xhr.responseText}`);
+                reject(new Error(`${xhr.status}: ${xhr.responseText}`));
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            dotnetRef.invokeMethodAsync('OnUploadError', 'Network error during upload');
+            reject(new Error('Network error during upload'));
+        });
+
+        xhr.addEventListener('abort', () => {
+            dotnetRef.invokeMethodAsync('OnUploadCancelled');
+            reject(new Error('Upload cancelled'));
+        });
+
+        xhr.open('POST', url);
+
+        if (authToken) {
+            xhr.setRequestHeader('Authorization', authToken);
+        }
+
+        // Build FormData from the byte array
+        const blob = new Blob([byteArray], { type: mimeType || 'application/octet-stream' });
+        const formData = new FormData();
+        formData.append(fileName || 'file', blob, fileName || 'file');
+
+        xhr.send(formData);
+
+        // Store abort function so .NET can cancel
+        window._currentUploadAbort = () => xhr.abort();
+    });
+}
+
+function abortCurrentUpload() {
+    if (window._currentUploadAbort) {
+        window._currentUploadAbort();
+        window._currentUploadAbort = null;
+    }
 }
 
 /* Useful functions for layout items */

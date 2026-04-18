@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JsRuntime
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @inject ValourClient Client
 
@@ -537,16 +537,6 @@
         // Convert stream to byte array
         var bytes = new byte[data.Length];
         _ = await data.ReadAsync(bytes, 0, bytes.Length);
-        
-        var content = new MultipartFormDataContent();
-        
-        var byteContent = new ByteArrayContent(bytes);
-        if (!string.IsNullOrWhiteSpace(mime))
-        {
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
-        }
-
-        content.Add(byteContent, name, name);
 
         MessageAttachment newAttachment = new(type)
         {
@@ -555,13 +545,32 @@
             FileName = name,
         };
 
+        var uploadUrl = Client.BaseAddress + $"upload/{path}";
+        var authToken = Client.AuthService.Token;
+
         var modalData = new FileUploadComponent.ModalParams()
         {
             Bytes = bytes,
             Attachment = newAttachment,
             Message = PreviewMessage,
+            UploadUrl = uploadUrl,
+            AuthToken = authToken,
+            OnUploadSuccess = (location) =>
+            {
+                newAttachment.Location = location;
+                AddMessageAttachment(newAttachment);
+            },
             OnConfirm = async () =>
             {
+                // Fallback for old upload path (no progress)
+                var content = new MultipartFormDataContent();
+                var byteContent = new ByteArrayContent(bytes);
+                if (!string.IsNullOrWhiteSpace(mime))
+                {
+                    byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+                }
+                content.Add(byteContent, name, name);
+
                 var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{path}", content);
 
                 if (result.Success)
