@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 using Valour.Shared.Authorization;
 using Valour.Shared;
@@ -144,8 +144,13 @@ public class CoreHub : Hub
         if (channel is null)
             return new TaskResult(false, "Failed to connect to Channel: Channel was not found.");
         
-        PlanetMember member = (await _db.PlanetMembers.FirstOrDefaultAsync(
-            x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId)).ToModel();
+        var dbMember = await _db.PlanetMembers.FirstOrDefaultAsync(
+            x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId);
+        
+        if (dbMember is null)
+            return new TaskResult(false, "Failed to connect to Channel: You are not a member of this planet.");
+        
+        PlanetMember member = dbMember.ToModel();
 
         if (!await _memberService.HasPermissionAsync(member, channel.ToModel(), ChatChannelPermissions.ViewMessages))
             return new TaskResult(false, "Failed to connect to Channel: Member lacks view permissions.");
