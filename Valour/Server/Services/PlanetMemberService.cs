@@ -263,6 +263,9 @@ public class PlanetMemberService
             return true;
         }
 
+        if (member is null)
+            return false;
+
         return await _permissionService.HasChannelPermissionAsync(member, target, permission);
     }
     

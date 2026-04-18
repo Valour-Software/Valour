@@ -3,6 +3,7 @@ using StackExchange.Redis;
 using Valour.Shared.Authorization;
 using Valour.Shared;
 using Valour.Server.Hubs;
+using Valour.Shared.Models;
 
 /*  Valour (TM) - A free and secure chat client
  *  Copyright (C) 2025 Valour Software LLC
@@ -143,9 +144,15 @@ public class CoreHub : Hub
         var channel = await _db.Channels.FindAsync(channelId);
         if (channel is null)
             return new TaskResult(false, "Failed to connect to Channel: Channel was not found.");
-        
-        PlanetMember member = (await _db.PlanetMembers.FirstOrDefaultAsync(
-            x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId)).ToModel();
+
+        PlanetMember member = null;
+        if (channel.PlanetId is not null)
+        {
+            member = await _memberService.GetByUserAsync(authToken.UserId, channel.PlanetId.Value);
+
+            if (member is null && ISharedChannel.PlanetChannelTypes.Contains(channel.ChannelType))
+                return new TaskResult(false, "Failed to connect to Channel: You are not a member of this planet.");
+        }
 
         if (!await _memberService.HasPermissionAsync(member, channel.ToModel(), ChatChannelPermissions.ViewMessages))
             return new TaskResult(false, "Failed to connect to Channel: Member lacks view permissions.");

@@ -514,6 +514,9 @@ public class PlanetPermissionService
 
     private async ValueTask<long> GetPlanetPermissionsAsync(ISharedPlanetMember member)
     {
+        if (member is null)
+            return 0;
+
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
         if (member.UserId == hostedPlanet.Planet.OwnerId)
             return Permission.FULL_CONTROL;
@@ -546,6 +549,9 @@ public class PlanetPermissionService
     public async ValueTask<bool> HasChannelPermissionAsync(ISharedPlanetMember member, ISharedChannel channel,
         ChannelPermission permission)
     {
+        if (member is null || channel is null)
+            return false;
+
         var perms = await GetChannelPermissionsAsync(member, channel, permission.TargetType);
         return Permission.HasPermission(perms, permission);
     }
@@ -553,6 +559,9 @@ public class PlanetPermissionService
     public async ValueTask<long> GetChannelPermissionsAsync(ISharedPlanetMember member, ISharedChannel channel,
         ChannelTypeEnum targetType)
     {
+        if (member is null || channel is null || channel.PlanetId is null)
+            return 0;
+
         var hosted = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);
         if (member.UserId == hosted.Planet.OwnerId)
             return Permission.FULL_CONTROL;
