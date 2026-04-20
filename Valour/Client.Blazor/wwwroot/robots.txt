@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /account/
+Disallow: /settings/
+
+Sitemap: https://valour.gg/sitemap.xml
