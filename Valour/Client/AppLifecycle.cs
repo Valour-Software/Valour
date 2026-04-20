@@ -7,6 +7,7 @@ namespace Valour.Client;
 public static class AppLifecycle
 {
     public static event Action? Resumed;
+    public static event Action? Backgrounded;
 
     /// <summary>
     /// Fired when a voice call begins. Platform projects can subscribe to start
@@ -20,6 +21,7 @@ public static class AppLifecycle
     public static event Action? CallEnded;
 
     public static void NotifyResumed() => Resumed?.Invoke();
+    public static void NotifyBackground() => Backgrounded?.Invoke();
     public static void NotifyCallStarted() => CallStarted?.Invoke();
     public static void NotifyCallEnded() => CallEnded?.Invoke();
 }
