@@ -457,87 +457,97 @@
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
-
-        var file = e.File;
-        var maxBytes = UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType);
-        var maxSize = (int)Math.Min(maxBytes, int.MaxValue);
-
-        var attachmentType = MessageAttachmentType.File;
-
-        // Determine if audio or video or image
-
-        var mime = file.ContentType;
-        var uploadPath = "file";
-
-        // We only actually need to check the first letter,
-        // since only 'image/' starts with i
-        if (mime[0] == 'i')
+        try
         {
-            // Ensure that the mime type is supported by ImageSharp processing
-            if (CdnUtils.ImageSharpSupported.Contains(mime))
+            var file = e.File;
+            var maxBytes = UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType);
+            var maxSize = (int)Math.Min(maxBytes, int.MaxValue);
+
+            var attachmentType = MessageAttachmentType.File;
+
+            // Determine if audio or video or image
+
+            var mime = file.ContentType;
+            var uploadPath = "file";
+
+            // We only actually need to check the first letter,
+            // since only 'image/' starts with i
+            if (mime[0] == 'i')
             {
-                attachmentType = MessageAttachmentType.Image;
-                uploadPath = "image";
-            }
-        }
-        // Same thing here - only 'video/' starts with v
-        else if (mime[0] == 'v')
-        {
-            attachmentType = MessageAttachmentType.Video;
-        }
-        // Unfortunately 'audio/' and 'application/' both start with 'a'
-        else if (mime[0] == 'a' && mime[1] == 'u')
-        {
-            attachmentType = MessageAttachmentType.Audio;
-        }
-        
-        Console.WriteLine($"Selected file {file.Name} with size {file.Size}");
-        
-        if (file.Size > maxSize)
-        {
-            
-            // Special case for images: ability to compress!
-            if (attachmentType == MessageAttachmentType.Image)
-            {
-                var data = new CompressComponent.ModalParams()
+                // Ensure that the mime type is supported by ImageSharp processing
+                if (CdnUtils.ImageSharpSupported.Contains(mime))
                 {
-                    File = file,
-                    Input = this,
-                };
-                
-                ModalRoot.OpenModal<CompressComponent>(data);
-
-                return;
+                    attachmentType = MessageAttachmentType.Image;
+                    uploadPath = "image";
+                }
             }
-            else
+            // Same thing here - only 'video/' starts with v
+            else if (mime[0] == 'v')
             {
-                var data = 
-                new InfoModalComponent.ModalParams(
-                    $"File too large!",
-                    Client.Me.SubscriptionType is null
-                        ? "The max upload size is 10MB. To raise this limit, consider subscribing!"
-                        : $"Your max upload size is {maxBytes / (1024 * 1024)}MB.",
-                    "Okay",
-                    null
-                );
-                
-                ModalRoot.OpenModal<InfoModalComponent>(data);
-                return;
+                attachmentType = MessageAttachmentType.Video;
             }
-        }
-        
-        await ShowUploadMenu(file.OpenReadStream(maxSize), (int)file.Size, attachmentType, file.ContentType, file.Name, uploadPath);
+            // Unfortunately 'audio/' and 'application/' both start with 'a'
+            else if (mime[0] == 'a' && mime[1] == 'u')
+            {
+                attachmentType = MessageAttachmentType.Audio;
+            }
+            
+            Console.WriteLine($"[Upload] Selected file {file.Name} with size {file.Size}, type {attachmentType}");
+            
+            if (file.Size > maxSize)
+            {
+                // Special case for images: ability to compress!
+                if (attachmentType == MessageAttachmentType.Image)
+                {
+                    var data = new CompressComponent.ModalParams()
+                    {
+                        File = file,
+                        Input = this,
+                    };
+                    
+                    ModalRoot.OpenModal<CompressComponent>(data);
 
-        Refresh();
+                    return;
+                }
+                else
+                {
+                    var data = 
+                    new InfoModalComponent.ModalParams(
+                        $"File too large!",
+                        Client.Me.SubscriptionType is null
+                            ? "The max upload size is 10MB. To raise this limit, consider subscribing!"
+                            : $"Your max upload size is {maxBytes / (1024 * 1024)}MB.",
+                        "Okay",
+                        null
+                    );
+                    
+                    ModalRoot.OpenModal<InfoModalComponent>(data);
+                    return;
+                }
+            }
+            
+            Console.WriteLine($"[Upload] Opening stream for {file.Name}...");
+            await ShowUploadMenu(file.OpenReadStream(maxSize), (int)file.Size, attachmentType, file.ContentType, file.Name, uploadPath);
+            Console.WriteLine($"[Upload] ShowUploadMenu completed for {file.Name}");
+
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Upload] ERROR in LoadFiles: {ex.Message}\n{ex.StackTrace}");
+        }
     }
 
     public async Task ShowUploadMenu(Stream data, int dataLength, MessageAttachmentType type, string mime, string name, string path)
     {
+        Console.WriteLine($"[Upload] ShowUploadMenu called: {name}, {dataLength} bytes, type={type}, path={path}");
+        
         // Convert stream to byte array
         using var ms = new MemoryStream();
         await data.CopyToAsync(ms);
         var bytes = ms.ToArray();
+        
+        Console.WriteLine($"[Upload] Stream copied, {bytes.Length} bytes read");
 
         MessageAttachment newAttachment = new(type)
         {
@@ -586,7 +596,9 @@
             }
         };
         
+        Console.WriteLine($"[Upload] Opening FileUploadComponent modal, bytes={bytes.Length}, url={uploadUrl}");
         ModalRoot.OpenModal<FileUploadComponent>(modalData);
+        Console.WriteLine($"[Upload] Modal open called");
     }
 
     public void RemoveAttachment(int id)

@@ -86,7 +86,7 @@
     border-radius: 0;
     border-left: 2px solid var(--v-cyan);
     width: 7px;
-    height: 100%;
+    height: calc(100% - 14px);
     position: absolute;
     left: 15px;
     top: 0;
