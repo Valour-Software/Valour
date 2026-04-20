@@ -166,7 +166,7 @@ public class UploadApi
     };
 
     [FileUploadOperation.FileContentType]
-    [RequestSizeLimit(10240000)]
+    [RequestSizeLimit(20_971_520)] // 20 MB
     private static async Task<IResult> AvatarImageRoute(
         HttpContext ctx, 
         ValourDb valourDb, 
