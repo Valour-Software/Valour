@@ -527,16 +527,17 @@
             }
         }
         
-        await ShowUploadMenu(file.OpenReadStream(maxSize), attachmentType, file.ContentType, file.Name, uploadPath);
+        await ShowUploadMenu(file.OpenReadStream(maxSize), (int)file.Size, attachmentType, file.ContentType, file.Name, uploadPath);
 
         Refresh();
     }
 
-    public async Task ShowUploadMenu(Stream data, MessageAttachmentType type, string mime, string name, string path)
+    public async Task ShowUploadMenu(Stream data, int dataLength, MessageAttachmentType type, string mime, string name, string path)
     {
         // Convert stream to byte array
-        var bytes = new byte[data.Length];
-        _ = await data.ReadAsync(bytes, 0, bytes.Length);
+        using var ms = new MemoryStream();
+        await data.CopyToAsync(ms);
+        var bytes = ms.ToArray();
 
         MessageAttachment newAttachment = new(type)
         {
