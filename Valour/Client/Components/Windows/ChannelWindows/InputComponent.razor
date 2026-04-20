@@ -28,25 +28,25 @@
         }
     </div>
 
+    <div class="upload-menu" style="@_uploadMenuStyle">
+        <div class="content tenor" @onmousedown:stopPropagation="true">
+            <label class="button upload-label" style="display: block; text-align: center; cursor: pointer;">
+                Upload a File
+                <InputFile @ref="_inputFileRef" style="display: none" OnChange="LoadFiles"></InputFile>
+            </label>
+            <button class="button tenor" @onmousedown="@ShowTenorMenu">
+                Gifs via Tenor
+            </button>
+            <button class="button" @onmousedown="@OnClickSendCurrency">
+                Send Currency
+            </button>
+        </div>
+        <div class="carrot"></div>
+    </div>
+
     @if (!_loading)
     {
         <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
-
-        <div class="upload-menu" style="@_uploadMenuStyle">
-            <div class="content tenor" @onmousedown:stopPropagation="true">
-                <label class="button upload-label" style="display: block; text-align: center; cursor: pointer;">
-                    Upload a File
-                    <InputFile @ref="_inputFileRef" style="display: none" OnChange="LoadFiles"></InputFile>
-                </label>
-                <button class="button tenor" @onmousedown="@ShowTenorMenu">
-                    Gifs via Tenor
-                </button>
-                <button class="button" @onmousedown="@OnClickSendCurrency">
-                    Send Currency
-                </button>
-            </div>
-            <div class="carrot"></div>
-        </div>
         
         <div style="position: relative">
             <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
