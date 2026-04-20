@@ -34,10 +34,10 @@
 
         <div class="upload-menu" style="@_uploadMenuStyle">
             <div class="content tenor" @onmousedown:stopPropagation="true">
-                @* Somewhat creative way to call main upload element *@
-                <button class="button" @onmousedown="@OnClickUploadAsync">
+                @* Using label to click the hidden InputFile — more reliable than JS interop click() *@
+                <label for="upload-core" class="button upload-label">
                     Upload a File
-                </button>
+                </label>
                 <button class="button tenor" @onmousedown="@ShowTenorMenu">
                     Gifs via Tenor
                 </button>

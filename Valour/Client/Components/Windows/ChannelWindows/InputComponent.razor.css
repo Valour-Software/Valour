@@ -1,4 +1,4 @@
-﻿.channel-footer {
+.channel-footer {
     
 }
 
@@ -199,6 +199,11 @@
 
 .upload-menu .button:hover {
     background-color: var(--main-5);
+}
+
+.upload-label {
+    display: block;
+    text-align: center;
 }
 
 .upload-menu .carrot {
