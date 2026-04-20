@@ -58,7 +58,7 @@
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
-            <InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <InputFile id="upload-core" @ref="_inputFileRef" style="width: 1px; height: 1px; opacity: 0; position: absolute; overflow: hidden;" OnChange="LoadFiles"></InputFile>
             
             <div class="textbox-wrapper">
                 <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.WindowCtx.Id').focus()" autofocus>
