@@ -32,7 +32,7 @@
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
-  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('windows'))">
+  <PropertyGroup Condition="!$([MSBuild]::IsOSPlatform('windows')) and '$(EnableTypeScriptNuGetTarget)' == 'true'">
     <PrepareForBuildDependsOn>GetTypeScriptOutputForPublishing;$(PrepareForBuildDependsOn)</PrepareForBuildDependsOn>
   </PropertyGroup>
 
