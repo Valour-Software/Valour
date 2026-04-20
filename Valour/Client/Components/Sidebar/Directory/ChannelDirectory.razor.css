@@ -82,33 +82,6 @@
     top: -5px;
 }
 
-::deep .path.str {
-    border-radius: 0;
-    border-left: 2px solid var(--v-cyan);
-    width: 7px;
-    height: calc(100% - 14px);
-    position: absolute;
-    left: 15px;
-    top: 0;
-    border-bottom: 0;
-}
-
-::deep .path.str[depth="2"] {
-    border-color: var(--p-cyan);
-}
-
-::deep .path.str[depth="3"] {
-    border-color: var(--p-cyan-purple);
-}
-
-::deep .path.str[depth="4"] {
-    border-color: var(--p-purple);
-}
-
-::deep .path.str[depth="5"] {
-    border-color: var(--p-red);
-}
-
 ::deep .channel.nested .path[depth="2"] {
     border-color: var(--p-cyan);
 }
@@ -249,6 +222,49 @@
 
 ::deep .sub-list {
     position: relative;
+}
+
+::deep .direct-children {
+    position: relative;
+}
+
+::deep .tree-row {
+    position: relative;
+}
+
+::deep .tree-row::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px solid var(--v-cyan);
+}
+
+::deep .tree-row[depth="2"]::before,
+::deep .tree-row.last[depth="2"]::before {
+    border-color: var(--p-cyan);
+}
+
+::deep .tree-row[depth="3"]::before,
+::deep .tree-row.last[depth="3"]::before {
+    border-color: var(--p-cyan-purple);
+}
+
+::deep .tree-row[depth="4"]::before,
+::deep .tree-row.last[depth="4"]::before {
+    border-color: var(--p-purple);
+}
+
+::deep .tree-row[depth="5"]::before,
+::deep .tree-row.last[depth="5"]::before {
+    border-color: var(--p-red);
+}
+
+::deep .tree-row.last::before {
+    bottom: auto;
+    height: 14px;
 }
 
 /* Icons */

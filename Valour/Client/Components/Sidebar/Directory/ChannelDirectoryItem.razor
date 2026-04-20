@@ -145,17 +145,18 @@
                 if (_children.Count > 0)
                 {
                     <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
-                        <div class="path str" depth="@(Depth + 1)"></div>
-                        
                         @for (int i = 0; i < _children.Count; i++)
                         {
                             var ii = i;
                             var child = _children[ii];
+                            var isLast = (i == _children.Count - 1);
                             
-                            <ChannelDirectoryItem @key="@child.Id"
-                                             PlanetComponent="@PlanetComponent"
-                                             ParentComponent="@this"
-                                             Channel="@child" />
+                            <div class="tree-row @(isLast ? "last" : "")" depth="@(Depth + 1)">
+                                <ChannelDirectoryItem @key="@child.Id"
+                                                 PlanetComponent="@PlanetComponent"
+                                                 ParentComponent="@this"
+                                                 Channel="@child" />
+                            </div>
                         }
                     </div>
                 }
