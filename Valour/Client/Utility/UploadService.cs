@@ -36,7 +36,7 @@ public class UploadService : IAsyncDisposable
         CancellationToken cancellationToken = default)
     {
         // Lazy-load the JS module on first use
-        _module ??= await _js.InvokeAsync<IJSObjectReference>("import", "./ts/UploadService.js");
+        _module ??= await _js.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/ts/UploadService.js");
 
         // If there's a previous upload running, cancel it
         CancelCurrent();
