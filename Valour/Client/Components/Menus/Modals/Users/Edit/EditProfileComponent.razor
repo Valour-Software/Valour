@@ -447,15 +447,15 @@
     {
         var file = e.File;
 
-        if (file.Size > 10240000)
+        if (file.Size > 20971520)
         {
-            _pfpChangeResult = new TaskResult(false, "Max profile image size is 10mb.");
+            _pfpChangeResult = new TaskResult(false, "Max profile image size is 20mb.");
             StateHasChanged();
             return;
         }
 
         using var ms = new MemoryStream();
-        await file.OpenReadStream(10240000).CopyToAsync(ms);
+        await file.OpenReadStream(20971520).CopyToAsync(ms);
         _pendingImageType = file.ContentType;
         _cropDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
 
