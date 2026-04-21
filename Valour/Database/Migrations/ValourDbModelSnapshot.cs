@@ -452,12 +452,6 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("plural_name");
 
-                    b.Property<uint>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
-
                     b.Property<string>("ShortCode")
                         .HasColumnType("text")
                         .HasColumnName("short_code");
@@ -503,12 +497,6 @@ namespace Valour.Database.Migrations
                     b.Property<long?>("PlanetMemberId")
                         .HasColumnType("bigint")
                         .HasColumnName("planet_member_id");
-
-                    b.Property<uint>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint")

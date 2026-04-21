@@ -62,5 +62,6 @@ public class Currency : ISharedCurrency
     /// Column to protect from concurrency errors
     /// </summary>
     [Timestamp]
+    [NotMapped]
     public uint RowVersion { get; set; }
 }
