@@ -7,12 +7,24 @@ export function init() {
             return existingSubscription !== null;
         },
         getPermissionState: () => {
+            if (typeof Notification === 'undefined') return 'denied';
             return Notification.permission;
         },
         askForPermission: async () => {
+            if (typeof Notification === 'undefined') return 'denied';
             return await Notification.requestPermission();
         },
         requestSubscription: async () => {
+            if (typeof Notification === 'undefined') {
+                return { success: false, error: 'Notifications not supported' };
+            }
+            if (!navigator.serviceWorker) {
+                return { success: false, error: 'Service workers not supported' };
+            }
+            const registration = await navigator.serviceWorker.ready;
+            if (!registration?.pushManager) {
+                return { success: false, error: 'Push not supported' };
+            }
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
                 return {
@@ -20,7 +32,6 @@ export function init() {
                     error: 'Permission denied'
                 };
             }
-            const registration = await navigator.serviceWorker.ready;
             const existingSubscription = await registration.pushManager.getSubscription();
             try {
                 if (existingSubscription) {
@@ -56,7 +67,13 @@ export function init() {
             }
         },
         getSubscription: async () => {
+            if (!navigator.serviceWorker) {
+                return { success: false, error: 'Service workers not supported' };
+            }
             const registration = await navigator.serviceWorker.ready;
+            if (!registration?.pushManager) {
+                return { success: false, error: 'Push not supported' };
+            }
             const existingSubscription = await registration.pushManager.getSubscription();
             if (existingSubscription) {
                 return {
@@ -76,7 +93,9 @@ export function init() {
             }
         },
         unsubscribe: async () => {
+            if (!navigator.serviceWorker) return;
             const registration = await navigator.serviceWorker.ready;
+            if (!registration?.pushManager) return;
             const existingSubscription = await registration.pushManager.getSubscription();
             if (existingSubscription) {
                 await existingSubscription.unsubscribe();
