@@ -166,7 +166,6 @@ export function init(dotnet, inputEl) {
                 }
             }
         },
-        openUploadFile: (uploadEl) => uploadEl.click(),
         focus: () => {
             ctx.inputEl.focus();
             setTimeout(() => ctx.inputEl.focus(), 0);

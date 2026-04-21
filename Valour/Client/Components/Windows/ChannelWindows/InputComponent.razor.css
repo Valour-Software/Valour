@@ -162,10 +162,18 @@
 }
 
 /* Pop-up upload menu */
+.upload-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 40;
+}
+
 .upload-menu {
     position: absolute;
     bottom: 35px;
     right: 0;
+    z-index: 41;
 }
 
 .mobile .upload-menu {
@@ -179,6 +187,8 @@
     padding: 5px;
     display: flex;
     flex-direction: column;
+    min-width: 170px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .upload-menu .button {
@@ -187,6 +197,14 @@
     border: none;
     padding: 8px;
     background-color: var(--main-1);
+    width: 100%;
+    text-align: center;
+    font: inherit;
+    line-height: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    position: relative;
 }
 
 .upload-menu .content .button:first-child {
@@ -199,11 +217,6 @@
 
 .upload-menu .button:hover {
     background-color: var(--main-5);
-}
-
-.upload-label {
-    display: block;
-    text-align: center;
 }
 
 .upload-menu .carrot {
