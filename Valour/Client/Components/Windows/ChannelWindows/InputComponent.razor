@@ -10,7 +10,7 @@
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
 
-<InputFile id="upload-core" @ref="_inputFileRef" style="width: 1px; height: 1px; opacity: 0; position: absolute; overflow: hidden;" OnChange="LoadFiles"></InputFile>
+<InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")' style="@(_loading ? "pointer-events: none; opacity: 0.8" : string.Empty)">
     <div class="preview-message">
@@ -30,25 +30,24 @@
         }
     </div>
 
-    <div class="upload-menu" style="@_uploadMenuStyle">
-        <div class="content tenor" @onmousedown:stopPropagation="true">
-            <label class="button upload-label" style="display: block; text-align: center; cursor: pointer;">
-                Upload a File
-                <InputFile @ref="_inputFileRef" style="display: none" OnChange="LoadFiles"></InputFile>
-            </label>
-            <button class="button tenor" @onmousedown="@ShowTenorMenu">
-                Gifs via Tenor
-            </button>
-            <button class="button" @onmousedown="@OnClickSendCurrency">
-                Send Currency
-            </button>
-        </div>
-        <div class="carrot"></div>
-    </div>
-
     @if (!_loading)
     {
         <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
+
+        <div class="upload-menu" style="@_uploadMenuStyle">
+            <div class="content tenor" @onmousedown:stopPropagation="true">
+                <button class="button" @onmousedown="@OnClickUploadAsync">
+                    Upload a File
+                </button>
+                <button class="button tenor" @onmousedown="@ShowTenorMenu">
+                    Gifs via Tenor
+                </button>
+                <button class="button" @onmousedown="@OnClickSendCurrency">
+                    Send Currency
+                </button>
+            </div>
+            <div class="carrot"></div>
+        </div>
         
         <div style="position: relative">
             <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
