@@ -57,7 +57,9 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
     }
     
     function onUploadButtonClick(e) {
+        e.preventDefault();
         inputFile.click();
+        console.log("Upload button clicked, opening file picker");
     }
 
     // Register all events
@@ -67,6 +69,8 @@ function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement)
     dropZoneElement.addEventListener("drop", onDrop);
     dropZoneElement.addEventListener('paste', onPaste);
     uploadButtonElement.addEventListener('click', onUploadButtonClick);
+    
+    console.log("File drop zone initialized");
 
     // The returned object allows to unregister the events when the Blazor component is destroyed
     return {
