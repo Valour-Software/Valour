@@ -2,9 +2,7 @@ const publicKey = 'BBySvfFjJ4IihseXSujDGj4MsAd3ZAwDwy1Q2XxnMY6V3rCXjuqwm3utGvACA
 export function init() {
     return {
         notificationsEnabled: async () => {
-            if (!navigator.serviceWorker) return false;
             const registration = await navigator.serviceWorker.ready;
-            if (!registration?.pushManager) return false;
             const existingSubscription = await registration.pushManager.getSubscription();
             return existingSubscription !== null;
         },

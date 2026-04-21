@@ -113,10 +113,18 @@ else
                         {"Message", _message}
                     };
 
+                    if (attachment.Type == MessageAttachmentType.Image)
+                    {
+                        par["Clickable"] = !_ghost;
+                    }
+
                     <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
                         @if (_ghost && !_isInnerReply)
                         {
-                            <div class="attachment-x">x</div>
+                            <button type="button" class="attachment-remove-btn" title="Remove attachment" aria-label="Remove attachment"
+                                    @onclick="() => OnRemoveAttachmentClick(id)" @onclick:stopPropagation="true">
+                                <img src="_content/Valour.Client/media/Trash-Can-Icon.svg" alt="" />
+                            </button>
                         }
                         <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
                     </div>
@@ -563,11 +571,15 @@ else
 
     public void OnClickAttachment(int id)
     {
-        if (_ghost)
-        {
-            var input = _chat.InputComponent;
-            input.RemoveAttachment(id);
-        }
+        if (_ghost) return;
+    }
+
+    public void OnRemoveAttachmentClick(int id)
+    {
+        if (!_ghost) return;
+
+        var input = _chat.InputComponent;
+        input.RemoveAttachment(id);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

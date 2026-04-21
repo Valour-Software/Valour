@@ -63,6 +63,8 @@
     line-height: 24px;
     cursor: pointer;
     user-select: none;
+    display: block;
+    object-fit: contain;
 }
 
 .no-perms .upload {
@@ -172,7 +174,7 @@
 .upload-menu {
     position: absolute;
     bottom: 35px;
-    right: 0;
+    right: 7px;
     z-index: 41;
 }
 
@@ -187,7 +189,6 @@
     padding: 5px;
     display: flex;
     flex-direction: column;
-    min-width: 170px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -198,13 +199,24 @@
     padding: 8px;
     background-color: var(--main-1);
     width: 100%;
-    text-align: center;
+    text-align: left;
     font: inherit;
     line-height: inherit;
     appearance: none;
     -webkit-appearance: none;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     position: relative;
+}
+
+.upload-menu .button .menu-icon {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    display: block;
+    margin-top: 1px;
 }
 
 .upload-menu .content .button:first-child {
@@ -225,19 +237,21 @@
     border-left: 10px solid transparent;
     border-right: 10px solid transparent;
     border-top: 10px solid var(--main-1);
-    margin-left: 55px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .emoji-button {
     background: transparent;
     border: none;
     outline: none;
-    filter: grayscale(1);
     padding: 0;
+    opacity: 0.9;
 }
 
 .emoji-button:hover {
-    filter: grayscale(0);
+    opacity: 1;
     animation: spin 1s infinite ease-in-out;
 }
 
@@ -250,8 +264,10 @@
     }
 }
 
-.emoji-button img {
+.emoji-icon {
+    width: 30px;
+    height: 30px;
     pointer-events: none;
-    width: 28px;
-    height: 28px;
+    display: block;
+    object-fit: contain;
 }

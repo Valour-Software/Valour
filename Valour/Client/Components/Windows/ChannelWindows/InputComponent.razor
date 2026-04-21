@@ -41,13 +41,16 @@
     <div class="upload-menu" style="@UploadMenuStyle" @onclick:stopPropagation="true">
         <div class="content tenor">
             <button type="button" class="button" @ref="_uploadMenuFileButton">
-                Upload a File
+                <img class="menu-icon" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="" />
+                <span>Upload</span>
             </button>
             <button type="button" class="button tenor" @onclick="@ShowTenorMenu">
-                Gifs via Tenor
+                <img class="menu-icon" src="_content/Valour.Client/media/Gif-Icon.svg" alt="" />
+                <span>Gifs</span>
             </button>
             <button type="button" class="button" @onclick="@OnClickSendCurrency">
-                Send Currency
+                <img class="menu-icon" src="_content/Valour.Client/media/Pay-Icon.svg" alt="" />
+                <span>Pay</span>
             </button>
         </div>
         <div class="carrot"></div>
@@ -77,11 +80,11 @@
         </div>
         
         <button type="button" tabindex="0" class="upload-btn" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
-            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
+            <img class="upload" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="Attach File"/>
         </button>
         
         <button id="emoji-button" class="emoji-button" @onclick="@ToggleEmojis">
-            <img alt="Smiling face emoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/72x72/1f604.png" />
+            <img class="emoji-icon" alt="Open emoji picker" src="_content/Valour.Client/media/Emoji-Icon.svg" />
         </button>
         
         @if (DeviceInfo.IsMobile && CanUserPost){
