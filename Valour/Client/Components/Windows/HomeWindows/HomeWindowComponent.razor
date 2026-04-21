@@ -2,11 +2,7 @@
 @inject ValourClient Client
 @inject PlanetService PlanetService
 @inject FriendService FriendService
-@inject ChannelService ChannelService
-@inject UserService UserService
-@inject ChannelStateService ChannelStateService
 @inject UnreadService UnreadService
-@inject NotificationService NotificationService
 
 <div class="inner-window @_mobileTag">
 
@@ -67,25 +63,9 @@
             @* --- Direct Messages --- *@
             <div class="tab-scroll">
                 <div class="row-list">
-                    @if (_filteredDms.Count == 0)
-                    {
-                        <div class="empty-state">
-                            <i class="bi bi-chat-dots"></i>
-                            <span>@(string.IsNullOrWhiteSpace(_filterText) ? "No conversations yet" : "No results")</span>
-                        </div>
-                    }
-                    else
-                    {
-                        @foreach (var dm in _filteredDms)
-                        {
-                            <DirectMessageRowComponent @key='"dm-" + dm.Channel.Id'
-                                                       Channel="dm.Channel"
-                                                       OtherUser="dm.OtherUser"
-                                                       IsUnread="dm.IsUnread"
-                                                       Notifications="dm.Notifications"
-                                                       WindowCtx="WindowCtx" />
-                        }
-                    }
+                    <DirectMessageVirtualListComponent @ref="_dmList"
+                                                       FilterText="@_filterText"
+                                                       WindowCtx="@WindowCtx" />
                 </div>
             </div>
         </TabTwo>
@@ -144,22 +124,11 @@
     private HomeViewMode _viewMode = HomeViewMode.Cards;
     private int? _incomingFriendRequests;
     private string _filterText;
+    private DirectMessageVirtualListComponent _dmList;
 
     // Filtered lists
     private IEnumerable<Planet> _filteredPlanets => FilterPlanets();
-    private List<DmRenderInfo> _filteredDms => FilterDms();
     private IEnumerable<User> _filteredFriends => FilterFriends();
-
-    // DM state
-    private class DmRenderInfo
-    {
-        public Channel Channel { get; set; }
-        public User OtherUser { get; set; }
-        public bool IsUnread { get; set; }
-        public int Notifications { get; set; }
-    }
-
-    private List<DmRenderInfo> _dmRenderList = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,36 +142,8 @@
 
         var unreadPlanetsTask = FetchAndRerenderPlanetsAsync();
         var unreadDirectChannelsTask = FetchAndRerenderDirectChannelsAsync();
-        var dmLoadTask = LoadDmsAsync();
 
-        await Task.WhenAll(unreadPlanetsTask, unreadDirectChannelsTask, dmLoadTask);
-    }
-
-    private async Task LoadDmsAsync()
-    {
-        var dmList = new List<DmRenderInfo>();
-
-        foreach (var channel in ChannelService.DirectChatChannels)
-        {
-            var otherMember = channel.Members?.FirstOrDefault(m => m.UserId != Client.Me.Id);
-            if (otherMember is null)
-                continue;
-
-            var user = await UserService.FetchUserAsync(otherMember.UserId);
-            if (user is null)
-                continue;
-
-            dmList.Add(new DmRenderInfo
-            {
-                Channel = channel,
-                OtherUser = user,
-                IsUnread = UnreadService.IsChannelUnread(null, channel.Id),
-                Notifications = NotificationService.GetChannelNotifications(channel.Id)
-            });
-        }
-
-        _dmRenderList = dmList.OrderByDescending(d => d.Channel.LastUpdateTime).ToList();
-        ReRender();
+        await Task.WhenAll(unreadPlanetsTask, unreadDirectChannelsTask);
     }
 
     private async Task FetchAndRerenderPlanetsAsync()
@@ -222,12 +163,8 @@
         if (OnRerenderFriendCards is not null)
             await OnRerenderFriendCards.Invoke();
 
-        // Refresh DM unread state
-        foreach (var dm in _dmRenderList)
-        {
-            dm.IsUnread = UnreadService.IsChannelUnread(null, dm.Channel.Id);
-            dm.Notifications = NotificationService.GetChannelNotifications(dm.Channel.Id);
-        }
+        if (_dmList is not null)
+            await _dmList.RefreshAsync();
 
         ReRender();
     }
@@ -262,16 +199,6 @@
 
         return PlanetService.JoinedPlanets
             .Where(p => p.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private List<DmRenderInfo> FilterDms()
-    {
-        if (string.IsNullOrWhiteSpace(_filterText))
-            return _dmRenderList;
-
-        return _dmRenderList
-            .Where(d => d.OtherUser.Name.Contains(_filterText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
     }
 
     private IEnumerable<User> FilterFriends()

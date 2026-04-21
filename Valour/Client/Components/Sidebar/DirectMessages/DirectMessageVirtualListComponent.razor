@@ -1,0 +1,151 @@
+@inject ChannelService ChannelService
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
+
+<InfiniteScroll TItem="DirectMessageListItem"
+                Items="_items"
+                HasLoaded="_hasLoaded"
+                HasMore="_hasMore"
+                IsLoading="_loading"
+                ErrorMessage="@_loadError"
+                OnLoadMore="LoadNextPageAsync">
+    <ItemTemplate Context="item">
+        <DirectMessageRowComponent @key="item.Channel.Id"
+                                   Channel="item.Channel"
+                                   OtherUser="item.OtherUser"
+                                   IsUnread="UnreadService.IsChannelUnread(null, item.Channel.Id)"
+                                   Notifications="NotificationService.GetChannelNotifications(item.Channel.Id)"
+                                   WindowCtx="WindowCtx"
+                                   CloseSidebarOnSelect="CloseSidebarOnSelect" />
+    </ItemTemplate>
+    <EmptyContent>
+        <div class="empty-state">
+            @if (string.IsNullOrWhiteSpace(_normalizedFilterText))
+            {
+                <i class="bi bi-chat-dots"></i>
+                <span>No conversations yet</span>
+            }
+            else
+            {
+                <span>No results</span>
+            }
+        </div>
+    </EmptyContent>
+    <LoadingContent>
+        <div class="dm-load-state">
+            @(_items.Count == 0 ? "Loading conversations..." : "Loading more...")
+        </div>
+    </LoadingContent>
+    <ErrorContent Context="message">
+        <div class="empty-state">
+            <span>@message</span>
+        </div>
+    </ErrorContent>
+</InfiniteScroll>
+
+@code {
+    private const int PageSize = 40;
+
+    [Parameter]
+    public string FilterText { get; set; }
+
+    [Parameter]
+    public WindowContent WindowCtx { get; set; }
+
+    [Parameter]
+    public bool CloseSidebarOnSelect { get; set; }
+
+    private readonly List<DirectMessageListItem> _items = new();
+    private readonly HashSet<long> _itemIds = new();
+
+    private bool _hasLoaded;
+    private bool _hasMore = true;
+    private bool _loading;
+    private int _nextSkip;
+    private int _totalCount;
+    private string _loadError;
+    private string _normalizedFilterText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _normalizedFilterText = NormalizeFilter(FilterText);
+        await ReloadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var normalized = NormalizeFilter(FilterText);
+        if (_normalizedFilterText == normalized)
+            return;
+
+        _normalizedFilterText = normalized;
+        await ReloadAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _items.Clear();
+        _itemIds.Clear();
+        _nextSkip = 0;
+        _totalCount = 0;
+        _hasMore = true;
+        _hasLoaded = false;
+        _loadError = null;
+
+        await LoadNextPageAsync();
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        if (_loading || !_hasMore)
+            return;
+
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await ChannelService.QueryDirectMessageListAsync(_nextSkip, PageSize, _normalizedFilterText);
+
+            _hasLoaded = true;
+            _totalCount = response.TotalCount;
+            _loadError = null;
+
+            foreach (var item in response.Items)
+            {
+                if (item?.Channel is null || !_itemIds.Add(item.Channel.Id))
+                    continue;
+
+                _items.Add(item);
+            }
+
+            _nextSkip += response.Items.Count;
+            _hasMore = _items.Count < _totalCount && response.Items.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            _hasLoaded = true;
+            _hasMore = false;
+            _loadError = string.IsNullOrWhiteSpace(ex.Message)
+                ? "Couldn't load conversations"
+                : ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string NormalizeFilter(string filterText)
+    {
+        return string.IsNullOrWhiteSpace(filterText)
+            ? null
+            : filterText.Trim();
+    }
+}

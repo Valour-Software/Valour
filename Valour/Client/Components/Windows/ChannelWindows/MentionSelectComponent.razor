@@ -161,7 +161,8 @@
                 else
                 {
                     // Get members which may match
-                    var members = ChannelComponent.Channel.Planet.Members.Where(x => x.Name.ToLower().Contains(Text))
+                    var members = ChannelComponent.Channel.Planet.Members
+                                     .Where(x => x.Id != long.MaxValue && x.Name.ToLower().Contains(Text))
                                      .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                                      .ThenBy(x => x.Name.Length)
                                      .Take(10)

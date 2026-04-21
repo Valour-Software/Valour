@@ -231,6 +231,20 @@ public class ChannelApi
         return Results.Json(channels);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/channels/direct/self/query")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> QueryDirectRouteAsync(
+        ChannelService channelService,
+        TokenService tokenService,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 50,
+        [FromQuery] string? search = null)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        var result = await channelService.QueryDirectMessagesAsync(token.UserId, skip, take, search);
+        return Results.Json(result);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/{planetId}/channels/{channelId}/children")]
     [UserRequired]
     public static async Task<IResult> GetChildrenAsync(
