@@ -15,6 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.2" />
+    <PackageReference Include="Aspire.StackExchange.Redis" Version="13.1.2" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.18.5" />
     <PackageReference Include="CloudFlare.Client" Version="8.0.0" />
     <PackageReference Include="ExCSS" Version="4.3.1" />
@@ -48,6 +50,7 @@
     <ProjectReference Include="..\Client\Valour.Client.csproj" />
     <ProjectReference Include="..\Database\Valour.Database.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
+    <ProjectReference Include="..\..\Valour.ServiceDefaults\Valour.ServiceDefaults.csproj" />
   </ItemGroup>
 
 
