@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JsRuntime
+@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @inject ValourClient Client
 
@@ -9,6 +9,8 @@
 @using Valour.Shared.Models
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
+
+<InputFile id="@DropUploadInputId" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" onclick="this.value='';" OnChange="@LoadFiles"></InputFile>
 
 <div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")' style="@(_loading ? "pointer-events: none; opacity: 0.8" : string.Empty)">
     <div class="preview-message">
@@ -28,38 +30,41 @@
         }
     </div>
 
-    @if (!_loading)
-    {
-        <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
 
-        <div class="upload-menu" style="@_uploadMenuStyle">
-            <div class="content tenor" @onmousedown:stopPropagation="true">
-                @* Somewhat creative way to call main upload element *@
-                <button class="button" @onmousedown="@OnClickUploadAsync">
-                    Upload a File
-                </button>
-                <button class="button tenor" @onmousedown="@ShowTenorMenu">
-                    Gifs via Tenor
-                </button>
-                <button class="button" @onmousedown="@OnClickSendCurrency">
-                    Send Currency
-                </button>
-            </div>
-            <div class="carrot"></div>
-        </div>
-        
-        <div style="position: relative">
-            <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
-        </div>
-        <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
+    <ChannelCurrentlyTypingComponent ParentComponent="ChatComponent" Channel="ChatComponent.Channel"></ChannelCurrentlyTypingComponent>
+
+    @if (_isUploadMenuOpen)
+    {
+        <div class="upload-menu-backdrop" @onclick="@HideUploadMenu"></div>
     }
+
+    <div class="upload-menu" style="@UploadMenuStyle" @onclick:stopPropagation="true">
+        <div class="content tenor">
+            <button type="button" class="button" @ref="_uploadMenuFileButton">
+                <img class="menu-icon" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="" />
+                <span>Upload</span>
+            </button>
+            <button type="button" class="button tenor" @onclick="@ShowTenorMenu">
+                <img class="menu-icon" src="_content/Valour.Client/media/Gif-Icon.svg" alt="" />
+                <span>Gifs</span>
+            </button>
+            <button type="button" class="button" @onclick="@OnClickSendCurrency">
+                <img class="menu-icon" src="_content/Valour.Client/media/Pay-Icon.svg" alt="" />
+                <span>Pay</span>
+            </button>
+        </div>
+        <div class="carrot"></div>
+    </div>
+    
+    <div style="position: relative">
+        <TenorMenuComponent @key="@("tenor-menu-" + ChatComponent.WindowCtx.Id)" @ref="TenorMenu" ChannelWindow="ChatComponent"></TenorMenuComponent>
+    </div>
+    <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     
     <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
-            <InputFile id="upload-core" @ref="_inputFileRef" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            
             <div class="textbox-wrapper">
                 <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@ChatComponent.WindowCtx.Id" data-window="@ChatComponent.WindowCtx.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@ChatComponent.WindowCtx.Id').focus()" autofocus>
                 </div>
@@ -74,12 +79,12 @@
             </div>
         </div>
         
-        <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
-            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
+        <button type="button" tabindex="0" class="upload-btn" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
+            <img class="upload" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="Attach File"/>
         </button>
         
         <button id="emoji-button" class="emoji-button" @onclick="@ToggleEmojis">
-            <img alt="Smiling face emoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/72x72/1f604.png" />
+            <img class="emoji-icon" alt="Open emoji picker" src="_content/Valour.Client/media/Emoji-Icon.svg" />
         </button>
         
         @if (DeviceInfo.IsMobile && CanUserPost){
@@ -109,6 +114,8 @@
     /// Placeholder text shown in the input box when empty
     /// </summary>
     private string PlaceholderText =>_loading ? "Loading channel..." : $"Discuss in {ChatComponent.Channel.Name}";
+    private string DropUploadInputId => $"upload-core-drop-{ChatComponent.WindowCtx.Id}";
+    private string UploadMenuStyle => _isUploadMenuOpen ? string.Empty : "display: none;";
 
     /// <summary>
     /// The tenor menu component
@@ -170,14 +177,14 @@
     /// </summary>
     public bool CanRenderFlag { get; set; }
 
-    private string _uploadMenuStyle = "display: none;";
-
+    private bool _isUploadMenuOpen;
     private EmojiMart _emojis;
     private Planet _emojiPlanetSubscription;
     private bool _pendingCustomEmojiRefresh;
 
     private async Task OnClickTextbox()
     {
+        HideUploadMenu();
         await ChatComponent.ScrollToBottomAnimated();
     }
     
@@ -249,6 +256,8 @@
 
     private void OnClickSendCurrency()
     {
+        HideUploadMenu();
+
         var data = new EcoPayModal.ModalParams()
         {
             Input = this
@@ -259,32 +268,25 @@
 
     public async Task ShowTenorMenu()
     {
+        HideUploadMenu();
         await TenorMenu.Show();
     }
 
-    private Task ShowUploadMenu()
+    private Task ToggleUploadMenu()
     {
-        if (_uploadMenuStyle != "")
-        {
-            _uploadMenuStyle = "";
-            Refresh();
-        }
+        _isUploadMenuOpen = !_isUploadMenuOpen;
+        Refresh();
 
         return Task.CompletedTask;
     }
 
     private void HideUploadMenu()
     {
-        if (_uploadMenuStyle != "display: none;")
+        if (_isUploadMenuOpen)
         {
-            _uploadMenuStyle = "display: none;";
+            _isUploadMenuOpen = false;
             Refresh();   
         }
-    }
-
-    private async Task OnClickUploadAsync()
-    {
-        await _jsCtx.InvokeVoidAsync("openUploadFile", _inputFileRef.Element);
     }
 
     private static Dictionary<long, string> _retainedInputCache = new();
@@ -379,7 +381,7 @@
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=$(SHORTHASH)");
             _jsCtx = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, InnerInputRef);
-            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element);
+            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", _dropZoneElement, _inputFileRef.Element, _uploadMenuFileButton);
 
             await OnAfterJsSetupAsync();
         }
@@ -413,6 +415,7 @@
     // Drop zone stuff
     private InputFile _inputFileRef;
     private ElementReference _dropZoneElement;
+    private ElementReference _uploadMenuFileButton;
 
     public async Task OnBeginEdit(MessageComponent component, Message message)
     {
@@ -452,101 +455,139 @@
         await OnChatboxUpdate(null, "");
         await SetInputContent(string.Empty);
         
-        PreviewMessageComponent.ReRender();
+        await PreviewMessageComponent.ReRender();
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
-
-        var file = e.File;
-        var maxBytes = UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType);
-        var maxSize = (int)Math.Min(maxBytes, int.MaxValue);
-
-        var attachmentType = MessageAttachmentType.File;
-
-        // Determine if audio or video or image
-
-        var mime = file.ContentType;
-        var uploadPath = "file";
-
-        // We only actually need to check the first letter,
-        // since only 'image/' starts with i
-        if (mime[0] == 'i')
+        try
         {
-            // Ensure that the mime type is supported by ImageSharp processing
-            if (CdnUtils.ImageSharpSupported.Contains(mime))
+            HideUploadMenu();
+
+            var file = e.File;
+            if (file is null)
             {
-                attachmentType = MessageAttachmentType.Image;
-                uploadPath = "image";
+                Client.Logger.Log<InputComponent>("No file was selected.", "orange");
+                return;
             }
-        }
-        // Same thing here - only 'video/' starts with v
-        else if (mime[0] == 'v')
-        {
-            attachmentType = MessageAttachmentType.Video;
-        }
-        // Unfortunately 'audio/' and 'application/' both start with 'a'
-        else if (mime[0] == 'a' && mime[1] == 'u')
-        {
-            attachmentType = MessageAttachmentType.Audio;
-        }
-        
-        Console.WriteLine($"Selected file {file.Name} with size {file.Size}");
-        
-        if (file.Size > maxSize)
-        {
-            
-            // Special case for images: ability to compress!
-            if (attachmentType == MessageAttachmentType.Image)
+
+            var maxBytes = UserSubscriptionTypes.GetMaxUploadBytes(Client.Me.SubscriptionType);
+            var maxSize = (int)Math.Min(maxBytes, int.MaxValue);
+
+            var attachmentType = MessageAttachmentType.File;
+
+            // Determine if audio or video or image
+
+            var mime = ResolveMimeType(file);
+            var uploadPath = "file";
+
+            if (mime.StartsWith("image/", StringComparison.Ordinal))
             {
-                var data = new CompressComponent.ModalParams()
+                // Ensure that the mime type is supported by ImageSharp processing
+                if (CdnUtils.ImageSharpSupported.Contains(mime))
                 {
-                    File = file,
-                    Input = this,
-                };
-                
-                ModalRoot.OpenModal<CompressComponent>(data);
-
-                return;
+                    attachmentType = MessageAttachmentType.Image;
+                    uploadPath = "image";
+                }
             }
-            else
+            else if (mime.StartsWith("video/", StringComparison.Ordinal))
             {
-                var data = 
-                new InfoModalComponent.ModalParams(
-                    $"File too large!",
-                    Client.Me.SubscriptionType is null
-                        ? "The max upload size is 10MB. To raise this limit, consider subscribing!"
-                        : $"Your max upload size is {maxBytes / (1024 * 1024)}MB.",
-                    "Okay",
-                    null
-                );
-                
-                ModalRoot.OpenModal<InfoModalComponent>(data);
-                return;
+                attachmentType = MessageAttachmentType.Video;
             }
-        }
-        
-        await ShowUploadMenu(file.OpenReadStream(maxSize), attachmentType, file.ContentType, file.Name, uploadPath);
+            else if (mime.StartsWith("audio/", StringComparison.Ordinal))
+            {
+                attachmentType = MessageAttachmentType.Audio;
+            }
+            
+            Console.WriteLine($"[Upload] Selected file {file.Name} with size {file.Size}, type {attachmentType}");
+            
+            if (file.Size > maxSize)
+            {
+                // Special case for images: ability to compress!
+                if (attachmentType == MessageAttachmentType.Image)
+                {
+                    var data = new CompressComponent.ModalParams()
+                    {
+                        File = file,
+                        Input = this,
+                    };
+                    
+                    ModalRoot.OpenModal<CompressComponent>(data);
 
-        Refresh();
+                    return;
+                }
+                else
+                {
+                    var data = 
+                    new InfoModalComponent.ModalParams(
+                        $"File too large!",
+                        Client.Me.SubscriptionType is null
+                            ? "The max upload size is 10MB. To raise this limit, consider subscribing!"
+                            : $"Your max upload size is {maxBytes / (1024 * 1024)}MB.",
+                        "Okay",
+                        null
+                    );
+                    
+                    ModalRoot.OpenModal<InfoModalComponent>(data);
+                    return;
+                }
+            }
+            
+            Console.WriteLine($"[Upload] Opening stream for {file.Name}...");
+            await ShowUploadMenu(file.OpenReadStream(maxSize), (int)file.Size, attachmentType, mime, file.Name, uploadPath);
+            Console.WriteLine($"[Upload] ShowUploadMenu completed for {file.Name}");
+
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            Client.Logger.Log<InputComponent>($"Failed to load selected file: {ex.Message}", "red");
+            ModalRoot.OpenModal<InfoModalComponent>(
+                new InfoModalComponent.ModalParams(
+                    "Upload failed",
+                    $"We couldn't open that file: {ex.Message}",
+                    "Okay",
+                    null));
+            Console.WriteLine($"[Upload] ERROR in LoadFiles: {ex.Message}\n{ex.StackTrace}");
+        }
     }
 
-    public async Task ShowUploadMenu(Stream data, MessageAttachmentType type, string mime, string name, string path)
+    private static string ResolveMimeType(IBrowserFile file)
     {
-        // Convert stream to byte array
-        var bytes = new byte[data.Length];
-        _ = await data.ReadAsync(bytes, 0, bytes.Length);
-        
-        var content = new MultipartFormDataContent();
-        
-        var byteContent = new ByteArrayContent(bytes);
+        var mime = file.ContentType?.Trim();
         if (!string.IsNullOrWhiteSpace(mime))
-        {
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
-        }
+            return mime.ToLowerInvariant();
 
-        content.Add(byteContent, name, name);
+        return System.IO.Path.GetExtension(file.Name).ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".bmp" => "image/bmp",
+            ".svg" => "image/svg+xml",
+            ".mp4" => "video/mp4",
+            ".webm" => "video/webm",
+            ".mov" => "video/quicktime",
+            ".mp3" => "audio/mpeg",
+            ".wav" => "audio/wav",
+            ".ogg" => "audio/ogg",
+            ".m4a" => "audio/mp4",
+            _ => "application/octet-stream"
+        };
+    }
+
+    public async Task ShowUploadMenu(Stream data, int dataLength, MessageAttachmentType type, string mime, string name, string path)
+    {
+        Console.WriteLine($"[Upload] ShowUploadMenu called: {name}, {dataLength} bytes, type={type}, path={path}");
+        
+        // Convert stream to byte array
+        using var ms = new MemoryStream();
+        await data.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        
+        Console.WriteLine($"[Upload] Stream copied, {bytes.Length} bytes read");
 
         MessageAttachment newAttachment = new(type)
         {
@@ -555,13 +596,32 @@
             FileName = name,
         };
 
+        var uploadUrl = Client.BaseAddress + $"upload/{path}";
+        var authToken = Client.AuthService.Token;
+
         var modalData = new FileUploadComponent.ModalParams()
         {
             Bytes = bytes,
             Attachment = newAttachment,
             Message = PreviewMessage,
+            UploadUrl = uploadUrl,
+            AuthToken = authToken,
+            OnUploadSuccess = (location) =>
+            {
+                newAttachment.Location = location;
+                AddMessageAttachment(newAttachment);
+            },
             OnConfirm = async () =>
             {
+                // Fallback for old upload path (no progress)
+                var content = new MultipartFormDataContent();
+                var byteContent = new ByteArrayContent(bytes);
+                if (!string.IsNullOrWhiteSpace(mime))
+                {
+                    byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+                }
+                content.Add(byteContent, name, name);
+
                 var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{path}", content);
 
                 if (result.Success)
@@ -576,7 +636,9 @@
             }
         };
         
+        Console.WriteLine($"[Upload] Opening FileUploadComponent modal, bytes={bytes.Length}, url={uploadUrl}");
         ModalRoot.OpenModal<FileUploadComponent>(modalData);
+        Console.WriteLine($"[Upload] Modal open called");
     }
 
     public void RemoveAttachment(int id)

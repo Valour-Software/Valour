@@ -716,6 +716,10 @@
     border-radius: 0 0 8px 0;
 }
 
+.basic-modal-buttons > button:only-child {
+    border-radius: 0 0 8px 8px;
+}
+
 @keyframes windowZoomFadeIn {
     0% {
         transform: scale(0);

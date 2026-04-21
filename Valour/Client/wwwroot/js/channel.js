@@ -15,7 +15,18 @@
 
 // Drop zone logic (thanks to https://www.meziantou.net/upload-files-with-drag-drop-or-paste-from-clipboard-in-blazor.htm)
 
-function initializeFileDropZone(dropZoneElement, inputFile) {
+function dispatchFilesToInput(inputFile, files) {
+    if (!inputFile || !files || files.length === 0) {
+        return;
+    }
+
+    inputFile.value = '';
+    inputFile.files = files;
+    const event = new Event('change', { bubbles: true });
+    inputFile.dispatchEvent(event);
+}
+
+function initializeFileDropZone(dropZoneElement, inputFile, uploadButtonElement) {
     // Add a class when the user drags a file over the drop zone
     function onDragHover(e) {
         e.preventDefault();
@@ -32,10 +43,8 @@ function initializeFileDropZone(dropZoneElement, inputFile) {
         e.preventDefault();
         dropZoneElement.classList.remove("hover");
 
-        // Set the files property of the input element and raise the change event
-        inputFile.files = e.dataTransfer.files;
-        const event = new Event('change', { bubbles: true });
-        inputFile.dispatchEvent(event);
+        // Route dropped files through the same input/change path used by the picker
+        dispatchFilesToInput(inputFile, e.dataTransfer.files);
     }
 
     function onPaste(e) {
@@ -43,11 +52,14 @@ function initializeFileDropZone(dropZoneElement, inputFile) {
         if (e.clipboardData.files.length == 0)
             return;
 
-        // Set the files property of the input element and raise the change event
-        inputFile.files = e.clipboardData.files;
-
-        const event = new Event('change', { bubbles: true });
-        inputFile.dispatchEvent(event);
+        // Route pasted files through the same input/change path used by the picker
+        dispatchFilesToInput(inputFile, e.clipboardData.files);
+    }
+    
+    function onUploadButtonClick(e) {
+        e.preventDefault();
+        inputFile.click();
+        console.log("Upload button clicked, opening file picker");
     }
 
     // Register all events
@@ -56,6 +68,9 @@ function initializeFileDropZone(dropZoneElement, inputFile) {
     dropZoneElement.addEventListener("dragleave", onDragLeave);
     dropZoneElement.addEventListener("drop", onDrop);
     dropZoneElement.addEventListener('paste', onPaste);
+    uploadButtonElement.addEventListener('click', onUploadButtonClick);
+    
+    console.log("File drop zone initialized");
 
     // The returned object allows to unregister the events when the Blazor component is destroyed
     return {
@@ -64,7 +79,8 @@ function initializeFileDropZone(dropZoneElement, inputFile) {
             dropZoneElement.removeEventListener('dragover', onDragHover);
             dropZoneElement.removeEventListener('dragleave', onDragLeave);
             dropZoneElement.removeEventListener("drop", onDrop);
-            dropZoneElement.removeEventListener('paste', handler);
+            dropZoneElement.removeEventListener('paste', onPaste);
+            uploadButtonElement.removeEventListener('click', onUploadButtonClick);
         }
     }
 }

@@ -22,7 +22,6 @@ type InputContext = {
         customToken?: string,
         customSrc?: string
     ) => Promise<void>;
-    openUploadFile: (uploadEl: HTMLElement) => void;
     pasteHandler: (e: ClipboardEvent) => void;
     keyDownHandler: (e: KeyboardEvent) => void;
     inputHandler: (e: InputEvent) => void;
@@ -207,8 +206,6 @@ export function init(dotnet: DotnetObject, inputEl: HTMLElement): InputContext {
                 }
             }
         },
-
-        openUploadFile: (uploadEl: HTMLElement) => uploadEl.click(),
 
         focus: () => {
             ctx.inputEl.focus();

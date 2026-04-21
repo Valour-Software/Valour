@@ -326,6 +326,7 @@
 }
 
 .attachment-wrapper {
+    position: relative;
     max-width: 410px;
     max-height: 410px;
     overflow: auto;
@@ -335,23 +336,36 @@
     display: block;
 }
 
-.preview-message .attachment-wrapper:hover {
-    box-shadow: 0 0 0 2px red;
-    color: red;
-    margin-left: 2px;
-}
-
-.attachment-x {
-    display: none;
+.attachment-remove-btn {
     position: absolute;
-    color: red;
-    top: 5%;
-    right: 5%;
-    font-size: 40px;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: rgba(15, 15, 15, 0.82);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
 }
 
-.preview-message .attachment-wrapper:hover .attachment-x {
-    display: block;
+.attachment-remove-btn img {
+    width: 22px;
+    height: 22px;
+    pointer-events: none;
+}
+
+.attachment-remove-btn:hover {
+    background: rgba(185, 36, 36, 0.92);
+}
+
+.attachment-remove-btn:active {
+    transform: scale(0.96);
 }
 
 /* Highlighted message (e.g. from notification navigation) */

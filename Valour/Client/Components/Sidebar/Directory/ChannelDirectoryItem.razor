@@ -145,17 +145,18 @@
                 if (_children.Count > 0)
                 {
                     <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
-                        <div class="path str" style="height: @(GetLineHeightPx())px" depth="@(Depth + 1)"></div>
-                        
                         @for (int i = 0; i < _children.Count; i++)
                         {
                             var ii = i;
                             var child = _children[ii];
+                            var isLast = (i == _children.Count - 1);
                             
-                            <ChannelDirectoryItem @key="@child.Id"
-                                             PlanetComponent="@PlanetComponent"
-                                             ParentComponent="@this"
-                                             Channel="@child" />
+                            <div class="tree-row @(isLast ? "last" : "")" depth="@(Depth + 1)">
+                                <ChannelDirectoryItem @key="@child.Id"
+                                                 PlanetComponent="@PlanetComponent"
+                                                 ParentComponent="@this"
+                                                 Channel="@child" />
+                            </div>
                         }
                     </div>
                 }
@@ -267,36 +268,6 @@
     private void OnChannelDeleted()
     {
         RefreshParentsRecursive();
-    }
-
-    private float GetLineHeightPx()
-    {
-        var lastDirectDescendant = Planet.Channels.LastOrDefault(x => x.ParentId == Channel.Id);
-
-        if (lastDirectDescendant is null)
-            return 0;
-
-        // Count visible channels between this category and the last direct descendant
-        var channelsInRange = Planet.Channels
-            .Where(x => x.RawPosition > Channel.RawPosition
-                        && x.RawPosition < lastDirectDescendant.RawPosition
-                        && PlanetComponent.GetVisible(x));
-
-        float height = 0;
-        foreach (var ch in channelsInRange)
-        {
-            height += 27f;
-
-            // Voice channels with participants have an extra row of avatars
-            if (ISharedChannel.VoiceChannelTypes.Contains(ch.ChannelType))
-            {
-                var count = Client.VoiceStateService.GetParticipantCount(ch.Id);
-                if (count > 0)
-                    height += 27f;
-            }
-        }
-
-        return height;
     }
 
     private void OnContextMenu(ContextPressEventArgs e)

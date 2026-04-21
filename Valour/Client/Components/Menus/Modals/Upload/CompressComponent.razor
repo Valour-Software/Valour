@@ -85,7 +85,7 @@
                             
             Client.Logger.Log<CompressComponent>($"New size: {Data.File.Size} / {oldSize}", "cyan");
             
-            await Data.Input.ShowUploadMenu(Data.File.OpenReadStream(maxSize), MessageAttachmentType.Image, "image/jpeg", $"compressed-{Data.File.Name.Replace('.', '_')}.jpg", "image");
+            await Data.Input.ShowUploadMenu(Data.File.OpenReadStream(maxSize), (int)Data.File.Size, MessageAttachmentType.Image, "image/jpeg", $"compressed-{Data.File.Name.Replace('.', '_')}.jpg", "image");
             
             // Everything worked, close the modal
             Close();

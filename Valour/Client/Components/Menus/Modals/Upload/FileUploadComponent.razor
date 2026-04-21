@@ -1,5 +1,6 @@
 @inherits Modal<FileUploadComponent.ModalParams>
 @inject IJSRuntime JsRuntime
+@inject UploadService UploadSvc
 @implements IDisposable
 
 @if (Data.Attachment is null)
@@ -36,11 +37,32 @@
                 }
             }
         </div>
+        @if (_isUploading)
+        {
+            <div class="upload-progress-container">
+                <div class="upload-progress-bar" style="width: @(_progress?.Percent ?? 0)%"></div>
+            </div>
+            <div class="upload-progress-info">
+                <span class="upload-progress-text">@(_progress?.Percent ?? 0)%</span>
+                <span class="upload-progress-bytes">@(_progress?.FormattedUploaded ?? "0 B") / @(_progress?.FormattedTotal ?? "0 B")</span>
+            </div>
+        }
+        @if (_uploadError is not null)
+        {
+            <div class="upload-error">Upload failed: @_uploadError</div>
+        }
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
-            <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
-            <button @onclick="@OnClickConfirm" class="v-btn primary" disabled="@_isUploading">Upload</button>
+            @if (_isUploading)
+            {
+                <button @onclick="@OnClickCancelUpload" class="v-btn danger">Cancel Upload</button>
+            }
+            else
+            {
+                <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
+                <button @onclick="@OnClickConfirm" class="v-btn primary">Upload</button>
+            }
         </div>
     </ButtonArea>
 </BasicModalLayout>
@@ -53,6 +75,9 @@
         public Func<Task> OnConfirm;
         public Message Message;
         public MessageAttachment Attachment;
+        public string UploadUrl { get; set; }
+        public string AuthToken { get; set; }
+        public Action<string> OnUploadSuccess { get; set; }
     }
 
     private DotNetObjectReference<FileUploadComponent> _thisRef;
@@ -60,9 +85,13 @@
     private bool _imageReady;
     private bool _loaded = false;
     private bool _isUploading = false;
+    private UploadProgressInfo? _progress;
+    private string _uploadError;
 
-    protected override async Task OnInitializedAsync(){
+    private CancellationTokenSource? _uploadCts;
 
+    protected override async Task OnInitializedAsync()
+    {
         Console.WriteLine(JsonSerializer.Serialize(Data.Attachment));
         
         _thisRef = DotNetObjectReference.Create(this);
@@ -95,22 +124,74 @@
         StateHasChanged();
     }
 
-    public async Task OnKeyDown(KeyboardEventArgs e){
-        if (e.Key.ToLower() == "enter")
+    public async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key.ToLower() == "enter" && !_isUploading)
             await OnClickConfirm();
     }
 
     public void OnClickCancel() => Close();
 
-    public async Task OnClickConfirm(){
+    public void OnClickCancelUpload()
+    {
+        _uploadCts?.Cancel();
+    }
+
+    public async Task OnClickConfirm()
+    {
         if (_isUploading) return;
-        _isUploading = true;
-        await Data.OnConfirm.Invoke();
-        Close();
+        
+        // New path: use UploadService for real progress
+        if (!string.IsNullOrEmpty(Data.UploadUrl))
+        {
+            _isUploading = true;
+            _progress = null;
+            _uploadError = null;
+            _uploadCts = new CancellationTokenSource();
+            StateHasChanged();
+
+            var result = await UploadSvc.UploadAsync(
+                Data.UploadUrl,
+                Data.Bytes,
+                Data.Attachment.MimeType,
+                Data.Attachment.FileName,
+                Data.AuthToken,
+                onProgress: p =>
+                {
+                    _progress = p;
+                    InvokeAsync(StateHasChanged);
+                },
+                cancellationToken: _uploadCts.Token);
+
+            _isUploading = false;
+            _uploadCts.Dispose();
+            _uploadCts = null;
+
+            if (result.Success)
+            {
+                Data.OnUploadSuccess?.Invoke(result.Response);
+                Close();
+            }
+            else
+            {
+                _uploadError = result.Error ?? "Unknown error";
+            }
+
+            StateHasChanged();
+        }
+        else
+        {
+            // Fallback: old method without progress
+            _isUploading = true;
+            await Data.OnConfirm.Invoke();
+            Close();
+        }
     }
 
     public void Dispose()
     {
+        _uploadCts?.Cancel();
+        _uploadCts?.Dispose();
         _thisRef?.Dispose();
     }
 }
