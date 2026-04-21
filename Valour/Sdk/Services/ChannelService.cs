@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+﻿using System.Net;
+using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
 using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Nodes;
@@ -219,33 +220,71 @@ public class ChannelService : ServiceBase
         _cache.DmChannelKeyToId.Clear();
 
         foreach (var channel in response.Data)
-        {
-            // Custom cache insert behavior
-            if (channel.Members is not null && channel.Members.Count > 0)
-            {
-                var userId0 = channel.Members[0].UserId;
-
-                // Self channel
-                if (channel.Members.Count == 1)
-                {
-                    var key = new DirectChannelKey(userId0, userId0);
-                    _cache.DmChannelKeyToId[key] = channel.Id;
-                }
-                // Other channel
-                else if (channel.Members.Count == 2)
-                {
-                    var userId1 = channel.Members[1].UserId;
-                    var key = new DirectChannelKey(userId0, userId1);
-                    _cache.DmChannelKeyToId[key] = channel.Id;
-                }
-            }
-
-            var cached = channel.Sync(_client);
-            _directChatChannels.Add(cached);
-            _directChatChannelsLookup[cached.Id] = cached;
-        }
+            RegisterDirectChatChannel(channel);
         
         Log($"Loaded {DirectChatChannels.Count} direct chat channels...");
+    }
+
+    public async Task<QueryResponse<DirectMessageListItem>> QueryDirectMessageListAsync(
+        int skip = 0,
+        int take = 50,
+        string search = null)
+    {
+        var route = $"api/channels/direct/self/query?skip={skip}&take={take}";
+
+        if (!string.IsNullOrWhiteSpace(search))
+            route += $"&search={WebUtility.UrlEncode(search)}";
+
+        var response = await _client.PrimaryNode.GetJsonAsync<QueryResponse<DirectMessageListItem>>(route);
+        if (!response.Success || response.Data is null)
+        {
+            LogError($"Failed to query direct messages: {response.Message}");
+            return QueryResponse<DirectMessageListItem>.Empty;
+        }
+
+        response.Data.Items ??= new List<DirectMessageListItem>();
+
+        foreach (var item in response.Data.Items)
+        {
+            item.Sync(_client);
+            RegisterDirectChatChannel(item.Channel);
+        }
+
+        return response.Data;
+    }
+
+    private void RegisterDirectChatChannel(Channel channel)
+    {
+        if (channel is null)
+            return;
+
+        if (channel.Members is not null && channel.Members.Count > 0)
+        {
+            var userId0 = channel.Members[0].UserId;
+
+            if (channel.Members.Count == 1)
+            {
+                var key = new DirectChannelKey(userId0, userId0);
+                _cache.DmChannelKeyToId[key] = channel.Id;
+            }
+            else if (channel.Members.Count == 2)
+            {
+                var userId1 = channel.Members[1].UserId;
+                var key = new DirectChannelKey(userId0, userId1);
+                _cache.DmChannelKeyToId[key] = channel.Id;
+            }
+        }
+
+        var cached = channel.Sync(_client);
+
+        if (_directChatChannelsLookup.ContainsKey(cached.Id))
+        {
+            _directChatChannelsLookup[cached.Id] = cached;
+            return;
+        }
+
+        _directChatChannels.Add(cached);
+        _directChatChannelsLookup[cached.Id] = cached;
     }
     
     /// <summary>

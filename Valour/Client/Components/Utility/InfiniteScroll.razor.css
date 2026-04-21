@@ -1,0 +1,21 @@
+.infinite-scroll {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.infinite-scroll-status,
+.infinite-scroll-error {
+    padding: 10px 8px 2px;
+    text-align: center;
+    color: var(--font-alt-color);
+    font-size: 12px;
+}
+
+.infinite-scroll-sentinel {
+    min-height: 1px;
+}
+
+.infinite-scroll-sentinel.is-disabled {
+    display: none;
+}

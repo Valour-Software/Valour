@@ -42,7 +42,8 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     public ISharedUser GetSharedUser() => User;
     
     [JsonIgnore]
-    public ImmutableList<PlanetRole> Roles => Planet.GetRolesFromMembership(RoleMembership);
+    public ImmutableList<PlanetRole> Roles =>
+        GetPlanet(false)?.GetRolesFromMembership(RoleMembership) ?? ImmutableList<PlanetRole>.Empty;
     
     // User related properties //
     
@@ -72,8 +73,17 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// <summary>
     /// The authority of the member
     /// </summary>
-    public uint Authority =>
-        Planet.OwnerId == UserId ? uint.MaxValue : PrimaryRole?.GetAuthority() ?? 0;
+    public uint Authority
+    {
+        get
+        {
+            var planet = GetPlanet(false);
+            if (planet is null)
+                return 0;
+
+            return planet.OwnerId == UserId ? uint.MaxValue : PrimaryRole?.GetAuthority() ?? 0;
+        }
+    }
 
     /// <summary>
     /// The user within the planet

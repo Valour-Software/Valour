@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using DirectMessageListItem = Valour.Server.Models.DirectMessageListItem;
 
 namespace Valour.Server.Services;
 
@@ -189,6 +190,68 @@ public class ChannelService
                         x.Members.Any(m => m.UserId == userId))
             .Select(x => x.ToModel())
             .ToListAsync();
+    }
+
+    public async Task<QueryResponse<DirectMessageListItem>> QueryDirectMessagesAsync(
+        long userId,
+        int skip = 0,
+        int take = 50,
+        string? search = null)
+    {
+        if (skip < 0)
+            skip = 0;
+
+        if (take < 1)
+            take = 1;
+        else if (take > 100)
+            take = 100;
+
+        var query = _db.Channels
+            .AsNoTracking()
+            .Include(x => x.Members)
+            .ThenInclude(x => x.User)
+            .Where(x => !x.IsDeleted &&
+                        x.ChannelType == ChannelTypeEnum.DirectChat &&
+                        x.Members.Any(m => m.UserId == userId) &&
+                        x.Members.Any(m => m.UserId != userId));
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+
+            query = query.Where(x => x.Members.Any(m =>
+                m.UserId != userId &&
+                EF.Functions.ILike(
+                    (m.User.Name.ToLower() + "#" + m.User.Tag.ToLower()),
+                    "%" + normalizedSearch + "%")));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var channels = await query
+            .OrderByDescending(x => x.LastUpdateTime)
+            .ThenByDescending(x => x.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+
+        var items = channels
+            .Select(x => new DirectMessageListItem
+            {
+                Channel = x.ToModel(),
+                OtherUser = x.Members
+                    .Where(m => m.UserId != userId)
+                    .Select(m => m.User.ToModel())
+                    .FirstOrDefault()
+            })
+            .Where(x => x.OtherUser is not null)
+            .ToList();
+
+        return new QueryResponse<DirectMessageListItem>
+        {
+            TotalCount = totalCount,
+            Items = items
+        };
     }
     
     /// <summary>

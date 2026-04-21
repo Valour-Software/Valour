@@ -1,0 +1,161 @@
+@typeparam TItem
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<div class="infinite-scroll @CssClass">
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage) && ItemCount == 0)
+    {
+        @if (ErrorContent is not null)
+        {
+            @ErrorContent(ErrorMessage)
+        }
+        else
+        {
+            <div class="infinite-scroll-error">@ErrorMessage</div>
+        }
+    }
+    else if (HasLoaded && ItemCount == 0)
+    {
+        @if (EmptyContent is not null)
+        {
+            @EmptyContent
+        }
+    }
+    else
+    {
+        @foreach (var item in Items)
+        {
+            @ItemTemplate(item)
+        }
+    }
+
+    @if (IsLoading)
+    {
+        @if (LoadingContent is not null)
+        {
+            @LoadingContent
+        }
+        else
+        {
+            <div class="infinite-scroll-status">Loading...</div>
+        }
+    }
+
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage) && ItemCount > 0)
+    {
+        @if (ErrorContent is not null)
+        {
+            @ErrorContent(ErrorMessage)
+        }
+        else
+        {
+            <div class="infinite-scroll-error">@ErrorMessage</div>
+        }
+    }
+
+    <div class="infinite-scroll-sentinel @(CanObserve ? null : "is-disabled")" @ref="_sentinel"></div>
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ItemTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment EmptyContent { get; set; }
+
+    [Parameter]
+    public RenderFragment LoadingContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<string> ErrorContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnLoadMore { get; set; }
+
+    [Parameter]
+    public bool HasLoaded { get; set; }
+
+    [Parameter]
+    public bool HasMore { get; set; }
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public string ErrorMessage { get; set; }
+
+    [Parameter]
+    public string RootMargin { get; set; } = "300px";
+
+    [Parameter]
+    public string CssClass { get; set; }
+
+    private ElementReference _sentinel;
+    private DotNetObjectReference<InfiniteScroll<TItem>> _dotnetRef;
+    private IJSObjectReference _jsModule;
+    private IJSObjectReference _observerService;
+    private bool _needsObserverRefresh = true;
+
+    private int ItemCount => Items?.Count ?? 0;
+    private bool CanObserve => HasMore && string.IsNullOrWhiteSpace(ErrorMessage);
+
+    protected override void OnParametersSet()
+    {
+        _needsObserverRefresh = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./_content/Valour.Client/Components/Utility/InfiniteScroll.razor.js");
+            _observerService = await _jsModule.InvokeAsync<IJSObjectReference>(
+                "init",
+                _sentinel,
+                _dotnetRef,
+                RootMargin);
+            _needsObserverRefresh = true;
+        }
+
+        if (_needsObserverRefresh && _observerService is not null)
+        {
+            await _observerService.InvokeVoidAsync("setEnabled", CanObserve);
+            await _observerService.InvokeVoidAsync("refresh");
+            _needsObserverRefresh = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnSentinelVisible()
+    {
+        if (!CanObserve || IsLoading || !OnLoadMore.HasDelegate)
+            return;
+
+        await OnLoadMore.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_observerService is not null)
+            {
+                await _observerService.InvokeVoidAsync("dispose");
+                await _observerService.DisposeAsync();
+            }
+
+            if (_jsModule is not null)
+                await _jsModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+
+        _dotnetRef?.Dispose();
+    }
+}

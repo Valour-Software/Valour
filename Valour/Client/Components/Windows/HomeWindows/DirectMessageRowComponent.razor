@@ -1,6 +1,3 @@
-@inject UnreadService UnreadService
-@inject NotificationService NotificationService
-
 <div class="dm-row" @onclick="OnClick">
     <div class="left">
         <img alt="@OtherUser.Name Avatar" src="@OtherUser.GetAvatar(AvatarFormat.Webp64)" />
@@ -36,9 +33,15 @@
     [Parameter]
     public WindowContent WindowCtx { get; set; }
 
+    [Parameter]
+    public bool CloseSidebarOnSelect { get; set; }
+
     private async Task OnClick()
     {
         var content = await ChatWindowComponent.GetDefaultContent(Channel);
         await WindowService.OpenWindowAtFocused(content, WindowCtx?.Tab);
+
+        if (CloseSidebarOnSelect)
+            await Sidebar.ToggleMobileSidebar();
     }
 }
