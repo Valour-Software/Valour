@@ -62,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(client.ThemeService);
         services.AddSingleton(client.UnreadService);
         services.AddSingleton(client.PlanetTagService);
+        services.AddSingleton(client.VillageService);
 
         return client;
     }

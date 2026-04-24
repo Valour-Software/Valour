@@ -3,6 +3,7 @@
 @inject PlanetService PlanetService
 @inject FriendService FriendService
 @inject UnreadService UnreadService
+@using Valour.Client.Components.Windows.Villages
 
 <div class="inner-window @_mobileTag">
 
@@ -55,6 +56,10 @@
                 <button class="action-btn" @onclick="OnClickDiscover">
                     <i class="bi bi-compass"></i>
                     <span>Discover Planets</span>
+                </button>
+                <button class="action-btn" @onclick="OnClickVillageDemo" disabled="@(!PlanetService.JoinedPlanets.Any())">
+                    <i class="bi bi-house-heart"></i>
+                    <span>Village Demo</span>
                 </button>
             </div>
         </TabOne>
@@ -242,6 +247,20 @@
     private async Task OnClickDiscover()
     {
         await WindowService.OpenWindowAtFocused(new DiscoveryPageWindowContent(), WindowCtx.Tab);
+    }
+
+    private async Task OnClickVillageDemo()
+    {
+        var targetPlanet = WindowService.FocusedPlanet is not null &&
+                           PlanetService.JoinedPlanets.Any(x => x.Id == WindowService.FocusedPlanet.Id)
+            ? WindowService.FocusedPlanet
+            : PlanetService.JoinedPlanets.FirstOrDefault();
+
+        if (targetPlanet is null)
+            return;
+
+        var content = await VillageWindowComponent.GetDefaultContent(targetPlanet);
+        await WindowService.OpenWindowAtFocused(content, WindowCtx.Tab);
     }
 
     private void OnClickAddFriend()

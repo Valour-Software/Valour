@@ -24,6 +24,7 @@ using Valour.Server.Api.Dynamic;
 using Valour.Server.Hubs;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Valour.Server.Services.Villages;
 namespace Valour.Server;
 
 public partial class Program
@@ -171,6 +172,7 @@ public partial class Program
             new DynamicAPI<TagApi>().RegisterRoutes(app),
             new DynamicAPI<BotApi>().RegisterRoutes(app),
             new DynamicAPI<UnsubscribeApi>().RegisterRoutes(app),
+            new DynamicAPI<VillageApi>().RegisterRoutes(app),
         };
 
         NodeAPI = new NodeAPI();
@@ -390,6 +392,7 @@ public partial class Program
         services.AddScoped<StartupService>();
         services.AddScoped<PushNotificationService>();
         services.AddScoped<ITagService,TagService>();
+        services.AddScoped<VillageService>();
 
         services.AddHttpClient<DiscordImportService>();
 

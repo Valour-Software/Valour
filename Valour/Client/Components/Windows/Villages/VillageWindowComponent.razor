@@ -1,0 +1,265 @@
+@inherits WindowContentComponent<Planet>
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+@inject Valour.Sdk.Services.VillageService VillageService
+@using System.Text.Json
+@using Valour.Shared.Villages
+@using Channel = Valour.Sdk.Models.Channel
+
+@if (_loading)
+{
+    <Loading Title="Loading village..." Spin="@true" />
+}
+else if (_error is not null)
+{
+    <div class="village-empty-state">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>@_error</span>
+    </div>
+}
+else
+{
+    <div class="village-window">
+        <canvas id="@_canvasId" class="village-canvas"></canvas>
+
+        <div class="village-overlay overlay-top-left">
+            <div class="overlay-card village-brand-card">
+                <div class="village-kicker">Valour Village Proof Of Concept</div>
+                <div class="village-title">@_scene!.Title</div>
+                <div class="village-subtitle">@_scene.Subtitle</div>
+            </div>
+            <div class="overlay-inline-group">
+                <span class="hud-chip">@(_currentMap?.Name ?? "Unknown Map")</span>
+                <span class="hud-chip">@(_currentMap?.MapKind ?? "Map")</span>
+            </div>
+        </div>
+
+        <div class="village-overlay overlay-top-right">
+            <div class="overlay-card village-actions-card">
+                <div class="overlay-card-title">Controls</div>
+                <div class="overlay-inline-group">
+                    <span class="hud-chip">WASD / Arrows</span>
+                    <span class="hud-chip">Step To Doors</span>
+                    <span class="hud-chip">Click To Inspect</span>
+                </div>
+                <div class="overlay-button-row">
+                    <button class="v-btn secondary" @onclick="ResetViewAsync">Center Camera</button>
+                    @if (_currentMap?.MapKind == "Interior")
+                    {
+                        <button class="v-btn secondary" @onclick="ReturnOutsideAsync">Leave Building</button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="village-overlay overlay-bottom-left">
+            <div class="overlay-card village-lore-card">
+                <div class="overlay-card-title">World Layer</div>
+                <div class="overlay-card-body">
+                    This is the direction: the game fills the window, and Valour features become part of the world instead of living in side menus.
+                </div>
+            </div>
+        </div>
+
+        <div class="village-overlay overlay-bottom-right">
+            <div class="overlay-card village-building-card @(_selectedBuilding is null ? "is-empty" : string.Empty)">
+                <div class="overlay-card-title">Selected Place</div>
+                @if (_selectedBuilding is null)
+                {
+                    <div class="overlay-card-body">Walk around and click a building to inspect it.</div>
+                }
+                else
+                {
+                    <div class="sidebar-building-name">@_selectedBuilding.Name</div>
+                    @if (!string.IsNullOrWhiteSpace(_selectedBuilding.Hint))
+                    {
+                        <div class="overlay-card-body">@_selectedBuilding.Hint</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_selectedBuilding.ChannelName))
+                    {
+                        <div class="sidebar-meta">Linked to @(_selectedBuilding.ChannelName)</div>
+                    }
+                    <div class="overlay-button-column">
+                        @if (_selectedBuilding.InteriorMapId is not null)
+                        {
+                            <button class="v-btn" @onclick="EnterSelectedBuildingAsync">Enter Interior</button>
+                        }
+                        @if (_selectedBuilding.ChannelId is not null)
+                        {
+                            <button class="v-btn secondary" @onclick="OpenSelectedChannelAsync">Open Linked Channel</button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly string _canvasId = $"village-canvas-{Guid.NewGuid():N}";
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _runtime;
+    private DotNetObjectReference<VillageWindowComponent>? _selfRef;
+    private VillagePocScene? _scene;
+    private VillagePocMap? _currentMap;
+    private VillagePocBuilding? _selectedBuilding;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        if (Data is null)
+        {
+            _error = "Village demo could not resolve the target planet.";
+            _loading = false;
+            await ReRender();
+            return;
+        }
+
+        var result = await VillageService.FetchProofOfConceptSceneAsync(Data.Id);
+        if (!result.Success || result.Data is null)
+        {
+            _error = result.Message ?? "Village demo failed to load.";
+            _loading = false;
+            await ReRender();
+            return;
+        }
+
+        _scene = result.Data;
+        _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == _scene.StartingMapId);
+        _loading = false;
+        await ReRender();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_scene is null || _error is not null || _runtime is not null)
+            return;
+
+        _selfRef = DotNetObjectReference.Create(this);
+        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Windows/Villages/VillageWindowComponent.razor.js");
+        _runtime = await _module.InvokeAsync<IJSObjectReference>("init", _canvasId, _selfRef, _scene);
+    }
+
+    [JSInvokable]
+    public async Task OnBuildingSelected(long? buildingId, long currentMapId)
+    {
+        if (_scene is null)
+            return;
+
+        _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == currentMapId) ?? _currentMap;
+        _selectedBuilding = _scene.Maps
+            .SelectMany(x => x.Buildings)
+            .FirstOrDefault(x => x.Id == buildingId);
+        await ReRender();
+    }
+
+    [JSInvokable]
+    public async Task OnMapChanged(long mapId)
+    {
+        if (_scene is null)
+            return;
+
+        _currentMap = _scene.Maps.FirstOrDefault(x => x.Id == mapId) ?? _currentMap;
+
+        if (_selectedBuilding?.InteriorMapId == mapId)
+            await ReRender();
+        else if (_currentMap?.MapKind == "Outdoor")
+        {
+            _selectedBuilding = null;
+            await ReRender();
+        }
+        else
+        {
+            await ReRender();
+        }
+    }
+
+    private async Task ResetViewAsync()
+    {
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("resetView");
+    }
+
+    private async Task ReturnOutsideAsync()
+    {
+        if (_runtime is not null && _scene is not null)
+            await _runtime.InvokeVoidAsync("setMap", _scene.StartingMapId);
+    }
+
+    private async Task EnterSelectedBuildingAsync()
+    {
+        if (_runtime is null || _selectedBuilding?.InteriorMapId is null)
+            return;
+
+        await _runtime.InvokeVoidAsync("setMap", _selectedBuilding.InteriorMapId.Value);
+    }
+
+    private async Task OpenSelectedChannelAsync()
+    {
+        if (_selectedBuilding?.ChannelId is null || Data is null)
+            return;
+
+        Channel? channel = await Data.FetchChannelAsync(_selectedBuilding.ChannelId.Value);
+        if (channel is null)
+            return;
+
+        var content = await ChatWindowComponent.GetDefaultContent(channel);
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    public class SavedState
+    {
+        public long PlanetId { get; set; }
+    }
+
+    public class Content : WindowContent<VillageWindowComponent, Planet>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            var saved = JsonSerializer.Deserialize<SavedState>(data);
+            if (saved is null)
+                return;
+
+            Data = await client.PlanetService.FetchPlanetAsync(saved.PlanetId);
+        }
+
+        public override string ExportData(ValourClient client)
+        {
+            if (Data is null)
+                return string.Empty;
+
+            return JsonSerializer.Serialize(new SavedState
+            {
+                PlanetId = Data.Id
+            });
+        }
+    }
+
+    public static async Task<Content> GetDefaultContent(Planet planet)
+    {
+        return new Content
+        {
+            Data = planet,
+            PlanetId = planet.Id,
+            Icon = planet.GetIconUrl(IconFormat.Webp128),
+            Title = $"{planet.Name} Village"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_runtime is not null)
+            await _runtime.DisposeAsync();
+
+        if (_module is not null)
+            await _module.DisposeAsync();
+
+        _selfRef?.Dispose();
+    }
+}
