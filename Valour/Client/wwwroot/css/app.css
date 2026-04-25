@@ -1158,6 +1158,7 @@ img.emoji {
     margin: 0;
     word-break: break-word;
     background: #242424;
+    font-family: revert;
 }
 
 .message .fragments pre {
