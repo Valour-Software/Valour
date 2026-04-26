@@ -1158,6 +1158,10 @@ img.emoji {
     margin: 0;
     word-break: break-word;
     background: #242424;
+}
+
+.message .fragments code,
+.message .fragments code span[class*="hljs"] {
     font-family: revert;
 }
 
