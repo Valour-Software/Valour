@@ -190,6 +190,13 @@ public class MessageService
         message.TimeSent = DateTime.UtcNow;
         
         var attachments = message.Attachments?.Where(x => x is not null).ToList();
+        if (attachments is not null)
+        {
+            // Inline attachments are generated from message content on the server.
+            foreach (var attachment in attachments)
+                attachment.Inline = false;
+        }
+
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
             // Prevent markdown bypassing inline, e.g. [](https://example.com)

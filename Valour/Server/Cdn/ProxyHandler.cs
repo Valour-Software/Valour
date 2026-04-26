@@ -76,6 +76,8 @@ public class ProxyHandler
             var attachment = await GetAttachmentFromUrl(match.Value, db);
             if (attachment != null)
             {
+                attachment.Inline = true;
+
                 if (attachments is null)
                     attachments = new();
 
