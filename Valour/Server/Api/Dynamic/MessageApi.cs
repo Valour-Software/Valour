@@ -1,7 +1,7 @@
 #nullable enable
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Valour.Server.Utilities;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -61,7 +61,8 @@ public class MessageApi
         // to determine if the user can post messages and content
         if (channel.PlanetId is not null)
         {
-            var member = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+            var planetId = channel.PlanetId.Value;
+            var member = await memberService.GetCurrentAsync(planetId);
             if (member is null)
                 return ValourResult.Forbid("You are not a member of the planet this channel belongs to");
 
@@ -74,45 +75,38 @@ public class MessageApi
             if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
                 return ValourResult.Forbid("You lack permission to post messages in this channel");
             
-            // If the message has attachments...
-            if (!string.IsNullOrWhiteSpace(message.AttachmentsData))
+            // If the message has file/media attachments...
+            if (message.Attachments?.Any(x => x.Type != MessageAttachmentType.Embed) == true)
             {
                 if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.AttachContent))
                     return ValourResult.Forbid("You lack permission to attach content to messages in this channel");
             }
 
             // If the message has embed data...
-            if (!string.IsNullOrWhiteSpace(message.EmbedData))
+            if (message.Attachments?.Any(x => x.Type == MessageAttachmentType.Embed) == true)
             {
                 if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.Embed))
                     return ValourResult.Forbid("You lack permission to attach embeds to messages in this channel");
             }
             
-            // Check mention permissions...
-            if (!string.IsNullOrWhiteSpace(message.MentionsData))
+            // Check role mention permissions against parsed content, not client-supplied rows.
+            var mentions = MentionParser.Parse(message.Content ?? string.Empty);
+            if (mentions is not null)
             {
-                var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
-                if (mentions is not null)
+                foreach (var mention in mentions)
                 {
-                    foreach (var mention in mentions)
+                    if (mention.Type == MentionType.Role)
                     {
-                        if (channel.PlanetId is not null && mention.Type == MentionType.Role)
-                        {
-                            var role = await roleService.GetAsync(channel.PlanetId.Value, mention.TargetId);
-                            if (role is null)
-                                return ValourResult.BadRequest("Invalid role mention");
+                        var role = await roleService.GetAsync(planetId, mention.TargetId);
+                        if (role is null)
+                            return ValourResult.BadRequest("Invalid role mention");
 
-                            if (role.AnyoneCanMention)
-                                continue;
+                        if (role.AnyoneCanMention)
+                            continue;
 
-                            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.MentionAll))
-                                return ValourResult.Forbid($"You lack permission to mention the role {role.Name}");
-                        }
+                        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.MentionAll))
+                            return ValourResult.Forbid($"You lack permission to mention the role {role.Name}");
                     }
-                }
-                else
-                {
-                    message.MentionsData = null;
                 }
             }
 
@@ -124,7 +118,7 @@ public class MessageApi
                     if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseCustomEmojis))
                         return ValourResult.LacksPermission(PlanetPermissions.UseCustomEmojis);
 
-                    if (!await planetEmojiService.AreAllIdsValidForPlanetAsync(channel.PlanetId.Value, customEmojiIds))
+                    if (!await planetEmojiService.AreAllIdsValidForPlanetAsync(planetId, customEmojiIds))
                         return ValourResult.BadRequest("Message contains invalid custom emoji.");
                 }
             }

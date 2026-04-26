@@ -4,10 +4,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using Valour.Database;
-using Valour.Sdk.Models;
 using Valour.Shared.Cdn;
 using Valour.Shared.Models;
 using Valour.Server.Utilities;
+using MessageAttachment = Valour.Sdk.Models.MessageAttachment;
 
 namespace Valour.Server.Cdn;
 
@@ -315,7 +315,7 @@ public class ProxyHandler
                 return null;
 
             attachment.Location = url;
-            attachment.Html = OEmbedSanitizer.Sanitize(oembedData.Html);
+            attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
             return attachment;
         }
         catch (Exception ex)
@@ -341,7 +341,7 @@ public class ProxyHandler
                 return null;
 
             attachment.Location = url;
-            attachment.Html = OEmbedSanitizer.Sanitize(oembedData.Html);
+            attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
             attachment.Height = oembedData.Height ?? 240;
             return attachment;
         }
@@ -368,7 +368,7 @@ public class ProxyHandler
                 return null;
 
             attachment.Location = url;
-            attachment.Html = OEmbedSanitizer.Sanitize(oembedData.Html);
+            attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
             attachment.Width = oembedData.Width ?? 325;
             attachment.Height = oembedData.Height ?? 580;
             return attachment;
@@ -463,7 +463,7 @@ public class ProxyHandler
                 return null;
 
             attachment.Location = url;
-            attachment.Html = OEmbedSanitizer.Sanitize(oembedData.Html);
+            attachment.Data = OEmbedSanitizer.Sanitize(oembedData.Html);
             attachment.Width = oembedData.Width ?? 100;
             attachment.Height = oembedData.Height ?? 166;
             return attachment;
@@ -488,7 +488,7 @@ public class ProxyHandler
             {
                 // Keep canonical gist URL and let the client load the known embed script directly.
                 attachment.Location = $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}".TrimEnd('/');
-                attachment.Html = null;
+                attachment.Data = null;
                 return attachment;
             }
 

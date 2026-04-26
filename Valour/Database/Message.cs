@@ -19,6 +19,8 @@ public class Message : ISharedMessage
     
     public virtual ICollection<Message> Replies { get; set; }
     public virtual ICollection<MessageReaction> Reactions { get; set; }
+    public virtual ICollection<MessageAttachment> Attachments { get; set; }
+    public virtual ICollection<MessageMention> Mentions { get; set; }
     
     ///////////////////////
     // Entity Properties //
@@ -57,21 +59,6 @@ public class Message : ISharedMessage
     /// </summary>
     public long ChannelId { get; set; }
 
-    /// <summary>
-    /// Data for representing an embed
-    /// </summary>
-    public string EmbedData { get; set; }
-
-    /// <summary>
-    /// Data for representing mentions in a message
-    /// </summary>
-    public string MentionsData { get; set; }
-
-    /// <summary>
-    /// Data for representing attachments in a message
-    /// </summary>
-    public string AttachmentsData { get; set; }
-    
     /// <summary>
     /// The time when the message was edited, or null if it was not
     /// </summary>
@@ -112,15 +99,6 @@ public class Message : ISharedMessage
             e.Property(x => x.ChannelId)
                 .HasColumnName("channel_id");
             
-            e.Property(x => x.EmbedData)
-                .HasColumnName("embed_data");
-            
-            e.Property(x => x.MentionsData)
-                .HasColumnName("mentions_data");
-            
-            e.Property(x => x.AttachmentsData)
-                .HasColumnName("attachments_data");
-            
             e.Property(x => x.EditedTime)
                 .HasColumnName("edit_time")
                 .HasConversion(x => x, x =>
@@ -154,7 +132,15 @@ public class Message : ISharedMessage
             e.HasMany(x => x.Reactions)
                 .WithOne(x => x.Message)
                 .HasForeignKey(x => x.MessageId);
-            
+
+            e.HasMany(x => x.Attachments)
+                .WithOne(x => x.Message)
+                .HasForeignKey(x => x.MessageId);
+
+            e.HasMany(x => x.Mentions)
+                .WithOne(x => x.Message)
+                .HasForeignKey(x => x.MessageId);
+
             // Indices
             e.HasIndex(x => x.PlanetId);
             e.HasIndex(x => x.ChannelId);

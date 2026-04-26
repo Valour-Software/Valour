@@ -16,9 +16,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !string.IsNullOrEmpty(Attachment.Html))
+        if (firstRender && !string.IsNullOrEmpty(Attachment.Data))
         {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Html, "https://www.tiktok.com/embed.js");
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, "https://www.tiktok.com/embed.js");
         }
     }
 }

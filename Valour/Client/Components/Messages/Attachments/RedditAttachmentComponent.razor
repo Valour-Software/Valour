@@ -13,7 +13,7 @@
     {
         if (firstRender)
         {
-            await JsRuntime.InvokeVoidAsync("injectReddit", _id, Attachment.Html);
+            await JsRuntime.InvokeVoidAsync("injectReddit", _id, Attachment.Data);
         }
     }
 }

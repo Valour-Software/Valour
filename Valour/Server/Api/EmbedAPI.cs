@@ -3,6 +3,7 @@ using System.Text.Json;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 using Valour.Sdk.Models.Messages.Embeds.Items;
 using Valour.Server.Cdn;
 
@@ -21,7 +22,7 @@ public class EmbedAPI : BaseAPI
         var ceu = await JsonSerializer.DeserializeAsync<ChannelEmbedUpdate>(ctx.Request.Body);
 
         if (ceu.NewEmbedContent.Length > 65535)
-            return Results.BadRequest("EmbedData must be under 65535 chars");
+            return Results.BadRequest("Embed data must be under 65535 chars");
 
         // load embed to check for anti-valour propaganda (incorrect media URIs)
         var embed = JsonSerializer.Deserialize<Embed>(ceu.NewEmbedContent);
@@ -42,10 +43,13 @@ public class EmbedAPI : BaseAPI
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
 
-        var targetmessage = await db.Messages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == ceu.TargetMessageId);
+        var targetmessage = await db.Messages
+            .Include(x => x.AuthorMember)
+            .Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == ceu.TargetMessageId);
         if (targetmessage is null)
         {
-            targetmessage = PlanetMessageWorker.GetStagedMessage(ceu.TargetMessageId).ToDatabase();
+            targetmessage = PlanetMessageWorker.GetStagedMessage(ceu.TargetMessageId)?.ToDatabase();
             if (targetmessage is null)
                 return Results.NotFound("Target message not found");
         }
@@ -66,7 +70,7 @@ public class EmbedAPI : BaseAPI
         if (targetmessage.PlanetId != botmember.PlanetId)
             return Results.BadRequest("Planet id mismatch");
 
-        if (targetmessage.EmbedData == null || targetmessage.EmbedData == "")
+        if (!HasEmbedAttachment(targetmessage))
             return Results.BadRequest("Target message does not contain an embed!");
 
         var channel = (await db.Channels.FindAsync(targetmessage.ChannelId)).ToModel();
@@ -89,7 +93,7 @@ public class EmbedAPI : BaseAPI
         var peu = await JsonSerializer.DeserializeAsync<PersonalEmbedUpdate>(ctx.Request.Body);
 
         if (peu.NewEmbedContent is not null && peu.NewEmbedContent.Length > 65535)
-            return Results.BadRequest("EmbedData must be under 65535 chars");
+            return Results.BadRequest("Embed data must be under 65535 chars");
 
         if (peu.ChangedEmbedItemsContent is not null && peu.ChangedEmbedItemsContent.Length > 65535)
             return Results.BadRequest("ChangeItemsData must be under 65535 chars");
@@ -133,10 +137,13 @@ public class EmbedAPI : BaseAPI
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
 
-        var targetmessage = await db.Messages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == peu.TargetMessageId);
+        var targetmessage = await db.Messages
+            .Include(x => x.AuthorMember)
+            .Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == peu.TargetMessageId);
         if (targetmessage is null)
         {
-            targetmessage = PlanetMessageWorker.GetStagedMessage(peu.TargetMessageId).ToDatabase();
+            targetmessage = PlanetMessageWorker.GetStagedMessage(peu.TargetMessageId)?.ToDatabase();
             if (targetmessage is null)
                 return Results.NotFound("Target message not found");
         }
@@ -161,7 +168,7 @@ public class EmbedAPI : BaseAPI
         if (targetmessage.PlanetId != botmember.PlanetId)
             return Results.BadRequest("Planet id mismatch");
 
-        if (targetmessage.EmbedData == null || targetmessage.EmbedData == "")
+        if (!HasEmbedAttachment(targetmessage))
             return Results.BadRequest("Target message does not contain an embed!");
 
         var channel = (await db.Channels.FindAsync(targetmessage.ChannelId)).ToModel();
@@ -191,5 +198,12 @@ public class EmbedAPI : BaseAPI
 
         hubService.NotifyInteractionEvent(e);
         return Results.Ok();
+    }
+
+    private static bool HasEmbedAttachment(Valour.Database.Message message)
+    {
+        return message.Attachments?.Any(x =>
+            x.Type == MessageAttachmentType.Embed &&
+            !string.IsNullOrWhiteSpace(x.Data)) == true;
     }
 }

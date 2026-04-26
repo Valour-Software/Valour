@@ -1,0 +1,7 @@
+@inherits AttachmentComponent
+
+@if (Attachment?.Embed is not null && Attachment.Embed.Pages?.Count > 0)
+{
+    <EmbedComponent Message="@Message" Attachment="@Attachment" MessageComponent="@MessageComponent"></EmbedComponent>
+}
+

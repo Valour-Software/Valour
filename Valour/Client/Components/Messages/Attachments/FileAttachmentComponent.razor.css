@@ -21,3 +21,8 @@
 .extension {
     font-size: 1.2rem;
 }
+
+.unavailable {
+    color: var(--font-alt-color);
+    font-style: italic;
+}

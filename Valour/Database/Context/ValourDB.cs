@@ -210,6 +210,8 @@ public partial class ValourDb : DbContext
     public DbSet<OldPlanetRoleMember> OldPlanetRoleMembers { get; set; }
     
     public DbSet<MessageReaction> MessageReactions { get; set; }
+    public DbSet<MessageAttachment> MessageAttachments { get; set; }
+    public DbSet<MessageMention> MessageMentions { get; set; }
     
     
 
@@ -272,6 +274,8 @@ public partial class ValourDb : DbContext
         //base.OnModelCreating(modelBuilder);
         
         MessageReaction.SetupDbModel(modelBuilder);
+        MessageAttachment.SetupDbModel(modelBuilder);
+        MessageMention.SetupDbModel(modelBuilder);
         Message.SetupDbModel(modelBuilder);
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);

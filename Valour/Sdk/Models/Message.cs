@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Valour.Sdk.Client;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Shared.Models;
@@ -61,22 +60,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     public long ChannelId { get; set; }
     
     /// <summary>
-    /// Data for representing an embed
-    /// </summary>
-    public string EmbedData { get; set; }
-
-    /// <summary>
-    /// Data for representing mentions in a message
-    /// </summary>
-    public string MentionsData { get; set; }
-
-    /// <summary>
-    /// Data for representing attachments in a message
-    /// </summary>
-    public string AttachmentsData { get; set; }
-
-    /// <summary>
-    /// Used to identify a message returned from the server 
+    /// Used to identify a message returned from the server
     /// </summary>
     public string Fingerprint { get; set; }
 
@@ -103,43 +87,15 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// </summary>
     public List<MessageReaction> Reactions { get; set; }
     
-    #region Generation
-    
-    /////////////////////////////////
-    // Advanced message data below //
-    /////////////////////////////////
+    /// <summary>
+    /// Attachments on this message
+    /// </summary>
+    public List<MessageAttachment> Attachments { get; set; }
 
     /// <summary>
     /// The mentions contained within this message
     /// </summary>
-    private List<Mention> _mentions;
-
-    /// <summary>
-    /// True if the mentions data has been parsed
-    /// </summary>
-    private bool _mentionsParsed;
-
-    /// <summary>
-    /// The inner embed data
-    /// </summary>
-    private Embed _embed;
-
-    /// <summary>
-    /// True if the embed data has been parsed
-    /// </summary>
-    private bool _embedParsed;
-
-    /// <summary>
-    /// The inner attachments data
-    /// </summary>
-    private List<MessageAttachment> _attachments;
-    
-    /// <summary>
-    /// True if the attachments have been parsed
-    /// </summary>
-    private bool _attachmentsParsed;
-    
-    #endregion
+    public List<Mention> Mentions { get; set; }
     
     // Prevents wasting time repeatedly grabbing the same data
     #region Cached Props
@@ -276,122 +232,31 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         return false;
     }
 
-    /// <summary>
-    /// The mentions within this message
-    /// </summary>
-    public List<Mention> Mentions
-    {
-        get
-        {
-            if (!_mentionsParsed)
-            {
-                if (!string.IsNullOrEmpty(MentionsData))
-                {
-                    _mentions = JsonSerializer.Deserialize<List<Mention>>(MentionsData);
-                }
-
-                _mentionsParsed = true;
-            }
-
-            return _mentions;
-        }
-    }
-
     public void SetupMentionsList()
     {
-        if (_mentions is null)
-            _mentions = new();
+        Mentions ??= new();
     }
 
-    public Embed Embed
-    {
-        get
-        {
-            if (!_embedParsed)
-            {
-                if (!string.IsNullOrEmpty(EmbedData))
-                {
-                    //Console.WriteLine(EmbedData);
-                    // prevent a million errors in console
-                    if (EmbedData.Contains("EmbedVersion\":\"1.1.0\""))
-                    {
-                        _embedParsed = true;
-                        return null;
-                    }
-                    _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
-                    if (_embed.Pages is not null)
-                    {
-                        foreach (var page in _embed.Pages)
-                        {
-                            if (page.Children is not null)
-                            {
-                                foreach (var item in page.Children)
-                                {
-                                    item.Embed = _embed;
-                                    item.Init(_embed, page);
-                                }
-                            }
-                        }
-                    }
-                }
+    [JsonIgnore]
+    public MessageAttachment EmbedAttachment =>
+        Attachments?.FirstOrDefault(x => x.Type == MessageAttachmentType.Embed);
 
-                _embedParsed = true;
-            }
-
-            return _embed;
-        }
-    }
-
-    public List<MessageAttachment> Attachments
-    {
-        get
-        {
-            if (!_attachmentsParsed)
-            {
-                if (!string.IsNullOrEmpty(AttachmentsData))
-                {
-                    _attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(AttachmentsData);
-                }
-
-                _attachmentsParsed = true;
-            }
-
-            return _attachments;
-        }
-    }
+    [JsonIgnore]
+    public Embed Embed => EmbedAttachment?.Embed;
 
     public void SetMentions(List<Mention> mentions)
     {
-        _mentions = mentions;
-        
-        if (mentions is null || mentions.Count == 0)
-        {
-            MentionsData = null;
-        }
-        else
-        {
-            MentionsData = JsonSerializer.Serialize(mentions);
-        }
+        Mentions = mentions;
     }
 
     public void SetAttachments(List<MessageAttachment> attachments)
     {
-        _attachments = attachments;
-        
-        if (_attachments is null || _attachments.Count == 0)
-        {
-            AttachmentsData = null;
-        }
-        else
-        {
-            AttachmentsData = JsonSerializer.Serialize(attachments);
-        }
+        Attachments = attachments;
     }
 
     public void ClearMentions()
     {
-        MentionsData = null;
-        _mentions = null;
+        Mentions = null;
     }
 
     /// <summary>
@@ -399,12 +264,51 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     /// </summary>
     public bool IsEmbed()
     {
-        return !string.IsNullOrWhiteSpace(EmbedData);
+        return EmbedAttachment is not null;
     }
-    
+
     public void SetEmbedParsed(bool val)
     {
-        _embedParsed = val;
+        EmbedAttachment?.SetEmbedParsed(val);
+    }
+
+    public void SetEmbed(Embed embed)
+    {
+        if (embed is null)
+        {
+            Attachments?.RemoveAll(x => x.Type == MessageAttachmentType.Embed);
+            return;
+        }
+
+        var attachment = EmbedAttachment;
+        if (attachment is null)
+        {
+            Attachments ??= [];
+            Attachments.Add(MessageAttachment.CreateEmbed(embed));
+        }
+        else
+        {
+            attachment.SetEmbed(embed);
+        }
+    }
+
+    public void SetEmbedPayload(string data)
+    {
+        if (string.IsNullOrWhiteSpace(data))
+        {
+            Attachments?.RemoveAll(x => x.Type == MessageAttachmentType.Embed);
+            return;
+        }
+
+        var attachment = EmbedAttachment;
+        if (attachment is null)
+        {
+            Attachments ??= [];
+            attachment = new MessageAttachment(MessageAttachmentType.Embed);
+            Attachments.Add(attachment);
+        }
+
+        attachment.SetEmbedPayload(data);
     }
     
     public bool IsEmpty()
@@ -413,13 +317,7 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         if (!string.IsNullOrWhiteSpace(Content))
             return false;
         
-        if (!string.IsNullOrWhiteSpace(EmbedData))
-            return false;
-        
-        if (!string.IsNullOrWhiteSpace(AttachmentsData))
-            return false;
-        
-        if (_attachments is not null && _attachments.Count > 0)
+        if (Attachments is not null && Attachments.Count > 0)
             return false;
         
         return ReplyToId is null;
@@ -437,18 +335,9 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     
     public void Clear()
     {
-        MentionsData = null;
-        AttachmentsData = null;
-        EmbedData = null;
         Content = null;
-        
-        _mentions = null;
-        _attachments = null;
-        _embed = null;
-
-        _mentionsParsed = false;
-        _attachmentsParsed = false;
-        _embedParsed = false;
+        Attachments = null;
+        Mentions = null;
     }
     
     // Alias for CreateAsync

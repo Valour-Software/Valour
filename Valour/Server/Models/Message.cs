@@ -7,11 +7,23 @@ public class Message : ServerModel<long>, ISharedMessage
 {
     public Message ReplyTo { get; set; }
     public List<MessageReaction> Reactions { get; set; }
+    public List<Valour.Sdk.Models.MessageAttachment> Attachments { get; set; }
+    public List<Mention> Mentions { get; set; }
 
     public Message AddReplyTo(Message replyTo)
     {
         ReplyTo = replyTo;
         return this;
+    }
+
+    public void SetAttachments(List<Valour.Sdk.Models.MessageAttachment> attachments)
+    {
+        Attachments = attachments;
+    }
+
+    public void SetMentions(List<Mention> mentions)
+    {
+        Mentions = mentions;
     }
     
     /// <summary>
@@ -49,21 +61,6 @@ public class Message : ServerModel<long>, ISharedMessage
     /// </summary>
     public long ChannelId { get; set; }
     
-    /// <summary>
-    /// Data for representing an embed
-    /// </summary>
-    public string EmbedData { get; set; }
-
-    /// <summary>
-    /// Data for representing mentions in a message
-    /// </summary>
-    public string MentionsData { get; set; }
-
-    /// <summary>
-    /// Data for representing attachments in a message
-    /// </summary>
-    public string AttachmentsData { get; set; }
-
     /// <summary>
     /// The time when the message was edited, or null if it was not
     /// </summary>

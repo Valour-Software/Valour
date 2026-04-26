@@ -1,8 +1,15 @@
 ﻿@inherits AttachmentComponent
 
-<audio controls preload="auto" playsinline>
-    <source src="@_location" type="@Attachment.MimeType" />
-</audio>
+@if (Attachment?.Missing == true || string.IsNullOrWhiteSpace(_location))
+{
+    <FileAttachmentComponent Message="@Message" Attachment="@Attachment" />
+}
+else
+{
+    <audio controls preload="auto" playsinline>
+        <source src="@_location" type="@Attachment.MimeType" />
+    </audio>
+}
 
 @code {
     [Parameter]

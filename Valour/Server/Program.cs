@@ -167,6 +167,7 @@ public partial class Program
             new DynamicAPI<ThemeApi>().RegisterRoutes(app),
             new DynamicAPI<StaffApi>().RegisterRoutes(app),
             new DynamicAPI<MessageApi>().RegisterRoutes(app),
+            new DynamicAPI<AttachmentApi>().RegisterRoutes(app),
             new DynamicAPI<UnreadApi>().RegisterRoutes(app),
             new DynamicAPI<TagApi>().RegisterRoutes(app),
             new DynamicAPI<BotApi>().RegisterRoutes(app),
@@ -342,6 +343,11 @@ public partial class Program
             AllowAutoRedirect = false
         });
 
+        services.AddHttpClient("PhotoDNA", client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ValourSafety/1.0");
+        });
+
         services.AddSingleton<SignalRConnectionService>();
         services.AddSingleton<UserOnlineQueueService>();
 
@@ -364,6 +370,8 @@ public partial class Program
         services.AddScoped<ChatCacheService>();
         services.AddScoped<ChannelService>();
         services.AddScoped<MessageService>();
+        services.AddScoped<UserAttachmentService>();
+        services.AddScoped<MediaSafetyService>();
         services.AddScoped<PlanetInviteService>();
         services.AddScoped<PlanetMemberService>();
         services.AddScoped<PlanetRoleService>();
