@@ -97,7 +97,7 @@ public class PlanetBanService
         await tran.CommitAsync();
 
         // Notify of changes
-        _coreHub.NotifyPlanetItemChange(ban);
+        _coreHub.NotifyPlanetItemCreate(ban);
         _coreHub.NotifyPlanetItemDelete(target);
 
         var actorUserId = source == ModerationActionSource.Automod

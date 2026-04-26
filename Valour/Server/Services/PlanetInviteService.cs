@@ -53,7 +53,7 @@ public class PlanetInviteService
             return new(false, e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(invite);
+        _coreHub.NotifyPlanetItemCreate(invite);
 
         return new(true, "Success", invite);
     }
