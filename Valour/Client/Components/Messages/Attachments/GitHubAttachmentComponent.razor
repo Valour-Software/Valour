@@ -46,9 +46,9 @@
             return;
         }
 
-        if (!string.IsNullOrEmpty(Attachment.Html))
+        if (!string.IsNullOrEmpty(Attachment.Data))
         {
-            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Html, null);
+            await JsRuntime.InvokeVoidAsync("injectEmbed", _id, Attachment.Data, null);
         }
     }
 

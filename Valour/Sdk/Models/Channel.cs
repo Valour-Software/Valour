@@ -690,13 +690,13 @@ public class Channel : ClientPlanetModel<Channel, long>, ISharedChannel
         }
         
         if (mentions is not null)
-            msg.MentionsData = JsonSerializer.Serialize(mentions);
+            msg.Mentions = mentions;
         
         if (attachments is not null)
-            msg.AttachmentsData = JsonSerializer.Serialize(attachments);
+            msg.Attachments = attachments;
         
         if (embed is not null)
-            msg.EmbedData = JsonSerializer.Serialize(embed);
+            msg.SetEmbed(embed);
 
         return await Client.MessageService.SendMessage(msg);
     }

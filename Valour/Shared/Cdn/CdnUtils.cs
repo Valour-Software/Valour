@@ -55,6 +55,9 @@ namespace Valour.Shared.Cdn
             { "gist.github.com", MessageAttachmentType.GitHub },
         };
 
+        public static bool IsVirtualAttachmentType(MessageAttachmentType type) =>
+            VirtualAttachmentMap.ContainsValue(type);
+
         /// <summary>
         /// Set for attachment sources that bypass Valour CDN
         /// </summary>

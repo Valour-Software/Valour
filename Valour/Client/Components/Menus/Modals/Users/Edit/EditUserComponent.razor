@@ -23,6 +23,7 @@
     private RenderFragment ProfileContent => @<EditProfileComponent />;
     private RenderFragment FriendsContent => @<EditFriendsComponent />;
     private RenderFragment SafetyContent => @<EditSafetyComponent />;
+    private RenderFragment AttachmentsContent => @<EditAttachmentsComponent />;
     private RenderFragment ThemesContent => @<EditThemeComponent />;
     private RenderFragment SubscriptionsContent => @<EditSubscriptionsComponent />;
     private RenderFragment ReferralsContent => @<EditReferralsComponent />;
@@ -81,6 +82,13 @@
                         Icon = "shield-fill-check",
                         Description = "Manage blocks and DM privacy",
                         Content = SafetyContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Attachments",
+                        Icon = "paperclip",
+                        Description = "View, search, and delete uploaded attachments",
+                        Content = AttachmentsContent
                     },
                     new MainMenu.MenuItem()
                     {

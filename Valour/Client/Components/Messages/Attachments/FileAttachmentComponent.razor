@@ -4,7 +4,14 @@
     <div class="file-icon">
         <h4 class="extension">@_extension</h4>
     </div>
-    <a class="nohide" href="@_location">@Attachment.FileName</a>
+    @if (Attachment?.Missing == true || string.IsNullOrWhiteSpace(_location))
+    {
+        <span class="nohide unavailable">@Attachment?.FileName</span>
+    }
+    else
+    {
+        <a class="nohide" href="@_location">@Attachment.FileName</a>
+    }
 </div>
 
 

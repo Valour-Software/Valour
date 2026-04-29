@@ -39,4 +39,7 @@ public enum MessageAttachmentType : long
 
     // Developer platforms
     GitHub,
+
+    // Valour-native structured attachment
+    Embed,
 }

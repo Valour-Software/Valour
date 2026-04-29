@@ -44,6 +44,8 @@
     protected override async Task OnInitializedAsync()
     {
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+        if (string.IsNullOrWhiteSpace(_location))
+            _location = "_content/Valour.Client/media/image-not-found.webp";
         
         var width = Attachment.Width;
         var height = Attachment.Height;
@@ -77,7 +79,7 @@
 
     private void OnClick()
     {
-        if (!Clickable) return;
+        if (!Clickable || Attachment.Missing) return;
         
         var modalParams = new AttachmentModal.ModalParams()
         {

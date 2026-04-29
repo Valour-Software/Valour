@@ -110,13 +110,18 @@ else
                     var par = new Dictionary<string, object>()
                     {
                         {"Attachment", attachment},
-                        {"Message", _message}
+                        {"Message", _message},
+                        {"MessageComponent", this}
                     };
 
                     if (attachment.Type == MessageAttachmentType.Image)
                     {
                         par["Clickable"] = !_ghost;
                     }
+
+                    var componentType = attachment.GetComponentType();
+                    if (componentType is null)
+                        continue;
 
                     <div class="attachment-wrapper" @onclick="() => OnClickAttachment(id)">
                         @if (_ghost && !_isInnerReply)
@@ -126,16 +131,12 @@ else
                                 <img src="_content/Valour.Client/media/Trash-Can-Icon.svg" alt="" />
                             </button>
                         }
-                        <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+                        <DynamicComponent Type="componentType" Parameters="par"></DynamicComponent>
                     </div>
                 }
             }
 
-            @if (_message.Embed != null && _message.Embed.Pages.Count > 0)
-            {
-                <EmbedComponent Message="@_message" MessageComponent="@this"></EmbedComponent>
-            }
-            else
+            @if (!_message.IsEmbed())
             {
                 @RenderContent
 

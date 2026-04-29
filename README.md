@@ -77,7 +77,7 @@ dotnet restore
 
 ### 4) Database setup
 
-Valour now applies EF Core migrations automatically on server startup (`db.Database.Migrate()`), so manual `definitions.sql` execution is no longer the primary setup path.
+Valour applies EF Core migrations automatically on server startup (`db.Database.Migrate()`).
 
 ### 5) Run locally
 

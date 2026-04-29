@@ -1,0 +1,272 @@
+@using Valour.Shared.Cdn
+@using Valour.Shared.Queries
+@inject ValourClient Client
+
+<div class="attachments-panel">
+    <div class="attachments-toolbar">
+        <LargeSearch Placeholder="Search filenames, MIME types, or hashes..."
+                     DebounceMs="250"
+                     OnSearchChanged="OnSearchChanged"
+                     OnSearchCleared="OnSearchCleared" />
+
+        <div class="attachments-controls">
+            <select class="v-input" @onchange="OnSortChanged">
+                <option value="createdAt" selected>Newest</option>
+                <option value="fileName">Filename</option>
+                <option value="sizeBytes">Size</option>
+                <option value="mimeType">Type</option>
+                <option value="category">Category</option>
+            </select>
+            <button class="v-btn secondary" @onclick="RefreshAsync" disabled="@_loading">
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="attachments-note">
+        Deleting an attachment replaces it with a known “Attachment not found” placeholder anywhere it was used.
+    </div>
+
+    @if (_loading && _attachments.Count == 0)
+    {
+        <div class="empty-state">Loading your attachments...</div>
+    }
+    else if (_attachments.Count == 0)
+    {
+        <div class="empty-state">No attachments found.</div>
+    }
+    else
+    {
+        <div class="attachments-grid">
+            @foreach (var attachment in _attachments)
+            {
+                <div class="attachment-card" @key="attachment.Id">
+                    <div class="attachment-preview">
+                        @if (IsImage(attachment))
+                        {
+                            <img src="@GetAttachmentUrl(attachment)" alt="@attachment.FileName" loading="lazy" />
+                        }
+                        else if (IsVideo(attachment))
+                        {
+                            <video controls preload="metadata" playsinline src="@GetAttachmentUrl(attachment)" type="@attachment.MimeType"></video>
+                        }
+                        else if (IsAudio(attachment))
+                        {
+                            <div class="audio-preview-art">
+                                <i class="bi bi-music-note-beamed"></i>
+                            </div>
+                            <audio controls preload="metadata" src="@GetAttachmentUrl(attachment)"></audio>
+                        }
+                        else
+                        {
+                            <div class="attachment-icon">
+                                <i class="bi bi-@GetCategoryIcon(attachment.Category)"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="attachment-main">
+                        <div class="attachment-name" title="@attachment.FileName">@attachment.FileName</div>
+                        <div class="attachment-meta">
+                            <span>@attachment.MimeType</span>
+                            <span>@FormatBytes(attachment.SizeBytes)</span>
+                            <span>@attachment.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                        </div>
+                        <div class="attachment-hash">@attachment.Hash</div>
+                    </div>
+                    <div class="attachment-actions">
+                        <a class="v-btn secondary" href="@GetAttachmentUrl(attachment)" target="_blank" rel="noopener noreferrer">
+                            Open
+                        </a>
+                        <button class="v-btn danger"
+                                disabled="@_deletingIds.Contains(attachment.Id)"
+                                @onclick="() => ConfirmDelete(attachment)">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (_attachments.Count < _totalCount)
+        {
+            <button class="v-btn primary load-more" @onclick="LoadMoreAsync" disabled="@_loading">
+                Load more (@_attachments.Count / @_totalCount)
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private const int PageSize = 50;
+    private readonly HashSet<string> _deletingIds = new();
+
+    private List<UserAttachmentInfo> _attachments = new();
+    private int _totalCount;
+    private bool _loading;
+    private string _search = string.Empty;
+    private string _sortField = "createdAt";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await QueryAsync(reset: true);
+    }
+
+    private async Task RefreshAsync()
+    {
+        await QueryAsync(reset: true);
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        await QueryAsync(reset: false);
+    }
+
+    private async Task OnSearchChanged(string search)
+    {
+        _search = search ?? string.Empty;
+        await QueryAsync(reset: true);
+    }
+
+    private async Task OnSearchCleared()
+    {
+        _search = string.Empty;
+        await QueryAsync(reset: true);
+    }
+
+    private async Task OnSortChanged(ChangeEventArgs e)
+    {
+        _sortField = e.Value?.ToString() ?? "createdAt";
+        await QueryAsync(reset: true);
+    }
+
+    private async Task QueryAsync(bool reset)
+    {
+        if (_loading)
+            return;
+
+        _loading = true;
+
+        var request = new QueryRequest
+        {
+            Skip = reset ? 0 : _attachments.Count,
+            Take = PageSize,
+            Options = new QueryOptions
+            {
+                Filters = new Dictionary<string, string>
+                {
+                    ["search"] = _search
+                },
+                Sort = new QuerySort
+                {
+                    Field = _sortField,
+                    Descending = true
+                }
+            }
+        };
+
+        var result = await Client.AttachmentService.QueryAsync(request);
+        if (result.Success)
+        {
+            _totalCount = result.Data.TotalCount;
+            _attachments = reset
+                ? result.Data.Items
+                : _attachments.Concat(result.Data.Items).ToList();
+        }
+        else
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Could not load attachments", result.Message, ToastProgressState.Failure));
+        }
+
+        _loading = false;
+    }
+
+    private Task ConfirmDelete(UserAttachmentInfo attachment)
+    {
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams()
+        {
+            Title = "Delete attachment?",
+            Description = $"This will replace \"{attachment.FileName}\" with an Attachment not found placeholder everywhere it was used.",
+            ConfirmText = "Delete",
+            CancelText = "Cancel",
+            ConfirmEvent = async () => await DeleteAsync(attachment)
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private async Task DeleteAsync(UserAttachmentInfo attachment)
+    {
+        _deletingIds.Add(attachment.Id);
+
+        var result = await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>
+        {
+            Title = "Deleting attachment",
+            Message = "Detaching attachment from messages...",
+            SuccessMessage = "Attachment deleted",
+            ProgressTask = Client.AttachmentService.DeleteAsync(attachment)
+        });
+
+        _deletingIds.Remove(attachment.Id);
+
+        if (result.Success)
+        {
+            _attachments.RemoveAll(x => x.Id == attachment.Id);
+            _totalCount = Math.Max(0, _totalCount - 1);
+        }
+    }
+
+    private static string GetCategoryIcon(ContentCategory category)
+    {
+        return category switch
+        {
+            ContentCategory.Image => "image",
+            ContentCategory.Audio => "music-note-beamed",
+            ContentCategory.Video => "film",
+            _ => "paperclip"
+        };
+    }
+
+    private static bool IsImage(UserAttachmentInfo attachment)
+    {
+        return attachment.Category == ContentCategory.Image ||
+               attachment.MimeType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsAudio(UserAttachmentInfo attachment)
+    {
+        return attachment.Category == ContentCategory.Audio ||
+               attachment.MimeType?.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsVideo(UserAttachmentInfo attachment)
+    {
+        return attachment.Category == ContentCategory.Video ||
+               attachment.MimeType?.StartsWith("video/", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static string GetAttachmentUrl(UserAttachmentInfo attachment)
+    {
+        return string.IsNullOrWhiteSpace(attachment.SignedUrl)
+            ? attachment.Url
+            : attachment.SignedUrl;
+    }
+
+    private static string FormatBytes(int bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB"];
+        var value = (double)bytes;
+        var unit = 0;
+
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+
+        return $"{value:0.#} {units[unit]}";
+    }
+}

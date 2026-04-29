@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
@@ -527,10 +526,10 @@ public class AutomodService
                             TimeSent = DateTime.UtcNow,
                             PlanetId = targetPlanetId,
                             Fingerprint = Guid.NewGuid().ToString(),
-                            MentionsData = JsonSerializer.Serialize(new List<Mention>()
-                            {
-                                new Mention(){ TargetId = targetMemberId, Type = MentionType.PlanetMember}
-                            })
+                            Mentions =
+                            [
+                                new Mention() { TargetId = targetMemberId, Type = MentionType.PlanetMember }
+                            ]
                         };
 
                         var responseResult = await messageService.PostMessageAsync(response);

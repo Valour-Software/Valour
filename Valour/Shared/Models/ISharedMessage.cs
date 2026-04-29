@@ -46,21 +46,6 @@ public interface ISharedMessage : ISharedModel<long>
     long ChannelId { get; set; }
 
     /// <summary>
-    /// Data for representing an embed
-    /// </summary>
-    string EmbedData { get; set; }
-
-    /// <summary>
-    /// Data for representing mentions in a message
-    /// </summary>
-    string MentionsData { get; set; }
-
-    /// <summary>
-    /// Data for representing attachments in a message
-    /// </summary>
-    string AttachmentsData { get; set; }
-
-    /// <summary>
     /// The time when the message was edited, or null if it was not
     /// </summary>
     public DateTime? EditedTime { get; set; }

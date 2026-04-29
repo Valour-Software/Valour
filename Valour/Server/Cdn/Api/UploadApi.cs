@@ -126,7 +126,13 @@ public class UploadApi
 
     [FileUploadOperation.FileContentType]
     [RequestSizeLimit(262_144_000)] // 250 MB (max tier limit)
-    private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDb db, TokenService tokenService, CdnBucketService bucketService, [FromHeader] string authorization)
+    private static async Task<IResult> ImageRoute(
+        HttpContext ctx,
+        ValourDb db,
+        TokenService tokenService,
+        CdnBucketService bucketService,
+        MediaSafetyService mediaSafetyService,
+        [FromHeader] string authorization)
     {
         var authToken = await tokenService.GetCurrentTokenAsync();
         if (authToken is null) return ValourResult.InvalidToken();
@@ -147,7 +153,20 @@ public class UploadApi
             return Results.BadRequest("Unable to process image. Check format and size.");
 
         using MemoryStream ms = imageData.Value.stream;
-        var bucketResult = await bucketService.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Image, db);
+        var safetyHashMatch = await mediaSafetyService.HashMatchImageUploadAsync(ms, file.FileName, imageData.Value.mime);
+        if (safetyHashMatch.ShouldBlock)
+            return ValourResult.Forbid("Unable to upload this image.");
+
+        ms.Position = 0;
+        var bucketResult = await bucketService.Upload(
+            ms,
+            file.FileName,
+            imageData.Value.extension,
+            authToken.UserId,
+            imageData.Value.mime,
+            ContentCategory.Image,
+            db,
+            safetyHashMatch);
 
         if (bucketResult.Success)
         {

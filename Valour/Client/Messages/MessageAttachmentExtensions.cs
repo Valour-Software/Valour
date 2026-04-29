@@ -36,6 +36,7 @@ public static class MessageAttachmentExtensions
         typeof(SpotifyAttachmentComponent),     // 22: Spotify
         typeof(SoundCloudAttachmentComponent),  // 23: SoundCloud
         typeof(GitHubAttachmentComponent),      // 24: GitHub
+        typeof(EmbedAttachmentComponent),       // 25: Embed
     };
 
     public static Type GetComponentType(this MessageAttachment attachment)

@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Valour.Sdk.Models.Messages.Embeds;
 using Valour.Sdk.Models.Messages.Embeds.Items;
+using Valour.Server.Database;
 using Valour.Server.Cdn;
 using Valour.Server.Utilities;
 using Valour.Server.Workers;
@@ -63,7 +64,12 @@ public class MessageService
         
         var message = await _db.Messages.AsNoTracking()
             .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Mentions)
             .Include(x => x.Reactions)
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
             .FirstOrDefaultAsync(x => x.Id == id);
         
         return message?.ToModel();
@@ -73,7 +79,11 @@ public class MessageService
     /// Returns the message with the given id (no reply!)
     /// </summary>
     public async Task<Message?> GetMessageNoReplyAsync(long id) =>
-        (await _db.Messages.Include(x => x.Reactions).FirstOrDefaultAsync(x => x.Id == id)).ToModel();
+        (await _db.Messages
+            .Include(x => x.Reactions)
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
+            .FirstOrDefaultAsync(x => x.Id == id)).ToModel();
     
     /// <summary>
     /// Used to post a message 
@@ -139,7 +149,11 @@ public class MessageService
         // Handle replies
         if (message.ReplyToId is not null)
         {
-            replyTo = (await _db.Messages.FindAsync(message.ReplyToId)).ToModel();
+            replyTo = (await _db.Messages
+                .AsNoTracking()
+                .Include(x => x.Attachments)
+                .Include(x => x.Mentions)
+                .FirstOrDefaultAsync(x => x.Id == message.ReplyToId)).ToModel();
             if (replyTo is null)
             {
                 // Try to get from cache if it has not yet posted
@@ -159,10 +173,8 @@ public class MessageService
             notification = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply;
         }
         
-        if (string.IsNullOrEmpty(message.Content) &&
-            string.IsNullOrEmpty(message.EmbedData) &&
-            string.IsNullOrEmpty(message.AttachmentsData))
-            return TaskResult<Message>.FromFailure("Message must contain content, embed data, or attachments.");
+        if (string.IsNullOrEmpty(message.Content) && !HasAttachments(message))
+            return TaskResult<Message>.FromFailure("Message must contain content or attachments.");
         
         if (message.Fingerprint is null)
             return TaskResult<Message>.FromFailure("Fingerprint is required. Generating a random UUID is suggested.");
@@ -171,54 +183,20 @@ public class MessageService
             return TaskResult<Message>.FromFailure("Content must be under 2048 chars");
 
 
-        if (!string.IsNullOrWhiteSpace(message.EmbedData))
-        {
-            if (message.EmbedData.Length > 65535)
-            {
-                return TaskResult<Message>.FromFailure("EmbedData must be under 65535 chars");
-            }
-            
-            // load embed to check for anti-valour propaganda (incorrect media URIs)
-            var embed = JsonSerializer.Deserialize<Embed>(message.EmbedData);
-            foreach (var page in embed.Pages)
-            {
-                foreach (var item in page.GetAllItems())
-                {
-                    if (item.ItemType == EmbedItemType.Media)
-                    {
-                        var at = ((EmbedMediaItem)item).Attachment;
-                        var result = MediaUriHelper.ScanMediaUri(at);
-                        if (!result.Success)
-                            return TaskResult<Message>.FromFailure($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {at.Location}");
-                    }
-                }
-            }
-        }
-
         if (message.Content is null)
             message.Content = "";
 
         message.Id = Valour.Server.Database.IdManager.Generate();
         message.TimeSent = DateTime.UtcNow;
         
-        List<Valour.Sdk.Models.MessageAttachment> attachments = null;
-        // Handle attachments
-        if (!string.IsNullOrWhiteSpace(message.AttachmentsData))
+        var attachments = message.Attachments?.Where(x => x is not null).ToList();
+        if (attachments is not null)
         {
-            attachments = JsonSerializer.Deserialize<List<Valour.Sdk.Models.MessageAttachment>>(message.AttachmentsData);
-            if (attachments is not null)
-            {
-                foreach (var at in attachments)
-                {
-                    var result = MediaUriHelper.ScanMediaUri(at);
-                    if (!result.Success)
-                        return TaskResult<Message>.FromFailure($"Error scanning media URI in message attachments | {at.Location}");
-                }
-            }
+            // Inline attachments are generated from message content on the server.
+            foreach (var attachment in attachments)
+                attachment.Inline = false;
         }
 
-        // True if the scanning process makes changes to inline attachments
-        var inlineChange = false;
         if (!string.IsNullOrWhiteSpace(message.Content))
         {
             // Prevent markdown bypassing inline, e.g. [](https://example.com)
@@ -241,28 +219,23 @@ public class MessageService
                 {
                     attachments.AddRange(inlineAttachments);
                 }
-
-                inlineChange = true;
             }
         }
-        
-        // If there was a change, serialize the new attachments data back to the message
-        if (inlineChange)
-        {
-            message.AttachmentsData = JsonSerializer.Serialize(attachments);
-        }
+
+        var attachmentResult = await PrepareAttachmentsAsync(message, attachments);
+        if (!attachmentResult.Success)
+            return TaskResult<Message>.FromFailure(attachmentResult);
         
         // Handle mentions
         var mentions = MentionParser.Parse(message.Content);
-        if (mentions is not null)
+        PrepareMentions(message, mentions);
+
+        if (message.Mentions is not null)
         {
-            foreach (var mention in mentions)
+            foreach (var mention in message.Mentions)
             {
                 await _notificationService.HandleMentionAsync(mention, planet, message, member, user, channel);
             }
-
-            // Serialize mentions to the message
-            message.MentionsData = JsonSerializer.Serialize(mentions);
         }
         
         var memberModel = member?.ToModel();
@@ -379,7 +352,10 @@ public class MessageService
         ISharedMessage old = null;
         Message stagedOld = null;
         
-        var dbOld = await _db.Messages.FindAsync(updated.Id);
+        var dbOld = await _db.Messages
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
+            .FirstOrDefaultAsync(x => x.Id == updated.Id);
         if (dbOld is not null)
         {
             old = dbOld;
@@ -398,38 +374,17 @@ public class MessageService
         }
         
         // Sanity checks
-        if (string.IsNullOrEmpty(updated.Content) &&
-            string.IsNullOrEmpty(updated.EmbedData) &&
-            string.IsNullOrEmpty(updated.AttachmentsData))
+        if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))
             return TaskResult<Message>.FromFailure("Updated message cannot be empty");
-        
-        if (updated.EmbedData != null && updated.EmbedData.Length > 65535)
-            return TaskResult<Message>.FromFailure("EmbedData must be under 65535 chars");
         
         if (updated.Content != null && updated.Content.Length > 2048)
             return TaskResult<Message>.FromFailure("Content must be under 2048 chars");
         
-        List<Valour.Sdk.Models.MessageAttachment> attachments = null;
-        bool inlineChange = false;
-
-        // Handle attachments
-        if (!string.IsNullOrWhiteSpace(updated.AttachmentsData))
+        var attachments = updated.Attachments?.Where(x => x is not null).ToList();
+        if (attachments is not null)
         {
-            attachments = JsonSerializer.Deserialize<List<Valour.Sdk.Models.MessageAttachment>>(updated.AttachmentsData);
-            if (attachments is not null)
-            {
-                foreach (var at in attachments)
-                {
-                    var result = MediaUriHelper.ScanMediaUri(at);
-                    if (!result.Success)
-                        return TaskResult<Message>.FromFailure(result.Message);
-                }
-                
-                // Remove old inline attachments
-                var n = attachments.RemoveAll(x => x.Inline);
-                if (n > 0)
-                    inlineChange = true;
-            }
+            // Inline previews are regenerated from the edited content below.
+            attachments.RemoveAll(x => x.Inline);
         }
         
         // Handle new inline attachments
@@ -446,21 +401,25 @@ public class MessageService
                 {
                     attachments.AddRange(inlineAttachments);
                 }
-                
-                inlineChange = true;
             }
         }
-        
-        // If there was a change, serialize the new attachments data back to the message
-        if (inlineChange)
-        {
-            updated.AttachmentsData = JsonSerializer.Serialize(attachments);
-        }
+
+        var attachmentResult = await PrepareAttachmentsAsync(updated, attachments);
+        if (!attachmentResult.Success)
+            return TaskResult<Message>.FromFailure(attachmentResult);
+
+        PrepareMentions(updated, MentionParser.Parse(updated.Content ?? string.Empty));
+
+        updated.EditedTime = DateTime.UtcNow;
 
         old.Content = updated.Content;
-        old.AttachmentsData = updated.AttachmentsData;
-        old.EmbedData = updated.EmbedData;
-        old.EditedTime = DateTime.UtcNow;
+        old.EditedTime = updated.EditedTime;
+
+        if (stagedOld is not null)
+        {
+            stagedOld.Attachments = updated.Attachments;
+            stagedOld.Mentions = updated.Mentions;
+        }
         
         // In this case, the message has posted to the database so
         // we save changes there
@@ -468,7 +427,27 @@ public class MessageService
         {
             try
             {
-                _db.Messages.Update(dbOld);
+                dbOld.Content = updated.Content;
+                dbOld.EditedTime = updated.EditedTime;
+
+                if (dbOld.Attachments is { Count: > 0 })
+                    _db.MessageAttachments.RemoveRange(dbOld.Attachments);
+
+                if (updated.Attachments is { Count: > 0 })
+                {
+                    await _db.MessageAttachments.AddRangeAsync(
+                        updated.Attachments.Select((x, i) => x.ToDatabase(updated.Id, i)));
+                }
+
+                if (dbOld.Mentions is { Count: > 0 })
+                    _db.MessageMentions.RemoveRange(dbOld.Mentions);
+
+                if (updated.Mentions is { Count: > 0 })
+                {
+                    await _db.MessageMentions.AddRangeAsync(
+                        updated.Mentions.Select((x, i) => x.ToDatabase(updated.Id, i)));
+                }
+
                 await _db.SaveChangesAsync();
             }
             catch (Exception e)
@@ -509,6 +488,8 @@ public class MessageService
         
         var dbMessage = await _db.Messages
             .Include(x => x.Reactions)
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
             .FirstOrDefaultAsync(x => x.Id == messageId);
         
         if (dbMessage is null)
@@ -544,6 +525,12 @@ public class MessageService
                     _db.MessageReactions.RemoveRange(dbMessage.Reactions);
                     await _db.SaveChangesAsync();
                 }
+
+                if (dbMessage.Attachments is { Count: > 0 })
+                    _db.MessageAttachments.RemoveRange(dbMessage.Attachments);
+
+                if (dbMessage.Mentions is { Count: > 0 })
+                    _db.MessageMentions.RemoveRange(dbMessage.Mentions);
 
                 _db.Messages.Remove(dbMessage);
                 await _db.SaveChangesAsync();
@@ -601,7 +588,12 @@ public class MessageService
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id < index)
             .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Mentions)
             .Include(x => x.Reactions)
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
             .OrderByDescending(x => x.Id)
             .Take(count)
             .Reverse()
@@ -657,7 +649,12 @@ public class MessageService
             .AsNoTracking()
             .Where(x => x.ChannelId == channel.Id && x.Id > afterId)
             .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Mentions)
             .Include(x => x.Reactions)
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
             .OrderBy(x => x.Id)
             .Take(count)
             .Select(x => x.ToModel())
@@ -687,7 +684,12 @@ public class MessageService
             .Where(x => x.ChannelId == channel.Id)
             .Where(x => EF.Functions.ILike(x.Content, $"%{search}%"))
             .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Attachments)
+            .Include(x => x.ReplyToMessage)
+                .ThenInclude(x => x.Mentions)
             .Include(x => x.Reactions)
+            .Include(x => x.Attachments)
+            .Include(x => x.Mentions)
             .OrderByDescending(x => x.Id)
             .Take(count)
             .Select(x => x.ToModel())
@@ -770,5 +772,172 @@ public class MessageService
         }
         
         return TaskResult.SuccessResult;
+    }
+
+    private static bool HasAttachments(Message message)
+    {
+        return message.Attachments is { Count: > 0 };
+    }
+
+    private static void PrepareMentions(Message message, List<Mention>? mentions)
+    {
+        if (mentions is null || mentions.Count == 0)
+        {
+            message.Mentions = null;
+            return;
+        }
+
+        for (var i = 0; i < mentions.Count; i++)
+        {
+            var mention = mentions[i];
+
+            if (mention.Id == 0)
+                mention.Id = IdManager.Generate();
+
+            mention.MessageId = message.Id;
+            mention.SortOrder = i;
+        }
+
+        message.Mentions = mentions;
+    }
+
+    private async Task<TaskResult> PrepareAttachmentsAsync(
+        Message message,
+        List<Valour.Sdk.Models.MessageAttachment>? attachments)
+    {
+        if (attachments is null || attachments.Count == 0)
+        {
+            message.Attachments = null;
+            return TaskResult.SuccessResult;
+        }
+
+        for (var i = 0; i < attachments.Count; i++)
+        {
+            var attachment = attachments[i];
+
+            if (attachment.Missing)
+            {
+                attachment.Location = Valour.Sdk.Models.MessageAttachment.MissingLocation;
+            }
+            else if (attachment.Type == MessageAttachmentType.Embed)
+            {
+                var embedResult = ValidateEmbedAttachment(attachment);
+                if (!embedResult.Success)
+                    return embedResult;
+
+                attachment.Location = Valour.Sdk.Models.MessageAttachment.EmbedLocation;
+                attachment.MimeType = "application/vnd.valour.embed+json";
+                attachment.FileName ??= "Embed";
+            }
+            else
+            {
+                var result = MediaUriHelper.ScanMediaUri(attachment);
+                if (!result.Success)
+                    return TaskResult.FromFailure(result);
+            }
+
+            var bucketIdResult = await TryAttachCdnBucketItemAsync(attachment);
+            if (!bucketIdResult.Success)
+                return bucketIdResult;
+
+            if (attachment.Id == 0)
+                attachment.Id = IdManager.Generate();
+
+            attachment.MessageId = message.Id;
+            attachment.SortOrder = i;
+        }
+
+        message.Attachments = attachments;
+        return TaskResult.SuccessResult;
+    }
+
+    private static TaskResult ValidateEmbedAttachment(Valour.Sdk.Models.MessageAttachment attachment)
+    {
+        if (string.IsNullOrWhiteSpace(attachment.Data))
+            return TaskResult.FromFailure("Embed attachment must include data.");
+
+        if (attachment.Data.Length > 65535)
+            return TaskResult.FromFailure("Embed data must be under 65535 chars");
+
+        Embed embed;
+        try
+        {
+            embed = JsonSerializer.Deserialize<Embed>(attachment.Data);
+        }
+        catch
+        {
+            return TaskResult.FromFailure("Embed data is invalid.");
+        }
+
+        if (embed?.Pages is null)
+            return TaskResult.FromFailure("Embed data is invalid.");
+
+        foreach (var page in embed.Pages)
+        {
+            foreach (var item in page.GetAllItems())
+            {
+                if (item.ItemType != EmbedItemType.Media)
+                    continue;
+
+                var mediaAttachment = ((EmbedMediaItem)item).Attachment;
+                var result = MediaUriHelper.ScanMediaUri(mediaAttachment);
+                if (!result.Success)
+                    return TaskResult.FromFailure($"Error scanning media URI in embed | Page {page.Id} | ServerModel {item.Id}) | URI {mediaAttachment.Location}");
+            }
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    private async Task<TaskResult> TryAttachCdnBucketItemAsync(Valour.Sdk.Models.MessageAttachment attachment)
+    {
+        if (attachment.Missing)
+            return TaskResult.SuccessResult;
+
+        var bucketItemId = TryParseCdnBucketItemId(attachment.Location);
+        if (bucketItemId is null)
+            return TaskResult.SuccessResult;
+
+        var bucketItem = await _db.CdnBucketItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == bucketItemId);
+
+        if (bucketItem is null)
+            return TaskResult.FromFailure("Attachment was not found.");
+
+        if (bucketItem.SafetyQuarantinedAt is not null)
+        {
+            return TaskResult.FromFailure("Attachment is not available.");
+        }
+
+        attachment.CdnBucketItemId = bucketItem.Id;
+        attachment.FileName ??= bucketItem.FileName;
+        attachment.MimeType ??= bucketItem.MimeType;
+
+        return TaskResult.SuccessResult;
+    }
+
+    private static string? TryParseCdnBucketItemId(string? location)
+    {
+        if (string.IsNullOrWhiteSpace(location))
+            return null;
+
+        if (!Uri.TryCreate(location, UriKind.Absolute, out var uri))
+            return null;
+
+        if (!uri.Host.Equals("cdn.valour.gg", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var segments = uri.AbsolutePath
+            .Trim('/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Length != 4 ||
+            !segments[0].Equals("content", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return $"{segments[1]}/{segments[2]}/{Uri.UnescapeDataString(segments[3])}";
     }
 }

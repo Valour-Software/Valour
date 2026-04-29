@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Valour.Shared.Models;
 using MessageReaction = Valour.Database.MessageReaction;
 
 namespace Valour.Server.Services;
@@ -49,7 +50,12 @@ public class ChatCacheService
             var messages = await _db.Messages
                 .AsNoTracking()
                 .Include(x => x.ReplyToMessage)
+                    .ThenInclude(x => x.Attachments)
+                .Include(x => x.ReplyToMessage)
+                    .ThenInclude(x => x.Mentions)
                 .Include(x => x.Reactions)
+                .Include(x => x.Attachments)
+                .Include(x => x.Mentions)
                 .Where(m => m.ChannelId == channelId)
                 .OrderByDescending(m => m.Id)
                 .Take(50)
@@ -114,6 +120,43 @@ public class ChatCacheService
         {
             cache.ReplaceWhere(m => m.Id == message.Id, message);
             _lastMessageCacheSnapshots[channelId] = cache.ToListAscending();
+        }
+    }
+
+    public void MarkAttachmentMissing(string cdnBucketItemId, string fileName)
+    {
+        foreach (var pair in _lastMessagesCaches)
+        {
+            var changed = false;
+            var messages = pair.Value.ToListAscending();
+
+            foreach (var message in messages)
+            {
+                if (message.Attachments is null)
+                    continue;
+
+                foreach (var attachment in message.Attachments.Where(x => x.CdnBucketItemId == cdnBucketItemId))
+                {
+                    attachment.CdnBucketItemId = null;
+                    attachment.Location = Valour.Sdk.Models.MessageAttachment.MissingLocation;
+                    attachment.Type = MessageAttachmentType.File;
+                    attachment.MimeType = "application/octet-stream";
+                    attachment.FileName = fileName;
+                    attachment.Width = 0;
+                    attachment.Height = 0;
+                    attachment.Inline = false;
+                    attachment.Missing = true;
+                    attachment.Data = null;
+                    attachment.OpenGraph = null;
+                    changed = true;
+                }
+
+                if (changed)
+                    message.SetAttachments(message.Attachments);
+            }
+
+            if (changed)
+                _lastMessageCacheSnapshots[pair.Key] = pair.Value.ToListAscending();
         }
     }
 

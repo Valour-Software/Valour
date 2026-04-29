@@ -1,18 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using Valour.Shared.Cdn;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
-
-public enum ContentCategory
-{
-    Unknown = 0,
-    Audio = 1,
-    Image = 2,
-    File = 3,
-    Video = 4
-}
 
 public class CdnBucketItem
 {
@@ -22,8 +15,15 @@ public class CdnBucketItem
     public string MimeType { get; set; }
     public string FileName { get; set; }
     public ContentCategory Category { get; set; }
-    public int SizeBytes { get; set; } 
+    public int SizeBytes { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string Sha256Hash { get; set; }
+    public MediaSafetyHashMatchState SafetyHashMatchState { get; set; }
+    public string SafetyProvider { get; set; }
+    public DateTime? SafetyHashMatchedAt { get; set; }
+    public string SafetyMatchId { get; set; }
+    public string SafetyDetails { get; set; }
+    public DateTime? SafetyQuarantinedAt { get; set; }
 
     /// <summary>
     /// The url for the bucket item
@@ -73,6 +73,33 @@ public class CdnBucketItem
             e.Property(x => x.CreatedAt)
                 .HasColumnName("created_at")
                 .IsRequired();
+
+            e.Property(x => x.Sha256Hash)
+                .HasColumnName("sha256_hash");
+
+            e.Property(x => x.SafetyHashMatchState)
+                .HasColumnName("safety_hash_match_state")
+                .IsRequired();
+
+            e.Property(x => x.SafetyProvider)
+                .HasColumnName("safety_provider");
+
+            e.Property(x => x.SafetyHashMatchedAt)
+                .HasColumnName("safety_hash_matched_at");
+
+            e.Property(x => x.SafetyMatchId)
+                .HasColumnName("safety_match_id");
+
+            e.Property(x => x.SafetyDetails)
+                .HasColumnName("safety_details");
+
+            e.Property(x => x.SafetyQuarantinedAt)
+                .HasColumnName("safety_quarantined_at");
+
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.Hash);
+            e.HasIndex(x => x.Sha256Hash);
+            e.HasIndex(x => x.SafetyHashMatchState);
         });
     }
 }

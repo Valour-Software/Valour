@@ -51,6 +51,9 @@
 	public Message Message { get; set; }
 
 	[Parameter]
+	public MessageAttachment Attachment { get; set; }
+
+	[Parameter]
 	public MessageComponent MessageComponent { get; set; }
 
 	public event Action RefreshRowComponents;
@@ -95,7 +98,11 @@
 		IdToParentEmbedItem = new();
 		IdToNameItemEmbedItem = new();
 
-		embed = Message.Embed;
+		Attachment ??= Message.EmbedAttachment;
+		embed = Attachment?.Embed;
+		if (embed is null)
+			return;
+
 		foreach (var page in embed.Pages) {
 			foreach (var item in page.GetAllItems()) {
 				if (item.Id is not null) {
@@ -121,9 +128,14 @@
 
         return InvokeAsync(() =>
         {
-            Message.EmbedData = message.EmbedData;
-            Message.SetEmbedParsed(false);
-            embed = Message.Embed;
+            var updatedAttachment = message.Attachments?.FirstOrDefault(x => x.Id == Attachment.Id) ??
+                                    message.Attachments?.FirstOrDefault(x => x.Type == MessageAttachmentType.Embed);
+            if (updatedAttachment is null)
+                return;
+
+            Attachment.Data = updatedAttachment.Data;
+            Attachment.SetEmbedParsed(false);
+            embed = Attachment.Embed;
             ProcessPageChange = true;
             StateHasChanged();
         });
@@ -137,9 +149,8 @@
 		return InvokeAsync(() =>
 		{
 			int currentpage = embed.currentPage;
-			Message.EmbedData = update.NewEmbedContent;
-			Message.SetEmbedParsed(false);
-			embed = Message.Embed;
+			Attachment.SetEmbedPayload(update.NewEmbedContent);
+			embed = Attachment.Embed;
 			if (!embed.KeepPageOnUpdate)
 			{
 				embed.currentPage = embed.StartPage;
@@ -168,10 +179,9 @@
 				if (update.NewEmbedContent is not null) {
 					IdToParentEmbedItem = new();
 					int currentpage = embed.currentPage;
-					Message.EmbedData = update.NewEmbedContent;
+					Attachment.SetEmbedPayload(update.NewEmbedContent);
 					//Console.WriteLine(update.NewEmbedContent);
-					Message.SetEmbedParsed(false);
-					embed = Message.Embed;
+					embed = Attachment.Embed;
 					if (!embed.KeepPageOnUpdate)
 					{
 						embed.currentPage = embed.StartPage;
@@ -204,10 +214,11 @@
 				// means we are in a targetted update
 				else {
 					// this gets super fun due to the fact that we have to update components in a certain order :sob:
-					// this also means that EmbedData will get more and more out of sync with the embed but that *should not* be an issue
+					// this also means that the serialized embed attachment data will get more and more out of sync
+					// with the live embed but that *should not* be an issue
 
 					var data = JsonSerializer.Deserialize<List<EmbedItem>>(update.ChangedEmbedItemsContent);
-					var embed = Message.Embed;
+					var embed = Attachment.Embed;
 
 					foreach (var item in data) {
 						if (item.ItemType == EmbedItemType.EmbedRow) {

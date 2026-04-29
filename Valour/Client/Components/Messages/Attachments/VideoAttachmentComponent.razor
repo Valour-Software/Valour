@@ -1,6 +1,13 @@
 ﻿@inherits AttachmentComponent
 
-<video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
+@if (Attachment?.Missing == true || string.IsNullOrWhiteSpace(_location))
+{
+    <FileAttachmentComponent Message="@Message" Attachment="@Attachment" />
+}
+else
+{
+    <video class="video-attachment" controls loop preload="metadata" playsinline src="@_location#t=0.001" type="@Attachment.MimeType"></video>
+}
 
 @code {
     [Parameter]

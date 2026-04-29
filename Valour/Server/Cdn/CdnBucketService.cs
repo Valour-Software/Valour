@@ -10,6 +10,7 @@ using Valour.Config.Configs;
 using Valour.Database;
 using Valour.Shared;
 using Valour.Shared.Cdn;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Cdn;
 
@@ -129,12 +130,20 @@ public class CdnBucketService
         }
     }
 
-    public async Task<TaskResult> Upload(MemoryStream data, string fileName, string extension, long userId, string mime, 
-        ContentCategory category, ValourDb db)
+    public async Task<TaskResult> Upload(
+        MemoryStream data,
+        string fileName,
+        string extension,
+        long userId,
+        string mime,
+        ContentCategory category,
+        ValourDb db,
+        MediaSafetyHashMatchResult safetyHashMatch = null)
     {
         // Get hash from image
         var hashBytes = SHA256.HashData(data.GetBuffer().AsSpan(0, (int)data.Length));
-        var hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+        var sha256Hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+        var hash = sha256Hash;
 
         // Add file extension to the end
         hash += extension;
@@ -143,8 +152,16 @@ public class CdnBucketService
         var id = $"{category}/{userId}/{hash}";
 
         // If so, return the location (wooo easy route)
-        if (await db.CdnBucketItems.AnyAsync(x => x.Id == id))
+        var existingUserItem = await db.CdnBucketItems.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (existingUserItem is not null)
+        {
+            if (existingUserItem.SafetyQuarantinedAt is not null)
+            {
+                return new TaskResult(false, "This upload is not available.");
+            }
+
             return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+        }
 
         // We need a bucket record no matter what at this point
         var bucketRecord = new CdnBucketItem()
@@ -156,13 +173,23 @@ public class CdnBucketService
             UserId = userId,
             FileName = fileName,
             SizeBytes = (int)data.Length,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Sha256Hash = sha256Hash,
+            SafetyHashMatchState = MediaSafetyHashMatchState.Skipped
         };
+
+        ApplySafetyHashMatch(bucketRecord, safetyHashMatch);
 
         // Now we check if anyone else has already posted this file.
         // If so, we can just create a new path to the file
-        if (await db.CdnBucketItems.AnyAsync(x => x.Hash == hash))
+        var existingHashItem = await db.CdnBucketItems.AsNoTracking().FirstOrDefaultAsync(x => x.Hash == hash);
+        if (existingHashItem is not null)
         {
+            if (existingHashItem.SafetyQuarantinedAt is not null)
+            {
+                return new TaskResult(false, "This upload is not available.");
+            }
+
             // Alright, someone else posted this. Let's make a new route to this
             // object without actually re-uploading it.
             try
@@ -225,6 +252,47 @@ public class CdnBucketService
         }
 
         return new TaskResult(true, $"https://cdn.valour.gg/content/{id}");
+    }
+
+    public async Task<TaskResult> DeletePrivateObjectIfUnusedAsync(string hash, ValourDb db)
+    {
+        if (await db.CdnBucketItems.AsNoTracking().AnyAsync(x => x.Hash == hash))
+            return TaskResult.SuccessResult;
+
+        try
+        {
+            var request = new DeleteObjectRequest()
+            {
+                Key = hash,
+                BucketName = "valourmps",
+            };
+
+            var response = await Client.DeleteObjectAsync(request);
+            if (CdnUtils.IsSuccessStatusCode(response.HttpStatusCode))
+                return TaskResult.SuccessResult;
+
+            return TaskResult.FromFailure($"Failed to delete object from bucket. ({response.HttpStatusCode})");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete private CDN object {Hash}", hash);
+            return TaskResult.FromFailure("Failed to delete private CDN object.");
+        }
+    }
+
+    private static void ApplySafetyHashMatch(CdnBucketItem item, MediaSafetyHashMatchResult safetyHashMatch)
+    {
+        if (safetyHashMatch is null)
+            return;
+
+        item.SafetyHashMatchState = safetyHashMatch.State;
+        item.SafetyProvider = safetyHashMatch.Provider;
+        item.SafetyHashMatchedAt = safetyHashMatch.HashMatchedAt;
+        item.SafetyMatchId = safetyHashMatch.MatchId;
+        item.SafetyDetails = safetyHashMatch.Details;
+
+        if (safetyHashMatch.ShouldBlock)
+            item.SafetyQuarantinedAt = DateTime.UtcNow;
     }
 
     private async Task<TaskResult> UploadPrivateObjectDedupedAsync(MemoryStream data, string hash, string mime)

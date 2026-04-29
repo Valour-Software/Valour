@@ -11,7 +11,7 @@
     {
         if (firstRender)
         {
-            await JsRuntime.InvokeVoidAsync("injectTwitter", _id, Attachment.Html);
+            await JsRuntime.InvokeVoidAsync("injectTwitter", _id, Attachment.Data);
         }
     }
 }

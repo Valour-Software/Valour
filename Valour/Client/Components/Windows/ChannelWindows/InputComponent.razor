@@ -609,6 +609,7 @@
             OnUploadSuccess = (location) =>
             {
                 newAttachment.Location = location;
+                newAttachment.Local = false;
                 AddMessageAttachment(newAttachment);
             },
             OnConfirm = async () =>
@@ -627,6 +628,7 @@
                 if (result.Success)
                 {
                     newAttachment.Location = result.Data;
+                    newAttachment.Local = false;
                     AddMessageAttachment(newAttachment);
                 }
                 else

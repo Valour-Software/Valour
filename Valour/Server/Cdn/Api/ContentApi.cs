@@ -3,7 +3,6 @@ using Amazon.S3.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Net;
-using Valour.Server.Cdn.Objects;
 using Valour.Shared.Cdn;
 
 namespace Valour.Server.Cdn.Api;
@@ -30,19 +29,29 @@ public class ContentApi : Controller
         if (bucketItem is null)
             return Results.NotFound();
 
-        // Cache key includes mime type since different items could have same hash but different metadata
-        var cacheKey = $"signed:{hash}";
+        if (IsUnavailable(bucketItem))
+            return Results.NotFound();
 
-        // Check for cached url
+        var url = await GetSignedUrlAsync(cache, bucketItem);
+        if (string.IsNullOrWhiteSpace(url))
+            return Results.BadRequest("Failed to generate pre-signed URL.");
+
+        return ValourResult.Ok(url);
+    }
+
+    public static async Task<string> GetSignedUrlAsync(CdnMemoryCache cache, Valour.Database.CdnBucketItem bucketItem)
+    {
+        if (bucketItem is null || IsUnavailable(bucketItem))
+            return null;
+
+        var cacheKey = $"signed:{bucketItem.Id}:{bucketItem.MimeType}:{bucketItem.FileName}";
+
         if (cache.Cache.TryGetValue(cacheKey, out string cachedUrl))
-        {
-            return ValourResult.Ok(cachedUrl);
-        }
+            return cachedUrl;
 
-        // Generate a new pre-signed URL with proper content type and disposition
         var request = new GetPreSignedUrlRequest()
         {
-            Key = hash,
+            Key = bucketItem.Hash,
             BucketName = "valourmps",
             Expires = DateTime.UtcNow.AddHours(1),
             Verb = HttpVerb.GET,
@@ -55,18 +64,17 @@ public class ContentApi : Controller
 
         var url = await CdnBucketService.Client.GetPreSignedURLAsync(request);
         if (string.IsNullOrWhiteSpace(url))
-            return Results.BadRequest("Failed to generate pre-signed URL.");
+            return null;
 
-        // Cache the URL
         cache.Cache.Set(cacheKey, url,
             new MemoryCacheEntryOptions()
             {
-                Size = cacheKey.Length * sizeof(char),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30) // This means worst case, the URL is valid for 30 minutes (best case, it is valid for 1 hour)
+                Size = (cacheKey.Length + url.Length) * sizeof(char),
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
             }
         );
 
-        return ValourResult.Ok(url);
+        return url;
     }
 
     private static async Task<IResult> GetRoute(CdnMemoryCache cache, ValourDb db,
@@ -82,6 +90,9 @@ public class ContentApi : Controller
 
         var bucketItemRecord = await db.CdnBucketItems.FindAsync(id);
         if (bucketItemRecord is null)
+            return Results.NotFound();
+
+        if (IsUnavailable(bucketItemRecord))
             return Results.NotFound();
 
         byte[] data;
@@ -114,5 +125,10 @@ public class ContentApi : Controller
         }
 
         return Results.File(data, bucketItemRecord.MimeType, bucketItemRecord.FileName, enableRangeProcessing: true);
+    }
+
+    private static bool IsUnavailable(Valour.Database.CdnBucketItem item)
+    {
+        return item.SafetyQuarantinedAt is not null;
     }
 }

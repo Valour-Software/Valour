@@ -28,6 +28,7 @@ public static class ConfigLoader
         config.GetSection("Redis").Get<RedisConfig>();
         config.GetSection("Stripe").Get<StripeConfig>();
         config.GetSection("Cloudflare").Get<CloudflareConfig>();
+        config.GetSection("MediaSafety").Get<MediaSafetyConfig>();
 
         // Override with Kubernetes node details
         var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
@@ -62,6 +63,11 @@ public static class ConfigLoader
         if (NotificationsConfig.Current is null)
         {
             new NotificationsConfig();
+        }
+
+        if (MediaSafetyConfig.Current is null)
+        {
+            new MediaSafetyConfig();
         }
     }
 

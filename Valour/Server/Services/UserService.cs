@@ -878,11 +878,33 @@ public class UserService
                     .ExecuteDeleteAsync();
             }
             
-            // Remove message attachments
-            var msgAttachments = _db.CdnBucketItems.IgnoreQueryFilters().Where(x => x.UserId == user.Id);
-            _db.CdnBucketItems.RemoveRange(msgAttachments);
-            
-            await _db.SaveChangesAsync();
+            // Detach this user's uploaded files from any remaining messages before removing CDN rows.
+            var attachmentItemIds = await _db.CdnBucketItems.IgnoreQueryFilters()
+                .Where(x => x.UserId == user.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            if (attachmentItemIds.Count > 0)
+            {
+                await _db.MessageAttachments.IgnoreQueryFilters()
+                    .Where(x => attachmentItemIds.Contains(x.CdnBucketItemId))
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(a => a.CdnBucketItemId, (string)null)
+                        .SetProperty(a => a.Location, Valour.Sdk.Models.MessageAttachment.MissingLocation)
+                        .SetProperty(a => a.Type, MessageAttachmentType.File)
+                        .SetProperty(a => a.MimeType, "application/octet-stream")
+                        .SetProperty(a => a.FileName, "Attachment not found")
+                        .SetProperty(a => a.Width, 0)
+                        .SetProperty(a => a.Height, 0)
+                        .SetProperty(a => a.Inline, false)
+                        .SetProperty(a => a.Missing, true)
+                        .SetProperty(a => a.Data, (string)null)
+                        .SetProperty(a => a.OpenGraphData, (string)null));
+            }
+
+            await _db.CdnBucketItems.IgnoreQueryFilters()
+                .Where(x => x.UserId == user.Id)
+                .ExecuteDeleteAsync();
 
             // Channel states
             var states = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);

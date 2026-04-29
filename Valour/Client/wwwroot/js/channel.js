@@ -7,7 +7,14 @@
     const clone = el.cloneNode(true);
     clone.classList.add('hljs-clone');
     clone.style.display = 'inherit';
-    hljs.highlightElement(clone);
+
+    // Preserves padding for inline code blocks
+    // and avoids false positive syntax highlighting
+    if ((el.parentElement instanceof HTMLPreElement)) {
+        hljs.highlightElement(clone);
+    } else {
+        clone.classList.add('hljs');
+    }
 
     el.parentElement.insertBefore(clone, el.nextSibling);
     el.style.display = 'none';

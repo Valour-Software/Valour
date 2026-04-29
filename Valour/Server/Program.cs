@@ -173,6 +173,7 @@ public partial class Program
             new DynamicAPI<BotApi>().RegisterRoutes(app),
             new DynamicAPI<UnsubscribeApi>().RegisterRoutes(app),
             new DynamicAPI<VillageApi>().RegisterRoutes(app),
+            new DynamicAPI<AttachmentApi>().RegisterRoutes(app),
         };
 
         NodeAPI = new NodeAPI();
@@ -344,6 +345,11 @@ public partial class Program
             AllowAutoRedirect = false
         });
 
+        services.AddHttpClient("PhotoDNA", client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ValourSafety/1.0");
+        });
+
         services.AddSingleton<SignalRConnectionService>();
         services.AddSingleton<UserOnlineQueueService>();
 
@@ -366,6 +372,8 @@ public partial class Program
         services.AddScoped<ChatCacheService>();
         services.AddScoped<ChannelService>();
         services.AddScoped<MessageService>();
+        services.AddScoped<UserAttachmentService>();
+        services.AddScoped<MediaSafetyService>();
         services.AddScoped<PlanetInviteService>();
         services.AddScoped<PlanetMemberService>();
         services.AddScoped<PlanetRoleService>();

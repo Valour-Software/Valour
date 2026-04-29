@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Workers
 {
@@ -91,6 +92,52 @@ namespace Valour.Server.Workers
                 return stagedQueue.ToList();
 
             return new List<Message>();
+        }
+
+        public static List<Message> MarkAttachmentMissing(string cdnBucketItemId, string fileName)
+        {
+            var changedStagedMessages = new List<Message>();
+
+            foreach (var message in StagedMessages.Values)
+            {
+                if (MarkAttachmentMissing(message, cdnBucketItemId, fileName))
+                    changedStagedMessages.Add(message);
+            }
+
+            foreach (var message in QueuedMessages.Values)
+            {
+                MarkAttachmentMissing(message, cdnBucketItemId, fileName);
+            }
+
+            return changedStagedMessages;
+        }
+
+        private static bool MarkAttachmentMissing(Message message, string cdnBucketItemId, string fileName)
+        {
+            if (message.Attachments is null)
+                return false;
+
+            var changed = false;
+            foreach (var attachment in message.Attachments.Where(x => x.CdnBucketItemId == cdnBucketItemId))
+            {
+                attachment.CdnBucketItemId = null;
+                attachment.Location = Valour.Sdk.Models.MessageAttachment.MissingLocation;
+                attachment.Type = MessageAttachmentType.File;
+                attachment.MimeType = "application/octet-stream";
+                attachment.FileName = fileName;
+                attachment.Width = 0;
+                attachment.Height = 0;
+                attachment.Inline = false;
+                attachment.Missing = true;
+                attachment.Data = null;
+                attachment.OpenGraph = null;
+                changed = true;
+            }
+
+            if (changed)
+                message.SetAttachments(message.Attachments);
+
+            return changed;
         }
         
         public Task StartAsync(CancellationToken stoppingToken)
@@ -215,7 +262,11 @@ namespace Valour.Server.Workers
                 
                 if (message.ReplyToId is not null && message.ReplyTo is null)
                 {
-                    var replyToDb = await dbService.Messages.FindAsync(message.ReplyToId);
+                    var replyToDb = await dbService.Messages
+                        .AsNoTracking()
+                        .Include(x => x.Attachments)
+                        .Include(x => x.Mentions)
+                        .FirstOrDefaultAsync(x => x.Id == message.ReplyToId);
                     if (replyToDb is not null)
                     {
                         message.ReplyTo = replyToDb.ToModel();

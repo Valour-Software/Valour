@@ -28,7 +28,25 @@ public class Mention
         { 'c', MentionType.Channel },
         { 'r', MentionType.Role },
     };
-    
+
+    /// <summary>
+    /// The id of the stored mention row
+    /// </summary>
+    [JsonPropertyName("Id")]
+    public long Id { get; set; }
+
+    /// <summary>
+    /// The message this mention belongs to
+    /// </summary>
+    [JsonPropertyName("MessageId")]
+    public long MessageId { get; set; }
+
+    /// <summary>
+    /// The position of the mention within the message mention list
+    /// </summary>
+    [JsonPropertyName("SortOrder")]
+    public int SortOrder { get; set; }
+
     /// <summary>
     /// The type of mention this is
     /// </summary>
