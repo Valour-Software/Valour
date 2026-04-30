@@ -1,0 +1,995 @@
+@inherits WindowContentComponentBase
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+
+<div class="tileset-tool">
+    <div class="tool-topbar">
+        <div class="tool-title-block">
+            <div class="tool-title">Tileset Definition</div>
+            <div class="tool-subtitle">@(_selection.Width)x@(_selection.Height) at @_selection.X,@_selection.Y</div>
+            @if (!string.IsNullOrWhiteSpace(_importStatus))
+            {
+                <div class="tool-status">@_importStatus</div>
+            }
+        </div>
+
+        <div class="tool-load-controls">
+            <input class="asset-url-input" @bind="_imageUrl" @bind:event="oninput" />
+            <button class="icon-btn" title="Load image URL" @onclick="LoadImageUrlAsync">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <label class="icon-btn file-btn" title="Open local sheet">
+                <i class="bi bi-folder2-open"></i>
+                <input id="@_fileInputId" type="file" accept=".png,.jpg,.jpeg,.webp" />
+            </label>
+            <label class="icon-btn file-btn" title="Import saved work">
+                <i class="bi bi-box-arrow-in-down"></i>
+                <InputFile id="@_importInputId" accept=".json,application/json" OnChange="ImportDefinitionsAsync" />
+            </label>
+            <button class="icon-btn" title="Fit sheet" @onclick="FitSheetAsync">
+                <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="tool-body">
+        <section class="sheet-stage">
+            <canvas id="@_canvasId" class="sheet-canvas"></canvas>
+        </section>
+
+        <aside class="definition-panel">
+            <div class="panel-section">
+                <div class="section-title">Definition</div>
+                <div class="mode-toggle">
+                    <button class="@GetModeClass("Tile")" @onclick='() => SetKind("Tile")'>
+                        <i class="bi bi-grid-3x3"></i>
+                        <span>Tile</span>
+                    </button>
+                    <button class="@GetModeClass("Sprite")" @onclick='() => SetKind("Sprite")'>
+                        <i class="bi bi-bounding-box"></i>
+                        <span>Sprite</span>
+                    </button>
+                </div>
+
+                <label class="field-label">Name</label>
+                <input class="field-input" value="@_draft.Name" @oninput="OnNameChanged" />
+
+                <div class="field-heading-row">
+                    <label class="field-label">Key</label>
+                    <button class="link-action" title="Regenerate from fields" @onclick="RegenerateKey">
+                        Auto
+                    </button>
+                </div>
+                <input class="field-input" value="@_draft.Key" @oninput="OnKeyChanged" />
+
+                <label class="field-label">Group</label>
+                <input class="field-input" value="@_draft.GroupKey" @oninput="OnGroupChanged" />
+
+                <div class="field-row">
+                    <div>
+                        <label class="field-label">Variant</label>
+                        <input class="field-input" value="@_draft.VariantKey" @oninput="OnVariantChanged" />
+                    </div>
+                    <div>
+                        <label class="field-label">Role</label>
+                        <select class="field-input" @bind="_draft.GroupRole">
+                            <option>Base</option>
+                            <option>Variant</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="field-label">Direction</label>
+                <select class="field-input" value="@_draft.Direction" @onchange="OnDirectionChanged">
+                    <option>None</option>
+                    <option>Up</option>
+                    <option>Right</option>
+                    <option>Down</option>
+                    <option>Left</option>
+                </select>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">Collision</div>
+                <div class="collision-grid"
+                     style="@CollisionGridStyle">
+                    @for (var i = 0; i < _draft.Collision.Count; i++)
+                    {
+                        var index = i;
+                        <button class="collision-cell @(_draft.Collision[index] ? "active" : string.Empty)"
+                                style="@GetCollisionCellStyle(index)"
+                                title="Toggle collision"
+                                @onclick="() => ToggleCollision(index)">
+                            <span></span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="panel-actions">
+                <button class="primary-action" @onclick="SaveDefinition">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Save</span>
+                </button>
+                <button class="secondary-action" @onclick="ClearDraft">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <button class="secondary-action" @onclick="CopyJsonAsync">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+
+            <div class="definitions-list">
+                @foreach (var definition in _definitions)
+                {
+                    <button class="definition-item" @onclick="() => LoadDefinition(definition)">
+                        <span>@definition.Name</span>
+                        <small>@definition.Kind @definition.Width x @definition.Height</small>
+                    </button>
+                }
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">Brush</div>
+                <label class="field-label">Brush name</label>
+                <input class="field-input" value="@_brushDraft.Name" @oninput="OnBrushNameChanged" />
+
+                <div class="field-row">
+                    <div>
+                        <div class="field-heading-row">
+                            <label class="field-label">Brush key</label>
+                            <button class="link-action" title="Regenerate brush key" @onclick="RegenerateBrushKey">
+                                Auto
+                            </button>
+                        </div>
+                        <input class="field-input" value="@_brushDraft.Key" @oninput="OnBrushKeyChanged" />
+                    </div>
+                    <div>
+                        <label class="field-label">Size</label>
+                        <input class="field-input" type="number" min="1" max="9" step="2" value="@_brushDraft.Size" @onchange="OnBrushSizeChanged" />
+                    </div>
+                </div>
+
+                <div class="hint-text">Selected tile: @SelectedBrushTileLabel</div>
+                <div class="brush-grid" style="@BrushGridStyle">
+                    @for (var i = 0; i < _brushDraft.Cells.Count; i++)
+                    {
+                        var index = i;
+                        var cell = _brushDraft.Cells[index];
+                        <button class="brush-cell @(string.IsNullOrWhiteSpace(cell.TileKey) ? string.Empty : "filled")"
+                                title="@GetBrushCellTitle(index)"
+                                @onclick="() => PlaceBrushCell(index)"
+                                @oncontextmenu="() => ClearBrushCell(index)"
+                                @oncontextmenu:preventDefault>
+                            <span>@GetBrushCellLabel(cell)</span>
+                        </button>
+                    }
+                </div>
+                <div class="hint-text">Click a saved definition below, then click brush cells to place it. Right-click a brush cell to clear it.</div>
+            </div>
+
+            <div class="panel-actions">
+                <button class="primary-action" @onclick="SaveBrush">
+                    <i class="bi bi-brush"></i>
+                    <span>Save Brush</span>
+                </button>
+                <button class="secondary-action" @onclick="ClearBrushDraft">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <button class="secondary-action" @onclick="RegenerateBrushKey">
+                    <i class="bi bi-magic"></i>
+                </button>
+            </div>
+
+            <div class="definitions-list">
+                @foreach (var brush in _brushes)
+                {
+                    <button class="definition-item" @onclick="() => LoadBrush(brush)">
+                        <span>@brush.Name</span>
+                        <small>Brush @brush.Size x @brush.Size</small>
+                    </button>
+                }
+            </div>
+        </aside>
+    </div>
+
+    <textarea class="json-output" readonly>@ExportJson</textarea>
+</div>
+
+@code {
+    private readonly string _canvasId = $"tileset-canvas-{Guid.NewGuid():N}";
+    private readonly string _fileInputId = $"tileset-file-{Guid.NewGuid():N}";
+    private readonly string _importInputId = $"tileset-import-{Guid.NewGuid():N}";
+    private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+    private readonly JsonSerializerOptions _jsonReadOptions = new() { PropertyNameCaseInsensitive = true };
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _runtime;
+    private DotNetObjectReference<TilesetDefinitionWindowComponent>? _selfRef;
+    private string _imageUrl = "/_content/Valour.Client/media/villages/default-tileset/terrain/grass-base-32.png";
+    private string _previewImageUrl = "/_content/Valour.Client/media/villages/default-tileset/terrain/grass-base-32.png";
+    private int _imageWidth = 32;
+    private int _imageHeight = 32;
+    private const int TileSize = 16;
+    private const int CollisionPreviewScale = 3;
+    private SheetSelection _selection = new() { X = 0, Y = 0, Width = 1, Height = 1 };
+    private TilesetDefinitionDraft _draft = TilesetDefinitionDraft.CreateDefault();
+    private BrushDraft _brushDraft = BrushDraft.CreateDefault();
+    private readonly List<TilesetDefinitionDraft> _definitions = new();
+    private readonly List<BrushDraft> _brushes = new();
+    private bool _keyWasEdited;
+    private bool _brushKeyWasEdited;
+    private string _selectedBrushTileKey = string.Empty;
+    private string _importStatus = string.Empty;
+    private string CollisionGridStyle => $"grid-template-columns: repeat({Math.Max(1, _selection.Width)}, {TileSize * CollisionPreviewScale}px);";
+    private string BrushGridStyle => $"grid-template-columns: repeat({Math.Max(1, _brushDraft.Size)}, 42px);";
+    private string SelectedBrushTileLabel => string.IsNullOrWhiteSpace(_selectedBrushTileKey)
+        ? "none"
+        : GetDefinitionDisplayName(_selectedBrushTileKey);
+
+    private string ExportJson => JsonSerializer.Serialize(new
+    {
+        tileSize = TileSize,
+        image = _imageUrl,
+        definitions = _definitions,
+        brushes = _brushes
+    }, _jsonOptions);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _runtime is not null)
+            return;
+
+        _selfRef = DotNetObjectReference.Create(this);
+        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Windows/Villages/TilesetDefinitionWindowComponent.razor.js");
+        _runtime = await _module.InvokeAsync<IJSObjectReference>("init", _canvasId, _fileInputId, _selfRef, _imageUrl);
+        await SyncDefinitionOutlinesAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnSelectionChanged(int x, int y, int width, int height)
+    {
+        _selection = new SheetSelection { X = x, Y = y, Width = width, Height = height };
+        _draft.X = x;
+        _draft.Y = y;
+        _draft.Width = width;
+        _draft.Height = height;
+        EnsureCollisionSize();
+        await ReRender();
+    }
+
+    [JSInvokable]
+    public async Task OnImageChanged(string displayUrl, string previewUrl)
+    {
+        _imageUrl = displayUrl;
+        _previewImageUrl = previewUrl;
+        await ReRender();
+    }
+
+    [JSInvokable]
+    public async Task OnImageLoaded(int width, int height)
+    {
+        _imageWidth = width;
+        _imageHeight = height;
+        await ReRender();
+    }
+
+    private async Task LoadImageUrlAsync()
+    {
+        _previewImageUrl = _imageUrl;
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("loadImageUrl", _imageUrl);
+    }
+
+    private async Task FitSheetAsync()
+    {
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("fit");
+    }
+
+    private void SetKind(string kind)
+    {
+        _draft.Kind = kind;
+        UpdateGeneratedKey();
+        ReRender();
+    }
+
+    private string GetModeClass(string kind) => _draft.Kind == kind ? "active" : string.Empty;
+
+    private void OnNameChanged(ChangeEventArgs args)
+    {
+        _draft.Name = args.Value?.ToString() ?? string.Empty;
+        UpdateGeneratedKey();
+    }
+
+    private void OnKeyChanged(ChangeEventArgs args)
+    {
+        _draft.Key = args.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(_draft.Key))
+        {
+            _keyWasEdited = false;
+            UpdateGeneratedKey();
+            return;
+        }
+
+        _keyWasEdited = _draft.Key != GenerateDefinitionKey(_draft);
+    }
+
+    private void OnGroupChanged(ChangeEventArgs args)
+    {
+        _draft.GroupKey = args.Value?.ToString() ?? string.Empty;
+        UpdateGeneratedKey();
+    }
+
+    private void OnVariantChanged(ChangeEventArgs args)
+    {
+        _draft.VariantKey = args.Value?.ToString() ?? string.Empty;
+        UpdateGeneratedKey();
+    }
+
+    private void OnDirectionChanged(ChangeEventArgs args)
+    {
+        _draft.Direction = args.Value?.ToString() ?? "None";
+        UpdateGeneratedKey();
+    }
+
+    private void RegenerateKey()
+    {
+        _keyWasEdited = false;
+        UpdateGeneratedKey(force: true);
+        ReRender();
+    }
+
+    private void UpdateGeneratedKey(bool force = false)
+    {
+        if (_keyWasEdited && !force)
+            return;
+
+        _draft.Key = GenerateDefinitionKey(_draft);
+    }
+
+    private static string GenerateDefinitionKey(TilesetDefinitionDraft definition)
+    {
+        var parts = new List<string>();
+        AddPart(parts, definition.GroupKey);
+        AddPart(parts, definition.Name);
+
+        if (!string.Equals(definition.Direction, "None", StringComparison.OrdinalIgnoreCase))
+            AddPart(parts, definition.Direction);
+
+        AddPart(parts, definition.VariantKey);
+
+        if (parts.Count == 0)
+            return string.Empty;
+
+        return string.Join('.', parts);
+    }
+
+    private static void AddPart(List<string> parts, string value)
+    {
+        var slug = Slugify(value);
+        if (!string.IsNullOrWhiteSpace(slug))
+            parts.Add(slug);
+    }
+
+    private static string Slugify(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var chars = new List<char>(value.Length);
+        var lastWasSeparator = false;
+
+        foreach (var rawChar in value.Trim().ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(rawChar))
+            {
+                chars.Add(rawChar);
+                lastWasSeparator = false;
+                continue;
+            }
+
+            if (lastWasSeparator)
+                continue;
+
+            chars.Add('-');
+            lastWasSeparator = true;
+        }
+
+        while (chars.Count > 0 && chars[^1] == '-')
+            chars.RemoveAt(chars.Count - 1);
+
+        return new string(chars.ToArray());
+    }
+
+    private string GetCollisionCellStyle(int index)
+    {
+        var col = index % Math.Max(1, _draft.Width);
+        var row = index / Math.Max(1, _draft.Width);
+        var sourceX = (_draft.X + col) * TileSize * CollisionPreviewScale;
+        var sourceY = (_draft.Y + row) * TileSize * CollisionPreviewScale;
+        var backgroundWidth = Math.Max(TileSize, _imageWidth) * CollisionPreviewScale;
+        var backgroundHeight = Math.Max(TileSize, _imageHeight) * CollisionPreviewScale;
+
+        return $"background-image: url('{_previewImageUrl}'); background-size: {backgroundWidth}px {backgroundHeight}px; background-position: -{sourceX}px -{sourceY}px;";
+    }
+
+    private void ToggleCollision(int index)
+    {
+        if (index >= 0 && index < _draft.Collision.Count)
+            _draft.Collision[index] = !_draft.Collision[index];
+
+        ReRender();
+    }
+
+    private void OnBrushNameChanged(ChangeEventArgs args)
+    {
+        _brushDraft.Name = args.Value?.ToString() ?? string.Empty;
+        UpdateGeneratedBrushKey();
+    }
+
+    private void OnBrushKeyChanged(ChangeEventArgs args)
+    {
+        _brushDraft.Key = args.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(_brushDraft.Key))
+        {
+            _brushKeyWasEdited = false;
+            UpdateGeneratedBrushKey();
+            return;
+        }
+
+        _brushKeyWasEdited = _brushDraft.Key != GenerateBrushKey(_brushDraft);
+    }
+
+    private void OnBrushSizeChanged(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var size))
+            return;
+
+        size = Math.Clamp(size, 1, 9);
+        if (size % 2 == 0)
+            size += size >= 9 ? -1 : 1;
+
+        _brushDraft.Resize(size);
+        ReRender();
+    }
+
+    private void RegenerateBrushKey()
+    {
+        _brushKeyWasEdited = false;
+        UpdateGeneratedBrushKey(force: true);
+        ReRender();
+    }
+
+    private void UpdateGeneratedBrushKey(bool force = false)
+    {
+        if (_brushKeyWasEdited && !force)
+            return;
+
+        _brushDraft.Key = GenerateBrushKey(_brushDraft);
+    }
+
+    private static string GenerateBrushKey(BrushDraft brush)
+    {
+        var parts = new List<string> { "brush" };
+        AddPart(parts, brush.Name);
+        if (brush.Size > 0)
+            parts.Add($"{brush.Size}x{brush.Size}");
+
+        return string.Join('.', parts);
+    }
+
+    private void PlaceBrushCell(int index)
+    {
+        if (index < 0 || index >= _brushDraft.Cells.Count || string.IsNullOrWhiteSpace(_selectedBrushTileKey))
+            return;
+
+        var cell = _brushDraft.Cells[index];
+        cell.TileKey = _selectedBrushTileKey;
+        cell.Strength = GetDefaultBrushStrength(index, _brushDraft.Size);
+        cell.Weight = Math.Max(1, cell.Weight);
+        ReRender();
+    }
+
+    private void ClearBrushCell(int index)
+    {
+        if (index < 0 || index >= _brushDraft.Cells.Count)
+            return;
+
+        _brushDraft.Cells[index] = new BrushCellDraft
+        {
+            Strength = GetDefaultBrushStrength(index, _brushDraft.Size)
+        };
+        ReRender();
+    }
+
+    private async Task SaveBrush()
+    {
+        NormalizeBrush(_brushDraft);
+        var copy = _brushDraft.Clone();
+        if (string.IsNullOrWhiteSpace(copy.Name))
+            copy.Name = $"Brush {copy.Size}x{copy.Size}";
+
+        if (string.IsNullOrWhiteSpace(copy.Key))
+            copy.Key = GenerateBrushKey(copy);
+
+        var existingIndex = FindExistingBrushIndex(copy);
+        if (existingIndex >= 0)
+            _brushes[existingIndex] = copy;
+        else
+            _brushes.Add(copy);
+
+        ClearBrushDraft();
+        await ReRender();
+    }
+
+    private int FindExistingBrushIndex(BrushDraft brush)
+    {
+        if (string.IsNullOrWhiteSpace(brush.Key))
+            return -1;
+
+        return _brushes.FindIndex(existing =>
+            string.Equals(existing.Key, brush.Key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void LoadBrush(BrushDraft brush)
+    {
+        _brushDraft = brush.Clone();
+        NormalizeBrush(_brushDraft);
+        _brushKeyWasEdited = true;
+        ReRender();
+    }
+
+    private void ClearBrushDraft()
+    {
+        _brushDraft = BrushDraft.CreateDefault();
+        _brushKeyWasEdited = false;
+        UpdateGeneratedBrushKey(force: true);
+        ReRender();
+    }
+
+    private string GetBrushCellTitle(int index)
+    {
+        if (index < 0 || index >= _brushDraft.Cells.Count)
+            return "Empty brush cell";
+
+        var cell = _brushDraft.Cells[index];
+        if (string.IsNullOrWhiteSpace(cell.TileKey))
+            return "Empty brush cell";
+
+        return $"{GetDefinitionDisplayName(cell.TileKey)} | strength {cell.Strength} | weight {cell.Weight}";
+    }
+
+    private string GetBrushCellLabel(BrushCellDraft cell)
+    {
+        if (string.IsNullOrWhiteSpace(cell.TileKey))
+            return string.Empty;
+
+        var definition = _definitions.FirstOrDefault(existing =>
+            string.Equals(existing.Key, cell.TileKey, StringComparison.OrdinalIgnoreCase));
+        var label = definition?.Name ?? cell.TileKey;
+        return label.Length <= 3 ? label : label[..3];
+    }
+
+    private string GetDefinitionDisplayName(string key)
+    {
+        var definition = _definitions.FirstOrDefault(existing =>
+            string.Equals(existing.Key, key, StringComparison.OrdinalIgnoreCase));
+
+        return string.IsNullOrWhiteSpace(definition?.Name) ? key : definition.Name;
+    }
+
+    private static int GetDefaultBrushStrength(int index, int size)
+    {
+        size = Math.Max(1, size);
+        var x = index % size;
+        var y = index / size;
+        var center = size / 2;
+        var distance = Math.Abs(x - center) + Math.Abs(y - center);
+        return Math.Max(1, center + 1 - distance);
+    }
+
+    private async Task SaveDefinition()
+    {
+        EnsureCollisionSize();
+        var copy = _draft.Clone();
+        if (string.IsNullOrWhiteSpace(copy.Name))
+            copy.Name = $"{copy.Kind} {copy.X},{copy.Y}";
+
+        if (string.IsNullOrWhiteSpace(copy.Key))
+            copy.Key = GenerateDefinitionKey(copy);
+
+        var existingIndex = FindExistingDefinitionIndex(copy);
+        if (existingIndex >= 0)
+            _definitions[existingIndex] = copy;
+        else
+            _definitions.Add(copy);
+
+        _selectedBrushTileKey = copy.Key;
+        ClearDraft();
+        await SyncDefinitionOutlinesAsync();
+    }
+
+    private int FindExistingDefinitionIndex(TilesetDefinitionDraft definition)
+    {
+        if (!string.IsNullOrWhiteSpace(definition.Key))
+        {
+            var keyIndex = _definitions.FindIndex(existing =>
+                string.Equals(existing.Key, definition.Key, StringComparison.OrdinalIgnoreCase));
+            if (keyIndex >= 0)
+                return keyIndex;
+        }
+
+        return _definitions.FindIndex(existing =>
+            string.Equals(existing.Kind, definition.Kind, StringComparison.OrdinalIgnoreCase) &&
+            existing.X == definition.X &&
+            existing.Y == definition.Y &&
+            existing.Width == definition.Width &&
+            existing.Height == definition.Height);
+    }
+
+    private void ClearDraft()
+    {
+        _draft = TilesetDefinitionDraft.CreateDefault();
+        _draft.X = _selection.X;
+        _draft.Y = _selection.Y;
+        _draft.Width = _selection.Width;
+        _draft.Height = _selection.Height;
+        _keyWasEdited = false;
+        UpdateGeneratedKey(force: true);
+        EnsureCollisionSize();
+        ReRender();
+    }
+
+    private async Task LoadDefinition(TilesetDefinitionDraft definition)
+    {
+        _draft = definition.Clone();
+        _selection = new SheetSelection
+        {
+            X = _draft.X,
+            Y = _draft.Y,
+            Width = _draft.Width,
+            Height = _draft.Height
+        };
+        EnsureCollisionSize();
+        _keyWasEdited = true;
+        _selectedBrushTileKey = _draft.Key;
+        ReRender();
+
+        if (_runtime is not null)
+            await _runtime.InvokeVoidAsync("setSelection", _selection.X, _selection.Y, _selection.Width, _selection.Height);
+    }
+
+    private async Task CopyJsonAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", ExportJson);
+    }
+
+    private async Task ImportDefinitionsAsync(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        if (file is null)
+            return;
+
+        try
+        {
+            await using var stream = file.OpenReadStream(maxAllowedSize: 4 * 1024 * 1024);
+            var import = await JsonSerializer.DeserializeAsync<TilesetDefinitionImport>(stream, _jsonReadOptions);
+            if (import is null)
+                return;
+
+            _definitions.Clear();
+            foreach (var definition in import.Definitions)
+            {
+                NormalizeImportedDefinition(definition);
+                _definitions.Add(definition);
+            }
+
+            _brushes.Clear();
+            foreach (var brush in import.Brushes)
+            {
+                NormalizeBrush(brush);
+                _brushes.Add(brush);
+            }
+
+            if (!string.IsNullOrWhiteSpace(import.Image))
+            {
+                _imageUrl = import.Image;
+                _previewImageUrl = import.Image;
+
+                if (_runtime is not null && CanLoadImageReference(import.Image))
+                    await _runtime.InvokeVoidAsync("loadImageUrl", import.Image);
+            }
+
+            if (_definitions.Count > 0)
+            {
+                var firstDefinition = _definitions[0];
+                _draft = firstDefinition.Clone();
+                _selection = new SheetSelection
+                {
+                    X = _draft.X,
+                    Y = _draft.Y,
+                    Width = _draft.Width,
+                    Height = _draft.Height
+                };
+                _keyWasEdited = true;
+            }
+            else
+            {
+                ClearDraft();
+            }
+
+            if (_brushes.Count > 0)
+            {
+                _brushDraft = _brushes[0].Clone();
+                NormalizeBrush(_brushDraft);
+                _brushKeyWasEdited = true;
+            }
+            else
+            {
+                ClearBrushDraft();
+            }
+
+            EnsureCollisionSize();
+            await SyncDefinitionOutlinesAsync();
+
+            if (_runtime is not null)
+                await _runtime.InvokeVoidAsync("setSelection", _selection.X, _selection.Y, _selection.Width, _selection.Height);
+
+            _importStatus = $"Imported {_definitions.Count} definitions and {_brushes.Count} brushes.";
+            await ReRender();
+        }
+        catch (Exception ex) when (ex is JsonException or System.IO.IOException or InvalidOperationException)
+        {
+            _importStatus = "Import failed. Pick a valid tileset definition JSON file.";
+            await ReRender();
+        }
+    }
+
+    private static bool CanLoadImageReference(string image)
+    {
+        return image.StartsWith("/", StringComparison.Ordinal) ||
+            image.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            image.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+            image.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+            image.StartsWith("blob:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void NormalizeImportedDefinition(TilesetDefinitionDraft definition)
+    {
+        definition.Kind = string.IsNullOrWhiteSpace(definition.Kind) ? "Tile" : definition.Kind;
+        definition.Name ??= string.Empty;
+        definition.Key ??= string.Empty;
+        definition.GroupKey ??= string.Empty;
+        definition.GroupRole = string.IsNullOrWhiteSpace(definition.GroupRole) ? "Base" : definition.GroupRole;
+        definition.VariantKey ??= string.Empty;
+        definition.Direction = string.IsNullOrWhiteSpace(definition.Direction) ? "None" : definition.Direction;
+        definition.Width = Math.Max(1, definition.Width);
+        definition.Height = Math.Max(1, definition.Height);
+        definition.Collision ??= new List<bool>();
+
+        var collisionCount = Math.Max(1, definition.Width * definition.Height);
+        while (definition.Collision.Count < collisionCount)
+            definition.Collision.Add(false);
+
+        if (definition.Collision.Count > collisionCount)
+            definition.Collision.RemoveRange(collisionCount, definition.Collision.Count - collisionCount);
+
+        if (string.IsNullOrWhiteSpace(definition.Key))
+            definition.Key = GenerateDefinitionKey(definition);
+    }
+
+    private static void NormalizeBrush(BrushDraft brush)
+    {
+        brush.Name ??= string.Empty;
+        brush.Key ??= string.Empty;
+        brush.Size = Math.Clamp(brush.Size, 1, 9);
+        if (brush.Size % 2 == 0)
+            brush.Size += brush.Size >= 9 ? -1 : 1;
+
+        brush.Cells ??= new List<BrushCellDraft>();
+        var count = brush.Size * brush.Size;
+        while (brush.Cells.Count < count)
+        {
+            var index = brush.Cells.Count;
+            brush.Cells.Add(new BrushCellDraft
+            {
+                Strength = GetDefaultBrushStrength(index, brush.Size)
+            });
+        }
+
+        if (brush.Cells.Count > count)
+            brush.Cells.RemoveRange(count, brush.Cells.Count - count);
+
+        for (var i = 0; i < brush.Cells.Count; i++)
+        {
+            var cell = brush.Cells[i] ?? new BrushCellDraft();
+            cell.TileKey ??= string.Empty;
+            cell.Weight = Math.Max(1, cell.Weight);
+            cell.Strength = Math.Max(1, cell.Strength);
+            brush.Cells[i] = cell;
+        }
+
+        if (string.IsNullOrWhiteSpace(brush.Key))
+            brush.Key = GenerateBrushKey(brush);
+    }
+
+    private async Task SyncDefinitionOutlinesAsync()
+    {
+        if (_runtime is null)
+            return;
+
+        var outlines = _definitions.Select(definition => new
+        {
+            x = definition.X,
+            y = definition.Y,
+            width = definition.Width,
+            height = definition.Height,
+            kind = definition.Kind,
+            name = definition.Name,
+            key = definition.Key,
+            hasTerrain = false
+        }).ToList();
+
+        await _runtime.InvokeVoidAsync("setDefinitions", outlines);
+    }
+
+    private void EnsureCollisionSize()
+    {
+        var count = Math.Max(1, _draft.Width * _draft.Height);
+        while (_draft.Collision.Count < count)
+            _draft.Collision.Add(false);
+
+        if (_draft.Collision.Count > count)
+            _draft.Collision.RemoveRange(count, _draft.Collision.Count - count);
+    }
+
+    public class SheetSelection
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; } = 1;
+        public int Height { get; set; } = 1;
+    }
+
+    public class TilesetDefinitionDraft
+    {
+        public string Kind { get; set; } = "Tile";
+        public string Name { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public string GroupKey { get; set; } = string.Empty;
+        public string GroupRole { get; set; } = "Base";
+        public string VariantKey { get; set; } = string.Empty;
+        public string Direction { get; set; } = "None";
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; } = 1;
+        public int Height { get; set; } = 1;
+        public List<bool> Collision { get; set; } = new() { false };
+
+        public static TilesetDefinitionDraft CreateDefault() => new();
+
+        public TilesetDefinitionDraft Clone() => new()
+        {
+            Kind = Kind,
+            Name = Name,
+            Key = Key,
+            GroupKey = GroupKey,
+            GroupRole = GroupRole,
+            VariantKey = VariantKey,
+            Direction = Direction,
+            X = X,
+            Y = Y,
+            Width = Width,
+            Height = Height,
+            Collision = Collision.ToList()
+        };
+    }
+
+    public class BrushDraft
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public int Size { get; set; } = 3;
+        public List<BrushCellDraft> Cells { get; set; } = CreateCells(3);
+
+        public static BrushDraft CreateDefault() => new();
+
+        public void Resize(int size)
+        {
+            size = Math.Max(1, size);
+            if (size == Size && Cells.Count == Size * Size)
+                return;
+
+            var oldSize = Size;
+            var oldCells = Cells.ToList();
+            Size = size;
+            Cells = CreateCells(size);
+
+            var sharedSize = Math.Min(oldSize, size);
+            var oldOffset = Math.Max(0, (oldSize - sharedSize) / 2);
+            var newOffset = Math.Max(0, (size - sharedSize) / 2);
+            for (var y = 0; y < sharedSize; y++)
+            {
+                for (var x = 0; x < sharedSize; x++)
+                {
+                    var oldIndex = (y + oldOffset) * oldSize + x + oldOffset;
+                    var newIndex = (y + newOffset) * size + x + newOffset;
+                    if (oldIndex >= 0 && oldIndex < oldCells.Count && newIndex >= 0 && newIndex < Cells.Count)
+                        Cells[newIndex] = oldCells[oldIndex].Clone();
+                }
+            }
+        }
+
+        public BrushDraft Clone() => new()
+        {
+            Name = Name,
+            Key = Key,
+            Size = Size,
+            Cells = Cells.Select(cell => cell.Clone()).ToList()
+        };
+
+        private static List<BrushCellDraft> CreateCells(int size)
+        {
+            var cells = new List<BrushCellDraft>();
+            for (var i = 0; i < size * size; i++)
+            {
+                cells.Add(new BrushCellDraft
+                {
+                    Strength = GetDefaultBrushStrength(i, size)
+                });
+            }
+
+            return cells;
+        }
+    }
+
+    public class BrushCellDraft
+    {
+        public string TileKey { get; set; } = string.Empty;
+        public int Strength { get; set; } = 1;
+        public int Weight { get; set; } = 1;
+
+        public BrushCellDraft Clone() => new()
+        {
+            TileKey = TileKey,
+            Strength = Strength,
+            Weight = Weight
+        };
+    }
+
+    private class TilesetDefinitionImport
+    {
+        public int TileSize { get; set; } = 16;
+        public string Image { get; set; } = string.Empty;
+        public List<TilesetDefinitionDraft> Definitions { get; set; } = new();
+        public List<BrushDraft> Brushes { get; set; } = new();
+    }
+
+    public class Content : WindowContent<TilesetDefinitionWindowComponent>
+    {
+    }
+
+    public static WindowContent GetDefaultContent()
+    {
+        return new Content
+        {
+            Icon = "./_content/Valour.Client/media/logo/logo-64.png",
+            Title = "Tileset Definition"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_runtime is not null)
+            await _runtime.DisposeAsync();
+
+        if (_module is not null)
+            await _module.DisposeAsync();
+
+        _selfRef?.Dispose();
+    }
+}

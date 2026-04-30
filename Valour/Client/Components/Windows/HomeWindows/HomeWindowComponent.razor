@@ -61,6 +61,10 @@
                     <i class="bi bi-house-heart"></i>
                     <span>Village Demo</span>
                 </button>
+                <button class="action-btn" @onclick="OnClickTilesetTool">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span>Tileset Tool</span>
+                </button>
             </div>
         </TabOne>
 
@@ -261,6 +265,11 @@
 
         var content = await VillageWindowComponent.GetDefaultContent(targetPlanet);
         await WindowService.OpenWindowAtFocused(content, WindowCtx.Tab);
+    }
+
+    private async Task OnClickTilesetTool()
+    {
+        await WindowService.OpenWindowAtFocused(TilesetDefinitionWindowComponent.GetDefaultContent(), WindowCtx.Tab);
     }
 
     private void OnClickAddFriend()
