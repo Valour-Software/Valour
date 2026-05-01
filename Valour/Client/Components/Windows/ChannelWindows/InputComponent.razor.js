@@ -346,7 +346,7 @@ export function init(dotnet, inputEl) {
                         if (e.code === "ArrowUp") {
                             await ctx.dotnet.invokeMethodAsync('OnUpArrowNonMention');
                         }
-                        await ctx.caretMoveHandler();
+                        await this.caretMoveHandler();
                     }
                     break;
                 case "ArrowLeft":

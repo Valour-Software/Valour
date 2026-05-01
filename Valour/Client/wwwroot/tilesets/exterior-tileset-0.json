@@ -1,0 +1,645 @@
+{
+  "tileSize": 16,
+  "image": "Modern_Exteriors_Complete_Tileset.png",
+  "definitions": [
+    {
+      "Kind": "Tile",
+      "Name": "Flat Grass",
+      "Key": "grass.flat-grass",
+      "GroupKey": "Grass",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 8,
+      "Y": 3,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Short Grass",
+      "Key": "grass.short-grass",
+      "GroupKey": "Grass",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 9,
+      "Y": 3,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass",
+      "Key": "long-grass",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 10,
+      "Y": 3,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass E",
+      "Key": "long-grass-e",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 11,
+      "Y": 3,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass W",
+      "Key": "long-grass-w",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 7,
+      "Y": 3,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass N",
+      "Key": "long-grass-n",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 9,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass S",
+      "Key": "long-grass-s",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 9,
+      "Y": 5,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass NE1",
+      "Key": "long-grass-ne1",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 10,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass NE2",
+      "Key": "long-grass-ne2",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 11,
+      "Y": 2,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass NW1",
+      "Key": "long-grass-nw1",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 8,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass NW2",
+      "Key": "long-grass-nw2",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 7,
+      "Y": 2,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass SW1",
+      "Key": "long-grass-sw1",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 8,
+      "Y": 5,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass SW2",
+      "Key": "long-grass-sw2",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 7,
+      "Y": 4,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass SE1",
+      "Key": "long-grass-se1",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 10,
+      "Y": 5,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Long Grass SE2",
+      "Key": "long-grass-se2",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 11,
+      "Y": 4,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Short Grass NW",
+      "Key": "short-grass-nw",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 7,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Short Grass NE",
+      "Key": "short-grass-ne",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 11,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Short Grass SW",
+      "Key": "short-grass-sw",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 7,
+      "Y": 5,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Short Grass SE",
+      "Key": "short-grass-se",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 11,
+      "Y": 5,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Cobblestones",
+      "Key": "pathways.cobblestones",
+      "GroupKey": "Pathways",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 16,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Cobblestones",
+      "Key": "paths.cobblestones.reddish",
+      "GroupKey": "Paths",
+      "GroupRole": "Variant",
+      "VariantKey": "Reddish",
+      "Direction": "None",
+      "X": 20,
+      "Y": 1,
+      "Width": 1,
+      "Height": 1,
+      "Collision": [
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Small Tree",
+      "Key": "small-tree",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 16,
+      "Y": 3,
+      "Width": 2,
+      "Height": 3,
+      "Collision": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Small Tree",
+      "Key": "small-tree.with-grass",
+      "GroupKey": "",
+      "GroupRole": "Variant",
+      "VariantKey": "with Grass",
+      "Direction": "None",
+      "X": 18,
+      "Y": 3,
+      "Width": 2,
+      "Height": 3,
+      "Collision": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Small Tree Planter",
+      "Key": "small-tree-planter",
+      "GroupKey": "",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 20,
+      "Y": 3,
+      "Width": 2,
+      "Height": 4,
+      "Collision": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Small Tree Planter",
+      "Key": "small-tree-planter.square",
+      "GroupKey": "",
+      "GroupRole": "Variant",
+      "VariantKey": "Square",
+      "Direction": "None",
+      "X": 22,
+      "Y": 3,
+      "Width": 2,
+      "Height": 4,
+      "Collision": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Large Tree",
+      "Key": "large-tree.with-grass",
+      "GroupKey": "",
+      "GroupRole": "Variant",
+      "VariantKey": "with Grass",
+      "Direction": "None",
+      "X": 19,
+      "Y": 7,
+      "Width": 3,
+      "Height": 4,
+      "Collision": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Tile 19,7",
+      "Key": "tile-19-7",
+      "GroupKey": "",
+      "GroupRole": "Variant",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 19,
+      "Y": 7,
+      "Width": 3,
+      "Height": 4,
+      "Collision": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "Kind": "Tile",
+      "Name": "Large Tree",
+      "Key": "trees.large-tree",
+      "GroupKey": "Trees",
+      "GroupRole": "Base",
+      "VariantKey": "",
+      "Direction": "None",
+      "X": 16,
+      "Y": 6,
+      "Width": 3,
+      "Height": 4,
+      "Collision": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false
+      ]
+    }
+  ],
+  "brushes": [
+    {
+      "Name": "Tall Grass",
+      "Key": "brush.tall-grass.5x5",
+      "Size": 5,
+      "Cells": [
+        {
+          "TileKey": "short-grass-nw",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-nw1",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-n",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-ne1",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "short-grass-ne",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-nw2",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 2,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-ne2",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-w",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 2,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 3,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 2,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-e",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-sw2",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 2,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-se2",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "short-grass-sw",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-sw1",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-s",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "long-grass-se1",
+          "Strength": 1,
+          "Weight": 1
+        },
+        {
+          "TileKey": "short-grass-se",
+          "Strength": 1,
+          "Weight": 1
+        }
+      ]
+    }
+  ]
+}

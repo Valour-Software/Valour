@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JsRuntime
 @using Microsoft.AspNetCore.Components.Forms
+@using System.Globalization
 @using System.Text.Json
 
 <div class="tileset-tool">
@@ -40,158 +41,186 @@
         </section>
 
         <aside class="definition-panel">
-            <div class="panel-section">
-                <div class="section-title">Definition</div>
-                <div class="mode-toggle">
-                    <button class="@GetModeClass("Tile")" @onclick='() => SetKind("Tile")'>
-                        <i class="bi bi-grid-3x3"></i>
-                        <span>Tile</span>
-                    </button>
-                    <button class="@GetModeClass("Sprite")" @onclick='() => SetKind("Sprite")'>
-                        <i class="bi bi-bounding-box"></i>
-                        <span>Sprite</span>
-                    </button>
-                </div>
-
-                <label class="field-label">Name</label>
-                <input class="field-input" value="@_draft.Name" @oninput="OnNameChanged" />
-
-                <div class="field-heading-row">
-                    <label class="field-label">Key</label>
-                    <button class="link-action" title="Regenerate from fields" @onclick="RegenerateKey">
-                        Auto
-                    </button>
-                </div>
-                <input class="field-input" value="@_draft.Key" @oninput="OnKeyChanged" />
-
-                <label class="field-label">Group</label>
-                <input class="field-input" value="@_draft.GroupKey" @oninput="OnGroupChanged" />
-
-                <div class="field-row">
-                    <div>
-                        <label class="field-label">Variant</label>
-                        <input class="field-input" value="@_draft.VariantKey" @oninput="OnVariantChanged" />
-                    </div>
-                    <div>
-                        <label class="field-label">Role</label>
-                        <select class="field-input" @bind="_draft.GroupRole">
-                            <option>Base</option>
-                            <option>Variant</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label class="field-label">Direction</label>
-                <select class="field-input" value="@_draft.Direction" @onchange="OnDirectionChanged">
-                    <option>None</option>
-                    <option>Up</option>
-                    <option>Right</option>
-                    <option>Down</option>
-                    <option>Left</option>
-                </select>
-            </div>
-
-            <div class="panel-section">
-                <div class="section-title">Collision</div>
-                <div class="collision-grid"
-                     style="@CollisionGridStyle">
-                    @for (var i = 0; i < _draft.Collision.Count; i++)
-                    {
-                        var index = i;
-                        <button class="collision-cell @(_draft.Collision[index] ? "active" : string.Empty)"
-                                style="@GetCollisionCellStyle(index)"
-                                title="Toggle collision"
-                                @onclick="() => ToggleCollision(index)">
-                            <span></span>
-                        </button>
-                    }
-                </div>
-            </div>
-
-            <div class="panel-actions">
-                <button class="primary-action" @onclick="SaveDefinition">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>Save</span>
+            <div class="panel-tabs">
+                <button class="@GetPanelTabClass("Definition")" @onclick='() => SetPanelTab("Definition")'>
+                    <i class="bi bi-grid-3x3"></i>
+                    <span>Tiles</span>
                 </button>
-                <button class="secondary-action" @onclick="ClearDraft">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-                <button class="secondary-action" @onclick="CopyJsonAsync">
-                    <i class="bi bi-clipboard"></i>
-                </button>
-            </div>
-
-            <div class="definitions-list">
-                @foreach (var definition in _definitions)
-                {
-                    <button class="definition-item" @onclick="() => LoadDefinition(definition)">
-                        <span>@definition.Name</span>
-                        <small>@definition.Kind @definition.Width x @definition.Height</small>
-                    </button>
-                }
-            </div>
-
-            <div class="panel-section">
-                <div class="section-title">Brush</div>
-                <label class="field-label">Brush name</label>
-                <input class="field-input" value="@_brushDraft.Name" @oninput="OnBrushNameChanged" />
-
-                <div class="field-row">
-                    <div>
-                        <div class="field-heading-row">
-                            <label class="field-label">Brush key</label>
-                            <button class="link-action" title="Regenerate brush key" @onclick="RegenerateBrushKey">
-                                Auto
-                            </button>
-                        </div>
-                        <input class="field-input" value="@_brushDraft.Key" @oninput="OnBrushKeyChanged" />
-                    </div>
-                    <div>
-                        <label class="field-label">Size</label>
-                        <input class="field-input" type="number" min="1" max="9" step="2" value="@_brushDraft.Size" @onchange="OnBrushSizeChanged" />
-                    </div>
-                </div>
-
-                <div class="hint-text">Selected tile: @SelectedBrushTileLabel</div>
-                <div class="brush-grid" style="@BrushGridStyle">
-                    @for (var i = 0; i < _brushDraft.Cells.Count; i++)
-                    {
-                        var index = i;
-                        var cell = _brushDraft.Cells[index];
-                        <button class="brush-cell @(string.IsNullOrWhiteSpace(cell.TileKey) ? string.Empty : "filled")"
-                                title="@GetBrushCellTitle(index)"
-                                @onclick="() => PlaceBrushCell(index)"
-                                @oncontextmenu="() => ClearBrushCell(index)"
-                                @oncontextmenu:preventDefault>
-                            <span>@GetBrushCellLabel(cell)</span>
-                        </button>
-                    }
-                </div>
-                <div class="hint-text">Click a saved definition below, then click brush cells to place it. Right-click a brush cell to clear it.</div>
-            </div>
-
-            <div class="panel-actions">
-                <button class="primary-action" @onclick="SaveBrush">
+                <button class="@GetPanelTabClass("Brush")" @onclick='() => SetPanelTab("Brush")'>
                     <i class="bi bi-brush"></i>
-                    <span>Save Brush</span>
-                </button>
-                <button class="secondary-action" @onclick="ClearBrushDraft">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-                <button class="secondary-action" @onclick="RegenerateBrushKey">
-                    <i class="bi bi-magic"></i>
+                    <span>Brushes</span>
                 </button>
             </div>
 
-            <div class="definitions-list">
-                @foreach (var brush in _brushes)
-                {
-                    <button class="definition-item" @onclick="() => LoadBrush(brush)">
-                        <span>@brush.Name</span>
-                        <small>Brush @brush.Size x @brush.Size</small>
+            @if (_activePanelTab == "Definition")
+            {
+                <div class="panel-section">
+                    <div class="section-title">Definition</div>
+                    <div class="mode-toggle">
+                        <button class="@GetModeClass("Tile")" @onclick='() => SetKind("Tile")'>
+                            <i class="bi bi-grid-3x3"></i>
+                            <span>Tile</span>
+                        </button>
+                        <button class="@GetModeClass("Sprite")" @onclick='() => SetKind("Sprite")'>
+                            <i class="bi bi-bounding-box"></i>
+                            <span>Sprite</span>
+                        </button>
+                    </div>
+
+                    <label class="field-label">Name</label>
+                    <input class="field-input" value="@_draft.Name" @oninput="OnNameChanged" />
+
+                    <div class="field-heading-row">
+                        <label class="field-label">Key</label>
+                        <button class="link-action" title="Regenerate from fields" @onclick="RegenerateKey">
+                            Auto
+                        </button>
+                    </div>
+                    <input class="field-input" value="@_draft.Key" @oninput="OnKeyChanged" />
+
+                    <label class="field-label">Group</label>
+                    <input class="field-input" value="@_draft.GroupKey" @oninput="OnGroupChanged" />
+
+                    <div class="field-row">
+                        <div>
+                            <label class="field-label">Variant</label>
+                            <input class="field-input" value="@_draft.VariantKey" @oninput="OnVariantChanged" />
+                        </div>
+                        <div>
+                            <label class="field-label">Role</label>
+                            <select class="field-input" @bind="_draft.GroupRole">
+                                <option>Base</option>
+                                <option>Variant</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label class="field-label">Direction</label>
+                    <select class="field-input" value="@_draft.Direction" @onchange="OnDirectionChanged">
+                        <option>None</option>
+                        <option>Up</option>
+                        <option>Right</option>
+                        <option>Down</option>
+                        <option>Left</option>
+                    </select>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-title">Collision</div>
+                    <div class="collision-grid"
+                         style="@CollisionGridStyle">
+                        @for (var i = 0; i < _draft.Collision.Count; i++)
+                        {
+                            var index = i;
+                            <button class="collision-cell @(_draft.Collision[index] ? "active" : string.Empty)"
+                                    style="@GetCollisionCellStyle(index)"
+                                    title="Toggle collision"
+                                    @onclick="() => ToggleCollision(index)">
+                                <span></span>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <div class="panel-actions">
+                    <button class="primary-action" @onclick="SaveDefinition">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Save</span>
                     </button>
-                }
-            </div>
+                    <button class="secondary-action" @onclick="ClearDraft">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <button class="secondary-action danger-action" disabled="@(!HasSelectedSavedDefinition)" @onclick="DeleteSelectedDefinition">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="secondary-action" @onclick="CopyJsonAsync">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+
+                <div class="definitions-list saved-definitions-list">
+                    @foreach (var definition in _definitions)
+                    {
+                        <button class="definition-item" @onclick="() => LoadDefinition(definition)">
+                            <span>@definition.Name</span>
+                            <small>@definition.Kind @definition.Width x @definition.Height</small>
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="panel-section">
+                    <div class="section-title">Brush</div>
+                    <label class="field-label">Brush name</label>
+                    <input class="field-input" value="@_brushDraft.Name" @oninput="OnBrushNameChanged" />
+
+                    <div class="field-row">
+                        <div>
+                            <div class="field-heading-row">
+                                <label class="field-label">Brush key</label>
+                                <button class="link-action" title="Regenerate brush key" @onclick="RegenerateBrushKey">
+                                    Auto
+                                </button>
+                            </div>
+                            <input class="field-input" value="@_brushDraft.Key" @oninput="OnBrushKeyChanged" />
+                        </div>
+                        <div>
+                            <label class="field-label">Size</label>
+                            <input class="field-input" type="number" min="1" max="9" step="2" value="@_brushDraft.Size" @onchange="OnBrushSizeChanged" />
+                        </div>
+                    </div>
+
+                    <div class="selected-brush-tile">
+                        <div class="section-title">Selected Tile</div>
+                        <div class="selected-brush-preview"
+                             style="@GetDefinitionPreviewStyle(SelectedBrushPreviewDefinition, 48)"
+                             title="@SelectedBrushTileLabel"></div>
+                    </div>
+                    <div class="brush-grid" style="@BrushGridStyle">
+                        @for (var i = 0; i < _brushDraft.Cells.Count; i++)
+                        {
+                            var index = i;
+                            var cell = _brushDraft.Cells[index];
+                            <button class="brush-cell @(string.IsNullOrWhiteSpace(cell.TileKey) ? string.Empty : "filled")"
+                                    style="@GetBrushCellStyle(cell)"
+                                    title="@GetBrushCellTitle(index)"
+                                    @onclick="() => PlaceBrushCell(index)"
+                                    @oncontextmenu="() => ClearBrushCell(index)"
+                                    @oncontextmenu:preventDefault>
+                                @if (string.IsNullOrWhiteSpace(cell.TileKey))
+                                {
+                                    <span></span>
+                                }
+                            </button>
+                        }
+                    </div>
+                    <div class="hint-text">Click a saved definition below, then click brush cells to place it. Right-click a brush cell to clear it.</div>
+                </div>
+
+                <div class="panel-actions">
+                    <button class="primary-action" @onclick="SaveBrush">
+                        <i class="bi bi-brush"></i>
+                        <span>Save Brush</span>
+                    </button>
+                    <button class="secondary-action" @onclick="ClearBrushDraft">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <button class="secondary-action" @onclick="RegenerateBrushKey">
+                        <i class="bi bi-magic"></i>
+                    </button>
+                </div>
+
+                <div class="definitions-list brush-definitions-list">
+                    @foreach (var brush in _brushes)
+                    {
+                        <button class="definition-item" @onclick="() => LoadBrush(brush)">
+                            <span>@brush.Name</span>
+                            <small>Brush @brush.Size x @brush.Size</small>
+                        </button>
+                    }
+                </div>
+            }
         </aside>
     </div>
 
@@ -220,12 +249,16 @@
     private readonly List<BrushDraft> _brushes = new();
     private bool _keyWasEdited;
     private bool _brushKeyWasEdited;
+    private string _activePanelTab = "Definition";
     private string _selectedBrushTileKey = string.Empty;
     private string _importStatus = string.Empty;
     private string CollisionGridStyle => $"grid-template-columns: repeat({Math.Max(1, _selection.Width)}, {TileSize * CollisionPreviewScale}px);";
     private string BrushGridStyle => $"grid-template-columns: repeat({Math.Max(1, _brushDraft.Size)}, 42px);";
+    private TilesetDefinitionDraft? SelectedBrushDefinition => FindDefinitionByKey(_selectedBrushTileKey);
+    private TilesetDefinitionDraft SelectedBrushPreviewDefinition => SelectedBrushDefinition ?? _draft;
+    private bool HasSelectedSavedDefinition => FindExistingDefinitionIndex(_draft) >= 0;
     private string SelectedBrushTileLabel => string.IsNullOrWhiteSpace(_selectedBrushTileKey)
-        ? "none"
+        ? GetDraftDisplayName()
         : GetDefinitionDisplayName(_selectedBrushTileKey);
 
     private string ExportJson => JsonSerializer.Serialize(new
@@ -252,12 +285,28 @@
     [JSInvokable]
     public async Task OnSelectionChanged(int x, int y, int width, int height)
     {
-        _selection = new SheetSelection { X = x, Y = y, Width = width, Height = height };
+        var selection = new SheetSelection { X = x, Y = y, Width = width, Height = height };
+        var matchingDefinition = FindDefinitionForSelection(selection);
+        if (selection.Width == 1 && selection.Height == 1)
+            matchingDefinition = FindContainingDefinition(selection, "Sprite") ?? matchingDefinition;
+
+        matchingDefinition ??= FindContainingDefinition(selection);
+        if (matchingDefinition is not null)
+        {
+            await LoadDefinition(matchingDefinition);
+            return;
+        }
+
+        _selection = selection;
         _draft.X = x;
         _draft.Y = y;
         _draft.Width = width;
         _draft.Height = height;
+        if (width > 1 || height > 1)
+            _draft.Kind = "Sprite";
+
         EnsureCollisionSize();
+        _selectedBrushTileKey = FindDefinitionForSelection(_selection)?.Key ?? string.Empty;
         await ReRender();
     }
 
@@ -298,6 +347,14 @@
     }
 
     private string GetModeClass(string kind) => _draft.Kind == kind ? "active" : string.Empty;
+
+    private void SetPanelTab(string tab)
+    {
+        _activePanelTab = tab;
+        ReRender();
+    }
+
+    private string GetPanelTabClass(string tab) => _activePanelTab == tab ? "active" : string.Empty;
 
     private void OnNameChanged(ChangeEventArgs args)
     {
@@ -413,8 +470,10 @@
         var sourceY = (_draft.Y + row) * TileSize * CollisionPreviewScale;
         var backgroundWidth = Math.Max(TileSize, _imageWidth) * CollisionPreviewScale;
         var backgroundHeight = Math.Max(TileSize, _imageHeight) * CollisionPreviewScale;
+        var imageUrl = (_previewImageUrl ?? string.Empty).Replace("'", "\\'", StringComparison.Ordinal);
 
-        return $"background-image: url('{_previewImageUrl}'); background-size: {backgroundWidth}px {backgroundHeight}px; background-position: -{sourceX}px -{sourceY}px;";
+        return string.Create(CultureInfo.InvariantCulture,
+            $"background-image: url('{imageUrl}'); background-size: {backgroundWidth}px {backgroundHeight}px; background-position: {-sourceX}px {-sourceY}px;");
     }
 
     private void ToggleCollision(int index)
@@ -563,23 +622,83 @@
         return $"{GetDefinitionDisplayName(cell.TileKey)} | strength {cell.Strength} | weight {cell.Weight}";
     }
 
-    private string GetBrushCellLabel(BrushCellDraft cell)
+    private string GetBrushCellStyle(BrushCellDraft cell)
     {
         if (string.IsNullOrWhiteSpace(cell.TileKey))
             return string.Empty;
 
-        var definition = _definitions.FirstOrDefault(existing =>
-            string.Equals(existing.Key, cell.TileKey, StringComparison.OrdinalIgnoreCase));
-        var label = definition?.Name ?? cell.TileKey;
-        return label.Length <= 3 ? label : label[..3];
+        var definition = FindDefinitionByKey(cell.TileKey);
+        return definition is null ? string.Empty : GetDefinitionPreviewStyle(definition, 42);
+    }
+
+    private string GetDefinitionPreviewStyle(TilesetDefinitionDraft definition, int previewSize)
+    {
+        var width = Math.Max(1, definition.Width);
+        var height = Math.Max(1, definition.Height);
+        var scale = previewSize / (double)(Math.Max(width, height) * TileSize);
+
+        return GetTilePreviewStyle(definition.X, definition.Y, scale);
+    }
+
+    private string GetTilePreviewStyle(int tileX, int tileY, double scale)
+    {
+        var sourceX = tileX * TileSize * scale;
+        var sourceY = tileY * TileSize * scale;
+        var backgroundWidth = Math.Max(TileSize, _imageWidth) * scale;
+        var backgroundHeight = Math.Max(TileSize, _imageHeight) * scale;
+        var imageUrl = (_previewImageUrl ?? string.Empty).Replace("'", "\\'", StringComparison.Ordinal);
+
+        return string.Create(CultureInfo.InvariantCulture,
+            $"background-image: url('{imageUrl}'); background-size: {backgroundWidth:0.###}px {backgroundHeight:0.###}px; background-position: {-sourceX:0.###}px {-sourceY:0.###}px;");
     }
 
     private string GetDefinitionDisplayName(string key)
     {
-        var definition = _definitions.FirstOrDefault(existing =>
-            string.Equals(existing.Key, key, StringComparison.OrdinalIgnoreCase));
+        var definition = FindDefinitionByKey(key);
 
         return string.IsNullOrWhiteSpace(definition?.Name) ? key : definition.Name;
+    }
+
+    private string GetDraftDisplayName()
+    {
+        if (!string.IsNullOrWhiteSpace(_draft.Name))
+            return _draft.Name;
+
+        if (!string.IsNullOrWhiteSpace(_draft.Key))
+            return _draft.Key;
+
+        return $"{_draft.Kind} {_draft.X},{_draft.Y}";
+    }
+
+    private TilesetDefinitionDraft? FindDefinitionByKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return null;
+
+        return _definitions.FirstOrDefault(existing =>
+            string.Equals(existing.Key, key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private TilesetDefinitionDraft? FindDefinitionForSelection(SheetSelection selection)
+    {
+        return _definitions.FirstOrDefault(existing =>
+            existing.X == selection.X &&
+            existing.Y == selection.Y &&
+            existing.Width == selection.Width &&
+            existing.Height == selection.Height);
+    }
+
+    private TilesetDefinitionDraft? FindContainingDefinition(SheetSelection selection, string? kind = null)
+    {
+        return _definitions
+            .Where(existing =>
+                (kind is null || string.Equals(existing.Kind, kind, StringComparison.OrdinalIgnoreCase)) &&
+                existing.X <= selection.X &&
+                existing.Y <= selection.Y &&
+                existing.X + existing.Width >= selection.X + selection.Width &&
+                existing.Y + existing.Height >= selection.Y + selection.Height)
+            .OrderBy(existing => existing.Width * existing.Height)
+            .FirstOrDefault();
     }
 
     private static int GetDefaultBrushStrength(int index, int size)
@@ -611,6 +730,43 @@
         _selectedBrushTileKey = copy.Key;
         ClearDraft();
         await SyncDefinitionOutlinesAsync();
+    }
+
+    private async Task DeleteSelectedDefinition()
+    {
+        var existingIndex = FindExistingDefinitionIndex(_draft);
+        if (existingIndex < 0)
+            return;
+
+        var deletedKey = _definitions[existingIndex].Key;
+        _definitions.RemoveAt(existingIndex);
+
+        if (!string.IsNullOrWhiteSpace(deletedKey))
+            ClearBrushCellsForDefinition(deletedKey);
+
+        if (string.Equals(_selectedBrushTileKey, deletedKey, StringComparison.OrdinalIgnoreCase))
+            _selectedBrushTileKey = string.Empty;
+
+        ClearDraft();
+        await SyncDefinitionOutlinesAsync();
+    }
+
+    private void ClearBrushCellsForDefinition(string definitionKey)
+    {
+        foreach (var brush in _brushes)
+        {
+            foreach (var cell in brush.Cells)
+            {
+                if (string.Equals(cell.TileKey, definitionKey, StringComparison.OrdinalIgnoreCase))
+                    cell.TileKey = string.Empty;
+            }
+        }
+
+        foreach (var cell in _brushDraft.Cells)
+        {
+            if (string.Equals(cell.TileKey, definitionKey, StringComparison.OrdinalIgnoreCase))
+                cell.TileKey = string.Empty;
+        }
     }
 
     private int FindExistingDefinitionIndex(TilesetDefinitionDraft definition)
