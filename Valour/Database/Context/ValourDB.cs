@@ -250,8 +250,12 @@ public partial class ValourDb : DbContext
     
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
+        if (options.IsConfigured)
+            return;
+
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.ForeignKeyPropertiesMappedToUnrelatedTables));
-        options.UseNpgsql(ConnectionString).UseExceptionProcessor();
+        options.UseNpgsql(ConnectionString);
+        options.UseExceptionProcessor();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

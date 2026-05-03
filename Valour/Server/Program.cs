@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http.Features;
 using System.Text.Json;
 using Amazon;
 using CloudFlare.Client;
+using EntityFramework.Exceptions.PostgreSQL;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
@@ -43,6 +45,19 @@ public partial class Program
         // Load configs
         ConfigLoader.LoadConfigs();
 
+#if DEBUG
+        NodeConfig.Instance ??= new NodeConfig
+        {
+            Name = "dev-node",
+            Location = "localhost",
+            LogInfo = true
+        };
+		// Aspire specific
+		builder.AddServiceDefaults();
+#endif
+
+		// Initialize Email Manager
+		EmailManager.SetupClient();
         // Initialize Stripe
         if (StripeConfig.Current?.SecretKey is not null)
             Stripe.StripeConfiguration.ApiKey = StripeConfig.Current.SecretKey;
@@ -93,6 +108,11 @@ public partial class Program
 
         // Build web app
         var app = builder.Build();
+
+        // Initialize database schema
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+        db.Database.Migrate();
 
         // Configure application
         ConfigureApp(app);
@@ -285,24 +305,25 @@ public partial class Program
             options.MemoryBufferThreshold = 20_971_520; // 20 MB memory buffer before spilling to disk
             options.MultipartBodyLengthLimit = 262_144_000; // 250 MB (max tier upload limit)
         });
+#if DEBUG
 
-        services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
+		builder.AddNpgsqlDbContext<ValourDb>("valourdb", configureDbContextOptions: options =>
+		{
+			options.ConfigureWarnings(w => w.Ignore(RelationalEventId.ForeignKeyPropertiesMappedToUnrelatedTables));
+			options.UseExceptionProcessor();
+			// Disable retrying execution strategy to allow manual transactions
+			options.UseNpgsql(npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(0));
+		});
+		builder.AddRedisClient("redis");
+#else
+		services.AddDbContext<ValourDb>(options => { options.UseNpgsql(ValourDb.ConnectionString); }, ServiceLifetime.Scoped);
+		Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
+		services.AddSingleton<IConnectionMultiplexer>(
+		ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
+#endif
 
-        // Apply migrations if flag is set
-        //if (Environment.GetEnvironmentVariable("APPLY_MIGRATIONS") == "true")
-        //{
-            using var scope = services.BuildServiceProvider().CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
-            db.Database.Migrate();
-        //}
-        
-        Console.WriteLine("Connecting to redis with connection string: " + RedisConfig.Current.ConnectionString?.Split(",")[0]);
-        
-        services.AddSingleton<IConnectionMultiplexer>(
-            ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
-
-        // This probably needs to be customized further but the documentation changed
-        services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
+		// This probably needs to be customized further but the documentation changed
+		services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
 
         services.AddControllersWithViews().AddJsonOptions(options =>
