@@ -95,7 +95,7 @@ public class AutomodService
         // Invalidate cache
         _triggerCache.TryRemove(trigger.PlanetId, out _);
 
-        _coreHub.NotifyPlanetItemChange(trigger);
+        _coreHub.NotifyPlanetItemCreate(trigger);
         return new(true, "Success", trigger);
     }
 
@@ -130,9 +130,9 @@ public class AutomodService
         _triggerCache.TryRemove(trigger.PlanetId, out _);
         _actionCache.TryRemove(trigger.Id, out _);
 
-        _coreHub.NotifyPlanetItemChange(trigger);
+        _coreHub.NotifyPlanetItemCreate(trigger);
         foreach (var action in actions)
-            _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
+            _coreHub.NotifyPlanetItemCreate(action.PlanetId, action);
 
         return new(true, "Success", trigger);
     }
@@ -219,7 +219,7 @@ public class AutomodService
         // Invalidate cache
         _actionCache.TryRemove(action.TriggerId, out _);
 
-        _coreHub.NotifyPlanetItemChange(action.PlanetId, action);
+        _coreHub.NotifyPlanetItemCreate(action.PlanetId, action);
         return new(true, "Success", action);
     }
 

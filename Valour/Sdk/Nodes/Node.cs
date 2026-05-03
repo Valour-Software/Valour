@@ -496,8 +496,18 @@ public class Node : ServiceBase // each node acts like a service
         where TModel : ClientModel<TModel>
     {
         var typeName = model.GetType().Name;
+        HubConnection.On<TModel>($"{typeName}-Create", OnModelCreate<TModel>);
         HubConnection.On<TModel, int>($"{typeName}-Update", OnModelUpdate<TModel>);
         HubConnection.On<TModel>($"{typeName}-Delete", OnModelDelete<TModel>);
+    }
+
+    /// <summary>
+    /// Specific model create event, mocks update events for compatibility
+    /// </summary>
+    private void OnModelCreate<TModel>(TModel model)
+        where TModel : ClientModel<TModel>
+    {
+        model.Sync(Client);
     }
 
     /// <summary>

@@ -445,10 +445,10 @@ public class ChannelService
             if (associatedChatChannel is not null)
             {
                 hostedPlanet.UpsertChannel(associatedChatChannel);
-                _coreHub.NotifyPlanetItemChange(channel.PlanetId!.Value, associatedChatChannel);
+                _coreHub.NotifyPlanetItemCreate(channel.PlanetId!.Value, associatedChatChannel);
             }
             await _planetPermissionService.HandleChannelTopologyChange(channel.PlanetId!.Value);
-            _coreHub.NotifyPlanetItemChange(channel.PlanetId!.Value, channel);
+            _coreHub.NotifyPlanetItemCreate(channel.PlanetId!.Value, channel);
         }
 
         return TaskResult<Channel>.FromData(channel);
