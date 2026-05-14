@@ -15,7 +15,13 @@
     </div>
 
     <div class="call-controls">
-        @if (!_joined)
+        @if (_waitingForPeer)
+        {
+            <button class="call-ctrl-btn reconnect" disabled="true" title="Waiting for another participant">
+                <i class="bi bi-hourglass-split"></i>
+            </button>
+        }
+        else if (!_joined)
         {
             <button class="call-ctrl-btn reconnect" disabled="@_connecting" @onmousedown="OnClickReconnect" title="Connect">
                 <i class="bi bi-arrow-clockwise"></i>
@@ -51,7 +57,11 @@
     @if (VideoMode)
     {
         <div class="video-stage">
-            @if (_joined && _participants.Count == 0)
+            @if (_waitingForPeer)
+            {
+                <p class="video-empty">Waiting for someone else to join.</p>
+            }
+            else if (_joined && _participants.Count == 0)
             {
                 <p class="video-empty">Waiting for participants…</p>
             }
@@ -116,6 +126,17 @@
                 </div>
             </div>
         }
+    }
+    else if (_waitingForPeer)
+    {
+        <div class="call-participants">
+            <div class="call-participants-header">
+                <span class="call-participants-label">Participants</span>
+                <span class="call-participants-count">1</span>
+            </div>
+
+            <p class="call-participants-empty">Waiting for someone else to join.</p>
+        </div>
     }
     else if (_joined)
     {
@@ -225,6 +246,7 @@
 
     private bool _joined;
     private bool _connecting;
+    private bool _waitingForPeer;
 
     private bool _audioEnabled = true;
     private bool _videoEnabled;
@@ -245,8 +267,8 @@
 
     public Channel? ActiveChannel { get; private set; }
 
-    private string StatusText => _connecting ? "Connecting" : _joined ? "Connected" : "Disconnected";
-    private string StatusBadgeClass => _connecting ? "connecting" : _joined ? "connected" : "disconnected";
+    private string StatusText => _connecting ? "Connecting" : _joined ? "Connected" : _waitingForPeer ? "Waiting" : "Disconnected";
+    private string StatusBadgeClass => _connecting ? "connecting" : _joined ? "connected" : _waitingForPeer ? "waiting" : "disconnected";
 
     private int GetParticipantVolume(string peerId) =>
         _participantVolumes.TryGetValue(peerId, out var vol) ? vol : 100;
@@ -388,7 +410,8 @@
 
     private async Task Initialize(Channel channel)
     {
-        if (CallSession.ActiveChannel?.Id == channel.Id && (CallSession.Joined || CallSession.Connecting))
+        if (CallSession.ActiveChannel?.Id == channel.Id &&
+            (CallSession.Joined || CallSession.Connecting || CallSession.WaitingForPeer))
         {
             SyncFromGlobalCallSession();
             StateHasChanged();
@@ -955,6 +978,7 @@
         ActiveChannel = CallSession.ActiveChannel;
         _joined = CallSession.Joined;
         _connecting = CallSession.Connecting;
+        _waitingForPeer = CallSession.WaitingForPeer;
         _audioEnabled = CallSession.AudioEnabled;
         _videoEnabled = CallSession.VideoEnabled;
         _screenShareEnabled = CallSession.ScreenShareEnabled;

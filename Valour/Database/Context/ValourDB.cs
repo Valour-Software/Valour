@@ -212,6 +212,7 @@ public partial class ValourDb : DbContext
     public DbSet<MessageReaction> MessageReactions { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageMention> MessageMentions { get; set; }
+    public DbSet<RealtimeKitMeeting> RealtimeKitMeetings { get; set; }
     
     
 
@@ -276,6 +277,7 @@ public partial class ValourDb : DbContext
         MessageReaction.SetupDbModel(modelBuilder);
         MessageAttachment.SetupDbModel(modelBuilder);
         MessageMention.SetupDbModel(modelBuilder);
+        RealtimeKitMeeting.SetupDbModel(modelBuilder);
         Message.SetupDbModel(modelBuilder);
         User.SetupDbModel(modelBuilder);
         UserSubscription.SetupDbModel(modelBuilder);

@@ -11,6 +11,8 @@ public class VoiceStateCleanupWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
     private readonly RealtimeKitService _realtimeKitService;
+    private const int MinimumRealtimeKitParticipants = 2;
+    private static readonly TimeSpan OrphanSessionGracePeriod = TimeSpan.FromSeconds(90);
 
     /// <summary>
     /// Cloudflare reconciliation runs every Nth cleanup cycle (~every 2 minutes at 30s intervals).
@@ -32,6 +34,8 @@ public class VoiceStateCleanupWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await RunStartupCleanupAsync();
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -44,6 +48,7 @@ public class VoiceStateCleanupWorker : BackgroundService
                 {
                     _cycleCount = 0;
                     await ReconcileWithCloudflareAsync();
+                    await CleanupTrackedRealtimeKitMeetingsAsync("periodic sweep");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -54,6 +59,27 @@ public class VoiceStateCleanupWorker : BackgroundService
             {
                 _logger.LogError(ex, "Error in voice state cleanup worker");
             }
+        }
+    }
+
+    private async Task RunStartupCleanupAsync()
+    {
+        try
+        {
+            await CleanupStaleVoiceStateAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during voice state startup cleanup");
+        }
+
+        try
+        {
+            await CleanupTrackedRealtimeKitMeetingsAsync("startup sweep");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during RealtimeKit startup cleanup");
         }
     }
 
@@ -137,6 +163,13 @@ public class VoiceStateCleanupWorker : BackgroundService
                 hosted.SetVoiceParticipants(channelId, new List<long>());
             }
 
+            if (remainingUserIds.Count < MinimumRealtimeKitParticipants)
+            {
+                await _realtimeKitService.CloseTrackedMeetingAsync(
+                    channelId,
+                    "voice state cleanup left fewer than two participants");
+            }
+
             coreHub.NotifyVoiceChannelParticipants(dbChannel.PlanetId.Value, new VoiceChannelParticipantsUpdate
             {
                 PlanetId = dbChannel.PlanetId.Value,
@@ -158,7 +191,10 @@ public class VoiceStateCleanupWorker : BackgroundService
     {
         var trackedMeetings = _realtimeKitService.GetTrackedChannelMeetingIds();
         if (trackedMeetings.Count == 0)
+        {
+            await CloseUnderpopulatedRealtimeKitSessionsAsync();
             return;
+        }
 
         var db = _redis.GetDatabase(RedisDbTypes.Cluster);
 
@@ -180,8 +216,13 @@ public class VoiceStateCleanupWorker : BackgroundService
                         redisUserIds.Add(uid);
                 }
 
-                if (redisUserIds.Count == 0)
+                if (redisUserIds.Count < MinimumRealtimeKitParticipants)
+                {
+                    await _realtimeKitService.CloseTrackedMeetingAsync(
+                        channelId,
+                        "Cloudflare reconciliation found fewer than two Valour participants");
                     continue;
+                }
 
                 // Query Cloudflare for the live session(s) of this meeting
                 var sessionsResult = await _realtimeKitService.GetLiveSessionsForMeetingAsync(meetingId);
@@ -270,6 +311,13 @@ public class VoiceStateCleanupWorker : BackgroundService
                     hosted.SetVoiceParticipants(channelId, new List<long>());
                 }
 
+                if (remainingUserIds.Count < MinimumRealtimeKitParticipants)
+                {
+                    await _realtimeKitService.CloseTrackedMeetingAsync(
+                        channelId,
+                        "Cloudflare reconciliation left fewer than two participants");
+                }
+
                 coreHub.NotifyVoiceChannelParticipants(dbChannel.PlanetId.Value,
                     new VoiceChannelParticipantsUpdate
                     {
@@ -293,5 +341,137 @@ public class VoiceStateCleanupWorker : BackgroundService
                 _logger.LogError(ex, "Error reconciling channel {ChannelId} with Cloudflare", channelId);
             }
         }
+
+        await CloseUnderpopulatedRealtimeKitSessionsAsync();
+    }
+
+    private async Task CloseUnderpopulatedRealtimeKitSessionsAsync()
+    {
+        var sessionsResult = await _realtimeKitService.GetLiveSessionsAsync();
+        if (!sessionsResult.Success || sessionsResult.Data is null)
+            return;
+
+        foreach (var session in sessionsResult.Data)
+        {
+            if (session is null ||
+                string.IsNullOrWhiteSpace(session.AssociatedId) ||
+                session.LiveParticipants >= MinimumRealtimeKitParticipants ||
+                !IsPastOrphanSessionGracePeriod(session))
+            {
+                continue;
+            }
+
+            await _realtimeKitService.CloseMeetingAsync(
+                session.AssociatedId,
+                "Cloudflare live session had fewer than two participants");
+        }
+    }
+
+    private static bool IsPastOrphanSessionGracePeriod(RealtimeKitService.CloudflareSessionInfo session)
+    {
+        if (!DateTimeOffset.TryParse(session.CreatedAt, out var createdAt))
+            return true;
+
+        return DateTimeOffset.UtcNow - createdAt.ToUniversalTime() >= OrphanSessionGracePeriod;
+    }
+
+    private async Task CleanupTrackedRealtimeKitMeetingsAsync(string reason)
+    {
+        var trackedMeetings = await _realtimeKitService.LoadOpenMeetingMappingsAsync();
+        var participantCountsByChannel = await GetRedisParticipantCountsByChannelAsync();
+        var checkedMeetings = 0;
+        var keptMeetings = 0;
+        var closedMeetings = 0;
+        var failedMeetings = 0;
+
+        foreach (var (channelId, meetingId) in trackedMeetings)
+        {
+            if (string.IsNullOrWhiteSpace(meetingId))
+                continue;
+
+            checkedMeetings++;
+            if (participantCountsByChannel.TryGetValue(channelId, out var participantCount) &&
+                participantCount >= MinimumRealtimeKitParticipants)
+            {
+                keptMeetings++;
+                continue;
+            }
+
+            var closeResult = await _realtimeKitService.CloseMeetingAsync(
+                meetingId,
+                $"{reason} found tracked Valour voice channel with fewer than two participants",
+                channelId);
+
+            if (closeResult.Success)
+            {
+                _realtimeKitService.RemoveMeetingMapping(channelId);
+                closedMeetings++;
+            }
+            else
+            {
+                failedMeetings++;
+            }
+        }
+
+        _logger.LogInformation(
+            "RealtimeKit {Reason} checked {Checked} tracked meetings from the database; kept {Kept}, closed {Closed}, failed {Failed}",
+            reason,
+            checkedMeetings,
+            keptMeetings,
+            closedMeetings,
+            failedMeetings);
+    }
+
+    private async Task<Dictionary<long, int>> GetRedisParticipantCountsByChannelAsync()
+    {
+        var result = new Dictionary<long, int>();
+
+        try
+        {
+            var db = _redis.GetDatabase(RedisDbTypes.Cluster);
+            var servers = _redis.GetServers();
+            if (servers.Length == 0)
+                return result;
+
+            var channelKeys = servers
+                .SelectMany(server => server.Keys(RedisDbTypes.Cluster, "voice:channel:*"))
+                .Distinct()
+                .ToList();
+
+            foreach (var channelKey in channelKeys)
+            {
+                var channelIdStr = channelKey.ToString().Replace("voice:channel:", "");
+                if (!long.TryParse(channelIdStr, out var channelId))
+                    continue;
+
+                var members = await db.SetMembersAsync(channelKey);
+                var count = 0;
+
+                foreach (var member in members)
+                {
+                    if (!long.TryParse((string?)member, out var userId))
+                        continue;
+
+                    var userChannel = await db.StringGetAsync($"voice:user:{userId}");
+                    if (userChannel.HasValue &&
+                        long.TryParse((string?)userChannel, out var currentChannelId) &&
+                        currentChannelId == channelId)
+                    {
+                        count++;
+                    }
+                }
+
+                result[channelId] = count;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Could not read Redis voice participant counts for RealtimeKit cleanup; treating all active meetings as unused");
+        }
+
+
+        return result;
     }
 }

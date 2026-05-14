@@ -16,6 +16,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     private readonly RealtimeKitHostService _rtkHost;
     private readonly SemaphoreSlim _joinLock = new(1, 1);
 
+    private const int MinimumRealtimeKitParticipants = 2;
     private static readonly TimeSpan TokenRequestTimeout = TimeSpan.FromSeconds(12);
     private static readonly TimeSpan PermissionRequestTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan ResetTimeout = TimeSpan.FromSeconds(4);
@@ -36,6 +37,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     private readonly HashSet<long> _moderatorMutedParticipantUserIds = new();
     private readonly string _voiceSessionId = Guid.NewGuid().ToString("N");
 
+    private bool _registeredWithVoiceState;
     private bool _disposed;
 
     public event Action? StateChanged;
@@ -48,12 +50,14 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         DevicePreferences.OnMicrophoneDeviceIdChanged += OnMicrophoneSelected;
         DevicePreferences.OnCameraDeviceIdChanged += OnCameraSelected;
         BrowserUtils.Focused += OnAppResumed;
+        _client.VoiceStateService.VoiceParticipantsChanged += OnVoiceParticipantsChanged;
     }
 
     public Channel? ActiveChannel { get; private set; }
     public bool VideoMode { get; private set; }
     public bool Joined { get; private set; }
     public bool Connecting { get; private set; }
+    public bool WaitingForPeer { get; private set; }
     public bool AudioEnabled { get; private set; } = true;
     public bool VideoEnabled { get; private set; }
     public bool ScreenShareEnabled { get; private set; }
@@ -93,17 +97,22 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
         try
         {
+            var previousActiveChannel = ActiveChannel;
+            if (Joined ||
+                (_registeredWithVoiceState &&
+                 previousActiveChannel is not null &&
+                 previousActiveChannel.Id != channel.Id))
+            {
+                await LeaveAsync(clearChannel: false);
+            }
+
             Error = null;
             ActiveChannel = channel;
             VideoMode = videoMode;
             await RefreshModerationPermissionsAsync(channel);
             Connecting = true;
+            WaitingForPeer = false;
             NotifyStateChanged();
-
-            if (Joined)
-            {
-                await LeaveAsync(clearChannel: false);
-            }
 
             if (_client.PrimaryNode is null)
             {
@@ -113,12 +122,17 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
                 return;
             }
 
+            // Once the token request is in flight, the server may have registered us
+            // in Valour voice state even if the HTTP response times out locally.
+            _registeredWithVoiceState = true;
+
             var tokenResult = await _client.PrimaryNode.PostAsyncWithResponse<RealtimeKitVoiceTokenResponse>(
                     $"api/voice/realtimekit/token/{channel.Id}?sessionId={Uri.EscapeDataString(_voiceSessionId)}")
                 .WaitAsync(TokenRequestTimeout);
 
-            if (!tokenResult.Success || tokenResult.Data is null || string.IsNullOrWhiteSpace(tokenResult.Data.AuthToken))
+            if (!tokenResult.Success || tokenResult.Data is null)
             {
+                await LeaveAsync(clearChannel: false);
                 Error = string.IsNullOrWhiteSpace(tokenResult.Message)
                     ? "Failed to fetch a voice token from the server."
                     : tokenResult.Message;
@@ -127,9 +141,29 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
                 return;
             }
 
+            if (tokenResult.Data.WaitingForPeer)
+            {
+                WaitingForPeer = true;
+                Connecting = false;
+                Error = null;
+                StartHeartbeatLoop();
+                NotifyStateChanged();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(tokenResult.Data.AuthToken))
+            {
+                await LeaveAsync(clearChannel: false);
+                Error = "Failed to fetch a voice token from the server.";
+                Connecting = false;
+                NotifyStateChanged();
+                return;
+            }
+
             var rtk = Rtk;
             if (rtk is null)
             {
+                await LeaveAsync(clearChannel: false);
                 Error = "Voice system is still loading. Try again.";
                 Connecting = false;
                 NotifyStateChanged();
@@ -141,6 +175,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
             Joined = true;
             Connecting = false;
+            WaitingForPeer = false;
             AppLifecycle.NotifyCallStarted();
 
             try
@@ -328,8 +363,11 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
     {
         var leaveChannelId = ActiveChannel?.Id;
         var wasJoined = Joined;
+        var wasRegisteredWithVoiceState = _registeredWithVoiceState || WaitingForPeer;
 
-        if (wasJoined && leaveChannelId is not null && _client.PrimaryNode is not null)
+        if ((wasJoined || wasRegisteredWithVoiceState) &&
+            leaveChannelId is not null &&
+            _client.PrimaryNode is not null)
         {
             try
             {
@@ -365,6 +403,8 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
         Joined = false;
         Connecting = false;
+        WaitingForPeer = false;
+        _registeredWithVoiceState = false;
         AudioEnabled = true;
         VideoEnabled = false;
         ScreenShareEnabled = false;
@@ -749,6 +789,17 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
 
     private async Task OnAppResumed()
     {
+        if (WaitingForPeer && ActiveChannel is not null)
+        {
+            var participantCount = _client.VoiceStateService.GetParticipantCount(ActiveChannel.Id);
+            if (participantCount >= MinimumRealtimeKitParticipants)
+            {
+                await InitializeAsync(ActiveChannel, VideoMode);
+            }
+
+            return;
+        }
+
         if (!Joined || ActiveChannel is null || Rtk is null)
             return;
 
@@ -782,7 +833,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         if (ActiveChannel is null || ActiveChannel.Id != update.ChannelId)
             return;
 
-        if (!Joined && !Connecting)
+        if (!Joined && !Connecting && !WaitingForPeer)
             return;
 
         Error = "Disconnected because this account joined this call from another instance.";
@@ -839,6 +890,92 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         }
 
         NotifyStateChanged();
+    }
+
+    private void OnVoiceParticipantsChanged(long channelId)
+    {
+        if (ActiveChannel?.Id != channelId)
+            return;
+
+        _ = HandleVoiceParticipantsChangedAsync(channelId);
+    }
+
+    private async Task HandleVoiceParticipantsChangedAsync(long channelId)
+    {
+        var channel = ActiveChannel;
+        if (channel is null || channel.Id != channelId || _disposed)
+            return;
+
+        var participantCount = _client.VoiceStateService.GetParticipantCount(channelId);
+
+        if (WaitingForPeer &&
+            !Connecting &&
+            !Joined &&
+            participantCount >= MinimumRealtimeKitParticipants)
+        {
+            await InitializeAsync(channel, VideoMode);
+            return;
+        }
+
+        if (Joined && participantCount < MinimumRealtimeKitParticipants)
+        {
+            await SuspendRealtimeKitUntilPeerJoinsAsync(channelId);
+        }
+    }
+
+    private async Task SuspendRealtimeKitUntilPeerJoinsAsync(long channelId)
+    {
+        await _joinLock.WaitAsync();
+
+        try
+        {
+            if (!Joined || ActiveChannel is null || ActiveChannel.Id != channelId)
+                return;
+
+            var participantCount = _client.VoiceStateService.GetParticipantCount(channelId);
+            if (participantCount >= MinimumRealtimeKitParticipants)
+                return;
+
+            var rtk = Rtk;
+            if (rtk is not null)
+            {
+                try
+                {
+                    await rtk.LeaveRoomAsync().WaitAsync(LeaveTimeout);
+                }
+                catch
+                {
+                    // RTK may already have been kicked by the server-side backstop.
+                }
+            }
+
+            await StopParticipantRefreshLoopAsync();
+
+            Joined = false;
+            Connecting = false;
+            WaitingForPeer = true;
+            _registeredWithVoiceState = true;
+            AudioEnabled = true;
+            VideoEnabled = false;
+            ScreenShareEnabled = false;
+            CanMuteParticipants = false;
+            CanKickParticipants = false;
+            _moderatorMutedParticipantUserIds.Clear();
+            Error = null;
+
+            if (ParticipantsSnapshot is not null)
+            {
+                ParticipantsSnapshot = null;
+                ParticipantsVersion++;
+            }
+
+            AppLifecycle.NotifyCallEnded();
+            NotifyStateChanged();
+        }
+        finally
+        {
+            _joinLock.Release();
+        }
     }
 
     private void NotifyStateChanged()
@@ -977,6 +1114,7 @@ public sealed class GlobalCallSessionService : IAsyncDisposable
         DevicePreferences.OnMicrophoneDeviceIdChanged -= OnMicrophoneSelected;
         DevicePreferences.OnCameraDeviceIdChanged -= OnCameraSelected;
         BrowserUtils.Focused -= OnAppResumed;
+        _client.VoiceStateService.VoiceParticipantsChanged -= OnVoiceParticipantsChanged;
         _voiceSessionReplaceSubscription?.Dispose();
         _voiceSessionReplaceSubscription = null;
         _voiceModerationSubscription?.Dispose();

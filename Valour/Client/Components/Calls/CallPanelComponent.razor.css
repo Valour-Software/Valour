@@ -55,6 +55,11 @@
     color: #facc15;
 }
 
+.call-status-badge.waiting {
+    background: rgba(55, 164, 206, 0.1);
+    color: var(--p-cyan);
+}
+
 .call-status-badge.disconnected {
     background: rgba(205, 94, 94, 0.1);
     color: var(--p-red);
@@ -76,6 +81,11 @@
 .call-status-badge.connecting .call-status-dot {
     background: #facc15;
     animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.call-status-badge.waiting .call-status-dot {
+    background: var(--p-cyan);
+    animation: pulse-dot 1.6s ease-in-out infinite;
 }
 
 .call-status-badge.disconnected .call-status-dot {

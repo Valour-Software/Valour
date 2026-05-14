@@ -6,15 +6,20 @@ using System.Text.Json.Serialization;
 using Valour.Config.Configs;
 using Valour.Shared;
 using Valour.Shared.Models;
+using DbRealtimeKitMeeting = Valour.Database.RealtimeKitMeeting;
 
 namespace Valour.Server.Services;
 
 public class RealtimeKitService
 {
     private const string CloudflareApiBase = "https://api.cloudflare.com/client/v4";
+    private const int MinimumSessionKeepAliveSeconds = 60;
+    private const string MeetingStatusActive = "ACTIVE";
+    private const string MeetingStatusInactive = "INACTIVE";
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<RealtimeKitService> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
     private readonly ConcurrentDictionary<long, string> _meetingIdsByChannel = new();
     private readonly ConcurrentDictionary<long, SemaphoreSlim> _channelLocks = new();
@@ -27,10 +32,12 @@ public class RealtimeKitService
 
     public RealtimeKitService(
         IHttpClientFactory httpClientFactory,
-        ILogger<RealtimeKitService> logger)
+        ILogger<RealtimeKitService> logger,
+        IServiceProvider serviceProvider)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     private static bool IsConfigured =>
@@ -101,7 +108,15 @@ public class RealtimeKitService
     {
         if (_meetingIdsByChannel.TryGetValue(channel.Id, out var existingId))
         {
+            await TouchTrackedMeetingAsync(channel.Id, existingId);
             return TaskResult<string>.FromData(existingId);
+        }
+
+        var trackedMeetingId = await GetOpenMeetingIdForChannelAsync(channel.Id);
+        if (!string.IsNullOrWhiteSpace(trackedMeetingId))
+        {
+            _meetingIdsByChannel[channel.Id] = trackedMeetingId;
+            return TaskResult<string>.FromData(trackedMeetingId);
         }
 
         var channelLock = _channelLocks.GetOrAdd(channel.Id, static _ => new SemaphoreSlim(1, 1));
@@ -111,7 +126,15 @@ public class RealtimeKitService
         {
             if (_meetingIdsByChannel.TryGetValue(channel.Id, out existingId))
             {
+                await TouchTrackedMeetingAsync(channel.Id, existingId);
                 return TaskResult<string>.FromData(existingId);
+            }
+
+            trackedMeetingId = await GetOpenMeetingIdForChannelAsync(channel.Id);
+            if (!string.IsNullOrWhiteSpace(trackedMeetingId))
+            {
+                _meetingIdsByChannel[channel.Id] = trackedMeetingId;
+                return TaskResult<string>.FromData(trackedMeetingId);
             }
 
             var createResult = await CreateMeetingAsync(channel);
@@ -119,6 +142,7 @@ public class RealtimeKitService
                 return createResult;
 
             _meetingIdsByChannel[channel.Id] = createResult.Data;
+            await TrackMeetingMappingAsync(channel.Id, createResult.Data, channel.PlanetId);
             return createResult;
         }
         finally
@@ -133,7 +157,13 @@ public class RealtimeKitService
         var payload = new CreateMeetingRequest
         {
             Title = $"{channel.Name} ({channel.Id})",
-            Metadata = $"channel:{channel.Id}"
+            Metadata = $"channel:{channel.Id}",
+            SessionKeepAliveTimeInSecs = MinimumSessionKeepAliveSeconds,
+            Status = MeetingStatusActive,
+            RecordOnStart = false,
+            LiveStreamOnStart = false,
+            PersistChat = false,
+            SummarizeOnEnd = false
         };
 
         var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
@@ -348,12 +378,343 @@ public class RealtimeKitService
         return new Dictionary<long, string>(_meetingIdsByChannel);
     }
 
+    public async Task<Dictionary<long, string>> LoadOpenMeetingMappingsAsync()
+    {
+        if (!IsConfigured)
+            return new Dictionary<long, string>();
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+
+            var records = await db.RealtimeKitMeetings
+                .AsNoTracking()
+                .Where(x => x.ClosedAt == null && x.Status == MeetingStatusActive)
+                .ToListAsync();
+
+            foreach (var record in records)
+            {
+                if (!string.IsNullOrWhiteSpace(record.MeetingId))
+                    _meetingIdsByChannel[record.ChannelId] = record.MeetingId;
+            }
+
+            return records
+                .Where(x => !string.IsNullOrWhiteSpace(x.MeetingId))
+                .ToDictionary(x => x.ChannelId, x => x.MeetingId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load RealtimeKit meeting mappings from the database");
+            return new Dictionary<long, string>();
+        }
+    }
+
     /// <summary>
     /// Removes a channel → meeting ID mapping (e.g. when the meeting is no longer active).
     /// </summary>
     public void RemoveMeetingMapping(long channelId)
     {
         _meetingIdsByChannel.TryRemove(channelId, out _);
+    }
+
+    public void TrackMeetingMapping(long channelId, string meetingId)
+    {
+        if (string.IsNullOrWhiteSpace(meetingId))
+            return;
+
+        _meetingIdsByChannel[channelId] = meetingId;
+    }
+
+    public async Task TrackMeetingMappingAsync(long channelId, string meetingId, long? planetId = null)
+    {
+        if (string.IsNullOrWhiteSpace(meetingId))
+            return;
+
+        _meetingIdsByChannel[channelId] = meetingId;
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+            var now = DateTime.UtcNow;
+
+            var existing = await db.RealtimeKitMeetings
+                .FirstOrDefaultAsync(x => x.MeetingId == meetingId || (x.ChannelId == channelId && x.ClosedAt == null));
+
+            if (existing is null)
+            {
+                db.RealtimeKitMeetings.Add(new DbRealtimeKitMeeting
+                {
+                    ChannelId = channelId,
+                    PlanetId = planetId,
+                    MeetingId = meetingId,
+                    Status = MeetingStatusActive,
+                    CreatedAt = now,
+                    LastUsedAt = now,
+                    LastCleanupError = string.Empty
+                });
+            }
+            else
+            {
+                existing.ChannelId = channelId;
+                existing.PlanetId ??= planetId;
+                existing.MeetingId = meetingId;
+                existing.Status = MeetingStatusActive;
+                existing.LastUsedAt = now;
+                existing.ClosedAt = null;
+                existing.LastCleanupError = string.Empty;
+            }
+
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to persist RealtimeKit meeting {MeetingId} for channel {ChannelId}",
+                meetingId,
+                channelId);
+        }
+    }
+
+    /// <summary>
+    /// Best-effort shutdown for a tracked meeting. Kicks any remaining RTK peers, marks the
+    /// meeting inactive so old tokens cannot rejoin it, then drops the local mapping.
+    /// </summary>
+    public async Task CloseTrackedMeetingAsync(long channelId, string reason)
+    {
+        if (!IsConfigured)
+            return;
+
+        if (!_meetingIdsByChannel.TryGetValue(channelId, out var meetingId) ||
+            string.IsNullOrWhiteSpace(meetingId))
+        {
+            meetingId = await GetOpenMeetingIdForChannelAsync(channelId);
+            if (string.IsNullOrWhiteSpace(meetingId))
+                return;
+
+            _meetingIdsByChannel[channelId] = meetingId;
+        }
+
+        var channelLock = _channelLocks.GetOrAdd(channelId, static _ => new SemaphoreSlim(1, 1));
+        await channelLock.WaitAsync();
+
+        try
+        {
+            if (!_meetingIdsByChannel.TryGetValue(channelId, out meetingId) ||
+                string.IsNullOrWhiteSpace(meetingId))
+            {
+                meetingId = await GetOpenMeetingIdForChannelAsync(channelId);
+                if (string.IsNullOrWhiteSpace(meetingId))
+                    return;
+            }
+
+            var closeResult = await CloseMeetingAsync(
+                meetingId,
+                reason,
+                channelId);
+
+            if (closeResult.Success)
+            {
+                _meetingIdsByChannel.TryRemove(channelId, out _);
+                await MarkMeetingClosedAsync(meetingId);
+            }
+            else
+            {
+                await RecordMeetingCleanupFailureAsync(meetingId, closeResult.Message);
+            }
+        }
+        finally
+        {
+            channelLock.Release();
+        }
+    }
+
+    public async Task<TaskResult> CloseMeetingAsync(string meetingId, string reason, long? channelId = null)
+    {
+        if (!IsConfigured)
+            return TaskResult.FromFailure("RealtimeKit is not configured.");
+
+        if (string.IsNullOrWhiteSpace(meetingId))
+            return TaskResult.FromFailure("Meeting id is required.");
+
+        var kickResult = await KickAllParticipantsFromMeetingAsync(meetingId);
+        var inactiveResult = await SetMeetingInactiveAsync(meetingId);
+
+        if (!inactiveResult.Success)
+        {
+            await RecordMeetingCleanupFailureAsync(meetingId, inactiveResult.Message);
+            _logger.LogWarning(
+                "Cloudflare cleanup failed to mark RTK meeting {MeetingId} inactive in channel {ChannelId}. Inactive: {InactiveMessage}. Kick: {KickMessage}. Reason: {Reason}",
+                meetingId,
+                channelId,
+                inactiveResult.Message,
+                kickResult.Message,
+                reason);
+
+            return TaskResult.FromFailure("Cloudflare cleanup was incomplete.");
+        }
+
+        await MarkMeetingClosedAsync(meetingId);
+
+        if (!kickResult.Success)
+        {
+            _logger.LogInformation(
+                "Marked RTK meeting {MeetingId} inactive, but kick-all did not complete. Channel: {ChannelId}. Kick: {KickMessage}. Reason: {Reason}",
+                meetingId,
+                channelId,
+                kickResult.Message,
+                reason);
+        }
+
+        _logger.LogInformation(
+            "Closed RTK meeting {MeetingId} for channel {ChannelId}. Reason: {Reason}",
+            meetingId,
+            channelId,
+            reason);
+
+        return TaskResult.SuccessResult;
+    }
+
+    private async Task<TaskResult> KickAllParticipantsFromMeetingAsync(string meetingId)
+    {
+        var endpoint = BuildEndpoint($"meetings/{meetingId}/active-session/kick-all");
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        {
+            Content = JsonContent.Create(new { })
+        };
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+        return await SendCommandAsync(request, "kick all participants");
+    }
+
+    private async Task<TaskResult> SetMeetingInactiveAsync(string meetingId)
+    {
+        var endpoint = BuildEndpoint($"meetings/{meetingId}");
+        var payload = new UpdateMeetingRequest
+        {
+            Status = MeetingStatusInactive
+        };
+
+        var request = new HttpRequestMessage(HttpMethod.Patch, endpoint)
+        {
+            Content = JsonContent.Create(payload)
+        };
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+        return await SendCommandAsync(request, "mark meeting inactive");
+    }
+
+    private async Task<string> GetOpenMeetingIdForChannelAsync(long channelId)
+    {
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+
+            var record = await db.RealtimeKitMeetings
+                .AsNoTracking()
+                .Where(x => x.ChannelId == channelId && x.ClosedAt == null && x.Status == MeetingStatusActive)
+                .OrderByDescending(x => x.LastUsedAt)
+                .FirstOrDefaultAsync();
+
+            if (record is null || string.IsNullOrWhiteSpace(record.MeetingId))
+                return string.Empty;
+
+            await TouchTrackedMeetingAsync(channelId, record.MeetingId);
+            return record.MeetingId;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load RealtimeKit meeting for channel {ChannelId}", channelId);
+            return string.Empty;
+        }
+    }
+
+    private async Task TouchTrackedMeetingAsync(long channelId, string meetingId)
+    {
+        if (string.IsNullOrWhiteSpace(meetingId))
+            return;
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+
+            var record = await db.RealtimeKitMeetings
+                .FirstOrDefaultAsync(x => x.MeetingId == meetingId || (x.ChannelId == channelId && x.ClosedAt == null));
+
+            if (record is null)
+                return;
+
+            record.LastUsedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to touch RealtimeKit meeting {MeetingId}", meetingId);
+        }
+    }
+
+    private async Task MarkMeetingClosedAsync(string meetingId)
+    {
+        if (string.IsNullOrWhiteSpace(meetingId))
+            return;
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+
+            var record = await db.RealtimeKitMeetings
+                .FirstOrDefaultAsync(x => x.MeetingId == meetingId);
+
+            if (record is null)
+                return;
+
+            var now = DateTime.UtcNow;
+            record.Status = MeetingStatusInactive;
+            record.ClosedAt = now;
+            record.LastCleanupAttemptAt = now;
+            record.LastCleanupError = string.Empty;
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to mark RealtimeKit meeting {MeetingId} closed in the database", meetingId);
+        }
+    }
+
+    private async Task RecordMeetingCleanupFailureAsync(string meetingId, string error)
+    {
+        if (string.IsNullOrWhiteSpace(meetingId))
+            return;
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ValourDb>();
+
+            var record = await db.RealtimeKitMeetings
+                .FirstOrDefaultAsync(x => x.MeetingId == meetingId);
+
+            if (record is null)
+                return;
+
+            record.LastCleanupAttemptAt = DateTime.UtcNow;
+            record.CleanupFailureCount++;
+            record.LastCleanupError = string.IsNullOrWhiteSpace(error) ? "Unknown cleanup failure" : error;
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to record RealtimeKit meeting cleanup failure for {MeetingId}", meetingId);
+        }
     }
 
     /// <summary>
@@ -373,6 +734,121 @@ public class RealtimeKitService
             request,
             data => data.Sessions ?? new List<CloudflareSessionInfo>(),
             "list live sessions");
+    }
+
+    /// <summary>
+    /// Fetches all LIVE sessions for the RealtimeKit app.
+    /// </summary>
+    public async Task<TaskResult<List<CloudflareSessionInfo>>> GetLiveSessionsAsync()
+    {
+        if (!IsConfigured)
+            return TaskResult<List<CloudflareSessionInfo>>.FromFailure("RealtimeKit is not configured.");
+
+        var endpoint = BuildEndpoint("sessions?status=LIVE&per_page=100");
+        var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+        return await SendAsync<CloudflareSessionsListResult, List<CloudflareSessionInfo>>(
+            request,
+            data => data.Sessions ?? new List<CloudflareSessionInfo>(),
+            "list app live sessions");
+    }
+
+    /// <summary>
+    /// Fetches all active-or-unknown meetings for the RealtimeKit app.
+    /// </summary>
+    public async Task<TaskResult<List<CloudflareMeetingInfo>>> GetActiveMeetingsAsync()
+    {
+        var meetingsResult = await GetMeetingsAsync();
+        if (!meetingsResult.Success || meetingsResult.Data is null)
+            return TaskResult<List<CloudflareMeetingInfo>>.FromFailure(meetingsResult);
+
+        var activeMeetings = meetingsResult.Data
+            .Where(static meeting => meeting.IsActiveOrUnknown())
+            .ToList();
+
+        return TaskResult<List<CloudflareMeetingInfo>>.FromData(activeMeetings);
+    }
+
+    /// <summary>
+    /// Fetches all meetings for the RealtimeKit app.
+    /// </summary>
+    public async Task<TaskResult<List<CloudflareMeetingInfo>>> GetMeetingsAsync()
+    {
+        if (!IsConfigured)
+            return TaskResult<List<CloudflareMeetingInfo>>.FromFailure("RealtimeKit is not configured.");
+
+        const int pageSize = 30;
+        var meetings = new List<CloudflareMeetingInfo>();
+        var seenMeetingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var page = 1; page <= 100; page++)
+        {
+            var endpoint = BuildEndpoint($"meetings?per_page={pageSize}&page_no={page}");
+            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+            var pageResult = await SendWrapperAsync<List<CloudflareMeetingInfo>>(
+                request,
+                $"list meetings page {page}");
+
+            if (!pageResult.Success || pageResult.Data is null)
+            {
+                if (page == 1)
+                    return await GetMeetingsWithoutPagingAsync();
+
+                return TaskResult<List<CloudflareMeetingInfo>>.FromFailure(pageResult);
+            }
+
+            var pageMeetings = pageResult.Data.Result ?? new List<CloudflareMeetingInfo>();
+            var addedCount = 0;
+
+            foreach (var meeting in pageMeetings)
+            {
+                if (meeting is null ||
+                    string.IsNullOrWhiteSpace(meeting.Id) ||
+                    !seenMeetingIds.Add(meeting.Id))
+                {
+                    continue;
+                }
+
+                meetings.Add(meeting);
+                addedCount++;
+            }
+
+            var totalCount = pageResult.Data.Paging?.TotalCount;
+            if (pageMeetings.Count == 0 ||
+                addedCount == 0 ||
+                pageMeetings.Count < pageSize ||
+                (totalCount.HasValue && meetings.Count >= totalCount.Value))
+            {
+                break;
+            }
+        }
+
+        return TaskResult<List<CloudflareMeetingInfo>>.FromData(meetings);
+    }
+
+    private async Task<TaskResult<List<CloudflareMeetingInfo>>> GetMeetingsWithoutPagingAsync()
+    {
+        _logger.LogWarning(
+            "Cloudflare RealtimeKit paged meeting list failed; retrying with the default unpaged meeting list");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, BuildEndpoint("meetings"));
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", CloudflareConfig.Instance.RealtimeApiToken);
+
+        var result = await SendWrapperAsync<List<CloudflareMeetingInfo>>(
+            request,
+            "list meetings without paging");
+
+        if (!result.Success || result.Data is null)
+            return TaskResult<List<CloudflareMeetingInfo>>.FromFailure(result);
+
+        return TaskResult<List<CloudflareMeetingInfo>>.FromData(
+            result.Data.Result ?? new List<CloudflareMeetingInfo>());
     }
 
     /// <summary>
@@ -443,6 +919,108 @@ public class RealtimeKitService
         }
     }
 
+    private async Task<TaskResult> SendCommandAsync(HttpRequestMessage request, string operation)
+    {
+        try
+        {
+            using (request)
+            {
+                using var client = _httpClientFactory.CreateClient();
+                using var response = await client.SendAsync(request);
+                var body = await response.Content.ReadAsStringAsync();
+
+                CloudflareResponse<JsonElement>? wrapper = null;
+
+                if (!string.IsNullOrWhiteSpace(body))
+                {
+                    try
+                    {
+                        wrapper = JsonSerializer.Deserialize<CloudflareResponse<JsonElement>>(body, JsonOptions);
+                    }
+                    catch (JsonException)
+                    {
+                        // Some command endpoints may return an empty or non-standard body.
+                    }
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var message = GetErrorMessage(wrapper, body);
+                    _logger.LogWarning(
+                        "Cloudflare RealtimeKit failed to {Operation}. Status: {Status}. Message: {Message}",
+                        operation,
+                        (int)response.StatusCode,
+                        message);
+
+                    return TaskResult.FromFailure($"Failed to {operation}: {message}", (int)response.StatusCode);
+                }
+
+                if (wrapper is not null && !wrapper.Success)
+                {
+                    var message = GetErrorMessage(wrapper, body);
+                    return TaskResult.FromFailure($"Failed to {operation}: {message}");
+                }
+
+                return TaskResult.SuccessResult;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cloudflare RealtimeKit request failed while trying to {Operation}", operation);
+            return TaskResult.FromFailure(ex);
+        }
+    }
+
+    private async Task<TaskResult<CloudflareResponse<TCloudflare>>> SendWrapperAsync<TCloudflare>(
+        HttpRequestMessage request,
+        string operation)
+        where TCloudflare : class
+    {
+        try
+        {
+            using (request)
+            {
+                using var client = _httpClientFactory.CreateClient();
+                using var response = await client.SendAsync(request);
+                var body = await response.Content.ReadAsStringAsync();
+
+                CloudflareResponse<TCloudflare>? wrapper = null;
+
+                if (!string.IsNullOrWhiteSpace(body))
+                {
+                    wrapper = JsonSerializer.Deserialize<CloudflareResponse<TCloudflare>>(body, JsonOptions);
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var message = GetErrorMessage(wrapper, body);
+                    _logger.LogWarning(
+                        "Cloudflare RealtimeKit failed to {Operation}. Status: {Status}. Message: {Message}",
+                        operation,
+                        (int)response.StatusCode,
+                        message);
+
+                    return TaskResult<CloudflareResponse<TCloudflare>>.FromFailure(
+                        $"Failed to {operation}: {message}",
+                        (int)response.StatusCode);
+                }
+
+                if (wrapper?.Success != true)
+                {
+                    var message = GetErrorMessage(wrapper, body);
+                    return TaskResult<CloudflareResponse<TCloudflare>>.FromFailure($"Failed to {operation}: {message}");
+                }
+
+                return TaskResult<CloudflareResponse<TCloudflare>>.FromData(wrapper);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cloudflare RealtimeKit request failed while trying to {Operation}", operation);
+            return TaskResult<CloudflareResponse<TCloudflare>>.FromFailure(ex);
+        }
+    }
+
     private static string BuildEndpoint(string relativePath)
     {
         return
@@ -467,6 +1045,30 @@ public class RealtimeKitService
 
         [JsonPropertyName("metadata")]
         public string Metadata { get; set; } = string.Empty;
+
+        [JsonPropertyName("session_keep_alive_time_in_secs")]
+        public int SessionKeepAliveTimeInSecs { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = MeetingStatusActive;
+
+        [JsonPropertyName("record_on_start")]
+        public bool RecordOnStart { get; set; }
+
+        [JsonPropertyName("live_stream_on_start")]
+        public bool LiveStreamOnStart { get; set; }
+
+        [JsonPropertyName("persist_chat")]
+        public bool PersistChat { get; set; }
+
+        [JsonPropertyName("summarize_on_end")]
+        public bool SummarizeOnEnd { get; set; }
+    }
+
+    private sealed class UpdateMeetingRequest
+    {
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = MeetingStatusInactive;
     }
 
     private sealed class AddParticipantRequest
@@ -496,6 +1098,73 @@ public class RealtimeKitService
         public string Id { get; set; } = string.Empty;
     }
 
+    public sealed class CloudflareMeetingInfo
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [JsonPropertyName("metadata")]
+        public JsonElement Metadata { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        public bool IsActiveOrUnknown()
+        {
+            return !string.Equals(Status, MeetingStatusInactive, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public long? ExtractChannelId()
+        {
+            var metadataText = GetMetadataText();
+            if (!string.IsNullOrWhiteSpace(metadataText) &&
+                metadataText.StartsWith("channel:", StringComparison.OrdinalIgnoreCase) &&
+                long.TryParse(metadataText["channel:".Length..], out var metadataChannelId))
+            {
+                return metadataChannelId;
+            }
+
+            var openIndex = Title.LastIndexOf('(');
+            var closeIndex = Title.LastIndexOf(')');
+            if (openIndex >= 0 &&
+                closeIndex > openIndex &&
+                long.TryParse(Title[(openIndex + 1)..closeIndex], out var titleChannelId))
+            {
+                return titleChannelId;
+            }
+
+            return null;
+        }
+
+        private string? GetMetadataText()
+        {
+            if (Metadata.ValueKind == JsonValueKind.String)
+                return Metadata.GetString();
+
+            if (Metadata.ValueKind != JsonValueKind.Object)
+                return null;
+
+            if (Metadata.TryGetProperty("channelId", out var channelId) ||
+                Metadata.TryGetProperty("channel_id", out channelId) ||
+                Metadata.TryGetProperty("channel", out channelId))
+            {
+                if (channelId.ValueKind == JsonValueKind.String)
+                    return $"channel:{channelId.GetString()}";
+
+                if (channelId.ValueKind == JsonValueKind.Number &&
+                    channelId.TryGetInt64(out var numericChannelId))
+                {
+                    return $"channel:{numericChannelId}";
+                }
+            }
+
+            return null;
+        }
+    }
+
     private sealed class CloudflareParticipantResult
     {
         [JsonPropertyName("id")]
@@ -519,8 +1188,17 @@ public class RealtimeKitService
         [JsonPropertyName("data")]
         public T? Result { get; set; }
 
+        [JsonPropertyName("paging")]
+        public CloudflarePaging? Paging { get; set; }
+
         [JsonPropertyName("errors")]
         public CloudflareError[]? Errors { get; set; }
+    }
+
+    private sealed class CloudflarePaging
+    {
+        [JsonPropertyName("total_count")]
+        public int TotalCount { get; set; }
     }
 
     private sealed class CloudflareError
@@ -551,6 +1229,9 @@ public class RealtimeKitService
 
         [JsonPropertyName("associated_id")]
         public string AssociatedId { get; set; } = string.Empty;
+
+        [JsonPropertyName("created_at")]
+        public string CreatedAt { get; set; } = string.Empty;
 
         [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;

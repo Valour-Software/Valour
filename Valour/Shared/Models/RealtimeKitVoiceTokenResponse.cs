@@ -7,4 +7,8 @@ public class RealtimeKitVoiceTokenResponse
     public string ParticipantId { get; set; } = string.Empty;
 
     public string AuthToken { get; set; } = string.Empty;
+
+    public bool WaitingForPeer { get; set; }
+
+    public int ParticipantCount { get; set; }
 }
