@@ -400,7 +400,8 @@ label {
     outline: none;
 }
 
-.form-select option {
+.form-select option,
+.form-control option {
     background-color: var(--main-3);
     padding-top: 1em !important;
 }
