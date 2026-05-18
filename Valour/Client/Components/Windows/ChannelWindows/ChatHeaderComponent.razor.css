@@ -74,6 +74,21 @@
     font-size: 20px;
 }
 
+.channel-setting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.channel-setting:hover {
+    background-color: var(--main-2);
+}
+
 /* Covers entire page behind results for unclick */
 .search-backdrop {
     position: fixed;

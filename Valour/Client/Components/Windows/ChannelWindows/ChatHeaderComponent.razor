@@ -1,4 +1,6 @@
-﻿<div class="header-row">
+﻿@inject IAppStorage LocalStorage
+
+<div class="header-row">
     <div class="h-left">
         <ChannelWatchingComponent Channel="@Channel" ParentComponent="@ChatComponent" />
     </div>
@@ -39,6 +41,19 @@
                 </span>
             </TooltipContent>
         </TooltipTrigger>
+        <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="background: none; border: none; padding: 0;">
+            <TitleContent>
+                <div type="button" tabindex="0" class="members-btn">
+                    <i class="bi bi-gear-fill"></i>
+                </div>
+            </TitleContent>
+            <ChildContent>
+                <div class="channel-setting" @onclick="@(() => OnClickGhostTyping())">
+                    <i class="bi @(ClientFlags.GhostTyping ? "bi-eye-slash-fill" : "bi-eye-fill")"></i>
+                    <span>Ghost Typing: @(ClientFlags.GhostTyping ? "On" : "Off")</span>
+                </div>
+            </ChildContent>
+        </DropdownComponent>
     </div>
 </div>
 
@@ -54,6 +69,18 @@
     private void OnClickMembers()
     {
         ChatComponent.ToggleMembersList();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ClientFlags.GhostTyping = await LocalStorage.GetAsync<bool>("ghost-typing");
+    }
+
+    private async Task OnClickGhostTyping()
+    {
+        ClientFlags.GhostTyping = !ClientFlags.GhostTyping;
+        await LocalStorage.SetAsync("ghost-typing", ClientFlags.GhostTyping);
+        StateHasChanged();
     }
     
     private void OnClickSearch()

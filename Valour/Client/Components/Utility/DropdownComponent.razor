@@ -1,5 +1,12 @@
-<button class="v-dropdown v-btn" style="@Style" @onmousedown="@OnClick">
-    <span style="float: left">@Title</span> ▼
+<button class="v-dropdown @(TitleContent is null ? "v-btn" : "")" style="@Style" @onmousedown="@OnClick">
+    @if (TitleContent is not null)
+    {
+        @TitleContent
+    }
+    else
+    {
+        <span style="float: left">@Title</span> <span>▼</span>
+    }
     <div class="content @GetHidden() @("align-" + Alignment.ToString().ToLower())" style="@ContentStyle" @onmousedown:stopPropagation="true">
         <div class="dropdown-close" @onmousedown="@Close" @onmousedown:stopPropagation="true">
         </div>
@@ -17,7 +24,10 @@
     
     [Parameter]
     public string Title { get; set; }
-    
+
+    [Parameter]
+    public RenderFragment TitleContent { get; set; }
+
     [Parameter]
     public RenderFragment ChildContent { get; set; }
     
