@@ -1,7 +1,9 @@
+using System.Net.Http.Json;
 using Valour.Sdk.Client;
 using Valour.Shared;
 using Valour.TenorTwo;
 using Valour.TenorTwo.Models;
+using Valour.TenorTwo.Responses;
 
 namespace Valour.Sdk.Services;
 
@@ -66,7 +68,11 @@ public class TenorService : ServiceBase
         }
         
         _tenorFavorites.Clear();
-        _tenorFavorites.AddRange(response.Data);
+        foreach (var fav in response.Data)
+        {
+            fav.SetClient(_client);
+            _tenorFavorites.Add(fav);
+        }
         
         Log($"Loaded {TenorFavorites.Count} Tenor favorites");
     }
@@ -82,6 +88,21 @@ public class TenorService : ServiceBase
             _tenorFavorites.Add(result.Data);
 
         return result;
+    }
+
+    /// <summary>
+    /// Fetches the media for all saved favorites. Works around a bug in TenorTwo where
+    /// Posts() incorrectly hits the /search endpoint instead of /posts.
+    /// </summary>
+    public async Task<MediaResponse> GetFavoritePostsAsync()
+    {
+        if (!_tenorFavorites.Any())
+            return null;
+
+        var ids = string.Join(',', _tenorFavorites.Select(x => x.TenorId));
+        var mediaFilter = string.Join(',', Formats);
+        var url = $"https://tenor.googleapis.com/v2/posts?key={TenorKey}&ids={ids}&client_key=valour&media_filter={mediaFilter}&limit=100";
+        return await _httpClient.GetFromJsonAsync<MediaResponse>(url);
     }
 
     /// <summary>

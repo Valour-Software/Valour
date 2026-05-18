@@ -54,6 +54,7 @@
 	/// Dotnet object reference for use in Javascript
 	/// </summary>
 	private DotNetObjectReference<Sidebar> _thisRef;
+	private bool _disposed;
 
 	/// <summary>
 	/// Module for calling Javascript functions
@@ -106,6 +107,8 @@
 	
 	async ValueTask IAsyncDisposable.DisposeAsync()
 	{
+		_disposed = true;
+
 		try
 		{
 			if (_jsModule is not null)
@@ -128,6 +131,10 @@
 		{
 			_thisRef = DotNetObjectReference.Create(this);
 			_jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
+
+			if (_disposed)
+				return;
+
 			_jsRef = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, _id);
 		}
 	}

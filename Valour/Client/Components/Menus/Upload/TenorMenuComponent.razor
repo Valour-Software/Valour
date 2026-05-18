@@ -147,8 +147,15 @@
         await FocusAndScroll();
 
         if (_searchTerm == ":favorites:")
-            SearchResults = await TenorService.Client
-                .Posts(TenorService.TenorFavorites.Select(x => x.TenorId).ToArray(), 100, formatFilter: TenorService.Formats);
+        {
+            if (!TenorService.TenorFavorites.Any())
+            {
+                SearchResults = null;
+                Refresh();
+                return;
+            }
+            SearchResults = await TenorService.GetFavoritePostsAsync();
+        }
         else
             SearchResults = await TenorService.Client.Search(_searchTerm, 50, formatFilter: TenorService.Formats);
         
