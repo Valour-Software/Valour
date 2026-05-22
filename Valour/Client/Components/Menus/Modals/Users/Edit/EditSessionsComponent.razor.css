@@ -1,15 +1,11 @@
-/* Security Container */
-.security-container {
-    max-width: 720px;
-    margin: 0 auto;
-    max-height: 600px;
-    overflow-y: auto;
-}
-
 /* Section styling */
 .editor-section {
     padding: 1.5rem 0;
     border-bottom: 1px solid var(--slight-tint);
+}
+
+.editor-section:first-child {
+    padding-top: 0;
 }
 
 .editor-section:last-child {
@@ -39,8 +35,7 @@
 
 /* Toggle/Setting rows */
 .toggle-item {
-    padding: 1rem;
-    margin: 0 -1rem;
+    padding: 1rem 0;
     border-radius: var(--main-radius);
     transition: background-color 0.15s ease;
 }
