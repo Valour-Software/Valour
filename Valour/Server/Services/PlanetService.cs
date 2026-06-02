@@ -549,11 +549,6 @@ public class PlanetService
         if (old is null)
             return new TaskResult<Planet>(false, "Planet not found.");
         
-        if (planet.OwnerId != old.OwnerId)
-        {
-            return new TaskResult<Planet>(false, "You cannot change the planet owner.");
-        }
-
         await using var tran = await _db.Database.BeginTransactionAsync();
         
         try

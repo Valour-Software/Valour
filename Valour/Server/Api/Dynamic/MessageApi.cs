@@ -155,14 +155,6 @@ public class MessageApi
         if (message is null)
             return ValourResult.BadRequest("Include message in body");
         
-        if (message.PlanetId is null)
-        {
-            if (!token.HasScope(UserPermissions.DirectMessages))
-            {
-                return ValourResult.Forbid("Token lacks permission to delete messages in direct chat channels");
-            }
-        }
-        
         if (message.Id != id)
             return ValourResult.BadRequest("Message id in body does not match message id in route");
 
@@ -178,6 +170,9 @@ public class MessageApi
 
         if (existing.AuthorUserId != token.UserId)
             return ValourResult.Forbid("You are not the author of this message");
+
+        if (existing.PlanetId is null && !token.HasScope(UserPermissions.DirectMessages))
+            return ValourResult.Forbid("Token lacks permission to edit messages in direct chat channels");
 
         var result = await messageService.EditMessageAsync(message);
         if (!result.Success)
@@ -392,7 +387,12 @@ public class MessageApi
         if (string.IsNullOrWhiteSpace(request.Emoji))
             return ValourResult.BadRequest("Include emoji in body");
 
-        if (request.Emoji.Length > 32)
+        var isCustomEmoji = PlanetEmojiText.TryParseToken(request.Emoji, out _, out _);
+
+        if (!isCustomEmoji && request.Emoji.Length > 32)
+            return ValourResult.BadRequest("Emoji is invalid");
+
+        if (isCustomEmoji && request.Emoji.Length > 96)
             return ValourResult.BadRequest("Emoji is invalid");
 
         var token = await tokenService.GetCurrentTokenAsync();

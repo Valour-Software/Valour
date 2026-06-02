@@ -20,7 +20,7 @@
             <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
         }
         <div class="chat-member-wrapper @(HideMemberList ? "member-list-hidden" : string.Empty)">
-            <div style="width: 100%; overflow: hidden" @onmouseleave="@OnMouseLeaveMessageArea">
+            <div class="chat-scroll-region" @onmouseleave="@OnMouseLeaveMessageArea">
                 <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
                     <!-- Pushes messages to bottom -->
                     <div class="pusher"></div>
@@ -30,6 +30,14 @@
 
                     <div class="anchor"></div>
                 </div>
+                <button type="button"
+                        class="scroll-to-bottom-button @(_showJumpToBottom ? "visible" : string.Empty)"
+                        title="Jump to bottom"
+                        aria-label="Jump to bottom"
+                        @onclick="@JumpToBottomAsync"
+                        @onclick:stopPropagation="true">
+                    <i class="bi bi-arrow-down"></i>
+                </button>
                 <RadialPalette @ref="@_hoverMenu"
                                OptionSize="60"
                                Scale="0.5"
@@ -208,6 +216,12 @@
     private string _reactionSelectorLeft;
     private string _reactionSelectorTop;
     private bool _pendingReactionEmojiRefresh;
+    private bool _showJumpToBottom;
+    private bool _scrollLatestWindowAfterNextRender;
+    private bool _scaleScrollAfterNextRender;
+    private bool _trimBottomAfterScale;
+    private bool _trimTopAfterNextRender;
+    private DateTime _suppressBottomPagingUntil = DateTime.MinValue;
     
     private bool _loading = true;
     private bool _disposed;
@@ -228,10 +242,12 @@
     // TrimThreshold: how many messages before we actually cut.
     // TargetMessages: how many to keep after trimming.
     // The gap between them prevents trim-on-every-load bouncing.
+    private const int MessagePageSize = 64;
     private const int TrimThreshold = 360;
     private const int TargetMessages = 120;
     private bool _isCaughtUp = true;
     private bool _loadingForward = false;
+    private bool _loadingBackward = false;
 
     /// <summary>
     /// When true, suppresses auto-scroll behaviors (ShiftScrollPosition, ScrollToBottom)
@@ -454,6 +470,36 @@
             _pendingReactionEmojiRefresh = false;
             await RefreshReactionEmojiPickerAsync();
         }
+
+        if (_trimTopAfterNextRender && _jsService is not null)
+        {
+            _trimTopAfterNextRender = false;
+            await UpdateScrollPosition();
+            TrimMessagesFromTop();
+            _scaleScrollAfterNextRender = true;
+            await ReRender();
+        }
+        else if (_scaleScrollAfterNextRender && _jsService is not null)
+        {
+            _scaleScrollAfterNextRender = false;
+            await ScaleScrollPosition();
+
+            if (_trimBottomAfterScale)
+            {
+                _trimBottomAfterScale = false;
+                TrimMessagesFromBottom();
+                await ReRender();
+            }
+
+            _loadingBackward = false;
+            _loadingForward = false;
+        }
+
+        if (_scrollLatestWindowAfterNextRender && _jsService is not null)
+        {
+            _scrollLatestWindowAfterNextRender = false;
+            await ScrollFromTopToBottomAnimated();
+        }
         
         UnreadService.MarkChannelRead(Channel.PlanetId, Channel.Id);
         
@@ -625,6 +671,7 @@
         _messageSet.Clear();
 
         Message lastMessage = null;
+        var sequence = 0;
 
         // Displayed messages
         foreach (var message in DisplayedMessages)
@@ -635,17 +682,21 @@
                 continue;
             }
 
+            var showDateDivider = ShouldShowDateDivider(message, lastMessage);
+            if (showDateDivider)
+                RenderDateDivider(builder, ref sequence, message);
+
             var messageParams = new MessageComponent.Params()
             {
                 ChatComponent = this,
                 Message = message,
                 IsInnerReply = false,
-                LastMessage = lastMessage,
+                LastMessage = showDateDivider ? null : lastMessage,
                 Ghost = false,
             };
 
-            builder.OpenComponent<MessageComponent>(0);
-            builder.AddAttribute(1, "ParamData", messageParams);
+            builder.OpenComponent<MessageComponent>(sequence++);
+            builder.AddAttribute(sequence++, "ParamData", messageParams);
             builder.SetKey(message.Id);
             builder.CloseComponent();
 
@@ -659,17 +710,21 @@
         // fingerprint-skip logic is needed here.
         foreach (var message in QueuedMessages)
         {
+            var showDateDivider = ShouldShowDateDivider(message, lastMessage);
+            if (showDateDivider)
+                RenderDateDivider(builder, ref sequence, message);
+
             var messageParams = new MessageComponent.Params()
             {
                 ChatComponent = this,
                 Message = message,
                 IsInnerReply = false,
-                LastMessage = lastMessage,
+                LastMessage = showDateDivider ? null : lastMessage,
                 Ghost = true,
             };
 
-            builder.OpenComponent<MessageComponent>(0);
-            builder.AddAttribute(1, "ParamData", messageParams);
+            builder.OpenComponent<MessageComponent>(sequence++);
+            builder.AddAttribute(sequence++, "ParamData", messageParams);
             builder.SetKey($"q-{message.Fingerprint}");
             builder.CloseComponent();
 
@@ -677,6 +732,67 @@
         }
 
     };
+
+    private static bool ShouldShowDateDivider(Message message, Message lastMessage)
+    {
+        if (message is null)
+            return false;
+
+        if (lastMessage is null)
+            return true;
+
+        return message.TimeSent.ToLocalTime().Date != lastMessage.TimeSent.ToLocalTime().Date;
+    }
+
+    private static string GetDateDividerText(DateTime timeSent)
+    {
+        var date = timeSent.ToLocalTime().Date;
+        var today = DateTime.Now.Date;
+
+        if (date == today)
+            return "Today";
+
+        if (date == today.AddDays(-1))
+            return "Yesterday";
+
+        return date.Year == today.Year
+            ? date.ToString("MMM d")
+            : date.ToString("MMM d, yyyy");
+    }
+
+    private static string GetDateDividerTitle(DateTime timeSent)
+    {
+        return timeSent.ToLocalTime().Date.ToString("dddd, MMMM d, yyyy");
+    }
+
+    private static void RenderDateDivider(
+        Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder,
+        ref int sequence,
+        Message message)
+    {
+        var label = GetDateDividerText(message.TimeSent);
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "message-date-divider");
+        builder.AddAttribute(sequence++, "role", "separator");
+        builder.AddAttribute(sequence++, "title", GetDateDividerTitle(message.TimeSent));
+        builder.AddAttribute(sequence++, "aria-label", $"Messages from {label}");
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "message-date-divider-line");
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "message-date-divider-label");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "message-date-divider-line");
+        builder.CloseElement();
+
+        builder.CloseElement();
+    }
     
     //////////////////////
     // Message Handling //
@@ -1012,6 +1128,19 @@
         return _jsService.InvokeVoidAsync("scrollToBottomAnimated");
     }
 
+    public ValueTask ScrollFromTopToBottomAnimated()
+    {
+        if (_jsService is null)
+            return ValueTask.CompletedTask;
+
+        return _jsService.InvokeVoidAsync("scrollFromTopToBottomAnimated");
+    }
+
+    private async Task JumpToBottomAsync()
+    {
+        await LoadLatestWindowAsync();
+    }
+
     public ValueTask UpdateScrollPosition()
     {
         if (_jsService is null)
@@ -1050,10 +1179,24 @@
     [JSInvokable("OnScrollBottomInvoke")]
     public async Task OnScrollBottom()
     {
+        if (DateTime.UtcNow < _suppressBottomPagingUntil)
+            return;
+
         if (_isCaughtUp || _loadingForward)
             return;
 
+        if (_loadingBackward || _scaleScrollAfterNextRender || _trimBottomAfterScale || _trimTopAfterNextRender)
+            return;
+
         if (DisplayedMessages == null || DisplayedMessages.Count == 0)
+            return;
+
+        await LoadNextPageAsync();
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        if (Channel is null || DisplayedMessages.Count == 0)
             return;
 
         _loadingForward = true;
@@ -1061,8 +1204,8 @@
         try
         {
             var lastId = DisplayedMessages[^1].Id;
-
-            var messages = await Channel.GetMessagesAfterAsync(lastId, 64);
+            var beforeCount = DisplayedMessages.Count;
+            var messages = await Channel.GetMessagesAfterAsync(lastId, MessagePageSize);
 
             if (messages is null || messages.Count == 0)
             {
@@ -1070,29 +1213,58 @@
                 return;
             }
 
-            // Step 1: Append newer messages below viewport.
-            // Content below doesn't affect scroll position, so no adjustment needed.
-            DisplayedMessages.AddRange(messages);
-            ReRender();
+            await AddMessages(messages, render: false, scroll: false);
 
-            // Step 2: Trim from the top if we exceed the cap.
-            // ScaleScrollPosition correctly handles removal-from-above:
-            // newHeight < oldHeight → scrollTop decreases by the removed height.
-            if (DisplayedMessages.Count > TrimThreshold)
-            {
-                var excess = DisplayedMessages.Count - TargetMessages;
-                DisplayedMessages.RemoveRange(0, excess);
-
-                await UpdateScrollPosition();
-                ReRender();
-                await ScaleScrollPosition();
-            }
-
-            // If fewer than requested, we've reached the present
-            if (messages.Count < 64)
-            {
+            if (messages.Count < MessagePageSize)
                 _isCaughtUp = true;
+
+            if (DisplayedMessages.Count == beforeCount)
+                return;
+
+            _trimTopAfterNextRender = DisplayedMessages.Count > TrimThreshold;
+            await ReRender();
+        }
+        finally
+        {
+            if (!_trimTopAfterNextRender && !_scaleScrollAfterNextRender)
+                _loadingForward = false;
+        }
+    }
+
+    private async Task LoadLatestWindowAsync()
+    {
+        if (Channel is null)
+            return;
+
+        _loadingForward = true;
+
+        try
+        {
+            var queuedMessages = QueuedMessages.ToList();
+            var messages = await Channel.GetLastMessagesAsync(MessagePageSize);
+
+            if (messages is not { Count: > 0 })
+                return;
+
+            _isCaughtUp = true;
+            ClearMessages(false);
+
+            await AddMessages(messages, render: false, scroll: false);
+
+            if (queuedMessages.Count > 0)
+            {
+                var fingerprints = DisplayedMessages
+                    .Where(x => !string.IsNullOrEmpty(x.Fingerprint))
+                    .Select(x => x.Fingerprint)
+                    .ToHashSet();
+
+                QueuedMessages.AddRange(queuedMessages.Where(x =>
+                    string.IsNullOrEmpty(x.Fingerprint) || !fingerprints.Contains(x.Fingerprint)));
             }
+
+            _showJumpToBottom = false;
+            _scrollLatestWindowAfterNextRender = true;
+            await ReRender();
         }
         finally
         {
@@ -1105,41 +1277,83 @@
     {
         //_hoverMenu.SetVisible(false);
     }
+
+    [JSInvokable("OnBottomStickinessChanged")]
+    public async Task OnBottomStickinessChanged(bool isAtBottom)
+    {
+        var shouldShowJumpButton = !isAtBottom;
+        if (_showJumpToBottom == shouldShowJumpButton)
+            return;
+
+        _showJumpToBottom = shouldShowJumpButton;
+        await ReRender();
+    }
+
+    private void TrimMessagesFromBottom()
+    {
+        if (DisplayedMessages.Count <= TrimThreshold)
+            return;
+
+        var excess = DisplayedMessages.Count - TargetMessages;
+        if (excess <= 0)
+            return;
+
+        DisplayedMessages.RemoveRange(DisplayedMessages.Count - excess, excess);
+        _isCaughtUp = false;
+        _suppressBottomPagingUntil = DateTime.UtcNow.AddMilliseconds(600);
+    }
+
+    private void TrimMessagesFromTop()
+    {
+        if (DisplayedMessages.Count <= TrimThreshold)
+            return;
+
+        var excess = DisplayedMessages.Count - TargetMessages;
+        if (excess <= 0)
+            return;
+
+        DisplayedMessages.RemoveRange(0, excess);
+    }
     
 
     [JSInvokable("OnScrollTopInvoke")]
     public async Task OnScrollTop()
     {
+        _scrollLatestWindowAfterNextRender = false;
+
+        if (_loadingBackward)
+            return;
+
         if (DisplayedMessages == null ||
             DisplayedMessages.Count == 0)
         {
             return;
         }
 
-        var firstId = DisplayedMessages[0].Id;
+        _loadingBackward = true;
 
-        Client.Logger.Log<ChatWindowComponent>($"Fetching older messages from id {firstId} for window {WindowCtx.Id}", "cyan");
-
-        var messages = await Channel.GetMessagesAsync(firstId, 64);
-
-        if (messages is null || !messages.Any())
-            return;
-
-        // Step 1: Insert older messages above and fix scroll position.
-        // ScaleScrollPosition only works correctly when content changes
-        // happen on one side, so we must NOT trim in the same render pass.
-        await UpdateScrollPosition();
-        InsertMessages(0, messages); // renders
-        await ScaleScrollPosition();
-
-        // Step 2: Trim from the bottom if we exceed the cap.
-        // Removed content is below the viewport so scroll is unaffected.
-        if (DisplayedMessages.Count > TrimThreshold)
+        try
         {
-            var excess = DisplayedMessages.Count - TargetMessages;
-            DisplayedMessages.RemoveRange(DisplayedMessages.Count - excess, excess);
-            _isCaughtUp = false;
-            ReRender();
+            var firstId = DisplayedMessages[0].Id;
+
+            Client.Logger.Log<ChatWindowComponent>($"Fetching older messages from id {firstId} for window {WindowCtx.Id}", "cyan");
+
+            var messages = await Channel.GetMessagesAsync(firstId, MessagePageSize);
+
+            if (messages is null || !messages.Any())
+                return;
+
+            // Insert older messages above, then preserve the viewport after the DOM has rendered them.
+            await UpdateScrollPosition();
+            DisplayedMessages.InsertRange(0, messages);
+            _scaleScrollAfterNextRender = true;
+            _trimBottomAfterScale = DisplayedMessages.Count > TrimThreshold;
+            await ReRender();
+        }
+        finally
+        {
+            if (!_scaleScrollAfterNextRender)
+                _loadingBackward = false;
         }
     }
     

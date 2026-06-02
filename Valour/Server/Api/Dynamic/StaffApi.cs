@@ -60,7 +60,7 @@ public class StaffApi
     
     [StaffRequired]
     [ValourRoute(HttpVerbs.Put, "api/staff/reports/{reportId}/reviewed/{value}")]
-    public static async Task<IResult> SetReportReviewedAsync(StaffService staffService, [FromQuery] string reportId, [FromQuery] bool value)
+    public static async Task<IResult> SetReportReviewedAsync(StaffService staffService, [FromRoute] string reportId, [FromRoute] bool value)
     {
         var result = await staffService.SetReportReviewedAsync(reportId, value);
         if (!result.Success)

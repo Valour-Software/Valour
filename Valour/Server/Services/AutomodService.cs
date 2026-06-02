@@ -64,11 +64,13 @@ public class AutomodService
         };
     }
 
-    public async Task<QueryResponse<AutomodAction>> QueryTriggerActionsAsync(Guid triggerId, QueryRequest request)
+    public async Task<QueryResponse<AutomodAction>> QueryTriggerActionsAsync(long planetId, Guid triggerId, QueryRequest request)
     {
         var take = Math.Min(50, request.Take);
         var skip = request.Skip;
-        var query = _db.AutomodActions.Where(x => x.TriggerId == triggerId).AsQueryable();
+        var query = _db.AutomodActions
+            .Where(x => x.PlanetId == planetId && x.TriggerId == triggerId)
+            .AsQueryable();
         var total = await query.CountAsync();
         var items = await query.Skip(skip).Take(take).Select(x => x.ToModel()).ToListAsync();
         return new QueryResponse<AutomodAction>

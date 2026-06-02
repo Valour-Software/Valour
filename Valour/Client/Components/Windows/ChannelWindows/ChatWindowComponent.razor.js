@@ -9,12 +9,22 @@ export function init(dotnet, messageWrapperEl) {
         scrollUpTimer: Date.now(),
         scrollDownTimer: Date.now(),
         scrollTimer: Date.now(),
+        lastReportedBottomState: true,
+        suppressPagingUntil: 0,
         updateScrollPosition() {
             this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
             this.oldScrollTop = this.messageWrapperEl.scrollTop;
         },
         scaleScrollPosition() {
+            const suppressUntil = Date.now() + 250;
+            this.suppressPagingUntil = Math.max(this.suppressPagingUntil, suppressUntil);
             this.messageWrapperEl.scrollTop = this.oldScrollTop + (this.messageWrapperEl.scrollHeight - this.oldScrollHeight);
+            window.setTimeout(() => {
+                if (this.suppressPagingUntil <= suppressUntil) {
+                    this.suppressPagingUntil = 0;
+                }
+                this.checkBottomSticky();
+            }, 250);
         },
         shiftScrollPosition(amount) {
             this.updateScrollPosition();
@@ -25,11 +35,16 @@ export function init(dotnet, messageWrapperEl) {
         },
         checkBottomSticky() {
             this.stickToBottom = this.isAtBottom();
+            if (this.stickToBottom !== this.lastReportedBottomState) {
+                this.lastReportedBottomState = this.stickToBottom;
+                void this.dotnet.invokeMethodAsync('OnBottomStickinessChanged', this.stickToBottom);
+            }
         },
         scrollToBottom(force) {
             if (force || this.stickToBottom) {
                 this.messageWrapperEl.scrollTop = this.messageWrapperEl.scrollHeight;
                 this.stickToBottom = true;
+                this.checkBottomSticky();
             }
         },
         scrollToBottomAnimated() {
@@ -38,19 +53,34 @@ export function init(dotnet, messageWrapperEl) {
                 behavior: 'smooth' // For smooth scrolling; use 'auto' for instant scroll
             });
         },
+        scrollFromTopToBottomAnimated() {
+            this.suppressPagingUntil = Date.now() + 900;
+            this.messageWrapperEl.scrollTop = 0;
+            requestAnimationFrame(() => {
+                this.messageWrapperEl.scrollTo({
+                    top: this.messageWrapperEl.scrollHeight,
+                    behavior: 'smooth'
+                });
+            });
+            window.setTimeout(() => {
+                this.suppressPagingUntil = 0;
+                this.checkBottomSticky();
+            }, 900);
+        },
         async handleChatWindowScroll(e) {
             // NOTE: 'this' is the message wrapper
             const channel = this['context'];
             // Scrollbar is visible
             if (this.scrollHeight > this.clientHeight) {
+                const pagingSuppressed = channel.suppressPagingUntil > Date.now();
                 // User has reached top of scroll
-                if (this.scrollTop < 2000 && channel.scrollUpTimer < (Date.now() - 500)) {
+                if (!pagingSuppressed && this.scrollTop < 2000 && channel.scrollUpTimer < (Date.now() - 500)) {
                     channel.scrollUpTimer = Date.now();
                     await channel.dotnet.invokeMethodAsync('OnScrollTopInvoke');
                 }
                 // User has reached bottom of scroll
                 const distFromBottom = this.scrollHeight - (this.scrollTop + this.clientHeight);
-                if (distFromBottom < 2000 && channel.scrollDownTimer < (Date.now() - 500)) {
+                if (!pagingSuppressed && distFromBottom < 2000 && channel.scrollDownTimer < (Date.now() - 500)) {
                     channel.scrollDownTimer = Date.now();
                     await channel.dotnet.invokeMethodAsync('OnScrollBottomInvoke');
                 }

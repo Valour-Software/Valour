@@ -7,23 +7,35 @@ namespace Valour.Server.Api.Dynamic;
 public class PermissionsNodeApi
 {
     [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetNodeRouteAsync(
-        long id, 
-        PermissionsNodeService permissionsNodeService)
+        long id,
+        PermissionsNodeService permissionsNodeService,
+        PlanetMemberService memberService)
     {
         var node = await permissionsNodeService.GetAsync(id);
         if (node is null)
             return ValourResult.NotFound<PermissionsNode>();
+
+        var member = await memberService.GetCurrentAsync(node.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
         return Results.Json(node);
     }
     
     // Returns ALL permissions nodes for a planet
     [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/all/{planetId}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetAllForPlanetAsync(
         long planetId,
-        PermissionsNodeService permissionsNodeService)
+        PermissionsNodeService permissionsNodeService,
+        PlanetMemberService memberService)
     {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
         var nodes = await permissionsNodeService.GetAllAsync(planetId);
         if (nodes is null)
             return ValourResult.NotFound<PermissionsNode>();
@@ -32,15 +44,21 @@ public class PermissionsNodeApi
     }
 
     [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{type}/{targetId}/{roleId}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetNodeForTargetRouteAsync(
-        ChannelTypeEnum type, 
-        long targetId, 
+        ChannelTypeEnum type,
+        long targetId,
         long roleId,
-        PermissionsNodeService permissionsNodeService)
+        PermissionsNodeService permissionsNodeService,
+        PlanetMemberService memberService)
     {
         var node = await permissionsNodeService.GetAsync(targetId, roleId, type);
         if (node is null)
             return ValourResult.NotFound<PermissionsNode>();
+
+        var member = await memberService.GetCurrentAsync(node.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
         return Results.Json(node);
     }
