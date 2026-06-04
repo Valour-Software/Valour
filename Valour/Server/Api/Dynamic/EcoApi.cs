@@ -562,13 +562,24 @@ public class EcoApi
         {
             if (account.Id == transaction.AccountToId)
                 return ValourResult.BadRequest("You cannot send to yourself");
-            
-            if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
-                return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
 
-            if (!authToken.HasScope(UserPermissions.EconomySendGlobal))
-                return ValourResult.LacksPermission(UserPermissions.EconomySendGlobal);
-            
+            if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
+            {
+                if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
+                    return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
+
+                if (!authToken.HasScope(UserPermissions.EconomySendGlobal))
+                    return ValourResult.LacksPermission(UserPermissions.EconomySendGlobal);
+            }
+            else
+            {
+                if (!authToken.HasScope(UserPermissions.EconomyViewPlanet))
+                    return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
+
+                if (!authToken.HasScope(UserPermissions.EconomySendPlanet))
+                    return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
+            }
+
             if (transaction.UserFromId != authToken.UserId || account.UserId != authToken.UserId)
             {
                 var member = await memberService.GetCurrentAsync(account.PlanetId);

@@ -242,17 +242,13 @@ public class SubscriptionService
         // current time
         var now = DateTime.UtcNow;
 
-        // get all active subscriptions that are due
-        var dueSubs = await _db.UserSubscriptions.Where(
-                x => x.Active // must be active
-                     && x.StripeSubscriptionId == null // skip Stripe-managed subs
-                     && (x.LastCharged.Month != now.Month // must be new month
-                         && (now.Day >= // current date needs to be the same or after
-                             (x.LastCharged.Day > 29
-                                 ? 29 // If the last charge was on the 30th or 31st, charge on the 29th.
-                                      // Why? Because some months don't have 30 or 31 days.
-                                 : x.LastCharged.Day)))) // must be the same day of month or after
+        var activeVcSubs = await _db.UserSubscriptions
+            .Where(x => x.Active && x.StripeSubscriptionId == null)
             .ToListAsync();
+
+        var dueSubs = activeVcSubs
+            .Where(x => IsSubscriptionDue(x.LastCharged, now))
+            .ToList();
 
         // now we have all the subscriptions that are due
         // we need to charge them or cancel them
@@ -386,6 +382,16 @@ public class SubscriptionService
                 continue;
             }
         }
+    }
+
+    private static bool IsSubscriptionDue(DateTime lastCharged, DateTime now)
+    {
+        var nextMonth = new DateTime(lastCharged.Year, lastCharged.Month, 1).AddMonths(1);
+        var renewalDay = lastCharged.Day > 29 ? 29 : lastCharged.Day;
+        renewalDay = Math.Min(renewalDay, DateTime.DaysInMonth(nextMonth.Year, nextMonth.Month));
+        var renewalDate = new DateTime(nextMonth.Year, nextMonth.Month, renewalDay);
+
+        return now.Date >= renewalDate;
     }
 
     /// <summary>

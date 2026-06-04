@@ -134,8 +134,8 @@ public class PlanetMemberApi
             if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.Kick))
                 return ValourResult.LacksPermission(PlanetPermissions.Kick);
 
-            if (await memberService.GetAuthorityAsync(selfMember) < await memberService.GetAuthorityAsync(targetMember))
-                return ValourResult.Forbid("You have less authority than the target member.");
+            if (await memberService.GetAuthorityAsync(selfMember) <= await memberService.GetAuthorityAsync(targetMember))
+                return ValourResult.Forbid("The target has equal or higher authority than you.");
         }
 
         var result = await memberService.DeleteAsync(targetMember.Id);

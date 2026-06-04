@@ -350,15 +350,18 @@ public class MessageService
             return TaskResult<Message>.FromFailure("Include updated message");
 
         ISharedMessage old = null;
+        Message oldModel = null;
         Message stagedOld = null;
         
         var dbOld = await _db.Messages
             .Include(x => x.Attachments)
             .Include(x => x.Mentions)
+            .Include(x => x.Reactions)
             .FirstOrDefaultAsync(x => x.Id == updated.Id);
         if (dbOld is not null)
         {
             old = dbOld;
+            oldModel = dbOld.ToModel();
         }
         else
         {
@@ -366,12 +369,23 @@ public class MessageService
             if (stagedOld is not null)
             {
                 old = stagedOld;
+                oldModel = stagedOld;
             }
             else
             {
                 return TaskResult<Message>.FromFailure("Message not found");
             }
         }
+
+        updated.PlanetId = old.PlanetId;
+        updated.ChannelId = old.ChannelId;
+        updated.AuthorUserId = old.AuthorUserId;
+        updated.AuthorMemberId = old.AuthorMemberId;
+        updated.ReplyToId = old.ReplyToId;
+        updated.TimeSent = old.TimeSent;
+        updated.Reactions = oldModel.Reactions;
+        updated.ReplyTo = oldModel.ReplyTo;
+        updated.Fingerprint = oldModel.Fingerprint;
         
         // Sanity checks
         if (string.IsNullOrEmpty(updated.Content) && !HasAttachments(updated))

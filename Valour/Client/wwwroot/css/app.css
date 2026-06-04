@@ -877,8 +877,8 @@ input:checked + .slider:before {
 }
 
 .switch-radio {
-    width: 24px;
-    line-height: 6pt;
+    width: max-content;
+    line-height: 20pt;
     margin-left: 30px;
     cursor: pointer;
 }

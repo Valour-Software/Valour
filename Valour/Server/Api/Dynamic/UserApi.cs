@@ -607,6 +607,9 @@ public class UserApi
 
         // Ensure current password is valid
         var currentCredential = await userService.GetCredentialAsync(userId);
+        if (currentCredential is null || string.IsNullOrWhiteSpace(currentCredential.Identifier))
+            return ValourResult.Forbid("Password authentication is not available for this account.");
+
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, currentCredential.Identifier, request.OldPassword);
         if (!validResult.Success)
             return ValourResult.Forbid(validResult.Message);
@@ -639,14 +642,16 @@ public class UserApi
             return ValourResult.BadRequest("Include request in body.");
         }
         
-        var credential = await userService.GetCredentialAsync(await userService.GetCurrentUserIdAsync());
-        
+        var userId = await userService.GetCurrentUserIdAsync();
+        var credential = await userService.GetCredentialAsync(userId);
+        if (credential is null || string.IsNullOrWhiteSpace(credential.Identifier))
+            return ValourResult.Forbid("Password authentication is not available for this account.");
+
         // Verify password
         var validResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, credential.Identifier, request.Password);
         if (!validResult.Success)
             return ValourResult.Forbid(validResult.Message);
-        
-        var userId = await userService.GetCurrentUserIdAsync();
+
         var result = await userService.ChangeUsernameAsync(userId, request.NewUsername);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
@@ -658,10 +663,15 @@ public class UserApi
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> DeleteAccountAsync(UserService userService, [FromBody] DeleteAccountModel model)
     {
+        if (model is null)
+            return ValourResult.BadRequest("Include request in body.");
+
         // Get user id
         var user = await userService.GetCurrentUserAsync();
         var cred = await userService.GetCredentialAsync(user.Id);
-        
+        if (cred is null || string.IsNullOrWhiteSpace(cred.Identifier))
+            return ValourResult.Forbid("Password authentication is not available for this account.");
+
         // Check password
         var passResult = await userService.ValidateCredentialAsync(CredentialType.PASSWORD, cred.Identifier, model.Password);
 

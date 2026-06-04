@@ -63,7 +63,7 @@ public class PlanetApi
         if (!user.ValourStaff)
         {
             var ownedPlanets = await userService.GetOwnedPlanetCount(user.Id);
-            if (ownedPlanets > ISharedUser.MaxOwnedPlanets)
+            if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
                 return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
@@ -101,6 +101,8 @@ public class PlanetApi
 
         // We need to get the old planet to check special case for owner change
         var old = await planetService.GetAsync(planet.Id);
+        if (old is null)
+            return ValourResult.NotFound("Planet not found");
         
         // Owner change check
         if (old.OwnerId != planet.OwnerId)
@@ -113,7 +115,7 @@ public class PlanetApi
             if (!await memberService.ExistsAsync(planet.OwnerId, planet.Id))
                 return Results.BadRequest("You cannot transfer ownership to a non-member.");
             
-            var ownedPlanets = await userService.GetOwnedPlanetCount(await userService.GetCurrentUserIdAsync());
+            var ownedPlanets = await userService.GetOwnedPlanetCount(planet.OwnerId);
             if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
                 return Results.BadRequest("That new owner has the maximum owned planets!");
         }
@@ -475,7 +477,7 @@ public class PlanetApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
-        var result = await automodService.QueryTriggerActionsAsync(triggerId, queryRequest);
+        var result = await automodService.QueryTriggerActionsAsync(planetId, triggerId, queryRequest);
         return Results.Json(result);
     }
 
@@ -696,7 +698,7 @@ public class PlanetApi
         if (!user.ValourStaff)
         {
             var ownedPlanets = await userService.GetOwnedPlanetCount(user.Id);
-            if (ownedPlanets > ISharedUser.MaxOwnedPlanets)
+            if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
                 return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
