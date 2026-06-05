@@ -87,7 +87,7 @@ public class PlanetEmojiService
         hosted.UpsertEmoji(model);
 
         if (notify)
-            _coreHub.NotifyPlanetItemChange(model);
+            _coreHub.NotifyPlanetItemCreate(model);
 
         return TaskResult<PlanetEmoji>.FromData(model);
     }
@@ -122,7 +122,7 @@ public class PlanetEmojiService
 
     public void NotifyCreated(PlanetEmoji emoji)
     {
-        _coreHub.NotifyPlanetItemChange(emoji);
+        _coreHub.NotifyPlanetItemCreate(emoji);
     }
 
     public async Task<bool> AreAllIdsValidForPlanetAsync(long planetId, IEnumerable<long> ids)

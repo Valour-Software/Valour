@@ -108,7 +108,7 @@ public class PlanetRoleService
         }
 
         hostedPlanet.UpsertRole(role);
-        _coreHub.NotifyPlanetItemChange(role);
+        _coreHub.NotifyPlanetItemCreate(role);
 
         // If we bumped the default role, update cache and notify clients
         if (defaultRoleUpdated)

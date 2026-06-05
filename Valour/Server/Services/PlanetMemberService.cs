@@ -381,7 +381,8 @@ public class PlanetMemberService
 
         var model = member.ToModel();
 
-        _coreHub.NotifyPlanetItemChange(model);
+        // Notify subscribers that an item has been created (Member added)
+        _coreHub.NotifyPlanetItemCreate(model);
 
         await _automodService.HandleMemberJoinAsync(model);
 
