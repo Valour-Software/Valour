@@ -5,152 +5,149 @@
 
 @using Valour.Client.Components.Menus.Modals.Users.Edit
 
-<div class="security-container">
+@* ===== Multi-Factor Authentication ===== *@
+<div class="editor-section">
+    <h3 class="editor-section-title security">
+        <i class="bi bi-shield-lock"></i>
+        Multi-Factor Authentication
+    </h3>
 
-    @* ===== Multi-Factor Authentication ===== *@
-    <div class="editor-section">
-        <h3 class="editor-section-title security">
-            <i class="bi bi-shield-lock"></i>
-            Multi-Factor Authentication
-        </h3>
+    <div class="toggle-item">
+        <div class="toggle-header">
+            <span class="toggle-title">MFA Status</span>
+            @if (_multiAuthMethods is null) {
+                <div class="loading-indicator"></div>
+            } else if (_multiAuthMethods.Count > 0) {
+                <span class="status-badge enabled">Enabled</span>
+            } else {
+                <span class="status-badge">Disabled</span>
+            }
+        </div>
 
-        <div class="toggle-item">
-            <div class="toggle-header">
-                <span class="toggle-title">MFA Status</span>
-                @if (_multiAuthMethods is null) {
+        <p class="toggle-description">Protect your account with an additional security layer</p>
+
+        <div class="toggle-content">
+            @if (_multiAuthMethods is null) {
+                <div class="loading-state">
                     <div class="loading-indicator"></div>
-                } else if (_multiAuthMethods.Count > 0) {
-                    <span class="status-badge enabled">Enabled</span>
-                } else {
-                    <span class="status-badge">Disabled</span>
-                }
-            </div>
-
-            <p class="toggle-description">Protect your account with an additional security layer</p>
-
-            <div class="toggle-content">
-                @if (_multiAuthMethods is null) {
-                    <div class="loading-state">
-                        <div class="loading-indicator"></div>
-                        <p>Loading...</p>
+                    <p>Loading...</p>
+                </div>
+            } else {
+                @if (_multiAuthMethods.Count > 0) {
+                    <div class="mfa-status enabled">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Your account is protected with multi-factor authentication</span>
                     </div>
+                    <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
                 } else {
-                    @if (_multiAuthMethods.Count > 0) {
-                        <div class="mfa-status enabled">
-                            <i class="bi bi-shield-check"></i>
-                            <span>Your account is protected with multi-factor authentication</span>
-                        </div>
-                        <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
-                    } else {
-                        <div class="mfa-status">
-                            <i class="bi bi-shield-exclamation"></i>
-                            <span>Adding MFA greatly improves your account security</span>
-                        </div>
-                        <button @onclick="@OnClickMfA" class="v-btn primary">Setup MFA</button>
-                    }
+                    <div class="mfa-status">
+                        <i class="bi bi-shield-exclamation"></i>
+                        <span>Adding MFA greatly improves your account security</span>
+                    </div>
+                    <button @onclick="@OnClickMfA" class="v-btn primary">Setup MFA</button>
                 }
-            </div>
+            }
         </div>
     </div>
+</div>
 
-    @* ===== Password ===== *@
-    <div class="editor-section">
-        <h3 class="editor-section-title security">
-            <i class="bi bi-key"></i>
-            Password
-        </h3>
+@* ===== Password ===== *@
+<div class="editor-section">
+    <h3 class="editor-section-title security">
+        <i class="bi bi-key"></i>
+        Password
+    </h3>
 
-        <div class="actions">
-            <button class="v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
-        </div>
+    <div class="actions">
+        <button class="v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
     </div>
+</div>
 
-    @* ===== Active Sessions ===== *@
-    <div class="editor-section">
-        <h3 class="editor-section-title">
-            <i class="bi bi-pc-display-horizontal"></i>
-            Active Sessions
-        </h3>
+@* ===== Active Sessions ===== *@
+<div class="editor-section">
+    <h3 class="editor-section-title">
+        <i class="bi bi-pc-display-horizontal"></i>
+        Active Sessions
+    </h3>
 
-        @if (Tokens == null)
-        {
-            <div class="loading">Loading sessions...</div>
-        }
-        else if (!Tokens.Any())
-        {
-            <div class="no-tokens">No active sessions found</div>
-        }
-        else
-        {
-            <div class="tokens-list">
-                @foreach (var token in Tokens)
-                {
-                    var isExpired = IsExpired(token);
-                    var expiresSoon = ExpiresSoon(token);
+    @if (Tokens == null)
+    {
+        <div class="loading">Loading sessions...</div>
+    }
+    else if (!Tokens.Any())
+    {
+        <div class="no-tokens">No active sessions found</div>
+    }
+    else
+    {
+        <div class="tokens-list">
+            @foreach (var token in Tokens)
+            {
+                var isExpired = IsExpired(token);
+                var expiresSoon = ExpiresSoon(token);
 
-                    <div class="token-item @(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
-                        <div class="token-header">
-                            <div class="token-app">
-                                @if (token.AppId == "VALOUR")
-                                {
-                                    <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
-                                    <span class="app-name">Valour Web Client</span>
-                                }
-                                else if (_appInfoCache.TryGetValue(token.AppId, out var appInfo))
-                                {
-                                    <img src="@appInfo.ImageUrl" alt="@appInfo.Name" class="app-icon" />
-                                    <span class="app-name">@appInfo.Name</span>
-                                }
-                                else
-                                {
-                                    <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
-                                    <span class="app-name">OAuth App (@token.AppId)</span>
-                                }
-                            </div>
-                            <div class="token-actions">
-                                @if (!isExpired)
-                                {
-                                    <button class="v-btn danger" @onclick="() => RevokeToken(token)">
-                                        Revoke
-                                    </button>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="token-details">
-                            <div class="token-info">
-                                <span class="label">Created:</span>
-                                <span>@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
-                            </div>
-                            <div class="token-info">
-                                <span class="label">Expires:</span>
-                                <span class="@(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
-                                    @token.TimeExpires.ToString("MMM dd, yyyy 'at' HH:mm UTC")
-                                    @if (!isExpired)
-                                    {
-                                        <span class="time-remaining">(@GetTimeRemainingString(token) remaining)</span>
-                                    }
-                                </span>
-                            </div>
-                            @if (token.Id == Client.AuthService.Token)
+                <div class="token-item @(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
+                    <div class="token-header">
+                        <div class="token-app">
+                            @if (token.AppId == "VALOUR")
                             {
-                                <div class="current-session">
-                                    <span class="badge badge-primary">Current Session</span>
-                                </div>
+                                <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="Valour" class="app-icon" />
+                                <span class="app-name">Valour Web Client</span>
+                            }
+                            else if (_appInfoCache.TryGetValue(token.AppId, out var appInfo))
+                            {
+                                <img src="@appInfo.ImageUrl" alt="@appInfo.Name" class="app-icon" />
+                                <span class="app-name">@appInfo.Name</span>
+                            }
+                            else
+                            {
+                                <img src="../_content/Valour.Client/media/logo/logo-64.png" alt="OAuth App" class="app-icon" />
+                                <span class="app-name">OAuth App (@token.AppId)</span>
+                            }
+                        </div>
+                        <div class="token-actions">
+                            @if (!isExpired)
+                            {
+                                <button class="v-btn danger" @onclick="() => RevokeToken(token)">
+                                    Revoke
+                                </button>
                             }
                         </div>
                     </div>
-                }
-            </div>
 
-            <div class="token-actions-bulk">
-                <button class="v-btn warning" @onclick="RevokeAllOtherTokens">
-                    Revoke All Other Sessions
-                </button>
-                <p class="help-text">This will log out all other devices except this one</p>
-            </div>
-        }
-    </div>
+                    <div class="token-details">
+                        <div class="token-info">
+                            <span class="label">Created:</span>
+                            <span>@token.TimeCreated.ToString("MMM dd, yyyy 'at' HH:mm UTC")</span>
+                        </div>
+                        <div class="token-info">
+                            <span class="label">Expires:</span>
+                            <span class="@(isExpired ? "expired" : expiresSoon ? "expires-soon" : "")">
+                                @token.TimeExpires.ToString("MMM dd, yyyy 'at' HH:mm UTC")
+                                @if (!isExpired)
+                                {
+                                    <span class="time-remaining">(@GetTimeRemainingString(token) remaining)</span>
+                                }
+                            </span>
+                        </div>
+                        @if (token.Id == Client.AuthService.Token)
+                        {
+                            <div class="current-session">
+                                <span class="badge badge-primary">Current Session</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="token-actions-bulk">
+            <button class="v-btn warning" @onclick="RevokeAllOtherTokens">
+                Revoke All Other Sessions
+            </button>
+            <p class="help-text">This will log out all other devices except this one</p>
+        </div>
+    }
 </div>
 
 @code {
