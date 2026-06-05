@@ -154,37 +154,22 @@ public class BotService
         if (bot.OwnerId != ownerId)
             return new(false, "You do not own this bot");
 
-        await using var tran = await _db.Database.BeginTransactionAsync();
+        var tokenIds = await _db.AuthTokens
+            .Where(x => x.UserId == botId)
+            .Select(x => x.Id)
+            .ToListAsync();
 
-        try
+        var result = await _userService.HardDelete(bot.ToModel());
+        if (!result.Success)
         {
-            // Remove all tokens for this bot
-            var tokens = await _db.AuthTokens.Where(x => x.UserId == botId).ToListAsync();
-            foreach (var token in tokens)
-            {
-                _tokenService.RemoveFromQuickCache(token.Id);
-            }
-            _db.AuthTokens.RemoveRange(tokens);
-
-            // Remove the bot's profile
-            var profile = await _db.UserProfiles.FindAsync(botId);
-            if (profile is not null)
-                _db.UserProfiles.Remove(profile);
-
-            // Remove the bot user
-            _db.Users.Remove(bot);
-            await _db.SaveChangesAsync();
-
-            await tran.CommitAsync();
-
-            return new(true, "Bot deleted successfully");
+            _logger.LogWarning("Failed to hard delete bot {BotName} ({BotId}): {Message}", bot.Name, bot.Id, result.Message);
+            return result;
         }
-        catch (Exception e)
-        {
-            await tran.RollbackAsync();
-            _logger.LogError(e, "Error deleting bot");
-            return new(false, "An unexpected error occurred");
-        }
+
+        foreach (var tokenId in tokenIds)
+            _tokenService.RemoveFromQuickCache(tokenId);
+
+        return new(true, "Bot deleted successfully");
     }
 
     /// <summary>

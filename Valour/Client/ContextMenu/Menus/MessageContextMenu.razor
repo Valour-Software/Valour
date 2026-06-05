@@ -84,15 +84,13 @@
         {
             _deletePermission = PermissionState.True;
         }
-        else {
-            if (_authorMember is not null)
-            {
-                _deletePermission = Data.WindowComponent.ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
-            }
-            else
-            {
-                _deletePermission = PermissionState.False;
-            }
+        else if (Data.Message.PlanetId is not null && Data.WindowComponent.ChannelPermissions is not null)
+        {
+            _deletePermission = Data.WindowComponent.ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+        }
+        else
+        {
+            _deletePermission = PermissionState.False;
         }
     }
 

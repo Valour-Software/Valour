@@ -2,14 +2,25 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using DbAutomodAction = Valour.Database.AutomodAction;
+using DbAutomodLog = Valour.Database.AutomodLog;
+using DbAutomodTrigger = Valour.Database.AutomodTrigger;
+using DbMessage = Valour.Database.Message;
+using DbMessageAttachment = Valour.Database.MessageAttachment;
+using DbMessageMention = Valour.Database.MessageMention;
+using DbMessageReaction = Valour.Database.MessageReaction;
+using DbModerationAuditLog = Valour.Database.ModerationAuditLog;
+using DbPlanetEmoji = Valour.Database.PlanetEmoji;
 using DbReport = Valour.Database.Report;
 using Valour.Database.Context;
 using Valour.Sdk.Client;
 using Valour.Server;
+using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Models;
 using Valour.Server.Services;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Staff;
 
 namespace Valour.Tests.Services;
 
@@ -182,6 +193,251 @@ public class UserServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task HardDelete_CleansRelatedMessageMemberAndAuditData()
+    {
+        var model = await RegisterDisposableUserAsync();
+
+        var member = await _db.PlanetMembers
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.UserId == model.Id && x.PlanetId == ISharedPlanet.ValourCentralId);
+
+        var otherMember = await _db.PlanetMembers
+            .IgnoreQueryFilters()
+            .FirstAsync(x => x.UserId == _client.Me.Id && x.PlanetId == ISharedPlanet.ValourCentralId);
+
+        var channelId = await _db.Channels
+            .Where(x => x.PlanetId == ISharedPlanet.ValourCentralId &&
+                        x.IsDefault &&
+                        x.ChannelType == ChannelTypeEnum.PlanetChat)
+            .Select(x => x.Id)
+            .FirstAsync();
+
+        var messageId = IdManager.Generate();
+        var replyId = IdManager.Generate();
+        var attachmentId = IdManager.Generate();
+        var mentionId = IdManager.Generate();
+        var messageReactionId = IdManager.Generate();
+        var userReactionId = IdManager.Generate();
+        var reportId = Guid.NewGuid().ToString("N");
+        var auditLogId = IdManager.Generate();
+        var automodLogId = Guid.NewGuid();
+        var automodActionId = Guid.NewGuid();
+        var automodTriggerId = Guid.NewGuid();
+        var memberAutomodActionId = Guid.NewGuid();
+        var memberAutomodTriggerId = Guid.NewGuid();
+        var emojiId = IdManager.Generate();
+        var now = DateTime.UtcNow;
+
+        _db.Messages.Add(new DbMessage
+        {
+            Id = messageId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            ChannelId = channelId,
+            AuthorUserId = model.Id,
+            AuthorMemberId = member.Id,
+            Content = "hard delete regression",
+            TimeSent = now
+        });
+        await _db.SaveChangesAsync();
+
+        _db.Messages.Add(new DbMessage
+        {
+            Id = replyId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            ChannelId = channelId,
+            AuthorUserId = _client.Me.Id,
+            AuthorMemberId = otherMember.Id,
+            ReplyToId = messageId,
+            Content = "reply should survive",
+            TimeSent = now
+        });
+
+        _db.MessageAttachments.Add(new DbMessageAttachment
+        {
+            Id = attachmentId,
+            MessageId = messageId,
+            SortOrder = 0,
+            Type = MessageAttachmentType.File,
+            Location = "about:blank",
+            MimeType = "text/plain",
+            FileName = "regression.txt",
+            Width = 0,
+            Height = 0,
+            Inline = false,
+            Missing = false
+        });
+
+        _db.MessageMentions.Add(new DbMessageMention
+        {
+            Id = mentionId,
+            MessageId = messageId,
+            SortOrder = 0,
+            Type = MentionType.User,
+            TargetId = _client.Me.Id
+        });
+
+        _db.MessageReactions.AddRange(
+            new DbMessageReaction
+            {
+                Id = messageReactionId,
+                MessageId = messageId,
+                AuthorUserId = _client.Me.Id,
+                AuthorMemberId = otherMember.Id,
+                Emoji = "thumbsup",
+                CreatedAt = now
+            },
+            new DbMessageReaction
+            {
+                Id = userReactionId,
+                MessageId = replyId,
+                AuthorUserId = model.Id,
+                AuthorMemberId = member.Id,
+                Emoji = "ok",
+                CreatedAt = now
+            });
+
+        _db.Reports.Add(new DbReport
+        {
+            Id = reportId,
+            TimeCreated = now,
+            ReportingUserId = _client.Me.Id,
+            ReportedUserId = model.Id,
+            MessageId = messageId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            ReasonCode = ReportReasonCode.IsSpam,
+            LongReason = "regression",
+            Reviewed = false,
+            Resolution = ReportResolution.None,
+            StaffNotes = string.Empty
+        });
+
+        _db.ModerationAuditLogs.Add(new DbModerationAuditLog
+        {
+            Id = auditLogId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            ActorUserId = model.Id,
+            TargetUserId = model.Id,
+            TargetMemberId = member.Id,
+            MessageId = messageId,
+            Source = ModerationActionSource.Manual,
+            ActionType = ModerationActionType.DeleteMessage,
+            Details = "regression",
+            TimeCreated = now
+        });
+
+        _db.AutomodTriggers.Add(new DbAutomodTrigger
+        {
+            Id = automodTriggerId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            MemberAddedBy = otherMember.Id,
+            Type = AutomodTriggerType.Blacklist,
+            Name = "Hard delete regression",
+            TriggerWords = "hard-delete-regression"
+        });
+
+        _db.AutomodTriggers.Add(new DbAutomodTrigger
+        {
+            Id = memberAutomodTriggerId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            MemberAddedBy = member.Id,
+            Type = AutomodTriggerType.Blacklist,
+            Name = "Hard delete member regression",
+            TriggerWords = "hard-delete-member-regression"
+        });
+        await _db.SaveChangesAsync();
+
+        _db.AutomodLogs.Add(new DbAutomodLog
+        {
+            Id = automodLogId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            TriggerId = automodTriggerId,
+            MemberId = member.Id,
+            MessageId = messageId,
+            TimeTriggered = now
+        });
+
+        _db.AutomodActions.Add(new DbAutomodAction
+        {
+            Id = automodActionId,
+            TriggerId = automodTriggerId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            MemberAddedBy = otherMember.Id,
+            TargetMemberId = otherMember.Id,
+            ActionType = AutomodActionType.DeleteMessage,
+            MessageId = messageId,
+            Message = "regression"
+        });
+
+        _db.AutomodActions.Add(new DbAutomodAction
+        {
+            Id = memberAutomodActionId,
+            TriggerId = memberAutomodTriggerId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            MemberAddedBy = member.Id,
+            TargetMemberId = member.Id,
+            ActionType = AutomodActionType.DeleteMessage,
+            MessageId = messageId,
+            Message = "member regression"
+        });
+
+        _db.PlanetEmojis.Add(new DbPlanetEmoji
+        {
+            Id = emojiId,
+            PlanetId = ISharedPlanet.ValourCentralId,
+            CreatorUserId = model.Id,
+            Name = RandomEmojiName(),
+            CreatedAt = now
+        });
+
+        await _db.SaveChangesAsync();
+
+        var del = await _userService.HardDelete(model);
+        Assert.True(del.Success, del.Message);
+        _createdUsers.Remove(model);
+
+        _db.ChangeTracker.Clear();
+
+        Assert.Null(await _db.Users.FindAsync(model.Id));
+        Assert.Null(await _db.Messages.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == messageId));
+        Assert.Null(await _db.MessageAttachments.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == attachmentId));
+        Assert.Null(await _db.MessageMentions.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == mentionId));
+        Assert.Null(await _db.MessageReactions.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == messageReactionId));
+        Assert.Null(await _db.MessageReactions.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == userReactionId));
+
+        var reply = await _db.Messages.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == replyId);
+        Assert.NotNull(reply);
+        Assert.Null(reply.ReplyToId);
+
+        var report = await _db.Reports.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == reportId);
+        Assert.NotNull(report);
+        Assert.Null(report.ReportedUserId);
+        Assert.Null(report.MessageId);
+
+        var auditLog = await _db.ModerationAuditLogs.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == auditLogId);
+        Assert.NotNull(auditLog);
+        Assert.Null(auditLog.ActorUserId);
+        Assert.Null(auditLog.TargetUserId);
+        Assert.Null(auditLog.TargetMemberId);
+        Assert.Null(auditLog.MessageId);
+
+        Assert.Null(await _db.AutomodLogs.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == automodLogId));
+
+        var automodAction = await _db.AutomodActions.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == automodActionId);
+        Assert.NotNull(automodAction);
+        Assert.Null(automodAction.MessageId);
+        Assert.Null(await _db.AutomodActions.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == memberAutomodActionId));
+        Assert.Null(await _db.AutomodTriggers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == memberAutomodTriggerId));
+
+        Assert.Null(await _db.PlanetEmojis.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == emojiId));
+
+        _db.AutomodActions.Remove(automodAction);
+        var automodTrigger = await _db.AutomodTriggers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == automodTriggerId);
+        if (automodTrigger is not null)
+            _db.AutomodTriggers.Remove(automodTrigger);
+        await _db.SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task SetUserComplianceData_FailsForUnderage()
     {
         var me = _client.Me;
@@ -189,4 +445,7 @@ public class UserServiceTests : IAsyncLifetime
         var result = await _userService.SetUserComplianceData(me.Id, birth, Locality.General);
         Assert.False(result.Success);
     }
+
+    private static string RandomEmojiName() =>
+        $"e_{Guid.NewGuid():N}".Substring(0, 16);
 }

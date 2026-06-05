@@ -825,7 +825,7 @@ public class UserService
     /// </summary>
     public async Task<TaskResult> HardDelete(User user)
     {
-        var tran = await _db.Database.BeginTransactionAsync();
+        await using var tran = await _db.Database.BeginTransactionAsync();
         
         var dbUser = await _db.Users.FindAsync(user.Id);
         if (dbUser is null)
@@ -840,22 +840,134 @@ public class UserService
                 .Select(x => x.Id)
                 .ToListAsync();
 
-            // Remove message reactions that reference the user's messages BEFORE deleting the messages
-            // to avoid FK constraint violation (message_reactions_messages_id_fk).
-            // This includes both reactions BY the user and reactions BY OTHER USERS on the user's messages.
+            var authoredMessageIds = await _db.Messages
+                .IgnoreQueryFilters()
+                .Where(x => x.AuthorUserId == dbUser.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            var directMessageIds = new List<long>();
+            if (directChannelIds.Count > 0)
+            {
+                directMessageIds = await _db.Messages
+                    .IgnoreQueryFilters()
+                    .Where(x => directChannelIds.Contains(x.ChannelId))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+            }
+
+            var deletedMessageIds = authoredMessageIds
+                .Concat(directMessageIds)
+                .Distinct()
+                .ToList();
+
+            var planetMemberIds = await _db.PlanetMembers
+                .IgnoreQueryFilters()
+                .Where(x => x.UserId == dbUser.Id)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            var automodTriggerIds = new List<Guid>();
+            if (planetMemberIds.Count > 0)
+            {
+                automodTriggerIds = await _db.AutomodTriggers
+                    .IgnoreQueryFilters()
+                    .Where(x => planetMemberIds.Contains(x.MemberAddedBy))
+                    .Select(x => x.Id)
+                    .ToListAsync();
+            }
+
+            await _db.AuthTokens.IgnoreQueryFilters()
+                .Where(x => x.UserId == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            await _db.UserProfiles.IgnoreQueryFilters()
+                .Where(x => x.Id == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            await _db.UserPreferences.IgnoreQueryFilters()
+                .Where(x => x.Id == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            foreach (var entry in _db.ChangeTracker.Entries<Valour.Database.AuthToken>()
+                         .Where(x => x.Entity.UserId == dbUser.Id)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            foreach (var entry in _db.ChangeTracker.Entries<Valour.Database.UserProfile>()
+                         .Where(x => x.Entity.Id == dbUser.Id)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            foreach (var entry in _db.ChangeTracker.Entries<Valour.Database.UserPreferences>()
+                         .Where(x => x.Entity.Id == dbUser.Id)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            // Remove message dependents and historical pointers BEFORE deleting messages
+            // to avoid FK constraint violations on installations with stricter constraints.
+            if (deletedMessageIds.Count > 0)
+            {
+                await _db.Messages.IgnoreQueryFilters()
+                    .Where(x => x.ReplyToId.HasValue && deletedMessageIds.Contains(x.ReplyToId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(m => m.ReplyToId, (long?)null));
+
+                await _db.MessageReactions.IgnoreQueryFilters()
+                    .Where(x => deletedMessageIds.Contains(x.MessageId))
+                    .ExecuteDeleteAsync();
+
+                await _db.MessageAttachments.IgnoreQueryFilters()
+                    .Where(x => deletedMessageIds.Contains(x.MessageId))
+                    .ExecuteDeleteAsync();
+
+                await _db.MessageMentions.IgnoreQueryFilters()
+                    .Where(x => deletedMessageIds.Contains(x.MessageId))
+                    .ExecuteDeleteAsync();
+
+                await _db.Reports.IgnoreQueryFilters()
+                    .Where(x => x.MessageId.HasValue && deletedMessageIds.Contains(x.MessageId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(r => r.MessageId, (long?)null));
+
+                await _db.ModerationAuditLogs.IgnoreQueryFilters()
+                    .Where(x => x.MessageId.HasValue && deletedMessageIds.Contains(x.MessageId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(l => l.MessageId, (long?)null));
+
+                await _db.AutomodLogs.IgnoreQueryFilters()
+                    .Where(x => x.MessageId.HasValue && deletedMessageIds.Contains(x.MessageId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(l => l.MessageId, (long?)null));
+
+                await _db.AutomodActions.IgnoreQueryFilters()
+                    .Where(x => x.MessageId.HasValue && deletedMessageIds.Contains(x.MessageId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(a => a.MessageId, (long?)null));
+            }
+
             await _db.MessageReactions.IgnoreQueryFilters()
                 .Where(x => x.AuthorUserId == dbUser.Id)
                 .ExecuteDeleteAsync();
 
-            // Also remove reactions from other users on the user's messages (these will become orphaned)
-            await _db.MessageReactions.IgnoreQueryFilters()
-                .Where(x => _db.Messages.IgnoreQueryFilters()
-                    .Any(m => m.AuthorUserId == dbUser.Id && m.Id == x.MessageId))
-                .ExecuteDeleteAsync();
+            if (planetMemberIds.Count > 0)
+            {
+                await _db.Messages.IgnoreQueryFilters()
+                    .Where(x => x.AuthorMemberId.HasValue && planetMemberIds.Contains(x.AuthorMemberId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(m => m.AuthorMemberId, (long?)null));
 
-            // Remove messages
-            await _db.Messages.IgnoreQueryFilters().Where(x => x.AuthorUserId == dbUser.Id)
-                .ExecuteDeleteAsync();
+                await _db.MessageReactions.IgnoreQueryFilters()
+                    .Where(x => x.AuthorMemberId.HasValue && planetMemberIds.Contains(x.AuthorMemberId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(r => r.AuthorMemberId, (long?)null));
+            }
+
+            if (deletedMessageIds.Count > 0)
+            {
+                await _db.Messages.IgnoreQueryFilters()
+                    .Where(x => deletedMessageIds.Contains(x.Id))
+                    .ExecuteDeleteAsync();
+            }
 
             // Some older databases still enforce report FKs from legacy schema definitions.
             // Clear those rows explicitly before deleting the user or any DM channels.
@@ -870,6 +982,38 @@ public class UserService
             await _db.Reports.IgnoreQueryFilters()
                 .Where(x => x.ResolvedById == dbUser.Id)
                 .ExecuteUpdateAsync(x => x.SetProperty(r => r.ResolvedById, (long?)null));
+
+            await _db.ModerationAuditLogs.IgnoreQueryFilters()
+                .Where(x => x.ActorUserId == dbUser.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(l => l.ActorUserId, (long?)null));
+
+            await _db.ModerationAuditLogs.IgnoreQueryFilters()
+                .Where(x => x.TargetUserId == dbUser.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(l => l.TargetUserId, (long?)null));
+
+            if (planetMemberIds.Count > 0)
+            {
+                await _db.ModerationAuditLogs.IgnoreQueryFilters()
+                    .Where(x => x.TargetMemberId.HasValue && planetMemberIds.Contains(x.TargetMemberId.Value))
+                    .ExecuteUpdateAsync(x => x.SetProperty(l => l.TargetMemberId, (long?)null));
+
+                await _db.AutomodLogs.IgnoreQueryFilters()
+                    .Where(x => planetMemberIds.Contains(x.MemberId) || automodTriggerIds.Contains(x.TriggerId))
+                    .ExecuteDeleteAsync();
+
+                await _db.AutomodActions.IgnoreQueryFilters()
+                    .Where(x => planetMemberIds.Contains(x.MemberAddedBy) ||
+                                planetMemberIds.Contains(x.TargetMemberId) ||
+                                automodTriggerIds.Contains(x.TriggerId))
+                    .ExecuteDeleteAsync();
+
+                if (automodTriggerIds.Count > 0)
+                {
+                    await _db.AutomodTriggers.IgnoreQueryFilters()
+                        .Where(x => automodTriggerIds.Contains(x.Id))
+                        .ExecuteDeleteAsync();
+                }
+            }
 
             if (directChannelIds.Count > 0)
             {
@@ -905,6 +1049,17 @@ public class UserService
             await _db.CdnBucketItems.IgnoreQueryFilters()
                 .Where(x => x.UserId == user.Id)
                 .ExecuteDeleteAsync();
+
+            // Bulk updates/deletes bypass EF's change tracker. Clear before switching
+            // back to tracked removals so previously loaded related rows are not saved
+            // again later in the transaction.
+            _db.ChangeTracker.Clear();
+            dbUser = await _db.Users.FindAsync(user.Id);
+            if (dbUser is null)
+            {
+                await tran.RollbackAsync();
+                return TaskResult.FromFailure("User not found.");
+            }
 
             // Channel states
             var states = _db.UserChannelStates.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -954,6 +1109,17 @@ public class UserService
                 .Where(x => x.UserId == dbUser.Id)
                 .ExecuteDeleteAsync();
 
+            await _db.PlanetEmojis.IgnoreQueryFilters()
+                .Where(x => x.CreatorUserId == dbUser.Id)
+                .ExecuteDeleteAsync();
+
+            foreach (var entry in _db.ChangeTracker.Entries<Valour.Database.PlanetEmoji>()
+                         .Where(x => x.Entity.CreatorUserId == dbUser.Id)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
             // Remove email confirm codes
             var codes = _db.EmailConfirmCodes.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.EmailConfirmCodes.RemoveRange(codes);
@@ -978,6 +1144,10 @@ public class UserService
             // Remove OAuth apps owned by this user
             var oauthApps = _db.OauthApps.IgnoreQueryFilters().Where(x => x.OwnerId == dbUser.Id);
             _db.OauthApps.RemoveRange(oauthApps);
+
+            await _db.Users.IgnoreQueryFilters()
+                .Where(x => x.OwnerId == dbUser.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(u => u.OwnerId, (long?)null));
 
             // Remove user subscriptions
             var subscriptions = _db.UserSubscriptions.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
@@ -1019,10 +1189,6 @@ public class UserService
 
             await _db.SaveChangesAsync();
 
-            // Authtokens
-            var tokens = _db.AuthTokens.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
-            _db.AuthTokens.RemoveRange(tokens);
-
             // Referrals
             var refer = _db.Referrals.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id || x.ReferrerId == dbUser.Id);
             _db.Referrals.RemoveRange(refer);
@@ -1035,9 +1201,6 @@ public class UserService
             var noots  = _db.Notifications.IgnoreQueryFilters().Where(x => x.UserId == dbUser.Id);
             _db.Notifications.RemoveRange(noots);
 
-            await _db.UserPreferences.Where(x => x.Id == dbUser.Id)
-                .ExecuteDeleteAsync();
-            
             // Bans
             var bans = _db.PlanetBans.IgnoreQueryFilters().Where(x => x.IssuerId == dbUser.Id || x.TargetId == dbUser.Id);
             _db.PlanetBans.RemoveRange(bans);
@@ -1102,14 +1265,6 @@ public class UserService
 
             await _db.SaveChangesAsync();
 
-            // profile
-            var profile = await _db.UserProfiles.FindAsync(dbUser.Id);
-            if (profile is not null)
-            {
-                _db.UserProfiles.Remove(profile);
-                await _db.SaveChangesAsync();
-            }
-
             _db.Users.Remove(dbUser);
             await _db.SaveChangesAsync();
         
@@ -1121,6 +1276,7 @@ public class UserService
         catch(System.Exception e)
         {
             await tran.RollbackAsync();
+            _db.ChangeTracker.Clear();
             _logger.LogError(e, "Error hard deleting user {UserName} ({UserId}). Base exception: {BaseExceptionMessage}",
                 dbUser.Name, dbUser.Id, e.GetBaseException().Message);
             

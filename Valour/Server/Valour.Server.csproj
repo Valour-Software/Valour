@@ -54,6 +54,8 @@
   <ItemGroup>
     <None Remove="Z.EntityFramework.Plus.EFCore" />
     <None Remove="EntityFrameworkCore.Exceptions.PostgreSQL" />
+    <Content Remove="bin/**;obj/**" />
+    <None Remove="bin/**;obj/**" />
   </ItemGroup>
 
 
