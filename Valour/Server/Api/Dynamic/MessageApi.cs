@@ -289,6 +289,57 @@ public class MessageApi
         return Results.Json(message);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/messages/{id}/mark-unread")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> MarkMessageUnreadAsync(
+        long id,
+        MessageService messageService,
+        ChannelService channelService,
+        PlanetMemberService memberService,
+        UnreadService unreadService,
+        TokenService tokenService)
+    {
+        var token = await tokenService.GetCurrentTokenAsync();
+        
+        var message = await messageService.GetMessageNoReplyAsync(id);
+        if (message is null)
+        {
+            message = PlanetMessageWorker.GetStagedMessage(id);
+            if (message is null)
+                return ValourResult.NotFound("Message not found");
+        }
+        
+        var channel = await channelService.GetChannelAsync(message.PlanetId, message.ChannelId);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+        
+        if (!await channelService.HasAccessAsync(channel, token.UserId))
+            return ValourResult.Forbid("You are not a member of this channel");
+        
+        if (message.PlanetId is null && !token.HasScope(UserPermissions.DirectMessages))
+            return ValourResult.Forbid("Token lacks permission to update read state in this channel");
+
+        long? memberId = null;
+        if (channel.PlanetId is not null)
+        {
+            var planetMember = await memberService.GetCurrentAsync(channel.PlanetId.Value);
+            memberId = planetMember?.Id;
+        }
+
+        var unreadFromTime = message.TimeSent > DateTime.MinValue
+            ? message.TimeSent.AddTicks(-1)
+            : message.TimeSent;
+
+        var updated = await unreadService.SetReadState(
+            channel.Id,
+            token.UserId,
+            channel.PlanetId,
+            memberId,
+            unreadFromTime);
+
+        return ValourResult.Json(updated);
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/messages/{messageId}/reactions/add")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> AddReactionAsync(

@@ -151,6 +151,23 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
         return await Client.MessageService.FetchMessageAsync(ReplyToId.Value, Planet);
     }
 
+    public async Task<TaskResult<UserChannelState>> MarkUnreadAsync()
+    {
+        var result = await Node.PostAsyncWithResponse<UserChannelState>($"{IdRoute}/mark-unread", null);
+
+        if (result.Success)
+        {
+            Client.UnreadService.MarkChannelUnread(PlanetId, ChannelId);
+            Client.ChannelStateService.OnUserChannelStateUpdated(result.Data);
+        }
+        else
+        {
+            Client.Logger.Log("Message", "Failed to mark message unread: " + result.Message, "yellow");
+        }
+
+        return result;
+    }
+
     public ValueTask<Channel> FetchChannelAsync()
     {
         if (PlanetId is null)

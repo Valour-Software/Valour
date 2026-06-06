@@ -104,6 +104,33 @@ public class UnreadService : ServiceBase
         channel?.MarkUnread(false);
     }
 
+    public void MarkChannelUnread(long? planetId, long channelId)
+    {
+        if (planetId is null)
+        {
+            _unreadDirectChannels[channelId] = 0;
+        }
+        else
+        {
+            _unreadPlanets[planetId.Value] = 0;
+            var cache = _unreadPlanetChannels.GetOrAdd(planetId.Value, _ => new ConcurrentDictionary<long, byte>());
+            cache[channelId] = 0;
+        }
+
+        Channel? channel = null;
+
+        if (planetId is not null && _client.Cache.Planets.TryGet(planetId.Value, out var planet))
+        {
+            planet!.Channels.TryGet(channelId, out channel);
+        }
+        else
+        {
+            _client.Cache.Channels.TryGet(channelId, out channel);
+        }
+
+        channel?.MarkUnread(true);
+    }
+
     public bool IsPlanetUnread(long planetId) => _unreadPlanets.ContainsKey(planetId);
 
     public bool IsChannelUnread(long? planetId, long channelId)

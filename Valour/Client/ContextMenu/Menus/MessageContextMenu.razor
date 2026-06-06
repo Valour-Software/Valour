@@ -7,6 +7,11 @@
     <Icon><i class="bi bi-reply-fill"></i></Icon>
 </ContextMenuItem>
 
+<ContextMenuItem OnClickAsync="@OnClickMarkUnread">
+    <Label>Mark Unread</Label>
+    <Icon><i class="bi bi-envelope-fill"></i></Icon>
+</ContextMenuItem>
+
 @if (Data.Message.AuthorUserId == Client.Me.Id)
 {
     <ContextMenuItem OnClickAsync="@OnClickEdit">
@@ -101,6 +106,21 @@
         
         var input = Data.MessageComponent.ParamData.ChatComponent.InputComponent;
         await input.SetReplyMessage(Data.Message);
+    }
+
+    private async Task OnClickMarkUnread()
+    {
+        await CloseAsync();
+        
+        var result = await Data.Message.MarkUnreadAsync();
+        if (result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Marked Unread", "Message marked as unread", ToastProgressState.Success));
+        }
+        else
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Unable to Mark Unread", result.Message, ToastProgressState.Failure));
+        }
     }
 
     private async Task OnClickDelete()

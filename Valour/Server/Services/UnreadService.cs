@@ -53,19 +53,50 @@ public class UnreadService
     
     public async Task<UserChannelState> UpdateReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
     {
+        return await UpsertReadState(channelId, userId, planetId, memberId, updateTime, onlyMoveForward: true);
+    }
+
+    public async Task<UserChannelState> SetReadState(long channelId, long userId, long? planetId, long? memberId, DateTime? updateTime)
+    {
+        return await UpsertReadState(channelId, userId, planetId, memberId, updateTime, onlyMoveForward: false);
+    }
+
+    private async Task<UserChannelState> UpsertReadState(
+        long channelId,
+        long userId,
+        long? planetId,
+        long? memberId,
+        DateTime? updateTime,
+        bool onlyMoveForward)
+    {
         var effectiveUpdateTime = DateTime.SpecifyKind(updateTime ?? DateTime.UtcNow, DateTimeKind.Utc);
 
         // Atomic upsert to avoid race conditions when multiple requests update the same
         // (user_id, channel_id) row concurrently.
-        await _db.Database.ExecuteSqlInterpolatedAsync($@"
-            INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
-            VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
-            ON CONFLICT (user_id, channel_id) DO UPDATE
-            SET
-                last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time),
-                planet_id = EXCLUDED.planet_id,
-                member_id = EXCLUDED.member_id
-        ");
+        if (onlyMoveForward)
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
+                VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
+                ON CONFLICT (user_id, channel_id) DO UPDATE
+                SET
+                    last_viewed_time = GREATEST(user_channel_states.last_viewed_time, EXCLUDED.last_viewed_time),
+                    planet_id = EXCLUDED.planet_id,
+                    member_id = EXCLUDED.member_id
+            ");
+        }
+        else
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO user_channel_states (channel_id, user_id, last_viewed_time, planet_id, member_id)
+                VALUES ({channelId}, {userId}, {effectiveUpdateTime}, {planetId}, {memberId})
+                ON CONFLICT (user_id, channel_id) DO UPDATE
+                SET
+                    last_viewed_time = EXCLUDED.last_viewed_time,
+                    planet_id = EXCLUDED.planet_id,
+                    member_id = EXCLUDED.member_id
+            ");
+        }
 
         var channelState = await _db.UserChannelStates.AsNoTracking()
             .FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channelId);
