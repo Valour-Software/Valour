@@ -194,15 +194,28 @@ jobs:
         echo "Runtime libraries in $APK_PATH:"
         unzip -l "$APK_PATH" | grep -E 'lib/.*/lib(coreclr|monosgen-2\.0|assembly-store|xamarin-app)\.so' || true
 
-        if unzip -l "$APK_PATH" | grep -q 'lib/.*/libcoreclr\.so'; then
-          echo "Release APK uses CoreCLR, which currently aborts before managed startup on device."
+        if ! unzip -l "$APK_PATH" | grep -q 'lib/.*/libcoreclr\.so'; then
+          echo "Release APK does not contain the CoreCLR runtime library."
           exit 1
         fi
 
-        if ! unzip -l "$APK_PATH" | grep -q 'lib/.*/libmonosgen-2\.0\.so'; then
-          echo "Release APK does not contain the Mono runtime library."
+        if unzip -l "$APK_PATH" | grep -q 'lib/.*/libmonosgen-2\.0\.so'; then
+          echo "Release APK uses the Mono runtime; expected CoreCLR."
           exit 1
         fi
+
+        ASSEMBLY_STORES=$(zipinfo -1 "$APK_PATH" | grep -E '^lib/.*/libassembly-store\.so$' || true)
+        if [ -z "$ASSEMBLY_STORES" ]; then
+          echo "Release APK does not contain an assembly store."
+          exit 1
+        fi
+
+        while IFS= read -r STORE; do
+          if unzip -p "$APK_PATH" "$STORE" | strings | grep -q '\.r2r\.dll'; then
+            echo "Release APK contains ReadyToRun assemblies in $STORE; .NET 11 preview CoreCLR R2R APKs abort on device."
+            exit 1
+          fi
+        done <<< "$ASSEMBLY_STORES"
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
