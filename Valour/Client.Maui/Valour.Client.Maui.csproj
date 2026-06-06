@@ -56,6 +56,13 @@
         <AssemblyName>Valour</AssemblyName>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <!-- .NET 11 preview CoreCLR APKs abort before managed startup on device. Keep release APKs on the Mono runtime used by working direct deploys. -->
+        <UseMonoRuntime>true</UseMonoRuntime>
+        <RunAOTCompilation>false</RunAOTCompilation>
+        <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- App Icon (square logo scaled to fit adaptive icon safe zone) -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#040d14" ForegroundScale="0.7" />
