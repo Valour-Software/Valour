@@ -57,9 +57,9 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-        <!-- .NET 11 preview CoreCLR composite ReadyToRun APKs abort before managed startup on device. Keep CoreCLR, but disable R2R until the SDK path is stable. -->
+        <!-- .NET 11 preview CoreCLR composite ReadyToRun APKs abort before managed startup on device. Keep R2R non-composite until the SDK path is stable. -->
         <UseMonoRuntime>false</UseMonoRuntime>
-        <PublishReadyToRun>false</PublishReadyToRun>
+        <PublishReadyToRun>true</PublishReadyToRun>
         <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
     </PropertyGroup>
 

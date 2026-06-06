@@ -212,7 +212,7 @@ jobs:
 
         while IFS= read -r STORE; do
           if unzip -p "$APK_PATH" "$STORE" | strings | grep -q '\.r2r\.dll'; then
-            echo "Release APK contains ReadyToRun assemblies in $STORE; .NET 11 preview CoreCLR R2R APKs abort on device."
+            echo "Release APK contains composite ReadyToRun payloads in $STORE; .NET 11 preview CoreCLR composite R2R APKs abort on device."
             exit 1
           fi
         done <<< "$ASSEMBLY_STORES"
