@@ -22,6 +22,11 @@ public class InitialPlanetData
     public List<PlanetEmoji> Emojis { get; set; }
 
     /// <summary>
+    /// Rules configured for the planet.
+    /// </summary>
+    public List<PlanetRule> Rules { get; set; }
+
+    /// <summary>
     /// Users currently in each voice channel (channelId -> userIds)
     /// </summary>
     public Dictionary<long, List<long>> VoiceParticipants { get; set; }

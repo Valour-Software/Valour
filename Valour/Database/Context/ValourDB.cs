@@ -200,6 +200,8 @@ public partial class ValourDb : DbContext
 
     public DbSet<PlanetRole> PlanetRoles { get; set; }
     public DbSet<PlanetEmoji> PlanetEmojis { get; set; }
+    public DbSet<PlanetRule> PlanetRules { get; set; }
+    public DbSet<PlanetReport> PlanetReports { get; set; }
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
     
@@ -285,6 +287,8 @@ public partial class ValourDb : DbContext
         PlanetMember.SetupDbModel(modelBuilder);
         PlanetRole.SetupDbModel(modelBuilder);
         PlanetEmoji.SetupDbModel(modelBuilder);
+        PlanetRule.SetupDbModel(modelBuilder);
+        PlanetReport.SetupDbModel(modelBuilder);
         Report.SetupDbModel(modelBuilder);
         PlanetInvite.SetupDbModel(modelBuilder);
         AuthToken.SetupDbModel(modelBuilder);

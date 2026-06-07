@@ -1,0 +1,64 @@
+.about-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 100%;
+}
+
+.about-preview {
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--main-radius);
+    background: var(--main-1);
+}
+
+.about-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-top: 0.25rem;
+}
+
+.about-editor-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.about-editor-head h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin: 0.25rem 0 0;
+    color: var(--font-color);
+}
+
+.about-count {
+    flex-shrink: 0;
+    color: var(--font-color);
+    font-size: 0.85rem;
+}
+
+.about-textarea {
+    min-height: 14rem;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.about-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+@media (max-width: 700px) {
+    .about-actions,
+    .about-editor-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

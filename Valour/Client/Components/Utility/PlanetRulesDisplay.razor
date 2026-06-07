@@ -1,0 +1,48 @@
+@using Valour.Client.Messages
+
+<div class="planet-rules-display @(Compact ? "compact" : "")">
+    @if (_orderedRules.Count == 0)
+    {
+        <div class="rules-empty">
+            <i class="bi bi-list-check"></i>
+            <p>No rules have been added yet.</p>
+        </div>
+    }
+    else
+    {
+        @for (var i = 0; i < _orderedRules.Count; i++)
+        {
+            var rule = _orderedRules[i];
+            <section class="rule-item">
+                <div class="rule-number">@((i + 1).ToString("00"))</div>
+                <div class="rule-body">
+                    <h3>@rule.Title</h3>
+                    @if (!string.IsNullOrWhiteSpace(rule.Description))
+                    {
+                        <div class="rule-description">
+                            @((MarkupString)MarkdownManager.GetHtml(rule.Description))
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<PlanetRule> Rules { get; set; }
+
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private List<PlanetRule> _orderedRules = new();
+
+    protected override void OnParametersSet()
+    {
+        _orderedRules = Rules?
+            .OrderBy(x => x.Position)
+            .ThenBy(x => x.Id)
+            .ToList() ?? new List<PlanetRule>();
+    }
+}

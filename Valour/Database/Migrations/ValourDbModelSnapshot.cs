@@ -1412,6 +1412,104 @@ namespace Valour.Database.Migrations
                     b.ToTable("planet_members", (string)null);
                 });
 
+            modelBuilder.Entity("Valour.Database.PlanetReport", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ChannelId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("channel_id");
+
+                    b.Property<string>("LongReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("long_reason");
+
+                    b.Property<long?>("MessageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("message_id");
+
+                    b.Property<string>("ModeratorNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("moderator_notes");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<long?>("ReportedMemberId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reported_member_id");
+
+                    b.Property<long?>("ReportedUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reported_user_id");
+
+                    b.Property<long>("ReportingUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reporting_user_id");
+
+                    b.Property<int>("Resolution")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolution");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<long?>("ResolvedById")
+                        .HasColumnType("bigint")
+                        .HasColumnName("resolved_by_id");
+
+                    b.Property<bool>("Reviewed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("reviewed");
+
+                    b.Property<string>("RuleDescriptionSnapshot")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("rule_description_snapshot");
+
+                    b.Property<long?>("RuleId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("rule_id");
+
+                    b.Property<string>("RuleTitleSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("rule_title_snapshot");
+
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("time_created");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("ReportedMemberId");
+
+                    b.HasIndex("ReportedUserId");
+
+                    b.HasIndex("ReportingUserId");
+
+                    b.HasIndex("Resolution");
+
+                    b.HasIndex("ResolvedById");
+
+                    b.HasIndex("RuleId");
+
+                    b.HasIndex("TimeCreated");
+
+                    b.ToTable("planet_reports", (string)null);
+                });
+
             modelBuilder.Entity("Valour.Database.PlanetRole", b =>
                 {
                     b.Property<long>("Id")
@@ -1489,6 +1587,45 @@ namespace Valour.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("planet_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetRule", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<long>("PlanetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("planet_id");
+
+                    b.Property<long>("Position")
+                        .HasColumnType("bigint")
+                        .HasColumnName("position");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanetId");
+
+                    b.HasIndex("PlanetId", "Id")
+                        .IsUnique();
+
+                    b.HasIndex("PlanetId", "Position");
+
+                    b.ToTable("planet_rules", (string)null);
                 });
 
             modelBuilder.Entity("Valour.Database.PlanetTag", b =>
@@ -2815,10 +2952,32 @@ namespace Valour.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Valour.Database.PlanetReport", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany("Reports")
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
             modelBuilder.Entity("Valour.Database.PlanetRole", b =>
                 {
                     b.HasOne("Valour.Database.Planet", "Planet")
                         .WithMany("Roles")
+                        .HasForeignKey("PlanetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Planet");
+                });
+
+            modelBuilder.Entity("Valour.Database.PlanetRule", b =>
+                {
+                    b.HasOne("Valour.Database.Planet", "Planet")
+                        .WithMany("Rules")
                         .HasForeignKey("PlanetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -3051,7 +3210,11 @@ namespace Valour.Database.Migrations
 
                     b.Navigation("Messages");
 
+                    b.Navigation("Reports");
+
                     b.Navigation("Roles");
+
+                    b.Navigation("Rules");
 
                     b.Navigation("UserChannelStates");
                 });

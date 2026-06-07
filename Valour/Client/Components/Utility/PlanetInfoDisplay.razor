@@ -1,21 +1,10 @@
 @using System.Text
+@using Valour.Client.Messages
 @inherits ComponentBase
 
-<NebulaBackground>
-    <div class="planet-info-display planet-info-display-@(PlanetInfo.PlanetId)">
-        @if (PlanetInfo.HasCustomBackground)
-        {
-            var bgLocation = ISharedPlanet.GetBackgroundUrl(PlanetInfo, PlanetBackgroundFormat.Webp);
-            if (bgLocation is not null)
-            {
-                <style>
-                    .planet-info-display-@(PlanetInfo.PlanetId) {
-                        background: linear-gradient(135deg, rgba(4, 13, 20, 0.95) 0%, rgba(11, 21, 29, 0.9) 50%, rgba(18, 30, 39, 0.95) 100%), url('@bgLocation') center center/cover no-repeat !important;
-                    }
-                </style>
-            }
-        }
-        
+@if (PlanetInfo is not null)
+{
+    <div class="planet-info-display @(IsFullPage ? "full-page" : "")">
         <div class="planet-info-header">
             <div class="planet-icon-section">
                 <div class="planet-icon-container">
@@ -39,19 +28,19 @@
                 <h1 class="planet-title">@PlanetInfo.Name</h1>
                 <div class="planet-stats">
                     <div class="stat-item">
-                        <span class="stat-icon">👥</span>
+                        <i class="bi bi-people-fill"></i>
                         <span class="stat-value">@PlanetInfo.MemberCount</span>
                         <span class="stat-label">Members</span>
                     </div>
                     @if (PlanetInfo.Nsfw)
                     {
                         <div class="stat-item nsfw">
-                            <span class="stat-icon">🔞</span>
+                            <i class="bi bi-exclamation-octagon-fill"></i>
                             <span class="stat-label">NSFW</span>
                         </div>
                     }
                     <div class="stat-item">
-                        <span class="stat-icon">🏷️</span>
+                        <i class="bi bi-tags-fill"></i>
                         <span class="stat-value">@_tagSlugs.Count</span>
                         <span class="stat-label">Tags</span>
                     </div>
@@ -64,7 +53,9 @@
             {
                 <div class="planet-description">
                     <h3 class="section-title">About</h3>
-                    <p class="description-text">@PlanetInfo.Description</p>
+                    <div class="description-text">
+                        @((MarkupString)MarkdownManager.GetHtml(PlanetInfo.Description))
+                    </div>
                 </div>
             }
             
@@ -82,7 +73,7 @@
             }
         </div>
     </div>
-</NebulaBackground>
+}
 @code {
     [Parameter] public ISharedPlanetListInfo PlanetInfo { get; set; }
     [Parameter] public bool IsFullPage { get; set; } = false;
@@ -91,8 +82,13 @@
     private string _iconText = string.Empty;
     private readonly List<string> _tagSlugs = new();
     
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
+        _iconText = string.Empty;
+
+        if (PlanetInfo is null)
+            return;
+
         _iconUrl = PlanetInfo.HasAnimatedIcon
             ? ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.WebpAnimated256)
             : ISharedPlanet.GetIconUrl(PlanetInfo, IconFormat.Webp256);

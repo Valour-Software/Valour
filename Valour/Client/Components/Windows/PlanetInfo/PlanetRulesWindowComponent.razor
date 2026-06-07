@@ -1,0 +1,86 @@
+@inherits WindowContentComponent<PlanetRulesWindowData>
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="planet-rules-window">
+    @if (_planet is null)
+    {
+        <p class="rules-loading">Loading rules...</p>
+    }
+    else
+    {
+        <div class="rules-window-header">
+            <img src="@_planet.GetIconUrl(IconFormat.Webp64)" alt="@_planet.Name" />
+            <div>
+                <h2>Rules</h2>
+                <p>@_planet.Name</p>
+            </div>
+        </div>
+
+        <PlanetRulesDisplay Rules="@_planet.Rules" />
+    }
+</div>
+
+@code {
+    private Planet _planet;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (Data is null)
+            return;
+
+        _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+        if (_planet is null)
+            return;
+
+        _planet.Rules.Changed += OnRulesChanged;
+        await _planet.LoadRulesAsync();
+    }
+
+    private Task OnRulesChanged(IModelEvent<PlanetRule> _)
+    {
+        return InvokeAsync(StateHasChanged);
+    }
+
+    public class Content : WindowContent<PlanetRulesWindowComponent, PlanetRulesWindowData>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            Data = JsonSerializer.Deserialize<PlanetRulesWindowData>(data);
+            if (Data is not null)
+            {
+                var planet = await client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+                if (planet is not null)
+                {
+                    Title = "Rules - " + planet.Name;
+                    Icon = planet.GetIconUrl(IconFormat.Webp64);
+                    PlanetId = planet.Id;
+                }
+            }
+        }
+
+        public override string ExportData(ValourClient client)
+        {
+            return JsonSerializer.Serialize(Data);
+        }
+    }
+
+    public static WindowContent<PlanetRulesWindowComponent, PlanetRulesWindowData> GetDefaultContent(Planet planet)
+    {
+        return new Content()
+        {
+            Title = "Rules - " + planet.Name,
+            Icon = planet.GetIconUrl(IconFormat.Webp64),
+            Data = new PlanetRulesWindowData { PlanetId = planet.Id },
+            PlanetId = planet.Id
+        };
+    }
+
+    public void Dispose()
+    {
+        if (_planet is not null)
+            _planet.Rules.Changed -= OnRulesChanged;
+    }
+}

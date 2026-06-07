@@ -1,0 +1,439 @@
+@using Valour.Sdk.ModelLogic
+@using Valour.Shared.Authorization
+@inject SafetyService SafetyService
+
+@if (!_canViewReports)
+{
+    <div class="reports-empty">
+        <i class="bi bi-lock-fill"></i>
+        <h4>No access</h4>
+        <p>You need View Reports permission to review this queue.</p>
+    </div>
+}
+else
+{
+    @if (_selected is null)
+    {
+        <div class="reports-toolbar">
+            <div class="filter-group">
+                <label>Status</label>
+                <select class="form-control" @onchange="OnStatusChanged">
+                    <option value="unresolved" selected>Unresolved</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="">All</option>
+                </select>
+            </div>
+            <button class="v-btn secondary" @onclick="RefreshAsync">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+
+        <QueryTable
+            @ref="_table"
+            TableMinWidth="1500"
+            Columns="@_columns"
+            Engine="@_engine"
+            ShowSearch="true"
+            Infinite="true"
+            Height="min(48vh, 34rem)"
+            RowHeight="88"
+            SearchPlaceholder="Search rule or details..." />
+    }
+
+    <ResultLabel Result="@_result" />
+
+    @if (_selected is not null)
+    {
+        <section class="report-detail-panel">
+            <div class="detail-header">
+                <div class="detail-heading">
+                    <button class="back-to-reports-btn" @onclick="BackToReports">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Back to Reports</span>
+                    </button>
+                    <span class="eyebrow">Selected report</span>
+                    <h4>@_selected.RuleTitleSnapshot</h4>
+                </div>
+                <div class="detail-header-side">
+                    <span class="status-chip @GetStatusClass(_selected)">@GetStatusLabel(_selected)</span>
+                    @if (!_selected.IsResolved)
+                    {
+                        <div class="detail-actions">
+                            <button class="report-action-btn" @onclick="() => ConfirmDismiss(_selected)">
+                                <i class="bi bi-check2-circle"></i>
+                                <span>Dismiss</span>
+                            </button>
+                            @if (_canKick && _selected.ReportedMemberId.HasValue)
+                            {
+                                <button class="report-action-btn" @onclick="() => ConfirmKick(_selected)">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                    <span>Kick</span>
+                                </button>
+                            }
+                            @if (_canBan && _selected.ReportedMemberId.HasValue)
+                            {
+                                <button class="report-action-btn danger" @onclick="() => ConfirmBan(_selected)">
+                                    <i class="bi bi-slash-circle"></i>
+                                    <span>Ban</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <label>Reporter</label>
+                    <UserInfoComponent UserId="@_selected.ReportingUserId" />
+                </div>
+                <div>
+                    <label>Reported user</label>
+                    @if (_selected.ReportedUserId.HasValue)
+                    {
+                        <UserInfoComponent UserId="@_selected.ReportedUserId.Value" />
+                    }
+                    else
+                    {
+                        <span>-</span>
+                    }
+                </div>
+                <div>
+                    <label>Created</label>
+                    <time class="report-date" datetime="@_selected.TimeCreated.ToString("O")">
+                        @_selected.TimeCreated.ToLocalTime().ToString("MMM d, yyyy 'at' h:mm tt")
+                    </time>
+                </div>
+            </div>
+
+            @if (_selected.MessageId.HasValue)
+            {
+                <div class="reported-message-review">
+                    <div class="review-header">
+                        <label>Reported message</label>
+                        <span>@_selected.MessageId.Value</span>
+                    </div>
+
+                    @if (_isLoadingMessage)
+                    {
+                        <div class="message-state">Loading message...</div>
+                    }
+                    else if (_reportedMessage is not null)
+                    {
+                        <div class="reported-message-container">
+                            <MessageComponent ParamData="@_messageParams" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="message-state error">
+                            <span>Message could not be loaded.</span>
+                            <button class="v-btn secondary" @onclick="LoadSelectedMessageAsync">Retry</button>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="detail-copy">
+                <label>Report details</label>
+                <p>@(string.IsNullOrWhiteSpace(_selected.LongReason) ? "No extra details provided." : _selected.LongReason)</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_selected.RuleDescriptionSnapshot))
+            {
+                <div class="detail-copy">
+                    <label>Rule description at report time</label>
+                    <p>@_selected.RuleDescriptionSnapshot</p>
+                </div>
+            }
+
+            @if (_selected.IsResolved)
+            {
+                <div class="detail-copy">
+                    <label>Resolution</label>
+                    <div class="resolution-meta">
+                        <span>@_selected.ResolutionDisplayName by</span>
+                        @if (_selected.ResolvedById.HasValue)
+                        {
+                            <UserInfoMini UserId="@_selected.ResolvedById" ShowAvatar="false" ShowTag="false" />
+                        }
+                        else
+                        {
+                            <span>unknown moderator</span>
+                        }
+                        @if (_selected.ResolvedAt.HasValue)
+                        {
+                            <span>on</span>
+                            <time datetime="@_selected.ResolvedAt.Value.ToString("O")">
+                                @_selected.ResolvedAt.Value.ToLocalTime().ToString("MMM d, yyyy 'at' h:mm tt")
+                            </time>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_selected.ModeratorNotes))
+                    {
+                        <p>@_selected.ModeratorNotes</p>
+                    }
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private QueryTable<PlanetReport> _table;
+    private ModelQueryEngine<PlanetReport> _engine;
+    private List<ColumnDefinition<PlanetReport>> _columns;
+    private ITaskResult _result;
+    private PlanetReport _selected;
+    private Message _reportedMessage;
+    private MessageComponent.Params _messageParams;
+    private bool _isLoadingMessage;
+    private bool _canViewReports;
+    private bool _canKick;
+    private bool _canBan;
+
+    protected override void OnInitialized()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+
+        _canViewReports = Planet?.MyMember?.HasPermission(PlanetPermissions.ViewReports) ?? false;
+        _canKick = Planet?.MyMember?.HasPermission(PlanetPermissions.Kick) ?? false;
+        _canBan = Planet?.MyMember?.HasPermission(PlanetPermissions.Ban) ?? false;
+
+        if (!_canViewReports)
+            return;
+
+        _engine = Planet.GetReportQueryEngine();
+        _engine.SetFilter("unresolved", "true", true);
+
+        _columns = new()
+        {
+            new()
+            {
+                Name = "Rule",
+                SortField = "rule",
+                Sortable = true,
+                RenderFragment = row => @<span class="rule-cell">@row.Row.RuleTitleSnapshot</span>,
+                Width = "210px"
+            },
+            new()
+            {
+                Name = "Reporter",
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.ReportingUserId" />,
+                Width = "220px"
+            },
+            new()
+            {
+                Name = "Reported",
+                RenderFragment = row => row.Row.ReportedUserId.HasValue
+                    ? @<UserInfoComponent UserId="@row.Row.ReportedUserId.Value" />
+                    : @<span>-</span>,
+                Width = "220px"
+            },
+            new()
+            {
+                Name = "Details",
+                RenderFragment = row => @<span class="details-cell" title="@row.Row.LongReason">@GetDetailsPreview(row.Row)</span>,
+                Width = "360px"
+            },
+            new()
+            {
+                Name = "Created",
+                SortField = "created",
+                Sortable = true,
+                RenderFragment = row => @<span>@row.Row.TimeCreated.ToLocalTime().ToString("MMM d, HH:mm")</span>,
+                Width = "145px"
+            },
+            new()
+            {
+                Name = "Status",
+                SortField = "status",
+                Sortable = true,
+                RenderFragment = row => @<span class="status-chip @GetStatusClass(row.Row)">@GetStatusLabel(row.Row)</span>,
+                Width = "130px"
+            },
+            new()
+            {
+                Name = "Actions",
+                RenderFragment = row => @<div class="button-row report-actions">
+                    <button class="v-btn secondary small" @onclick="() => SelectReport(row.Row)">Details</button>
+                    @if (!row.Row.IsResolved)
+                    {
+                        <button class="v-btn secondary small" @onclick="() => ConfirmDismiss(row.Row)">Dismiss</button>
+                        @if (_canKick && row.Row.ReportedMemberId.HasValue)
+                        {
+                            <button class="v-btn secondary small" @onclick="() => ConfirmKick(row.Row)">Kick</button>
+                        }
+                        @if (_canBan && row.Row.ReportedMemberId.HasValue)
+                        {
+                            <button class="v-btn danger small" @onclick="() => ConfirmBan(row.Row)">Ban</button>
+                        }
+                    }
+                </div>,
+                Width = "190px"
+            }
+        };
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? "";
+        _engine.SetFilter("unresolved", null, false);
+        _engine.SetFilter("resolved", null, false);
+
+        if (value == "unresolved")
+            _engine.SetFilter("unresolved", "true", false);
+        else if (value == "resolved")
+            _engine.SetFilter("resolved", "true", false);
+
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_table is not null)
+            await _table.Requery();
+    }
+
+    private async Task SelectReport(PlanetReport report)
+    {
+        _selected = report;
+        await LoadSelectedMessageAsync();
+    }
+
+    private void BackToReports()
+    {
+        _selected = null;
+        _reportedMessage = null;
+        _messageParams = null;
+        _isLoadingMessage = false;
+    }
+
+    private async Task LoadSelectedMessageAsync()
+    {
+        _reportedMessage = null;
+        _messageParams = null;
+
+        var selected = _selected;
+        if (selected?.MessageId is null)
+            return;
+
+        _isLoadingMessage = true;
+        StateHasChanged();
+
+        try
+        {
+            var message = await SafetyService.GetPlanetReportMessageAsync(Planet, selected.Id);
+            if (_selected?.Id != selected.Id)
+                return;
+
+            _reportedMessage = message;
+            if (_reportedMessage is not null)
+            {
+                _messageParams = new MessageComponent.Params
+                {
+                    Message = _reportedMessage
+                };
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to load reported message {selected.MessageId}: {e.Message}");
+            _reportedMessage = null;
+            _messageParams = null;
+        }
+        finally
+        {
+            _isLoadingMessage = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ConfirmDismiss(PlanetReport report)
+    {
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            "Dismiss report?",
+            $"Dismiss report for {report.RuleTitleSnapshot} with no action?",
+            "Dismiss",
+            "Cancel",
+            async () => await ResolveAsync(report, ReportResolution.NoAction),
+            () => Task.CompletedTask));
+    }
+
+    private void ConfirmKick(PlanetReport report)
+    {
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            "Kick reported member?",
+            $"Kick the reported member for {report.RuleTitleSnapshot} and resolve this report?",
+            "Kick",
+            "Cancel",
+            async () => await KickAsync(report),
+            () => Task.CompletedTask));
+    }
+
+    private void ConfirmBan(PlanetReport report)
+    {
+        ModalRoot.OpenModal<ConfirmModalComponent>(new ConfirmModalComponent.ModalParams(
+            "Ban reported member?",
+            $"Ban the reported member for {report.RuleTitleSnapshot} and resolve this report?",
+            "Ban",
+            "Cancel",
+            async () => await BanAsync(report),
+            () => Task.CompletedTask));
+    }
+
+    private async Task ResolveAsync(PlanetReport report, ReportResolution resolution)
+    {
+        var result = await SafetyService.ResolvePlanetReportAsync(Planet, report.Id, resolution, string.Empty);
+        await HandleActionResultAsync(result);
+    }
+
+    private async Task KickAsync(PlanetReport report)
+    {
+        var result = await SafetyService.KickPlanetReportAsync(Planet, report.Id, string.Empty);
+        await HandleActionResultAsync(result);
+    }
+
+    private async Task BanAsync(PlanetReport report)
+    {
+        var reason = $"Planet report {report.Id}: {report.RuleTitleSnapshot}";
+        var result = await SafetyService.BanPlanetReportAsync(Planet, report.Id, reason, string.Empty);
+        await HandleActionResultAsync(result);
+    }
+
+    private async Task HandleActionResultAsync(TaskResult<PlanetReport> result)
+    {
+        _result = result;
+        if (result.Success)
+        {
+            _selected = result.Data;
+            await LoadSelectedMessageAsync();
+        }
+
+        await RefreshAsync();
+        StateHasChanged();
+    }
+
+    private static string GetDetailsPreview(PlanetReport report)
+    {
+        if (string.IsNullOrWhiteSpace(report.LongReason))
+            return "-";
+
+        return report.LongReason.Length > 90
+            ? report.LongReason[..90] + "..."
+            : report.LongReason;
+    }
+
+    private static string GetStatusClass(PlanetReport report) =>
+        report.Resolution == ReportResolution.None ? "open" : "resolved";
+
+    private static string GetStatusLabel(PlanetReport report) =>
+        report.Resolution == ReportResolution.None ? "Open" : report.ResolutionDisplayName;
+
+}

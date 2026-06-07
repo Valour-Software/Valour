@@ -42,14 +42,20 @@
         @if (Open)
         {
             <div class="v-gradient-underline"></div>
-            <div class="channel planet-about" @onclick="OnClickPlanetInfo">
-                <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
-                <p class="name">
-                    About Planet
-                </p>
-            </div>
-
             <div class="list-wrapper">
+                <div class="channel planet-about" @onclick="OnClickPlanetInfo">
+                    <i class="bi bi-info-circle-fill planet-pseudo-icon"></i>
+                    <p class="name">
+                        About Planet
+                    </p>
+                </div>
+                <div class="channel planet-rules" @onclick="OnClickPlanetRules">
+                    <i class="bi bi-list-check planet-pseudo-icon"></i>
+                    <p class="name">
+                        Rules
+                    </p>
+                </div>
+
                 @foreach (var root in RootChannels)
                 {
                     <ChannelDirectoryItem @key="@root.Id"
@@ -201,7 +207,13 @@
     
     private async Task OnClickPlanetInfo()
     {
-        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(Planet.ToListInfo());
+        var newWindowContent = PlanetInfoWindowComponent.GetDefaultContent(Planet);
+        await WindowService.OpenWindowAtFocused(newWindowContent);
+    }
+
+    private async Task OnClickPlanetRules()
+    {
+        var newWindowContent = PlanetRulesWindowComponent.GetDefaultContent(Planet);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 }

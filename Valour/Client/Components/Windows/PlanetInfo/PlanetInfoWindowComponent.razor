@@ -1,8 +1,64 @@
 @inherits WindowContentComponent<PlanetListInfo>
+@implements IDisposable
+@inject ValourClient Client
 
-<PlanetInfoDisplay PlanetInfo="@Data" />
+@if (_planetInfo is null)
+{
+    <p class="planet-info-loading">Loading planet info...</p>
+}
+else
+{
+    <PlanetInfoDisplay PlanetInfo="@_planetInfo" />
+}
 
 @code {
+    private Planet _planet;
+    private PlanetListInfo _planetInfo;
+    private int _memberCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _planetInfo = Data;
+        _memberCount = Data?.MemberCount ?? 0;
+
+        if (Data is not null)
+        {
+            _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId);
+            if (_planet is not null)
+            {
+                _planet.Updated += OnPlanetUpdated;
+                _planet.Members.Changed += OnMembersChanged;
+                _memberCount = Math.Max(_memberCount, _planet.Members.Count);
+
+                var fetchedCount = await _planet.FetchMemberCountAsync();
+                _memberCount = Math.Max(fetchedCount, _planet.Members.Count);
+                BuildPlanetInfo();
+            }
+        }
+    }
+
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
+    {
+        BuildPlanetInfo();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private Task OnMembersChanged(IModelEvent<PlanetMember> eventData)
+    {
+        _memberCount = Math.Max(_memberCount, _planet?.Members.Count ?? 0);
+        BuildPlanetInfo();
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildPlanetInfo()
+    {
+        if (_planet is null)
+            return;
+
+        _planetInfo = _planet.ToListInfo();
+        _planetInfo.MemberCount = _memberCount;
+    }
 
     public class Content : WindowContent<PlanetInfoWindowComponent, PlanetListInfo>
     {
@@ -28,5 +84,26 @@
             Data = planetInfo,
             PlanetId = planetInfo.PlanetId
         };
+    }
+
+    public static WindowContent<PlanetInfoWindowComponent, PlanetListInfo> GetDefaultContent(Planet planet)
+    {
+        var planetInfo = planet.ToListInfo();
+        return new Content()
+        {
+            Title = "About - " + planet.Name,
+            Icon = planet.GetIconUrl(IconFormat.Webp64),
+            Data = planetInfo,
+            PlanetId = planet.Id
+        };
+    }
+
+    public void Dispose()
+    {
+        if (_planet is not null)
+        {
+            _planet.Updated -= OnPlanetUpdated;
+            _planet.Members.Changed -= OnMembersChanged;
+        }
     }
 }

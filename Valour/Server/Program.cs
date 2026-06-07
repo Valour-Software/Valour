@@ -150,6 +150,8 @@ public partial class Program
             new DynamicAPI<PlanetMemberApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetRoleApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetEmojiApi>().RegisterRoutes(app),
+            new DynamicAPI<PlanetRuleApi>().RegisterRoutes(app),
+            new DynamicAPI<PlanetReportApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetInviteApi>().RegisterRoutes(app),
             new DynamicAPI<PlanetBanApi>().RegisterRoutes(app),
             new DynamicAPI<PermissionsNodeApi>().RegisterRoutes(app),
@@ -385,6 +387,8 @@ public partial class Program
         services.AddScoped<PlanetMemberService>();
         services.AddScoped<PlanetRoleService>();
         services.AddScoped<PlanetEmojiService>();
+        services.AddScoped<PlanetRuleService>();
+        services.AddScoped<PlanetReportService>();
         services.AddScoped<PlanetService>();
         services.AddScoped<TenorFavoriteService>();
         services.AddScoped<AutomodService>();

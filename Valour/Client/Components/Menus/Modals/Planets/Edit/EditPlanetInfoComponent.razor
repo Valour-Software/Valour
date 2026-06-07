@@ -9,16 +9,11 @@
             <i class="bi bi-globe2"></i>
             Planet Info
         </h3>
-        <p class="subtitle">Edit your planet's name and description</p>
+        <p class="subtitle">Edit your planet's name, tags, and primary chat channel</p>
 
         <div class="form-group">
             <label>Name</label>
             <input class="v-input" placeholder="Planet Name" @bind-value="_nameValue" maxlength="32" />
-        </div>
-
-        <div class="form-group">
-            <label>Description</label>
-            <textarea class="v-input" placeholder="Description" @bind="_descValue" @bind:event="oninput" maxlength="256"></textarea>
         </div>
 
         <div class="form-group">
@@ -84,7 +79,6 @@
     public Planet Planet { get; set; }
 
     private string _nameValue;
-    private string _descValue;
 
     private ITaskResult _mainResult;
     private ITaskResult _iconResult;
@@ -99,7 +93,6 @@
     protected override Task OnInitializedAsync()
     {
         _nameValue = Planet.Name;
-        _descValue = Planet.Description;
         _chatChannels = Planet.Channels.Where(c => c.ChannelType == ChannelTypeEnum.PlanetChat).ToList();
         _selectedPrimaryChannel = Planet.PrimaryChatChannel;
         StateHasChanged();
@@ -186,10 +179,9 @@
 
     private async Task OnSaveChanges()
     {
-        if (_nameValue != Planet.Name || _descValue != Planet.Description )
+        if (_nameValue != Planet.Name)
         {
             Planet.Name = _nameValue;
-            Planet.Description = _descValue;
         }
 
         var result = await Planet.UpdateAsync();

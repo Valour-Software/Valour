@@ -502,6 +502,7 @@ public enum PlanetPermissionsEnum
     Manage,
     Kick,
     Ban,
+    ViewReports,
     ManageCategories,
     ManageChannels,
     ManageRoles,
@@ -540,6 +541,7 @@ public static class PlanetPermissions
                 Manage,
                 Kick,
                 Ban,
+                ViewReports,
                 CreateChannels,
                 ManageRoles,
 
@@ -576,6 +578,7 @@ public static class PlanetPermissions
     public static readonly PlanetPermission MentionAll = new PlanetPermission(0x1000, "Mention All", "Allow members to mention all roles.");
     public static readonly PlanetPermission BypassAutomod = new PlanetPermission(0x2000, "Bypass Automod", "Ignore automod triggers for members with this role.");
     public static readonly PlanetPermission UseCustomEmojis = new PlanetPermission(0x4000, "Use Custom Emojis", "Allow members to use custom planet emojis in chat.");
+    public static readonly PlanetPermission ViewReports = new PlanetPermission(0x8000, "View Reports", "Allow members to view and resolve the planet report queue.");
 }
 
 public enum PermissionState

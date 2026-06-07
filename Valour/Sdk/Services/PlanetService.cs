@@ -158,6 +158,7 @@ public class PlanetService : ServiceBase
             data.Roles.SyncAll(_client);
             data.Channels.SyncAll(_client);
             data.Emojis?.SyncAll(_client);
+            data.Rules?.SyncAll(_client);
             _client.VoiceStateService.SetInitialVoiceState(data.VoiceParticipants);
         }
         
@@ -574,6 +575,30 @@ public class PlanetService : ServiceBase
         return emoji?.Sync(_client);
     }
 
+    public async ValueTask<PlanetRule> FetchRuleAsync(long id, long planetId, bool skipCache = false)
+    {
+        var planet = await FetchPlanetAsync(planetId, skipCache);
+        if (planet is null)
+            return null;
+
+        return await FetchRuleAsync(id, planet, skipCache);
+    }
+
+    public async ValueTask<PlanetRule> FetchRuleAsync(long id, Planet planet, bool skipCache = false)
+    {
+        if (!skipCache && planet.Rules.TryGet(id, out var cached))
+            return cached;
+
+        var rule = (await planet.Node.GetJsonAsync<PlanetRule>(ISharedPlanetRule.GetIdRoute(planet.Id, id))).Data;
+        return rule?.Sync(_client);
+    }
+
+    public async Task<int> FetchMemberCountAsync(Planet planet)
+    {
+        var response = await planet.Node.GetJsonAsync<int>($"{planet.IdRoute}/members/count");
+        return response.Success ? response.Data : 0;
+    }
+
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)
     {
         var planet = await FetchPlanetAsync(planetId);
@@ -665,6 +690,9 @@ public class PlanetService : ServiceBase
 
     public ModelQueryEngine<PlanetBan> GetBanQueryEngine(Planet planet) =>
         new ModelQueryEngine<PlanetBan>(planet.Node, $"api/planets/{planet.Id}/bans");
+
+    public ModelQueryEngine<PlanetReport> GetReportQueryEngine(Planet planet) =>
+        new ModelQueryEngine<PlanetReport>(planet.Node, $"{ISharedPlanetReport.GetBaseRoute(planet.Id)}/query");
     
     private void OnRoleOrderUpdate(RoleOrderEvent e)
     {

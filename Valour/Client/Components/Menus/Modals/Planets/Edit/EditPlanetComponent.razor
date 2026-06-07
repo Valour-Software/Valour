@@ -27,6 +27,9 @@
 
     // RenderFragments for each menu item
     private RenderFragment InfoContent => @<EditPlanetInfoComponent Planet="@Data.Planet" />;
+    private RenderFragment AboutContent => @<EditPlanetAboutComponent Planet="@Data.Planet" />;
+    private RenderFragment RulesContent => @<EditPlanetRulesComponent Planet="@Data.Planet" />;
+    private RenderFragment ReportsContent => @<EditPlanetReportsComponent Planet="@Data.Planet" />;
     private RenderFragment InvitesContent => @<EditPlanetInvitesComponent Planet="@Data.Planet" />;
     private RenderFragment MembersContent => @<EditPlanetUsersComponent Planet="@Data.Planet" />;
     private RenderFragment BansContent => @<EditPlanetBansComponent Planet="@Data.Planet" />;
@@ -66,6 +69,27 @@
                         Icon = "info-circle-fill",
                         Description = "Edit planet information",
                         Content = InfoContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "About",
+                        Icon = "file-earmark-richtext-fill",
+                        Description = "Edit the planet about page",
+                        Content = AboutContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Rules",
+                        Icon = "list-check",
+                        Description = "Manage planet rules",
+                        Content = RulesContent
+                    },
+                    new MainMenu.MenuItem()
+                    {
+                        Name = "Reports",
+                        Icon = "flag-fill",
+                        Description = "Review planet reports",
+                        Content = ReportsContent
                     },
                     new MainMenu.MenuItem()
                     {

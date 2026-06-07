@@ -328,6 +328,7 @@ public class PlanetService
         data.Channels = channels?.List ?? [];
         data.Roles = hostedPlanet.Roles.List;
         data.Emojis = hostedPlanet.Emojis.List;
+        data.Rules = hostedPlanet.Rules.List;
         data.VoiceParticipants = hostedPlanet.GetAllVoiceParticipants();
 
         return data;
@@ -357,6 +358,14 @@ public class PlanetService
             Members = data,
             TotalCount = totalCount
         };
+    }
+
+    public async Task<int> GetMemberCountAsync(long planetId)
+    {
+        return await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId)
+            .CountAsync();
     }
     
     public async Task<Dictionary<long, int>> GetRoleMembershipCountsAsync(long planetId)
@@ -646,9 +655,9 @@ public class PlanetService
     /// </summary>
     public static TaskResult ValidateDescription(string description)
     {
-        if (description is not null && description.Length > 500)
+        if (description is not null && description.Length > 4096)
         {
-            return new TaskResult(false, "Description must be under 500 characters.");
+            return new TaskResult(false, "Description must be under 4096 characters.");
         }
 
         return TaskResult.SuccessResult;

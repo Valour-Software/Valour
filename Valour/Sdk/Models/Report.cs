@@ -88,12 +88,14 @@ public class Report : ClientModel<Report, string>, ISharedReport
     public string ResolutionDisplayName => Resolution switch
     {
         ReportResolution.None => "Unresolved",
-        ReportResolution.NoAction => "No Action Needed",
-        ReportResolution.Warning => "Warning Issued",
-        ReportResolution.UserDisabled => "User Disabled",
-        ReportResolution.ContentRemoved => "Content Removed",
+        ReportResolution.NoAction => "No Action",
+        ReportResolution.Warning => "Warning",
+        ReportResolution.UserDisabled => "Disabled",
+        ReportResolution.ContentRemoved => "Removed",
         ReportResolution.UserDeleted => "User Deleted",
         ReportResolution.Duplicate => "Duplicate",
+        ReportResolution.Kicked => "Kicked",
+        ReportResolution.Banned => "Banned",
         _ => "Unknown"
     };
 

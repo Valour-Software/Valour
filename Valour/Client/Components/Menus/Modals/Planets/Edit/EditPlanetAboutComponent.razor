@@ -1,0 +1,126 @@
+@implements IDisposable
+
+<div class="about-settings">
+    <div class="about-preview">
+        <PlanetInfoDisplay PlanetInfo="@_previewInfo" />
+    </div>
+
+    <div class="about-editor">
+        <div class="about-editor-head">
+            <div>
+                <h3>About Markdown</h3>
+                <p class="subtitle">This appears in the About pseudochannel and public planet preview.</p>
+            </div>
+            <span class="about-count">@_aboutValue.Length / @MaxAboutLength</span>
+        </div>
+
+        <textarea class="v-input about-textarea"
+                  value="@_aboutValue"
+                  maxlength="@MaxAboutLength"
+                  placeholder="Write about this planet..."
+                  @oninput="OnAboutInput"></textarea>
+
+        <div class="about-actions">
+            <ResultLabel Result="@_result" />
+            <button class="v-btn primary"
+                    disabled="@(!_canManage || _saving)"
+                    @onclick="SaveAsync">
+                @(_saving ? "Saving..." : "Save About")
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const int MaxAboutLength = 4096;
+
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _canManage;
+    private bool _saving;
+    private int _memberCount;
+    private string _aboutValue = string.Empty;
+    private PlanetListInfo _previewInfo = new();
+    private ITaskResult _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+        if (Planet is null)
+            return;
+
+        _canManage = Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
+        _aboutValue = Planet.Description ?? string.Empty;
+        Planet.Updated += OnPlanetUpdated;
+        Planet.Members.Changed += OnMembersChanged;
+
+        _memberCount = Planet.Members.Count;
+        var fetchedCount = await Planet.FetchMemberCountAsync();
+        _memberCount = Math.Max(fetchedCount, Planet.Members.Count);
+        BuildPreview();
+    }
+
+    private Task OnPlanetUpdated(ModelUpdatedEvent<Planet> _)
+    {
+        _aboutValue = Planet.Description ?? string.Empty;
+        BuildPreview();
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAboutInput(ChangeEventArgs e)
+    {
+        _aboutValue = e.Value?.ToString() ?? string.Empty;
+        BuildPreview();
+    }
+
+    private Task OnMembersChanged(IModelEvent<PlanetMember> eventData)
+    {
+        _memberCount = Math.Max(_memberCount, Planet?.Members.Count ?? 0);
+        BuildPreview();
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildPreview()
+    {
+        if (Planet is null)
+            return;
+
+        _previewInfo = Planet.ToListInfo();
+        _previewInfo.Description = _aboutValue;
+        _previewInfo.MemberCount = _memberCount;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!_canManage)
+        {
+            _result = TaskResult.FromFailure("You lack permission to manage planet info.");
+            return;
+        }
+
+        _saving = true;
+        _result = null;
+
+        try
+        {
+            Planet.Description = _aboutValue;
+            _result = await Planet.UpdateAsync();
+            BuildPreview();
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (Planet is not null)
+        {
+            Planet.Updated -= OnPlanetUpdated;
+            Planet.Members.Changed -= OnMembersChanged;
+        }
+    }
+}

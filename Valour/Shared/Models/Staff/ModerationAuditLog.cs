@@ -16,7 +16,9 @@ public enum ModerationActionType
     RemoveRole = 5,
     DeleteMessage = 6,
     BlockMessage = 7,
-    Respond = 8
+    Respond = 8,
+    ResolveReport = 9,
+    DismissReport = 10
 }
 
 public interface ISharedModerationAuditLog : ISharedPlanetModel<long>

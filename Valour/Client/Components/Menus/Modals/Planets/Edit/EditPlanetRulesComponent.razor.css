@@ -1,0 +1,213 @@
+.rules-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 100%;
+}
+
+.rules-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.rules-toolbar h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin: 0.25rem 0 0;
+    color: var(--font-color);
+}
+
+.rules-layout {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.6fr);
+    min-height: 24rem;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--main-radius);
+    background: var(--main-1);
+    overflow: hidden;
+}
+
+.rules-list {
+    border-right: 1px solid var(--slight-tint);
+    background: rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+}
+
+.rule-row {
+    width: 100%;
+    min-height: 3rem;
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.65rem;
+    border: none;
+    border-bottom: 1px solid var(--slight-tint);
+    border-radius: 0;
+    background: transparent;
+    color: var(--font-color);
+    text-align: left;
+    cursor: pointer;
+}
+
+.rule-row:last-child {
+    border-bottom: none;
+}
+
+.rule-row:hover,
+.rule-row.active {
+    background: var(--slight-tint);
+}
+
+.rule-position {
+    color: var(--p-cyan);
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.rule-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.rule-actions {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.rule-actions button {
+    width: 1.65rem;
+    height: 1.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--small-radius);
+    background: var(--main-2);
+    color: var(--font-color);
+}
+
+.rule-actions button:disabled {
+    opacity: 0.35;
+}
+
+.rule-editor {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.rule-editor-fields {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.rule-description-input {
+    min-height: 9rem;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.rule-preview {
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--main-radius);
+    padding: 0.85rem;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.rule-editor-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.rule-button-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.rule-empty-editor,
+.rules-muted {
+    color: var(--font-alt-color);
+}
+
+.rules-empty-panel {
+    min-height: 14rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 1.5rem;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--main-radius);
+    background: var(--main-1);
+    text-align: center;
+}
+
+.rules-empty-panel i {
+    color: var(--font-color);
+    font-size: 1.8rem;
+}
+
+.rules-empty-panel h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--font-color);
+}
+
+.rules-empty-panel p {
+    margin: 0;
+    color: var(--font-color);
+}
+
+.rule-empty-editor {
+    min-height: 16rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px dashed var(--slight-tint);
+    border-radius: var(--main-radius);
+}
+
+.rule-empty-editor i {
+    font-size: 1.75rem;
+}
+
+.rule-empty-editor p,
+.rules-muted {
+    margin: 0;
+}
+
+@media (max-width: 850px) {
+    .rules-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(12rem, 34vh) auto;
+        min-height: 0;
+    }
+
+    .rules-list {
+        border-right: none;
+        border-bottom: 1px solid var(--slight-tint);
+        min-height: 12rem;
+        max-height: 34vh;
+    }
+
+    .rules-toolbar,
+    .rule-editor-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

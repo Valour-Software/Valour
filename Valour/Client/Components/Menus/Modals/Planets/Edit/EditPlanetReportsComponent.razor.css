@@ -1,0 +1,367 @@
+.reports-toolbar {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0.75rem 0 1rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 10rem;
+}
+
+.filter-group label,
+.detail-grid label,
+.detail-copy label,
+.eyebrow {
+    color: var(--font-alt-color);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.reports-empty {
+    align-items: center;
+    background: var(--main-2);
+    border: 1px solid var(--slight-tint);
+    border-radius: 8px;
+    color: var(--font-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 1rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.reports-empty i {
+    color: var(--font-alt-color);
+    font-size: 1.6rem;
+}
+
+.reports-empty h4,
+.reports-empty p {
+    margin: 0;
+}
+
+.rule-cell {
+    color: var(--font-color);
+    font-weight: 800;
+}
+
+.details-cell {
+    color: var(--font-color);
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.status-chip {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.4rem 0.55rem;
+    white-space: nowrap;
+}
+
+.status-chip.open {
+    background: color-mix(in srgb, var(--p-red) 18%, transparent);
+    color: #ffaaaa;
+}
+
+.status-chip.resolved {
+    background: color-mix(in srgb, #40d889 16%, transparent);
+    color: #8af0b5;
+}
+
+.report-actions {
+    align-items: stretch;
+    display: grid !important;
+    gap: 0.35rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    margin-top: 0;
+    min-width: 0;
+    width: 100%;
+}
+
+.report-actions .v-btn {
+    flex-grow: 0 !important;
+    font-size: 0.78rem;
+    line-height: 1.05;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.45rem 0.5rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.report-detail-panel {
+    color: var(--font-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+    padding: 0;
+}
+
+.detail-header {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--slight-tint);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding-bottom: 1rem;
+}
+
+.detail-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.back-to-reports-btn {
+    align-items: center;
+    align-self: flex-start;
+    background: var(--main-4);
+    border: 1px solid var(--slight-tint);
+    border-radius: 8px;
+    color: var(--font-color);
+    display: inline-flex;
+    font-size: 0.84rem;
+    font-weight: 800;
+    gap: 0.4rem;
+    line-height: 1;
+    margin-bottom: 0.45rem;
+    padding: 0.55rem 0.7rem;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.back-to-reports-btn:hover {
+    background: var(--main-5);
+    border-color: var(--medium-tint);
+}
+
+.detail-header-side {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.detail-header h4 {
+    color: var(--font-color);
+    font-size: 1.35rem;
+    margin: 0.15rem 0 0;
+}
+
+.detail-grid {
+    border-bottom: 1px solid var(--slight-tint);
+    display: grid;
+    gap: 1.1rem 2rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-bottom: 1.15rem;
+}
+
+.detail-grid > div,
+.detail-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.report-date {
+    color: var(--font-alt-color);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.detail-copy {
+    padding-top: 0;
+}
+
+.detail-copy + .detail-copy {
+    border-top: 1px solid var(--slight-tint);
+    padding-top: 1rem;
+}
+
+.detail-copy p {
+    color: var(--font-color);
+    line-height: 1.4;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.resolution-meta {
+    align-items: center;
+    color: var(--font-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    line-height: 1.35;
+}
+
+.resolution-meta .user-info-mini {
+    background: transparent;
+    display: inline-flex;
+    gap: 0;
+    padding: 0 0.1rem;
+}
+
+.resolution-meta .user-info-mini:hover {
+    background: transparent;
+}
+
+.resolution-meta .name-mini {
+    color: var(--font-color);
+    font-size: 1rem;
+    font-weight: 800;
+    max-width: 14rem;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.15rem;
+}
+
+.resolution-meta .user-info-mini:hover .name-mini {
+    text-decoration: underline;
+}
+
+.resolution-meta time {
+    color: var(--font-alt-color);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: flex-end;
+    margin: 0;
+}
+
+.report-action-btn {
+    align-items: center;
+    background: var(--main-4);
+    border: 1px solid var(--slight-tint);
+    border-radius: 8px;
+    color: var(--font-color);
+    display: inline-flex;
+    font-size: 0.85rem;
+    font-weight: 800;
+    gap: 0.45rem;
+    line-height: 1;
+    padding: 0.55rem 0.7rem;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.report-action-btn:hover {
+    background: var(--main-5);
+    border-color: var(--medium-tint);
+}
+
+.report-action-btn.danger {
+    background: color-mix(in srgb, var(--p-red) 85%, var(--main-4));
+    border-color: color-mix(in srgb, var(--p-red) 70%, transparent);
+}
+
+.report-action-btn.danger:hover {
+    background: var(--p-red);
+}
+
+.reported-message-review {
+    border-bottom: 1px solid var(--slight-tint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding-bottom: 1.15rem;
+}
+
+.review-header {
+    align-items: center;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.review-header label {
+    color: var(--font-alt-color);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.review-header span {
+    color: var(--font-alt-color);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.reported-message-container {
+    background: transparent;
+    border-radius: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.message-state {
+    align-items: center;
+    border: 1px dashed var(--slight-tint);
+    border-radius: 8px;
+    color: var(--font-alt-color);
+    display: flex;
+    justify-content: center;
+    min-height: 5rem;
+    padding: 1rem;
+}
+
+.message-state.error {
+    color: var(--font-color);
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+@media (max-width: 800px) {
+    .reports-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .detail-header,
+    .detail-header-side,
+    .detail-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .back-to-reports-btn {
+        font-size: 0.9rem;
+        padding-bottom: 0.1rem;
+    }
+
+    .report-action-btn {
+        justify-content: center;
+        width: 100%;
+    }
+}

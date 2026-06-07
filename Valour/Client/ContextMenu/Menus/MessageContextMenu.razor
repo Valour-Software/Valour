@@ -149,8 +149,10 @@
                 ReportingUserId = Client.Me.Id,
                 MessageId = Data.MessageComponent.ParamData.Message.Id,
                 ChannelId = Data.MessageComponent.ParamData.Message.ChannelId,
-                PlanetId = Data.MessageComponent.ParamData.Message.PlanetId
-            }
+                PlanetId = Data.MessageComponent.ParamData.Message.PlanetId,
+                ReportedUserId = Data.Message.AuthorUserId
+            },
+            ReportedMemberId = _authorMember?.Id
         };
         
         ModalRoot.OpenModal<ReportModalComponent>(data);

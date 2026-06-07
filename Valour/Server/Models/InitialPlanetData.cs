@@ -24,6 +24,11 @@ public class InitialPlanetData
     public IEnumerable<PlanetEmoji> Emojis { get; set; }
 
     /// <summary>
+    /// Rules configured for the planet.
+    /// </summary>
+    public IEnumerable<PlanetRule> Rules { get; set; }
+
+    /// <summary>
     /// Users currently in each voice channel (channelId -> userIds)
     /// </summary>
     public Dictionary<long, List<long>> VoiceParticipants { get; set; }

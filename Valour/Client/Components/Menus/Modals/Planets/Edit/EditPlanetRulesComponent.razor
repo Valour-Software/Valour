@@ -1,0 +1,312 @@
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="rules-settings">
+    <div class="rules-toolbar">
+        <div>
+            <h3>Planet Rules</h3>
+            <p class="subtitle">Rules appear in the Rules pseudochannel and can later be used for planet reports.</p>
+        </div>
+        <button class="v-btn primary"
+                disabled="@(!_canManage || _loading)"
+                @onclick="CreateRuleAsync">
+            <i class="bi bi-plus-lg"></i>
+            Add Rule
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rules-muted">Loading rules...</p>
+    }
+    else
+    {
+        @if (Planet.Rules.Count == 0)
+        {
+            <div class="rules-empty-panel">
+                <i class="bi bi-list-check"></i>
+                <h4>No rules yet</h4>
+                <p>Add the first rule to start shaping this planet's expectations.</p>
+            </div>
+        }
+        else
+        {
+            <div class="rules-layout">
+                <div class="rules-list">
+                    @foreach (var rule in Planet.Rules)
+                    {
+                        var ruleItem = rule;
+                        <div class="rule-row @(_selected?.Id == ruleItem.Id ? "active" : "")"
+                             tabindex="0"
+                             @onclick="() => SelectRule(ruleItem)">
+                            <span class="rule-position">@((ruleItem.Position + 1).ToString("00"))</span>
+                            <span class="rule-title" title="@ruleItem.Title">@ruleItem.Title</span>
+                            <span class="rule-actions" @onclick:stopPropagation="true">
+                                <button type="button"
+                                        title="Move up"
+                                        disabled="@(!_canManage || IsFirst(ruleItem))"
+                                        @onclick="() => MoveRuleAsync(ruleItem, -1)">
+                                    <i class="bi bi-chevron-up"></i>
+                                </button>
+                                <button type="button"
+                                        title="Move down"
+                                        disabled="@(!_canManage || IsLast(ruleItem))"
+                                        @onclick="() => MoveRuleAsync(ruleItem, 1)">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                <div class="rule-editor">
+                    @if (_selected is null)
+                    {
+                        <div class="rule-empty-editor">
+                            <i class="bi bi-list-check"></i>
+                            <p>Select a rule to edit it.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="rule-editor-fields">
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input class="v-input"
+                                       value="@_titleValue"
+                                       maxlength="@ISharedPlanetRule.MaxTitleLength"
+                                       @oninput="OnTitleInput" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="v-input rule-description-input"
+                                          value="@_descriptionValue"
+                                          maxlength="@ISharedPlanetRule.MaxDescriptionLength"
+                                          @oninput="OnDescriptionInput"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="rule-preview">
+                            <PlanetRulesDisplay Compact="true" Rules="@PreviewRules" />
+                        </div>
+
+                        <div class="rule-editor-actions">
+                            <ResultLabel Result="@_result" />
+                            <div class="rule-button-row">
+                                <button class="v-btn danger"
+                                        disabled="@(!_canManage || _saving)"
+                                        @onclick="DeleteSelectedAsync">
+                                    Delete
+                                </button>
+                                <button class="v-btn primary"
+                                        disabled="@(!_canManage || _saving)"
+                                        @onclick="SaveSelectedAsync">
+                                    @(_saving ? "Saving..." : "Save Rule")
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _canManage;
+    private PlanetRule _selected;
+    private string _titleValue = string.Empty;
+    private string _descriptionValue = string.Empty;
+    private ITaskResult _result;
+
+    private IEnumerable<PlanetRule> PreviewRules =>
+        _selected is null
+            ? Enumerable.Empty<PlanetRule>()
+            : new[]
+            {
+                new PlanetRule(Client)
+                {
+                    Id = _selected.Id,
+                    PlanetId = _selected.PlanetId,
+                    Position = _selected.Position,
+                    Title = _titleValue,
+                    Description = _descriptionValue
+                }
+            };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Planet ??= WindowService.FocusedPlanet;
+        if (Planet is null)
+            return;
+
+        _canManage = Planet.MyMember?.HasPermission(PlanetPermissions.Manage) ?? false;
+        Planet.Rules.Changed += OnRulesChanged;
+
+        await Planet.LoadRulesAsync();
+        _selected = Planet.Rules.FirstOrDefault();
+        LoadDraftFromSelected();
+        _loading = false;
+    }
+
+    private Task OnRulesChanged(IModelEvent<PlanetRule> _)
+    {
+        if (_selected is not null && !Planet.Rules.TryGet(_selected.Id, out _selected))
+        {
+            _selected = Planet.Rules.FirstOrDefault();
+            LoadDraftFromSelected();
+        }
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void SelectRule(PlanetRule rule)
+    {
+        _selected = rule;
+        _result = null;
+        LoadDraftFromSelected();
+    }
+
+    private void LoadDraftFromSelected()
+    {
+        _titleValue = _selected?.Title ?? string.Empty;
+        _descriptionValue = _selected?.Description ?? string.Empty;
+    }
+
+    private void OnTitleInput(ChangeEventArgs e)
+    {
+        _titleValue = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private void OnDescriptionInput(ChangeEventArgs e)
+    {
+        _descriptionValue = e.Value?.ToString() ?? string.Empty;
+    }
+
+    private async Task CreateRuleAsync()
+    {
+        if (!_canManage)
+        {
+            _result = TaskResult.FromFailure("You lack permission to manage planet rules.");
+            return;
+        }
+
+        var rule = new PlanetRule(Client)
+        {
+            PlanetId = Planet.Id,
+            Title = $"Rule {Planet.Rules.Count + 1}",
+            Description = string.Empty
+        };
+
+        var result = await rule.CreateAsync();
+        _result = result;
+
+        if (result.Success)
+        {
+            _selected = result.Data.Sync(Client);
+            LoadDraftFromSelected();
+        }
+    }
+
+    private async Task SaveSelectedAsync()
+    {
+        if (_selected is null)
+            return;
+
+        if (!_canManage)
+        {
+            _result = TaskResult.FromFailure("You lack permission to manage planet rules.");
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var updated = new PlanetRule(Client)
+            {
+                Id = _selected.Id,
+                PlanetId = _selected.PlanetId,
+                Position = _selected.Position,
+                Title = _titleValue,
+                Description = _descriptionValue
+            };
+
+            var result = await updated.UpdateAsync();
+            _result = result;
+
+            if (result.Success)
+            {
+                _selected = result.Data.Sync(Client);
+                LoadDraftFromSelected();
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteSelectedAsync()
+    {
+        if (_selected is null)
+            return;
+
+        if (!_canManage)
+        {
+            _result = TaskResult.FromFailure("You lack permission to manage planet rules.");
+            return;
+        }
+
+        var deletedId = _selected.Id;
+        _result = await _selected.DeleteAsync();
+
+        if (_result.Success)
+        {
+            _selected = Planet.Rules.FirstOrDefault(x => x.Id != deletedId);
+            LoadDraftFromSelected();
+        }
+    }
+
+    private async Task MoveRuleAsync(PlanetRule rule, int delta)
+    {
+        if (!_canManage)
+            return;
+
+        var rules = Planet.Rules.ToList();
+        var index = rules.FindIndex(x => x.Id == rule.Id);
+        var newIndex = index + delta;
+
+        if (index < 0 || newIndex < 0 || newIndex >= rules.Count)
+            return;
+
+        rules.RemoveAt(index);
+        rules.Insert(newIndex, rule);
+
+        var order = rules.Select(x => x.Id).ToArray();
+        _result = await Planet.Node.PostAsync($"{ISharedPlanetRule.GetBaseRoute(Planet.Id)}/order", order);
+
+        if (_result.Success)
+        {
+            for (var i = 0; i < rules.Count; i++)
+                rules[i].Position = (uint)i;
+
+            Planet.Rules.Sort();
+        }
+    }
+
+    private bool IsFirst(PlanetRule rule) => Planet.Rules.FirstOrDefault()?.Id == rule.Id;
+
+    private bool IsLast(PlanetRule rule) => Planet.Rules.LastOrDefault()?.Id == rule.Id;
+
+    public void Dispose()
+    {
+        if (Planet is not null)
+            Planet.Rules.Changed -= OnRulesChanged;
+    }
+}

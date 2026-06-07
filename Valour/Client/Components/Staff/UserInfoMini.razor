@@ -1,11 +1,15 @@
 @inject UserService UserService
+@inject ContextMenuService ContextMenuService
 
 @if (_user is null)
 {
     @if (UserId.HasValue)
     {
         <div class="user-info-mini">
-            <div class="avatar-mini" style="background-image: url(@ISharedUser.DefaultAvatar);"></div>
+            @if (ShowAvatar)
+            {
+                <div class="avatar-mini" style="background-image: url(@ISharedUser.DefaultAvatar);"></div>
+            }
             <span class="name-mini">Loading...</span>
         </div>
     }
@@ -16,9 +20,12 @@
 }
 else
 {
-    <div class="user-info-mini" @onclick="ShowProfileAsync">
-        <div class="avatar-mini" style="background-image: url(@_avatarUrl), url(@ISharedUser.DefaultAvatar);"></div>
-        <span class="name-mini">@_user.NameAndTag</span>
+    <div class="user-info-mini" @onclick="ShowProfileAsync" @oncontextpress="ShowContextMenu" tabindex="0" @onkeydown="OnKeyDown">
+        @if (ShowAvatar)
+        {
+            <div class="avatar-mini" style="background-image: url(@_avatarUrl), url(@ISharedUser.DefaultAvatar);"></div>
+        }
+        <span class="name-mini">@GetDisplayName()</span>
     </div>
 }
 
@@ -66,6 +73,12 @@ else
     [Parameter]
     public User User { get; set; }
 
+    [Parameter]
+    public bool ShowAvatar { get; set; } = true;
+
+    [Parameter]
+    public bool ShowTag { get; set; } = true;
+
     private User _user;
     private string _avatarUrl;
 
@@ -107,5 +120,31 @@ else
     {
         if (_user is null) return;
         await ProfilePopup.Instance.OpenAsync(_user, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+    }
+
+    private void ShowContextMenu(MouseEventArgs e)
+    {
+        if (_user is null) return;
+
+        ContextMenuService.Root.OpenMenu<UserContextMenu>(e,
+            new UserContextMenu.UserContextParams
+            {
+                User = _user
+            }
+        );
+    }
+
+    private string GetDisplayName()
+    {
+        if (_user is null)
+            return "Unknown User";
+
+        return ShowTag ? _user.NameAndTag : _user.Name;
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _user is not null)
+            await ProfilePopup.Instance.OpenAsync(_user, 0, 0, "bottomRight");
     }
 }

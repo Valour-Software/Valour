@@ -17,6 +17,7 @@ public class HostedPlanet : ServerModel<long>
     private readonly SortedServerModelList<Channel, long> _channels = new();
     private readonly SortedServerModelList<PlanetRole, long> _roles = new();
     private readonly ServerModelList<PlanetEmoji, long> _emojis = new();
+    private readonly SortedServerModelList<PlanetRule, long> _rules = new();
 
     // Fixed-size array for local-to-global role mapping.
     private readonly long[] _localToGlobalRoleId = new long[256];
@@ -41,13 +42,19 @@ public class HostedPlanet : ServerModel<long>
     
     public Planet Planet { get; }
     
-    public HostedPlanet(Planet planet, List<Channel> channels, List<PlanetRole> roles, List<PlanetEmoji> emojis)
+    public HostedPlanet(
+        Planet planet,
+        List<Channel> channels,
+        List<PlanetRole> roles,
+        List<PlanetEmoji> emojis,
+        List<PlanetRule> rules)
     {
         Planet = planet;
         Id = planet.Id;
         SetChannels(channels);
         SetRoles(roles);
         SetEmojis(emojis);
+        SetRules(rules);
     }
     
     public void Update(Planet updated)
@@ -251,6 +258,27 @@ public class HostedPlanet : ServerModel<long>
     public void RemoveEmoji(long id)
     {
         _emojis.Remove(id);
+    }
+
+    // Rules //
+
+    public ModelListSnapshot<PlanetRule, long> Rules => _rules.Snapshot;
+
+    public PlanetRule? GetRule(long id) => _rules.Get(id);
+
+    public void SetRules(List<PlanetRule> rules)
+    {
+        _rules.Set(rules);
+    }
+
+    public void UpsertRule(PlanetRule rule)
+    {
+        _rules.Upsert(rule);
+    }
+
+    public void RemoveRule(long id)
+    {
+        _rules.Remove(id);
     }
 
     // Voice Participants //

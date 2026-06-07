@@ -1,57 +1,107 @@
 @inherits Modal<ReportModalComponent.ModalParams>
 @inject SafetyService SafetyService
+@inject ValourClient Client
 
-<BasicModalLayout Title="@GetTitle()" Icon="flag-fill" MaxWidth="500px">
+<BasicModalLayout Title="@GetTitle()" Icon="flag-fill" MaxWidth="640px">
     <MainArea>
-        <div style="max-height: 40vh; overflow: auto">
+        <div class="report-modal">
+            <div class="report-progress">
+                <span class="@GetStepClass(0)">Type</span>
+                <span class="@GetStepClass(1)">Rule</span>
+                <span class="@GetStepClass(2)">Details</span>
+            </div>
+
             @switch (_page)
             {
                 case 0:
-                {
-                    <h3>Why are you reporting this content?</h3>
-                    <div class="report-reasons">
-                        @foreach (var reason in ReportReasons.Reasons)
-                        {
-                            var r = reason;
-
-                            <button class="btn v-btn large" style="width: 100%; margin-bottom: 0.5em" @onclick="() => OnSelectReason(reason.Code)">
-                                <h4>@reason.Title</h4>
-                                <p>@reason.Description</p>
+                    <section class="report-step">
+                        <h3>What kind of rule was broken?</h3>
+                        <div class="report-scope-grid">
+                            @if (Data.Report.PlanetId.HasValue)
+                            {
+                                <button class="report-scope-card" disabled="@(!CanUsePlanetRules)" @onclick="SelectPlanetScope">
+                                    <i class="bi bi-list-check"></i>
+                                    <span>Planet rule</span>
+                                    <p>@GetPlanetScopeDescription()</p>
+                                </button>
+                            }
+                            <button class="report-scope-card" @onclick="SelectPlatformScope">
+                                <i class="bi bi-shield-exclamation"></i>
+                                <span>Platform rule</span>
+                                <p>Send this to Valour staff for safety policy review.</p>
                             </button>
-                        }
-                    </div>
+                        </div>
+                    </section>
                     break;
-                }
                 case 1:
-                {
-                    <h3>Describe the incident</h3>
-                    <div class="form-group">
-                        <textarea class="form-control" @bind="@Data.Report.LongReason" rows="5" placeholder="Please provide details about the incident..."></textarea>
-                    </div>
+                    <section class="report-step">
+                        <h3>@GetRuleStepTitle()</h3>
+                        <div class="report-option-list">
+                            @if (_scope == ReportScope.Platform)
+                            {
+                                @foreach (var reason in ReportReasons.Reasons)
+                                {
+                                    <button class="report-option-card" @onclick="() => SelectPlatformReason(reason)">
+                                        <span>@reason.Title</span>
+                                        <p>@reason.Description</p>
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var rule in _planetRules)
+                                {
+                                    <button class="report-option-card" @onclick="() => SelectPlanetRule(rule)">
+                                        <span>@rule.Title</span>
+                                        <p>@GetRuleDescription(rule)</p>
+                                    </button>
+                                }
+                            }
+                        </div>
+                    </section>
                     break;
-                }
                 case 2:
-                {
-                    <h4>@_response</h4>
+                    <section class="report-step">
+                        <h3>Add details</h3>
+                        <div class="report-summary-card">
+                            <span>@GetSelectedLabel()</span>
+                            <p>@GetSelectedDescription()</p>
+                        </div>
+                        <div class="report-field">
+                            <label>What happened?</label>
+                            <textarea class="form-control" @bind="_details" rows="6" maxlength="@ISharedPlanetReport.MaxReasonLength" placeholder="Add context for the moderators reviewing this report."></textarea>
+                        </div>
+                    </section>
                     break;
-                }
+                case 3:
+                    <section class="report-step report-result @(_submitSucceeded ? "success" : "failure")">
+                        <i class="bi @(_submitSucceeded ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill")"></i>
+                        <h3>@(_submitSucceeded ? "Report submitted" : "Report failed")</h3>
+                        <p>@_response</p>
+                    </section>
+                    break;
             }
         </div>
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
-            @if (_page == 1)
+            @if (_page == 0)
             {
-                <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
-                <button @onclick="OnClickSubmitAsync" class="v-btn primary">Submit Report</button>
+                <button @onclick="Close" class="v-btn">Cancel</button>
             }
-            else if (_page == 0)
+            else if (_page == 1 || _page == 2)
             {
-                <button @onclick="@OnClickCancel" class="v-btn">Cancel</button>
+                <button @onclick="Back" class="v-btn">Back</button>
+                @if (_page == 2)
+                {
+                    <button @onclick="OnClickSubmitAsync" class="v-btn primary" disabled="@_isSubmitting">
+                        @(_isSubmitting ? "Submitting..." : "Submit Report")
+                    </button>
+                }
             }
             else
             {
-                <button @onclick="@OnClickCancel" class="v-btn">Close</button>
+                <button @onclick="Close" class="v-btn">Close</button>
             }
         </div>
     </ButtonArea>
@@ -62,43 +112,201 @@
     public class ModalParams
     {
         public Report Report;
+        public Planet Planet;
+        public long? ReportedMemberId;
     }
 
-    private int _page = 0;
+    private enum ReportScope
+    {
+        None,
+        Planet,
+        Platform
+    }
+
+    private int _page;
     private string _response = "";
+    private string _details = "";
+    private bool _isSubmitting;
+    private bool _submitSucceeded;
+    private bool _loadingPlanetRules;
+    private ReportScope _scope = ReportScope.None;
+    private Planet _planet;
+    private List<PlanetRule> _planetRules = new();
+    private PlanetRule _selectedPlanetRule;
+    private ReportReason _selectedPlatformReason;
+
+    private bool CanUsePlanetRules => !_loadingPlanetRules && _planetRules.Count > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Data.Report ??= new Report();
+        Data.Report.LongReason ??= string.Empty;
+        _details = Data.Report.LongReason;
+
+        if (Data.Planet is not null)
+            _planet = Data.Planet;
+        else if (Data.Report.PlanetId.HasValue)
+            _planet = await Client.PlanetService.FetchPlanetAsync(Data.Report.PlanetId.Value);
+
+        if (_planet is not null)
+        {
+            _loadingPlanetRules = true;
+            await _planet.LoadRulesAsync();
+            _planetRules = _planet.Rules.ToList();
+            _loadingPlanetRules = false;
+        }
+
+        if (!Data.Report.PlanetId.HasValue)
+        {
+            _scope = ReportScope.Platform;
+            _page = 1;
+        }
+    }
 
     private string GetTitle()
     {
         return _page switch
         {
-            0 => "Report Content",
-            1 => "Describe Incident",
-            2 => "Report Submitted",
-            _ => "Report Content"
+            0 => "Report",
+            1 => _scope == ReportScope.Planet ? "Planet Rules" : "Platform Rules",
+            2 => "Report Details",
+            3 => "Report",
+            _ => "Report"
         };
     }
 
-    private void OnSelectReason(ReportReasonCode reasonCode)
+    private string GetStepClass(int step)
     {
-        Data.Report.ReasonCode = reasonCode;
+        if (_page == 3)
+            return "done";
+
+        return _page == step ? "active" : _page > step ? "done" : string.Empty;
+    }
+
+    private string GetPlanetScopeDescription()
+    {
+        if (_loadingPlanetRules)
+            return "Loading planet rules...";
+
+        if (_planetRules.Count == 0)
+            return "This planet has no reportable rules yet.";
+
+        return "Send this to the planet moderators for review.";
+    }
+
+    private string GetRuleStepTitle()
+    {
+        return _scope == ReportScope.Planet
+            ? "Which planet rule was broken?"
+            : "Which platform rule was broken?";
+    }
+
+    private string GetRuleDescription(PlanetRule rule)
+    {
+        if (rule is null)
+            return string.Empty;
+
+        return string.IsNullOrWhiteSpace(rule.Description)
+            ? "No description provided."
+            : rule.Description;
+    }
+
+    private string GetSelectedLabel()
+    {
+        return _scope == ReportScope.Planet
+            ? _selectedPlanetRule?.Title ?? "Planet rule"
+            : _selectedPlatformReason?.Title ?? "Platform rule";
+    }
+
+    private string GetSelectedDescription()
+    {
+        return _scope == ReportScope.Planet
+            ? GetRuleDescription(_selectedPlanetRule)
+            : _selectedPlatformReason?.Description ?? string.Empty;
+    }
+
+    private void SelectPlanetScope()
+    {
+        if (!CanUsePlanetRules)
+            return;
+
+        _scope = ReportScope.Planet;
         _page = 1;
-        StateHasChanged();
+    }
+
+    private void SelectPlatformScope()
+    {
+        _scope = ReportScope.Platform;
+        _page = 1;
+    }
+
+    private void SelectPlatformReason(ReportReason reason)
+    {
+        _selectedPlatformReason = reason;
+        Data.Report.ReasonCode = reason.Code;
+        _page = 2;
+    }
+
+    private void SelectPlanetRule(PlanetRule rule)
+    {
+        _selectedPlanetRule = rule;
+        _page = 2;
+    }
+
+    private void Back()
+    {
+        if (_page == 2)
+        {
+            _page = 1;
+            return;
+        }
+
+        if (_page == 1)
+        {
+            if (Data.Report.PlanetId.HasValue)
+                _page = 0;
+            else
+                Close();
+        }
     }
 
     private async Task OnClickSubmitAsync()
     {
-        var result = await SafetyService.PostReportAsync(Data.Report);
-        if (!result.Success)
-            _response = result.Message;
+        if (_isSubmitting)
+            return;
+
+        _isSubmitting = true;
+        Data.Report.LongReason = _details?.Trim() ?? string.Empty;
+
+        ITaskResult result;
+        if (_scope == ReportScope.Planet)
+        {
+            var report = new PlanetReport(Client)
+            {
+                PlanetId = _planet.Id,
+                RuleId = _selectedPlanetRule.Id,
+                MessageId = Data.Report.MessageId,
+                ChannelId = Data.Report.ChannelId,
+                ReportedUserId = Data.Report.ReportedUserId,
+                ReportedMemberId = Data.ReportedMemberId,
+                LongReason = Data.Report.LongReason
+            };
+
+            var planetResult = await SafetyService.PostPlanetReportAsync(report, _planet);
+            result = planetResult;
+        }
         else
-            _response = "Report submitted successfully. Thank you for making Valour a safe place for our communities.";
-        
-        _page = 2;
+        {
+            result = await SafetyService.PostReportAsync(Data.Report);
+        }
+
+        _submitSucceeded = result.Success;
+        _response = result.Success
+            ? "Thanks. The report is in the right queue now."
+            : result.Message;
+
+        _isSubmitting = false;
+        _page = 3;
         StateHasChanged();
-    }
-    
-    private void OnClickCancel()
-    {
-        Close();
     }
 }

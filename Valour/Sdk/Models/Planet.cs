@@ -85,9 +85,19 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     public readonly ModelStore<PlanetBan, long> Bans = new();
 
     /// <summary>
+    /// The loaded report queue items for this planet.
+    /// </summary>
+    public readonly ModelStore<PlanetReport, long> Reports = new();
+
+    /// <summary>
     /// The loaded custom emojis of this planet
     /// </summary>
     public readonly ModelStore<PlanetEmoji, long> Emojis = new();
+
+    /// <summary>
+    /// The configured rules of this planet.
+    /// </summary>
+    public readonly SortedModelStore<PlanetRule, long> Rules = new();
     
     /// <summary>
     /// A map from role membership to the contained roles
@@ -346,7 +356,9 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Invites.Dispose();
         PermissionsNodes.Dispose();
         Bans.Dispose();
+        Reports.Dispose();
         Emojis.Dispose();
+        Rules.Dispose();
     }
 
     public async Task EnsureReadyAsync()
@@ -662,6 +674,20 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Emojis.NotifySet();
     }
 
+    /// <summary>
+    /// Loads the planet's rules from the server.
+    /// </summary>
+    public async Task LoadRulesAsync()
+    {
+        var rules = (await Node.GetJsonAsync<List<PlanetRule>>(ISharedPlanetRule.GetBaseRoute(Id))).Data;
+        if (rules is null)
+            return;
+
+        Rules.Clear(true);
+        rules.SyncAll(Client, ModelInsertFlags.Batched);
+        Rules.NotifySet();
+    }
+
     public void NotifyRoleOrderChange(RoleOrderEvent e)
     {
         for (int i = 0; i < e.Order.Count; i++)
@@ -711,12 +737,25 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
 
     public ModelQueryEngine<PlanetBan> GetBanQueryEngine() =>
         Client.PlanetService.GetBanQueryEngine(this);
+
+    public ModelQueryEngine<PlanetReport> GetReportQueryEngine() =>
+        Client.PlanetService.GetReportQueryEngine(this);
+
+    public ValueTask<PlanetRule> FetchRuleAsync(long id, bool skipCache = false) =>
+        Client.PlanetService.FetchRuleAsync(id, this, skipCache);
+
+    public Task<int> FetchMemberCountAsync() =>
+        Client.PlanetService.FetchMemberCountAsync(this);
     
     public string GetIconUrl(IconFormat format = IconFormat.Webp256) =>
         ISharedPlanet.GetIconUrl(this, format);
 
     public PlanetListInfo ToListInfo()
     {
-        return PlanetListInfo.FromPlanet(this);
+        var info = PlanetListInfo.FromPlanet(this);
+        info.MemberCount = Members.Count;
+        info.Tags = Tags?.ToList() ?? new List<PlanetTag>();
+        info.TagIds = info.Tags.Select(x => x.Id).ToList();
+        return info;
     }
 }

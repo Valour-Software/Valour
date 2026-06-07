@@ -8,7 +8,9 @@ public enum ReportResolution : int
     UserDisabled = 3,
     ContentRemoved = 4,
     UserDeleted = 5,
-    Duplicate = 6
+    Duplicate = 6,
+    Kicked = 7,
+    Banned = 8
 }
 
 public class ReportReason

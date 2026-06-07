@@ -1,18 +1,183 @@
 .report-modal {
-    min-width: 360px;
-    max-width: 600px;
-    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: min(64vh, 42rem);
+    overflow-y: auto;
+    padding-right: 0.15rem;
 }
 
-.report-modal h2 {
-    font-size: 20px;
+.report-progress {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+}
+
+.report-progress span {
+    border: 1px solid var(--slight-tint);
+    border-radius: 6px;
+    color: var(--font-color);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.55rem 0.6rem;
     text-align: center;
 }
 
-.report-modal button h4 {
-    font-size: 1.2em;
+.report-progress span.active {
+    border-color: var(--main-5);
+    background: color-mix(in srgb, var(--main-5) 22%, transparent);
 }
 
-.report-modal button p {
-    font-size: 1em;
+.report-progress span.done {
+    border-color: color-mix(in srgb, #40d889 55%, transparent);
+    background: color-mix(in srgb, #40d889 15%, transparent);
+}
+
+.report-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.report-step h3 {
+    color: var(--font-color);
+    font-size: 1.35rem;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.report-scope-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.report-scope-card,
+.report-option-card,
+.report-summary-card {
+    background: var(--main-2);
+    border: 1px solid var(--slight-tint);
+    border-radius: 8px;
+    color: var(--font-color);
+}
+
+.report-scope-card,
+.report-option-card {
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+
+.report-scope-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-height: 9rem;
+    padding: 1rem;
+}
+
+.report-scope-card:hover:not(:disabled),
+.report-option-card:hover {
+    border-color: var(--main-5);
+    background: color-mix(in srgb, var(--main-5) 12%, var(--main-2));
+    transform: translateY(-1px);
+}
+
+.report-scope-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.report-scope-card i {
+    color: var(--font-color);
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.report-scope-card span,
+.report-option-card span,
+.report-summary-card span {
+    color: var(--font-color);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.report-scope-card p,
+.report-option-card p,
+.report-summary-card p,
+.report-result p {
+    color: var(--font-color);
+    font-size: 0.92rem;
+    line-height: 1.35;
+    margin: 0;
+}
+
+.report-option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.report-option-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.85rem 1rem;
+}
+
+.report-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.9rem 1rem;
+}
+
+.report-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.report-field label {
+    color: var(--font-color);
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.report-field textarea {
+    resize: vertical;
+}
+
+.report-result {
+    align-items: center;
+    padding: 1.5rem 1rem;
+    text-align: center;
+}
+
+.report-result i {
+    font-size: 2rem;
+}
+
+.report-result.success i {
+    color: #40d889;
+}
+
+.report-result.failure i {
+    color: var(--p-red);
+}
+
+@media (max-width: 620px) {
+    .report-modal {
+        max-height: 58vh;
+    }
+
+    .report-scope-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-scope-card {
+        min-height: 7rem;
+    }
 }

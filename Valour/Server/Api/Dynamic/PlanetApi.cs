@@ -223,6 +223,21 @@ public class PlanetApi
         return Results.Json(memberInfo);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/members/count")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetMemberCountRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        PlanetService planetService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var count = await planetService.GetMemberCountAsync(id);
+        return Results.Json(count);
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/members/query")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> QueryMembersRouteAsync(
