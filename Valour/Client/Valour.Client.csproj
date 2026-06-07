@@ -74,7 +74,7 @@
           BeforeTargets="ResolveProjectStaticWebAssets">
     <PropertyGroup>
       <_CssBundlerProject>$(MSBuildProjectDirectory)/../BuildTools/CssBundler/CssBundler.csproj</_CssBundlerProject>
-      <_CssBundleInputs>$(MSBuildProjectDirectory)/wwwroot/css/reboot.min.css;$(MSBuildProjectDirectory)/wwwroot/css/app.css;$(MSBuildProjectDirectory)/wwwroot/css/globals.css;$(MSBuildProjectDirectory)/wwwroot/css/bootstrap-icons.css;$(MSBuildProjectDirectory)/wwwroot/css/hljs-theme.min.css;$(MSBuildProjectDirectory)/wwwroot/css/pickr.min.css</_CssBundleInputs>
+      <_CssBundleInputs>$(MSBuildProjectDirectory)/wwwroot/css/reboot.min.css;$(MSBuildProjectDirectory)/wwwroot/css/globals.css;$(MSBuildProjectDirectory)/wwwroot/css/bootstrap-icons.css;$(MSBuildProjectDirectory)/wwwroot/css/hljs-theme.min.css;$(MSBuildProjectDirectory)/wwwroot/css/pickr.min.css</_CssBundleInputs>
       <_ScopedCssAggregator>$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/scopedcss/bundle/Valour.Client.styles.css</_ScopedCssAggregator>
       <_CssBundleSearchPaths>$(NuGetPackageRoot);$(MSBuildProjectDirectory)/obj/$(Configuration)/$(TargetFramework)/scopedcss/</_CssBundleSearchPaths>
       <_CssBundleOutput>$(MSBuildProjectDirectory)/wwwroot/css/bundled.min.css</_CssBundleOutput>

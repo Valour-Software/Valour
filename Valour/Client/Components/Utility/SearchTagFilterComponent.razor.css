@@ -52,48 +52,10 @@
 .selected-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-2);
     margin-top: 0;
     margin-bottom: 8px;
     align-items: center;
-}
-
-.selected-tag {
-    background: var(--tag-selected-bg);
-    color: var(--p-cyan);
-    border: 1px solid rgba(var(--p-cyan-rgb), 0.3);
-    border-radius: 16px;
-    font-size: 0.85em;
-    padding: 4px 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    max-width: 100%;
-    transition: all 0.2s ease;
-}
-
-.selected-tag:hover {
-    background: rgba(var(--p-cyan-rgb), 0.25);
-    transform: translateY(-1px);
-}
-
-.remove-tag {
-    color: var(--font-alt-color);
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.remove-tag:hover {
-    color: var(--p-red);
-    transform: scale(1.1);
 }
 
 

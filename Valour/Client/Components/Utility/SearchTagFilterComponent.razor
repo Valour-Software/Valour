@@ -58,14 +58,13 @@
         <div class="selected-tags mt-3" id="selectedTags">
             @foreach (var tag in _selectedTags)
             {
-                <span class="selected-tag" id="@tag.Id">
-                    @("#" + tag.Slug)
-                    <button
-                        type="button"
-                        class="remove-tag"
-                        aria-label="Remove tag"
-                        @onclick="async () => await RemoveTag(tag)">x</button>
-                </span>
+                <ValourPill id="@tag.Id"
+                            Text="@("#" + tag.Slug)"
+                            Variant="soft"
+                            Tone="accent"
+                            Removable="true"
+                            RemoveLabel="Remove tag"
+                            OnRemove="async () => await RemoveTag(tag)" />
             }
         </div>
     }

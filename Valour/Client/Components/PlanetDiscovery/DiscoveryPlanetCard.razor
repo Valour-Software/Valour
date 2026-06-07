@@ -29,14 +29,14 @@
     </div>
     <div class="planet-info">
         <div class="planet-tags">
-            <span class="planet-tag member-count-tag">
+            <ValourPill Variant="solid" Tone="neutral" Class="member-count-tag">
                 <strong>@PlanetInfo.MemberCount Members</strong>
-            </span>
+            </ValourPill>
             @if (_tagSlugs.Count > 0)
             {
                 @foreach (var tag in _tagSlugs)
                 {
-                    <span class="planet-tag">@tag.ToUpper()</span>
+                    <ValourPill Text="@tag.ToUpper()" Variant="soft" Tone="neutral" />
                 }
             }
         </div>

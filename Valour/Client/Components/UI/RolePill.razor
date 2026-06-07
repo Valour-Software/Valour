@@ -1,0 +1,20 @@
+@using Valour.Sdk.Models
+
+@if (Role is not null)
+{
+    <ValourPill Text="@Role.Name"
+                Title="@Role.Name"
+                Color="@Role.Color"
+                Variant="outline"
+                Tone="accent"
+                Size="@Size"
+                Class="@Class"
+                @attributes="AdditionalAttributes" />
+}
+
+@code {
+    [Parameter] public PlanetRole? Role { get; set; }
+    [Parameter] public string? Size { get; set; } = "sm";
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+}

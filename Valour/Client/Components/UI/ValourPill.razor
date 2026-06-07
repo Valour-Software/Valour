@@ -1,0 +1,134 @@
+<span class="@CssClass" style="@StyleValue" title="@Title" @attributes="FilteredAttributes">
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <i class="@IconClass" aria-hidden="true"></i>
+    }
+
+    <span class="v-pill-content">
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else if (!string.IsNullOrEmpty(Text))
+        {
+            @Text
+        }
+    </span>
+
+    @if (Removable)
+    {
+        <button type="button"
+                class="v-pill-remove"
+                aria-label="@RemoveLabel"
+                @onclick="HandleRemoveAsync"
+                @onclick:stopPropagation="true">
+            <i class="bi bi-x" aria-hidden="true"></i>
+        </button>
+    }
+</span>
+
+@code {
+    private static readonly HashSet<string> ReservedAttributeKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "class",
+        "style",
+        "title"
+    };
+
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Color { get; set; }
+    [Parameter] public string? Variant { get; set; } = "neutral";
+    [Parameter] public string? Tone { get; set; } = "neutral";
+    [Parameter] public string? Size { get; set; } = "sm";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public bool Removable { get; set; }
+    [Parameter] public string RemoveLabel { get; set; } = "Remove";
+    [Parameter] public EventCallback OnRemove { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string CssClass => string.Join(" ", new[]
+    {
+        "v-pill",
+        $"v-pill--{NormalizeCssToken(Variant, "neutral")}",
+        $"v-pill--{NormalizeCssToken(Tone, "neutral")}",
+        $"v-pill--{NormalizeCssToken(Size, "sm")}",
+        Removable ? "v-pill--removable" : null,
+        AttributeValue("class"),
+        Class
+    }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    private string? StyleValue
+    {
+        get
+        {
+            var styles = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(Color))
+            {
+                styles.Add($"--pill-accent: {Color}");
+                styles.Add($"--pill-border-color: {Color}");
+            }
+
+            var attributeStyle = AttributeValue("style");
+            if (!string.IsNullOrWhiteSpace(attributeStyle))
+                styles.Add(attributeStyle);
+
+            if (!string.IsNullOrWhiteSpace(Style))
+                styles.Add(Style);
+
+            return styles.Count == 0 ? null : string.Join("; ", styles);
+        }
+    }
+
+    private string IconClass
+    {
+        get
+        {
+            var icon = Icon?.Trim();
+            if (string.IsNullOrWhiteSpace(icon))
+                return string.Empty;
+
+            if (icon.StartsWith("bi ", StringComparison.Ordinal) || icon.Contains(' '))
+                return icon;
+
+            if (icon.StartsWith("bi-", StringComparison.Ordinal))
+                return $"bi {icon}";
+
+            return $"bi bi-{icon}";
+        }
+    }
+
+    private IReadOnlyDictionary<string, object>? FilteredAttributes =>
+        AdditionalAttributes?
+            .Where(attribute => !ReservedAttributeKeys.Contains(attribute.Key))
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value);
+
+    private string? AttributeValue(string key)
+    {
+        if (AdditionalAttributes is not null &&
+            AdditionalAttributes.TryGetValue(key, out var value))
+        {
+            return Convert.ToString(value);
+        }
+
+        return null;
+    }
+
+    private static string NormalizeCssToken(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        return value.Trim().ToLowerInvariant().Replace(' ', '-');
+    }
+
+    private async Task HandleRemoveAsync()
+    {
+        if (OnRemove.HasDelegate)
+            await OnRemove.InvokeAsync();
+    }
+}

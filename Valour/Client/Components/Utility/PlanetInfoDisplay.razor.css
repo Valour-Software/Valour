@@ -150,17 +150,6 @@
     gap: 0.5rem;
 }
 
-.planet-tag {
-    background: var(--main-3);
-    padding: 0.35rem 0.6rem;
-    border-radius: var(--small-radius);
-    font-size: 0.85rem;
-    font-weight: 500;
-    white-space: nowrap;
-    border: 1px solid var(--slight-tint);
-    color: var(--p-cyan);
-}
-
 /* Full page mode adjustments */
 .planet-info-display.full-page {
     min-height: 100vh;

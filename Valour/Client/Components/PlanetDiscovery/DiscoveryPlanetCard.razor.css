@@ -166,16 +166,18 @@
     -webkit-box-orient: vertical;
 }
 
-.member-count-tag {
+::deep .member-count-tag {
     background: linear-gradient(135deg, var(--slight-tint) 0%, var(--medium-tint) 100%);
     border: 1px solid var(--p-cyan);
     color: var(--p-cyan);
 }
-.member-count-tag:hover {
+
+::deep .member-count-tag:hover {
     background: linear-gradient(135deg, var(--medium-tint) 0%, var(--strong-tint) 100%);
     border-color: var(--p-cyan);
 }
-.member-count-tag strong {
+
+::deep .member-count-tag strong {
     color: var(--p-cyan);
     font-weight: 500;
 }
@@ -261,44 +263,6 @@
     align-items: center;
     overflow: hidden;
 }
-
-.planet-tag {
-    background: linear-gradient(135deg, var(--slight-tint) 0%, var(--medium-tint) 100%);
-    padding: 0.3rem 0.7rem;
-    border-radius: var(--small-radius);
-    font-size: 0.75rem;
-    font-weight: 500;
-    white-space: nowrap;
-    border: 1px solid var(--medium-tint);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: relative;
-    overflow: hidden;
-}
-
-.planet-tag::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transition: left 0.3s ease;
-}
-
-.planet-tag:hover {
-    background: linear-gradient(135deg, var(--medium-tint) 0%, var(--strong-tint) 100%);
-    border-color: var(--p-cyan);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.planet-tag:hover::before {
-    left: 100%;
-}
-
 
 .icon-text {
     position: absolute;
