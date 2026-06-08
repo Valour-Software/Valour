@@ -22,8 +22,8 @@
 
 .rules-window-header h2 {
     margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
 }
 
 .rules-window-header p,

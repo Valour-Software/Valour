@@ -15,7 +15,7 @@
 }
 
 .loading-container p {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     color: var(--font-alt-color);
     margin: 0;
 }
@@ -33,18 +33,18 @@
 }
 
 .error-container h2 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--p-red);
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-danger);
     margin: 0;
 }
 
 .error-container p {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     color: var(--font-alt-color);
     margin: 0;
     max-width: 500px;
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 @media (max-width: 768px) {
@@ -57,10 +57,10 @@
     }
     
     .error-container h2 {
-        font-size: 1.5rem;
+        font-size: var(--font-size-2xl);
     }
     
     .error-container p {
-        font-size: 1rem;
+        font-size: var(--font-size-md);
     }
 }

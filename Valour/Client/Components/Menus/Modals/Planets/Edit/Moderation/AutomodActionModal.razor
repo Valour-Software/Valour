@@ -71,7 +71,7 @@
             </div>
             @if (_action.ResponseChannelId.HasValue)
             {
-                <button class="v-btn mt-1" style="font-size:12px" @onclick="ClearResponseChannel">Reset to Automatic</button>
+                <button class="v-btn mt-1" style="font-size:var(--font-size-xs)" @onclick="ClearResponseChannel">Reset to Automatic</button>
             }
         }
 

@@ -41,7 +41,7 @@
 }
 
 ::deep .item .title {
-    font-size: 16px;
+    font-size: var(--font-size-md);
     display: inline-block;
     margin: 0;
     margin-left: 3px;

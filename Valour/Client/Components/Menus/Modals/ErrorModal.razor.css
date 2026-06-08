@@ -13,7 +13,7 @@
     padding: 1em;
     color: #fff;
     border-radius: var(--radius-md);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
     word-wrap: break-word;
     max-width: 100%;
     white-space: pre-wrap;

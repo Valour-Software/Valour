@@ -52,7 +52,7 @@
 }
 
 .icon-text {
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     font-family: var(--font-family-app);
     text-align: center;
     margin: 0;

@@ -10,8 +10,12 @@
 }
 
 .message {
+    --message-avatar-column: 52px;
     width: 100%;
     max-width: 100%;
+    display: grid;
+    grid-template-columns: var(--message-avatar-column) minmax(0, 1fr);
+    align-items: start;
     padding-bottom: 0;
     padding-left: 4px;
     position: relative;
@@ -19,7 +23,8 @@
 }
 
 .message .reactions {
-    margin-left: 52px;
+    grid-column: 2;
+    margin-left: 0;
     display: flex;
     gap: 4px;
     flex-direction: row;
@@ -30,7 +35,7 @@
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     margin-left: 6px;
 }
 
@@ -43,7 +48,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     gap: 4px;
-    font-size: 16px;
+    font-size: var(--font-size-md);
 }
 
 .message .reactions .reaction * {
@@ -52,11 +57,11 @@
 }
 
 .message .reactions .reaction.added {
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .message .reactions .reaction:hover {
-    border-color: var(--p-purple);
+    border-color: var(--color-secondary);
 }
 
 .message .reactions .reaction.new {
@@ -71,27 +76,29 @@
 }
 
 .message .content-holder {
-    display: inline-block;
-    margin-left: 3px;
+    display: block;
+    min-width: 0;
+    grid-column: 2;
+    margin-left: 0;
     margin-top: 2px;
     margin-bottom: 2px;
     vertical-align: top;
-    padding-left: 48px;
+    padding-left: 0;
     max-width: 100%;
 }
 
 .message.minimal .content-holder {
-    margin-left: 7px;
-    padding-left: 0px;
+    margin-left: 0;
+    padding-left: 0;
 }
 
 .message .content {
     font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: 300;
-    font-size: 15px;
-    line-height: 22px;
-    color: #FFFFFF;
+    font-weight: var(--font-weight-light);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
+    color: var(--font-color);
     margin: 0px;
     word-break: break-all;
     user-select: text;
@@ -100,14 +107,14 @@
 
 .message.minimal .content {
     margin-bottom: 0px;
-    padding-left: 44px;
+    padding-left: 0;
 }
 
 .message .badge-1k {
-    font-weight: bold; 
-    font-size: 8px; 
-    margin-left: 2px; 
-    color: var(--v-purple);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-3xs);
+    margin-left: 2px;
+    color: var(--color-secondary);
 }
 
 .message .hasreply {
@@ -118,7 +125,7 @@
 
 .message .reply {
     border-top: 0;
-    border-left: 3px rgba(255, 255, 255, 0.2) solid;
+    border-left: 3px var(--medium-tint) solid;
     background-color: var(--main-2);
     border-radius: var(--radius-md);
     margin-top: 5px;
@@ -128,8 +135,8 @@
 }
 
 .message.mentioned {
-    border-left: 2px solid #ffac6c;
-    background: rgba(168, 115, 87, 0.15);
+    border-left: 2px solid var(--color-warning);
+    background: var(--color-warning-soft);
 }
 
 .mentioned .content {
@@ -137,11 +144,11 @@
 }
 
 .message:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--slight-tint);
 }
 
 .ping-box {
-    background: #FD3B3B;
+    background: var(--color-danger);
     transform: matrix(-1, 0, 0, 1, 0, 0);
     width: 3px;
     height: 77px;
@@ -150,13 +157,13 @@
 .message .ping {
     font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: 500;
-    font-size: 20px;
-    line-height: 23px;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-tight);
 }
 
 .message.ping {
-    background: rgba(253, 59, 59, 0.24);
+    background: color-mix(in srgb, var(--color-danger) 24%, transparent);
 }
 
 .message.first {
@@ -182,8 +189,10 @@
 
 .message .name-role-holder {
     display: flex;
+    min-width: 0;
     max-width: 100%;
     align-items: center;
+    gap: 4px;
     margin-bottom: 2px;
 }
 
@@ -191,10 +200,16 @@
     display: inline-block;
     font-family: var(--font-family-app);
     font-style: normal;
-    font-size: 15px;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-tight);
     margin: 0;
     vertical-align: top;
     cursor: pointer;
+    min-width: 0;
+    max-width: min(42vw, 22rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .message .author-name:hover {
@@ -202,20 +217,24 @@
 }
 
 .message .role-name {
-    color: #ffffff;
+    color: var(--font-color);
     opacity: 0.3;
     font-style: italic;
     margin: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-    padding-right: 6px;
-    font-size: 13px;
+    padding-right: 2px;
+    font-size: var(--font-size-sm);
+    min-width: 0;
 }
 
 .message .left-info {
-    display: inline-block;
-    position: absolute;
+    display: flex;
+    grid-column: 1;
+    position: relative;
+    align-items: center;
+    flex-direction: column;
 }
 
 .message.minimal .left-info {
@@ -223,20 +242,20 @@
 
 .message .time-container {
     min-width: 48px;
-    position: absolute;
-    top: 37px;
+    position: static;
+    margin-top: 2px;
 }
 
 .message.minimal .time-container {
-    top: -2px;
+    margin-top: 2px;
 }
 
 .message .time {
     font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: normal;
-    font-size: 11px;
-    color: #7A7A7A;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-xs);
+    color: var(--font-alt-color);
     display: none;
     text-align: center;
 }
@@ -247,7 +266,7 @@
 
 .message.minimal .time {
     margin-top: 8px;
-    line-height: 15px;
+    line-height: var(--line-height-tight);
 }
 
 .message:hover > .content-holder > .name-role-holder > .time {
@@ -262,32 +281,32 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    margin-top: -2px;
+    gap: 3px;
+    margin-top: 0;
+    flex: 0 0 auto;
 }
 
 .message .dot-badge-holder .dot-badge {
     width: 14px;
     height: 14px;
-    margin-left: 4px;
     border-radius: var(--radius-full);
 }
 
 /* Preview Message and Replies */
 .edit {
-    background-color: rgba(255, 0, 255, 0.1) !important;
-    /* border: 1px solid var(--v-cyan); */
+    background-color: color-mix(in srgb, var(--color-secondary) 10%, transparent) !important;
 }
 
 .edit-flag {
-    color: red;
+    color: var(--color-danger);
     margin: 0;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
 }
 
 .edited-flag {
-    color: lightgrey;
+    color: var(--font-color-mid);
     margin: 0;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
 }
 
 .reply .author-avatar {
@@ -305,7 +324,11 @@
 }
 
 .reply .content-holder {
-    padding-left: 40px;
+    padding-left: 0;
+}
+
+.message.reply {
+    --message-avatar-column: 42px;
 }
 
 .reply-remove {

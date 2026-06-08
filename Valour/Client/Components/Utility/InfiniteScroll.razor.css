@@ -9,7 +9,7 @@
     padding: 10px 8px 2px;
     text-align: center;
     color: var(--font-alt-color);
-    font-size: 12px;
+    font-size: var(--font-size-xs);
 }
 
 .infinite-scroll-sentinel {

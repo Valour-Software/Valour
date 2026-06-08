@@ -10,7 +10,7 @@
     margin-top: 2em;
     margin-bottom: 0.25em;
     opacity: 100% !important;
-    font-size: 0.8em;
+    font-size: var(--font-size-sm);
 }
 
 .role-list div:nth-child(2) .role-title {

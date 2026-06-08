@@ -202,7 +202,7 @@
 
     <div class="form-group">
         <label>Theme Assets</label>
-        <p class="hint" style="color: var(--font-alt-color); font-size: 0.85em;">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: set App Font to <code>"theme-font-name"</code>.</p>
+        <p class="hint" style="color: var(--font-alt-color); font-size: var(--font-size-sm);">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: set App Font to <code>"theme-font-name"</code>.</p>
 
         @if (_themeAssets?.Any() == true)
         {
@@ -211,7 +211,7 @@
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                     @if (asset.AssetType == "font")
                     {
-                        <i class="bi bi-fonts" style="font-size: 2em; width: 48px; text-align: center;"></i>
+                        <i class="bi bi-fonts" style="font-size: var(--font-size-4xl); width: 48px; text-align: center;"></i>
                         <code>font-family: "theme-font-@asset.Name"</code>
                     }
                     else
@@ -219,7 +219,7 @@
                         <img src="@asset.Url" style="width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover;" />
                         <code>var(--theme-asset-@asset.Name)</code>
                     }
-                    <button class="btn v-btn danger" style="padding: 4px 8px; font-size: 0.8em;" @onclick="() => DeleteAssetAsync(asset)">
+                    <button class="btn v-btn danger" style="padding: 4px 8px; font-size: var(--font-size-sm);" @onclick="() => DeleteAssetAsync(asset)">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -231,7 +231,7 @@
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
                 <input class="form-control" style="max-width: 200px;" @bind="_newAssetName" placeholder="Asset name (e.g. background)" />
                 <button type="button" class="btn v-btn secondary" @onclick="@OpenAssetPickerAsync">Choose File</button>
-                <span style="color: var(--font-alt-color); font-size: 0.85em;" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
+                <span style="color: var(--font-alt-color); font-size: var(--font-size-sm);" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
                 <input id="@_assetUploadInputId" type="file" style="display: none;" accept=".png,.jpg,.jpeg,.webp,.gif,.woff2,.woff,.ttf,.otf" />
             </div>
             <button class="btn v-btn tertiary mt-2" style="width: fit-content;" disabled="@_uploadingAsset" @onclick="@UploadAssetAsync">
@@ -239,12 +239,12 @@
             </button>
             @if (!string.IsNullOrEmpty(_assetError))
             {
-                <p style="color: var(--p-red); font-size: 0.85em; margin-top: 4px;">@_assetError</p>
+                <p style="color: var(--color-danger); font-size: var(--font-size-sm); margin-top: 4px;">@_assetError</p>
             }
         }
         else
         {
-            <p style="color: var(--font-alt-color); font-size: 0.85em;">Save the theme first to upload assets.</p>
+            <p style="color: var(--font-alt-color); font-size: var(--font-size-sm);">Save the theme first to upload assets.</p>
         }
     </div>
 

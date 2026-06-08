@@ -1,5 +1,5 @@
 .v-pill {
-    --pill-accent: var(--p-cyan);
+    --pill-accent: var(--color-primary);
     --pill-border-color: var(--slight-tint);
 
     display: inline-flex;
@@ -15,7 +15,7 @@
     background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
     color: var(--font-color);
     font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-tight);
     white-space: nowrap;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
@@ -35,7 +35,7 @@
 .v-pill > i {
     flex: 0 0 auto;
     color: var(--pill-accent);
-    font-size: 0.95em;
+    font-size: var(--font-size-md);
 }
 
 .v-pill-content {
@@ -60,15 +60,15 @@
 }
 
 .v-pill--accent {
-    --pill-accent: var(--p-cyan);
+    --pill-accent: var(--color-primary);
 }
 
 .v-pill--danger {
-    --pill-accent: var(--p-red);
+    --pill-accent: var(--color-danger);
 }
 
 .v-pill--success {
-    --pill-accent: var(--p-green);
+    --pill-accent: var(--color-success);
 }
 
 .v-pill--soft {
@@ -111,7 +111,7 @@
     border-radius: var(--radius-full);
     background: color-mix(in srgb, currentColor 14%, transparent);
     color: currentColor;
-    line-height: 1;
+    line-height: var(--line-height-none);
     cursor: pointer;
     transition:
         background var(--duration-fast) var(--ease-standard),
@@ -120,14 +120,14 @@
 }
 
 .v-pill-remove:hover {
-    background: color-mix(in srgb, var(--p-red) 22%, transparent);
-    color: var(--p-red);
+    background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+    color: var(--color-danger);
     transform: scale(1.08);
 }
 
 .v-pill-remove i {
-    font-size: 0.9rem;
-    line-height: 1;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-none);
 }
 
 .role-pill {
@@ -137,7 +137,7 @@
     background: transparent;
     border-color: color-mix(in srgb, var(--pill-accent) 42%, var(--slight-tint));
     color: var(--pill-accent);
-    font-weight: 400;
+    font-weight: var(--font-weight-regular);
     box-shadow: none;
 }
 

@@ -12,7 +12,6 @@
     flex-direction: column;
     overflow-y: auto;
     border-radius: var(--radius-md);
-    background-color: var(--main-3);
     flex: 1;
     min-height: 0;
 }
@@ -45,7 +44,7 @@
     border: 1px solid var(--slight-tint);
     border-radius: var(--radius-sm);
     color: var(--font-alt-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
     cursor: pointer;
     transition: all 0.15s ease;

@@ -27,14 +27,14 @@
 
 .app-name {
     margin: 0 0 0.25rem 0;
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
 }
 
 .app-stats {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
     color: var(--font-color-muted);
 }
 
@@ -49,7 +49,7 @@
 }
 
 .helper-text {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: var(--font-color-muted);
     margin-top: 0.25rem;
 }

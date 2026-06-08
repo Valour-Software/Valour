@@ -28,14 +28,14 @@
     background-color: var(--main-4);
     border: none;
     color: var(--font-color);
-    font-size: 1.2rem;
+    font-size: var(--font-size-xl);
     cursor: pointer;
     z-index: 10;
     transition: background-color 0.2s ease;
 }
 
 .v-menu-close:hover {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
 }
 
 /* Menu Layout */
@@ -66,7 +66,7 @@
     padding: 1rem;
     background-color: var(--main-3);
     border-bottom: 1px solid var(--main-4);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
     justify-content: space-between;
     align-items: center;
@@ -97,7 +97,7 @@
 
 .v-menu-category.active {
     background-color: var(--main-4);
-    border-left-color: var(--p-cyan);
+    border-left-color: var(--color-primary);
 }
 
 .v-menu-category:hover {
@@ -106,19 +106,19 @@
 
 .v-menu-category i:first-child {
     margin-right: 0.75rem;
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     width: 1.5rem;
     text-align: center;
 }
 
 .v-menu-category span {
     flex: 1;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
 }
 
 .v-menu-category i:last-child {
     opacity: 0.5;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     transition: transform 0.2s ease;
 }
 
@@ -159,12 +159,12 @@
 
 .v-menu-item.active {
     background-color: var(--medium-tint);
-    border-left-color: var(--p-purple);
+    border-left-color: var(--color-secondary);
 }
 
 .v-menu-item i {
     margin-right: 0.75rem;
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     width: 1.25rem;
     text-align: center;
 }
@@ -196,13 +196,13 @@
 }
 
 .v-menu-content-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
     margin: 0;
 }
 
 .v-menu-content-header i {
-    font-size: 1.3rem;
+    font-size: var(--font-size-2xl);
     margin-right: 0.25em;
 }
 
@@ -224,7 +224,7 @@
 }
 
 .v-menu-placeholder i {
-    font-size: 3rem;
+    font-size: var(--font-size-6xl);
     margin-bottom: 1rem;
     opacity: 0.5;
 }

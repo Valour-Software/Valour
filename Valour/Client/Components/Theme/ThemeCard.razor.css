@@ -31,9 +31,9 @@
     right: 0;
     bottom: 0;
     background: linear-gradient(135deg,
-        rgba(55, 164, 206, 0.1) 0%,
-        rgba(132, 87, 205, 0.05) 50%,
-        rgba(98, 120, 205, 0.1) 100%);
+        color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
+        color-mix(in srgb, var(--color-secondary) 5%, transparent) 50%,
+        color-mix(in srgb, var(--color-accent) 10%, transparent) 100%);
     border-radius: var(--radius-xl);
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -46,7 +46,7 @@
         0 12px 40px rgba(0, 0, 0, 0.5),
         0 4px 16px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .theme-card:hover::before {
@@ -87,12 +87,12 @@
 }
 
 .theme-title {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     margin: 0;
-    line-height: 1.3;
+    line-height: var(--line-height-base);
     word-break: break-word;
     white-space: nowrap;
     overflow: hidden;
@@ -100,7 +100,7 @@
 }
 
 .theme-author {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     color: var(--font-alt-color);
     opacity: 0.8;
     white-space: nowrap;
@@ -109,11 +109,11 @@
 }
 
 .theme-description {
-    font-size: 0.85rem;
-    font-weight: 400;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
     color: var(--font-alt-color);
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    line-height: 1.4;
+    line-height: var(--line-height-base);
     word-break: break-word;
     white-space: normal;
     margin: 0;
@@ -145,12 +145,12 @@
     padding: 0.5rem 0.75rem;
     border-radius: var(--radius-md);
     border: none;
-    font-weight: 600;
-    font-size: 0.8rem;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--letter-spacing-normal);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -175,28 +175,28 @@
 }
 
 .theme-btn-primary {
-    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
     color: white;
-    border: 1px solid var(--p-cyan);
-    box-shadow: 0 2px 8px rgba(55, 164, 206, 0.3);
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .theme-btn-primary:hover, .theme-btn-primary:focus {
-    background: linear-gradient(135deg, var(--p-purple) 0%, var(--p-cyan) 100%);
-    border-color: var(--p-purple);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
+    border-color: var(--color-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(132, 87, 205, 0.4);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-secondary) 40%, transparent);
 }
 
 .theme-btn-secondary {
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-5) 100%);
+    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-4) 100%);
     color: var(--font-color);
-    border: 1px solid var(--main-5);
+    border: 1px solid var(--main-4);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .theme-btn-secondary:hover, .theme-btn-secondary:focus {
-    background: linear-gradient(135deg, var(--main-5) 0%, var(--medium-tint) 100%);
+    background: linear-gradient(135deg, var(--main-4) 0%, var(--medium-tint) 100%);
     border-color: var(--medium-tint);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -214,27 +214,27 @@
     gap: 0.3rem;
     padding: 0.3rem 0.6rem;
     border-radius: var(--radius-full);
-    border: 1px solid var(--main-5);
+    border: 1px solid var(--main-4);
     background: var(--main-4);
     color: var(--font-alt-color);
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .vote-btn:hover {
-    background: var(--main-5);
+    background: var(--main-4);
     border-color: var(--medium-tint);
 }
 
 .vote-btn.active {
-    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
-    border-color: var(--p-cyan);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    border-color: var(--color-primary);
     color: white;
 }
 
 .vote-btn i {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
 }
 
 .theme-card-loading {
@@ -258,7 +258,7 @@
 }
 
 .theme-container:hover {
-    box-shadow: 0 0 10px var(--v-cyan);
+    box-shadow: 0 0 10px var(--color-primary);
     cursor: pointer;
     scale: 1.05;
 }
@@ -303,18 +303,18 @@
     }
 
     .theme-title {
-        font-size: 1rem;
+        font-size: var(--font-size-md);
     }
 
     .theme-description {
-        font-size: 0.8rem;
+        font-size: var(--font-size-sm);
         -webkit-line-clamp: 2;
         min-height: 1.4rem;
         max-height: 2rem;
     }
 
     .theme-btn {
-        font-size: 0.75rem;
+        font-size: var(--font-size-xs);
         padding: 0.4rem 0.6rem;
     }
 }

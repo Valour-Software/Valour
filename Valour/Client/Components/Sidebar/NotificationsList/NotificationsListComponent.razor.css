@@ -37,13 +37,13 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     color: var(--font-alt-color);
     opacity: 0.4;
 }
 
 .empty-state span {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     color: var(--font-alt-color);
     opacity: 0.6;
 }

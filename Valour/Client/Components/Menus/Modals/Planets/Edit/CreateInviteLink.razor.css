@@ -7,8 +7,8 @@
 
 .create-invite h4 {
     margin: 0 0 10px 0;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
 }
 
 .create-invite-row {

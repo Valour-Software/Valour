@@ -27,6 +27,6 @@
 .open-tab:hover {
     opacity: 0.4;
     width: 30px;
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
     line-height: 26px;
 }

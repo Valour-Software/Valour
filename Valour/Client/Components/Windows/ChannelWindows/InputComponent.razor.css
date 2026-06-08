@@ -118,7 +118,7 @@
 ::deep .preview-message .message {
     opacity: 0.7;
     width: 100%;
-    background-color: var(--main-5);
+    background-color: var(--main-4);
     border-top: 2px dashed rgba(255, 255, 255, 0.2);
     margin-top: -2px;
 }
@@ -133,7 +133,7 @@
 ::deep .preview-message .multi-message {
     opacity: 0.7;
     width: 100%;
-    background-color: var(--main-5);
+    background-color: var(--main-4);
     border-top: 2px dashed rgba(255, 255, 255, 0.2);
     margin-top: -2px;
 }
@@ -148,9 +148,9 @@
     position: absolute;
     left: 1em;
     top: 0.6em;
-    font-size: 16px;
+    font-size: var(--font-size-md);
     color: rgba(255, 255, 255, 0.47);
-    font-weight: 300;
+    font-weight: var(--font-weight-light);
     pointer-events: none;
 }
 
@@ -228,7 +228,7 @@
 }
 
 .upload-menu .button:hover {
-    background-color: var(--main-5);
+    background-color: var(--main-4);
 }
 
 .upload-menu .carrot {

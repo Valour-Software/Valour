@@ -38,17 +38,17 @@ else
         display: flex;
         flex-direction: column;
         max-width: 400px;
-        background: var(--v-bg-secondary);
+        background: var(--main-3);
         border-radius: var(--radius-md);
         overflow: hidden;
         text-decoration: none;
         color: inherit;
-        border: 1px solid var(--v-bg-tertiary);
+        border: 1px solid var(--main-4);
         transition: border-color 0.2s ease;
     }
 
     .site-preview:hover {
-        border-color: var(--v-purple);
+        border-color: var(--color-secondary);
     }
 
     .site-preview-image {
@@ -71,22 +71,22 @@ else
     }
 
     .site-preview-site {
-        font-size: 0.75em;
-        color: var(--v-gray);
+        font-size: var(--font-size-xs);
+        color: var(--font-alt-color);
         text-transform: uppercase;
     }
 
     .site-preview-title {
-        font-size: 0.95em;
-        font-weight: 600;
-        color: var(--v-text);
-        line-height: 1.3;
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-semibold);
+        color: var(--font-color);
+        line-height: var(--line-height-base);
     }
 
     .site-preview-description {
-        font-size: 0.85em;
-        color: var(--v-gray-light);
-        line-height: 1.4;
+        font-size: var(--font-size-sm);
+        color: var(--font-color-mid);
+        line-height: var(--line-height-base);
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
@@ -101,13 +101,13 @@ else
     }
 
     .site-preview-minimal i {
-        font-size: 1.2em;
-        color: var(--v-gray);
+        font-size: var(--font-size-xl);
+        color: var(--font-alt-color);
     }
 
     .site-preview-minimal span {
-        color: var(--v-gray-light);
-        font-size: 0.9em;
+        color: var(--font-color-mid);
+        font-size: var(--font-size-sm);
     }
 </style>
 

@@ -30,10 +30,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, 
-        rgba(55, 164, 206, 0.1) 0%, 
-        rgba(132, 87, 205, 0.05) 50%, 
-        rgba(98, 120, 205, 0.1) 100%);
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
+        color-mix(in srgb, var(--color-secondary) 5%, transparent) 50%,
+        color-mix(in srgb, var(--color-accent) 10%, transparent) 100%);
     border-radius: var(--radius-xl);
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -45,9 +45,9 @@
     box-shadow:
         0 16px 48px rgba(0, 0, 0, 0.5),
         0 6px 20px rgba(0, 0, 0, 0.3),
-        0 0 0 1px var(--p-cyan),
+        0 0 0 1px var(--color-primary),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .planet-theme-card:hover::before {
@@ -59,13 +59,13 @@
 }
 .planet-theme-title {
     text-align: center;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     word-break: break-word;
     white-space: nowrap;
-    font-size: 1.4rem;
-    line-height: 1.3;
+    font-size: var(--font-size-2xl);
+    line-height: var(--line-height-base);
     margin: 0 0 0.75rem 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -87,7 +87,7 @@
     width: 100px;
     height: 100px;
     object-fit: cover;
-    box-shadow: 
+    box-shadow:
         0 8px 24px rgba(0, 0, 0, 0.4),
         0 2px 8px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -100,11 +100,11 @@
 .planet-theme-card:hover .planet-icon-img,
 .planet-theme-card:hover .auto-icon {
     transform: scale(1.05);
-    box-shadow: 
+    box-shadow:
         0 12px 32px rgba(0, 0, 0, 0.5),
         0 4px 12px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .planet-default-svg {
@@ -123,11 +123,11 @@
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     text-align: center;
-    line-height: 1;
-    letter-spacing: 1px;
+    line-height: var(--line-height-none);
+    letter-spacing: var(--letter-spacing-normal);
     pointer-events: none;
     user-select: none;
     white-space: nowrap;
@@ -148,11 +148,11 @@
 
 .planet-desc {
     text-align: center;
-    font-size: 0.9rem;
-    font-weight: 400;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-regular);
     color: var(--font-alt-color);
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
     word-break: break-word;
     white-space: normal;
     margin: 0.5rem 0;
@@ -168,18 +168,18 @@
 
 ::deep .member-count-tag {
     background: linear-gradient(135deg, var(--slight-tint) 0%, var(--medium-tint) 100%);
-    border: 1px solid var(--p-cyan);
-    color: var(--p-cyan);
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
 }
 
 ::deep .member-count-tag:hover {
     background: linear-gradient(135deg, var(--medium-tint) 0%, var(--strong-tint) 100%);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 ::deep .member-count-tag strong {
-    color: var(--p-cyan);
-    font-weight: 500;
+    color: var(--color-primary);
+    font-weight: var(--font-weight-medium);
 }
 
 .action-btns {
@@ -198,12 +198,12 @@
     padding: 0.75rem 0.5rem;
     border-radius: var(--radius-md);
     border: none;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--letter-spacing-normal);
     position: relative;
     overflow: hidden;
 }
@@ -224,31 +224,31 @@
 }
 
 .card-btn-gray {
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-5) 100%);
+    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-4) 100%);
     color: var(--font-color);
-    border: 1px solid var(--main-5);
+    border: 1px solid var(--main-4);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .card-btn-gray:hover, .card-btn-gray:focus {
-    background: linear-gradient(135deg, var(--main-5) 0%, var(--medium-tint) 100%);
+    background: linear-gradient(135deg, var(--main-4) 0%, var(--medium-tint) 100%);
     border-color: var(--medium-tint);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .card-btn-blue {
-    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
     color: white;
-    border: 1px solid var(--p-cyan);
-    box-shadow: 0 2px 8px rgba(55, 164, 206, 0.3);
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .card-btn-blue:hover, .card-btn-blue:focus {
-    background: linear-gradient(135deg, var(--p-purple) 0%, var(--p-cyan) 100%);
-    border-color: var(--p-purple);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
+    border-color: var(--color-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(132, 87, 205, 0.4);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-secondary) 40%, transparent);
 }
 
 .planet-tags {
@@ -285,7 +285,7 @@
     }
 
     .planet-theme-title {
-        font-size: 1.2rem;
+        font-size: var(--font-size-xl);
         margin: 0 0 0.5rem 0;
         white-space: nowrap;
         overflow: hidden;
@@ -304,7 +304,7 @@
     }
 
     .planet-desc {
-        font-size: 0.85rem;
+        font-size: var(--font-size-sm);
         -webkit-line-clamp: 3;
         line-clamp: 3;
         min-height: 3rem;
@@ -312,7 +312,7 @@
     }
 
     .card-btn {
-        font-size: 0.8rem;
+        font-size: var(--font-size-sm);
         padding: 0.6rem 0.4rem;
     }
 
@@ -329,7 +329,7 @@
     }
 
     .planet-theme-title {
-        font-size: 1.4rem;
+        font-size: var(--font-size-2xl);
     }
 
     .planet-icon-img,

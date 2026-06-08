@@ -22,14 +22,14 @@
     border-radius: var(--radius-sm);
     color: var(--font-color);
     padding: 6px 10px;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
     outline: none;
     transition: border-color 0.2s ease;
 }
 
 .toolbar .search-input:focus {
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .toolbar .search-input::placeholder {
@@ -43,7 +43,7 @@
     color: var(--font-alt-color);
     padding: 6px 10px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--font-size-md);
     transition: all 0.15s ease;
     flex-shrink: 0;
 }
@@ -56,7 +56,7 @@
 .toolbar .toggle-btn.active {
     background-color: var(--main-4);
     color: var(--font-color);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 /* Make the tab container fill remaining space */
@@ -103,7 +103,7 @@
     border: 1px solid var(--slight-tint);
     border-radius: var(--radius-sm);
     color: var(--font-alt-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -116,10 +116,10 @@
 }
 
 .bottom-actions .action-btn .inline-badge {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     color: white;
-    font-size: 11px;
-    font-weight: bold;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
     padding: 1px 6px;
     border-radius: var(--radius-lg);
     margin-left: auto;
@@ -157,7 +157,7 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.4;
 }
 
@@ -213,12 +213,12 @@
 }
 
 ::deep .outer-circle .noti.purple {
-    background-color: var(--v-purple);
+    background-color: var(--color-secondary);
 }
 
 ::deep .outer-circle .noti.friends {
-    background-color: red;
-    font-size: 14px;
+    background-color: var(--color-danger);
+    font-size: var(--font-size-sm);
 }
 
 ::deep .outer-circle:hover .noti {
@@ -226,13 +226,13 @@
 }
 
 ::deep .noti.nsfw {
-    background-color: red;
+    background-color: var(--color-danger);
     width: auto;
     border-radius: var(--radius-lg);
     padding-left: 4px;
     padding-right: 4px;
-    font-size: 12px;
-    line-height: 19px;
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-loose);
     top: auto;
     bottom: 0;
     left: 0px;
@@ -328,7 +328,7 @@
 }
 
 ::deep .icon-text {
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     font-family: var(--font-family-app);
     text-align: center;
     margin: 0;

@@ -44,7 +44,7 @@
     background-color: var(--main-2);
     max-height: calc(100% - 30px);
     flex: 1 1 auto;
-    border-top: 4px solid var(--main-5);
+    border-top: 4px solid var(--main-4);
 }
 
 .mobile .window {
@@ -52,7 +52,7 @@
 }
 
 .floating .window {
-    border: 4px solid var(--main-5);
+    border: 4px solid var(--main-4);
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     border-top: none;
 }
@@ -98,7 +98,7 @@
 }
 
 .active .tab {
-    background-color: var(--main-5);
+    background-color: var(--main-4);
 }
 
 .tab {
@@ -124,7 +124,7 @@
 }
 
 .w-drop-target.w-target-active {
-    background-color: rgba(var(--p-cyan), 0.2);
+    background-color: rgba(var(--color-primary), 0.2);
 }
 
 .tab.add {
@@ -135,14 +135,14 @@
 }
 
 .tab.add i {
-    font-size: 20px;
+    font-size: var(--font-size-xl);
     margin-left: auto;
     margin-right: auto;
     color: var(--strong-tint);
 }
 
 .tab:hover {
-    background-color: var(--main-5);
+    background-color: var(--main-4);
 }
 
 .tab-info {
@@ -176,11 +176,11 @@
 }
 
 .tab-buttons .minus:hover {
-    color: red;
+    color: var(--color-danger);
 }
 
 .tab .tab-title {
-    font-size: 1em;
+    font-size: var(--font-size-md);
     margin: 0;
     padding: 0;
     color: white;

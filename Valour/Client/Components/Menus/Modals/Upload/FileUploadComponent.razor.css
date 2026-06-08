@@ -63,12 +63,12 @@
     display: flex;
     justify-content: space-between;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: rgba(255, 255, 255, 0.6);
 }
 
 .upload-progress-text {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: rgba(255, 255, 255, 0.9);
 }
 
@@ -78,7 +78,7 @@
 
 .upload-error {
     color: #ED4245;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     margin-top: 8px;
     padding: 8px;
     background: rgba(237, 66, 69, 0.1);

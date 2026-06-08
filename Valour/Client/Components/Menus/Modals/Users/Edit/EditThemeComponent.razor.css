@@ -40,8 +40,8 @@
 }
 
 .color-pill span {
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: var(--font-color);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
@@ -62,8 +62,8 @@
 
 .search-title h5 {
     margin: 0;
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -88,14 +88,14 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--p-cyan), var(--p-purple), var(--p-cyan-purple));
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent));
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .theme-section h5 {
     margin: 0 0 1.5rem 0;
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
     padding-bottom: 0.75rem;
     display: inline-block;
@@ -111,7 +111,7 @@
     left: 0;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, var(--p-cyan), transparent);
+    background: linear-gradient(90deg, var(--color-primary), transparent);
     border-radius: var(--radius-xs);
 }
 
@@ -150,11 +150,11 @@
     width: 280px;
     min-width: 280px;
     max-width: 280px;
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.4),
         0 2px 8px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    border: 2px dashed var(--p-cyan);
+    border: 2px dashed var(--color-primary);
     margin: 0;
     box-sizing: border-box;
     cursor: pointer;
@@ -167,10 +167,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, 
-        rgba(55, 164, 206, 0.1) 0%, 
-        rgba(132, 87, 205, 0.05) 50%, 
-        rgba(98, 120, 205, 0.1) 100%);
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
+        color-mix(in srgb, var(--color-secondary) 5%, transparent) 50%,
+        color-mix(in srgb, var(--color-accent) 10%, transparent) 100%);
     border-radius: var(--radius-xl);
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -179,11 +179,11 @@
 
 .create-theme-card:hover {
     transform: translateY(-2px) scale(1.01);
-    box-shadow: 
+    box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.5),
         0 4px 16px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: var(--p-purple);
+    border-color: var(--color-secondary);
 }
 
 .create-theme-card:hover::before {
@@ -202,55 +202,55 @@
 }
 
 .create-theme-icon {
-    font-size: 3rem;
-    color: var(--p-cyan);
+    font-size: var(--font-size-6xl);
+    color: var(--color-primary);
     margin-bottom: 0.5rem;
     transition: all 0.3s ease;
 }
 
 .create-theme-card:hover .create-theme-icon {
-    color: var(--p-purple);
+    color: var(--color-secondary);
     transform: scale(1.1);
 }
 
 .create-theme-title {
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     margin: 0;
-    line-height: 1.3;
+    line-height: var(--line-height-base);
 }
 
 .create-theme-description {
-    font-size: 0.9rem;
-    font-weight: 400;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-regular);
     color: var(--font-alt-color);
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    line-height: 1.4;
+    line-height: var(--line-height-base);
     margin: 0;
     flex: 1 1 auto;
 }
 
 .create-theme-btn {
-    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
     color: white;
-    border: 1px solid var(--p-cyan);
+    border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
     padding: 0.75rem 1.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--letter-spacing-normal);
     position: relative;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    box-shadow: 0 2px 8px rgba(55, 164, 206, 0.3);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 30%, transparent);
     margin-top: auto;
 }
 
@@ -270,10 +270,10 @@
 }
 
 .create-theme-btn:hover, .create-theme-btn:focus {
-    background: linear-gradient(135deg, var(--p-purple) 0%, var(--p-cyan) 100%);
-    border-color: var(--p-purple);
+    background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
+    border-color: var(--color-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(132, 87, 205, 0.4);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-secondary) 40%, transparent);
 }
 
 @media (max-width: 768px) {
@@ -297,19 +297,19 @@
     }
 
     .create-theme-icon {
-        font-size: 2.5rem;
+        font-size: var(--font-size-5xl);
     }
 
     .create-theme-title {
-        font-size: 1.1rem;
+        font-size: var(--font-size-lg);
     }
 
     .create-theme-description {
-        font-size: 0.85rem;
+        font-size: var(--font-size-sm);
     }
 
     .create-theme-btn {
-        font-size: 0.8rem;
+        font-size: var(--font-size-sm);
         padding: 0.6rem 1.2rem;
     }
 
@@ -361,7 +361,7 @@
     box-shadow:
         0 8px 24px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .theme-container.create .inner {
@@ -418,9 +418,9 @@
     right: 0;
     bottom: 0;
     background: linear-gradient(135deg,
-        rgba(55, 164, 206, 0.1) 0%,
+        color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
         transparent 50%,
-        rgba(132, 87, 205, 0.1) 100%);
+        color-mix(in srgb, var(--color-secondary) 10%, transparent) 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -432,7 +432,7 @@
         0 12px 40px rgba(0, 0, 0, 0.5),
         0 4px 16px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .theme-img:hover::before {
@@ -440,5 +440,5 @@
 }
 
 .theme-row {
-    
+
 }

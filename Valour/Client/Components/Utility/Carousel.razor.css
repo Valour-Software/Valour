@@ -66,18 +66,18 @@
 }
 
 .carousel-nav:hover:not(.disabled) {
-    background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
-    border-color: var(--p-cyan);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    border-color: var(--color-primary);
     transform: translateY(-50%) scale(1.1);
     box-shadow:
-        0 6px 16px rgba(55, 164, 206, 0.4),
+        0 6px 16px color-mix(in srgb, var(--color-primary) 40%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .carousel-nav.disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-5) 100%);
+    background: linear-gradient(135deg, var(--main-4) 0%, var(--main-4) 100%);
 }
 
 .carousel-prev {
@@ -89,7 +89,7 @@
 }
 
 .carousel-nav i {
-    font-size: 16px;
+    font-size: var(--font-size-md);
 }
 
 /* Loading state */
@@ -108,17 +108,17 @@
 }
 
 .carousel-spinner {
-    font-size: 36px;
+    font-size: var(--font-size-5xl);
     margin-bottom: 16px;
     animation: spin 1s linear infinite;
-    color: var(--p-cyan);
-    text-shadow: 0 0 20px rgba(55, 164, 206, 0.5);
+    color: var(--color-primary);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 .carousel-loading-text {
     margin: 0;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: var(--font-alt-color);
 }
 
@@ -143,16 +143,16 @@
 }
 
 .carousel-empty-icon {
-    font-size: 48px;
+    font-size: var(--font-size-6xl);
     margin-bottom: 16px;
     opacity: 0.5;
-    color: var(--p-cyan);
+    color: var(--color-primary);
 }
 
 .carousel-empty-text {
     margin: 0;
-    font-size: 16px;
-    font-weight: 500;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
     text-align: center;
     max-width: 300px;
     color: var(--font-alt-color);

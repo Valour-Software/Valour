@@ -18,9 +18,9 @@
 .detail-copy label,
 .eyebrow {
     color: var(--font-alt-color);
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-extrabold);
+    letter-spacing: var(--letter-spacing-normal);
     text-transform: uppercase;
 }
 
@@ -40,7 +40,7 @@
 
 .reports-empty i {
     color: var(--font-alt-color);
-    font-size: 1.6rem;
+    font-size: var(--font-size-2xl);
 }
 
 .reports-empty h4,
@@ -50,7 +50,7 @@
 
 .rule-cell {
     color: var(--font-color);
-    font-weight: 800;
+    font-weight: var(--font-weight-extrabold);
 }
 
 .details-cell {
@@ -66,15 +66,15 @@
 .status-chip {
     border-radius: var(--radius-full);
     display: inline-flex;
-    font-size: 0.78rem;
-    font-weight: 800;
-    line-height: 1;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-extrabold);
+    line-height: var(--line-height-none);
     padding: 0.4rem 0.55rem;
     white-space: nowrap;
 }
 
 .status-chip.open {
-    background: color-mix(in srgb, var(--p-red) 18%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
     color: #ffaaaa;
 }
 
@@ -96,8 +96,8 @@
 
 .report-actions .v-btn {
     flex-grow: 0 !important;
-    font-size: 0.78rem;
-    line-height: 1.05;
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-none);
     min-width: 0;
     overflow: hidden;
     padding: 0.45rem 0.5rem;
@@ -139,17 +139,17 @@
     border-radius: var(--radius-md);
     color: var(--font-color);
     display: inline-flex;
-    font-size: 0.84rem;
-    font-weight: 800;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-extrabold);
     gap: 0.4rem;
-    line-height: 1;
+    line-height: var(--line-height-none);
     margin-bottom: 0.45rem;
     padding: 0.55rem 0.7rem;
     transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .back-to-reports-btn:hover {
-    background: var(--main-5);
+    background: var(--main-4);
     border-color: var(--medium-tint);
 }
 
@@ -162,7 +162,7 @@
 
 .detail-header h4 {
     color: var(--font-color);
-    font-size: 1.35rem;
+    font-size: var(--font-size-2xl);
     margin: 0.15rem 0 0;
 }
 
@@ -184,9 +184,9 @@
 
 .report-date {
     color: var(--font-alt-color);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
 }
 
 .detail-copy {
@@ -200,7 +200,7 @@
 
 .detail-copy p {
     color: var(--font-color);
-    line-height: 1.4;
+    line-height: var(--line-height-base);
     margin: 0;
     white-space: pre-wrap;
 }
@@ -211,7 +211,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
-    line-height: 1.35;
+    line-height: var(--line-height-base);
 }
 
 .resolution-meta .user-info-mini {
@@ -227,8 +227,8 @@
 
 .resolution-meta .name-mini {
     color: var(--font-color);
-    font-size: 1rem;
-    font-weight: 800;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-extrabold);
     max-width: 14rem;
     text-decoration-thickness: 2px;
     text-underline-offset: 0.15rem;
@@ -240,9 +240,9 @@
 
 .resolution-meta time {
     color: var(--font-alt-color);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
 }
 
 .detail-actions {
@@ -260,26 +260,26 @@
     border-radius: var(--radius-md);
     color: var(--font-color);
     display: inline-flex;
-    font-size: 0.85rem;
-    font-weight: 800;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-extrabold);
     gap: 0.45rem;
-    line-height: 1;
+    line-height: var(--line-height-none);
     padding: 0.55rem 0.7rem;
     transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .report-action-btn:hover {
-    background: var(--main-5);
+    background: var(--main-4);
     border-color: var(--medium-tint);
 }
 
 .report-action-btn.danger {
-    background: color-mix(in srgb, var(--p-red) 85%, var(--main-4));
-    border-color: color-mix(in srgb, var(--p-red) 70%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 85%, var(--main-4));
+    border-color: color-mix(in srgb, var(--color-danger) 70%, transparent);
 }
 
 .report-action-btn.danger:hover {
-    background: var(--p-red);
+    background: var(--color-danger);
 }
 
 .reported-message-review {
@@ -299,18 +299,18 @@
 
 .review-header label {
     color: var(--font-alt-color);
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-extrabold);
+    letter-spacing: var(--letter-spacing-normal);
     margin: 0;
     text-transform: uppercase;
 }
 
 .review-header span {
     color: var(--font-alt-color);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
 }
 
 .reported-message-container {
@@ -356,7 +356,7 @@
     }
 
     .back-to-reports-btn {
-        font-size: 0.9rem;
+        font-size: var(--font-size-md);
         padding-bottom: 0.1rem;
     }
 

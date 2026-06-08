@@ -7,9 +7,9 @@
 }
 
 .help-text {
-    font-weight: 400;
-    font-size: 13px;
-    line-height: 15px;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-tight);
     color: #FFFFFF;
     opacity: 0.75;
     margin-top: 15px;
@@ -18,10 +18,10 @@
 
 button {
     height: 34px;
-    background-color: var(--main-5);
+    background-color: var(--main-4);
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 12.5px;
+    font-size: var(--font-size-xs);
 }
 
 .create-button {
@@ -51,7 +51,7 @@ button {
     margin-bottom: 0px;
     margin-top: 7px;
     margin-left: 10px;
-    font-size: 15px;
+    font-size: var(--font-size-md);
     display: inline-block;
 }
 
@@ -139,12 +139,12 @@ button {
 }
 
 .btn-role-edit.edit:hover {
-    color: var(--v-blue);
+    color: var(--color-primary);
 }
 
 .btn-role-edit.edit:active {
     color: #fff;
-    background-color: var(--v-blue);
+    background-color: var(--color-primary);
 }
 
 .btn-role-edit.delete {
@@ -152,16 +152,16 @@ button {
 }
 
 .btn-role-edit.delete:hover {
-    color: var(--v-purple);
+    color: var(--color-danger);
 }
 
 .btn-role-edit.delete:active {
     color: #fff;
-    background-color: var(--v-purple);
+    background-color: var(--color-danger);
 }
 
 .btn-role-edit.create {
-    background-color: rgba(0, 255, 0, 0.4);
+    background-color: color-mix(in srgb, var(--color-success) 40%, transparent);
     border-radius: var(--radius-sm);
     display: block;
     margin-left: 20px;
@@ -169,11 +169,11 @@ button {
 }
 
 .btn-role-edit.create:hover {
-    background-color: rgba(0, 255, 0, 0.6);
+    background-color: color-mix(in srgb, var(--color-success) 60%, transparent);
 }
 
 .btn-role-edit.create:active {
-    background-color: rgba(0, 255, 0, 0.8);
+    background-color: color-mix(in srgb, var(--color-success) 80%, transparent);
 }
 
 
@@ -210,7 +210,7 @@ button {
 .role-preview-label {
     color: var(--font-alt-color);
     font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
 }
 

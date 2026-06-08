@@ -5,7 +5,7 @@
     max-width: 100%;
     display: inline-block;
     background: rgb(6,6,74);
-    background: linear-gradient(51deg, var(--v-blue) -80%, var(--main-1) 50%, var(--v-purple) 220%);
+    background: linear-gradient(51deg, var(--link-color) -80%, var(--main-1) 50%, var(--color-secondary) 220%);
 }
 
 .sent {
@@ -37,16 +37,16 @@
 }
 
 .receipt-container .time {
-    font-size: 16px;
-    line-height: normal;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
     color: rgba(255, 255, 255, 0.5);
     margin: 0;
     white-space: nowrap;
 }
 
 .receipt-container .trans-info {
-    font-size: 10px;
-    line-height: normal;
+    font-size: var(--font-size-2xs);
+    line-height: var(--line-height-base);
     color: rgba(255, 255, 255, 0.5);
     margin: 0;
 }

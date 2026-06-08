@@ -4,7 +4,7 @@
     justify-content: space-between;
     align-content: center;
     padding: 6px 8px;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease;
@@ -32,7 +32,7 @@
 }
 
 .dm-row .left span {
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -56,14 +56,14 @@
 }
 
 .dm-row .right .unread-badge.notification {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     min-width: 20px;
     padding: 0 4px;
 }
 
 .dm-row .right .unread-badge span {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     color: white;
-    line-height: 1;
+    line-height: var(--line-height-none);
 }

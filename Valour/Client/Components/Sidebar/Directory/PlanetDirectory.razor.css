@@ -10,9 +10,9 @@
     display: inline-block;
     font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: normal;
-    font-size: 16px;
-    line-height: 21px;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
     color: #FFFFFF;
 }
 
@@ -21,8 +21,6 @@
     margin-right: auto;
     margin-left: auto;
     margin-bottom: 4px;
-    background-color: var(--main-3);
-    border-radius: var(--radius-md);
 }
 
 .is-open {
@@ -72,7 +70,7 @@
 }
 
 .header .right .unread-badge.notification {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
 }
 
 .header .edit-button {
@@ -85,11 +83,11 @@
 }
 
 .unread-badge span {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     color: white;
     padding: 0 4px;
-    line-height: 1;
+    line-height: var(--line-height-none);
 }
 
 .planet-about,
@@ -113,23 +111,23 @@
     left: 6px;
     transform: translateY(-50%);
     color: #fff;
-    font-size: 0.95rem;
-    line-height: 1;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-none);
 }
 
 .planet-about .name,
 .planet-rules .name {
     font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: normal;
-    font-size: 14px;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-sm);
     color: var(--font-color);
     display: inline-block;
-    margin: 0 0 0 24px;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     max-width: calc(100% - 24px);
+    margin: -2px 0 0 24px;
 }
 
 .planet .header:hover {

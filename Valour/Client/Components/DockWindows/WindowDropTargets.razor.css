@@ -21,7 +21,7 @@
     justify-content: center;
     align-items: center;
     color: black;
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     width: 40px;
     height: 40px;
     background-color: #fff;

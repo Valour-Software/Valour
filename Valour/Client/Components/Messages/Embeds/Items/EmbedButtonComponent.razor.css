@@ -6,7 +6,7 @@
 }
 
 .embed a {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     text-decoration: none;
 }
 
@@ -19,5 +19,5 @@
 }
 
 .embed-button-text {
-    font-size: 14px !important;
+    font-size: var(--font-size-sm) !important;
 }

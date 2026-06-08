@@ -27,8 +27,8 @@
 
 .about-editor-head h3 {
     margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
 }
 
 .subtitle {
@@ -39,13 +39,13 @@
 .about-count {
     flex-shrink: 0;
     color: var(--font-color);
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
 }
 
 .about-textarea {
     min-height: 14rem;
     resize: vertical;
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 .about-actions {

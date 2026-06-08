@@ -9,8 +9,8 @@
     z-index: 999999999;
     opacity: 0;
     transition: opacity 0.1s ease-in-out;
-    font-size: 0.875rem;
-    font-family: Arial, sans-serif;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
     max-width: 200px;
     pointer-events: none;
 }

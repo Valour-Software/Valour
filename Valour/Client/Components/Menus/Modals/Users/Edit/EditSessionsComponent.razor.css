@@ -14,11 +14,11 @@
 
 /* Section headings */
 .editor-section-title {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--p-cyan);
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-primary);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
@@ -26,11 +26,11 @@
 }
 
 .editor-section-title i {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
 }
 
 .editor-section-title.security {
-    color: var(--p-purple);
+    color: var(--color-secondary);
 }
 
 /* Toggle/Setting rows */
@@ -52,13 +52,13 @@
 }
 
 .toggle-title {
-    font-weight: 500;
-    font-size: 0.95rem;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-md);
 }
 
 .toggle-description {
     color: var(--font-alt-color);
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
 }
 
 .toggle-content {
@@ -72,15 +72,15 @@
     background-color: var(--main-4);
     border-radius: var(--radius-full);
     padding: 0.2rem 0.75rem;
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 .status-badge.enabled {
-    background-color: rgba(55, 164, 206, 0.15);
-    color: var(--p-cyan);
+    background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
 }
 
 /* MFA status */
@@ -92,20 +92,20 @@
     border-radius: var(--radius-md);
     background-color: var(--main-3);
     margin-bottom: 1rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
 }
 
 .mfa-status i {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     color: var(--font-alt-color);
 }
 
 .mfa-status.enabled {
-    background-color: rgba(55, 164, 206, 0.1);
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .mfa-status.enabled i {
-    color: var(--p-cyan);
+    color: var(--color-primary);
 }
 
 .loading-state {
@@ -123,7 +123,7 @@
     height: 1.25rem;
     border: 2px solid var(--slight-tint);
     border-radius: var(--radius-full);
-    border-top-color: var(--p-cyan);
+    border-top-color: var(--color-primary);
     animation: spinner 0.7s linear infinite;
 }
 
@@ -143,7 +143,7 @@
 
 .actions .v-btn {
     box-shadow: none;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     padding: 0.5rem 1rem;
 }
 
@@ -153,16 +153,16 @@
 }
 
 .actions .v-btn.secondary:hover {
-    background: var(--main-5);
+    background: var(--main-4);
 }
 
 .actions .v-btn.danger {
-    background: var(--p-red);
+    background: var(--color-danger);
     border: none;
 }
 
 .actions .v-btn.danger:hover {
-    background: color-mix(in srgb, var(--p-red) 85%, white);
+    background: color-mix(in srgb, var(--color-danger) 85%, white);
 }
 
 /* Sessions list */
@@ -217,8 +217,8 @@
 }
 
 .app-name {
-    font-weight: 500;
-    font-size: 0.95rem;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-md);
 }
 
 .token-actions {
@@ -236,7 +236,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
 }
 
 .token-info .label {
@@ -248,7 +248,7 @@
 }
 
 .expired {
-    color: var(--p-red) !important;
+    color: var(--color-danger) !important;
 }
 
 .expires-soon {
@@ -256,7 +256,7 @@
 }
 
 .time-remaining {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     opacity: 0.7;
     margin-left: 0.5rem;
 }
@@ -270,15 +270,15 @@
 .badge {
     padding: 0.2rem 0.6rem;
     border-radius: var(--radius-full);
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 .badge-primary {
-    background: rgba(55, 164, 206, 0.15);
-    color: var(--p-cyan);
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
 }
 
 /* Bulk actions */
@@ -291,6 +291,6 @@
 
 .help-text {
     margin: 0.5rem 0 0 0;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     color: var(--font-alt-color);
 }

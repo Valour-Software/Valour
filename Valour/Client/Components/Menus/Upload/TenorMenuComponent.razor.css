@@ -47,7 +47,7 @@
     border-radius: var(--radius-lg);
     margin-bottom: 10px;
     margin-right: 10px;
-    border: var(--main-5) 5px solid;
+    border: var(--main-4) 5px solid;
 }
 
 .masonry-cell .favorite {
@@ -63,13 +63,13 @@
 }
 
 .masonry-root .masonry-cell:hover .item {
-    border: 5px solid var(--v-cyan);
+    border: 5px solid var(--color-primary);
 }
 
 .masonry-cell h2 {
     position: absolute;
     right: 26px;
     top: 10px;
-    font-size: 1em;
+    font-size: var(--font-size-md);
     text-shadow: -2px -2px 0 #000, 0 -2px 0 #000, 2px -2px 0 #000, 2px 0 0 #000, 2px 2px 0 #000, 0 2px 0 #000, -2px 2px 0 #000, -2px 0 0 #000;
 }

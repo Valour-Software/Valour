@@ -8,7 +8,7 @@
 .verify-user-help {
     margin: 0;
     color: var(--font-alt-color);
-    font-size: 0.92rem;
+    font-size: var(--font-size-md);
 }
 
 .verify-user-row {

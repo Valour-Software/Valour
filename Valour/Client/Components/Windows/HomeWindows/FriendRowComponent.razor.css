@@ -31,8 +31,8 @@
 }
 
 .friend-row .left .name {
-    font-weight: 500;
-    font-size: 14px;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -57,14 +57,14 @@
 }
 
 .friend-row .right .unread-badge.notification {
-    background-color: var(--v-purple);
+    background-color: var(--color-secondary);
     min-width: 20px;
     padding: 0 4px;
 }
 
 .friend-row .right .unread-badge span {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     color: white;
-    line-height: 1;
+    line-height: var(--line-height-none);
 }

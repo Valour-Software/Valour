@@ -1,6 +1,5 @@
 ﻿/* Tab Container Styling */
 .v-tab-container {
-    background-color: var(--main-3);
     border-radius: var(--radius-md);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     margin-bottom: 1.5rem;
@@ -22,7 +21,7 @@
     padding: 0.75rem 1.25rem;
     cursor: pointer;
     text-align: center;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     color: var(--font-alt-color);
     border-bottom: 2px solid transparent;
     transition: all 0.2s ease;
@@ -44,7 +43,7 @@
 .v-tab.active {
     color: var(--font-color);
     background-color: var(--main-3);
-    border-bottom: 2px solid var(--p-cyan);
+    border-bottom: 2px solid var(--color-primary);
 }
 
 /* First and Last Tab Border Radius */
@@ -78,9 +77,9 @@
 
 /* Tab Badge - for notifications or counts */
 .v-tab-badge {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     color: white;
-    font-size: 0.7rem;
+    font-size: var(--font-size-xs);
     padding: 0.15rem 0.4rem;
     border-radius: var(--radius-xl);
     margin-left: 0.5rem;
@@ -88,22 +87,22 @@
 
 /* Tab Icon */
 .v-tab-icon {
-    font-size: 1rem;
+    font-size: var(--font-size-md);
 }
 
 /* Small size variant */
 .v-tab-small .v-tab {
     padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     gap: 0.35rem;
 }
 
 .v-tab-small .v-tab-icon {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
 }
 
 .v-tab-small .v-tab-badge {
-    font-size: 0.6rem;
+    font-size: var(--font-size-2xs);
     padding: 0.1rem 0.3rem;
 }
 
@@ -115,7 +114,7 @@
 @media (max-width: 576px) {
     .v-tab {
         padding: 0.75rem 0.5rem;
-        font-size: 0.9rem;
+        font-size: var(--font-size-md);
     }
 
     .v-tab-icon {

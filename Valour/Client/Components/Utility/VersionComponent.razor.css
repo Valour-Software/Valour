@@ -19,7 +19,7 @@
 
 .version .text {
     margin: 0;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
 }
 
 .version-gap {
@@ -27,7 +27,7 @@
 }
 
 .open-menu {
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
     margin-right: 18px;
     cursor: pointer;
 }

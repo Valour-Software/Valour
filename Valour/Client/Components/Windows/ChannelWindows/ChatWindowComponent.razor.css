@@ -73,9 +73,9 @@
     margin: 20px 10px 12px 12px;
     color: rgba(255, 255, 255, 0.52);
     font-family: var(--font-family-app);
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-none);
     user-select: none;
 }
 
@@ -128,8 +128,8 @@
 }
 
 .scroll-to-bottom-button i {
-    font-size: 18px;
-    line-height: 1;
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-none);
     pointer-events: none;
 }
 

@@ -24,7 +24,7 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.4;
 }
 

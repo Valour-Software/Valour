@@ -1,6 +1,6 @@
 .tag-filter {
-     --tag-hover-bg: rgba(var(--p-cyan-rgb), 0.2);
-     --tag-selected-bg: rgba(var(--p-cyan-rgb), 0.15);
+     --tag-hover-bg: color-mix(in srgb, var(--color-primary) 20%, transparent);
+     --tag-selected-bg: color-mix(in srgb, var(--color-primary) 15%, transparent);
      position: relative;
      width: 100%;
      transition: all 0.2s ease-in-out;
@@ -8,15 +8,15 @@
 
 .tag-filter-input {
     background-color: var(--main-3) !important;
-    border: 1px solid var(--main-5) !important;
+    border: 1px solid var(--main-4) !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     width: 100%;
     box-sizing: border-box;
 }
 
 .tag-filter-input:focus {
-    border-color: var(--p-cyan-purple) !important;
-    box-shadow: 0 0 0 2px rgba(var(--p-cyan-rgb), 0.25);
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 .hashtag-dropdown {
@@ -46,7 +46,7 @@
 
 .hashtag-item:hover {
     background: var(--tag-hover-bg);
-    color: var(--p-cyan);
+    color: var(--color-primary);
 }
 
 .selected-tags {
@@ -73,7 +73,7 @@
 .v-input-search {
     flex: 1;
     background-color: var(--main-3);
-    border: 1px solid var(--main-5);
+    border: 1px solid var(--main-4);
     color: var(--font-color);
     padding: 0.5rem 1rem;
     border-radius: var(--radius-md);
@@ -83,8 +83,8 @@
 
 .v-input-search:focus {
     outline: none;
-    border-color: var(--p-cyan);
-    box-shadow: 0 0 0 2px var(--p-purple);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-secondary);
 }
 
 
@@ -113,7 +113,7 @@
     white-space: nowrap;
 }
 .toggle-btn:hover {
-    background-color:#22c55e;;
+    background-color: var(--color-success);
     transform: translateY(-1px);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
@@ -132,7 +132,7 @@
 }
 
 .toggle-btn.active {
-    background-color: var(--p-purple);
+    background-color: var(--color-secondary);
     padding-right: 2.5rem;
 }
 
@@ -146,8 +146,8 @@
 }
 
 .btn-text {
-    font-size: 0.875rem;
-    letter-spacing: 0.025em;
+    font-size: var(--font-size-sm);
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 .search-group {
@@ -160,7 +160,7 @@
     }
 
     .btn-text {
-        font-size: 0.75rem;
+        font-size: var(--font-size-xs);
     }
 }
 

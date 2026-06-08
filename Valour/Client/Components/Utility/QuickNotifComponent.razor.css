@@ -27,7 +27,7 @@
     min-height: 36px;
     border-radius: var(--radius-full);
     cursor: pointer;
-    border: 2px var(--main-5) solid;
+    border: 2px var(--main-4) solid;
 }
 
 /* Bounce */

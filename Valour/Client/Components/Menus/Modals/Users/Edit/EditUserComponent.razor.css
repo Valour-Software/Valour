@@ -4,9 +4,9 @@
 
 .user-settings {
     font-family: var(--font-family-app);
-    font-weight: 700;
-    font-size: 22px;
-    line-height: 17px;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-2xl);
+    line-height: var(--line-height-none);
     text-align: center;
     opacity: 0.75;
     margin-top: 20px;

@@ -31,11 +31,11 @@
 }
 
 .planet-row .left .row-icon.text-icon {
-    background-color: var(--main-5);
+    background-color: var(--main-4);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     font-family: var(--font-family-app);
     color: var(--font-color);
 }
@@ -47,15 +47,15 @@
 }
 
 .planet-row .left .info .name {
-    font-weight: 500;
-    font-size: 14px;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .planet-row .left .info .description {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--font-alt-color);
     white-space: nowrap;
     overflow: hidden;
@@ -72,9 +72,9 @@
 }
 
 .planet-row .right .nsfw-tag {
-    font-size: 10px;
-    font-weight: bold;
-    background-color: var(--p-red);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    background-color: var(--color-danger);
     color: white;
     padding: 1px 5px;
     border-radius: var(--radius-sm);
@@ -91,14 +91,14 @@
 }
 
 .planet-row .right .unread-badge.notification {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     min-width: 16px;
     padding: 0 4px;
 }
 
 .planet-row .right .unread-badge span {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     color: white;
-    line-height: 1;
+    line-height: var(--line-height-none);
 }

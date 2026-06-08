@@ -50,7 +50,7 @@
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
-    box-shadow: 0 0 5px var(--v-cyan);
+    box-shadow: 0 0 5px var(--color-primary);
 }
 
 .dropdown-item .check {

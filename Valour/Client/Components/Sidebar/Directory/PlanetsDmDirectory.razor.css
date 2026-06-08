@@ -17,14 +17,14 @@
     border-radius: var(--radius-sm);
     color: var(--font-color);
     padding: 6px 10px;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     font-family: var(--font-family-app);
     outline: none;
     transition: border-color 0.2s ease;
 }
 
 .search-bar .search-input:focus {
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .search-bar .search-input::placeholder {

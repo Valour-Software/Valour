@@ -10,8 +10,8 @@
     align-items: center;
     gap: 8px;
     margin: 0;
-    font-size: 1.08rem;
-    letter-spacing: 0.01em;
+    font-size: var(--font-size-lg);
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 .subtitle {
@@ -37,8 +37,8 @@
 
 .emoji-usage {
     margin: 0;
-    font-weight: 600;
-    font-size: 0.92rem;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
     padding: 4px 10px;
     border-radius: var(--radius-full);
     border: 1px solid var(--medium-tint);
@@ -47,9 +47,9 @@
 
 .emoji-warning {
     margin: 0;
-    color: var(--p-yellow);
-    background: color-mix(in srgb, var(--p-yellow) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--p-yellow) 35%, transparent);
+    color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    border: 1px solid var(--color-warning-border);
     border-radius: var(--radius-md);
     padding: 10px 12px;
 }
@@ -93,7 +93,7 @@
 .emoji-file-name {
     grid-column: 1 / -1;
     opacity: 0.92;
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
     background: rgba(0, 0, 0, 0.22);
     border: 1px solid var(--slight-tint);
     border-radius: var(--radius-sm);
@@ -150,8 +150,8 @@
 }
 
 .emoji-name {
-    font-family: monospace;
-    font-size: 0.95rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-md);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

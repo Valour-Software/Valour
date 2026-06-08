@@ -21,7 +21,7 @@
 
 .tabstrip .item:hover .icon-holder,
 .tabstrip .item.selected .icon-holder {
-    border-bottom: 4px solid var(--main-5);
+    border-bottom: 4px solid var(--main-4);
 }
 
 .tabstrip .icon-holder {
@@ -33,7 +33,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     border-radius: var(--radius-md);
     min-width: 16px;
     height: 16px;
@@ -45,10 +45,10 @@
 }
 
 .tabstrip .icon-holder .notif-badge span {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     color: white;
-    line-height: 1;
+    line-height: var(--line-height-none);
 }
 
 .tabstrip .icon {

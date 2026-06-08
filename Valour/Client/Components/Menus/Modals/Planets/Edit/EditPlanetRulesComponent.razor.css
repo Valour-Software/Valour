@@ -14,8 +14,8 @@
 
 .rules-toolbar h3 {
     margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
 }
 
 .subtitle {
@@ -66,9 +66,9 @@
 }
 
 .rule-position {
-    color: var(--p-cyan);
-    font-weight: 700;
-    font-size: 0.8rem;
+    color: var(--color-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
 }
 
 .rule-title {
@@ -114,7 +114,7 @@
 .rule-description-input {
     min-height: 9rem;
     resize: vertical;
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 .rule-preview {
@@ -157,12 +157,12 @@
 
 .rules-empty-panel i {
     color: var(--font-color);
-    font-size: 1.8rem;
+    font-size: var(--font-size-3xl);
 }
 
 .rules-empty-panel h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     color: var(--font-color);
 }
 
@@ -183,7 +183,7 @@
 }
 
 .rule-empty-editor i {
-    font-size: 1.75rem;
+    font-size: var(--font-size-3xl);
 }
 
 .rule-empty-editor p,

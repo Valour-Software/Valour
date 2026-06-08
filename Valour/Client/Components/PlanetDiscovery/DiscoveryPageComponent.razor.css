@@ -30,7 +30,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--p-cyan), var(--p-purple), var(--p-cyan-purple));
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent));
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
@@ -44,15 +44,15 @@
 }
 
 .discovery-section-header i {
-    font-size: 1.5rem;
-    color: var(--p-cyan);
-    text-shadow: 0 0 12px rgba(55, 164, 206, 0.5);
+    font-size: var(--font-size-2xl);
+    color: var(--color-primary);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 .discovery-section-header h2 {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -84,15 +84,15 @@
 }
 
 .discovery-loading-spinner {
-    font-size: 3rem;
-    color: var(--p-cyan);
+    font-size: var(--font-size-6xl);
+    color: var(--color-primary);
     margin-bottom: 1.5rem;
     animation: spin 1s linear infinite;
-    text-shadow: 0 0 20px rgba(55, 164, 206, 0.5);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 .discovery-loading-text {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     color: var(--font-alt-color);
     margin: 0;
 }
@@ -118,22 +118,22 @@
 }
 
 .discovery-empty-icon {
-    font-size: 4rem;
-    color: var(--p-cyan);
+    font-size: var(--font-size-8xl);
+    color: var(--color-primary);
     margin-bottom: 1.5rem;
     opacity: 0.6;
-    text-shadow: 0 0 20px rgba(55, 164, 206, 0.3);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 .discovery-empty h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
     margin: 0 0 0.75rem 0;
 }
 
 .discovery-empty p {
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     color: var(--font-alt-color);
     margin: 0;
     max-width: 400px;
@@ -151,11 +151,11 @@
     }
 
     .discovery-section-header h2 {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
     }
 
     .discovery-section-header i {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
     }
 
     .discovery-loading,
@@ -165,11 +165,11 @@
     }
 
     .discovery-empty-icon {
-        font-size: 3rem;
+        font-size: var(--font-size-6xl);
     }
 
     .discovery-empty h3 {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
     }
 }
 

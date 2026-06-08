@@ -20,7 +20,7 @@
 }
 
 .app-name {
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     color: var(--text-primary);
 }
 
@@ -28,13 +28,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
     margin-bottom: 0.25rem;
 }
 
 .token-details .label {
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
 }
 
 .token-details span:last-child {

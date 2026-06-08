@@ -32,9 +32,9 @@
 
 .call-window-splitter:hover,
 .call-window-layout.dragging .call-window-splitter {
-    background: rgba(55, 164, 206, 0.18);
-    border-top-color: rgba(55, 164, 206, 0.35);
-    border-bottom-color: rgba(55, 164, 206, 0.35);
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+    border-top-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+    border-bottom-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .call-window-bottom {
@@ -60,5 +60,5 @@
 }
 
 .call-window-empty-state i {
-    font-size: 22px;
+    font-size: var(--font-size-2xl);
 }

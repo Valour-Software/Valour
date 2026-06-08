@@ -38,7 +38,7 @@
 .state-circle {
     width: 12px;
     height: 12px;
-    background: #4ade80;
+    background: var(--color-success);
     border-radius: var(--radius-full);
     position: absolute;
     left: 22px;
@@ -61,15 +61,15 @@
 }
 
 .state-circle.online {
-    background: #4ade80;
+    background: var(--color-success);
 }
 
 .state-circle.away {
-    background: #facc15;
+    background: var(--color-warning);
 }
 
 .state-circle.do-not-disturb {
-    background: var(--p-red);
+    background: var(--color-danger);
 }
 
 .state-circle.offline {
@@ -79,7 +79,7 @@
 .name-status {
     display: flex;
     flex-direction: column;
-    line-height: normal;
+    line-height: var(--line-height-base);
 }
 
 .name-tag {
@@ -90,7 +90,7 @@
 .username {
     font-family: var(--font-family-app);
     font-style: normal;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     text-overflow: ellipsis;
     overflow: hidden;
     margin: 0;
@@ -103,7 +103,7 @@
 }
 
 .status {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--font-alt-color);
     margin: 0;
     overflow: hidden;

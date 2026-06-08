@@ -19,11 +19,11 @@
 
 /* Section headings - typography-driven */
 .editor-section-title {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--p-cyan);
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--color-primary);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
@@ -31,7 +31,7 @@
 }
 
 .editor-section-title i {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
 }
 
 .profile-preview-container {
@@ -57,8 +57,8 @@
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
     color: var(--font-color);
 }
 
@@ -77,19 +77,19 @@
 }
 
 .input-group .v-input:focus {
-    border-color: var(--p-cyan);
-    box-shadow: 0 0 0 2px rgba(55, 164, 206, 0.1);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .input-group .v-btn {
     flex-shrink: 0;
     box-shadow: none;
-    background: var(--p-cyan);
+    background: var(--color-primary);
     border: none;
 }
 
 .input-group .v-btn:hover {
-    background: color-mix(in srgb, var(--p-cyan) 85%, white);
+    background: color-mix(in srgb, var(--color-primary) 85%, white);
 }
 
 .v-input {
@@ -104,8 +104,8 @@
 }
 
 .v-input:focus {
-    border-color: var(--p-cyan);
-    box-shadow: 0 0 0 2px rgba(55, 164, 206, 0.1);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .v-input:hover:not(:focus) {
@@ -118,7 +118,7 @@ textarea.v-input {
 }
 
 .helper-text {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     color: var(--font-alt-color);
     margin-top: 0.5rem;
 }
@@ -143,7 +143,7 @@ textarea.v-input {
 
 .avatar:hover {
     transform: scale(1.03);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 /* Star badge preview */
@@ -155,7 +155,7 @@ textarea.v-input {
     border-radius: var(--radius-md);
     background-color: var(--main-3);
     margin-bottom: 1rem;
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
 }
 
 /* Toggle/Setting rows - flat hover style */
@@ -182,13 +182,13 @@ textarea.v-input {
 }
 
 .toggle-title {
-    font-weight: 500;
-    font-size: 0.95rem;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-md);
 }
 
 .toggle-description {
     color: var(--font-alt-color);
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
 }
 
 .toggle-content {
@@ -211,7 +211,7 @@ textarea.v-input {
 .color-picker-item .v-span {
     display: block;
     margin-bottom: 0.5rem;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: var(--font-alt-color);
 }
 
@@ -225,17 +225,17 @@ textarea.v-input {
 
 .actions .v-btn {
     box-shadow: none;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     padding: 0.5rem 1rem;
 }
 
 .actions .v-btn.primary {
-    background: var(--p-cyan);
+    background: var(--color-primary);
     border: none;
 }
 
 .actions .v-btn.primary:hover {
-    background: color-mix(in srgb, var(--p-cyan) 85%, white);
+    background: color-mix(in srgb, var(--color-primary) 85%, white);
 }
 
 .actions .v-btn.secondary {
@@ -244,16 +244,16 @@ textarea.v-input {
 }
 
 .actions .v-btn.secondary:hover {
-    background: var(--main-5);
+    background: var(--main-4);
 }
 
 .actions .v-btn.danger {
-    background: var(--p-red);
+    background: var(--color-danger);
     border: none;
 }
 
 .actions .v-btn.danger:hover {
-    background: color-mix(in srgb, var(--p-red) 85%, white);
+    background: color-mix(in srgb, var(--color-danger) 85%, white);
 }
 
 /* Custom file input */

@@ -4,8 +4,8 @@
 }
 
 .success-icon {
-    font-size: 3rem;
-    color: var(--p-green);
+    font-size: var(--font-size-6xl);
+    color: var(--color-success);
     margin-bottom: 0.5rem;
 }
 
@@ -15,8 +15,8 @@
 }
 
 .warning-text {
-    color: var(--p-orange);
-    font-size: 0.95rem;
+    color: var(--color-warning);
+    font-size: var(--font-size-md);
     margin: 0;
 }
 
@@ -31,6 +31,6 @@
 
 .token-input {
     flex: 1;
-    font-family: monospace;
-    font-size: 0.85rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
 }
