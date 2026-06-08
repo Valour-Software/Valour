@@ -2036,6 +2036,10 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("font_color");
 
+                    b.Property<string>("FontFamily")
+                        .HasColumnType("text")
+                        .HasColumnName("font_family");
+
                     b.Property<bool>("HasAnimatedBanner")
                         .HasColumnType("boolean")
                         .HasColumnName("animated_banner");

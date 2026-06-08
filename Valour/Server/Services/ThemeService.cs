@@ -148,6 +148,17 @@ public class ThemeService
         }
 
         // Validate all colors
+        if (string.IsNullOrWhiteSpace(theme.FontFamily))
+        {
+            theme.FontFamily = ISharedTheme.DefaultFontFamily;
+        }
+        else
+        {
+            theme.FontFamily = theme.FontFamily.Trim();
+            if (!ISharedTheme.IsFontFamilySafe(theme.FontFamily))
+                return TaskResult.FromFailure("Theme font family is invalid.");
+        }
+
         var colorsValid = ColorHelpers.ValidateColorCode(theme.FontColor)
                           && ColorHelpers.ValidateColorCode(theme.FontAltColor)
                           && ColorHelpers.ValidateColorCode(theme.LinkColor)

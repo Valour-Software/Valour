@@ -4,29 +4,31 @@
 <div id="theme">
     <style>
         :root {
+            --font-family-app: @((MarkupString)ISharedTheme.NormalizeFontFamily(CurrentTheme.FontFamily));
+
             --font-color: @CurrentTheme.FontColor;
             --font-alt-color: @CurrentTheme.FontAltColor;
             --link-color: @CurrentTheme.LinkColor;
-            
+
             --main-1: @CurrentTheme.MainColor1;
             --main-2: @CurrentTheme.MainColor2;
             --main-3: @CurrentTheme.MainColor3;
             --main-4: @CurrentTheme.MainColor4;
             --main-5: @CurrentTheme.MainColor5;
-            
+
             --modal-main: @(CurrentTheme.MainColor1 + "55");
             --modal-medium: @(CurrentTheme.MainColor1 + "aa");
             --modal-dark: @(CurrentTheme.MainColor1 + "cc");
-            
+
             --slight-tint: @(CurrentTheme.TintColor + "15");
             --medium-tint: @(CurrentTheme.TintColor + "30");
             --strong-tint: @(CurrentTheme.TintColor + "55");
-            
+
             /* Vibrant colors */
             --v-purple: @CurrentTheme.VibrantPurple;
             --v-blue:   @CurrentTheme.VibrantBlue;
             --v-cyan:   @CurrentTheme.VibrantCyan;
-        
+
             /* Pastel colors */
             --p-cyan:        @CurrentTheme.PastelCyan;
             --p-cyan-purple: @CurrentTheme.PastelCyanPurple;
@@ -64,13 +66,14 @@
 
 @code {
     public static ThemeComponent Instance;
-    
+
     [Parameter]
     public Theme CurrentTheme { get; set; } = Theme.Default;
     public static event Action OnThemeChanged;
-    
+
     public async Task InstallTheme(Theme theme)
     {
+        theme.FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily);
         CurrentTheme = theme;
         await LocalStorage.SetStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
         StateHasChanged();
@@ -129,7 +132,7 @@
             return string.Empty;
         }
     }
-    
+
     private bool AreBracketsValid(string input)
     {
         int count = 0;
@@ -152,20 +155,21 @@
 
         return count == 0; // True if opening and closing brackets match
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         Instance = this;
-        
+
         // Load from local storage
         if (await LocalStorage.ContainsKeyAsync("ACTIVE_THEME"))
         {
             CurrentTheme = JsonSerializer.Deserialize<Theme>(await LocalStorage.GetStringAsync("ACTIVE_THEME"));
+            CurrentTheme.FontFamily = ISharedTheme.NormalizeFontFamily(CurrentTheme.FontFamily);
             StateHasChanged();
         }
     }
-    
-   
+
+
 
     public void Refresh()
     {

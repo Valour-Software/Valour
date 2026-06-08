@@ -23,7 +23,7 @@
     color: var(--font-color);
     padding: 6px 10px;
     font-size: 14px;
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     outline: none;
     transition: border-color 0.2s ease;
 }
@@ -104,7 +104,7 @@
     border-radius: var(--small-radius);
     color: var(--font-alt-color);
     font-size: 13px;
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -329,7 +329,7 @@
 
 ::deep .icon-text {
     font-weight: 700;
-    font-family: 'Ubuntu';
+    font-family: var(--font-family-app);
     text-align: center;
     margin: 0;
     text-shadow: 0 0 5px black, 0 0 10px black;

@@ -2,7 +2,7 @@
     position: absolute;
     width: min(332px, calc(100vw - 32px));
     height: min(468px, calc(100vh - 32px));
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
 }
 
 .profile-card {

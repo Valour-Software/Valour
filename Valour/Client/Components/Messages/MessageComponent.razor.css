@@ -86,7 +86,7 @@
 }
 
 .message .content {
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: 300;
     font-size: 15px;
@@ -148,7 +148,7 @@
 }
 
 .message .ping {
-    font-family: Ubuntu;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: 500;
     font-size: 20px;
@@ -189,7 +189,7 @@
 
 .message .author-name {
     display: inline-block;
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-size: 15px;
     margin: 0;
@@ -232,7 +232,7 @@
 }
 
 .message .time {
-    font-family: Ubuntu;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: normal;
     font-size: 11px;

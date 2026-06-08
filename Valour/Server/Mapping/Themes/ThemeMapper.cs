@@ -1,4 +1,5 @@
 ﻿using Valour.Server.Models.Themes;
+using Valour.Shared.Models.Themes;
 
 namespace Valour.Server.Mapping.Themes;
 
@@ -18,6 +19,7 @@ public static class ThemeMapper
             HasCustomBanner = theme.HasCustomBanner,
             HasAnimatedBanner = theme.HasAnimatedBanner,
             Published = theme.Published,
+            FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily),
             FontColor = theme.FontColor,
             FontAltColor = theme.FontAltColor,
             LinkColor = theme.LinkColor,
@@ -52,6 +54,7 @@ public static class ThemeMapper
             HasCustomBanner = theme.HasCustomBanner,
             HasAnimatedBanner = theme.HasAnimatedBanner,
             Published = theme.Published,
+            FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily),
             FontColor = theme.FontColor,
             FontAltColor = theme.FontAltColor,
             LinkColor = theme.LinkColor,

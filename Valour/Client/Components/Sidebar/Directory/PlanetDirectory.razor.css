@@ -8,7 +8,7 @@
     margin-left: 6px;
     vertical-align: top;
     display: inline-block;
-    font-family: Ubuntu;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: normal;
     font-size: 16px;
@@ -119,7 +119,7 @@
 
 .planet-about .name,
 .planet-rules .name {
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: normal;
     font-size: 14px;

@@ -3,7 +3,7 @@
 }
 
 .user-settings {
-    font-family: 'Ubuntu';
+    font-family: var(--font-family-app);
     font-weight: 700;
     font-size: 22px;
     line-height: 17px;

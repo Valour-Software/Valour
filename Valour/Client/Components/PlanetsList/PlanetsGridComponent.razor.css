@@ -53,7 +53,7 @@
 
 .icon-text {
     font-weight: 700;
-    font-family: 'Ubuntu';
+    font-family: var(--font-family-app);
     text-align: center;
     margin: 0;
     text-shadow: 0 0 5px black,  0 0 10px black;

@@ -72,6 +72,11 @@
     </div>
     <br />
     <div class="form-group">
+        <label>App Font</label>
+        <input class="form-control" value="@_editingTheme.FontFamily" @oninput="@OnChangeFontFamily" />
+    </div>
+    <br />
+    <div class="form-group">
         <label>Publishing</label>
         @if (_editingTheme.Published)
         {
@@ -185,7 +190,7 @@
 
     <div class="form-group">
         <label>Theme Assets</label>
-        <p class="hint" style="color: var(--font-alt-color); font-size: 0.85em;">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: use <code>font-family: "theme-font-name"</code>.</p>
+        <p class="hint" style="color: var(--font-alt-color); font-size: 0.85em;">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: set App Font to <code>"theme-font-name"</code>.</p>
 
         @if (_themeAssets?.Any() == true)
         {
@@ -483,6 +488,12 @@ else
         ThemeComponent.Instance.Refresh();
         Client.Logger.Log<EditThemeComponent>("Custom CSS updated.", "cyan");
     }
+
+    private void OnChangeFontFamily(ChangeEventArgs e)
+    {
+        _editingTheme.FontFamily = e.Value?.ToString();
+        ThemeComponent.Instance.Refresh();
+    }
     
     private async Task SetPublished(bool published)
     {
@@ -501,6 +512,7 @@ else
     {
         _backupTheme = ThemeComponent.Instance.CurrentTheme;
         _editingTheme = theme;
+        _editingTheme.FontFamily = ISharedTheme.NormalizeFontFamily(_editingTheme.FontFamily);
         _assetFileName = null;
         _assetError = null;
 
@@ -526,6 +538,7 @@ else
         _editingTheme.Id = 0;
         _editingTheme.Name = "New Theme";
         _editingTheme.Description = "A new theme!";
+        _editingTheme.FontFamily = ISharedTheme.NormalizeFontFamily(_editingTheme.FontFamily);
         
         ThemeComponent.Instance.CurrentTheme = _editingTheme;
         

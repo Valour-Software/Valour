@@ -36,7 +36,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-family: 'Ubuntu', sans-serif;
+    font-family: var(--font-family-app);
     color: var(--font-color);
 }
 

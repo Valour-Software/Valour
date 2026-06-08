@@ -73,11 +73,11 @@
 
 ::deep .channel.nested .path {
     border-radius: 0 var(--main-radius);
-    border-left: 2px solid var(--v-cyan);
+    border-left: 1px solid var(--v-cyan);
     width: 7px;
     height: 20px;
     position: absolute;
-    border-bottom: 2px solid var(--v-cyan);
+    border-bottom: 1px solid var(--v-cyan);
     left: -3px;
     top: -5px;
 }
@@ -184,7 +184,7 @@
 }
 
 ::deep .channel .name {
-    font-family: Ubuntu,sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
     font-weight: normal;
     font-size: 14px;
@@ -239,7 +239,7 @@
     top: -8px;
     bottom: 0;
     width: 0;
-    border-left: 2px solid var(--v-cyan);
+    border-left: 1px solid var(--v-cyan);
 }
 
 ::deep .tree-row[depth="2"]::before,
