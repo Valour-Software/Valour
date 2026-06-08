@@ -24,6 +24,13 @@
             </div>
 
         </div>
+        @if (_role is not null)
+        {
+            <div class="role-preview">
+                <span class="role-preview-label">Preview</span>
+                <RolePill Role="_role" Size="md" />
+            </div>
+        }
         <div class="mt-2" style="display: block">
             <div class="btn-role-edit create" style="margin-left: 0px" @onclick="@OnClickSave" id="role-save-button">
                 <p class="center-t">
@@ -230,12 +237,10 @@
                     @ondragstart="@(() => OnRoleDrag(roleX))" 
                     @ondrop="@(async () => await OnRoleDrop(roleX))" 
                     draggable="true"
-                    ondragover="event.preventDefault();" 
+                    ondragover="event.preventDefault();"
                     class="roles-row" @onclick="@(() => OnClickEdit(roleX))">
                     <div class="role-name-div">
-                        <p class="roles-name" style="color:@role.Color">
-                            @role.Name
-                        </p>
+                        <RolePill Role="roleX" Class="role-list-pill" />
                     </div>
                     <div class="role-member-count-div">
                         @if (hasCount)

@@ -14,7 +14,7 @@
 					<span class="v-checkmark" style="@(hasRole ? $"background-color: {role.Color};" : "")"></span>
 					<i class="bi bi-check v-checkmark-fill"></i>
 				</div>
-				<p style="color:@role.Color; display: inline-block; margin: 0;">@role.Name</p>
+				<RolePill Role="role" Class="context-role-pill" />
 			</div>
 		</ContextMenuItem>
 	}

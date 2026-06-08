@@ -26,10 +26,15 @@ section {
 }
 
 .roles-box .role {
-    padding-left: 9px;
-    padding-right: 9px;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 6px 9px;
+}
+
+.role-label {
+    min-width: 0;
 }
 
 @media only screen and (min-width: 800px) {

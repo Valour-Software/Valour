@@ -51,4 +51,9 @@
     flex-direction: row;
     justify-content: left;
     align-items: center;
-} 
+    min-width: 12rem;
+}
+
+::deep .context-role-pill {
+    max-width: 14rem;
+}

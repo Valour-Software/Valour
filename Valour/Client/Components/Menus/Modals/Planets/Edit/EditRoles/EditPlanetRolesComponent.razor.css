@@ -56,7 +56,10 @@ button {
 }
 
 .role-name-div {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding-left: 10px;
 }
 
 .role-member-count-div {
@@ -79,6 +82,9 @@ button {
     width: 94%;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 34px;
 }
 
 .roles-row:hover {
@@ -97,13 +103,6 @@ button {
 .roles-row:last-child {
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
-}
-
-.roles-name {
-    margin: 0;
-    line-height: 32px;
-    margin-left: 10px;
-    user-select: none;
 }
 
 .roles-buttons {
@@ -201,6 +200,20 @@ button {
     display: flex;
 }
 
+.role-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.role-preview-label {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
 .color-wrapper {
     border-radius: 50%;
     width: 2em;
@@ -220,4 +233,8 @@ button {
     border-radius: 50%;
     transform: translate(-25%, -25%);
     cursor: pointer;
+}
+
+::deep .role-list-pill {
+    max-width: 100%;
 }

@@ -6,3 +6,8 @@
     margin-right: 20px;
     display: inline;
 }
+
+.selected-role-preview {
+    display: flex;
+    margin-bottom: var(--space-2);
+}

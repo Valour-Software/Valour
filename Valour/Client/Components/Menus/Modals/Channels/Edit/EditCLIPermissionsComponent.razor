@@ -20,8 +20,14 @@
 <h3>@Target.GetHumanReadableName() Permissions</h3>
 <p class="subtitle">CHOOSE ROLE</p>
 
+@if (_selectedRole is not null)
+{
+    <div class="selected-role-preview">
+        <RolePill Role="_selectedRole" />
+    </div>
+}
 
-<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @_selectedRole.Color;
+<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @(_selectedRole?.Color ?? "var(--font-color)");
         background-color: var(--main-1)">
 
     @{

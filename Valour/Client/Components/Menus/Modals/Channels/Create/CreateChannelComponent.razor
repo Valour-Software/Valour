@@ -36,10 +36,10 @@
                     @foreach (PlanetRole role in _roles)
                     {
                         <div class="role">
-                           <div class="perm-list-name mb-1" style="color: @role.Color">
-                                @role.Name
+                            <div class="role-label">
+                                <RolePill Role="role" />
                             </div>
-                            <div type="button" style="float: right">
+                            <div type="button">
                                 <label class="switch">
                                     @if (role.GetAuthority() == MyAuthority)
                                     {
