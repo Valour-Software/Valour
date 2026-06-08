@@ -1,6 +1,6 @@
 .receipt-container {
     background-color: var(--main-1);
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
     padding: 1em;
     max-width: 100%;
     display: inline-block;

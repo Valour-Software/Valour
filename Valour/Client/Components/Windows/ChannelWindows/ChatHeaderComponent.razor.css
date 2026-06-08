@@ -92,7 +92,7 @@
     width: min(70vw, 400px);
     background-color: var(--modal-medium);
     z-index: 101;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -126,5 +126,5 @@
 
 /* Round the scrollbar */
 .results-scroll::-webkit-scrollbar-track {
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }

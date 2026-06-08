@@ -6,7 +6,7 @@
     padding: 40px;
     background-color: var(--main-3);
     border: solid 2px var(--main-4);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     overflow-y: auto;
     position: absolute;
     z-index: 99999;

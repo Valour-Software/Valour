@@ -5,7 +5,7 @@
 .active-banner {
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     border: 1px solid var(--slight-tint);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 1rem 1.25rem;
     margin-top: 1rem;
     border-left: 4px solid var(--v-cyan);
@@ -89,7 +89,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 0.15em 0.6em;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
 }
 
 .status-badge.active {
@@ -121,7 +121,7 @@
 .tier-card {
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     border: 1px solid var(--slight-tint);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
@@ -144,7 +144,7 @@
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin-bottom: 0.75rem;
 }
 
@@ -251,7 +251,7 @@
 .vc-card {
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     border: 1px solid var(--slight-tint);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -270,7 +270,7 @@
     width: 80px;
     height: 80px;
     object-fit: cover;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin-bottom: 0.5rem;
 }
 
@@ -293,7 +293,7 @@
     color: var(--v-cyan);
     background: color-mix(in srgb, var(--v-cyan) 15%, transparent);
     padding: 0.1em 0.5em;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     margin-bottom: 0.15rem;
 }
 

@@ -20,6 +20,12 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
         Description = "The default theme for Valour. Designed to be modern, sleek, and easy on the eyes.",
 
         FontFamily = ISharedTheme.DefaultFontFamily,
+        RadiusXs = ISharedTheme.DefaultRadiusXs,
+        RadiusSm = ISharedTheme.DefaultRadiusSm,
+        RadiusMd = ISharedTheme.DefaultRadiusMd,
+        RadiusLg = ISharedTheme.DefaultRadiusLg,
+        RadiusXl = ISharedTheme.DefaultRadiusXl,
+        RadiusFull = ISharedTheme.DefaultRadiusFull,
         FontColor = "#ffffff",
         FontAltColor = "#7a7a7a",
         LinkColor = "#00aaff",
@@ -52,6 +58,12 @@ public class Theme : ClientModel<Theme, long>, ISharedTheme
     public bool Published { get; set; }
 
     public string FontFamily { get; set; }
+    public string RadiusXs { get; set; }
+    public string RadiusSm { get; set; }
+    public string RadiusMd { get; set; }
+    public string RadiusLg { get; set; }
+    public string RadiusXl { get; set; }
+    public string RadiusFull { get; set; }
     public string FontColor { get; set; }
     public string FontAltColor { get; set; }
     public string LinkColor { get; set; }

@@ -11,7 +11,7 @@
     color: white;
     position: absolute;
     padding: 6px;
-    border-radius: 0.7em;
+    border-radius: var(--radius-lg);
     white-space: nowrap;
 }
 
@@ -22,7 +22,7 @@
     height: 100%;
     margin-left: -6px;
     margin-top: -6px;
-    border-radius: 0.7em;
+    border-radius: var(--radius-lg);
     background-color: #000000aa;
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);

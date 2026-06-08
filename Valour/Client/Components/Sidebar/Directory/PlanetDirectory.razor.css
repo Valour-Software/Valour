@@ -22,7 +22,7 @@
     margin-left: auto;
     margin-bottom: 4px;
     background-color: var(--main-3);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .is-open {
@@ -34,7 +34,7 @@
     height: 22px;
     float: right;
     margin-right: 4px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
 }
 
 .header-wrapper {
@@ -46,7 +46,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .header .right,
@@ -58,7 +58,7 @@
 
 .header .right .unread-badge {
     background-color: var(--strong-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     height: 16px;
     min-width: 16px;
     transition: min-width, height 0.2s ease-in-out;
@@ -96,7 +96,7 @@
 .planet-rules {
     cursor: pointer;
     position: relative;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     white-space: nowrap;
     height: 27px;
     padding: 6px 8px 4px 6px;

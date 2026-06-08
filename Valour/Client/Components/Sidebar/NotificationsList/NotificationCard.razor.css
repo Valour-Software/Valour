@@ -3,7 +3,7 @@
     flex-direction: column;
     gap: 4px;
     background: var(--main-3);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 8px;
     transition: background 0.15s ease;
 }
@@ -22,7 +22,7 @@
 .image {
     width: 28px;
     height: 28px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     flex-shrink: 0;
     object-fit: cover;
 }
@@ -68,7 +68,7 @@
 .button-holder button {
     height: 26px;
     padding: 0 8px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     background: transparent;
     border: none;
     outline: none;

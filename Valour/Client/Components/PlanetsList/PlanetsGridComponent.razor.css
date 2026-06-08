@@ -1,7 +1,7 @@
 ﻿.outer-section {
     flex-direction: column;
     width: 100%;
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     background-color: var(--main-3);
 }
 
@@ -13,7 +13,7 @@
 .section-header {
     width: 100%;
     background-color: var(--main-1);
-    border-radius: 0.5em 0.5em 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     padding: 1em;
 }
 
@@ -32,7 +32,7 @@
     height: 100%;
     background-size: contain;
     background-repeat: no-repeat;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     position: relative;
 }
 

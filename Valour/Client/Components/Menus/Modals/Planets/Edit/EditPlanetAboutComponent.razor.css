@@ -7,7 +7,7 @@
 
 .about-preview {
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     background: var(--main-1);
 }
 

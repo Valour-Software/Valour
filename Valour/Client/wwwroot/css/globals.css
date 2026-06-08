@@ -27,10 +27,6 @@
     --radius-xl: 16px;
     --radius-full: 999px;
 
-    --main-radius: var(--radius-md);
-    --small-radius: var(--radius-sm);
-    --card-radius: var(--radius-xl);
-
     --space-0: 0;
     --space-1: 0.25rem;
     --space-2: 0.5rem;
@@ -40,13 +36,6 @@
     --space-6: 2rem;
     --space-7: 2.5rem;
     --space-8: 3rem;
-
-    --spacing-0: var(--space-0);
-    --spacing-1: var(--space-1);
-    --spacing-2: var(--space-2);
-    --spacing-3: var(--space-4);
-    --spacing-4: var(--space-5);
-    --spacing-5: var(--space-8);
 
     --font-size-2xs: 0.625rem;
     --font-size-xs: 0.75rem;
@@ -109,112 +98,112 @@
 /* Margin Classes */
 
 /* All sides margin */
-.m-0 { margin: var(--spacing-0); }
-.m-1 { margin: var(--spacing-1); }
-.m-2 { margin: var(--spacing-2); }
-.m-3 { margin: var(--spacing-3); }
-.m-4 { margin: var(--spacing-4); }
-.m-5 { margin: var(--spacing-5); }
+.m-0 { margin: var(--space-0); }
+.m-1 { margin: var(--space-1); }
+.m-2 { margin: var(--space-2); }
+.m-3 { margin: var(--space-4); }
+.m-4 { margin: var(--space-5); }
+.m-5 { margin: var(--space-8); }
 
 /* Horizontal margin */
-.mx-0 { margin-left: var(--spacing-0); margin-right: var(--spacing-0); }
-.mx-1 { margin-left: var(--spacing-1); margin-right: var(--spacing-1); }
-.mx-2 { margin-left: var(--spacing-2); margin-right: var(--spacing-2); }
-.mx-3 { margin-left: var(--spacing-3); margin-right: var(--spacing-3); }
-.mx-4 { margin-left: var(--spacing-4); margin-right: var(--spacing-4); }
-.mx-5 { margin-left: var(--spacing-5); margin-right: var(--spacing-5); }
+.mx-0 { margin-left: var(--space-0); margin-right: var(--space-0); }
+.mx-1 { margin-left: var(--space-1); margin-right: var(--space-1); }
+.mx-2 { margin-left: var(--space-2); margin-right: var(--space-2); }
+.mx-3 { margin-left: var(--space-4); margin-right: var(--space-4); }
+.mx-4 { margin-left: var(--space-5); margin-right: var(--space-5); }
+.mx-5 { margin-left: var(--space-8); margin-right: var(--space-8); }
 
 /* Vertical margin */
-.my-0 { margin-top: var(--spacing-0); margin-bottom: var(--spacing-0); }
-.my-1 { margin-top: var(--spacing-1); margin-bottom: var(--spacing-1); }
-.my-2 { margin-top: var(--spacing-2); margin-bottom: var(--spacing-2); }
-.my-3 { margin-top: var(--spacing-3); margin-bottom: var(--spacing-3); }
-.my-4 { margin-top: var(--spacing-4); margin-bottom: var(--spacing-4); }
-.my-5 { margin-top: var(--spacing-5); margin-bottom: var(--spacing-5); }
+.my-0 { margin-top: var(--space-0); margin-bottom: var(--space-0); }
+.my-1 { margin-top: var(--space-1); margin-bottom: var(--space-1); }
+.my-2 { margin-top: var(--space-2); margin-bottom: var(--space-2); }
+.my-3 { margin-top: var(--space-4); margin-bottom: var(--space-4); }
+.my-4 { margin-top: var(--space-5); margin-bottom: var(--space-5); }
+.my-5 { margin-top: var(--space-8); margin-bottom: var(--space-8); }
 
 /* Individual margins */
-.mt-0 { margin-top: var(--spacing-0); }
-.mt-1 { margin-top: var(--spacing-1); }
-.mt-2 { margin-top: var(--spacing-2); }
-.mt-3 { margin-top: var(--spacing-3); }
-.mt-4 { margin-top: var(--spacing-4); }
-.mt-5 { margin-top: var(--spacing-5); }
+.mt-0 { margin-top: var(--space-0); }
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-4); }
+.mt-4 { margin-top: var(--space-5); }
+.mt-5 { margin-top: var(--space-8); }
 
-.mb-0 { margin-bottom: var(--spacing-0); }
-.mb-1 { margin-bottom: var(--spacing-1); }
-.mb-2 { margin-bottom: var(--spacing-2); }
-.mb-3 { margin-bottom: var(--spacing-3); }
-.mb-4 { margin-bottom: var(--spacing-4); }
-.mb-5 { margin-bottom: var(--spacing-5); }
+.mb-0 { margin-bottom: var(--space-0); }
+.mb-1 { margin-bottom: var(--space-1); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-4); }
+.mb-4 { margin-bottom: var(--space-5); }
+.mb-5 { margin-bottom: var(--space-8); }
 
-.ml-0 { margin-left: var(--spacing-0); }
-.ml-1 { margin-left: var(--spacing-1); }
-.ml-2 { margin-left: var(--spacing-2); }
-.ml-3 { margin-left: var(--spacing-3); }
-.ml-4 { margin-left: var(--spacing-4); }
-.ml-5 { margin-left: var(--spacing-5); }
+.ml-0 { margin-left: var(--space-0); }
+.ml-1 { margin-left: var(--space-1); }
+.ml-2 { margin-left: var(--space-2); }
+.ml-3 { margin-left: var(--space-4); }
+.ml-4 { margin-left: var(--space-5); }
+.ml-5 { margin-left: var(--space-8); }
 
-.mr-0 { margin-right: var(--spacing-0); }
-.mr-1 { margin-right: var(--spacing-1); }
-.mr-2 { margin-right: var(--spacing-2); }
-.mr-3 { margin-right: var(--spacing-3); }
-.mr-4 { margin-right: var(--spacing-4); }
-.mr-5 { margin-right: var(--spacing-5); }
+.mr-0 { margin-right: var(--space-0); }
+.mr-1 { margin-right: var(--space-1); }
+.mr-2 { margin-right: var(--space-2); }
+.mr-3 { margin-right: var(--space-4); }
+.mr-4 { margin-right: var(--space-5); }
+.mr-5 { margin-right: var(--space-8); }
 
 /* Padding Classes */
 
 /* All sides padding */
-.p-0 { padding: var(--spacing-0); }
-.p-1 { padding: var(--spacing-1); }
-.p-2 { padding: var(--spacing-2); }
-.p-3 { padding: var(--spacing-3); }
-.p-4 { padding: var(--spacing-4); }
-.p-5 { padding: var(--spacing-5); }
+.p-0 { padding: var(--space-0); }
+.p-1 { padding: var(--space-1); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-4); }
+.p-4 { padding: var(--space-5); }
+.p-5 { padding: var(--space-8); }
 
 /* Horizontal padding */
-.px-0 { padding-left: var(--spacing-0); padding-right: var(--spacing-0); }
-.px-1 { padding-left: var(--spacing-1); padding-right: var(--spacing-1); }
-.px-2 { padding-left: var(--spacing-2); padding-right: var(--spacing-2); }
-.px-3 { padding-left: var(--spacing-3); padding-right: var(--spacing-3); }
-.px-4 { padding-left: var(--spacing-4); padding-right: var(--spacing-4); }
-.px-5 { padding-left: var(--spacing-5); padding-right: var(--spacing-5); }
+.px-0 { padding-left: var(--space-0); padding-right: var(--space-0); }
+.px-1 { padding-left: var(--space-1); padding-right: var(--space-1); }
+.px-2 { padding-left: var(--space-2); padding-right: var(--space-2); }
+.px-3 { padding-left: var(--space-4); padding-right: var(--space-4); }
+.px-4 { padding-left: var(--space-5); padding-right: var(--space-5); }
+.px-5 { padding-left: var(--space-8); padding-right: var(--space-8); }
 
 /* Vertical padding */
-.py-0 { padding-top: var(--spacing-0); padding-bottom: var(--spacing-0); }
-.py-1 { padding-top: var(--spacing-1); padding-bottom: var(--spacing-1); }
-.py-2 { padding-top: var(--spacing-2); padding-bottom: var(--spacing-2); }
-.py-3 { padding-top: var(--spacing-3); padding-bottom: var(--spacing-3); }
-.py-4 { padding-top: var(--spacing-4); padding-bottom: var(--spacing-4); }
-.py-5 { padding-top: var(--spacing-5); padding-bottom: var(--spacing-5); }
+.py-0 { padding-top: var(--space-0); padding-bottom: var(--space-0); }
+.py-1 { padding-top: var(--space-1); padding-bottom: var(--space-1); }
+.py-2 { padding-top: var(--space-2); padding-bottom: var(--space-2); }
+.py-3 { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.py-4 { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+.py-5 { padding-top: var(--space-8); padding-bottom: var(--space-8); }
 
 /* Individual paddings */
-.pt-0 { padding-top: var(--spacing-0); }
-.pt-1 { padding-top: var(--spacing-1); }
-.pt-2 { padding-top: var(--spacing-2); }
-.pt-3 { padding-top: var(--spacing-3); }
-.pt-4 { padding-top: var(--spacing-4); }
-.pt-5 { padding-top: var(--spacing-5); }
+.pt-0 { padding-top: var(--space-0); }
+.pt-1 { padding-top: var(--space-1); }
+.pt-2 { padding-top: var(--space-2); }
+.pt-3 { padding-top: var(--space-4); }
+.pt-4 { padding-top: var(--space-5); }
+.pt-5 { padding-top: var(--space-8); }
 
-.pb-0 { padding-bottom: var(--spacing-0); }
-.pb-1 { padding-bottom: var(--spacing-1); }
-.pb-2 { padding-bottom: var(--spacing-2); }
-.pb-3 { padding-bottom: var(--spacing-3); }
-.pb-4 { padding-bottom: var(--spacing-4); }
-.pb-5 { padding-bottom: var(--spacing-5); }
+.pb-0 { padding-bottom: var(--space-0); }
+.pb-1 { padding-bottom: var(--space-1); }
+.pb-2 { padding-bottom: var(--space-2); }
+.pb-3 { padding-bottom: var(--space-4); }
+.pb-4 { padding-bottom: var(--space-5); }
+.pb-5 { padding-bottom: var(--space-8); }
 
-.pl-0 { padding-left: var(--spacing-0); }
-.pl-1 { padding-left: var(--spacing-1); }
-.pl-2 { padding-left: var(--spacing-2); }
-.pl-3 { padding-left: var(--spacing-3); }
-.pl-4 { padding-left: var(--spacing-4); }
-.pl-5 { padding-left: var(--spacing-5); }
+.pl-0 { padding-left: var(--space-0); }
+.pl-1 { padding-left: var(--space-1); }
+.pl-2 { padding-left: var(--space-2); }
+.pl-3 { padding-left: var(--space-4); }
+.pl-4 { padding-left: var(--space-5); }
+.pl-5 { padding-left: var(--space-8); }
 
-.pr-0 { padding-right: var(--spacing-0); }
-.pr-1 { padding-right: var(--spacing-1); }
-.pr-2 { padding-right: var(--spacing-2); }
-.pr-3 { padding-right: var(--spacing-3); }
-.pr-4 { padding-right: var(--spacing-4); }
-.pr-5 { padding-right: var(--spacing-5); }
+.pr-0 { padding-right: var(--space-0); }
+.pr-1 { padding-right: var(--space-1); }
+.pr-2 { padding-right: var(--space-2); }
+.pr-3 { padding-right: var(--space-4); }
+.pr-4 { padding-right: var(--space-5); }
+.pr-5 { padding-right: var(--space-8); }
 
 /* Auto margins */
 .m-auto { margin: auto; }
@@ -293,7 +282,7 @@ h6, .h6 {
     background-color: #fff;
     background-clip: padding-box;
     border: 1px solid #ced4da;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
@@ -394,7 +383,7 @@ label {
     user-select: text;
     font-size: 14px;
     font-weight: 500;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
     margin-bottom: 0.3em;
 }
 
@@ -409,7 +398,7 @@ label {
     font-size: 14px;
     background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 0.5em 0.75rem;
     color: var(--font-color);
     box-shadow:
@@ -459,7 +448,7 @@ label {
     background-size: 100% 100%, 1em;
     background-position: 0 0, right 0.5em center;
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     color: var(--font-color);
     padding-right: 2.25rem;
     box-shadow:
@@ -496,11 +485,11 @@ label {
 }
 
 .input-group > *:first-child {
-    border-radius: var(--main-radius) 0 0 var(--main-radius) !important;
+    border-radius: var(--radius-md) 0 0 var(--radius-md) !important;
 }
 
 .input-group > *:last-child {
-    border-radius: 0 var(--main-radius) var(--main-radius) 0 !important;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
 }
 
 body {
@@ -637,7 +626,7 @@ app {
 
 .popup-box {
     background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     border: 1px solid var(--slight-tint);
     padding: 50px;
     width: 400px;
@@ -665,7 +654,7 @@ app {
 
 *::-webkit-scrollbar-thumb {
     background-color: var(--main-1);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     border: 3px solid var(--main-2);
 }
 
@@ -723,11 +712,11 @@ td, th {
 }
 
 .slider.round {
-    border-radius: 24px;
+    border-radius: var(--radius-xl);
 }
 
 .slider.round:before {
-    border-radius: 50%;
+    border-radius: var(--radius-full);
 }
 
 input:checked + .slider {
@@ -887,7 +876,7 @@ blockquote {
 /* Mention css must be in global css file so input injection works */
 .mention {
     display: inline-block;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding-left: 2px;
     padding-right: 2px;
     font-weight: 500;
@@ -910,7 +899,7 @@ blockquote {
 
 /* These are the ones that work in the textbox */
 .mention::before {
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding-left: 2px;
     padding-right: 2px;
     font-weight: 500;
@@ -928,7 +917,7 @@ blockquote {
 
 .channel-mention {
     display: inline-block;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding-left: 2px;
     padding-right: 2px;
     font-weight: 500;
@@ -948,7 +937,7 @@ blockquote {
 /* These are the ones that work in the textbox */
 .channel-mention::before {
     display: inline-block;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding-left: 2px;
     padding-right: 2px;
     font-weight: 500;
@@ -985,7 +974,7 @@ img.emoji {
 .new-input-style textarea {
     background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     color: #ffffff;
     padding: 0.5em 0.75em;
     box-shadow:
@@ -1035,7 +1024,7 @@ img.emoji {
 .message .fragments pre {
     margin: 0;
     word-break: break-word;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -1078,15 +1067,15 @@ img.emoji {
 }
 
 .rounded-sm {
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
 }
 
 .rounded-md {
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 .rounded-card {
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
 }
 
 /* Fun gradient underline */
@@ -1104,7 +1093,7 @@ img.emoji {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     overflow: hidden;
     box-shadow:
         0 4px 16px rgba(0, 0, 0, 0.2),
@@ -1149,7 +1138,7 @@ img.emoji {
     padding: 2rem 1rem;
     color: var(--font-alt-color);
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px dashed var(--slight-tint);
 }
 
@@ -1211,7 +1200,7 @@ img.emoji {
     display: block;
     background: var(--main-3);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     color: #ffffff;
     padding: 0.6em 1em;
     font-size: 1em;
@@ -1238,7 +1227,7 @@ img.emoji {
     font-weight: 500;
     background: var(--main-4);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 0.5em 1em;
     display: block;
     outline: none !important;
@@ -1264,11 +1253,11 @@ img.emoji {
 }
 
 .round-right {
-    border-radius: 0 1em 1em 0;
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
 }
 
 .round-left {
-    border-radius: 1em 0 0 1em;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
 }
 
 .v-btn.primary {
@@ -1347,7 +1336,7 @@ img.emoji {
 .v-btn-grad-wrapper {
     width: 100%;
     display: inline-block;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     font-size: 1em;
     padding: 0.2em;
     background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
@@ -1356,7 +1345,7 @@ img.emoji {
 }
 
 .v-btn-grad-wrapper .v-btn {
-    border-radius: calc(var(--main-radius) - 2px) !important;
+    border-radius: var(--radius-sm) !important;
 }
 
 .v-btn-grad-wrapper.half {
@@ -1370,7 +1359,7 @@ img.emoji {
     border: none;
     background-color: #111122;
     transition: all 0.3s ease-in-out;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
     flex: 1;
 }
 
@@ -1430,7 +1419,7 @@ img.emoji {
 .v-section {
     display: block;
     padding: 2em;
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     margin-bottom: 2em;
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
     box-shadow:
@@ -1465,11 +1454,11 @@ img.emoji {
 }
 
 .perm-list-item:first-child {
-    border-radius: var(--main-radius) var(--main-radius) 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .perm-list-item:last-child {
-    border-radius: 0 0 var(--main-radius) var(--main-radius);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 .perm-list-name {
@@ -1598,7 +1587,7 @@ img.emoji {
 
 .glassy-modal {
     position: relative;
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
 }
 
 .glassy-modal::before {
@@ -1609,7 +1598,7 @@ img.emoji {
     height: 100%;
     left: 0;
     right: 0;
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     background: linear-gradient(135deg, rgba(4, 13, 20, 0.85) 0%, rgba(11, 21, 29, 0.9) 100%);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
@@ -1672,15 +1661,15 @@ img.emoji {
 }
 
 .basic-modal-buttons > button:first-child {
-    border-radius: 0 0 0 8px;
+    border-radius: 0 0 0 var(--radius-md);
 }
 
 .basic-modal-buttons > button:last-child {
-    border-radius: 0 0 8px 0;
+    border-radius: 0 0 var(--radius-md) 0;
 }
 
 .basic-modal-buttons > button:only-child {
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 @keyframes windowZoomFadeIn {
@@ -1807,7 +1796,7 @@ img.emoji {
 .toggle-item {
     padding: 1rem;
     margin-bottom: 0.5rem;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     transition: background-color 0.15s ease;
 }
 
@@ -1841,7 +1830,7 @@ img.emoji {
 /* Status badges - clean pill style */
 .status-badge {
     background-color: var(--main-4);
-    border-radius: 100px;
+    border-radius: var(--radius-full);
     padding: 0.2rem 0.75rem;
     font-size: 0.7rem;
     font-weight: 600;
@@ -1875,7 +1864,7 @@ img.emoji {
     width: 1.25rem;
     height: 1.25rem;
     border: 2px solid var(--slight-tint);
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border-top-color: var(--p-cyan);
     animation: spinner 0.7s linear infinite;
 }
@@ -1905,7 +1894,7 @@ img.emoji {
     background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
     display: inline-block;
     padding: 0.75rem;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin: 0.5rem 0 1.5rem;
     box-shadow:
         0 4px 16px rgba(0, 0, 0, 0.25),
@@ -1944,7 +1933,7 @@ img.emoji {
 
 .avatar.bordered {
     border: 3px solid var(--main-5);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
 }
 
 .avatar:hover {
@@ -1962,7 +1951,7 @@ img.emoji {
     align-items: center;
     gap: 0.5rem;
     padding: 0.85rem 1rem;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     background: linear-gradient(135deg, var(--main-4) 0%, var(--main-5) 100%);
     margin-bottom: 1rem;
     border: 1px solid var(--slight-tint);
@@ -2018,7 +2007,7 @@ td .button-row button {
     align-content: center;
     justify-content: center;
     padding: 0;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     font-size: 7px;
     color: black;
     line-height: 9px;

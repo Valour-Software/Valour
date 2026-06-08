@@ -1,6 +1,6 @@
 section {
     background-color: var(--main-2);
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .title {
@@ -15,13 +15,13 @@ section {
     background: #192630;
     border: 1px solid #030B11;
     box-sizing: border-box;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .roles-box {
     background: #192630;
     width:100%;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-top:12px;
 }
 
@@ -71,7 +71,7 @@ section {
     height: 95px;
     width: 100%;
     background-color: var(--main-4);
-    border-radius: 0px 0px 12px 12px;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .bottom button {
@@ -83,7 +83,7 @@ section {
     background-color: var(--main-5);
     border: none;
     font-size: 15px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .lock-icon {

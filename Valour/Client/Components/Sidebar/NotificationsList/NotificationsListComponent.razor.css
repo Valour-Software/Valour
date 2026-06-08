@@ -12,7 +12,7 @@
     max-height: 100%;
     overflow-y: auto;
     background: var(--main-3);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 4px;
     gap: 4px;
 }

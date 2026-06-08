@@ -13,5 +13,5 @@
 .safety-inner {
     padding: 20px;
     background-color: var(--main-2);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
 }

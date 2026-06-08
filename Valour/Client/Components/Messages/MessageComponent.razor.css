@@ -40,7 +40,7 @@
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     cursor: pointer;
     gap: 4px;
     font-size: 16px;
@@ -120,7 +120,7 @@
     border-top: 0;
     border-left: 3px rgba(255, 255, 255, 0.2) solid;
     background-color: var(--main-2);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-top: 5px;
     margin-bottom: 5px;
     width: fit-content;
@@ -174,7 +174,7 @@
     min-height: 38px;
     max-width: 38px;
     max-height: 38px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-top: 3px;
     margin-left: 4px;
     margin-right: 4px;
@@ -269,7 +269,7 @@
     width: 14px;
     height: 14px;
     margin-left: 4px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
 }
 
 /* Preview Message and Replies */
@@ -348,7 +348,7 @@
     height: 44px;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: rgba(15, 15, 15, 0.82);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     cursor: pointer;

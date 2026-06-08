@@ -1,6 +1,6 @@
 .app {
     border-top: 1px black solid;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
 }
 
@@ -29,5 +29,5 @@
 .modal-bg {
     background-color: var(--main-4);
     padding: 20px;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
 }

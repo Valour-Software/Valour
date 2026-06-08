@@ -42,6 +42,24 @@ public class Theme
     [Column("font_family")]
     public string FontFamily { get; set; }
 
+    [Column("radius_xs")]
+    public string RadiusXs { get; set; }
+
+    [Column("radius_sm")]
+    public string RadiusSm { get; set; }
+
+    [Column("radius_md")]
+    public string RadiusMd { get; set; }
+
+    [Column("radius_lg")]
+    public string RadiusLg { get; set; }
+
+    [Column("radius_xl")]
+    public string RadiusXl { get; set; }
+
+    [Column("radius_full")]
+    public string RadiusFull { get; set; }
+
     [Column("font_color")]
     public string FontColor { get; set; }
 

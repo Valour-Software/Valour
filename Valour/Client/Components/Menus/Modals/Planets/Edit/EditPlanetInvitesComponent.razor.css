@@ -18,7 +18,7 @@
     justify-content: space-between;
     padding: 10px 14px;
     background: rgba(255, 255, 255, 0.04);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     gap: 12px;
 }
 

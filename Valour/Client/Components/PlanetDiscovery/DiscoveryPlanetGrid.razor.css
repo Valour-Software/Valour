@@ -51,7 +51,7 @@
     padding: 4rem 2rem;
     min-height: 350px;
     background: linear-gradient(135deg, rgba(4, 13, 20, 0.4) 0%, rgba(11, 21, 29, 0.5) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     border: 1px solid var(--slight-tint);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
@@ -86,7 +86,7 @@
     padding: 4rem 2rem;
     min-height: 350px;
     background: linear-gradient(135deg, rgba(4, 13, 20, 0.4) 0%, rgba(11, 21, 29, 0.5) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     border: 1px dashed var(--slight-tint);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }

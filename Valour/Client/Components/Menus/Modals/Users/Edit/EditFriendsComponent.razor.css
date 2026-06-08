@@ -16,7 +16,7 @@
 
 .inner-scroll-box {
     border: solid 2px var(--main-4);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     height: 120px;
     padding: 10px;
     overflow-y: auto;

@@ -4,7 +4,7 @@
 
 .textbox {
     background: rgba(255, 255, 255, 0.12);
-    border-radius: 2em;
+    border-radius: var(--radius-full);
     color: white;
     position: relative;
     margin: 10px;
@@ -58,7 +58,7 @@
     width: 28px;
     height: 28px;
     color: var(--main-1);
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     text-align: center;
     line-height: 24px;
     cursor: pointer;
@@ -88,7 +88,7 @@
     width: 28px;
     height: 28px;
     color: var(--main-1);
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     text-align: center;
     line-height: 24px;
     cursor: pointer;
@@ -185,7 +185,7 @@
 
 .upload-menu .content {
     background-color: var(--main-1);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding: 5px;
     display: flex;
     flex-direction: column;
@@ -220,11 +220,11 @@
 }
 
 .upload-menu .content .button:first-child {
-    border-radius: 5px 5px 0 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 .upload-menu .content .button:last-child {
-    border-radius: 0 0 5px 5px;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
 .upload-menu .button:hover {

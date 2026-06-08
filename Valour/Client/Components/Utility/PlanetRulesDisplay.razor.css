@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     background: var(--main-3);
     color: var(--p-cyan);
     border: 1px solid var(--slight-tint);
@@ -70,7 +70,7 @@
     gap: 0.5rem;
     color: var(--font-alt-color);
     border: 1px dashed var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 .rules-empty i {

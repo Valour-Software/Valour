@@ -4,7 +4,7 @@
     color: #fff;
     text-align: center;
     padding: 4px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     white-space: normal;
     z-index: 999999999;
     opacity: 0;

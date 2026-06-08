@@ -20,7 +20,7 @@ button {
     height: 34px;
     background-color: var(--main-5);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     font-size: 12.5px;
 }
 
@@ -96,13 +96,13 @@ button {
 }
 
 .roles-row:first-child {
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    border-top-left-radius: var(--radius-md);
+    border-top-right-radius: var(--radius-md);
 }
 
 .roles-row:last-child {
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
 }
 
 .roles-buttons {
@@ -119,7 +119,7 @@ button {
     position: relative;
     display: inline-block;
     border: 1px solid #fff;
-    border-radius: 5px 0px 0px 5px;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
     width: 10%;
     min-width: 60px;
     height: 30px;
@@ -135,7 +135,7 @@ button {
 }
 
 .btn-role-edit.edit {
-    border-radius: 5px 0px 0px 5px;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
 
 .btn-role-edit.edit:hover {
@@ -148,7 +148,7 @@ button {
 }
 
 .btn-role-edit.delete {
-    border-radius: 0px 5px 5px 0px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .btn-role-edit.delete:hover {
@@ -162,7 +162,7 @@ button {
 
 .btn-role-edit.create {
     background-color: rgba(0, 255, 0, 0.4);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     display: block;
     margin-left: 20px;
     min-width: 55px;
@@ -215,7 +215,7 @@ button {
 }
 
 .color-wrapper {
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     width: 2em;
     height: 2em;
     overflow: hidden;
@@ -230,7 +230,7 @@ button {
     padding: 0;
     width: 200%;
     height: 200%;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     transform: translate(-25%, -25%);
     cursor: pointer;
 }

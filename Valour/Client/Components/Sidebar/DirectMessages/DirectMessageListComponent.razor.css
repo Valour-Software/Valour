@@ -8,7 +8,7 @@
 
 .dm-container .list {
     overflow-y: auto;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background-color: var(--main-3);
     flex: 1;
     min-height: 0;

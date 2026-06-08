@@ -38,7 +38,7 @@
 
 .inner-scroll-box {
     border: solid 2px var(--main-4);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     height: 200px;
     padding: 10px;
     overflow-y: auto;
@@ -63,7 +63,7 @@
 .block-type-badge {
     font-size: 0.8em;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background-color: var(--main-3);
     color: var(--text-secondary);
 }

@@ -1,7 +1,7 @@
 ﻿/* Tab Container Styling */
 .v-tab-container {
     background-color: var(--main-3);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     margin-bottom: 1.5rem;
 }
@@ -13,7 +13,7 @@
     background-color: var(--main-2);
     padding: 0;
     border-bottom: 1px solid var(--main-4);
-    border-radius: calc(var(--main-radius) - 2px) calc(var(--main-radius) - 2px) 0 0;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 /* Individual Tab Buttons */
@@ -49,11 +49,11 @@
 
 /* First and Last Tab Border Radius */
 .v-tab.first {
-    border-top-left-radius: calc(var(--main-radius) - 2px);
+    border-top-left-radius: var(--radius-sm);
 }
 
 .v-tab.last {
-    border-top-right-radius: calc(var(--main-radius) - 2px);
+    border-top-right-radius: var(--radius-sm);
 }
 
 /* Tab Content Area */
@@ -82,7 +82,7 @@
     color: white;
     font-size: 0.7rem;
     padding: 0.15rem 0.4rem;
-    border-radius: 1rem;
+    border-radius: var(--radius-xl);
     margin-left: 0.5rem;
 }
 

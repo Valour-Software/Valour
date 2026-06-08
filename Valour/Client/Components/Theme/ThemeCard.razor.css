@@ -1,6 +1,6 @@
 .theme-card {
     background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 0;
     overflow: hidden;
     display: flex;
@@ -34,7 +34,7 @@
         rgba(55, 164, 206, 0.1) 0%,
         rgba(132, 87, 205, 0.05) 50%,
         rgba(98, 120, 205, 0.1) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -143,7 +143,7 @@
 .theme-btn {
     flex: 1 1 0;
     padding: 0.5rem 0.75rem;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: none;
     font-weight: 600;
     font-size: 0.8rem;
@@ -213,7 +213,7 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.3rem 0.6rem;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 1px solid var(--main-5);
     background: var(--main-4);
     color: var(--font-alt-color);
@@ -245,7 +245,7 @@
 /* Legacy support for old theme-container class */
 .theme-container {
     position: relative;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
     overflow: hidden;
     display: inline-block;
     width: 200px;

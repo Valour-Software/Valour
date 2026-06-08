@@ -7,7 +7,7 @@
 .preview-container .image-attachment-wrapper {
     max-width: min(50vw, 500px);
     max-height: min(50vh, 500px);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
 }
 
 .preview-container button {

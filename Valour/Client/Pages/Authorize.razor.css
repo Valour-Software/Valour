@@ -1,5 +1,5 @@
 .app-icon {
     width: 50%;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     margin: 20px;
 }

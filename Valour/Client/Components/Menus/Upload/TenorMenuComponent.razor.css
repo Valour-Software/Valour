@@ -8,7 +8,7 @@
     right: 20px;
     bottom: 20px;
     background-color: var(--main-2);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     border: 5px solid var(--main-4);
     box-shadow: black 0px 0px 15px;
 }
@@ -16,7 +16,7 @@
 .tenor-bg input {
     background: var(--main-4);
     border: 1px solid #030B11;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: #ffffff;
     padding: 5px 9px;
 }
@@ -44,7 +44,7 @@
 
 .masonry-root .masonry-cell .item {
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     margin-bottom: 10px;
     margin-right: 10px;
     border: var(--main-5) 5px solid;

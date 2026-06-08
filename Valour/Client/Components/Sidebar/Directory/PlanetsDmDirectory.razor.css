@@ -14,7 +14,7 @@
     width: 100%;
     background: var(--main-3);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     color: var(--font-color);
     padding: 6px 10px;
     font-size: 14px;

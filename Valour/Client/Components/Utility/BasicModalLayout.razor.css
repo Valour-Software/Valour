@@ -1,7 +1,7 @@
 .basic-modal {
     box-shadow: 0 0 8px black;
     background-color: var(--main-2);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     max-height: calc(100vh - 2em);
     overflow-y: auto;
 }
@@ -19,7 +19,7 @@
 .basic-modal .top {
     background-color: var(--main-3);
     padding: 0.5em;
-    border-radius: 14px 14px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     text-align: center;
     font-size: 1em;
     font-weight: 500;
@@ -32,5 +32,5 @@
 .basic-modal .bottom {
     background-color: var(--main-3);
     padding: 0.5em;
-    border-radius: 0 0 14px 14px;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }

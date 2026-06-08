@@ -159,6 +159,13 @@ public class ThemeService
                 return TaskResult.FromFailure("Theme font family is invalid.");
         }
 
+        theme.RadiusXs = ISharedTheme.NormalizeRadius(theme.RadiusXs, ISharedTheme.DefaultRadiusXs);
+        theme.RadiusSm = ISharedTheme.NormalizeRadius(theme.RadiusSm, ISharedTheme.DefaultRadiusSm);
+        theme.RadiusMd = ISharedTheme.NormalizeRadius(theme.RadiusMd, ISharedTheme.DefaultRadiusMd);
+        theme.RadiusLg = ISharedTheme.NormalizeRadius(theme.RadiusLg, ISharedTheme.DefaultRadiusLg);
+        theme.RadiusXl = ISharedTheme.NormalizeRadius(theme.RadiusXl, ISharedTheme.DefaultRadiusXl);
+        theme.RadiusFull = ISharedTheme.NormalizeRadius(theme.RadiusFull, ISharedTheme.DefaultRadiusFull);
+
         var colorsValid = ColorHelpers.ValidateColorCode(theme.FontColor)
                           && ColorHelpers.ValidateColorCode(theme.FontAltColor)
                           && ColorHelpers.ValidateColorCode(theme.LinkColor)

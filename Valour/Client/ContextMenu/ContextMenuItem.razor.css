@@ -7,7 +7,7 @@
     font-size: 14px;
     padding-top: 2px;
     padding-bottom: 2px;
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     text-align: left;
     width: 100%;
     font-weight: 500;
@@ -23,7 +23,7 @@
     height: 100%;
     opacity: 0;
     z-index: -1;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
 }
 
 .context-btn:hover > .context-bg {

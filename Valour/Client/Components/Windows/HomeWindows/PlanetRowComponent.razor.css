@@ -4,7 +4,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 6px 8px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease;
 }
@@ -25,7 +25,7 @@
 .planet-row .left .row-icon {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     flex-shrink: 0;
     object-fit: cover;
 }
@@ -77,12 +77,12 @@
     background-color: var(--p-red);
     color: white;
     padding: 1px 5px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .planet-row .right .unread-badge {
     background-color: var(--strong-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     height: 16px;
     min-width: 16px;
     display: inline-flex;

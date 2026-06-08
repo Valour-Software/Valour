@@ -38,7 +38,7 @@
     align-items: center;
     gap: 6px;
     padding: 3px 10px;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     font-size: 11px;
     font-weight: 500;
     flex-shrink: 0;
@@ -68,7 +68,7 @@
 .call-status-dot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     flex-shrink: 0;
 }
 
@@ -110,7 +110,7 @@
 .call-ctrl-btn {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: 1px solid var(--slight-tint);
     background: var(--main-4);
     color: var(--font-color);
@@ -220,7 +220,7 @@
     font-weight: 600;
     background: var(--slight-tint);
     padding: 1px 7px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     opacity: 0.45;
 }
 
@@ -236,7 +236,7 @@
     display: flex;
     align-items: center;
     padding: 4px 6px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     border: 1px solid transparent;
     transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     position: relative;
@@ -290,13 +290,13 @@
 .participant-volume-slider::-webkit-slider-runnable-track {
     height: 3px;
     background: var(--main-5);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
 }
 
 .participant-volume-slider::-moz-range-track {
     height: 3px;
     background: var(--main-5);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     border: none;
 }
 
@@ -304,7 +304,7 @@
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: var(--p-cyan);
     cursor: pointer;
     margin-top: -4.5px;
@@ -314,7 +314,7 @@
 .participant-volume-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: var(--p-cyan);
     border: none;
     cursor: pointer;
@@ -325,7 +325,7 @@
 .participant-mod-btn {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--font-color);
@@ -478,7 +478,7 @@
     min-width: 204px;
     height: 120px;
     min-height: 120px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .video-tile {
@@ -486,7 +486,7 @@
     min-height: 120px;
     background: radial-gradient(circle at 30% 20%, rgba(55, 164, 206, 0.18), rgba(0, 0, 0, 0.4));
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     display: flex;
     align-items: stretch;
@@ -522,7 +522,7 @@
 .video-fallback-avatar {
     width: 120px;
     height: 120px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -579,7 +579,7 @@
 .video-focus-btn {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--font-color);
@@ -608,7 +608,7 @@
 .video-viewport-btn {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--font-color);
@@ -657,7 +657,7 @@
     width: 100%;
     height: 100%;
     min-height: 0;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .video-fullscreen-close {
@@ -666,7 +666,7 @@
     right: 10px;
     width: 34px;
     height: 34px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: 1px solid rgba(255, 255, 255, 0.22);
     background: rgba(0, 0, 0, 0.55);
     color: #fff;
@@ -715,7 +715,7 @@
     gap: 8px;
     margin: 0 12px 12px;
     padding: 8px 12px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     background: rgba(205, 94, 94, 0.08);
     border: 1px solid rgba(205, 94, 94, 0.15);
     color: var(--p-red);

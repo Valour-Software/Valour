@@ -5,7 +5,7 @@
     align-content: center;
     padding: 6px 8px;
     font-size: 14px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease;
 }
@@ -26,7 +26,7 @@
 .dm-row .left img {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     flex-shrink: 0;
     object-fit: cover;
 }
@@ -47,7 +47,7 @@
 
 .dm-row .right .unread-badge {
     background-color: var(--strong-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     height: 16px;
     min-width: 8px;
     display: inline-flex;

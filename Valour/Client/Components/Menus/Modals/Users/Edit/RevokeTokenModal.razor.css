@@ -1,7 +1,7 @@
 .token-info-preview {
     background: var(--surface-secondary);
     border: 1px solid var(--border-primary);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin: 1rem 0;
 }
@@ -16,7 +16,7 @@
 .app-icon {
     width: 24px;
     height: 24px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 .app-name {

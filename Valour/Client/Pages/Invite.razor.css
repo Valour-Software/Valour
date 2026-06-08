@@ -5,7 +5,7 @@
     width: 450px;
     z-index: 2;
     box-shadow: rgb(0, 0, 0) 0px 0px 15px;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
     border-color: rgb(128, 128, 128);
     margin: auto;
 }

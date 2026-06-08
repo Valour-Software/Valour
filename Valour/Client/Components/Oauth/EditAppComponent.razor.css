@@ -5,13 +5,13 @@
     margin-bottom: 1.5rem;
     padding: 1rem;
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 .app-icon {
     width: 64px;
     height: 64px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     object-fit: cover;
     cursor: pointer;
     transition: opacity 0.2s ease;

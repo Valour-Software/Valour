@@ -38,23 +38,23 @@
 .targets .up {
     top: calc(50% - 40px) !important;
     padding-bottom: 8px;
-    border-radius: 1em 1em 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .targets .down {
     top: calc(50% + 40px) !important;
     padding-top: 8px;
-    border-radius: 0 0 1em 1em;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
 .targets .left {
     left: calc(50% - 40px) !important;
-    border-radius: 1em 0 0 1em
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl)
 }
 
 .targets .right {
     left: calc(50% + 40px) !important;
-    border-radius: 0 1em 1em 0;
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
 }
 
 .targets .w-target-active {

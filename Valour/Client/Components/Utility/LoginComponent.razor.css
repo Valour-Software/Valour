@@ -113,7 +113,7 @@
     transform: translate(-50%, -50%);
     background: var(--main-2);
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     z-index: 1000;
 

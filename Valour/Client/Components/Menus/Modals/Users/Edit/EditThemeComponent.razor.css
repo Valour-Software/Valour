@@ -6,7 +6,7 @@
     margin-bottom: 2em;
     padding: 1.5rem;
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -18,7 +18,7 @@
     display: inline-flex;
     flex-direction: row;
     background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
-    border-radius: 2em;
+    border-radius: var(--radius-xl);
     padding: 0.6em 1em;
     gap: 1em;
     align-items: center;
@@ -53,7 +53,7 @@
     margin-bottom: 2rem;
     padding: 1.25rem;
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.25),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -72,7 +72,7 @@
     margin-bottom: 3rem;
     padding: 1.5rem;
     background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     box-shadow:
         0 4px 24px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -89,7 +89,7 @@
     right: 0;
     height: 3px;
     background: linear-gradient(90deg, var(--p-cyan), var(--p-purple), var(--p-cyan-purple));
-    border-radius: var(--card-radius) var(--card-radius) 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .theme-section h5 {
@@ -112,7 +112,7 @@
     width: 100%;
     height: 2px;
     background: linear-gradient(90deg, var(--p-cyan), transparent);
-    border-radius: 1px;
+    border-radius: var(--radius-xs);
 }
 
 .carousel-section {
@@ -127,7 +127,7 @@
     align-items: stretch;
     padding: 1.5rem;
     background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     box-shadow:
         0 6px 24px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -136,7 +136,7 @@
 
 .create-theme-card {
     background: linear-gradient(135deg, var(--main-1) 0%, var(--main-2) 50%, var(--main-3) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 0;
     overflow: hidden;
     display: flex;
@@ -171,7 +171,7 @@
         rgba(55, 164, 206, 0.1) 0%, 
         rgba(132, 87, 205, 0.05) 50%, 
         rgba(98, 120, 205, 0.1) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -236,7 +236,7 @@
     background: linear-gradient(135deg, var(--p-cyan) 0%, var(--p-cyan-purple) 100%);
     color: white;
     border: 1px solid var(--p-cyan);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 0.75rem 1.5rem;
     font-weight: 600;
     font-size: 0.9rem;
@@ -339,7 +339,7 @@
 
 /* For create theme */
 .theme-container {
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     overflow: hidden;
     display: inline-block;
     width: 200px;
@@ -381,7 +381,7 @@
     gap: 1em;
     padding: 1rem;
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     box-shadow:
         0 4px 16px rgba(0, 0, 0, 0.25),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -397,7 +397,7 @@
     background-repeat: no-repeat;
 
     background-color: var(--main-3);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
 
     cursor: pointer;
     box-shadow:

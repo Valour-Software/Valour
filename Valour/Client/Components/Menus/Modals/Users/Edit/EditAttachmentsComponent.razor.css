@@ -20,7 +20,7 @@
 .attachments-note,
 .empty-state {
     border: 1px solid var(--main-5);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     color: var(--font-alt-color);
     padding: 0.9rem 1rem;
@@ -38,7 +38,7 @@
     align-items: stretch;
     padding: 1rem;
     border: 1px solid var(--main-5);
-    border-radius: 18px;
+    border-radius: var(--radius-xl);
     background: var(--main-2);
 }
 
@@ -48,7 +48,7 @@
     min-height: 112px;
     overflow: hidden;
     border: 1px solid var(--main-5);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     background:
         radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--font-color) 10%, transparent), transparent 35%),
         linear-gradient(135deg, var(--main-3), var(--main-4));
@@ -74,7 +74,7 @@
     width: 56px;
     height: 56px;
     margin-top: 0.9rem;
-    border-radius: 18px;
+    border-radius: var(--radius-xl);
     background: var(--main-5);
     color: var(--font-color);
     font-size: 1.6rem;
@@ -85,7 +85,7 @@
     place-items: center;
     width: 48px;
     height: 48px;
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     background: var(--main-4);
     color: var(--font-color);
     font-size: 1.35rem;

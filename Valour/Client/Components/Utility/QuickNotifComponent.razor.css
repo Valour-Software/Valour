@@ -25,7 +25,7 @@
     max-height: 36px;
     min-width: 36px;
     min-height: 36px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     cursor: pointer;
     border: 2px var(--main-5) solid;
 }

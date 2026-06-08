@@ -1,7 +1,7 @@
 ﻿.mention-select {
     position: absolute;
     bottom: 50px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 6px;
     background-color: var(--main-1);
     opacity: 0.95
@@ -15,7 +15,7 @@
 
 ::deep .item {
     cursor: pointer;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     display: flex;
     padding: 2px;
 }
@@ -33,7 +33,7 @@
     width: 18px;
     height: 18px;
     display: inline-block;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
 }
 
 ::deep .item .icon.emoji-icon {

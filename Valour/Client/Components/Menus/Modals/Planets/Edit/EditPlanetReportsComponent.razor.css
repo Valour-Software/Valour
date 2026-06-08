@@ -28,7 +28,7 @@
     align-items: center;
     background: var(--main-2);
     border: 1px solid var(--slight-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--font-color);
     display: flex;
     flex-direction: column;
@@ -64,7 +64,7 @@
 }
 
 .status-chip {
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     display: inline-flex;
     font-size: 0.78rem;
     font-weight: 800;
@@ -136,7 +136,7 @@
     align-self: flex-start;
     background: var(--main-4);
     border: 1px solid var(--slight-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--font-color);
     display: inline-flex;
     font-size: 0.84rem;
@@ -257,7 +257,7 @@
     align-items: center;
     background: var(--main-4);
     border: 1px solid var(--slight-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--font-color);
     display: inline-flex;
     font-size: 0.85rem;
@@ -324,7 +324,7 @@
 .message-state {
     align-items: center;
     border: 1px dashed var(--slight-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--font-alt-color);
     display: flex;
     justify-content: center;

@@ -24,7 +24,7 @@
     border: 1px solid var(--main-4);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     margin-top: 8px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     max-height: 200px;
     overflow-y: auto;
     width: calc(100% - 40px);
@@ -76,7 +76,7 @@
     border: 1px solid var(--main-5);
     color: var(--font-color);
     padding: 0.5rem 1rem;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     font-family: inherit;
     transition: all 0.3s ease-in-out;
 }
@@ -106,7 +106,7 @@
     font-family: inherit;
     color: var(--font-color);
     border: none;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: all 0.3s ease-in-out;
     overflow: hidden;

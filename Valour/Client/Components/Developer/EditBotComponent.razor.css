@@ -3,14 +3,14 @@
     align-items: center;
     padding: 1rem;
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
 }
 
 .bot-avatar {
     width: 64px;
     height: 64px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     object-fit: cover;
     margin-right: 1rem;
 }
@@ -50,7 +50,7 @@
 
 .token-section {
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin-bottom: 1rem;
     border-left: 3px solid var(--p-orange);
@@ -75,7 +75,7 @@
     margin-top: 2rem;
     padding: 1rem;
     background-color: rgba(220, 53, 69, 0.1);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--p-red);
 }
 

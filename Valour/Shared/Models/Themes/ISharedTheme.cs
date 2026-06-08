@@ -4,10 +4,24 @@ public interface ISharedTheme : ISharedThemeMeta
 {
     public const string DefaultFontFamily = "\"Outfit\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif";
     public const int MaxFontFamilyLength = 256;
+    public const int MaxRadiusLength = 16;
+
+    public const string DefaultRadiusXs = "2px";
+    public const string DefaultRadiusSm = "6px";
+    public const string DefaultRadiusMd = "8px";
+    public const string DefaultRadiusLg = "12px";
+    public const string DefaultRadiusXl = "16px";
+    public const string DefaultRadiusFull = "999px";
 
     public bool Published { get; set; }
 
     public string FontFamily { get; set; }
+    public string RadiusXs { get; set; }
+    public string RadiusSm { get; set; }
+    public string RadiusMd { get; set; }
+    public string RadiusLg { get; set; }
+    public string RadiusXl { get; set; }
+    public string RadiusFull { get; set; }
     public string FontColor { get; set; }
     public string FontAltColor { get; set; }
     public string LinkColor { get; set; }
@@ -64,6 +78,56 @@ public interface ISharedTheme : ISharedThemeMeta
         }
 
         return true;
+    }
+
+    public static string NormalizeRadius(string radius, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(radius))
+            return fallback;
+
+        var trimmed = radius.Trim();
+        return IsRadiusSafe(trimmed) ? trimmed : fallback;
+    }
+
+    public static bool IsRadiusSafe(string radius)
+    {
+        if (string.IsNullOrWhiteSpace(radius) || radius.Length > MaxRadiusLength)
+            return false;
+
+        var valueEnd = 0;
+        var hasDigit = false;
+        var hasDot = false;
+        var hasNonZeroDigit = false;
+
+        while (valueEnd < radius.Length)
+        {
+            var c = radius[valueEnd];
+            if (char.IsAsciiDigit(c))
+            {
+                hasDigit = true;
+                hasNonZeroDigit |= c != '0';
+                valueEnd++;
+                continue;
+            }
+
+            if (c == '.' && !hasDot)
+            {
+                hasDot = true;
+                valueEnd++;
+                continue;
+            }
+
+            break;
+        }
+
+        if (!hasDigit)
+            return false;
+
+        var unit = radius[valueEnd..].ToLowerInvariant();
+        if (unit.Length == 0)
+            return !hasNonZeroDigit;
+
+        return unit is "px" or "rem" or "em" or "%";
     }
 
     private static readonly Dictionary<ThemeBannerFormat, string> BannerFormatMap = new()

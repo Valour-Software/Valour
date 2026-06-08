@@ -15,7 +15,7 @@
 
 .report-progress span {
     border: 1px solid var(--slight-tint);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--font-color);
     font-size: 0.78rem;
     font-weight: 700;
@@ -58,7 +58,7 @@
 .report-summary-card {
     background: var(--main-2);
     border: 1px solid var(--slight-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--font-color);
 }
 

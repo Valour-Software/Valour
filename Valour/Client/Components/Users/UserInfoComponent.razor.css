@@ -5,7 +5,7 @@
     justify-content: space-between;
     word-break: initial;
     padding: 2px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     transition: background 0.15s ease;
     cursor: pointer;
 }
@@ -29,7 +29,7 @@
     min-width: 32px;
     min-height: 32px;
     
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin: 6px;
     background-position: center;
     background-size: cover;
@@ -39,7 +39,7 @@
     width: 12px;
     height: 12px;
     background: #4ade80;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     position: absolute;
     left: 22px;
     top: 22px;
@@ -57,7 +57,7 @@
     width: 12px;
     height: 12px;
     margin-left: 2px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
 }
 
 .state-circle.online {

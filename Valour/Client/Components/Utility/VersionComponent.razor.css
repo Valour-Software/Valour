@@ -13,7 +13,7 @@
     max-width: 30px;
     max-height: 30px;
     margin-right: 8px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 

@@ -2,7 +2,7 @@
     background-color: rgba(255, 255, 255, 0.07);
     padding: 1rem 1rem 1rem 1rem;
     max-width: 512px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .embed a {

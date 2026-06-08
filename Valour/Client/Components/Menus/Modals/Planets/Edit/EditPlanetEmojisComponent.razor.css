@@ -30,7 +30,7 @@
     align-items: center;
     justify-content: flex-start;
     padding: 10px 12px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
 }
@@ -40,7 +40,7 @@
     font-weight: 600;
     font-size: 0.92rem;
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 1px solid var(--medium-tint);
     background: rgba(0, 0, 0, 0.2);
 }
@@ -50,7 +50,7 @@
     color: var(--p-yellow);
     background: color-mix(in srgb, var(--p-yellow) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--p-yellow) 35%, transparent);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 10px 12px;
 }
 
@@ -60,7 +60,7 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: 14px;
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     border: 1px solid var(--slight-tint);
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -96,7 +96,7 @@
     font-size: 0.9rem;
     background: rgba(0, 0, 0, 0.22);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     padding: 7px 10px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -118,7 +118,7 @@
     align-items: center;
     gap: 12px;
     padding: 11px 12px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
     transition: border-color 0.16s ease, transform 0.16s ease;
@@ -133,7 +133,7 @@
 .emoji-preview {
     width: 40px;
     height: 40px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(0, 0, 0, 0.2);
     padding: 4px;
     image-rendering: auto;
@@ -167,7 +167,7 @@
     margin: 8px 0 0;
     opacity: 0.85;
     padding: 16px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px dashed var(--medium-tint);
     background: rgba(0, 0, 0, 0.15);
 }

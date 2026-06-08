@@ -29,7 +29,7 @@
 /* Channel wrapper */
 
 ::deep .category {
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border-left-width: 2px;
     border-left-style: solid;
     border-left-color: transparent;
@@ -59,7 +59,7 @@
     display: block;
     border: 1px solid var(--main-5);
     background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 6px;
     margin-left: 12px;
     margin-top: 6px;
@@ -72,7 +72,7 @@
 }
 
 ::deep .channel.nested .path {
-    border-radius: 0 var(--main-radius);
+    border-radius: 0 var(--radius-md);
     border-left: 1px solid var(--v-cyan);
     width: 7px;
     height: 20px;
@@ -109,7 +109,7 @@
     align-items: center;
     justify-content: center;
     background-color: var(--p-red);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
@@ -160,7 +160,7 @@
     align-items: start;
     padding: 6px 8px 4px 6px;
     height: 27px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 ::deep .channel-wrapper:hover > .channel,
@@ -304,7 +304,7 @@
 ::deep .voice-participant-avatar {
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     object-fit: cover;
     border: 1px solid var(--main-4);
     flex-shrink: 0;

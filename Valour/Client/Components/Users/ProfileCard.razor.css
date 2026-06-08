@@ -9,7 +9,7 @@
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 24px;
+    border-radius: var(--radius-xl);
     padding: 4px;
     overflow: hidden;
 }
@@ -30,7 +30,7 @@
     --profile-border-angle: 210deg;
     position: absolute;
     inset: 0;
-    border-radius: 24px;
+    border-radius: var(--radius-xl);
 }
 
 .card-bg.animated-border {
@@ -44,7 +44,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     background:
         linear-gradient(180deg, rgba(4, 13, 20, 0.72) 0%, rgba(4, 13, 20, 0.9) 48%, rgba(4, 13, 20, 0.96) 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -107,7 +107,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(5, 12, 18, 0.46);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -124,7 +124,7 @@
 .presence-dot {
     width: 9px;
     height: 9px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: currentColor;
     box-shadow: 0 0 14px currentColor;
 }
@@ -169,7 +169,7 @@
     width: 86px;
     height: 86px;
     padding: 4px;
-    border-radius: 24px;
+    border-radius: var(--radius-xl);
     background:
         linear-gradient(155deg, color-mix(in srgb, var(--profile-primary) 92%, white) 0%, color-mix(in srgb, var(--profile-secondary) 85%, white) 52%, color-mix(in srgb, var(--profile-tertiary) 80%, white) 100%);
     box-shadow:
@@ -182,7 +182,7 @@
     height: 100%;
     display: block;
     object-fit: cover;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     background: var(--main-3);
 }
 
@@ -320,7 +320,7 @@
     gap: 8px;
     min-height: 42px;
     padding: 10px 12px;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     font-weight: 700;
     letter-spacing: 0.01em;
     backdrop-filter: blur(12px);
@@ -355,7 +355,7 @@
 
 .feature-panel {
     padding: 12px 13px;
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     border: 1px solid rgba(255, 255, 255, 0.08);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.025) 100%),
@@ -425,11 +425,11 @@
         flex-basis: 76px;
         width: 76px;
         height: 76px;
-        border-radius: 22px;
+        border-radius: var(--radius-xl);
     }
 
     .pfp {
-        border-radius: 18px;
+        border-radius: var(--radius-xl);
     }
 
     .display-name {

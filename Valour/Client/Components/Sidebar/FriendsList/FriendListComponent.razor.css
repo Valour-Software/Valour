@@ -10,7 +10,7 @@
     overflow: auto;
     overflow-anchor: none;
     background-color: var(--main-3);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     display: flex;
     flex-direction: column;
     padding: 4px;

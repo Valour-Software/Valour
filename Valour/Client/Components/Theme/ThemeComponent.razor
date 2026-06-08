@@ -5,6 +5,12 @@
     <style>
         :root {
             --font-family-app: @((MarkupString)ISharedTheme.NormalizeFontFamily(CurrentTheme.FontFamily));
+            --radius-xs: @CurrentTheme.RadiusXs;
+            --radius-sm: @CurrentTheme.RadiusSm;
+            --radius-md: @CurrentTheme.RadiusMd;
+            --radius-lg: @CurrentTheme.RadiusLg;
+            --radius-xl: @CurrentTheme.RadiusXl;
+            --radius-full: @CurrentTheme.RadiusFull;
 
             --font-color: @CurrentTheme.FontColor;
             --font-alt-color: @CurrentTheme.FontAltColor;
@@ -74,6 +80,7 @@
     public async Task InstallTheme(Theme theme)
     {
         theme.FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily);
+        NormalizeThemeRadii(theme);
         CurrentTheme = theme;
         await LocalStorage.SetStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
         StateHasChanged();
@@ -165,10 +172,21 @@
         {
             CurrentTheme = JsonSerializer.Deserialize<Theme>(await LocalStorage.GetStringAsync("ACTIVE_THEME"));
             CurrentTheme.FontFamily = ISharedTheme.NormalizeFontFamily(CurrentTheme.FontFamily);
+            NormalizeThemeRadii(CurrentTheme);
             StateHasChanged();
         }
     }
 
+
+    private static void NormalizeThemeRadii(Theme theme)
+    {
+        theme.RadiusXs = ISharedTheme.NormalizeRadius(theme.RadiusXs, ISharedTheme.DefaultRadiusXs);
+        theme.RadiusSm = ISharedTheme.NormalizeRadius(theme.RadiusSm, ISharedTheme.DefaultRadiusSm);
+        theme.RadiusMd = ISharedTheme.NormalizeRadius(theme.RadiusMd, ISharedTheme.DefaultRadiusMd);
+        theme.RadiusLg = ISharedTheme.NormalizeRadius(theme.RadiusLg, ISharedTheme.DefaultRadiusLg);
+        theme.RadiusXl = ISharedTheme.NormalizeRadius(theme.RadiusXl, ISharedTheme.DefaultRadiusXl);
+        theme.RadiusFull = ISharedTheme.NormalizeRadius(theme.RadiusFull, ISharedTheme.DefaultRadiusFull);
+    }
 
 
     public void Refresh()

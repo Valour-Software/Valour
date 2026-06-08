@@ -16,6 +16,12 @@ public class Theme : ISharedTheme
     public bool Published { get; set; }
 
     public string FontFamily { get; set; }
+    public string RadiusXs { get; set; }
+    public string RadiusSm { get; set; }
+    public string RadiusMd { get; set; }
+    public string RadiusLg { get; set; }
+    public string RadiusXl { get; set; }
+    public string RadiusFull { get; set; }
     public string FontColor { get; set; }
     public string FontAltColor { get; set; }
     public string LinkColor { get; set; }

@@ -3,7 +3,7 @@
     height: 16px;
     border: 2px solid var(--font-alt-color);
     border-top: 2px solid var(--p-cyan);
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     animation: spin 0.6s linear infinite;
     display: inline-block;
     vertical-align: middle;
