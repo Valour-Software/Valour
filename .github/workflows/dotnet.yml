@@ -9,7 +9,7 @@ env:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04-arm
 
     #services:
     #  postgres:
@@ -46,19 +46,19 @@ jobs:
     #    restore-keys: |
     #      ${{ runner.os }}-nuget-
 
-    - name: Check Disk Space and Clean Docker Artifacts
-      run: |
-        THRESHOLD=10 # Disk space threshold in GB
-        AVAILABLE_SPACE=$(df --output=avail / | tail -n 1 | awk '{print int($1/1024/1024)}')
-        echo "Available disk space: ${AVAILABLE_SPACE} GB"
-        
-        if (( AVAILABLE_SPACE < THRESHOLD )); then
-          echo "Low disk space detected! Cleaning up Docker artifacts..."
-          docker system prune -af --volumes
-          echo "Docker cleanup complete."
-        else
-          echo "Sufficient disk space available: ${AVAILABLE_SPACE} GB"
-        fi
+    #- name: Check Disk Space and Clean Docker Artifacts
+    #  run: |
+    #    THRESHOLD=10 # Disk space threshold in GB
+    #    AVAILABLE_SPACE=$(df --output=avail / | tail -n 1 | awk '{print int($1/1024/1024)}')
+    #    echo "Available disk space: ${AVAILABLE_SPACE} GB"
+    #    
+    #    if (( AVAILABLE_SPACE < THRESHOLD )); then
+    #      echo "Low disk space detected! Cleaning up Docker artifacts..."
+    #      docker system prune -af --volumes
+    #      echo "Docker cleanup complete."
+    #    else
+    #      echo "Sufficient disk space available: ${AVAILABLE_SPACE} GB"
+    #    fi
 
     - name: Sanitize branch name
       run: |
