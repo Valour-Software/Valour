@@ -19,6 +19,17 @@
     background-size: cover;
 }
 
+.user-avatar.with-state .user-avatar-img {
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    margin: 4px;
+    border-radius: calc(var(--radius-md) - 2px);
+}
+
+.user-avatar.with-state .user-avatar-img::after {
+    border-radius: calc(var(--radius-md) + 2px);
+}
+
 .user-avatar-img::after {
     content: '';
     position: absolute;
@@ -27,6 +38,7 @@
     border: 1px solid var(--state-ring, transparent);
     box-shadow: 0 0 8px color-mix(in srgb, var(--state-ring, transparent) 45%, transparent);
     pointer-events: none;
+    opacity: 0.8;
 }
 
 .user-avatar-img.online {

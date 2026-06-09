@@ -7,7 +7,7 @@
     return;
 }
 
-<div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "")"
+<div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state" : "")"
      style="--user-avatar-size: @(Size)px"
      @onclick="@OnClick">
     <div class="user-avatar-img avatar-@User.Id @(ShowState ? _statusClass : "")"
