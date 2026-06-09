@@ -242,9 +242,14 @@
     margin-right: 6px;
     user-select: none;
     border-radius: var(--radius-sm);
+    object-fit: cover;
     pointer-events: none;
     opacity: 0.8;
     transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.tab .tab-icon.circle {
+    border-radius: var(--radius-full);
 }
 
 .tab:hover .tab-icon,

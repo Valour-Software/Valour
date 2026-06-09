@@ -1,4 +1,5 @@
 ﻿@inherits ControlledRenderComponentBase
+@implements IDisposable
 @inject PlanetService PlanetService
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
@@ -15,14 +16,12 @@
         }
     </div>
     <div class="bottom-actions">
-        <button class="action-btn" @onclick="@OnClickExplore">
-            <i class="bi bi-compass"></i>
-            <span>Discover Planets</span>
-        </button>
-        <button class="action-btn" @onclick="@OnClickCreatePlanet">
-            <i class="bi bi-plus-circle"></i>
-            <span>Create a Planet</span>
-        </button>
+        <VButton Variant="secondary" Icon="compass" FullWidth="true" OnClick="@OnClickExplore">
+            Discover Planets
+        </VButton>
+        <VButton Variant="secondary" Icon="plus-circle" FullWidth="true" OnClick="@OnClickCreatePlanet">
+            Create a Planet
+        </VButton>
     </div>
 </div>
 
@@ -44,6 +43,7 @@
     protected override async Task OnInitializedAsync()
     {
         PlanetService.JoinedPlanetsUpdated += OnJoinedPlanetsUpdated;
+        UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
 
         _ = Task.Run(async () =>
         {
@@ -74,6 +74,15 @@
     }
 
     private void OnJoinedPlanetsUpdated()
+    {
+        _ = InvokeAsync(() =>
+        {
+            CalculatePlanets();
+            ReRender();
+        });
+    }
+
+    private void OnPlanetUnreadChanged(long planetId)
     {
         _ = InvokeAsync(() =>
         {
@@ -113,6 +122,12 @@
             HasUnread = UnreadService.IsPlanetUnread(p.Id),
             Notifications = NotificationService.GetPlanetNotifications(p.Id)
         }).ToList();
+    }
+
+    void IDisposable.Dispose()
+    {
+        PlanetService.JoinedPlanetsUpdated -= OnJoinedPlanetsUpdated;
+        UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
     }
 
     public async Task OnPlanetClick(Planet planet)

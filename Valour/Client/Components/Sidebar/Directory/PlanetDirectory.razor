@@ -1,4 +1,5 @@
 ﻿@using Valour.Shared.Utilities
+@implements IDisposable
 @inject ChannelDragManager DragManager
 @inject ContextMenuService ContextMenuService
 @inject ChannelService ChannelService
@@ -12,7 +13,7 @@
     <div class="header-wrapper" style="cursor:pointer" id="list-inner-@Planet.Id">
         <div @onclick='@OnClick' class="header" ondragover="event.preventDefault();">
             <div class="left">
-                <img alt="planet icon" src="@Planet.GetIconUrl(IconFormat.Webp64)" class="icon"/>
+                <PlanetIcon Planet="@Planet" Size="24" Unread="@_hasUnread"/>
                 <p class="planet-name">
                     @Planet.Name
                 </p>
@@ -23,10 +24,6 @@
                     <div class="notif-badge">
                         <span>@_notifications</span>
                     </div>
-                }
-                else if (_hasUnread)
-                {
-                    <div class="unread-dot"></div>
                 }
                 
                 @if (_canEdit)
@@ -90,6 +87,7 @@
     protected override async Task OnInitializedAsync()
     {
         Planet.Channels.Changed += OnChannelsChanged;
+        UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
 
         await UnreadService.FetchUnreadPlanetChannelsAsync(Planet.Id);
         
@@ -98,6 +96,18 @@
         DetermineRootChannels();
         
         StateHasChanged();
+    }
+
+    private void OnPlanetUnreadChanged(long planetId)
+    {
+        if (planetId != Planet.Id)
+            return;
+
+        InvokeAsync(() =>
+        {
+            DetermineUnreadAndNotifications();
+            StateHasChanged();
+        });
     }
     
     private void DetermineRootChannels()
@@ -215,5 +225,11 @@
     {
         var newWindowContent = PlanetRulesWindowComponent.GetDefaultContent(Planet);
         await WindowService.OpenWindowAtFocused(newWindowContent);
+    }
+
+    void IDisposable.Dispose()
+    {
+        Planet.Channels.Changed -= OnChannelsChanged;
+        UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
     }
 }

@@ -1,0 +1,132 @@
+.v-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-family-app);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-none);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
+}
+
+.v-button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.v-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.v-button.full-width {
+    width: 100%;
+}
+
+.v-button.sm {
+    height: 26px;
+    padding: 0 10px;
+    font-size: var(--font-size-xs);
+    gap: 6px;
+}
+
+.v-button.md {
+    height: 32px;
+    padding: 0 14px;
+    font-size: var(--font-size-sm);
+}
+
+.v-button.lg {
+    height: 40px;
+    padding: 0 18px;
+    font-size: var(--font-size-md);
+    border-radius: var(--radius-md);
+}
+
+.v-button.icon-only.sm {
+    width: 26px;
+    padding: 0;
+}
+
+.v-button.icon-only.md {
+    width: 32px;
+    padding: 0;
+}
+
+.v-button.icon-only.lg {
+    width: 40px;
+    padding: 0;
+}
+
+.v-button i {
+    font-size: 1.05em;
+    line-height: var(--line-height-none);
+}
+
+.v-button-label {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.v-button.primary {
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+.v-button.primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 85%, white);
+}
+
+.v-button.secondary {
+    background: var(--main-3);
+    border-color: var(--slight-tint);
+    color: var(--font-color);
+}
+
+.v-button.secondary:hover:not(:disabled) {
+    background: var(--main-4);
+    border-color: var(--medium-tint);
+}
+
+.v-button.outline {
+    background: transparent;
+    border-color: var(--medium-tint);
+    color: var(--font-color-mid);
+}
+
+.v-button.outline:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--strong-tint);
+    color: var(--font-color);
+}
+
+.v-button.ghost {
+    background: transparent;
+    color: var(--font-color-mid);
+}
+
+.v-button.ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.075);
+    color: var(--font-color);
+}
+
+.v-button.danger {
+    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 60%, white);
+}
+
+.v-button.danger:hover:not(:disabled) {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: #ffffff;
+}

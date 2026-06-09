@@ -6,16 +6,7 @@
 
 <div class="planet-row" @onclick="OnClick" @oncontextpress="OnContextPress">
     <div class="left">
-        @if (!string.IsNullOrWhiteSpace(_iconText))
-        {
-            <div class="row-icon text-icon">
-                <span style="font-size: @(_iconTextFontSize)px;">@_iconText</span>
-            </div>
-        }
-        else
-        {
-            <img alt="@Planet.Name" src="@_iconUrl" class="row-icon" />
-        }
+        <PlanetIcon Planet="@Planet" Size="36" Unread="@_isUnread"/>
         <div class="info">
             <span class="name">@Planet.Name</span>
             @if (!string.IsNullOrWhiteSpace(Planet.Description))
@@ -31,13 +22,9 @@
         }
         @if (_notificationCount > 0)
         {
-            <div class="unread-badge notification">
+            <div class="notif-badge">
                 <span>@(_notificationCount > 9 ? "9+" : _notificationCount)</span>
             </div>
-        }
-        else if (_isUnread)
-        {
-            <div class="unread-badge"></div>
         }
     </div>
 </div>
@@ -73,28 +60,12 @@
     [Parameter]
     public EventCallback OnClicked { get; set; }
 
-    private const string DefaultImage = "_content/Valour.Client/media/logo-circle-icon.svg";
-
-    private string _iconUrl = DefaultImage;
-    private string _iconText;
-    private float _iconTextFontSize = 14f;
     private bool _isUnread;
     private int _notificationCount;
     private bool _selfManaged;
 
     protected override void OnInitialized()
     {
-        if (Planet.HasCustomIcon)
-        {
-            _iconUrl = Planet.GetIconUrl(IconFormat.Webp64);
-        }
-        else
-        {
-            _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
-            _iconText = ISharedPlanet.GetCommunityShortCode(Planet);
-            _iconTextFontSize = 36f / (_iconText.Length + 1);
-        }
-
         if (HomeWindowComponent is not null)
         {
             _selfManaged = true;

@@ -4,7 +4,9 @@
     <p class="subtitle mb-2">Friends</p>
     <div class="v-gradient-underline"></div>
 
-    <input @oninput="@OnFilterInput" type="text" placeholder="Search..." class="form-control mb-2 v-bg-medium friend-search" />
+    <div class="friend-search">
+        <VSearchBox Value="@_filterText" ValueChanged="@OnFilterChanged" Placeholder="Search friends..."/>
+    </div>
     <div class="list">
         @if (_renderFriends.Count == 0)
         {
@@ -23,7 +25,7 @@
         else
         {
             <Virtualize Items="@_renderFriends">
-                <UserInfoComponent User="@context" @key="@context.Id" />
+                <UserInfoComponent User="@context" ShowBadges="false" @key="@context.Id" />
             </Virtualize>
         }
     </div>
@@ -39,9 +41,9 @@
         CalculateFriends();
     }
 
-    private void OnFilterInput(ChangeEventArgs e)
+    private void OnFilterChanged(string value)
     {
-        _filterText = e.Value?.ToString();
+        _filterText = value;
         CalculateFriends();
         StateHasChanged();
     }

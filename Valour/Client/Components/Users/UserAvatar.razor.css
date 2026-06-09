@@ -57,6 +57,30 @@
     --state-ring: var(--medium-tint);
 }
 
+.user-avatar.unread::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--radius-md) + 3px);
+    padding: 1px;
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+}
+
+.user-avatar.unread .user-avatar-img {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--v-cyan) 25%, transparent);
+}
+
+/* When both rings show, keep the outer gradient ring concentric with the inner state ring */
+.user-avatar.with-state.unread::after {
+    border-radius: calc(var(--radius-md) + 6px);
+}
+
 .user-avatar-badges {
     position: absolute;
     left: 50%;

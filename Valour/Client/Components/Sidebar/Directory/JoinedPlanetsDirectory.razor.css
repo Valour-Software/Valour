@@ -29,29 +29,6 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     padding: 8px 0 0;
-}
-
-.bottom-actions .action-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: none;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
-    color: var(--font-alt-color);
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-app);
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.bottom-actions .action-btn:hover {
-    background-color: var(--main-4);
-    color: var(--font-color);
-    border-color: var(--medium-tint);
 }

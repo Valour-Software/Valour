@@ -7,7 +7,7 @@
     return;
 }
 
-<div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state" : "")"
+<div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state" : "") @(Unread ? "unread" : "")"
      style="--user-avatar-size: @(Size)px"
      @onclick="@OnClick">
     <div class="user-avatar-img avatar-@User.Id @(ShowState ? _statusClass : "")"
@@ -43,6 +43,12 @@
     /// </summary>
     [Parameter]
     public bool ShowState { get; set; }
+
+    /// <summary>
+    /// Shows a cyan/purple gradient ring around the avatar, matching PlanetIcon's unread style
+    /// </summary>
+    [Parameter]
+    public bool Unread { get; set; }
 
     [Parameter]
     public AvatarFormat Format { get; set; } = AvatarFormat.Webp128;

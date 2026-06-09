@@ -1,18 +1,26 @@
 <div class="dm-row" @onclick="OnClick">
     <div class="left">
-        <img alt="@OtherUser.Name Avatar" src="@OtherUser.GetAvatar(AvatarFormat.Webp64)" />
-        <span>@OtherUser.Name</span>
+        @if (IsTwoPersonChat)
+        {
+            <UserAvatar User="@OtherUser" Size="36" Unread="@IsUnread" ShowState="true"/>
+        }
+        else
+        {
+            <div class="group-icon @(IsUnread ? "unread" : "")">
+                <i class="bi bi-people-fill"></i>
+            </div>
+        }
+        <div class="info">
+            <span class="name">@OtherUser.Name</span>
+            <span class="description">@MemberCountText</span>
+        </div>
     </div>
     <div class="right">
         @if (Notifications > 0)
         {
-            <div class="unread-badge notification">
-                <span>@Notifications</span>
+            <div class="notif-badge">
+                <span>@(Notifications > 9 ? "9+" : Notifications.ToString())</span>
             </div>
-        }
-        else if (IsUnread)
-        {
-            <div class="unread-badge"></div>
         }
     </div>
 </div>
@@ -35,6 +43,17 @@
 
     [Parameter]
     public bool CloseSidebarOnSelect { get; set; }
+
+    private bool IsTwoPersonChat => (Channel.Members?.Count ?? 2) <= 2;
+
+    private string MemberCountText
+    {
+        get
+        {
+            var count = Channel.Members?.Count ?? 2;
+            return count == 1 ? "1 member" : $"{count} members";
+        }
+    }
 
     private async Task OnClick()
     {

@@ -7,28 +7,6 @@
 .search-bar {
     padding: 0.5em 0.5em 0;
     flex-shrink: 0;
-    margin-bottom: 0.5em;
-}
-
-.search-bar .search-input {
-    width: 100%;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-sm);
-    color: var(--font-color);
-    padding: 6px 10px;
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-app);
-    outline: none;
-    transition: border-color 0.2s ease;
-}
-
-.search-bar .search-input:focus {
-    border-color: var(--color-primary);
-}
-
-.search-bar .search-input::placeholder {
-    color: var(--font-alt-color);
 }
 
 /* Make tab container fill remaining space */

@@ -1,0 +1,46 @@
+@* Standard reusable search input with icon and clear button *@
+
+<div class="v-search @Size">
+    <i class="bi bi-search v-search-icon" aria-hidden="true"></i>
+    <input type="text"
+           class="v-search-input"
+           placeholder="@Placeholder"
+           value="@Value"
+           aria-label="@Placeholder"
+           @oninput="@HandleInput"/>
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <button type="button" class="v-search-clear" aria-label="Clear search" @onclick="@HandleClear">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Placeholder { get; set; } = "Search...";
+
+    /// <summary>
+    /// sm | md
+    /// </summary>
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    [Parameter]
+    public string Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    private Task HandleInput(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString();
+        return ValueChanged.InvokeAsync(Value);
+    }
+
+    private Task HandleClear()
+    {
+        Value = string.Empty;
+        return ValueChanged.InvokeAsync(Value);
+    }
+}

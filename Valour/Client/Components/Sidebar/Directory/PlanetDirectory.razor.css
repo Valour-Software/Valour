@@ -27,13 +27,6 @@
     padding-bottom: 10px;
 }
 
-.planet .icon {
-    width: 24px;
-    height: 24px;
-    flex: 0 0 auto;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-}
 
 .header-wrapper {
 }
@@ -74,14 +67,6 @@
     font-weight: var(--font-weight-bold);
     color: white;
     line-height: var(--line-height-none);
-}
-
-.header .right .unread-dot {
-    width: 8px;
-    height: 8px;
-    flex: 0 0 auto;
-    border-radius: var(--radius-full);
-    background: var(--font-color);
 }
 
 .header .edit-button {

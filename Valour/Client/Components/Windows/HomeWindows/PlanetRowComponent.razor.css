@@ -22,24 +22,6 @@
     flex: 1;
 }
 
-.planet-row .left .row-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-full);
-    flex-shrink: 0;
-    object-fit: cover;
-}
-
-.planet-row .left .row-icon.text-icon {
-    background-color: var(--main-4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: var(--font-weight-bold);
-    font-family: var(--font-family-app);
-    color: var(--font-color);
-}
-
 .planet-row .left .info {
     display: flex;
     flex-direction: column;
@@ -80,23 +62,18 @@
     border-radius: var(--radius-sm);
 }
 
-.planet-row .right .unread-badge {
-    background-color: var(--strong-tint);
-    border-radius: var(--radius-md);
+.planet-row .right .notif-badge {
+    background-color: var(--color-danger);
+    border-radius: var(--radius-full);
     height: 16px;
     min-width: 16px;
+    padding: 0 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
-.planet-row .right .unread-badge.notification {
-    background-color: var(--color-danger);
-    min-width: 16px;
-    padding: 0 4px;
-}
-
-.planet-row .right .unread-badge span {
+.planet-row .right .notif-badge span {
     font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-bold);
     color: white;
