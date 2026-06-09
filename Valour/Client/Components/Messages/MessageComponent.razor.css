@@ -10,7 +10,7 @@
 }
 
 .message {
-    --message-avatar-column: 76px;
+    --message-avatar-column: 64px;
     width: 100%;
     max-width: 100%;
     display: grid;
@@ -329,8 +329,8 @@
 }
 
 .message.minimal .time {
-    margin-top: 8px;
-    line-height: var(--line-height-tight);
+    margin-top: 0;
+    line-height: calc(var(--font-size-md) * var(--line-height-base));
 }
 
 .message:hover > .content-holder > .name-role-holder > .time {
