@@ -78,6 +78,10 @@
                     <span>@_notificationCount</span>
                 </div>
             }
+            else if (IsUnread)
+            {
+                <div class="unread-dot"></div>
+            }
 
         </div>
         @if (_voiceParticipants.Count > 0 && ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
@@ -191,6 +195,9 @@
 
             if (ChannelService.ConnectedPlanetChannels.Any(x => x.Id == Channel.Id))
                 css += " open";
+
+            if (IsUnread)
+                css += " unread";
 
             if (DragManager.DragOverId == Channel.Id)
                 css += " drag-over";

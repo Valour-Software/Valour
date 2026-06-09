@@ -108,7 +108,7 @@
     align-items: center;
     justify-content: center;
     background-color: var(--color-danger);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
@@ -116,6 +116,18 @@
     right: 6px;
     top: 50%;
     transform: translateY(-50%);
+    z-index: 1;
+}
+
+::deep .channel .unread-dot {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--font-color);
     z-index: 1;
 }
 
@@ -160,6 +172,14 @@
     padding: 6px 8px 4px 6px;
     height: 27px;
     border-radius: var(--radius-xs);
+    color: rgba(255, 255, 255, 0.65);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+::deep .channel.unread,
+::deep .channel.open,
+::deep .channel-wrapper:hover > .channel {
+    color: var(--font-color);
 }
 
 ::deep .channel-wrapper:hover > .channel,
@@ -174,24 +194,20 @@
 
 ::deep .channel.open {
     position: relative;
-    background: color-mix(in srgb, var(--v-cyan) 7%, transparent);
-    box-shadow:
-            0 0 8px color-mix(in srgb, var(--v-cyan) 25%, transparent),
-            0 0 20px color-mix(in srgb, var(--v-cyan) 10%, transparent);
     z-index: 2;
 }
 
 ::deep .channel.open::before {
     content: '';
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
-    -webkit-mask:
-            linear-gradient(#fff 0 0) content-box,
-            linear-gradient(#fff 0 0);
-    mask-composite: exclude;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(180deg, var(--v-cyan), var(--v-purple));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--v-cyan) 40%, transparent);
+    z-index: 1;
 }
 
 ::deep .channel.open,
@@ -209,7 +225,6 @@
     font-style: normal;
     font-weight: var(--font-weight-regular);
     font-size: var(--font-size-sm);
-    color: var(--font-color);
     display: inline-block;
     white-space: nowrap;
     text-overflow: ellipsis;

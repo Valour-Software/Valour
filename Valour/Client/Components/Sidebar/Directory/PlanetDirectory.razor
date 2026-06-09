@@ -20,13 +20,13 @@
             <div class="right">
                 @if (_notifications > 0)
                 {
-                    <div class="unread-badge notification">
+                    <div class="notif-badge">
                         <span>@_notifications</span>
                     </div>
                 }
                 else if (_hasUnread)
                 {
-                    <div class="unread-badge"></div>
+                    <div class="unread-dot"></div>
                 }
                 
                 @if (_canEdit)

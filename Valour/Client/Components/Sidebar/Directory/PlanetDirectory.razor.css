@@ -5,7 +5,7 @@
 
 .planet-name {
     margin: 0;
-    margin-left: 6px;
+    margin-left: 8px;
     vertical-align: top;
     display: inline-block;
     font-family: var(--font-family-app);
@@ -28,11 +28,11 @@
 }
 
 .planet .icon {
-    width: 22px;
-    height: 22px;
-    float: right;
-    margin-right: 4px;
-    border-radius: var(--radius-full);
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
 }
 
 .header-wrapper {
@@ -54,40 +54,42 @@
     align-items: center;
 }
 
-.header .right .unread-badge {
-    background-color: var(--strong-tint);
-    border-radius: var(--radius-md);
-    height: 16px;
-    min-width: 16px;
-    transition: min-width, height 0.2s ease-in-out;
+.header .right {
+    gap: 8px;
+}
+
+.header .right .notif-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-}
-
-.header-wrapper:hover .header .right .unread-badge {
-
-}
-
-.header .right .unread-badge.notification {
     background-color: var(--color-danger);
+    border-radius: var(--radius-full);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+}
+
+.header .right .notif-badge span {
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    color: white;
+    line-height: var(--line-height-none);
+}
+
+.header .right .unread-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: var(--radius-full);
+    background: var(--font-color);
 }
 
 .header .edit-button {
-    margin-left: 6px;
     transition: transform 0.2s ease-in-out;
 }
 
 .header .edit-button:hover {
     transform: rotate(45deg) scale(1.1);
-}
-
-.unread-badge span {
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-bold);
-    color: white;
-    padding: 0 4px;
-    line-height: var(--line-height-none);
 }
 
 .planet-about,
@@ -98,11 +100,14 @@
     white-space: nowrap;
     height: 27px;
     padding: 6px 8px 4px 6px;
+    color: rgba(255, 255, 255, 0.65);
+    transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .planet-about:hover,
 .planet-rules:hover {
     background: rgba(255, 255, 255, 0.075);
+    color: var(--font-color);
 }
 
 .planet-pseudo-icon {
@@ -110,7 +115,6 @@
     top: 50%;
     left: 6px;
     transform: translateY(-50%);
-    color: #fff;
     font-size: var(--font-size-md);
     line-height: var(--line-height-none);
 }
@@ -121,7 +125,6 @@
     font-style: normal;
     font-weight: var(--font-weight-regular);
     font-size: var(--font-size-sm);
-    color: var(--font-color);
     display: inline-block;
     white-space: nowrap;
     text-overflow: ellipsis;
