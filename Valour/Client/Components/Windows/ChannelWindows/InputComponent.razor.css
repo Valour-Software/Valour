@@ -3,13 +3,21 @@
 }
 
 .textbox {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--main-3);
+    border: 1px solid var(--slight-tint);
     border-radius: var(--radius-full);
     color: white;
     position: relative;
     margin: 10px;
     padding: 0.5em;
     flex: 1 1 auto;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.textbox:focus-within {
+    border-color: color-mix(in srgb, var(--v-cyan) 35%, var(--slight-tint));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--v-cyan) 10%, transparent);
 }
 
 .textbox-wrapper {

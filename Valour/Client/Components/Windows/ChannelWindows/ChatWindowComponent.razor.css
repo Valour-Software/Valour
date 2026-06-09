@@ -106,7 +106,7 @@
     height: 36px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: var(--radius-md);
-    background: rgba(34, 37, 49, 0.94);
+    background: color-mix(in srgb, var(--main-3) 94%, transparent);
     color: rgba(255, 255, 255, 0.86);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
     cursor: pointer;
@@ -124,7 +124,7 @@
 
 .scroll-to-bottom-button:hover {
     border-color: rgba(255, 255, 255, 0.22);
-    background: rgba(43, 47, 61, 0.98);
+    background: var(--main-4);
 }
 
 .scroll-to-bottom-button i {
