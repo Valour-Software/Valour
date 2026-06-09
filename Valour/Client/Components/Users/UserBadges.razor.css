@@ -1,0 +1,68 @@
+.user-badges {
+    --user-badge-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    transform: translateX(-50%);
+    top: -4px;
+}
+
+.user-badges > ::deep .tooltip-trigger {
+    display: inline-flex;
+    flex: 0 0 auto;
+    pointer-events: auto;
+}
+
+.user-badge-item {
+    box-sizing: border-box;
+    height: var(--user-badge-size);
+    min-width: var(--user-badge-size);
+    padding: 0 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    border-radius: var(--radius-full);
+    background: var(--user-badge-bg, var(--main-1));
+    color: var(--font-color);
+    line-height: var(--line-height-none);
+    cursor: default;
+    user-select: none;
+    pointer-events: auto;
+
+    filter: saturate(0.75) brightness(0.9);
+}
+
+.user-badge-item:hover {
+    filter: saturate(1) brightness(1);
+}
+
+.user-badge-item.icon.milestone-1k {
+    color: #ffc940;
+}
+
+.user-badge-item.icon.milestone-10k {
+    color: #b8c4d4;
+}
+
+.user-badge-item.icon i {
+    font-size: 10px;
+    line-height: var(--line-height-none);
+    display: block;
+}
+
+.user-badge-item.icon.stargazer i {
+    background: linear-gradient(135deg, var(--user-badge-star-start), var(--user-badge-star-end));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.user-badge-item.icon.bot {
+    color: var(--color-bot);
+}
+
+.user-badge-item.icon.staff {
+    color: var(--color-staff);
+}

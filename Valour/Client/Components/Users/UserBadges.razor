@@ -1,0 +1,78 @@
+@* Standardized user badge row: stargazer, early user milestones, bot, staff *@
+
+@if (User is null)
+{
+    return;
+}
+
+<div class="user-badges">
+    @if (User.HasStargazer)
+    {
+        <TooltipTrigger>
+            <ChildContent>
+                <span class="user-badge-item icon stargazer" style="--user-badge-star-start: @User.GetStarColor1(); --user-badge-star-end: @User.GetStarColor2();" aria-label="Stargazer">
+                    <i class="bi bi-star-fill" aria-hidden="true"></i>
+                </span>
+            </ChildContent>
+            <TooltipContent>
+                <span>Stargazer</span>
+            </TooltipContent>
+        </TooltipTrigger>
+    }
+    @if (User.Id <= 22113735421460480)
+    {
+        <TooltipTrigger>
+            <ChildContent>
+                <span class="user-badge-item icon milestone-1k" aria-label="First 1k users">
+                    <i class="bi bi-award-fill" aria-hidden="true"></i>
+                </span>
+            </ChildContent>
+            <TooltipContent>
+                <span>First 1k users</span>
+            </TooltipContent>
+        </TooltipTrigger>
+    } else if (User.Id <= 42076534464053248)
+    {
+        <TooltipTrigger>
+            <ChildContent>
+                <span class="user-badge-item icon milestone-10k" aria-label="First 10k users">
+                    <i class="bi bi-award-fill" aria-hidden="true"></i>
+                </span>
+            </ChildContent>
+            <TooltipContent>
+                <span>First 10k users</span>
+            </TooltipContent>
+        </TooltipTrigger>
+    }
+    @if (User.Bot)
+    {
+        <TooltipTrigger>
+            <ChildContent>
+                <span class="user-badge-item icon bot" aria-label="Bot">
+                    <i class="bi bi-cpu-fill" aria-hidden="true"></i>
+                </span>
+            </ChildContent>
+            <TooltipContent>
+                <span>Bot</span>
+            </TooltipContent>
+        </TooltipTrigger>
+    }
+    @if (User.ValourStaff)
+    {
+        <TooltipTrigger>
+            <ChildContent>
+                <span class="user-badge-item icon staff" aria-label="Valour Staff">
+                    <i class="bi bi-shield-fill" aria-hidden="true"></i>
+                </span>
+            </ChildContent>
+            <TooltipContent>
+                <span>Valour Staff</span>
+            </TooltipContent>
+        </TooltipTrigger>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public User User { get; set; }
+}

@@ -35,45 +35,8 @@
     background-size: cover;
 }
 
-.state-circle {
-    width: 12px;
-    height: 12px;
-    background: var(--color-success);
-    border-radius: var(--radius-full);
-    position: absolute;
-    left: 22px;
-    top: 22px;
-    border: 2px solid var(--main-1);
-}
-
-.dot-badge-holder {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-top: -2px;
-}
-
-.dot-badge-holder .dot-badge {
-    width: 12px;
-    height: 12px;
-    margin-left: 2px;
-    border-radius: var(--radius-full);
-}
-
-.state-circle.online {
-    background: var(--color-success);
-}
-
-.state-circle.away {
-    background: var(--color-warning);
-}
-
-.state-circle.do-not-disturb {
-    background: var(--color-danger);
-}
-
-.state-circle.offline {
-    background: var(--font-alt-color);
+.left-block ::deep .user-avatar {
+    margin: 6px;
 }
 
 .name-status {

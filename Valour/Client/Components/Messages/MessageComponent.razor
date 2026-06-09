@@ -30,75 +30,13 @@ else
             @if (_user.HasAnimatedAvatar)
             {
                 <style>
-                    .message:hover .author-avatar-@_user.Id {
+                    .message:hover .avatar-@_user.Id {
                         background-image: url(@_animatedAvatarUrl), url(@_avatarUrl), url(@_fallbackAvatarUrl) !important;
                     }
                 </style>
             }
             <div class="avatar-stack">
-                <div @onclick="OnClickName" style="background-image: url(@_avatarUrl), url(@_fallbackAvatarUrl)" alt="@_name's profile picture" loading="lazy" class="author-avatar author-avatar-@_user.Id" @onerror="OnAvatarError"></div>
-                <div class="avatar-badge-holder">
-                    @if (_user.HasStargazer)
-                    {
-                        <TooltipTrigger>
-                            <ChildContent>
-                                <span class="avatar-badge avatar-badge-icon stargazer" style="--avatar-badge-star-start: @_user.GetStarColor1(); --avatar-badge-star-end: @_user.GetStarColor2();" aria-label="Stargazer">
-                                    <i class="bi bi-star-fill" aria-hidden="true"></i>
-                                </span>
-                            </ChildContent>
-                            <TooltipContent>
-                                <span>Stargazer</span>
-                            </TooltipContent>
-                        </TooltipTrigger>
-                    }
-                    @if (_user.Id <= 22113735421460480)
-                    {
-                        <TooltipTrigger>
-                            <ChildContent>
-                                <span class="avatar-badge avatar-badge-text" aria-label="First 1k users">1k</span>
-                            </ChildContent>
-                            <TooltipContent>
-                                <span>First 1k users</span>
-                            </TooltipContent>
-                        </TooltipTrigger>
-                    } else if (_user.Id <= 42076534464053248)
-                    {
-                        <TooltipTrigger>
-                            <ChildContent>
-                                <span class="avatar-badge avatar-badge-text" aria-label="First 10k users">10k</span>
-                            </ChildContent>
-                            <TooltipContent>
-                                <span>First 10k users</span>
-                            </TooltipContent>
-                        </TooltipTrigger>
-                    }
-                    @if (_user.Bot)
-                    {
-                        <TooltipTrigger>
-                            <ChildContent>
-                                <span class="avatar-badge avatar-badge-icon bot" aria-label="Bot">
-                                    <i class="bi bi-cpu-fill" aria-hidden="true"></i>
-                                </span>
-                            </ChildContent>
-                            <TooltipContent>
-                                <span>Bot</span>
-                            </TooltipContent>
-                        </TooltipTrigger>
-                    }
-                    @if (_user.ValourStaff)
-                    {
-                        <TooltipTrigger>
-                            <ChildContent>
-                                <span class="avatar-badge avatar-badge-icon staff" aria-label="Valour Staff">
-                                    <i class="bi bi-shield-fill" aria-hidden="true"></i>
-                                </span>
-                            </ChildContent>
-                            <TooltipContent>
-                                <span>Valour Staff</span>
-                            </TooltipContent>
-                        </TooltipTrigger>
-                    }
-                </div>
+                <UserAvatar User="@_user" Member="@_member" Size="38" ShowBadges="@(!_isInnerReply)" OnClick="@OnClickName"/>
             </div>
         }
         <div class="time-container">
@@ -1001,27 +939,11 @@ else
         }
     }
 
-    // Always allow a re-render when the pfp fails to load
-    private bool _avatarErrorRender = false;
-    
-    private void OnAvatarError()
-    {
-        _avatarUrl = _author.GetFailedAvatar();
-        _avatarErrorRender = true;
-        ReRender();
-    }
-
     /// <summary>
     /// This prevents the message from re-rendering. This should be expanded to support message edits in the future.
     /// </summary>
     protected override bool ShouldRender()
     {
-        if (_avatarErrorRender)
-        {
-            _avatarErrorRender = false;
-            return true;
-        }
-
         if (_ghost && _isInnerReply) return false;
 
         return ShouldRenderValue;
