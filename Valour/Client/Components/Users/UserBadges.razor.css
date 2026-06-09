@@ -8,7 +8,17 @@
     top: -4px;
 }
 
-.user-badges > ::deep .tooltip-trigger {
+.badge-slot {
+    display: inline-flex;
+    flex: 0 0 auto;
+    position: relative;
+}
+
+.badge-slot:hover {
+    z-index: 10 !important;
+}
+
+.badge-slot ::deep .tooltip-trigger {
     display: inline-flex;
     flex: 0 0 auto;
     pointer-events: auto;
@@ -25,6 +35,7 @@
     flex: 0 0 auto;
     border-radius: var(--radius-full);
     background: var(--user-badge-bg, var(--main-1));
+    box-shadow: 0 0 0 1px var(--main-2);
     color: var(--font-color);
     line-height: var(--line-height-none);
     cursor: default;

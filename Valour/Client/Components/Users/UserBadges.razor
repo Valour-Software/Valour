@@ -1,78 +1,94 @@
+@using System.Globalization
+
 @* Standardized user badge row: stargazer, early user milestones, bot, staff *@
 
-@if (User is null)
+@if (_badges.Count == 0)
 {
     return;
 }
 
 <div class="user-badges">
-    @if (User.HasStargazer)
+    @for (var i = 0; i < _badges.Count; i++)
     {
-        <TooltipTrigger>
-            <ChildContent>
-                <span class="user-badge-item icon stargazer" style="--user-badge-star-start: @User.GetStarColor1(); --user-badge-star-end: @User.GetStarColor2();" aria-label="Stargazer">
-                    <i class="bi bi-star-fill" aria-hidden="true"></i>
-                </span>
-            </ChildContent>
-            <TooltipContent>
-                <span>Stargazer</span>
-            </TooltipContent>
-        </TooltipTrigger>
-    }
-    @if (User.Id <= 22113735421460480)
-    {
-        <TooltipTrigger>
-            <ChildContent>
-                <span class="user-badge-item icon milestone-1k" aria-label="First 1k users">
-                    <i class="bi bi-award-fill" aria-hidden="true"></i>
-                </span>
-            </ChildContent>
-            <TooltipContent>
-                <span>First 1k users</span>
-            </TooltipContent>
-        </TooltipTrigger>
-    } else if (User.Id <= 42076534464053248)
-    {
-        <TooltipTrigger>
-            <ChildContent>
-                <span class="user-badge-item icon milestone-10k" aria-label="First 10k users">
-                    <i class="bi bi-award-fill" aria-hidden="true"></i>
-                </span>
-            </ChildContent>
-            <TooltipContent>
-                <span>First 10k users</span>
-            </TooltipContent>
-        </TooltipTrigger>
-    }
-    @if (User.Bot)
-    {
-        <TooltipTrigger>
-            <ChildContent>
-                <span class="user-badge-item icon bot" aria-label="Bot">
-                    <i class="bi bi-cpu-fill" aria-hidden="true"></i>
-                </span>
-            </ChildContent>
-            <TooltipContent>
-                <span>Bot</span>
-            </TooltipContent>
-        </TooltipTrigger>
-    }
-    @if (User.ValourStaff)
-    {
-        <TooltipTrigger>
-            <ChildContent>
-                <span class="user-badge-item icon staff" aria-label="Valour Staff">
-                    <i class="bi bi-shield-fill" aria-hidden="true"></i>
-                </span>
-            </ChildContent>
-            <TooltipContent>
-                <span>Valour Staff</span>
-            </TooltipContent>
-        </TooltipTrigger>
+        var badge = _badges[i];
+        <span class="badge-slot" style="@GetSlotStyle(i)" @key="@badge.CssClass">
+            <TooltipTrigger>
+                <ChildContent>
+                    <span class="user-badge-item icon @badge.CssClass" style="@badge.Style" aria-label="@badge.Label">
+                        <i class="bi @badge.Icon" aria-hidden="true"></i>
+                    </span>
+                </ChildContent>
+                <TooltipContent>
+                    <span>@badge.Label</span>
+                </TooltipContent>
+            </TooltipTrigger>
+        </span>
     }
 </div>
 
 @code {
     [Parameter]
     public User User { get; set; }
+
+    private record BadgeDef(string CssClass, string Icon, string Label, string Style = null);
+
+    private readonly List<BadgeDef> _badges = new();
+
+    protected override void OnParametersSet()
+    {
+        _badges.Clear();
+
+        if (User is null)
+            return;
+
+        if (User.HasStargazer)
+        {
+            _badges.Add(new BadgeDef("stargazer", "bi-star-fill", "Stargazer",
+                $"--user-badge-star-start: {User.GetStarColor1()}; --user-badge-star-end: {User.GetStarColor2()};"));
+        }
+
+        if (User.Id <= 22113735421460480)
+        {
+            _badges.Add(new BadgeDef("milestone-1k", "bi-award-fill", "First 1k users"));
+        }
+        else if (User.Id <= 42076534464053248)
+        {
+            _badges.Add(new BadgeDef("milestone-10k", "bi-award-fill", "First 10k users"));
+        }
+
+        if (User.Bot)
+        {
+            _badges.Add(new BadgeDef("bot", "bi-cpu-fill", "Bot"));
+        }
+
+        if (User.ValourStaff)
+        {
+            _badges.Add(new BadgeDef("staff", "bi-shield-fill", "Valour Staff"));
+        }
+    }
+
+    /// <summary>
+    /// Overlapping cluster: badges overlap slightly, the center badge stacks
+    /// on top, and rows of 3+ dip outward in a gentle arc.
+    /// </summary>
+    private string GetSlotStyle(int index)
+    {
+        var count = _badges.Count;
+        var center = (count - 1) / 2.0;
+        var dist = Math.Abs(index - center);
+
+        var z = count - (int)Math.Ceiling(dist);
+        var style = $"z-index: {z};";
+
+        if (index > 0)
+            style += " margin-left: -3px;";
+
+        if (count >= 3)
+        {
+            var drop = 3.0 * (dist * dist) / (center * center);
+            style += $" transform: translateY({drop.ToString("0.##", CultureInfo.InvariantCulture)}px);";
+        }
+
+        return style;
+    }
 }
