@@ -74,7 +74,7 @@
 ::deep .channel.nested .path {
     border-radius: 0 var(--radius-md);
     border-left: 1px solid var(--v-cyan);
-    width: 7px;
+    width: 5px;
     height: 20px;
     position: absolute;
     border-bottom: 1px solid var(--v-cyan);
