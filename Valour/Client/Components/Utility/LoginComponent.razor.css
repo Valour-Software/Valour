@@ -1,14 +1,22 @@
-﻿.page {
+﻿/* Fixing SpikeViper's questionable UX decisions */
+.page {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     height: 100vh;
+    padding: 32px 16px;
+    box-sizing: border-box;
 }
 
 .login-left {
     background-color: var(--main-2);
     max-width: 400px;
-    flex-grow: 1;
+    width: 100%;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--slight-tint);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-image {
@@ -54,12 +62,40 @@
     margin-bottom: 40px;
 }
 
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 38px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    color: #ffffff88;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    color: #ffffff;
+}
+
 .forgot-password {
     color: #ffffffaa;
     font-size: 14px;
-    display:block;
+    display: block;
     cursor: pointer;
     text-align: right;
+    width: fit-content;
+    margin-left: auto;
 }
 
 .forgot-password:hover {
@@ -69,6 +105,7 @@
 .hidden-victor {
     position: absolute;
     z-index: -1;
+    opacity: 0;
     top: -33px;
     scale: 0.4;
     left: 45px;
@@ -80,6 +117,7 @@
 
 .v-btn-grad-wrapper:hover .hidden-victor {
     z-index: 0;
+    opacity: 1;
     scale: 0.6;
     top: -67px;
     left: 66px;
@@ -99,6 +137,19 @@
 
     .login-left form {
         padding-top: 40px;
+    }
+}
+
+@media screen and (max-width: 399px){
+    .page {
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .login-left {
+        border-radius: 0;
+        border: none;
+        flex-grow: 1;
     }
 }
 
