@@ -1,92 +1,114 @@
-﻿@page "/Register"
+@page "/Register"
 @page "/Register/I/{InviteCode}"
 @page "/Register/from/{Source}"
 @page "/Register/referral/{Referral}"
 
 @inject IJSRuntime JsRuntime
 @inject AuthService AuthService
+@inject NavigationManager NavManager
 
-<body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
-    <div class="popup-box">
-        <div class="col-md-12">
-            @if (!_completed)
-            {
-                <section>
-                    <h2>Register for Valour</h2>
-
-                    <h4>Welcome to our app!</h4>
-                    <hr />
-                    <div asp-validation-summary="All" class="text-danger"></div>
-                    <div class="form-group mt-2">
-                        <label>Username</label>
-                        <input class="form-control" @bind-value="@_username" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Email</label>
-                        <input type="email" class="form-control" @bind-value="@_email" />
-                    </div>
-                    <div class="form-group mt-2">
+<div class="page">
+    <div class="login-background">
+    </div>
+    <div class="mobile-image">
+    </div>
+    <div class="register-left col-md-5">
+        @if (!_completed)
+        {
+            <form>
+                <div class="victor-wrapper">
+                    <img alt="victor" class="victor" src="_content/Valour.Client/media/victor.svg"/>
+                </div>
+                <div class="title">
+                    <h3>Join Valour</h3>
+                    <h4>Create your account</h4>
+                </div>
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input autocomplete="username" class="form-control" @bind-value="@_username" />
+                </div>
+                <div class="form-group mt-2">
+                    <label>Email</label>
+                    <input type="email" autocomplete="email" class="form-control" @bind-value="@_email" />
+                </div>
+                <div class="field-row mt-2">
+                    <div class="form-group">
                         <label>Password</label>
-                        <input type="password" class="form-control" @bind-value="@_password" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Confirm Password</label>
-                        <input type="password" class="form-control" @bind-value="@_passwordConf" />
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Birthday</label>
-                        <InputDate @bind-Value="@_dob" class="form-control"></InputDate>
-                        <br />
-                        <span id="date-span" class="text-danger">@_dobSpan</span>
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Referral (Optional)</label>
-                        <input type="text" class="form-control" @bind-value="@_referral" disabled="@_lockReferral" />
-                        <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour! (ie SpikeViper#0000)</span>
-                    </div>
-                    <div class="form-group mt-4">
-                        <div style="display: inline-block">
-                            <p>
-                                <input type="checkbox" @bind-value="@_termsAgreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
-                                and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules</a> and <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_ECO_RULES.md"> Eco Rules</a>.
-                            </p>
+                        <div class="password-wrapper">
+                            <input type="@(_showPassword ? "text" : "password")" autocomplete="new-password" class="form-control" @bind-value="@_password" />
+                            <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility" @onclick="@(() => _showPassword = !_showPassword)">
+                                <i class="bi @(_showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
                         </div>
                     </div>
-                    <span id="error-span" class="text-danger">@_errorSpan</span>
-                    <span id="success-span" class="text-info">@_successSpan</span>
-
-                    <div class="form-group mt-4">
-                        <button class="btn v-btn primary mt-2" @onclick="OnClickSubmit">Submit</button>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="@(_showPasswordConf ? "text" : "password")" autocomplete="new-password" class="form-control" @bind-value="@_passwordConf" />
+                            <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility" @onclick="@(() => _showPasswordConf = !_showPasswordConf)">
+                                <i class="bi @(_showPasswordConf ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
                     </div>
-                </section>
-            }
-            else
-            {
+                </div>
+                <div class="field-row mt-2">
+                    <div class="form-group">
+                        <label>Birthday</label>
+                        <InputDate @bind-Value="@_dob" class="form-control"></InputDate>
+                    </div>
+                    <div class="form-group">
+                        <label>Referral <span class="optional-hint">(optional)</span></label>
+                        <input type="text" class="form-control" @bind-value="@_referral" disabled="@_lockReferral" placeholder="SpikeViper#0000" />
+                    </div>
+                </div>
+                <span id="date-span" class="text-danger">@_dobSpan</span>
+                <span id="referral-info-span" class="field-hint">Referral is the username of someone who sent you to Valour</span>
+                <label class="terms mt-4">
+                    <input type="checkbox" @bind-value="@_termsAgreed" />
+                    <span>
+                        I have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service</a>,
+                        and will follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md">Platform Rules</a> and <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_ECO_RULES.md">Eco Rules</a>.
+                    </span>
+                </label>
+                <span id="error-span" class="text-danger">@_errorSpan</span>
+                <span id="success-span" class="text-info">@_successSpan</span>
+                <div class="v-btn-wrapper mt-4">
+                    <button type="button" class="v-btn blue half" @onclick="OnClickSubmit">Create Account</button>
+                </div>
+                <a class="mt-4 back-to-login" href="/">Already have an account? Log in</a>
+            </form>
+        }
+        else
+        {
+            <div class="confirmation-wrapper">
                 <ConfirmationEmailComponent RegisterRequest="@_regRequest"></ConfirmationEmailComponent>
-            }
-        </div>
+            </div>
+        }
     </div>
-</body>
+</div>
 
 @code {
 
     [Parameter]
     public string InviteCode { get; set; }
-    
+
     [Parameter]
     public string Source { get; set; }
-    
+
     [Parameter]
     public string Referral { get; set; }
 
     private bool _completed;
-    
+
     private RegisterUserRequest _regRequest;
-    
+
     // Input fields
     private string _email;
     private string _password;
     private string _passwordConf;
+    private bool _showPassword;
+    private bool _showPasswordConf;
     private string _username;
     private string _referral;
     private bool _lockReferral;
@@ -145,7 +167,7 @@
         var now = DateTime.Today;
         var age = now.Year - _dob.Year;
         if (_dob > now.AddYears(-age)) age--;
-        
+
         switch (age)
         {
             case 0:
