@@ -1,0 +1,6 @@
+{
+  "appHostPath": "../Valour.AppHost/Valour.AppHost.csproj",
+  "features": {
+    "execCommandEnabled": "true"
+  }
+}
