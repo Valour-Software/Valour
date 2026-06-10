@@ -1,210 +1,22 @@
-﻿.icon {
-    width: 30px;
-    height: 30px;
-    display: inline-block;
-    margin-left: 7px;
-    margin-top: -9px;
-}
+﻿/* ===== Edit mode ===== */
 
-.help-text {
-    font-weight: var(--font-weight-regular);
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-tight);
-    color: #FFFFFF;
-    opacity: 0.75;
-    margin-top: 15px;
-    margin-bottom: 20px;
-}
-
-button {
-    height: 34px;
-    background-color: var(--main-4);
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
-}
-
-.create-button {
-    display: inline-block;
-}
-
-.members-text {
-    display: inline-block;
-    margin-right: 50px;
-    margin-bottom: 10px;
-}
-
-.member-icon {
-    width: 16px;
-    height: 16px;
-    margin-top: -2px;
-    margin-left: -2px;
-}
-
-@media only screen and (max-width: 800px) {
-    .member-icon {
-        margin-top: -4px;
-    }
-}
-
-.member-count {
-    margin-bottom: 0px;
-    margin-top: 7px;
-    margin-left: 10px;
-    font-size: var(--font-size-md);
-    display: inline-block;
-}
-
-.role-name-div {
+.identity-row {
     display: flex;
-    align-items: center;
-    min-width: 0;
-    padding-left: 10px;
+    gap: 1rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
 }
 
-.role-member-count-div {
-    display: inline-block;
-    height: 22px;
-    opacity: 0.75;
-    margin-right: 33px;
-}
-
-.role-list-div-help-text {
-    display: flex;
-    justify-content: space-between;
-}
-
-.roles-row {
-    background-color: var(--main-4);
-    cursor: pointer;
-    user-select: none;
-    border: 0px solid;
-    width: 94%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--space-3);
-    min-height: 34px;
-}
-
-.roles-row:hover {
-    border: 1px solid;
-}
-
-.roles-row:active {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.roles-row:first-child {
-    border-top-left-radius: var(--radius-md);
-    border-top-right-radius: var(--radius-md);
-}
-
-.roles-row:last-child {
-    border-bottom-left-radius: var(--radius-md);
-    border-bottom-right-radius: var(--radius-md);
-}
-
-.roles-buttons {
-    position: absolute;
-    right: 0;
-    transform: translate(-50%, -50%);
-    user-select: none;
-}
-
-.btn-role-edit {
-    opacity: 85%;
-    background-color: rgba(0, 0, 0, 0);
-    color: #fff;
-    position: relative;
-    display: inline-block;
-    border: 1px solid #fff;
-    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-    width: 10%;
-    min-width: 60px;
-    height: 30px;
-    margin: 0px;
-    cursor: pointer;
-}
-
-.btn-role-text {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    position: absolute;
-}
-
-.btn-role-edit.edit {
-    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-}
-
-.btn-role-edit.edit:hover {
-    color: var(--color-primary);
-}
-
-.btn-role-edit.edit:active {
-    color: var(--color-primary-contrast);
-    background-color: var(--color-primary);
-}
-
-.btn-role-edit.delete {
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.btn-role-edit.delete:hover {
-    color: var(--color-danger);
-}
-
-.btn-role-edit.delete:active {
-    color: #fff;
-    background-color: var(--color-danger);
-}
-
-.btn-role-edit.create {
-    background-color: color-mix(in srgb, var(--color-success) 40%, transparent);
-    border-radius: var(--radius-sm);
-    display: block;
-    margin-left: 20px;
-    min-width: 55px;
-}
-
-.btn-role-edit.create:hover {
-    background-color: color-mix(in srgb, var(--color-success) 60%, transparent);
-}
-
-.btn-role-edit.create:active {
-    background-color: color-mix(in srgb, var(--color-success) 80%, transparent);
-}
-
-
-.role-edit-delete:hover {
-    background-color: rgba(255, 0, 0, 0.3);
-}
-
-.center-t {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.settings-save-button {
-    margin-top: 20px;
-}
-
-.picker-holder {
-    margin: 5px;
-}
-
-.rolecreate-cont {
-    display: flex;
+.identity-name {
+    flex: 1;
+    min-width: 200px;
 }
 
 .role-preview {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    margin-top: var(--space-2);
+    margin-top: 0.75rem;
 }
 
 .role-preview-label {
@@ -212,27 +24,75 @@ button {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
 }
 
-.color-wrapper {
-    border-radius: var(--radius-full);
-    width: 2em;
-    height: 2em;
-    overflow: hidden;
-    margin-top: 7px;
-    margin-left: 4px;
+/* ===== List mode ===== */
+
+.top-help {
+    margin-top: 0;
+    margin-bottom: 1rem;
 }
 
-.color-picker {
-    display: block;
-    border: 0;
-    outline: 0;
-    padding: 0;
-    width: 200%;
-    height: 200%;
-    border-radius: var(--radius-full);
-    transform: translate(-25%, -25%);
+.roles-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0.25rem;
+    margin: 1rem 0 0.5rem;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--font-alt-color);
+}
+
+.roles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.roles-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 40px;
+    padding: 0.35rem 0.75rem;
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
     cursor: pointer;
+    user-select: none;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+}
+
+.roles-row:hover {
+    background-color: var(--main-4);
+    border-color: var(--strong-tint, var(--slight-tint));
+    transform: translateX(2px);
+}
+
+.roles-row:active {
+    transform: scale(0.99);
+}
+
+.role-name-div {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.role-member-count {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    flex-shrink: 0;
 }
 
 ::deep .role-list-pill {

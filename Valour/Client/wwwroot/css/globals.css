@@ -1390,6 +1390,11 @@ img.emoji {
 }
 
 
+.v-btn.small {
+    padding: 0.35em 0.75em;
+    font-size: var(--font-size-sm);
+}
+
 .v-btn.large {
     display: block;
     width: 100%;
@@ -1820,6 +1825,11 @@ img.emoji {
     margin: 0;
     display: flex;
     flex-direction: column;
+}
+
+/* For table/list-heavy settings pages that need the full pane width */
+.settings-page.wide {
+    max-width: none;
 }
 
 .editor-section {

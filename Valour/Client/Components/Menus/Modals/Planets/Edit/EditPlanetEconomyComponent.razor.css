@@ -1,6 +1,19 @@
-﻿.title-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
+﻿.top-help {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.issued-badge {
+    margin-left: auto;
+    text-transform: none;
+}
+
+.currency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.currency-grid .v-input {
+    width: 100%;
 }

@@ -1,57 +1,20 @@
-.emoji-settings {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 2px;
+.top-help {
+    margin-top: 0;
+    margin-bottom: 1rem;
 }
 
-.emoji-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-size: var(--font-size-lg);
-    letter-spacing: var(--letter-spacing-normal);
-}
-
-.subtitle {
-    margin: 0;
-    color: var(--font-alt-color);
-    opacity: 0.9;
-}
-
-.emoji-loading {
-    margin: 0;
-    opacity: 0.85;
-}
-
-.emoji-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 10px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-}
-
-.emoji-usage {
-    margin: 0;
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--font-size-md);
-    padding: 4px 10px;
-    border-radius: var(--radius-full);
-    border: 1px solid var(--medium-tint);
-    background: rgba(0, 0, 0, 0.2);
+.usage-badge {
+    margin-left: auto;
 }
 
 .emoji-warning {
-    margin: 0;
+    margin: 0 0 1rem;
     color: var(--color-warning);
-    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    background: var(--color-warning-soft);
     border: 1px solid var(--color-warning-border);
     border-radius: var(--radius-md);
     padding: 10px 12px;
+    font-size: var(--font-size-sm);
 }
 
 .emoji-upload {
@@ -60,10 +23,9 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: 14px;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    background-color: var(--main-3);
 }
 
 .emoji-inputs {
@@ -92,9 +54,9 @@
 
 .emoji-file-name {
     grid-column: 1 / -1;
-    opacity: 0.92;
-    font-size: var(--font-size-md);
-    background: rgba(0, 0, 0, 0.22);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    background-color: var(--main-1);
     border: 1px solid var(--slight-tint);
     border-radius: var(--radius-sm);
     padding: 7px 10px;
@@ -105,6 +67,7 @@
 
 .emoji-result-wrap {
     min-height: 18px;
+    margin-top: 0.5rem;
 }
 
 .emoji-grid {
@@ -120,8 +83,9 @@
     padding: 11px 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    transition: border-color 0.16s ease, transform 0.16s ease;
+    background-color: var(--main-3);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
     min-width: 0;
 }
 
@@ -134,7 +98,7 @@
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md);
-    background: rgba(0, 0, 0, 0.2);
+    background-color: var(--main-1);
     padding: 4px;
     image-rendering: auto;
     flex-shrink: 0;
@@ -151,7 +115,7 @@
 
 .emoji-name {
     font-family: var(--font-family-mono);
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -164,17 +128,18 @@
 }
 
 .emoji-empty {
-    margin: 8px 0 0;
-    opacity: 0.85;
+    margin: 0;
+    color: var(--font-alt-color);
     padding: 16px;
     border-radius: var(--radius-md);
     border: 1px dashed var(--medium-tint);
-    background: rgba(0, 0, 0, 0.15);
+    background-color: var(--main-3);
 }
 
 @media (max-width: 760px) {
     .emoji-upload {
         align-items: stretch;
+        flex-direction: column;
     }
 
     .emoji-inputs {

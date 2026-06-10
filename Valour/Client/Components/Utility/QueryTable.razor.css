@@ -1,43 +1,98 @@
-.table-wrapper {
-    width: 100%;
-    overflow-x: auto;
+.table-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1rem;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
 }
 
-table {
+.table-search {
     width: 100%;
-    border-collapse: collapse;
+    margin-bottom: 0.75rem;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    background-color: var(--main-1);
+}
+
+.query-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
     color: var(--font-color);
     table-layout: fixed;
 }
 
-table tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.05);
+.query-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--main-2);
+    border: none;
+    border-bottom: 1px solid var(--slight-tint);
+    padding: 10px 12px;
+    white-space: nowrap;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-normal);
+    color: var(--font-alt-color);
+    user-select: none;
 }
 
-table td, table th {
+.query-table th.sortable {
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.query-table th.sortable:hover {
+    color: var(--font-color);
+}
+
+.th-inner {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.query-table td {
     border: none;
-    padding: 8px;
+    border-bottom: 1px solid var(--slight-tint);
+    padding: 6px 12px;
     text-align: left;
     vertical-align: middle;
 }
 
-table th {
-    background-color: #222;
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    z-index: 2;
+.query-table tbody tr {
+    transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
+.query-table tbody tr:hover {
+    background-color: var(--slight-tint);
+}
+
+.query-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* min-height (set inline from RowHeight) keeps rows uniform, while content
+   that needs more space (e.g. wrapped role pills) can grow the row slightly.
+   No overflow clipping, so hover effects like pill translateY are never cut. */
 td .data-wrapper {
-    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    min-width: 0;
 }
 
 .button-row {
     display: flex;
     flex-direction: row;
-    margin-top: 1em;
-    gap: 1em;
+    gap: 0.5em;
 }
 
 .table-footer {
@@ -45,5 +100,10 @@ td .data-wrapper {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1em;
+    margin-top: 0.75em;
+}
+
+.footer-count {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
 }

@@ -4,38 +4,30 @@
 
 @inject ValourClient Client
 
-@if (Engine is null)
+@if (Engine is null || Columns is null || (!Infinite && _pageItems is null))
 {
-    <h6>Waiting for query engine...</h6>
-    return;
-}
-
-@if (Columns is null)
-{
-    <h6>Waiting for column defs...</h6>
-    return;
-}
-
-@if (!Infinite && _pageItems is null)
-{
-    <h6>Loading...</h6>
+    <div class="table-loading">
+        <div class="loading-indicator"></div>
+        <span>Loading...</span>
+    </div>
     return;
 }
 
 @if (ShowSearch)
 {
-    <input class="form-control mt-2 mb-2" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
+    <input class="v-input table-search" placeholder="@SearchPlaceholder" @onchange="OnSearchChanged" />
 }
 
-<div class="table-wrapper" style="width:100%; overflow-x:auto; @(Infinite ? $"height:{Height};overflow-y:auto;" : null)">
-    <table class="table" style="min-width:@(TableMinWidth)px;">
-        <thead style="@(Infinite ? "position:sticky;top:0;z-index:2;" : null)">
+<div class="table-wrapper" style="@(Infinite ? $"height:{Height};" : null)">
+    <table class="query-table" style="min-width:@(TableMinWidth)px;">
+        <thead>
         <tr>
             @foreach (var column in Columns)
             {
-                <th @onclick="(() => OnSort(column))"
-                    style="cursor:@(column.Sortable ? "pointer" : "default"); white-space:nowrap; text-align: @column.TextAlign; width: @(column.Width ?? "auto")">
-                        <span style="display:flex; align-items:center; gap:4px;">
+                <th class="@(column.Sortable ? "sortable" : null)"
+                    @onclick="(() => OnSort(column))"
+                    style="text-align: @column.TextAlign; width: @(column.Width ?? "auto")">
+                        <span class="th-inner" style="justify-content: @(column.TextAlign == "right" ? "flex-end" : "flex-start")">
                             <span>@column.Name</span>
                             @if (column.Sortable && _sortField == column.SortField)
                             {
@@ -53,7 +45,7 @@
                 <tr @key="context">
                     @foreach (var column in Columns)
                     {
-                        <td><div class="data-wrapper" style="max-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</div></td>
+                        <td><div class="data-wrapper" style="min-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>() { Row = context, Table = this })</div></td>
                     }
                 </tr>
             </Virtualize>
@@ -65,7 +57,7 @@
                 <tr @key="@item">
                     @foreach (var column in Columns)
                     {
-                        <td><div class="data-wrapper" style="max-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</div></td>
+                        <td><div class="data-wrapper" style="min-height: @(RowHeight)px">@column.RenderFragment(new RowData<TModel>(){ Row = item, Table = this })</div></td>
                     }
                 </tr>
             }
@@ -80,14 +72,14 @@
         <div class="button-row">
             @if (!Engine.IsFirstPage)
             {
-                <button class="v-btn primary" @onclick="@LoadPreviousPageAsync">Previous</button>
+                <button class="v-btn small" @onclick="@LoadPreviousPageAsync">Previous</button>
             }
             @if (!Engine.IsLastPage)
             {
-                <button class="v-btn primary" @onclick="@LoadNextPageAsync">Next</button>
+                <button class="v-btn small" @onclick="@LoadNextPageAsync">Next</button>
             }
         </div>
-        <span>
+        <span class="footer-count">
             Showing items @((Engine.CurrentPageIndex - 1) * PageSize + 1)-@(Math.Min(Engine.CurrentPageIndex * PageSize, Engine.TotalCount)) of @Engine.TotalCount
         </span>
     </div>

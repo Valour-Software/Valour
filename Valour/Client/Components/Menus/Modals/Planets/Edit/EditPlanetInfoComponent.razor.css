@@ -1,4 +1,9 @@
-﻿.appearance-split {
+﻿.top-help {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.appearance-split {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;

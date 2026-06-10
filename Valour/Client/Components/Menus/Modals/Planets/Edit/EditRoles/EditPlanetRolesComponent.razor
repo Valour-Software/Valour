@@ -1,104 +1,97 @@
-﻿@inject IJSRuntime JsRuntime
-@inject ValourClient Client
+﻿@inject ValourClient Client
 
-<h3>Edit Roles <i class="bi bi-tag-fill"></i></h3>
-<p class="subtitle">PLANET SETTINGS</p>
-
-<div class="settings-inner" id="edit-inner-settings">
+<div class="settings-page">
 
     @{
         var editStyle = _editMode ? string.Empty : "display: none";
     }
 
     <div style="@editStyle">
-        <div class="rolecreate-cont">
-            <div class="form-group mt-2">
-                <label>Role Name</label>
-                <input class="form-control" @bind-value="@_role.Name"/>
-                <span id="rolename-span" class="text-danger">@_roleNameSpan</span>
-            </div>
-            <div class="form-group mt-2" style="margin-left: 8px">
-                <label>Color</label>
-                <ColorPickerComponent StartColor="@_role.Color"
-                    OnColorChange="@OnColorChange" />
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-tag-fill"></i>
+                Role Identity
+            </h3>
+
+            <div class="identity-row">
+                <div class="form-group identity-name">
+                    <label>Role Name</label>
+                    <input class="v-input" placeholder="Role name" @bind-value="@_role.Name"/>
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <ColorPickerComponent StartColor="@_role.Color"
+                        OnColorChange="@OnColorChange" />
+                </div>
             </div>
 
+            @if (_role is not null)
+            {
+                <div class="role-preview">
+                    <span class="role-preview-label">Preview</span>
+                    <RolePill Role="_role" Size="md" />
+                </div>
+            }
+
+            <ResultLabel Result="@_result" />
+
+            <div class="actions">
+                <button class="v-btn primary" @onclick="@OnClickSave">
+                    @(_role.Id == 0 ? "Create Role" : "Save Changes")
+                </button>
+                <button class="v-btn" @onclick="@GoBack">Back</button>
+            </div>
         </div>
-        @if (_role is not null)
-        {
-            <div class="role-preview">
-                <span class="role-preview-label">Preview</span>
-                <RolePill Role="_role" Size="md" />
-            </div>
-        }
-        <div class="mt-2" style="display: block">
-            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="@OnClickSave" id="role-save-button">
-                <p class="center-t">
-                    @(_role.Id == 0 ? "Create" : "Save")
-                </p>
-            </div>
-            <div class="mt-2">
-                <ResultLabel Result="@_result" />
-            </div>
-        </div>
-
-        <br/>
-        <hr/>
-        <br/>
-
 
         <!-- Note: We start at one for all the permissions to skip the 'full control' permission  -->
 
-        <p class="subtitle">PLANET PERMISSIONS</p>
-        <div class="perm-section">
-            
-            <div class="perm-list-item">
-                <div class="perm-list-name mb-1">
-                    Administrator
-                </div>
-                <div type="button" class="perm-switch">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-globe2"></i>
+                Planet Permissions
+            </h3>
+
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Administrator</span>
                     <label class="switch">
-                        <input 
-                            type="checkbox" 
-                            @onclick="OnClickAdmin" 
+                        <input
+                            type="checkbox"
+                            @onclick="OnClickAdmin"
                             checked="@_role.IsAdmin"
                         />
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <div class="perm-list-desc mt-1">
+                <p class="toggle-description">
                     If true, a member has all permissions in the planet and on every channel in the planet. Grant cautiously.
-                </div>
+                </p>
             </div>
-            
-            <div class="perm-list-item">
-                <div class="perm-list-name mb-1">
-                    Mentionable
-                </div>
-                <div type="button" class="perm-switch">
+
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">Mentionable</span>
                     <label class="switch">
-                        <input 
-                            type="checkbox" 
-                            @onclick="OnClickCanMention" 
+                        <input
+                            type="checkbox"
+                            @onclick="OnClickCanMention"
                             checked="@_role.AnyoneCanMention"
                         />
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <div class="perm-list-desc mt-1">
+                <p class="toggle-description">
                     If true, any member can mention this role in chat. Set cautiously.
-                </div>
+                </p>
             </div>
-            
+
             @for (int i = 1; i < PlanetPermissions.Permissions.Length; i++)
             {
                 var planetPerm = PlanetPermissions.Permissions[i];
 
-                <div class="perm-list-item">
-                    <div class="perm-list-name mb-1">
-                        @planetPerm.Name
-                    </div>
-                    <div type="button" class="perm-switch">
+                <div class="toggle-item">
+                    <div class="toggle-header">
+                        <span class="toggle-title">@planetPerm.Name</span>
                         <label class="switch">
                             <input
                                 type="checkbox"
@@ -107,24 +100,24 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div class="perm-list-desc mt-1">
-                        @planetPerm.Description
-                    </div>
+                    <p class="toggle-description">@planetPerm.Description</p>
                 </div>
             }
         </div>
 
-        <p class="subtitle">CATEGORY PERMISSIONS</p>
-        <div class="perm-section">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-folder-fill"></i>
+                Category Permissions
+            </h3>
+
             @for (int i = 1; i < CategoryPermissions.Permissions.Length; i++)
             {
                 var categoryPerm = CategoryPermissions.Permissions[i];
 
-                <div class="perm-list-item">
-                    <div class="perm-list-name mb-1">
-                        @categoryPerm.Name
-                    </div>
-                    <div type="button" class="perm-switch">
+                <div class="toggle-item">
+                    <div class="toggle-header">
+                        <span class="toggle-title">@categoryPerm.Name</span>
                         <label class="switch">
                             <input type="checkbox"
                                @onclick="@(e => PermClick(categoryPerm.Value, ref _roleCategoryPerms))"
@@ -132,51 +125,51 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div class="perm-list-desc mt-1">
-                        @categoryPerm.Description
-                    </div>
+                    <p class="toggle-description">@categoryPerm.Description</p>
                 </div>
             }
         </div>
 
-        <p class="subtitle">CHAT CHANNEL PERMISSIONS</p>
-        <div class="perm-section">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-chat-fill"></i>
+                Chat Channel Permissions
+            </h3>
+
             @for (int i = 1; i < ChatChannelPermissions.Permissions.Length; i++)
             {
                 var chatPerm = ChatChannelPermissions.Permissions[i];
 
-                <div class="perm-list-item">
-                    <div class="perm-list-name mb-1">
-                        @chatPerm.Name
-                    </div>
-                    <div type="button" class="perm-switch">
+                <div class="toggle-item">
+                    <div class="toggle-header">
+                        <span class="toggle-title">@chatPerm.Name</span>
                         <label class="switch">
-                            <input 
-                                type="checkbox" 
-                                @onclick="@(e => PermClick(chatPerm.Value, ref _roleChatPerms))" 
+                            <input
+                                type="checkbox"
+                                @onclick="@(e => PermClick(chatPerm.Value, ref _roleChatPerms))"
                                 checked="@((_roleChatPerms & chatPerm.Value) != 0)"
                             />
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div class="perm-list-desc mt-1">
-                        @chatPerm.Description
-                    </div>
+                    <p class="toggle-description">@chatPerm.Description</p>
                 </div>
             }
         </div>
 
-        <p class="subtitle">VOICE CHANNEL PERMISSIONS</p>
-        <div class="perm-section">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-mic-fill"></i>
+                Voice Channel Permissions
+            </h3>
+
             @for (int i = 1; i < VoiceChannelPermissions.Permissions.Length; i++)
             {
                 var voicePerm = VoiceChannelPermissions.Permissions[i];
 
-                <div class="perm-list-item">
-                    <div class="perm-list-name mb-1">
-                        @voicePerm.Name
-                    </div>
-                    <div type="button" class="perm-switch">
+                <div class="toggle-item">
+                    <div class="toggle-header">
+                        <span class="toggle-title">@voicePerm.Name</span>
                         <label class="switch">
                             <input type="checkbox"
                                @onclick="@(e => PermClick(voicePerm.Value, ref _roleVoicePerms))"
@@ -184,14 +177,24 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div class="perm-list-desc mt-1">
-                        @voicePerm.Description
-                    </div>
+                    <p class="toggle-description">@voicePerm.Description</p>
                 </div>
             }
         </div>
 
-        <button @onclick='() => DeleteRole(_selected)' class="mt-4 btn v-btn danger">Delete this role</button>
+        @if (_role.Id != 0)
+        {
+            <div class="editor-section danger-zone">
+                <h3 class="editor-section-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Danger Zone
+                </h3>
+
+                <div class="actions">
+                    <button @onclick='() => DeleteRole(_selected)' class="v-btn danger">Delete this role</button>
+                </div>
+            </div>
+        }
     </div>
 
     @{
@@ -202,55 +205,63 @@
         }
     }
 
+    <div style="@normStyle">
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-tag-fill"></i>
+                Roles
+            </h3>
 
-    <div id="edit-rows-container" style="@normStyle">
+            <p class="helper-text top-help">
+                Use roles to assign permissions and group planet members.
+                The highest role a member has determines their color.
+                Drag roles to reorder them.
+            </p>
 
-        <p class="help-text">Use roles to assign permissions and group planet members.</p>
+            <div class="form-group">
+                <input class="v-input" placeholder="Search roles..." @bind="@_searchRolesValue" @bind:event="oninput" />
+            </div>
 
-        <div class="form-group mt-2">
-            <input class="form-control" placeholder="Search Roles" @bind="@_searchRolesValue" @bind:event="oninput" />
-        </div>
-        
-        <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode">Create Role</button>
+            <div class="roles-list-header">
+                <span>@Planet.Roles.Count roles</span>
+                <span>Members</span>
+            </div>
 
-        <p class="help-text">Keep in mind the highest role a user has is the color they will appear as. Drag roles to reorder them</p>
+            <div class="roles-list">
+                @foreach (var role in Planet.Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
+                {
+                    // For magic lambda
+                    var roleX = role;
+                    var hasCount = false;
+                    var count = 0;
 
-        <div class="role-list-div-help-text">
-            <p class="help-text" style="display: inline-block;margin-bottom: 10px;">Roles: @Planet.Roles.Count</p>
+                    if (_roleMemberCounts is not null)
+                        hasCount = _roleMemberCounts.TryGetValue(roleX.Id, out count);
 
-            <p class="help-text members-text">Members</p>
-        </div>
-
-        <div class="roles-list">
-            @foreach (var role in Planet.Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
-            {
-                // For magic lambda
-                var roleX = role;
-                var hasCount = false;
-                var count = 0;
-                
-                if (_roleMemberCounts is not null)
-                    hasCount = _roleMemberCounts.TryGetValue(roleX.Id, out count);
-
-                <div  
-                    @onpointerdown="@(e => OnRoleItemClick(roleX))" 
-                    @ondragstart="@(() => OnRoleDrag(roleX))" 
-                    @ondrop="@(async () => await OnRoleDrop(roleX))" 
-                    draggable="true"
-                    ondragover="event.preventDefault();"
-                    class="roles-row" @onclick="@(() => OnClickEdit(roleX))">
-                    <div class="role-name-div">
-                        <RolePill Role="roleX" Class="role-list-pill" />
+                    <div
+                        @onpointerdown="@(e => OnRoleItemClick(roleX))"
+                        @ondragstart="@(() => OnRoleDrag(roleX))"
+                        @ondrop="@(async () => await OnRoleDrop(roleX))"
+                        draggable="true"
+                        ondragover="event.preventDefault();"
+                        class="roles-row" @onclick="@(() => OnClickEdit(roleX))">
+                        <div class="role-name-div">
+                            <RolePill Role="roleX" Class="role-list-pill" />
+                        </div>
+                        <div class="role-member-count">
+                            @if (hasCount)
+                            {
+                                <span>@count</span>
+                            }
+                            <i class="bi bi-person-fill"></i>
+                        </div>
                     </div>
-                    <div class="role-member-count-div">
-                        @if (hasCount)
-                        {
-                            <p class="member-count">@count</p>
-                        }
-                        <img alt="Person" class="member-icon" src="_content/Valour.Client/media/Person-Icon.svg"/>
-                    </div>
-                </div>
-            }
+                }
+            </div>
+
+            <div class="actions">
+                <button class="v-btn primary" @onclick="OnClickCreateMode">Create Role</button>
+            </div>
         </div>
     </div>
 </div>
@@ -271,7 +282,6 @@
 
     private bool _editMode = false;
 
-    private string _roleNameSpan = "";
     ITaskResult _result;
 
     private string _searchRolesValue = "";

@@ -12,15 +12,12 @@
     gap: 1rem;
 }
 
-.rules-toolbar h3 {
-    margin: 0;
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-bold);
+.rules-toolbar .editor-section-title {
+    margin-bottom: 0.35rem;
 }
 
-.subtitle {
-    margin: 0.25rem 0 0;
-    color: var(--font-color);
+.rules-help {
+    margin: 0;
 }
 
 .rules-layout {

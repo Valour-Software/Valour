@@ -34,7 +34,7 @@
                     }
                 </style>
             }
-            <UserAvatar User="@User" Member="@Member" Size="32" ShowBadges="@ShowBadges" ShowState="true"/>
+            <UserAvatar User="@User" Member="@Member" Size="32" ShowBadges="@ShowBadges" ShowState="@ShowState"/>
             
             <div class="name-status">
                 <div class="name-tag">
@@ -65,6 +65,9 @@
 
     [Parameter]
     public bool ShowBadges { get; set; } = true;
+
+    [Parameter]
+    public bool ShowState { get; set; } = true;
     
     // Internal cached values
     private string _name = DefaultName;

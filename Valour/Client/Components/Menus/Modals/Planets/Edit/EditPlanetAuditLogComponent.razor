@@ -1,16 +1,22 @@
 @inject ValourClient Client
 
-<h3>Audit Log <i class="bi bi-journal-bookmark-fill"></i></h3>
-<p class="subtitle">REVIEW MODERATION ACTIONS</p>
+<div class="settings-page wide">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-journal-bookmark-fill"></i>
+            Moderation Activity
+        </h3>
 
-<QueryTable
-    @ref="_table"
-    TableMinWidth="1200"
-    Columns="@_columns"
-    Engine="@_engine"
-    ShowSearch="true"
-    Infinite="true"
-    SearchPlaceholder="Search action, actor, target, details..." />
+        <QueryTable
+            @ref="_table"
+            TableMinWidth="1200"
+            Columns="@_columns"
+            Engine="@_engine"
+            ShowSearch="true"
+            Infinite="true"
+            SearchPlaceholder="Search action, actor, target, details..." />
+    </div>
+</div>
 
 @code {
     [Parameter]
@@ -57,7 +63,7 @@
                 SortField = "actor",
                 Sortable = true,
                 RenderFragment = row => row.Row.ActorUserId.HasValue
-                    ? @<UserInfoComponent UserId="@row.Row.ActorUserId.Value" />
+                    ? @<UserInfoComponent UserId="@row.Row.ActorUserId.Value" ShowBadges="false" ShowState="false" />
                     : @<span>System</span>,
                 Width = "250px"
             },
@@ -67,7 +73,7 @@
                 SortField = "target",
                 Sortable = true,
                 RenderFragment = row => row.Row.TargetUserId.HasValue
-                    ? @<UserInfoComponent UserId="@row.Row.TargetUserId.Value" />
+                    ? @<UserInfoComponent UserId="@row.Row.TargetUserId.Value" ShowBadges="false" ShowState="false" />
                     : @<span>-</span>,
                 Width = "250px"
             },

@@ -1,27 +1,27 @@
-﻿<h3>Basic Details</h3>
-<hr />
-<br />
+﻿<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-info-circle"></i>
+            Channel Details
+        </h3>
 
-<div class="settings-inner">
-    <span class="text-danger">@_errorSpan</span>
-    
-    <br/>
-    
-    <p>Name</p>
-    <input class="form-control" type="text" @bind-value="@_nameValue"/>
-    <span class="text-info">@_nameSpan</span>
+        <div class="form-group">
+            <label>Name</label>
+            <input class="v-input" type="text" placeholder="Channel name" @bind-value="@_nameValue"/>
+        </div>
 
-    <div class="mb-2"></div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea class="v-input" rows="3" placeholder="What is this channel about?" @bind="@_descValue" @bind:event="oninput"></textarea>
+        </div>
 
-    <br/>
+        <ResultLabel Result="@_result" />
 
-    <p>Description</p>
-    <textarea class="form-control" type="text" @bind="@_descValue" @bind:event="oninput"></textarea>
-    <span class="text-info">@_descSpan</span>
-
-    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+        <div class="actions">
+            <button class="v-btn primary" @onclick="OnSaveChanges">Save Changes</button>
+        </div>
+    </div>
 </div>
-
 
 @code {
     [Parameter]
@@ -30,18 +30,12 @@
     private string _nameValue;
     private string _descValue;
 
-    private string _errorSpan;
-
-    private string _nameSpan;
-    private string _descSpan = null;
+    private ITaskResult _result;
 
     protected override void OnInitialized()
     {
         _nameValue = Channel.Name;
         _descValue = Channel.Description;
-        _errorSpan = "";
-        
-        StateHasChanged();
     }
 
     private async Task OnSaveChanges()
@@ -64,11 +58,11 @@
                 // Restore old values on failure
                 Channel.Name = oldName;
                 Channel.Description = oldDesc;
-                _errorSpan = "Failed to save changes. Try again?";
+                _result = new TaskResult(false, "Failed to save changes. Try again?");
             }
             else
             {
-                _nameSpan = "Changes saved successfully.";
+                _result = new TaskResult(true, "Changes saved successfully.");
 
                 // We mutated the cached model before UpdateAsync (required because
                 // it sends `this`), so the SignalR notification may arrive during

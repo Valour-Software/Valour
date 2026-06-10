@@ -3,150 +3,146 @@
 
 @if (_loading)
 {
-    <h4>Loading details...</h4>
+    <div class="perm-message">
+        <div class="loading-indicator"></div>
+        <span>Loading details...</span>
+    </div>
     return;
 }
 @if (!_hasTargetManagePerm)
 {
-    <h4>You do not have permission to manage this @Target.GetHumanReadableName()!</h4>
+    <div class="perm-message">
+        <i class="bi bi-lock-fill"></i>
+        <span>You do not have permission to manage this @Target.GetHumanReadableName()!</span>
+    </div>
     return;
 }
 @if (!_hasTargetPermissionPerm)
 {
-    <h4>You do not have permission to manage this @Target.GetHumanReadableName()'s permissions!</h4>
-    return;
-}
-
-<h3>@Target.GetHumanReadableName() Permissions</h3>
-<p class="subtitle">CHOOSE ROLE</p>
-
-@if (_selectedRole is not null)
-{
-    <div class="selected-role-preview">
-        <RolePill Role="_selectedRole" />
+    <div class="perm-message">
+        <i class="bi bi-lock-fill"></i>
+        <span>You do not have permission to manage this @Target.GetHumanReadableName()'s permissions!</span>
     </div>
-}
-
-<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @(_selectedRole?.Color ?? "var(--font-color)");
-        background-color: var(--main-1)">
-
-    @{
-        int options = 0;
-        var myAuthority = Target.Planet.MyMember.Authority;
-    }
-
-    @foreach (var role in Target.Planet.Roles)
-    {
-        // Don't show roles we can't edit
-
-        var authority = role.GetAuthority();
-
-        if (authority >= myAuthority)
-            continue;
-
-        options++;
-
-        <option value="@role.Id" style="color: @role.Color; background-color: var(--main-1)">@role.Name</option>
-    }
-</select>
-
-<br />
-
-@if (options == 0)
-{
-    <h3>There are no roles you can edit!</h3>
     return;
 }
 
-@if (_selectedRole == null)
-{
-    // This actually cuts the HTML off early and is way cleaner than a massive 'if' statement
-    return;
-}
+<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-badge-fill"></i>
+            Role
+        </h3>
 
-<!-- If there's a role selected we show possible permissions that role can have
-     for the channel or category -->
-<div class="perm-section">
-    <div class="perm-list-item">
-        <div class="perm-list-name mb-1">
-            Inherit Category Permissions
+        <div class="form-group">
+            <label>Editing permissions for</label>
+            <select @key="@("perm-role-select")" class="v-input role-select" @onchange="OnRoleSelect"
+                    style="color: @(_selectedRole?.Color ?? "var(--font-color)")">
+
+                @{
+                    int options = 0;
+                    var myAuthority = Target.Planet.MyMember.Authority;
+                }
+
+                @foreach (var role in Target.Planet.Roles)
+                {
+                    // Don't show roles we can't edit
+
+                    var authority = role.GetAuthority();
+
+                    if (authority >= myAuthority)
+                        continue;
+
+                    options++;
+
+                    <option value="@role.Id" style="color: @role.Color; background-color: var(--main-1)">@role.Name</option>
+                }
+            </select>
         </div>
-        <div type="button" style="float:right">
-            <label class="switch">
-                <input type="checkbox" @onclick="SwitchInherit" checked="@Target.InheritsPerms">
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div class="perm-list-desc mt-1">
-            While true, the channel will inherit permissions from its parent category.
-        </div>
-    </div>
-</div>
 
-<!-- If the channel inherits the permissions, we do not give the option to edit them -->
-@if (Target.InheritsPerms == true)
-{
-    return;
-}
-
-@foreach (var channelType in ChannelPermissions.ChannelTypes.OrderBy(x => x.TargetType.ToString()))
-{
-    var groupIndex = GetPermissionGroupIndex(channelType.TargetType);
-
-    // Only show if we should
-    if (!_showStates[groupIndex])
-        continue;
-
-    <br />
-
-    <p class="subtitle">@GetPermissionSectionTitle(channelType)</p>
-    
-    <div class="perm-section">
-        <!-- Start at one to skip 'full control' -->
-        @for (int i = 1; i < channelType.Permissions.Length; i++)
+        @if (_selectedRole is not null)
         {
-            int i2 = i; // Prevent odd razor bug
-            Permission perm = channelType.Permissions[i2];
-
-            <div class="perm-list-item">
-                <div class="perm-list-name mb-1">
-                    @perm.Name
-                </div>
-                <div class="perm-switch">
-                    <TriButtonComponent @ref="_buttonGroups[groupIndex][i2]" OnStateChange="(async (state) => SwitchPermission(state, perm, channelType.TargetType))">
-                    </TriButtonComponent>
-                </div>
-                <div class="perm-list-desc mt-1">
-                    @perm.Description
-                </div>
+            <div class="selected-role-preview">
+                <RolePill Role="_selectedRole" />
             </div>
         }
     </div>
+
+@if (options == 0)
+{
+    <div class="perm-message">
+        <i class="bi bi-person-x-fill"></i>
+        <span>There are no roles you can edit!</span>
+    </div>
+}
+else if (_selectedRole is not null)
+{
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-diagram-3-fill"></i>
+            Inheritance
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Inherit Category Permissions</span>
+                <label class="switch">
+                    <input type="checkbox" @onclick="SwitchInherit" checked="@Target.InheritsPerms">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">While enabled, the channel will inherit permissions from its parent category.</p>
+        </div>
+    </div>
+
+    @if (!Target.InheritsPerms)
+    {
+        @foreach (var channelType in ChannelPermissions.ChannelTypes.OrderBy(x => x.TargetType.ToString()))
+        {
+            var groupIndex = GetPermissionGroupIndex(channelType.TargetType);
+
+            // Only show if we should
+            if (!_showStates[groupIndex])
+                continue;
+
+            <div class="editor-section">
+                <h3 class="editor-section-title">
+                    <i class="bi bi-key-fill"></i>
+                    @GetPermissionSectionTitle(channelType)
+                </h3>
+
+                <!-- Start at one to skip 'full control' -->
+                @for (int i = 1; i < channelType.Permissions.Length; i++)
+                {
+                    int i2 = i; // Prevent odd razor bug
+                    Permission perm = channelType.Permissions[i2];
+
+                    <div class="toggle-item">
+                        <div class="toggle-header">
+                            <span class="toggle-title">@perm.Name</span>
+                            <TriButtonComponent @ref="_buttonGroups[groupIndex][i2]" OnStateChange="(async (state) => SwitchPermission(state, perm, channelType.TargetType))">
+                            </TriButtonComponent>
+                        </div>
+                        <p class="toggle-description">@perm.Description</p>
+                    </div>
+                }
+            </div>
+        }
+    }
+
+    @if (_changed)
+    {
+        <div class="actions">
+            <button class="v-btn primary" @onclick="@OnSaveChanges">Save Changes</button>
+        </div>
+        <ResultLabel Result="@_saveResult" />
+    }
 }
 
-@if (_changed)
-{
-    <div class="save-wrapper">
-        <button class="v-btn save-btn" @onclick="@OnSaveChanges">Save</button>
-        
-        @if (_saveButtonText is not null)
-        {
-            <span class="text-info">@_saveButtonText</span>
-        }
-        
-        @if (_saveButtonErrorText is not null)
-        {
-            <span class="text-danger">@_saveButtonErrorText</span>
-        }
-    </div>
-    
-    <br />
-}
+</div>
 
 @code {
     
-    private string _saveButtonText;
-    private string _saveButtonErrorText;
+    private ITaskResult _saveResult;
     
     // For permission checking
     private bool _hasTargetManagePerm;
@@ -170,7 +166,6 @@
     [Parameter]
     public Channel Target { get; set; }
 
-    private PlanetRole _selfPrimaryRole;
     private PlanetRole _lastRole;
     private PlanetRole _selectedRole;
     private Channel? _associatedChatChannel;
@@ -243,11 +238,11 @@
                     Console.WriteLine("Error in channel permission node creation!");
                     Console.WriteLine(result.Message);
                     
-                    _saveButtonErrorText = "Error saving!";
+                    _saveResult = new TaskResult(false, "Error saving!");
                 }
                 else
                 {
-                    _saveButtonText = "Saved successfully!";
+                    _saveResult = new TaskResult(true, "Saved successfully!");
                 }
             }
             else if (_needUpdate[i])
@@ -261,11 +256,11 @@
                     Console.WriteLine("Error in channel permission node update!");
                     Console.WriteLine(result.Message);
                     
-                    _saveButtonErrorText = "Error saving!";
+                    _saveResult = new TaskResult(false, "Error saving!");
                 }
                 else
                 {
-                    _saveButtonText = "Saved successfully!";
+                    _saveResult = new TaskResult(true, "Saved successfully!");
                 }
             }
             
@@ -449,10 +444,10 @@
             ISharedChannel.IsPlanetCallType(Target.ChannelType) &&
             _associatedChatChannel is not null)
         {
-            return "INTEGRATED CHAT PERMISSIONS";
+            return "Integrated Chat Permissions";
         }
 
-        return $"{channelType.Permissions[0].ReadableName.ToUpper()} PERMISSIONS";
+        return $"{channelType.Permissions[0].ReadableName} Permissions";
     }
 
     private bool IsTrackedTargetId(long targetId) =>

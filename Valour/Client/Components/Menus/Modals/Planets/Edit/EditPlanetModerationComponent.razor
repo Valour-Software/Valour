@@ -3,19 +3,28 @@
 @using Valour.Sdk.ModelLogic
 @inject ValourClient Client
 
-<h5>Automod Triggers</h5>
+<div class="settings-page wide">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-shield-lock-fill"></i>
+            Automod Triggers
+        </h3>
 
-<QueryTable
-    @ref="_table"
-    Columns="@_columns"
-    Engine="@_engine"
-    ShowSearch="true"
-    Infinite="true"
-    TableMinWidth="850"
-    SearchPlaceholder="Search name..." />
+        <QueryTable
+            @ref="_table"
+            Columns="@_columns"
+            Engine="@_engine"
+            ShowSearch="true"
+            Infinite="true"
+            TableMinWidth="850"
+            SearchPlaceholder="Search name..." />
 
-<button class="v-btn mt-2" @onclick="OpenCreateModal">Add Trigger</button>
-<ResultLabel Result="@_result" />
+        <div class="actions">
+            <button class="v-btn primary" @onclick="OpenCreateModal">Add Trigger</button>
+        </div>
+        <ResultLabel Result="@_result" />
+    </div>
+</div>
 
 @code {
     [Parameter]

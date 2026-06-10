@@ -17,7 +17,7 @@ else
         <div class="reports-toolbar">
             <div class="filter-group">
                 <label>Status</label>
-                <select class="form-control" @onchange="OnStatusChanged">
+                <select class="v-input" @onchange="OnStatusChanged">
                     <option value="unresolved" selected>Unresolved</option>
                     <option value="resolved">Resolved</option>
                     <option value="">All</option>
@@ -225,14 +225,14 @@ else
             new()
             {
                 Name = "Reporter",
-                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.ReportingUserId" />,
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.ReportingUserId" ShowBadges="false" ShowState="false" />,
                 Width = "220px"
             },
             new()
             {
                 Name = "Reported",
                 RenderFragment = row => row.Row.ReportedUserId.HasValue
-                    ? @<UserInfoComponent UserId="@row.Row.ReportedUserId.Value" />
+                    ? @<UserInfoComponent UserId="@row.Row.ReportedUserId.Value" ShowBadges="false" ShowState="false" />
                     : @<span>-</span>,
                 Width = "220px"
             },

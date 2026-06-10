@@ -1,9 +1,5 @@
-.invite-list-title {
-    margin-top: 16px;
-    margin-bottom: 8px;
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
-    color: var(--font-color);
+.danger-note {
+    color: var(--color-danger);
 }
 
 .invite-list {
@@ -17,9 +13,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.04);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
     border-radius: var(--radius-md);
     gap: 12px;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.invite-card:hover {
+    border-color: var(--medium-tint);
 }
 
 .invite-info {

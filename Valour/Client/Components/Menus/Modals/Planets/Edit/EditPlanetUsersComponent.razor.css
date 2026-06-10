@@ -1,5 +1,29 @@
 .role-tags {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     gap: 0.25em;
+    min-width: 0;
+}
+
+.role-tags ::deep .role-pill {
+    flex-shrink: 0;
+    max-width: 180px;
+}
+
+.role-overflow {
+    flex-shrink: 0;
+    padding: 0.15em 0.55em;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--slight-tint);
+    background-color: var(--main-3);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    cursor: default;
+}
+
+.self-label {
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
 }

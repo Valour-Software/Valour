@@ -74,13 +74,13 @@
 }
 
 .status-chip.open {
-    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
-    color: #ffaaaa;
+    background: var(--color-danger-soft);
+    color: color-mix(in srgb, var(--color-danger) 60%, white);
 }
 
 .status-chip.resolved {
-    background: color-mix(in srgb, #40d889 16%, transparent);
-    color: #8af0b5;
+    background: var(--color-success-soft);
+    color: color-mix(in srgb, var(--color-success) 60%, white);
 }
 
 .report-actions {
