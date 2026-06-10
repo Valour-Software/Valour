@@ -1,6 +1,31 @@
 @inherits ContextMenu<MessageContextMenu.MessageContextParams>
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
+@using Valour.Client.Emojis
+
+@if (_canUseReactions && _quickEmojis is not null && _quickEmojis.Count > 0)
+{
+    <div class="quick-reactions">
+        @foreach (var emoji in _quickEmojis)
+        {
+            var reacted = _myReactions.Contains(emoji.Native);
+            <button class="quick-reaction @(reacted ? "reacted" : "")"
+                    title="@emoji.Name"
+                    @onclick="@(() => OnQuickReact(emoji))"
+                    @onclick:stopPropagation="true">
+                <img class="emoji"
+                     src="@EmojiSourceProvider.GetSrcUrlFromReaction(emoji.Native, Data.Message.PlanetId)"
+                     alt="@emoji.Native"/>
+            </button>
+        }
+        <button class="quick-reaction more"
+                title="More reactions"
+                @onclick="@OnOpenPicker"
+                @onclick:stopPropagation="true">
+            <i class="bi bi-emoji-smile"></i>
+        </button>
+    </div>
+}
 
 <ContextMenuItem OnClickAsync="@OnClickReply">
     <Label>Reply</Label>
@@ -70,8 +95,27 @@
     private PermissionState _deletePermission = PermissionState.False;
     private MemberContextMenu.MemberContextParams _memberContextData;
 
+    private List<EmojiClickEvent> _quickEmojis;
+    private HashSet<string> _myReactions = new();
+    private bool _canUseReactions;
+
     protected override async Task OnInitializedAsync()
     {
+        _canUseReactions =
+            Data.WindowComponent?.ChannelPermissions is null ||
+            Data.WindowComponent.ChannelPermissions.GetPermissionState(ChatChannelPermissions.UseReactions) == PermissionState.True;
+
+        if (_canUseReactions)
+        {
+            _myReactions = Data.Message.Reactions?
+                .Where(x => x.AuthorUserId == Client.Me.Id)
+                .Select(x => x.Emoji)
+                .ToHashSet() ?? new();
+
+            _quickEmojis = await EmojiMart.GetFrequentlyUsedAsync(JsRuntime);
+            StateHasChanged();
+        }
+
         if (Data.Message.PlanetId is not null)
         {
             _authorMember = await Data.Message.FetchAuthorMemberAsync();
@@ -97,6 +141,29 @@
         {
             _deletePermission = PermissionState.False;
         }
+    }
+
+    private async Task OnQuickReact(EmojiClickEvent emoji)
+    {
+        await CloseAsync();
+
+        if (_myReactions.Contains(emoji.Native))
+        {
+            await Data.Message.RemoveReactionAsync(emoji.Native);
+        }
+        else
+        {
+            await Data.Message.AddReactionAsync(emoji.Native);
+
+            // Feed emoji-mart's frequency store so the quick row stays accurate
+            await EmojiMart.RecordFrequentAsync(JsRuntime, emoji.Id);
+        }
+    }
+
+    private async Task OnOpenPicker(MouseEventArgs e)
+    {
+        await CloseAsync();
+        Data.WindowComponent?.OpenReactionPicker(Data.Message, e.ClientX, e.ClientY);
     }
 
     private async Task OnClickReply()

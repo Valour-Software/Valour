@@ -342,6 +342,78 @@ export async function search(query, maxResults = 10) {
     }
 }
 
+const FREQUENTLY_STORAGE_KEY = 'emoji-mart.frequently';
+const DEFAULT_FREQUENT_IDS = ['+1', 'heart', 'joy', 'open_mouth', 'cry', 'fire'];
+
+function readFrequentlyStore() {
+    try {
+        const raw = window.localStorage.getItem(FREQUENTLY_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+// Returns the user's most frequently used emojis from emoji-mart's own store,
+// padded with defaults when there isn't enough history.
+export async function getFrequent(maxResults = 6) {
+    if (!ensureSearchInitialized() || typeof EmojiMart?.SearchIndex?.get !== 'function') {
+        return [];
+    }
+
+    const frequently = readFrequentlyStore();
+
+    const ids = Object.entries(frequently)
+        .filter(([, count]) => typeof count === 'number')
+        .sort((a, b) => b[1] - a[1])
+        .map(([id]) => id);
+
+    for (const fallback of DEFAULT_FREQUENT_IDS) {
+        if (ids.length >= maxResults) {
+            break;
+        }
+        if (!ids.includes(fallback)) {
+            ids.push(fallback);
+        }
+    }
+
+    const results = [];
+    for (const id of ids) {
+        if (results.length >= maxResults) {
+            break;
+        }
+
+        try {
+            const emoji = await EmojiMart.SearchIndex.get(id);
+            const normalized = normalizeNativeResult(emoji);
+            if (normalized !== null) {
+                results.push(normalized);
+            }
+        } catch (_) {
+            // Skip ids that can't be resolved (e.g. custom planet emojis)
+        }
+    }
+
+    return results;
+}
+
+// Mirrors emoji-mart's own frequency tracking for reactions added outside the picker
+export function recordFrequent(id) {
+    if (typeof id !== 'string' || id.length === 0) {
+        return;
+    }
+
+    try {
+        const frequently = readFrequentlyStore();
+        frequently[id] = (typeof frequently[id] === 'number' ? frequently[id] : 0) + 1;
+        window.localStorage.setItem(FREQUENTLY_STORAGE_KEY, JSON.stringify(frequently));
+        window.localStorage.setItem('emoji-mart.last', JSON.stringify(id));
+    } catch (_) {
+        // Storage unavailable - non-critical
+    }
+}
+
 export function onEmojiSelect(id, ref, e) {
     const state = pickerStates.get(id) ?? null;
     const normalized = normalizeEmojiResult(e, state);

@@ -52,6 +52,31 @@
         return results?.ToList() ?? new();
     }
 
+    private const string ModulePath = "./_content/Valour.Client/Components/Utility/EmojiMart/EmojiMart.razor.js";
+
+    /// <summary>
+    /// Returns the user's most frequently used emojis from emoji-mart's own store,
+    /// padded with defaults when there isn't enough history.
+    /// </summary>
+    public static async Task<List<EmojiClickEvent>> GetFrequentlyUsedAsync(IJSRuntime js, int maxResults = 6)
+    {
+        var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        var results = await module.InvokeAsync<EmojiClickEvent[]>("getFrequent", maxResults);
+        return results?.ToList() ?? new();
+    }
+
+    /// <summary>
+    /// Records an emoji use into emoji-mart's frequency store, for reactions added outside the picker.
+    /// </summary>
+    public static async Task RecordFrequentAsync(IJSRuntime js, string emojiId)
+    {
+        if (string.IsNullOrWhiteSpace(emojiId))
+            return;
+
+        var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        await module.InvokeVoidAsync("recordFrequent", emojiId);
+    }
+
     public async Task SetCustomEmojisAsync(
         IEnumerable<EmojiClickEvent>? emojis,
         string? customCategoryIcon = null,

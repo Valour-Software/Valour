@@ -21,7 +21,6 @@ else
      @oncontextpress="@OnContextMenu"
      @oncontextpress:stopPropagation="true"
      @onpointerdown="@OnPointerDown"
-     @onmouseenter="@OnMouseEnter"
      @ref="OuterRef">
     
     <div class="left-info">
@@ -949,10 +948,4 @@ else
         return ShouldRenderValue;
     }
     
-    private void OnMouseEnter()
-    {
-        if (ParamData.Ghost || ParamData.IsInnerReply) return;
-        _chat?.NotifyMessageMouseEnter(this);
-    }
-
 }
