@@ -1,32 +1,67 @@
 .tabstrip {
     width: 100%;
     display: flex;
-    min-height: 36px;
+    min-height: 40px;
     background-color: var(--main-1);
+    border-top: 1px solid var(--slight-tint);
     bottom: 0;
     justify-content: space-evenly;
-    align-items: center;
+    align-items: stretch;
     z-index: 10;
 }
 
 .mobile .tabstrip {
-    min-height: 44px;
+    min-height: 48px;
 }
 
 .tabstrip .item {
-    flex-grow: 1;
+    flex: 1 1 0;
     cursor: pointer;
-    text-align: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.55);
+    transition: color var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard);
 }
 
-.tabstrip .item:hover .icon-holder,
-.tabstrip .item.selected .icon-holder {
-    border-bottom: 4px solid var(--main-4);
+.tabstrip .item ::deep .tooltip-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tabstrip .item:hover {
+    color: var(--font-color);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.tabstrip .item.selected {
+    color: var(--font-color);
+}
+
+.tabstrip .item.selected::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 22px;
+    height: 2px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(to right, var(--v-cyan), var(--v-purple));
 }
 
 .tabstrip .icon-holder {
     position: relative;
     display: inline-block;
+    padding: 8px 0;
+}
+
+.tabstrip .icon-holder i {
+    line-height: var(--line-height-none);
+    display: block;
 }
 
 .tabstrip .icon-holder .notif-badge {
@@ -34,12 +69,12 @@
     align-items: center;
     justify-content: center;
     background-color: var(--color-danger);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
     position: absolute;
-    top: -6px;
+    top: 0;
     right: -10px;
     z-index: 1;
 }
@@ -49,14 +84,4 @@
     font-weight: var(--font-weight-bold);
     color: white;
     line-height: var(--line-height-none);
-}
-
-.tabstrip .icon {
-    height: 12px;
-    margin: 4px;
-}
-
-.mobile .tabstrip .icon {
-    height: 16px;
-    margin: 8px;
 }
