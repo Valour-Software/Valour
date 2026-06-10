@@ -72,6 +72,7 @@
     
     private bool _loading = true;
     private bool _disposed;
+    private long? _pendingScrollToMessageId;
 
     [Parameter]
     public bool Embedded { get; set; }
@@ -292,11 +293,24 @@
 
         if (firstRender)
         {
+            // Setup must run first: MessageWrapperEl only exists in the DOM
+            // once _loading is false, so the JS init has to wait for it.
             await SetupNewChannelAsync();
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
             _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
 
-            await ScrollToBottom(true);
+            // The notification path (TargetMessageId -> LoadAroundMessageAsync)
+            // wants to scroll before _jsService exists; it defers to here.
+            if (_pendingScrollToMessageId is not null)
+            {
+                var target = _pendingScrollToMessageId.Value;
+                _pendingScrollToMessageId = null;
+                await ScrollToMessage(target, highlight: true);
+            }
+            else
+            {
+                await ScrollToBottom(true);
+            }
         }
 
         if (_pendingReactionEmojiRefresh && !_loading && _reactionSelector is not null)
@@ -688,7 +702,12 @@
         // Scroll to the target message and trigger highlight animation.
         // Uses instant scroll so it can't be interrupted by DOM changes.
         // The highlight class is added/removed by JS after scrolling.
-        await ScrollToMessage(messageId, highlight: true);
+        // During first-time window setup the JS service doesn't exist yet,
+        // so defer the scroll to OnAfterRenderAsync.
+        if (_jsService is null)
+            _pendingScrollToMessageId = messageId;
+        else
+            await ScrollToMessage(messageId, highlight: true);
 
         // Keep suppressing auto-scroll while messages finish loading
         // (avatars, embeds, etc. trigger ShiftScrollPosition which would
