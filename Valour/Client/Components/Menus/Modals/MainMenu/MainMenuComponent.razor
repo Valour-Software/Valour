@@ -24,9 +24,8 @@
                         <i class="bi bi-chevron-right"></i>
                     </div>
 
-                    @if (ActiveCategory == category)
-                    {
-                        <div class="v-menu-items">
+                    <div class="v-menu-items @(ActiveCategory == category ? "open" : "")">
+                        <div class="v-menu-items-inner">
                             @foreach (var item in category.Items)
                             {
                                 <div class="v-menu-item @(ActiveItem == item ? "active" : "")"
@@ -39,42 +38,15 @@
                                 </div>
                             }
                         </div>
-                    }
+                    </div>
                 }
             </div>
         </div>
 
         <!-- Content Area -->
         <div class="v-menu-content">
-            @if (ActiveItem is not null)
-            {
-                <div class="v-menu-content-header">
-                    @if (ActiveItem.Icon is not null)
-                    {
-                        <p><i class="bi bi-@ActiveItem.Icon"></i> <h2>@ActiveItem.Name</h2></p>
-                    }
-                    else
-                    {
-                        <h2>@ActiveItem.Name</h2>
-                    }
-
-                    @if (ActiveItem.Description is not null)
-                    {
-                        <h3 class="subtitle">@ActiveItem.Description</h3>
-                    }
-                </div>
-
-                <div class="v-menu-content-body">
-                    @ActiveItem.Content
-                </div>
-            }
-            else
-            {
-                <div class="v-menu-placeholder">
-                    <i class="bi bi-arrow-left-circle"></i>
-                    <p>Select an item from the menu</p>
-                </div>
-            }
+            <SlideSwap Index="@ContentIndex" Subtle="true"
+                       Content="@(ActiveItem is null ? PlaceholderContent : ItemContent(ActiveItem))" />
         </div>
     </div>
 </div>
@@ -95,6 +67,49 @@
     private MainMenu.MenuCategory ActiveCategory { get; set; }
     private MainMenu.MenuItem ActiveItem { get; set; }
     private bool IsDropdownOpen { get; set; } = false;
+
+    /// <summary>
+    /// Monotonic position of the active item across all categories, so the
+    /// content pane slides in the direction you moved through the menu.
+    /// </summary>
+    private int ContentIndex
+    {
+        get
+        {
+            if (ActiveCategory is null || ActiveItem is null)
+                return -1;
+
+            return MenuCategories.IndexOf(ActiveCategory) * 1000
+                   + ActiveCategory.Items.IndexOf(ActiveItem);
+        }
+    }
+
+    private RenderFragment ItemContent(MainMenu.MenuItem item) => @<div class="v-menu-content-pane">
+        <div class="v-menu-content-header">
+            @if (item.Icon is not null)
+            {
+                <p><i class="bi bi-@item.Icon"></i> <h2>@item.Name</h2></p>
+            }
+            else
+            {
+                <h2>@item.Name</h2>
+            }
+
+            @if (item.Description is not null)
+            {
+                <h3 class="subtitle">@item.Description</h3>
+            }
+        </div>
+
+        <div class="v-menu-content-body">
+            @item.Content
+        </div>
+    </div>;
+
+    private static readonly RenderFragment PlaceholderContent = @<div class="v-menu-placeholder">
+        <i class="bi bi-arrow-left-circle"></i>
+        <p>Select an item from the menu</p>
+    </div>;
 
     protected override void OnInitialized()
     {

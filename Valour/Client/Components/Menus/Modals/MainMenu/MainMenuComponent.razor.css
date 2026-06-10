@@ -136,18 +136,20 @@
 
 /* Menu Items */
 .v-menu-items {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    /* Add animation for menu items too */
-    max-height: 0;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-slow) var(--ease-out-expo);
 }
 
-.v-menu-category.active + .v-menu-items {
-    max-height: 1000px; /* A large value that should accommodate any number of items */
-    opacity: 1;
+.v-menu-items.open {
+    grid-template-rows: 1fr;
+}
+
+.v-menu-items-inner {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Menu Item */
@@ -159,8 +161,34 @@
     position: relative;
     color: rgba(255, 255, 255, 0.65);
     font-size: var(--font-size-sm);
+    opacity: 0;
+    transform: translateX(-12px);
     transition: background-color var(--duration-fast) var(--ease-standard),
                 color var(--duration-fast) var(--ease-standard);
+}
+
+.v-menu-items.open .v-menu-item {
+    animation: menu-item-slide var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.v-menu-items.open .v-menu-item:nth-child(1) { animation-delay: 30ms; }
+.v-menu-items.open .v-menu-item:nth-child(2) { animation-delay: 60ms; }
+.v-menu-items.open .v-menu-item:nth-child(3) { animation-delay: 90ms; }
+.v-menu-items.open .v-menu-item:nth-child(4) { animation-delay: 120ms; }
+.v-menu-items.open .v-menu-item:nth-child(5) { animation-delay: 150ms; }
+.v-menu-items.open .v-menu-item:nth-child(6) { animation-delay: 180ms; }
+.v-menu-items.open .v-menu-item:nth-child(7) { animation-delay: 210ms; }
+.v-menu-items.open .v-menu-item:nth-child(n + 8) { animation-delay: 240ms; }
+
+@keyframes menu-item-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .v-menu-item:hover {
@@ -204,6 +232,13 @@
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
+}
+
+.v-menu-content-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .v-menu-content-header {
