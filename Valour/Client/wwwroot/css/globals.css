@@ -93,38 +93,38 @@
     --medium-tint: #ffffff30;
     --strong-tint: #ffffff55;
 
-    /* Semantic purpose colors */
-    --color-primary: #37a4ce;
-    --color-primary-contrast: #ffffff;
+    /* Semantic purpose colors - neon family, aligned with status/brand accents */
+    --color-primary: #00e5ff;
+    --color-primary-contrast: #04141c;
     --color-primary-soft: color-mix(in srgb, var(--color-primary) 15%, transparent);
     --color-primary-border: color-mix(in srgb, var(--color-primary) 35%, transparent);
 
-    --color-secondary: #8457cd;
+    --color-secondary: #c44dff;
     --color-secondary-contrast: #ffffff;
     --color-secondary-soft: color-mix(in srgb, var(--color-secondary) 15%, transparent);
     --color-secondary-border: color-mix(in srgb, var(--color-secondary) 35%, transparent);
 
-    --color-accent: #6278cd;
+    --color-accent: #7b5cff;
     --color-accent-contrast: #ffffff;
     --color-accent-soft: color-mix(in srgb, var(--color-accent) 15%, transparent);
     --color-accent-border: color-mix(in srgb, var(--color-accent) 35%, transparent);
 
     --color-info: var(--color-primary);
-    --color-info-contrast: #ffffff;
+    --color-info-contrast: var(--color-primary-contrast);
     --color-info-soft: color-mix(in srgb, var(--color-info) 15%, transparent);
     --color-info-border: color-mix(in srgb, var(--color-info) 35%, transparent);
 
-    --color-success: #58c48b;
-    --color-success-contrast: #ffffff;
+    --color-success: #2bff88;
+    --color-success-contrast: #04140b;
     --color-success-soft: color-mix(in srgb, var(--color-success) 15%, transparent);
     --color-success-border: color-mix(in srgb, var(--color-success) 35%, transparent);
 
-    --color-warning: #facc15;
+    --color-warning: #ffd60a;
     --color-warning-contrast: #101820;
     --color-warning-soft: color-mix(in srgb, var(--color-warning) 15%, transparent);
     --color-warning-border: color-mix(in srgb, var(--color-warning) 35%, transparent);
 
-    --color-danger: #cd5e5e;
+    --color-danger: #ff3b5c;
     --color-danger-contrast: #ffffff;
     --color-danger-soft: color-mix(in srgb, var(--color-danger) 15%, transparent);
     --color-danger-border: color-mix(in srgb, var(--color-danger) 35%, transparent);
@@ -1341,7 +1341,7 @@ img.emoji {
 .v-btn.primary:hover {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    color: #ffffff;
+    color: var(--color-primary-contrast);
 }
 
 .v-btn.secondary {

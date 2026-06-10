@@ -55,7 +55,7 @@
 .tab-button.active {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
-    color: white;
+    color: var(--color-primary-contrast);
 }
 
 .tab-button i {

@@ -86,7 +86,7 @@
 .v-button.primary:hover:not(:disabled) {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    color: #ffffff;
+    color: var(--color-primary-contrast);
 }
 
 .v-button.secondary {

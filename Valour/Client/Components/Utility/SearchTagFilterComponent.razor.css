@@ -114,6 +114,7 @@
 }
 .toggle-btn:hover {
     background-color: var(--color-success);
+    color: var(--color-success-contrast);
     transform: translateY(-1px);
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
