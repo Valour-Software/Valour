@@ -22,6 +22,7 @@ type Channel = {
     isAtBottom(): boolean;
     checkBottomSticky(): void;
     scrollToBottom(force: boolean): void;
+    scrollToBottomDeferred(force: boolean): void;
     scrollToBottomAnimated(): void;
     scrollFromTopToBottomAnimated(): void;
     handleChatWindowScroll(e: MouseEvent): void;
@@ -83,6 +84,14 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
                 this.stickToBottom = true;
                 this.checkBottomSticky();
             }
+        },
+
+        scrollToBottomDeferred(force){
+            // Two frames: lets Blazor commit pending DOM changes (e.g. the
+            // reply preview growing the input area) before measuring.
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                this.scrollToBottom(force);
+            }));
         },
         
         scrollToBottomAnimated(){

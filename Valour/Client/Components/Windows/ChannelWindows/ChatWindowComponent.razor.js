@@ -47,6 +47,13 @@ export function init(dotnet, messageWrapperEl) {
                 this.checkBottomSticky();
             }
         },
+        scrollToBottomDeferred(force) {
+            // Two frames: lets Blazor commit pending DOM changes (e.g. the
+            // reply preview growing the input area) before measuring.
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                this.scrollToBottom(force);
+            }));
+        },
         scrollToBottomAnimated() {
             this.messageWrapperEl.scrollTo({
                 top: this.messageWrapperEl.scrollHeight,

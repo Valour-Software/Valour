@@ -2171,6 +2171,39 @@ td .button-row button {
     }
 }
 
+/* Touch slide (swipe actions) — elements are created by TouchSlide.ts,
+   so these can't live in scoped component CSS. */
+.touch-sliding {
+    position: relative;
+    touch-action: pan-y;
+}
+
+.touch-slide-icon {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    margin-top: -17px; /* center without transform (JS animates scale) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background-color: var(--main-4);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-lg);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.touch-slide-icon.armed {
+    background-color: var(--v-cyan);
+    color: var(--main-1);
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

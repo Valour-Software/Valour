@@ -790,6 +790,10 @@
         RefreshPreviewMessage();
         Refresh();
 
+        // The reply preview grows the input area and covers the bottom
+        // messages — follow it down if the user is near the bottom.
+        await ChatComponent.ScrollToBottomDeferred();
+
         await FocusInputAsync();
     }
 

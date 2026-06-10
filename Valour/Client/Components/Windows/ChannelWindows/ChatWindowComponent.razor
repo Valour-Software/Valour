@@ -73,6 +73,7 @@
     private bool _loading = true;
     private bool _disposed;
     private long? _pendingScrollToMessageId;
+    private TouchSlide _touchSlide;
 
     [Parameter]
     public bool Embedded { get; set; }
@@ -298,6 +299,12 @@
             await SetupNewChannelAsync();
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
             _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
+
+            // Swipe-left-to-reply for touch devices. The :not() filters keep
+            // inner reply previews and ghost messages from being targets.
+            _touchSlide = new TouchSlide();
+            _touchSlide.SlideAction += OnMessageSwipeReply;
+            await _touchSlide.Initialize(MessageWrapperEl, ".message:not(.reply):not(.ghost)", JsRuntime);
 
             // The notification path (TargetMessageId -> LoadAroundMessageAsync)
             // wants to scroll before _jsService exists; it defers to here.
@@ -915,6 +922,26 @@
     {
         MemberListComponent.ToggleVisible();
     }
+
+    /// <summary>
+    /// Handles a swipe-left-to-reply gesture on a message (touch only).
+    /// Element ids are in the format m-{channelId}-{messageId}.
+    /// </summary>
+    private async Task OnMessageSwipeReply(string elementId)
+    {
+        if (_disposed || InputComponent is null || string.IsNullOrEmpty(elementId))
+            return;
+
+        var lastDash = elementId.LastIndexOf('-');
+        if (lastDash < 0 || !long.TryParse(elementId[(lastDash + 1)..], out var messageId))
+            return;
+
+        var message = DisplayedMessages.FirstOrDefault(x => x.Id == messageId);
+        if (message is null)
+            return;
+
+        await InvokeAsync(async () => await InputComponent.SetReplyMessage(message));
+    }
     
     /* This is called by the MessageComponent when it is rendered */
     public void AddRenderedMessage(MessageComponent message)
@@ -978,6 +1005,19 @@
     /////////////////////
     // JS Interop Zone //
     /////////////////////
+
+    /// <summary>
+    /// Scrolls to bottom (when stuck to bottom) after the next two animation
+    /// frames, so pending Blazor DOM changes are measured first. Use when the
+    /// thing requiring the scroll hasn't rendered yet (e.g. reply preview).
+    /// </summary>
+    public ValueTask ScrollToBottomDeferred(bool force = false)
+    {
+        if (SuppressAutoScroll || _jsService is null)
+            return ValueTask.CompletedTask;
+
+        return _jsService.InvokeVoidAsync("scrollToBottomDeferred", force);
+    }
 
     public ValueTask ScrollToBottom(bool force = false)
     {
@@ -1504,6 +1544,12 @@
         await Channel.Close(WindowChannelKey);
         
         _thisRef.Dispose();
+
+        if (_touchSlide is not null)
+        {
+            _touchSlide.SlideAction -= OnMessageSwipeReply;
+            await _touchSlide.DisposeAsync();
+        }
 
         if (_jsModule is not null)
         {
