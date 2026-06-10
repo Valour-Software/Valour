@@ -25,22 +25,26 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-full);
-    background-color: var(--main-4);
-    border: none;
-    color: var(--font-color);
+    background-color: transparent;
+    border: 1px solid var(--slight-tint);
+    color: var(--font-alt-color);
     font-size: var(--font-size-xl);
     cursor: pointer;
     z-index: 10;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard);
 }
 
 .v-menu-close:hover {
     background-color: var(--color-danger);
+    border-color: var(--color-danger);
+    color: white;
 }
 
 /* Menu Layout */
 .v-menu-layout {
-    background-color: var(--main-3);
+    background-color: var(--main-2);
     display: flex;
     flex: 1;
     height: 100%;
@@ -53,7 +57,8 @@
     height: 100%;
     max-height: 100vh;
     max-height: 100dvh;
-    background-color: var(--main-3);
+    background-color: var(--main-1);
+    border-right: 1px solid var(--slight-tint);
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -64,8 +69,8 @@
 .v-menu-sidebar-toggle {
     display: none; /* Hidden by default, shown in media query */
     padding: 1rem;
-    background-color: var(--main-3);
-    border-bottom: 1px solid var(--main-4);
+    background-color: var(--main-1);
+    border-bottom: 1px solid var(--slight-tint);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
     justify-content: space-between;
@@ -85,23 +90,25 @@
 
 /* Category */
 .v-menu-category {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     display: flex;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
     position: relative;
     user-select: none;
-    border-left: 3px solid transparent;
+    color: rgba(255, 255, 255, 0.65);
 }
 
 .v-menu-category.active {
-    background-color: var(--main-4);
-    border-left-color: var(--color-primary);
+    color: var(--font-color);
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .v-menu-category:hover {
-    background-color: var(--slight-tint);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--font-color);
 }
 
 .v-menu-category i:first-child {
@@ -145,21 +152,37 @@
 
 /* Menu Item */
 .v-menu-item {
-    padding: 0.75rem 1rem 0.75rem 3rem;
+    padding: 0.6rem 1rem 0.6rem 3rem;
     display: flex;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-left: 3px solid transparent;
+    position: relative;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: var(--font-size-sm);
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
 }
 
 .v-menu-item:hover {
-    background-color: var(--slight-tint);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--font-color);
 }
 
 .v-menu-item.active {
-    background-color: var(--medium-tint);
-    border-left-color: var(--color-secondary);
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--font-color);
+}
+
+.v-menu-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(180deg, var(--v-cyan), var(--v-purple));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--v-cyan) 40%, transparent);
 }
 
 .v-menu-item i {
@@ -186,7 +209,7 @@
 .v-menu-content-header {
     margin-bottom: 1.5rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--main-4);
+    border-bottom: 1px solid var(--slight-tint);
 }
 
 .v-menu-content-header p {
@@ -203,7 +226,18 @@
 
 .v-menu-content-header i {
     font-size: var(--font-size-2xl);
-    margin-right: 0.25em;
+    margin-right: 0.35em;
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.v-menu-content-header .subtitle {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
+    color: var(--font-alt-color);
+    margin: 0;
 }
 
 .v-menu-content-body {
