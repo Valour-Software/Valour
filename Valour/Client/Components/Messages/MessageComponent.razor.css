@@ -371,3 +371,24 @@
 .message.ghost {
     opacity: 0.7 !important;
 }
+
+/* One-shot entrance for live arrivals (set via Params.AnimateIn).
+   Note: the ghost's !important opacity wins over the keyframe opacity,
+   so ghosts slide in at their usual 0.7 — exactly what we want; the
+   later ghost -> real swap then reads as the existing subtle fade.
+   The slide must come from the left/top: downward transform overflow
+   inflates scrollHeight and makes the bottom-pinned scroll bounce. */
+.message.message-enter {
+    animation: message-enter var(--duration-base) var(--ease-out-expo) both;
+}
+
+@keyframes message-enter {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}

@@ -499,6 +499,12 @@
     ///////////////////////
 
     private HashSet<long> _messageSet = new();
+
+    /// <summary>
+    /// Ids of messages that arrived live (vs loaded as history) and should
+    /// play an entrance animation when first rendered.
+    /// </summary>
+    private readonly HashSet<long> _liveArrivalIds = new();
     
     private RenderFragment MessagesFragment => builder =>
     {
@@ -527,6 +533,7 @@
                 IsInnerReply = false,
                 LastMessage = showDateDivider ? null : lastMessage,
                 Ghost = false,
+                AnimateIn = _liveArrivalIds.Contains(message.Id),
             };
 
             builder.OpenComponent<MessageComponent>(sequence++);
@@ -555,6 +562,7 @@
                 IsInnerReply = false,
                 LastMessage = showDateDivider ? null : lastMessage,
                 Ghost = true,
+                AnimateIn = true,
             };
 
             builder.OpenComponent<MessageComponent>(sequence++);
@@ -739,6 +747,7 @@
         DisplayedMessages.Clear();
         QueuedMessages.Clear();
         RenderedMessages.Clear();
+        _liveArrivalIds.Clear();
         
         if (render)
             ReRender();
@@ -855,8 +864,15 @@
 
         // Remove the matching ghost BEFORE rendering so the ghost removal and
         // real message insertion appear in the same render frame with no gap.
+        var replacedGhost = false;
         if (!string.IsNullOrEmpty(message.Fingerprint))
-            QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+            replacedGhost = QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint) > 0;
+
+        // Live arrivals get an entrance animation — unless they replace a
+        // ghost, in which case the ghost already animated in and the swap
+        // should stay seamless.
+        if (!replacedGhost)
+            _liveArrivalIds.Add(message.Id);
 
         DisplayedMessages.Add(message);
 
@@ -864,6 +880,7 @@
         if (atBottom && DisplayedMessages.Count > TrimThreshold)
         {
             DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - TargetMessages);
+            _liveArrivalIds.RemoveWhere(id => !DisplayedMessages.Any(x => x.Id == id));
         }
 
         // Flag for UI refresh

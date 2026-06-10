@@ -164,6 +164,13 @@ else
         public Message LastMessage;
         public bool IsInnerReply;
         public bool Ghost;
+
+        /// <summary>
+        /// Plays a one-shot entrance animation. Only set for live arrivals
+        /// (new incoming messages and freshly queued ghosts) — never for
+        /// loaded history or the real message that replaces a ghost.
+        /// </summary>
+        public bool AnimateIn;
     }
 
     private RenderFragment RenderContent => builder =>
@@ -251,6 +258,7 @@ else
     public bool Edit = false;
     private bool _mentioned = false;
     private bool _isBuilt = false;
+    private bool _animateIn = false;
 
     private string _class = "message";
     private string _style = string.Empty;
@@ -442,6 +450,9 @@ else
 
         if (_ghost)
             newClass += " ghost";
+
+        if (_animateIn)
+            newClass += " message-enter";
 
         if (_message.ReplyTo is not null)
             newClass += " hasreply";
@@ -692,6 +703,7 @@ else
         _ghost = ParamData.Ghost;
         _isInnerReply = ParamData.IsInnerReply;
         _chat = ParamData.ChatComponent;
+        _animateIn = ParamData.AnimateIn && !_isInnerReply;
         
         KeyboardListener.KeyDown += OnKeyDown;
         
