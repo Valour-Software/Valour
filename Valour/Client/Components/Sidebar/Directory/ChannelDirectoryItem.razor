@@ -144,11 +144,10 @@
     @{
         if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
-            if (_children is not null && _isOpen)
+            if (_children is not null && _children.Count > 0)
             {
-                if (_children.Count > 0)
-                {
-                    <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
+                <div class="sub-list @(_isOpen ? "open" : "")" ondragover="event.preventDefault();" depth="@(Depth + 1)">
+                    <div class="sub-list-inner">
                         @for (int i = 0; i < _children.Count; i++)
                         {
                             var ii = i;
@@ -163,7 +162,7 @@
                             </div>
                         }
                     </div>
-                }
+                </div>
             }
         }
     }

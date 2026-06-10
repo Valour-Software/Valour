@@ -35,9 +35,8 @@
             </div>
         </div>
     </div>
-    <div class="channel-list">
-        @if (Open)
-        {
+    <div class="channel-list @(Open ? "open" : "")">
+        <div class="channel-list-inner">
             <div class="v-gradient-underline"></div>
             <div class="list-wrapper">
                 <div class="channel planet-about" @onclick="OnClickPlanetInfo">
@@ -60,7 +59,7 @@
                                      Channel="@root"/>
                 }
             </div>
-        }
+        </div>
     </div>
 </div>
  
