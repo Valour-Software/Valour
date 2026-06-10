@@ -726,6 +726,35 @@ app {
     margin: 5px;
 }
 
+/* Slim scrollbar that only appears while hovering the container */
+.hover-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.hover-scrollbar:hover {
+    scrollbar-color: var(--main-1) transparent;
+}
+
+/* Fallback for Safari (no scrollbar-color support) */
+.hover-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.hover-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.hover-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-full);
+}
+
+.hover-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: var(--main-1);
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .hide-scrollbar::-webkit-scrollbar {
     display: none;

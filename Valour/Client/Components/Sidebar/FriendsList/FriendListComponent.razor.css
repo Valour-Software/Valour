@@ -23,10 +23,6 @@
     padding: 2px 4px;
 }
 
-.friend-container .list::-webkit-scrollbar {
-    display: none;
-}
-
 .empty-state {
     display: flex;
     flex-direction: column;

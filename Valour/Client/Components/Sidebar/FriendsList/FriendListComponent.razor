@@ -7,7 +7,7 @@
     <div class="friend-search">
         <VSearchBox Value="@_filterText" ValueChanged="@OnFilterChanged" Placeholder="Search friends..."/>
     </div>
-    <div class="list">
+    <div class="list hover-scrollbar">
         @if (_renderFriends.Count == 0)
         {
             <div class="empty-state">

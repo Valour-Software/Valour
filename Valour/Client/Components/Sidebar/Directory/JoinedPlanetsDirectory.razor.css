@@ -16,14 +16,6 @@
     min-height: 0;
 }
 
-.joined-planets .list::-webkit-scrollbar {
-
-}
-
-.joined-planets .list::-webkit-scrollbar-track {
-    border-radius: var(--radius-md);
-}
-
 /* Bottom pinned actions */
 .bottom-actions {
     flex-shrink: 0;
