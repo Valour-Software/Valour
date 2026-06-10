@@ -8,7 +8,9 @@
             <span class="time">@GetRelativeTime()</span>
         </div>
     </div>
-    <p class="body">@Notification.Body</p>
+    <div class="body">
+        <RichText Content="@Notification.Body" PlanetId="@Notification.PlanetId" />
+    </div>
     <div class="button-holder">
         <button @onclick="@OnClickView" title="View"><i class="bi bi-arrow-right-short"></i> View</button>
         <button class="danger" @onclick="@OnClickClear" title="Dismiss"><i class="bi bi-x-lg"></i> Dismiss</button>

@@ -45,7 +45,16 @@
         public object Data { get; set; }
         public Fade FadeRef { get; set; }
         public bool Background { get; set; } = true;
+
+        // True while the modal is fading out, so dependent effects
+        // (like the app recession) release as the close begins
+        public bool Closing { get; set; }
     }
+
+    private bool HasVisibleBackgroundModal => _openModals.Any(x => x.Background && !x.Closing);
+
+    private void UpdateRecede() =>
+        AppRecedeLayer.Instance?.SetReceded(HasVisibleBackgroundModal);
     
     [Parameter]
     public RenderFragment ChildContent { get; set; }
@@ -99,6 +108,7 @@
         
         _openModals.Add(modal);
         
+        UpdateRecede();
         StateHasChanged();
     }
 
@@ -109,25 +119,36 @@
         if (modal is null)
             return;
 
-        _ = modal.FadeRef.FadeOut();
+        BeginClose(modal);
     }
     
-    public async Task CloseTopModal()
+    public Task CloseTopModal()
     {
-        var modal = _openModals.LastOrDefault();
+        var modal = _openModals.LastOrDefault(x => !x.Closing);
         
         if (modal is null)
-            return;
+            return Task.CompletedTask;
         
-        await modal.FadeRef.FadeOut();
+        BeginClose(modal);
+        return Task.CompletedTask;
     }
     
-    public async Task CloseAllModals()
+    public Task CloseAllModals()
     {
-        foreach (var modal in _openModals)
+        foreach (var modal in _openModals.Where(x => !x.Closing).ToList())
         {
-            await modal.FadeRef.FadeOut();
+            BeginClose(modal);
         }
+        
+        return Task.CompletedTask;
+    }
+
+    private void BeginClose(ModalInstance modal)
+    {
+        modal.Closing = true;
+        _ = modal.FadeRef.FadeOut();
+        UpdateRecede();
+        StateHasChanged();
     }
     
     private void RemoveModal(string id)
@@ -138,6 +159,7 @@
             return;
         
         _openModals.Remove(modal);
+        UpdateRecede();
         StateHasChanged();
     }
     

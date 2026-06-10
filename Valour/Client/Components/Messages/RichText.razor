@@ -1,0 +1,76 @@
+@using global::Markdig.Blazor
+@inject PlanetService PlanetService
+@inject ValourClient Client
+
+@if (_ready)
+{
+    <div class="rich-text">
+        @Render
+    </div>
+}
+
+@code {
+
+    /// <summary>
+    /// Raw Valour message content: markdown, mention codes («@m-123»),
+    /// emojis, and stock tags are all rendered like a chat message.
+    /// </summary>
+    [Parameter]
+    public string Content { get; set; }
+
+    /// <summary>
+    /// Planet scope for resolving member, role, and channel mentions.
+    /// Leave null for non-planet content; user mentions still resolve.
+    /// </summary>
+    [Parameter]
+    public long? PlanetId { get; set; }
+
+    private MentionRenderContext _context = new();
+    private long? _loadedPlanetId;
+    private bool _ready;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_ready && PlanetId == _loadedPlanetId)
+            return;
+
+        _loadedPlanetId = PlanetId;
+
+        Planet planet = null;
+        if (PlanetId is not null)
+        {
+            try
+            {
+                planet = await PlanetService.FetchPlanetAsync(PlanetId.Value);
+            }
+            catch (Exception e)
+            {
+                Client.Logger.Log("RichText", "Failed to fetch planet for mention context: " + e.Message, "yellow");
+            }
+        }
+
+        _context = new MentionRenderContext { Planet = planet };
+        _ready = true;
+    }
+
+    private RenderFragment Render => builder =>
+    {
+        if (string.IsNullOrWhiteSpace(Content))
+            return;
+
+        try
+        {
+            Markdown.RenderToFragment(
+                Content,
+                builder,
+                MarkdownManager.Pipeline,
+                MarkdownManager.Renderer,
+                _context);
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log("RichText", "Error rendering content: " + e.Message, "red");
+            builder.AddContent(0, Content);
+        }
+    };
+}

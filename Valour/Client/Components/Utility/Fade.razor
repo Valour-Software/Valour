@@ -35,7 +35,7 @@
     public async Task FadeOut()
     {
         await _jsModule.InvokeVoidAsync("fadeOut", _containerRef);
-        await Task.Delay(300);
+        await Task.Delay(200);
         
         if (OnFadeOut is not null)
         {

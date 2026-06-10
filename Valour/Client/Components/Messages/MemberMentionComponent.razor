@@ -60,21 +60,11 @@
 
     private async Task Build()
     {
-        // TODO: Handle case when message does not have ChatComponent, such as staff message viewer
-        
-        switch (RenderContext)
-        {
-            case MessageComponent messageComponent:
-                var channel = messageComponent.ParamData.ChatComponent.Channel;
+        var context = MentionRenderContext.From(RenderContext);
 
-                if (channel.PlanetId != null)
-                {
-                    _member = await channel.Planet.FetchMemberAsync(Mention.TargetId);
-                }
-                break;
-            default:
-                Console.WriteLine("Invalid RenderContext for MemberMentionComponent");
-                break;
+        if (context.Planet is not null)
+        {
+            _member = await context.Planet.FetchMemberAsync(Mention.TargetId);
         }
 
         _roleColor = (_member is not null) ? _member.GetRoleColor() : "#fff";

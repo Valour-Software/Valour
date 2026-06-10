@@ -58,32 +58,22 @@
 
     public async Task Build()
     {
-        switch (RenderContext)
-        {
-            case MessageComponent messageComponent:
-                var channel = messageComponent.ParamData.ChatComponent.Channel;
+        var context = MentionRenderContext.From(RenderContext);
 
-                if (channel.PlanetId is not null)
+        if (context.Planet is not null)
+        {
+            Role = await context.Planet.FetchRoleAsync(Mention.TargetId);
+
+            if (Role is not null)
+            {
+                var myMember = context.Planet.MyMember;
+                if (myMember is not null)
                 {
-                    Role = await channel.Planet.FetchRoleAsync(Mention.TargetId);
+                    IsTarget = myMember.Roles.Any(r => r.Id == Role.Id);
                 }
-                
-                if (Role is not null)
-                {
-                    var myMember = channel.Planet.MyMember;
-                    if (myMember is not null)
-                    {
-                        IsTarget = myMember.Roles.Any(r => r.Id == Role.Id);
-                    }
-                }
-                
-                break;
-            default:
-                Console.WriteLine("Invalid RenderContext for RoleMentionComponent");
-                break;
+            }
         }
-        
-        
+
         RoleColor = Role is null ? "#fff" : Role.Color;
 
         StateHasChanged();

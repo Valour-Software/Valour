@@ -4,7 +4,14 @@
 
 <BasicModalLayout Title="@Data.Title" Icon="question-circle-fill" MaxWidth="400px">
     <MainArea>
-        <p>@Data.Description</p>
+        @if (Data.DescriptionFragment is not null)
+        {
+            @Data.DescriptionFragment
+        }
+        else
+        {
+            <p>@Data.Description</p>
+        }
     </MainArea>
     <ButtonArea>
         <div class="basic-modal-buttons">
@@ -31,6 +38,13 @@
 		// Cosmetics
 		public string Title;
 		public string Description;
+
+		/// <summary>
+		/// Optional rich content rendered in place of the plain Description,
+		/// e.g. a message preview with mentions and markdown.
+		/// </summary>
+		public RenderFragment DescriptionFragment;
+
 		public string ConfirmText;
 		public string CancelText;
 

@@ -193,14 +193,30 @@
     private async Task OnClickDelete()
     {
         await CloseAsync();
-        
-        var data = new ConfirmModalComponent.ModalParams("Delete message?", Data.Message.Content, "Delete", "Cancel",
+
+        var message = Data.Message;
+
+        var previewParams = new MessageComponent.Params
+        {
+            ChatComponent = Data.MessageComponent.ParamData.ChatComponent,
+            Message = message,
+            LastMessage = null,
+            IsInnerReply = false,
+            Ghost = false
+        };
+
+        var data = new ConfirmModalComponent.ModalParams("Delete message?", message.Content, "Delete", "Cancel",
             async () =>
             {
-                await Data.Message.DeleteAsync();
+                await message.DeleteAsync();
             },
             () => Task.CompletedTask
-        );
+        )
+        {
+            DescriptionFragment = @<div class="message-delete-preview">
+                <MessageComponent ParamData="@previewParams" />
+            </div>
+        };
 
         ModalRoot.OpenModal<ConfirmModalComponent>(data);
     }

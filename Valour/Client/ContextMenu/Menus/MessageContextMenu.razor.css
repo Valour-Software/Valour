@@ -61,3 +61,8 @@
     width: 26px;
     height: 26px;
 }
+
+.message-delete-preview {
+    text-align: left;
+    overflow-wrap: anywhere;
+}
