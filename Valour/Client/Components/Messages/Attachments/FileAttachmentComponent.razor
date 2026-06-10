@@ -1,51 +1,85 @@
 ﻿@inherits AttachmentComponent
 
-<div class="container">
-    <div class="file-icon">
-        <h4 class="extension">@_extension</h4>
+@if (_missing)
+{
+    <div class="file-card missing">
+        <div class="file-tile">
+            <i class="bi bi-file-earmark-x"></i>
+        </div>
+        <div class="file-info">
+            <span class="file-name">Attachment not found</span>
+            <span class="file-meta">This file is no longer available</span>
+        </div>
     </div>
-    @if (Attachment?.Missing == true || string.IsNullOrWhiteSpace(_location))
-    {
-        <span class="nohide unavailable">@Attachment?.FileName</span>
-    }
-    else
-    {
-        <a class="nohide" href="@_location">@Attachment.FileName</a>
-    }
-</div>
-
-
+}
+else
+{
+    <a class="file-card nohide" href="@_location" target="_blank" rel="noopener noreferrer" download="@Attachment.FileName" title="Download @Attachment.FileName">
+        <div class="file-tile">
+            <i class="bi @_icon"></i>
+        </div>
+        <div class="file-info">
+            <span class="file-name">@Attachment.FileName</span>
+            <span class="file-meta">@_typeLabel</span>
+        </div>
+        <i class="bi bi-download download-icon"></i>
+    </a>
+}
 
 @code {
     [Parameter]
     public string CustomStyle { get; set; }
 
-    private string _extension = "?";
-    
+    private bool _missing;
     private string _location;
+    private string _icon = "bi-file-earmark";
+    private string _typeLabel = "File";
 
     protected override async Task OnInitializedAsync()
     {
         if (Attachment is null)
+        {
+            _missing = true;
             return;
+        }
 
         _location = await Attachment.GetSignedUrl(Message.Client, Message.Node);
+        _missing = Attachment.Missing || string.IsNullOrWhiteSpace(_location);
 
-        string[] split = null;
-        
-        if (Attachment.FileName is not null)
-        {
-            split = Attachment.FileName.Split('.');
-        }
-        else if (Attachment.Location is not null)
-        {
-            split = Attachment.Location.Split('.');
-        }
-
-        if (split is null || split.Length < 2)
+        if (_missing)
             return;
 
-        _extension = split[split.Length - 1].ToUpper();
-        _extension = _extension.Substring(0, Math.Min(_extension.Length, 11));
+        _icon = GetIcon(Attachment.MimeType);
+        _typeLabel = GetTypeLabel();
+    }
+
+    private string GetTypeLabel()
+    {
+        var name = Attachment.FileName ?? Attachment.Location;
+        var split = name?.Split('.');
+
+        if (split is null || split.Length < 2)
+            return "File";
+
+        var extension = split[^1].ToUpper();
+        return $"{extension.Substring(0, Math.Min(extension.Length, 11))} file";
+    }
+
+    private static string GetIcon(string mimeType)
+    {
+        var mime = mimeType ?? string.Empty;
+
+        if (mime.StartsWith("image/")) return "bi-file-earmark-image";
+        if (mime.StartsWith("video/")) return "bi-file-earmark-play";
+        if (mime.StartsWith("audio/")) return "bi-file-earmark-music";
+        if (mime.Contains("pdf")) return "bi-file-earmark-pdf";
+        if (mime.Contains("zip") || mime.Contains("compressed") || mime.Contains("tar")) return "bi-file-earmark-zip";
+        if (mime.Contains("word")) return "bi-file-earmark-word";
+        if (mime.Contains("sheet") || mime.Contains("excel") || mime.Contains("csv")) return "bi-file-earmark-spreadsheet";
+        if (mime.Contains("presentation") || mime.Contains("powerpoint")) return "bi-file-earmark-slides";
+        if (mime.Contains("json") || mime.Contains("xml") || mime.Contains("javascript")) return "bi-file-earmark-code";
+        if (mime.StartsWith("text/")) return "bi-file-earmark-text";
+
+        return "bi-file-earmark";
     }
 }

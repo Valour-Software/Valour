@@ -1,28 +1,87 @@
-﻿.container {
-    padding: 20px;
-    background-color: var(--main-2);
-    border-radius: var(--radius-xl);
-    text-align: center;
-    border: 2px solid var(--main-4);
-    width: 200px;
-    margin-left: 0;
+﻿.file-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: 220px;
+    max-width: 320px;
+    padding: 10px 12px;
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    color: var(--font-color);
+    text-decoration: none;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard);
 }
 
-.file-icon {
-    width: 80px;
-    height: 100px;
-    margin: 5px;
-    border: 5px grey solid;
-    border-radius: 0 var(--radius-xl) 0 0;
-    margin-left: auto;
-    margin-right: auto;
+a.file-card:hover {
+    background-color: var(--main-4);
+    border-color: var(--medium-tint);
+    text-decoration: none;
+    color: var(--font-color);
 }
 
-.extension {
-    font-size: var(--font-size-xl);
+.file-tile {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--v-cyan) 16%, var(--main-4)),
+        color-mix(in srgb, var(--v-purple) 16%, var(--main-4)));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-lg);
+    color: var(--font-color);
 }
 
-.unavailable {
+.file-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.file-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-meta {
+    font-size: var(--font-size-xs);
+    color: var(--font-alt-color);
+}
+
+.download-icon {
+    flex: 0 0 auto;
+    color: var(--font-alt-color);
+    opacity: 0.5;
+    transition: opacity var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+a.file-card:hover .download-icon {
+    opacity: 1;
+    color: var(--font-color);
+}
+
+/* Missing / deleted attachment tombstone */
+.file-card.missing {
+    background-color: transparent;
+    border-style: dashed;
+}
+
+.file-card.missing .file-tile {
+    background: var(--main-3);
+    color: var(--font-alt-color);
+}
+
+.file-card.missing .file-name {
     color: var(--font-alt-color);
     font-style: italic;
 }
