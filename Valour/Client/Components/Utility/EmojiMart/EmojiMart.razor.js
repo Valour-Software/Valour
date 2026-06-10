@@ -1,21 +1,26 @@
 const PICKER_RENDER_RETRY_MS = 75;
 const MAX_PICKER_RENDER_ATTEMPTS = 80;
 
-let searchInitialized = false;
 const pickerStates = new Map();
 
-function ensureSearchInitialized() {
-    if (searchInitialized) {
-        return true;
-    }
+let dataInitPromise = null;
 
+// emoji-mart keeps a single global dataset shared by every picker and the search
+// index. It must be initialized exactly once, with the correct emoji set: spritesheet
+// sets (e.g. 'twitter') need the x/y coordinates that the 'native' dataset lacks.
+// Calling EmojiMart.init concurrently with picker construction races two fetches
+// against each other and whichever resolves last wins, so callers must await this
+// before constructing a picker.
+function ensureDataInitialized(set = null) {
     if (typeof EmojiMart?.init !== 'function') {
-        return false;
+        return null;
     }
 
-    EmojiMart.init({});
-    searchInitialized = true;
-    return true;
+    if (dataInitPromise === null) {
+        dataInitPromise = EmojiMart.init({ set: set ?? 'twitter' });
+    }
+
+    return dataInitPromise;
 }
 
 function asNonEmptyString(...values) {
@@ -207,12 +212,7 @@ function scheduleRenderPicker(state) {
     }, PICKER_RENDER_RETRY_MS);
 }
 
-function renderPicker(state) {
-    const wrapper = document.getElementById(state.id);
-    if (!wrapper) {
-        return;
-    }
-
+async function renderPicker(state) {
     if (typeof EmojiMart?.Picker !== 'function') {
         if (state.renderAttempts < MAX_PICKER_RENDER_ATTEMPTS) {
             state.renderAttempts += 1;
@@ -222,7 +222,22 @@ function renderPicker(state) {
     }
 
     state.renderAttempts = 0;
-    ensureSearchInitialized();
+
+    // The picker's own connectedCallback also calls EmojiMart.init with its props;
+    // awaiting here guarantees the dataset already exists by then, so that call takes
+    // the cheap "already initialized" path instead of racing a second data fetch.
+    await ensureDataInitialized(state.emojiSet);
+
+    // The picker may have been destroyed while waiting for the dataset
+    if (!pickerStates.has(state.id)) {
+        return;
+    }
+
+    const wrapper = document.getElementById(state.id);
+    if (!wrapper) {
+        return;
+    }
+
     rebuildCustomLookup(state);
 
     const pickerOptions = {
@@ -240,24 +255,15 @@ function renderPicker(state) {
         const categoryId = 'custom';
         const categoryName = asNonEmptyString(state.customCategoryName, 'Planet');
 
+        // Note: do NOT pass pickerOptions.categories here. emoji-mart rebuilds the
+        // category list from its original native-only categories when that option is
+        // set, which silently strips any custom categories. Custom categories are
+        // appended at the end by default, which is what we want anyway.
         pickerOptions.custom = [{
             id: categoryId,
             name: categoryName,
             emojis: custom,
         }];
-
-        pickerOptions.categories = [
-            'frequent',
-            'people',
-            'nature',
-            'foods',
-            'activity',
-            'places',
-            'objects',
-            'symbols',
-            'flags',
-            'custom',
-        ];
 
         if (state.customCategoryIcon) {
             pickerOptions.categoryIcons = {
@@ -311,9 +317,11 @@ export function setCustom(id, custom = [], customCategoryIcon = '', customCatego
 }
 
 export async function search(query, maxResults = 10) {
-    if (!ensureSearchInitialized()) {
+    const ready = ensureDataInitialized();
+    if (ready === null) {
         return [];
     }
+    await ready;
 
     const cleanQuery = (query ?? '').trim().replace(/^:/, '');
     if (!cleanQuery || !EmojiMart?.SearchIndex?.search) {
@@ -358,9 +366,11 @@ function readFrequentlyStore() {
 // Returns the user's most frequently used emojis from emoji-mart's own store,
 // padded with defaults when there isn't enough history.
 export async function getFrequent(maxResults = 6) {
-    if (!ensureSearchInitialized() || typeof EmojiMart?.SearchIndex?.get !== 'function') {
+    const ready = ensureDataInitialized();
+    if (ready === null || typeof EmojiMart?.SearchIndex?.get !== 'function') {
         return [];
     }
+    await ready;
 
     const frequently = readFrequentlyStore();
 

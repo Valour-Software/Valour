@@ -274,10 +274,17 @@
 
 .v-menu-content-body {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     padding: 0.5em;
+}
+
+.v-menu-content ::deep .slide-swap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
 }
 
 .v-menu-placeholder {

@@ -122,6 +122,8 @@
     border-radius: var(--radius-md);
     padding: 0.85rem;
     background: rgba(0, 0, 0, 0.14);
+    max-height: 16rem;
+    overflow-y: auto;
 }
 
 .rule-editor-actions {
