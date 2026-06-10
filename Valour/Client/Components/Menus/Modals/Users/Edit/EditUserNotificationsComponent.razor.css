@@ -1,0 +1,11 @@
+.volume-value {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.volume-slider {
+    width: 100%;
+    accent-color: var(--color-primary);
+}

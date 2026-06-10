@@ -36,10 +36,7 @@
 
 .editor-section-title i {
     font-size: var(--font-size-sm);
-    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--font-color);
 }
 
 .profile-preview-container {

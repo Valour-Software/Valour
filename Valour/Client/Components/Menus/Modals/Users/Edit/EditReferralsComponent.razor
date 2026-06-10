@@ -2,38 +2,64 @@
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
 
-<h4>Your Referral Link:</h4>
-<a class="mt-2" href="@_link">@_link</a>
-<button class="v-btn mt-2" @onclick="@OnClickCopyLink">Copy Link</button>
+<div class="settings-page">
 
-@if (_referrals is null)
-{
-<p class="mt-4">Loading referrals...</p>
-}
-else
-{
-<div style="max-height: 300px; overflow-y: auto; margin-bottom: 80px; margin-top: 24px">
-    <table class="v-table">
-        <thead>
-        <tr>
-            <th>Name</th>
-            <th>Time</th>
-            <th>Reward</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var referral in _referrals)
+    @* ===== Referral Link ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-link-45deg"></i>
+            Your Referral Link
+        </h3>
+
+        <div class="link-card">
+            <span class="link-text">@_link</span>
+            <VButton Variant="primary" Size="sm" Icon="clipboard" OnClick="@OnClickCopyLink">Copy</VButton>
+        </div>
+        <p class="helper-text">Share this link with friends — you earn rewards when they join.</p>
+    </div>
+
+    @* ===== Referrals ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-people"></i>
+            Your Referrals
+        </h3>
+
+        @if (_referrals is null)
         {
-        <tr>
-            <td>@referral.Name</td>
-            <td>@referral.Time.ToShortDateString() @referral.Time.ToShortTimeString()</td>
-            <td>@Math.Round(referral.Reward, 2)</td>
-        </tr>   
+            <p class="helper-text">Loading referrals...</p>
         }
-        </tbody>
-    </table>
+        else if (_referrals.Count == 0)
+        {
+            <p class="helper-text">No referrals yet. Share your link to get started!</p>
+        }
+        else
+        {
+            <div class="referral-table-wrapper">
+                <table class="v-table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Time</th>
+                        <th>Reward</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var referral in _referrals)
+                    {
+                        <tr>
+                            <td>@referral.Name</td>
+                            <td>@referral.Time.ToShortDateString() @referral.Time.ToShortTimeString()</td>
+                            <td>@Math.Round(referral.Reward, 2)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
 </div>
-}
 
 
 @code {

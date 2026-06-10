@@ -227,10 +227,7 @@
 .v-menu-content-header i {
     font-size: var(--font-size-2xl);
     margin-right: 0.35em;
-    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--font-color);
 }
 
 .v-menu-content-header .subtitle {

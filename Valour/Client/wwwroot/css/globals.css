@@ -1811,29 +1811,30 @@ img.emoji {
 }
 
 /* Editor sections - modern flat design */
+/* Settings page container - shared by all settings/menu pages */
+.settings-page {
+    max-width: 640px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .editor-section {
-    padding: 1.5rem 0;
+    padding: 1.75rem 0;
     border-bottom: 1px solid var(--slight-tint);
+}
+
+.editor-section:first-child {
+    padding-top: 0.5rem;
 }
 
 .editor-section:last-child {
     border-bottom: none;
 }
 
-.editor-section.danger-zone .editor-section-title {
-    color: var(--color-danger);
-}
-
+.editor-section.danger-zone .editor-section-title,
 .editor-section.danger-zone .editor-section-title i {
     color: var(--color-danger);
-}
-
-.editor-section.security .editor-section-title {
-    color: var(--color-secondary);
-}
-
-.editor-section.security .editor-section-title i {
-    color: var(--color-secondary);
 }
 
 .editor-section-title {
@@ -1841,8 +1842,8 @@ img.emoji {
     font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-normal);
-    color: var(--color-primary);
-    margin-bottom: 0.25rem;
+    color: var(--font-alt-color);
+    margin-bottom: 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -1850,41 +1851,50 @@ img.emoji {
 
 .editor-section-title i {
     font-size: var(--font-size-sm);
-    color: var(--color-primary);
+    color: var(--font-color);
 }
 
-/* Toggle items - flat modern style */
+/* Toggle/Setting rows - flat cards */
 .toggle-item {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     margin-bottom: 0.5rem;
     border-radius: var(--radius-md);
-    transition: background-color 0.15s ease;
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
 }
 
-.toggle-item:hover {
-    background-color: var(--main-3);
+.toggle-item .toggle-item {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toggle-item:last-child {
+    margin-bottom: 0;
 }
 
 .toggle-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    gap: 1rem;
 }
 
 .toggle-title {
     font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
 }
 
 .toggle-description {
     color: var(--font-alt-color);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+    margin: 0.25rem 0 0;
 }
 
 .toggle-content {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
     border-top: 1px solid var(--slight-tint);
 }
 

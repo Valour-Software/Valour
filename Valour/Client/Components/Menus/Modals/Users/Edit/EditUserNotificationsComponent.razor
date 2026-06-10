@@ -1,77 +1,83 @@
 ﻿@inject ValourClient Client
 @inject SoundManager SoundManager
 
-<div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        Enable Push Notifications
-    </div>
-    <div type="button" style="float:right">
-        @if (_notificationsBlocked)
-        {
-            <button class="btn btn-sm v-btn" @onclick="OnOpenSettingsClick">Go to Settings</button>
-        }
-        else
-        {
-            <label class="switch">
-                <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled">
-                <span class="slider round"></span>
-            </label>
-        }
-    </div>
-    <div class="perm-list-desc mt-1">
-        @if (_notificationsBlocked)
-        {
-            <span>Notifications are blocked. Tap "Go to Settings" to enable them.</span>
-        }
-        else
-        {
-            <span>This will allow your device to receive push notifications.</span>
-        }
-    </div>
-</div>
+<div class="settings-page">
 
-<div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        Notification Volume
-    </div>
-    <div class="perm-list-desc mt-1">
-        <input type="range"
-               min="@NotificationPreferences.MinNotificationVolume"
-               max="@NotificationPreferences.MaxNotificationVolume"
-               value="@_notificationVolume"
-               @onchange="OnNotificationVolumeChanged"
-               style="width:100%;" />
-        <span>Adjusts notification sound loudness (@_notificationVolume%).</span>
-    </div>
-</div>
+    @* ===== Push Notifications ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-bell"></i>
+            Push Notifications
+        </h3>
 
-<div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        Notification Types
-    </div>
-    <div class="perm-list-desc mt-1">
-        <span>Choose which notification types you want to receive.</span>
-    </div>
-</div>
-
-@foreach (var source in NotificationPreferences.ConfigurableSources)
-{
-    var isEnabled = NotificationPreferences.IsSourceEnabled(_enabledNotificationSources, source);
-    <div class="perm-list-item">
-        <div class="perm-list-name mb-1">
-            @GetNotificationSourceName(source)
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Enable Push Notifications</span>
+                @if (_notificationsBlocked)
+                {
+                    <VButton Variant="secondary" Size="sm" OnClick="@OnOpenSettingsClick">Go to Settings</VButton>
+                }
+                else
+                {
+                    <label class="switch">
+                        <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled">
+                        <span class="slider round"></span>
+                    </label>
+                }
+            </div>
+            <p class="toggle-description">
+                @if (_notificationsBlocked)
+                {
+                    <span>Notifications are blocked. Tap "Go to Settings" to enable them.</span>
+                }
+                else
+                {
+                    <span>This will allow your device to receive push notifications.</span>
+                }
+            </p>
         </div>
-        <div type="button" style="float:right">
-            <label class="switch">
-                <input type="checkbox" @onclick="() => OnNotificationSourceToggled(source)" checked="@isEnabled">
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div class="perm-list-desc mt-1">
-            <span>@GetNotificationSourceDescription(source)</span>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Notification Volume</span>
+                <span class="volume-value">@_notificationVolume%</span>
+            </div>
+            <p class="toggle-description">Adjusts notification sound loudness.</p>
+            <div class="toggle-content">
+                <input type="range"
+                       class="volume-slider"
+                       min="@NotificationPreferences.MinNotificationVolume"
+                       max="@NotificationPreferences.MaxNotificationVolume"
+                       value="@_notificationVolume"
+                       @onchange="OnNotificationVolumeChanged" />
+            </div>
         </div>
     </div>
-}
+
+    @* ===== Notification Types ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-sliders"></i>
+            Notification Types
+        </h3>
+
+        @foreach (var source in NotificationPreferences.ConfigurableSources)
+        {
+            var isEnabled = NotificationPreferences.IsSourceEnabled(_enabledNotificationSources, source);
+            <div class="toggle-item">
+                <div class="toggle-header">
+                    <span class="toggle-title">@GetNotificationSourceName(source)</span>
+                    <label class="switch">
+                        <input type="checkbox" @onclick="() => OnNotificationSourceToggled(source)" checked="@isEnabled">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <p class="toggle-description">@GetNotificationSourceDescription(source)</p>
+            </div>
+        }
+    </div>
+
+</div>
 
 @code {
 

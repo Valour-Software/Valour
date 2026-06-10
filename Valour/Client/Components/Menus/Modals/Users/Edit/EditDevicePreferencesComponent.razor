@@ -2,122 +2,130 @@
 @inject ValourClient Client
 @inject RealtimeKitDeviceService RealtimeKitDeviceService
 
-<div class="perm-section">
-    <div class="perm-list-item">
-        <div class="perm-list-name mb-1">
-            Auto Emojis
+<div class="settings-page">
+
+    @* ===== Chat ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-chat-dots"></i>
+            Chat
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Auto Emojis</span>
+                <label class="switch">
+                    <input type="checkbox" @onclick="SwitchAutoEmojis" checked="@DevicePreferences.AutoEmoji">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">When enabled, faces like :) will be automatically turned into emojis in chat.</p>
         </div>
-        <div type="button" style="float:right">
-            <label class="switch">
-                <input type="checkbox" @onclick="SwitchAutoEmojis" checked="@DevicePreferences.AutoEmoji">
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div class="perm-list-desc mt-1">
-            When true, faces like :) will be automatically turned into emojis in chat.
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Error Reporting</span>
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Share anonymous error reports to help improve Valour.</p>
         </div>
     </div>
 
-    <div class="perm-list-item">
-        <div class="perm-list-name mb-1">
-            Error Reporting
-        </div>
-        <div type="button" style="float:right">
-            <label class="switch">
-                <input type="checkbox" @onclick="OnErrorReportingClick" checked="@_errorReportingEnabled">
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div class="perm-list-desc mt-1">
-            <span>Share anonymous error reports to help improve Valour.</span>
-        </div>
-    </div>
-</div>
+    @* ===== Microphone ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-mic"></i>
+            Input Device (Microphone)
+        </h3>
 
-<br />
+        <p class="helper-text device-status">@GetMicPermissionDescription()</p>
 
-<div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        Input Device (Microphone)
-    </div>
-    <div class="perm-list-desc mt-1">
-        @GetMicPermissionDescription()
-    </div>
+        @if (_isLoadingMics)
+        {
+            <p class="helper-text">Loading microphone devices...</p>
+        }
+        else if (_mics.Length == 0)
+        {
+            <p class="helper-text">No microphones found yet.</p>
+        }
+        else
+        {
+            <div class="form-group">
+                <select class="form-select" value="@(_selectedMicId ?? string.Empty)" @onchange="@OnChooseMic">
+                    @for (int i = 0; i < _mics.Length; i++)
+                    {
+                        var mic = _mics[i];
+                        <option value="@mic.DeviceId">@mic.Label</option>
+                    }
+                </select>
+            </div>
+        }
 
-    @if (_isLoadingMics)
-    {
-        <p class="help-text mt-2">Loading microphone devices...</p>
-    }
-    else if (_mics.Length == 0)
-    {
-        <p class="help-text mt-2">No microphones found yet.</p>
-    }
-    else
-    {
-        <select style="margin-top: 12px" class="form-select" value="@(_selectedMicId ?? string.Empty)" @onchange="@OnChooseMic">
-            @for (int i = 0; i < _mics.Length; i++)
+        <div class="actions">
+            @if (ShouldShowMicPermissionButton)
             {
-                var mic = _mics[i];
-                <option value="@mic.DeviceId">@mic.Label</option>
+                <VButton Variant="primary" Disabled="@_isRequestingMicPermission" OnClick="@OnRequestMicrophonePermissionAsync">
+                    @(_isRequestingMicPermission ? "Requesting Access..." : "Enable Microphone Access")
+                </VButton>
             }
-        </select>
-    }
+            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_isLoadingMics" OnClick="@OnRefreshMicsAsync">Refresh Devices</VButton>
+        </div>
 
-    @if (ShouldShowMicPermissionButton)
-    {
-        <button class="v-btn mt-2 mr-2" disabled="@_isRequestingMicPermission" @onclick="OnRequestMicrophonePermissionAsync">
-            @(_isRequestingMicPermission ? "Requesting Access..." : "Enable Microphone Access")
-        </button>
-    }
-
-    <button class="v-btn mt-2" disabled="@_isLoadingMics" @onclick="OnRefreshMicsAsync">Refresh Devices</button>
-
-    @if (!string.IsNullOrWhiteSpace(_micError))
-    {
-        <p class="help-text mt-2" style="color: var(--color-danger);">@_micError</p>
-    }
-</div>
-
-<div class="perm-list-item mt-3">
-    <div class="perm-list-name mb-1">
-        Input Device (Camera)
-    </div>
-    <div class="perm-list-desc mt-1">
-        @GetCameraPermissionDescription()
+        @if (!string.IsNullOrWhiteSpace(_micError))
+        {
+            <p class="helper-text error-text">@_micError</p>
+        }
     </div>
 
-    @if (_isLoadingCameras)
-    {
-        <p class="help-text mt-2">Loading camera devices...</p>
-    }
-    else if (_cameras.Length == 0)
-    {
-        <p class="help-text mt-2">No cameras found yet.</p>
-    }
-    else
-    {
-        <select style="margin-top: 12px" class="form-select" value="@(_selectedCameraId ?? string.Empty)" @onchange="@OnChooseCamera">
-            @for (int i = 0; i < _cameras.Length; i++)
+    @* ===== Camera ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-camera-video"></i>
+            Input Device (Camera)
+        </h3>
+
+        <p class="helper-text device-status">@GetCameraPermissionDescription()</p>
+
+        @if (_isLoadingCameras)
+        {
+            <p class="helper-text">Loading camera devices...</p>
+        }
+        else if (_cameras.Length == 0)
+        {
+            <p class="helper-text">No cameras found yet.</p>
+        }
+        else
+        {
+            <div class="form-group">
+                <select class="form-select" value="@(_selectedCameraId ?? string.Empty)" @onchange="@OnChooseCamera">
+                    @for (int i = 0; i < _cameras.Length; i++)
+                    {
+                        var camera = _cameras[i];
+                        <option value="@camera.DeviceId">@camera.Label</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <div class="actions">
+            @if (ShouldShowCameraPermissionButton)
             {
-                var camera = _cameras[i];
-                <option value="@camera.DeviceId">@camera.Label</option>
+                <VButton Variant="primary" Disabled="@_isRequestingCameraPermission" OnClick="@OnRequestCameraPermissionAsync">
+                    @(_isRequestingCameraPermission ? "Requesting Access..." : "Enable Camera Access")
+                </VButton>
             }
-        </select>
-    }
+            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_isLoadingCameras" OnClick="@OnRefreshCamerasAsync">Refresh Devices</VButton>
+        </div>
 
-    @if (ShouldShowCameraPermissionButton)
-    {
-        <button class="v-btn mt-2 mr-2" disabled="@_isRequestingCameraPermission" @onclick="OnRequestCameraPermissionAsync">
-            @(_isRequestingCameraPermission ? "Requesting Access..." : "Enable Camera Access")
-        </button>
-    }
+        @if (!string.IsNullOrWhiteSpace(_cameraError))
+        {
+            <p class="helper-text error-text">@_cameraError</p>
+        }
+    </div>
 
-    <button class="v-btn mt-2" disabled="@_isLoadingCameras" @onclick="OnRefreshCamerasAsync">Refresh Devices</button>
-
-    @if (!string.IsNullOrWhiteSpace(_cameraError))
-    {
-        <p class="help-text mt-2" style="color: var(--color-danger);">@_cameraError</p>
-    }
 </div>
 
 

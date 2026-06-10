@@ -1,39 +1,39 @@
+.request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
 .request-row {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
 }
 
 .action-row {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    align-content: center;
-    margin: 4px;
-    gap: 4px;
-}
-
-.inner-scroll-box {
-    border: solid 2px var(--main-4);
-    border-radius: var(--radius-sm);
-    height: 120px;
-    padding: 10px;
-    overflow-y: auto;
-    background-color: var(--main-4)
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .add-friend-row {
     display: flex;
     flex-direction: row;
-    gap: 8px;
+    gap: 0.5rem;
     align-items: center;
 }
 
-.add-friend-row .form-control {
+.add-friend-row .v-input {
     flex: 1;
-}
-
-.add-friend-row .v-btn {
-    white-space: nowrap;
+    margin-bottom: 0;
 }

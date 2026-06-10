@@ -1,47 +1,85 @@
 @implements IDisposable
 @inject ValourClient Client
 
-<h5>Added you</h5>
-<div class="inner-scroll-box">
-    @foreach (var addedMe in Client.FriendService.IncomingRequests)
-    {
-    <div class="request-row" @key="@addedMe.Id">
-        <UserInfoComponent User="@addedMe" />
+<div class="settings-page">
 
-        <div class="action-row" role="group" aria-label="Friend Accept or Deny">
-            <button @onclick="async () => await OnAcceptRequest(addedMe)" type="button" class="v-btn">Accept</button>
-            <button @onclick="async () => await OnDeclineRequest(addedMe)" type="button" class="v-btn">Decline</button>
+    @* ===== Add Friend ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-plus"></i>
+            Add Friend
+        </h3>
+
+        <div class="form-group">
+            <div class="input-group add-friend-row">
+                <input class="v-input" @bind-value="@_name" placeholder="username#tag" @onkeydown="OnKeyDown" />
+                <VButton Variant="primary" OnClick="@OnClickSubmit">Add</VButton>
+            </div>
+            <p class="helper-text">@_nameSpan</p>
+            <ResultLabel Result="@_friendBoxResult" />
         </div>
     </div>
-    }
-</div>
-<ResultLabel Result="@_addedYouResult" />
 
-<h5 style="margin-top: 20px">You added</h5>
-<div class="inner-scroll-box">
-    @foreach (var added in Client.FriendService.OutgoingRequests)
-    {
-    <div class="request-row" @key="@added.Id">
-        <UserInfoComponent User="@added" />
+    @* ===== Incoming Requests ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-down"></i>
+            Added You
+        </h3>
 
-        <div class="action-row" role="group" aria-label="Friend Accept or Deny">
-            <button @onclick="async () => await OnCancelRequest(added)" type="button" class="v-btn">Cancel</button>
-        </div>
+        @if (!Client.FriendService.IncomingRequests.Any())
+        {
+            <p class="helper-text">No incoming friend requests.</p>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var addedMe in Client.FriendService.IncomingRequests)
+                {
+                    <div class="request-row" @key="@addedMe.Id">
+                        <UserInfoComponent User="@addedMe" ShowBadges="false" />
+
+                        <div class="action-row" role="group" aria-label="Friend Accept or Deny">
+                            <VButton Variant="primary" Size="sm" OnClick="@(async () => await OnAcceptRequest(addedMe))">Accept</VButton>
+                            <VButton Variant="secondary" Size="sm" OnClick="@(async () => await OnDeclineRequest(addedMe))">Decline</VButton>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        <ResultLabel Result="@_addedYouResult" />
     </div>
-    }
-</div>
-<ResultLabel Result="@_addedResult" />
 
-<div asp-validation-summary="All" class="text-info"></div>
-<div class="form-group mt-4">
-    <label>Add Friend</label>
-    <div class="add-friend-row">
-        <input class="form-control" @bind-value="@_name" placeholder="username#tag" @onkeydown="OnKeyDown" />
-        <button @onclick="OnClickSubmit" type="button" class="v-btn">Add</button>
+    @* ===== Outgoing Requests ===== *@
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-up"></i>
+            You Added
+        </h3>
+
+        @if (!Client.FriendService.OutgoingRequests.Any())
+        {
+            <p class="helper-text">No outgoing friend requests.</p>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var added in Client.FriendService.OutgoingRequests)
+                {
+                    <div class="request-row" @key="@added.Id">
+                        <UserInfoComponent User="@added" ShowBadges="false" />
+
+                        <div class="action-row" role="group" aria-label="Cancel Request">
+                            <VButton Variant="secondary" Size="sm" OnClick="@(async () => await OnCancelRequest(added))">Cancel</VButton>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        <ResultLabel Result="@_addedResult" />
     </div>
-    <span id="name-span" style="color:#888888">@_nameSpan</span>
+
 </div>
-<ResultLabel Result="@_friendBoxResult" />
 
 @code {
     // Input fields
