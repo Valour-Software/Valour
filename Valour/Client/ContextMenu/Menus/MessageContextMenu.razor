@@ -1,6 +1,7 @@
 @inherits ContextMenu<MessageContextMenu.MessageContextParams>
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
+@inject NavigationManager NavManager
 @using Valour.Client.Emojis
 
 @if (_canUseReactions && _quickEmojis is not null && _quickEmojis.Count > 0)
@@ -61,6 +62,7 @@
     <Icon><i class="bi bi-caret-right-fill"></i></Icon>
     <Content>
         <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyLink">Link</ContextMenuItem>
         <ContextMenuItem OnClickAsync="@OnClickCopyId">Message Id</ContextMenuItem>
     </Content>
 </ContextSubMenu>
@@ -255,5 +257,18 @@
     private async Task OnClickCopyId(){
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message ID copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task OnClickCopyLink(){
+        var message = Data.Message;
+        var baseUri = NavManager.BaseUri.TrimEnd('/');
+
+        // Matches the deep-link routes on Index.razor
+        var url = message.PlanetId is not null
+            ? $"{baseUri}/planetchannels/{message.PlanetId.Value}/{message.ChannelId}/{message.Id}"
+            : $"{baseUri}/directchannels/{message.ChannelId}/{message.Id}";
+
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message link copied to clipboard", ToastProgressState.Success));
     }
 }

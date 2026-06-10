@@ -95,6 +95,59 @@
             await NotifyLayoutChanged(false, false);
             Layout.ReRenderRecursive();
         }
+
+        await TryOpenStartTargetAsync();
+    }
+
+    /// <summary>
+    /// Honors deep links (/planetchannels/... and /directchannels/...) by
+    /// opening the target channel, optionally focused on a specific message.
+    /// </summary>
+    private async Task TryOpenStartTargetAsync()
+    {
+        if (StartData?.Start is null || StartData.StartChannelId is null)
+            return;
+
+        try
+        {
+            Channel channel = null;
+
+            switch (StartData.Start)
+            {
+                case StartScreen.PlanetChannel:
+                {
+                    if (StartData.StartPlanetId is null)
+                        return;
+
+                    var planet = await Client.PlanetService.FetchPlanetAsync(StartData.StartPlanetId.Value);
+                    if (planet is null)
+                        return;
+
+                    channel = await Client.ChannelService.FetchPlanetChannelAsync(StartData.StartChannelId.Value, planet);
+                    break;
+                }
+                case StartScreen.DirectChannel:
+                {
+                    channel = await Client.ChannelService.FetchDirectChannelAsync(StartData.StartChannelId.Value);
+                    break;
+                }
+            }
+
+            if (channel is null)
+                return;
+
+            var content = await ChatWindowComponent.GetDefaultContent(channel);
+
+            if (StartData.StartMessageId is not null && StartData.StartMessageId.Value != 0)
+                content.TargetMessageId = StartData.StartMessageId;
+
+            await Layout.AddTab(content);
+            await NotifyLayoutChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Failed to open deep-linked channel: " + e.Message);
+        }
     }
 
     /// <summary>
