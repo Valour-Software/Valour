@@ -528,22 +528,6 @@ label {
     padding-top: 1em !important;
 }
 
-.input-group {
-    display: flex;
-}
-
-.input-group .form-control {
-    border-radius: 0;
-}
-
-.input-group > *:first-child {
-    border-radius: var(--radius-md) 0 0 var(--radius-md) !important;
-}
-
-.input-group > *:last-child {
-    border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
-}
-
 body {
     /* Theming */
     background-color: var(--main-1);
@@ -1283,8 +1267,8 @@ img.emoji {
     border: 1px solid var(--slight-tint);
     border-radius: var(--radius-md);
     color: #ffffff;
-    padding: 0.6em 1em;
-    font-size: var(--font-size-md);
+    padding: 0.5em 0.85em;
+    font-size: var(--font-size-sm);
     outline: none !important;
     font-family: var(--font-family-app);
     margin-bottom: 0.5em;
@@ -1349,14 +1333,15 @@ img.emoji {
 }
 
 .v-btn.primary {
-    background: var(--color-primary);
-    color: #ffffff;
-    border-color: transparent;
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+    color: color-mix(in srgb, var(--color-primary) 65%, white);
 }
 
 .v-btn.primary:hover {
-    background: color-mix(in srgb, var(--color-primary) 85%, white);
-    border-color: transparent;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
 }
 
 .v-btn.secondary {
@@ -1807,8 +1792,10 @@ img.emoji {
     margin-bottom: 0;
 }
 
-.input-group .v-btn {
+.input-group .v-btn,
+.input-group .v-button {
     flex-shrink: 0;
+    align-self: center;
 }
 
 /* Form groups */
@@ -2070,7 +2057,8 @@ td .button-row button {
         flex-direction: column;
     }
 
-    .actions .v-btn {
+    .actions .v-btn,
+    .actions .v-button {
         width: 100%;
     }
 }

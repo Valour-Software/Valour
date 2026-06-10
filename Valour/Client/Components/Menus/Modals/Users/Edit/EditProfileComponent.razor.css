@@ -1,7 +1,7 @@
-/* Profile Editor - Modern Flat Design */
+/* Profile Editor */
 .profile-editor-container {
-    max-width: 720px;
-    margin: 0 auto;
+    max-width: 640px;
+    margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -9,8 +9,12 @@
 
 /* Section styling - clean dividers */
 .editor-section {
-    padding: 1.5rem 0;
+    padding: 1.75rem 0;
     border-bottom: 1px solid var(--slight-tint);
+}
+
+.editor-section:first-child {
+    padding-top: 0.5rem;
 }
 
 .editor-section:last-child {
@@ -23,8 +27,8 @@
     font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
     letter-spacing: var(--letter-spacing-normal);
-    color: var(--color-primary);
-    margin-bottom: 1rem;
+    color: var(--font-alt-color);
+    margin-bottom: 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -32,6 +36,10 @@
 
 .editor-section-title i {
     font-size: var(--font-size-sm);
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .profile-preview-container {
@@ -45,18 +53,22 @@
     display: inline-block;
     padding: 0.5rem;
     border-radius: var(--radius-md);
-    margin: 0.5rem 0 1.5rem;
+    margin: 0 0 1.5rem;
     border: 1px solid var(--slight-tint);
 }
 
-/* Form controls - minimal style */
+/* Form controls */
 .form-group {
     margin-bottom: 1.25rem;
 }
 
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     color: var(--font-color);
@@ -64,52 +76,13 @@
 
 .input-group {
     display: flex;
-    max-width: 400px;
     gap: 0.5rem;
+    max-width: 100%;
 }
 
 .input-group .v-input {
     flex: 1;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    box-shadow: none;
     margin-bottom: 0;
-}
-
-.input-group .v-input:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 10%, transparent);
-}
-
-.input-group .v-btn {
-    flex-shrink: 0;
-    box-shadow: none;
-    background: var(--color-primary);
-    border: none;
-}
-
-.input-group .v-btn:hover {
-    background: color-mix(in srgb, var(--color-primary) 85%, white);
-}
-
-.v-input {
-    width: 100%;
-    background: var(--main-3);
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-md);
-    padding: 0.6rem 0.875rem;
-    color: var(--font-color);
-    box-shadow: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.v-input:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 10%, transparent);
-}
-
-.v-input:hover:not(:focus) {
-    border-color: var(--medium-tint);
 }
 
 textarea.v-input {
@@ -118,32 +91,46 @@ textarea.v-input {
 }
 
 .helper-text {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     color: var(--font-alt-color);
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
+    margin-bottom: 0;
 }
 
-/* Avatar styling */
+/* Avatar row - image left, controls right */
 .avatar-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 1rem 0;
+    gap: 1.25rem;
 }
 
 .avatar {
-    width: 120px;
-    height: 120px;
-    border: 2px solid var(--slight-tint);
-    border-radius: var(--radius-md);
+    width: 96px;
+    height: 96px;
+    flex: 0 0 auto;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     object-fit: cover;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .avatar:hover {
-    transform: scale(1.03);
-    border-color: var(--color-primary);
+    border-color: var(--medium-tint);
+}
+
+.avatar-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.avatar-info .v-btn {
+    cursor: pointer;
+    margin: 0;
 }
 
 /* Star badge preview */
@@ -154,20 +141,26 @@ textarea.v-input {
     padding: 0.75rem 1rem;
     border-radius: var(--radius-md);
     background-color: var(--main-3);
-    margin-bottom: 1rem;
+    border: 1px solid var(--slight-tint);
+    margin-bottom: 1.25rem;
     font-size: var(--font-size-sm);
 }
 
-/* Toggle/Setting rows - flat hover style */
+/* Toggle/Setting rows */
 .toggle-item {
-    padding: 1rem;
-    margin: 0 -1rem 0.5rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.5rem;
     border-radius: var(--radius-md);
-    transition: background-color 0.15s ease;
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
 }
 
-.toggle-item:hover {
-    background-color: var(--main-3);
+.toggle-item .toggle-item {
+    /* Nested toggles sit inside their parent card */
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
 }
 
 .toggle-item:last-child {
@@ -178,44 +171,52 @@ textarea.v-input {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25rem;
+    gap: 1rem;
 }
 
 .toggle-title {
     font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-sm);
 }
 
 .toggle-description {
     color: var(--font-alt-color);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+    margin: 0.25rem 0 0;
 }
 
 .toggle-content {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
     border-top: 1px solid var(--slight-tint);
 }
 
-/* Color picker section */
+/* Color picker grid */
 .color-pickers {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.25rem;
 }
 
 .color-picker-item {
-    margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
 }
 
 .color-picker-item .v-span {
     display: block;
-    margin-bottom: 0.5rem;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
     color: var(--font-alt-color);
 }
 
-/* Actions - clean buttons */
+/* Actions */
 .actions {
     margin-top: 1.5rem;
     display: flex;
@@ -223,65 +224,28 @@ textarea.v-input {
     gap: 0.5rem;
 }
 
-.actions .v-btn {
-    box-shadow: none;
-    font-size: var(--font-size-sm);
-    padding: 0.5rem 1rem;
-}
-
-.actions .v-btn.primary {
-    background: var(--color-primary);
-    border: none;
-}
-
-.actions .v-btn.primary:hover {
-    background: color-mix(in srgb, var(--color-primary) 85%, white);
-}
-
-.actions .v-btn.secondary {
-    background: var(--main-4);
-    border: 1px solid var(--slight-tint);
-}
-
-.actions .v-btn.secondary:hover {
-    background: var(--main-4);
-}
-
-.actions .v-btn.danger {
-    background: var(--color-danger);
-    border: none;
-}
-
-.actions .v-btn.danger:hover {
-    background: color-mix(in srgb, var(--color-danger) 85%, white);
-}
-
 /* Custom file input */
 .custom-file-input {
-    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
 }
 
-.custom-file-input input {
-    margin-top: 0.5rem;
+.custom-file-input .v-btn {
+    cursor: pointer;
+    margin: 0;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .profile-editor-container {
-        padding: 0 0.5rem;
+    .avatar-container {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .input-group {
-        max-width: 100%;
         flex-direction: column;
-    }
-
-    .input-group .v-btn {
-        width: 100%;
-    }
-
-    .toggle-item {
-        margin: 0 -0.5rem 0.5rem;
     }
 
     .color-pickers {
@@ -290,9 +254,5 @@ textarea.v-input {
 
     .actions {
         flex-direction: column;
-    }
-
-    .actions .v-btn {
-        width: 100%;
     }
 }

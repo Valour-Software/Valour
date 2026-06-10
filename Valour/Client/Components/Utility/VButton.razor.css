@@ -78,12 +78,15 @@
 }
 
 .v-button.primary {
-    background: var(--color-primary);
-    color: #ffffff;
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+    color: color-mix(in srgb, var(--color-primary) 65%, white);
 }
 
 .v-button.primary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-primary) 85%, white);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
 }
 
 .v-button.secondary {
