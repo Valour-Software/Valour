@@ -37,12 +37,20 @@
     color: var(--font-color);
 }
 
-.v-tab.active::after {
-    content: '';
+.v-tab-indicator {
     position: absolute;
-    left: 25%;
-    right: 25%;
     bottom: -1px;
+    left: 0;
+    height: 2px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    transition: transform 0.45s var(--ease-spring);
+    z-index: 1;
+}
+
+.v-tab-indicator-bar {
+    width: 50%;
     height: 2px;
     border-radius: var(--radius-full);
     background: linear-gradient(to right, var(--v-cyan), var(--v-purple));

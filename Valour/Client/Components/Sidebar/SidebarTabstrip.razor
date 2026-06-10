@@ -2,6 +2,9 @@
 @inject NotificationService NotificationService
 
 <div class="tabstrip">
+    <div class="tab-indicator" style="width: calc(100% / @TabItems.Count); transform: translateX(@(Sidebar.SelectedTab * 100)%);">
+        <div class="tab-indicator-bar"></div>
+    </div>
     @for (var i = 0; i < TabItems.Count; i++)
     {
         var item = TabItems[i];

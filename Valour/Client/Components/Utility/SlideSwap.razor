@@ -1,0 +1,81 @@
+<div class="slide-swap @_swapClass">
+    <div class="slide-pane @PaneClass(0)">@_slots[0]</div>
+    <div class="slide-pane @PaneClass(1)">@_slots[1]</div>
+</div>
+
+@code {
+
+    /// <summary>
+    /// Position of the current content in its ordered set (e.g. tab index).
+    /// Increasing index slides forward (content travels right-to-left),
+    /// decreasing index slides backward.
+    /// </summary>
+    [Parameter]
+    public int Index { get; set; }
+
+    [Parameter]
+    public RenderFragment Content { get; set; }
+
+    /// <summary>
+    /// Full-width conveyor slide by default; subtle mode uses a short
+    /// shared-axis slide with a fade, for content-sized containers.
+    /// </summary>
+    [Parameter]
+    public bool Subtle { get; set; }
+
+    // Two persistent pane slots (double-buffer). Panes never move within the
+    // render tree, so the outgoing pane keeps its live DOM while sliding out
+    // instead of remounting its components.
+    private readonly RenderFragment[] _slots = new RenderFragment[2];
+    private int _activeSlot;
+    private int _lastIndex;
+    private string _swapClass = "";
+    private int _animToken;
+    private bool _initialized;
+
+    // Slightly longer than the CSS animation so panes are never cleared mid-flight
+    private int SettleDelayMs => Subtle ? 260 : 340;
+
+    protected override void OnParametersSet()
+    {
+        if (!_initialized)
+        {
+            _initialized = true;
+            _lastIndex = Index;
+            _slots[_activeSlot] = Content;
+            return;
+        }
+
+        if (Index != _lastIndex)
+        {
+            var direction = Index > _lastIndex ? "swap-forward" : "swap-back";
+            _swapClass = Subtle ? $"{direction} subtle" : direction;
+
+            _activeSlot = 1 - _activeSlot;
+            _lastIndex = Index;
+            _ = SettleAsync(++_animToken);
+        }
+
+        _slots[_activeSlot] = Content;
+    }
+
+    private string PaneClass(int slot)
+    {
+        if (slot == _activeSlot)
+            return "incoming";
+
+        return _slots[slot] is null ? "empty" : "outgoing";
+    }
+
+    private async Task SettleAsync(int token)
+    {
+        await Task.Delay(SettleDelayMs);
+
+        if (token != _animToken)
+            return;
+
+        _slots[1 - _activeSlot] = null;
+        _swapClass = "";
+        await InvokeAsync(StateHasChanged);
+    }
+}
