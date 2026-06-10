@@ -25,6 +25,46 @@
     gap: 12px;
 }
 
+.pw-criteria {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+    font-size: 12px;
+    color: var(--p-red);
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+    gap: 2px 24px;
+    width: 100%;
+}
+
+.pw-criteria li::before {
+    content: "\2715";
+    margin-right: 6px;
+    font-size: 10px;
+}
+
+.pw-criteria li.met {
+    color: #43b581;
+}
+
+.pw-criteria li.met::before {
+    content: "\2713";
+}
+
+.pw-mismatch {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--p-red);
+    text-align: center;
+}
+
+.input-error,
+.input-error:focus {
+    border-color: var(--p-red) !important;
+}
+
 .field-row .form-group {
     flex: 1;
     min-width: 0;

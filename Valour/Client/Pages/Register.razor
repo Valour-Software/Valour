@@ -36,7 +36,7 @@
                     <div class="form-group">
                         <label>Password</label>
                         <div class="password-wrapper">
-                            <input type="@(_showPassword ? "text" : "password")" autocomplete="new-password" class="form-control" @bind-value="@_password" />
+                            <input type="@(_showPassword ? "text" : "password")" autocomplete="new-password" class="form-control" @bind-value="@_password" @bind-value:event="oninput" />
                             <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility" @onclick="@(() => _showPassword = !_showPassword)">
                                 <i class="bi @(_showPassword ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
@@ -45,13 +45,26 @@
                     <div class="form-group">
                         <label>Confirm Password</label>
                         <div class="password-wrapper">
-                            <input type="@(_showPasswordConf ? "text" : "password")" autocomplete="new-password" class="form-control" @bind-value="@_passwordConf" />
+                            <input type="@(_showPasswordConf ? "text" : "password")" autocomplete="new-password" class="form-control @(PasswordsMismatch ? "input-error" : "")" @bind-value="@_passwordConf" @bind-value:event="oninput" />
                             <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility" @onclick="@(() => _showPasswordConf = !_showPasswordConf)">
                                 <i class="bi @(_showPasswordConf ? "bi-eye-slash" : "bi-eye")"></i>
                             </button>
                         </div>
                     </div>
                 </div>
+                @if (!string.IsNullOrEmpty(_password) && !AllCriteriaMet)
+                {
+                    <ul class="pw-criteria">
+                        <li class="@(LengthOk ? "met" : "")">At least 10 characters</li>
+                        <li class="@(UpperOk ? "met" : "")">An uppercase letter</li>
+                        <li class="@(LowerOk ? "met" : "")">A lowercase letter</li>
+                        <li class="@(NumberOrSymbolOk ? "met" : "")">A number or symbol</li>
+                    </ul>
+                }
+                @if (PasswordsMismatch)
+                {
+                    <span class="pw-mismatch">Passwords do not match</span>
+                }
                 <div class="field-row mt-2">
                     <div class="form-group">
                         <label>Birthday</label>
@@ -120,6 +133,14 @@
     private string _successSpan;
     private string _dobSpan;
 
+    // Live password criteria — must mirror UserUtils.TestPasswordComplexity
+    private bool LengthOk => _password?.Length >= 10;
+    private bool UpperOk => _password is not null && System.Text.RegularExpressions.Regex.IsMatch(_password, "[A-Z]");
+    private bool LowerOk => _password is not null && System.Text.RegularExpressions.Regex.IsMatch(_password, "[a-z]");
+    private bool NumberOrSymbolOk => _password is not null && System.Text.RegularExpressions.Regex.IsMatch(_password, @"\d|\W");
+    private bool AllCriteriaMet => LengthOk && UpperOk && LowerOk && NumberOrSymbolOk;
+    private bool PasswordsMismatch => !string.IsNullOrEmpty(_passwordConf) && !string.Equals(_password, _passwordConf);
+
     protected override void OnInitialized()
     {
         if (!string.IsNullOrWhiteSpace(Referral))
@@ -149,6 +170,12 @@
         if (string.IsNullOrWhiteSpace(_password))
         {
             _errorSpan = "Please input a password.";
+            return;
+        }
+
+        if (!AllCriteriaMet)
+        {
+            _errorSpan = "Your password does not meet the requirements.";
             return;
         }
 
