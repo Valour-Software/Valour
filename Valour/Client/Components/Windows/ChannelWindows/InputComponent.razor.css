@@ -8,7 +8,7 @@
     border-radius: var(--radius-full);
     color: white;
     position: relative;
-    margin: 10px;
+    margin: 10px 6px 10px 10px; /* right gap matches button gap rhythm */
     padding: 0.5em;
     flex: 1 1 auto;
     transition: border-color var(--duration-fast) var(--ease-standard),
@@ -55,62 +55,92 @@
     height:42px;
 }
 
-.upload-btn {
+/* Shared circular icon button for the input row */
+.input-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
     background-color: transparent;
     border: none;
     outline: none;
     padding: 0;
-}
-
-.upload {
-    width: 28px;
-    height: 28px;
-    color: var(--main-1);
     border-radius: var(--radius-full);
-    text-align: center;
-    line-height: 24px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 25px;
     cursor: pointer;
     user-select: none;
-    display: block;
-    object-fit: contain;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
 }
 
-.no-perms .upload {
+.input-action-btn i {
+    /* Flex-center the glyph: bootstrap-icons bake a -0.125em vertical-align
+       into ::before, which misaligns differently per glyph. Flex items
+       ignore vertical-align, giving true geometric centering. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    /* Clicks must land on the button itself — the picker's outside-click
+       handler identifies the emoji button by element id. */
+    pointer-events: none;
+    transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+
+.input-action-btn:hover {
+    background-color: var(--slight-tint);
+    color: var(--font-color);
+}
+
+.input-action-btn:active {
+    transform: scale(0.92);
+}
+
+.no-perms .upload-btn {
     display: none;
-}
-
-.upload:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-}
-
-.upload:active {
-    background-color: rgba(255, 255, 255, 0.35);
 }
 
 .send-wrapper {
     display: flex;
     align-items: center;
+    /* Optical compensation: the send circle's ink is full-bleed while the
+       ghost glyphs have ~5px of empty box around theirs, so the box gap
+       alone would read tighter. This evens the visual rhythm. */
+    margin-left: 4px;
 }
 
-.send-button {
-    width: 28px;
-    height: 28px;
-    color: var(--main-1);
-    border-radius: var(--radius-full);
-    text-align: center;
-    line-height: 24px;
-    cursor: pointer;
-    margin-left: 1px;
+/* Send is the primary action — brand gradient, white glyph */
+.send-btn {
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    color: white;
 }
 
-.send-wrapper:active .send-button {
-    color: lightslategrey;
+.send-btn:hover {
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    color: white;
+    filter: brightness(1.1);
+}
+
+.send-btn i {
+    transform: translate(-1px, 1px); /* bi-send-fill optical centering */
+    font-size: 18px;
+}
+
+.send-wrapper:active .send-btn {
+    transform: scale(0.92);
 }
 
 .textbox-holder {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
@@ -179,16 +209,19 @@
     z-index: 40;
 }
 
+/* Menu + carrot are positioned so the carrot points at the center of the
+   plus (upload) button. The carrot is anchored from the menu's RIGHT edge
+   so alignment doesn't depend on the menu's content width. */
 .upload-menu {
     position: absolute;
-    bottom: 35px;
+    bottom: 42px;
     right: 7px;
     z-index: 41;
 }
 
 .mobile .upload-menu {
-    bottom: 65px;
-    right: 23px;
+    bottom: 72px;
+    right: 56px; /* compensates for the send button + its margin */
 }
 
 .upload-menu .content {
@@ -246,36 +279,9 @@
     border-right: 10px solid transparent;
     border-top: 10px solid var(--main-1);
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 53px; /* centers over the plus button (53 + 10 border = 63px from menu right) */
 }
 
-.emoji-button {
-    background: transparent;
-    border: none;
-    outline: none;
-    padding: 0;
-    opacity: 0.9;
-}
-
-.emoji-button:hover {
-    opacity: 1;
-    animation: spin 1s infinite ease-in-out;
-}
-
-@keyframes spin {
-    from {
-        transform:rotate(0deg);
-    }
-    to {
-        transform:rotate(360deg);
-    }
-}
-
-.emoji-icon {
-    width: 30px;
-    height: 30px;
-    pointer-events: none;
-    display: block;
-    object-fit: contain;
+.emoji-button:hover i {
+    transform: rotate(12deg) scale(1.1);
 }

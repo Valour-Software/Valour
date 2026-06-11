@@ -545,9 +545,13 @@ body {
 
 .topbar {
     display: flex;
+    align-items: center;
+    gap: 2px;
     height: 45px;
     min-height: 45px;
-    background-color: var(--main-4);
+    padding: 0 6px;
+    background-color: var(--main-2);
+    border-bottom: 1px solid var(--slight-tint);
 }
 
 .mobile .topbar {
@@ -555,20 +559,39 @@ body {
     min-height: 44px;
 }
 
-.topbar .sidebar-toggle {
-    display: inline-block;
-    padding: 10px;
-    padding-top: 9px;
-    font-size: var(--font-size-2xl);
+.topbar .sidebar-toggle,
+.topbar .home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+    color: var(--font-alt-color);
     cursor: pointer;
+    user-select: none;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.topbar .sidebar-toggle {
+    font-size: var(--font-size-2xl);
 }
 
 .topbar .home {
-    display: inline-block;
-    width: 44px;
-    padding: 10px;
-    margin-top: 0px;
-    cursor: pointer;
+    font-size: var(--font-size-xl);
+}
+
+.topbar .sidebar-toggle:hover,
+.topbar .home:hover {
+    background-color: var(--slight-tint);
+    color: var(--font-color);
+}
+
+.topbar .sidebar-toggle:active,
+.topbar .home:active {
+    background-color: var(--strong-tint, var(--slight-tint));
 }
 
 .channel-and-topbar {

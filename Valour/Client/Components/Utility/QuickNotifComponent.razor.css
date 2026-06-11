@@ -6,11 +6,8 @@
     padding-left: 20px;
     padding-right: 20px;
     flex-grow: 1;
-    background-color: var(--main-1);
-}
-
-.mobile .quick-notif {
-    background-color: var(--main-4);
+    /* Transparent so the topbar surface reads as one piece */
+    background-color: transparent;
 }
 
 .quick-notif .item.animate {
