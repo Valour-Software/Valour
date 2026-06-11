@@ -12,6 +12,7 @@ type Channel = {
     scrollTimer: number;
     lastReportedBottomState: boolean;
     suppressPagingUntil: number;
+    resizeObserver: ResizeObserver | null;
     
     hookEvents(): void;
     cleanup(): void;
@@ -43,6 +44,7 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         scrollTimer: Date.now(),
         lastReportedBottomState: true,
         suppressPagingUntil: 0,
+        resizeObserver: null,
         
         updateScrollPosition(){
             this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
@@ -173,10 +175,22 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
 
         hookEvents(){
             this.messageWrapperEl.addEventListener('scroll', this.handleChatWindowScroll);
+
+            // Keep the chat pinned to the bottom when the viewport itself
+            // resizes (emoji picker opening/closing, soft keyboard, reply
+            // preview, etc). Fires every frame during animated resizes, so
+            // the chat follows the animation smoothly.
+            this.resizeObserver = new ResizeObserver(() => {
+                if (this.stickToBottom)
+                    this.messageWrapperEl.scrollTop = this.messageWrapperEl.scrollHeight;
+            });
+            this.resizeObserver.observe(this.messageWrapperEl);
         },
         
         cleanup(){
             this.messageWrapperEl.removeEventListener('scroll', this.handleChatWindowScroll);
+            this.resizeObserver?.disconnect();
+            this.resizeObserver = null;
         }
     };
 

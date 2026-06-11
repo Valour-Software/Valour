@@ -247,6 +247,15 @@ async function renderPicker(state) {
         theme: 'dark',
     };
 
+    // On mobile the input picker should span the full screen width. The width
+    // is set inline on #root inside the shadow DOM, so it can't be overridden
+    // from outside CSS — dynamicWidth makes emoji-mart use width: 100% and
+    // derive perLine from the host's size instead (host is sized in CSS).
+    // Scoped to the input wrapper so the reaction picker keeps its fixed size.
+    if (wrapper.classList.contains('emoji-mart-wrapper-custom') && wrapper.closest('.mobile') !== null) {
+        pickerOptions.dynamicWidth = true;
+    }
+
     const custom = state.normalizedCustom
         .map(toPickerCustom)
         .filter(x => x !== null);

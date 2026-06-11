@@ -1570,15 +1570,76 @@ img.emoji {
 }
 
 /* Emoji picker */
+
+/* Hidden state: parked offscreen instead of display:none so the picker's
+   layout (thousands of grid cells + spritesheet decode) stays warm and
+   opening doesn't jank. animation: none is what lets the mobile rise
+   animation restart when this class is removed. */
+.picker-hidden {
+    visibility: hidden !important;
+    position: fixed !important;
+    left: -110vw !important;
+    top: 0 !important;
+    animation: none !important;
+    pointer-events: none !important;
+}
+
 .mobile .emoji-mart-wrapper-custom {
     position: relative;
     z-index: 9999;
     bottom: 12px;
+    overflow: hidden;
+    /* Visibility is toggled via display, so a keyframe animation (which
+       restarts whenever the element becomes displayed) is used instead of
+       a transition. Growing max-height makes the picker rise out of the
+       gap between the input and messages like a bottom sheet. */
+    animation: emoji-picker-rise var(--duration-slow) var(--ease-out-expo);
+}
+
+@keyframes emoji-picker-rise {
+    from {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        max-height: 440px;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* While closing, the element stays rendered with this class until the
+   animation completes (EmojiMart removes it after --duration-slow). */
+.mobile .emoji-mart-wrapper-custom.picker-closing {
+    animation: emoji-picker-drop var(--duration-slow) var(--ease-standard) both;
+    pointer-events: none;
+}
+
+@keyframes emoji-picker-drop {
+    from {
+        max-height: 440px;
+        opacity: 1;
+        transform: none;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(24px);
+    }
 }
 
 .mobile .emoji-mart-wrapper-custom > * {
     margin-left: auto;
     margin-right: auto;
+}
+
+/* Full-bleed picker on mobile. The picker is created with dynamicWidth so
+   the shadow-root #root uses width: 100% and sizes its grid from the host. */
+.mobile .emoji-mart-wrapper-custom em-emoji-picker {
+    display: block;
+    width: 100vw;
+    max-width: 100%; /* never overflow the (full-width) footer */
 }
 
 

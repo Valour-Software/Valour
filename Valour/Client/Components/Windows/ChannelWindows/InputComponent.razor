@@ -61,7 +61,7 @@
     </div>
     <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     
-    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" AnimateClose="true" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
