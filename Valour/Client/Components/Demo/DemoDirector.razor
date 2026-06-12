@@ -1,0 +1,48 @@
+@*
+    Demo reel director for recording marketing/demo videos.
+    Inert unless the page is loaded with ?demo=1 (the JS module is only imported then).
+    Optional: &planet=Some%20Planet to target a specific planet (default "Valour Central").
+    Only drives the viewer's own session - synthetic input runs as the logged-in user.
+*@
+@inject NavigationManager NavManager
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@code {
+    private IJSObjectReference _module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var uri = new Uri(NavManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        if (query["demo"] != "1")
+            return;
+
+        var planetName = query["planet"];
+        if (string.IsNullOrWhiteSpace(planetName))
+            planetName = "Valour Central";
+
+        _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./_content/Valour.Client/Components/Demo/DemoDirector.razor.js");
+
+        await _module.InvokeVoidAsync("init", planetName);
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("cleanup");
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+    }
+}
