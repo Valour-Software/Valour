@@ -1,8 +1,10 @@
+@using Microsoft.Extensions.DependencyInjection
 @inject ValourClient Client
 @inject LoggingService Logger
 @inject IJSRuntime JsRuntime
 @inject IAppStorage LocalStorage
 @inject SoundManager SoundManager
+@inject IServiceProvider Services
 
 <BrowserUtils OnReady="@ReadyAsync" />
 
@@ -181,6 +183,63 @@ else
         Log("App", $"Tried initial login. Status: {Client.IsLoggedIn}", "magenta");
 
         await InvokeAsync(StateHasChanged);
+
+        _ = CheckForShellUpdateAsync();
+    }
+
+    private async Task CheckForShellUpdateAsync()
+    {
+        try
+        {
+            // Only native shells register this service; on web there is nothing to update
+            var nativeUpdate = Services.GetService<INativeUpdateService>();
+            if (nativeUpdate is null || nativeUpdate.UpdatesManagedExternally)
+                return;
+
+            var update = await AppUpdateChecker.CheckForUpdateAsync(Client.Http, nativeUpdate.CurrentVersion);
+            if (update is null)
+                return;
+
+            var skippedVersion = await LocalStorage.GetStringAsync("skipped-shell-update");
+            if (skippedVersion == update.LatestVersion)
+                return;
+
+            Log("App", $"Native shell update available: {nativeUpdate.CurrentVersion} -> {update.LatestVersion}", "magenta");
+
+            var modalData = new ConfirmModalComponent.ModalParams(
+                "Update Available",
+                $"Valour {update.LatestVersion} is available! You are currently on {nativeUpdate.CurrentVersion}.",
+                "Update",
+                "Later",
+                () => StartShellUpdateAsync(nativeUpdate, update),
+                () => LocalStorage.SetStringAsync("skipped-shell-update", update.LatestVersion)
+            );
+
+            ModalRoot.Instance.OpenModal<ConfirmModalComponent>(modalData);
+        }
+        catch
+        {
+            // Update checks must never interfere with startup
+        }
+    }
+
+    private async Task StartShellUpdateAsync(INativeUpdateService nativeUpdate, AppUpdateInfo update)
+    {
+        if (nativeUpdate.CanSelfUpdate && update.ApkDownloadUrl is not null)
+        {
+            await ToastContainer.Instance.WaitToastWithTaskResult(new ProgressToastData<TaskResult>()
+            {
+                ProgressTask = nativeUpdate.DownloadAndInstallAsync(update.ApkDownloadUrl),
+                Title = "Updating Valour",
+                Message = "Downloading update...",
+                SuccessMessage = "Follow the system prompt to finish installing",
+                FailureMessage = "Update failed"
+            });
+        }
+        else
+        {
+            await nativeUpdate.OpenReleasePageAsync(update.ReleasePageUrl);
+        }
     }
 
     private async Task CheckErrorReportingPreference()

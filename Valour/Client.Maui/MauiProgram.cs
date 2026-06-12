@@ -60,6 +60,9 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<IAppStorage, MauiStorageService>();
         builder.Services.AddSingleton<IPushNotificationService, MauiPushNotificationService>();
+#if ANDROID
+        builder.Services.AddSingleton<INativeUpdateService, AndroidUpdateService>();
+#endif
         // Native clients should talk directly to the API host.
         builder.Services.AddValourClientServices("https://api.valour.gg");
 #if WINDOWS

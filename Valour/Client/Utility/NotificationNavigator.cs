@@ -18,6 +18,25 @@ public static class NotificationNavigator
             ToastProgressState.Failure));
     }
 
+    /// <summary>
+    /// Older planet reply notifications were stored without a PlanetId, but their
+    /// ClickUrl (/planetchannels/{planetId}/{channelId}/{messageId}) still has the route.
+    /// </summary>
+    private static (long PlanetId, long ChannelId)? TryParsePlanetRoute(string clickUrl)
+    {
+        if (string.IsNullOrWhiteSpace(clickUrl))
+            return null;
+
+        var parts = clickUrl.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3 || parts[0] != "planetchannels")
+            return null;
+
+        if (long.TryParse(parts[1], out var planetId) && long.TryParse(parts[2], out var channelId))
+            return (planetId, channelId);
+
+        return null;
+    }
+
     public static async Task NavigateTo(Notification notification)
     {
         if (notification?.Client is null)
@@ -38,13 +57,26 @@ public static class NotificationNavigator
                 case NotificationSource.PlanetHereMention:
                 case NotificationSource.PlanetEveryoneMention:
                 {
-                    if (notification.PlanetId is null || notification.ChannelId is null)
+                    var planetId = notification.PlanetId;
+                    var channelId = notification.ChannelId;
+
+                    if (planetId is null || channelId is null)
+                    {
+                        var parsedRoute = TryParsePlanetRoute(notification.ClickUrl);
+                        if (parsedRoute is not null)
+                        {
+                            planetId ??= parsedRoute.Value.PlanetId;
+                            channelId ??= parsedRoute.Value.ChannelId;
+                        }
+                    }
+
+                    if (planetId is null || channelId is null)
                     {
                         ShowNavigationFailureToast("This planet notification is missing route details.");
                         return;
                     }
 
-                    var planet = await client.PlanetService.FetchPlanetAsync(notification.PlanetId.Value);
+                    var planet = await client.PlanetService.FetchPlanetAsync(planetId.Value);
                     if (planet is null)
                     {
                         ShowNavigationFailureToast("Couldn't load the planet for this notification.");
@@ -52,7 +84,7 @@ public static class NotificationNavigator
                     }
 
                     var channel = await client.ChannelService.FetchPlanetChannelAsync(
-                        notification.ChannelId.Value, planet);
+                        channelId.Value, planet);
                     if (channel is null)
                     {
                         ShowNavigationFailureToast("Couldn't load the channel for this notification.");

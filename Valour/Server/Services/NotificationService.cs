@@ -268,6 +268,7 @@ public class NotificationService
             ClickUrl = planet is null ? 
                 $"/directchannels/{channel.Id}/{message.Id}" : 
                 $"/planetchannels/{planet.Id}/{channel.Id}/{message.Id}",
+            PlanetId = planet?.Id,
             ChannelId = channel.Id,
             Source = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply,
             SourceId = message.Id,
