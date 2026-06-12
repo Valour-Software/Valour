@@ -798,7 +798,7 @@ td, th {
 }
 
 /* Common rules for controls */
-.slider {
+.slider, .radio {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -811,21 +811,23 @@ td, th {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.slider.round {
+.slider.round, .radio.round {
     border-radius: var(--radius-xl);
 }
 
-.slider.round:before {
+.slider.round:before, .radio.round:before {
     border-radius: var(--radius-full);
 }
 
-input:checked + .slider {
+input:checked + .slider,
+input:checked + .radio {
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
     border-color: var(--color-primary);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 12px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
-input:focus + .slider {
+input:focus + .slider,
+input:focus + .radio {
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
@@ -863,6 +865,34 @@ input:focus + .slider {
 
 input:checked + .slider:before {
     transform: translateX(20px);
+}
+
+
+/* Radio buttons */
+.radio {
+    left: -30px;
+    width: 24px;
+}
+
+.switch-radio {
+    width: max-content;
+    line-height: 20pt;
+    margin-left: 30px;
+    cursor: pointer;
+}
+
+input:checked + .radio:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 5px;
+    bottom: 5px;
+    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Invite page stuff */
