@@ -825,6 +825,7 @@
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = ISharedUser.VictorUserId,
                     ChannelId = ChatComponent.Channel.Id,
+                    TimeSent = DateTime.UtcNow,
                     Id = long.MaxValue
                 };
 
@@ -852,6 +853,7 @@
                     Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
                     ChannelId = ChatComponent.Channel.Id,
+                    TimeSent = DateTime.UtcNow,
                     Id = 0 
                 };
 

@@ -1,18 +1,58 @@
 const publicKey = 'BBySvfFjJ4IihseXSujDGj4MsAd3ZAwDwy1Q2XxnMY6V3rCXjuqwm3utGvACAyjl0zEhj4Rk4Eoumy-znN_Y2VQ';
+// navigator.serviceWorker.ready never resolves if the service worker failed to
+// install, which would otherwise hang every caller (including the re-subscribe
+// keepalive). Bound the wait so failures surface as "not available" instead.
+const serviceWorkerReadyTimeoutMs = 10000;
+function pushSupported() {
+    return typeof Notification !== 'undefined'
+        && typeof navigator !== 'undefined'
+        && !!navigator.serviceWorker
+        && 'PushManager' in window;
+}
+function getReadyRegistration() {
+    return new Promise(resolve => {
+        const timeout = setTimeout(() => resolve(null), serviceWorkerReadyTimeoutMs);
+        navigator.serviceWorker.ready.then(registration => {
+            clearTimeout(timeout);
+            resolve(registration);
+        }, () => {
+            clearTimeout(timeout);
+            resolve(null);
+        });
+    });
+}
 export function init() {
     return {
         notificationsEnabled: async () => {
-            const registration = await navigator.serviceWorker.ready;
+            if (!pushSupported()) {
+                return false;
+            }
+            const registration = await getReadyRegistration();
+            if (!registration?.pushManager) {
+                return false;
+            }
             const existingSubscription = await registration.pushManager.getSubscription();
             return existingSubscription !== null;
         },
         getPermissionState: () => {
+            if (typeof Notification === 'undefined') {
+                return 'denied';
+            }
             return Notification.permission;
         },
         askForPermission: async () => {
+            if (typeof Notification === 'undefined') {
+                return 'denied';
+            }
             return await Notification.requestPermission();
         },
         requestSubscription: async () => {
+            if (!pushSupported()) {
+                return {
+                    success: false,
+                    error: 'Push notifications are not supported in this browser'
+                };
+            }
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
                 return {
@@ -20,7 +60,13 @@ export function init() {
                     error: 'Permission denied'
                 };
             }
-            const registration = await navigator.serviceWorker.ready;
+            const registration = await getReadyRegistration();
+            if (!registration?.pushManager) {
+                return {
+                    success: false,
+                    error: 'Service worker is not active'
+                };
+            }
             const existingSubscription = await registration.pushManager.getSubscription();
             try {
                 if (existingSubscription) {
@@ -56,7 +102,19 @@ export function init() {
             }
         },
         getSubscription: async () => {
-            const registration = await navigator.serviceWorker.ready;
+            if (!pushSupported()) {
+                return {
+                    success: false,
+                    error: 'Push notifications are not supported in this browser'
+                };
+            }
+            const registration = await getReadyRegistration();
+            if (!registration?.pushManager) {
+                return {
+                    success: false,
+                    error: 'Service worker is not active'
+                };
+            }
             const existingSubscription = await registration.pushManager.getSubscription();
             if (existingSubscription) {
                 return {
@@ -76,7 +134,13 @@ export function init() {
             }
         },
         unsubscribe: async () => {
-            const registration = await navigator.serviceWorker.ready;
+            if (!pushSupported()) {
+                return;
+            }
+            const registration = await getReadyRegistration();
+            if (!registration?.pushManager) {
+                return;
+            }
             const existingSubscription = await registration.pushManager.getSubscription();
             if (existingSubscription) {
                 await existingSubscription.unsubscribe();

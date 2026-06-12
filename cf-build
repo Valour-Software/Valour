@@ -136,4 +136,7 @@ cat > "$OUTPUT_DIR/_headers" <<'EOF'
 
 /service-worker.js
   Cache-Control: no-cache
+
+/service-worker-assets.js
+  Cache-Control: no-cache
 EOF

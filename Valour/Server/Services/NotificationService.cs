@@ -261,8 +261,8 @@ public class NotificationService
             Body = message.Content,
             ImageUrl = member is null ? user.GetAvatar() : member.GetAvatar(),
             ClickUrl = planet is null ? 
-                $"channels/direct/{channel.Id}/{message.Id}" : 
-                $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}",
+                $"/directchannels/{channel.Id}/{message.Id}" : 
+                $"/planetchannels/{planet.Id}/{channel.Id}/{message.Id}",
             ChannelId = channel.Id,
             Source = planet is null ? NotificationSource.DirectReply : NotificationSource.PlanetMemberReply,
             SourceId = message.Id,
@@ -290,7 +290,7 @@ public class NotificationService
                 Title = user.Name + " DMed you.",
                 Body = message.Content,
                 ImageUrl = user.GetAvatar(),
-                ClickUrl = $"channels/direct/{channel.Id}/{message.Id}",
+                ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
                 ChannelId = channel.Id,
                 Source = NotificationSource.DirectMessage,
                 SourceId = message.Id,
@@ -343,7 +343,7 @@ public class NotificationService
             Title = user.Name + " mentioned you in DMs",
             Body = content,
             ImageUrl = ISharedUser.GetAvatar(user, AvatarFormat.Webp128),
-            ClickUrl = $"channels/direct/{channel.Id}/{message.Id}",
+            ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
             ChannelId = channel.Id,
             Source = NotificationSource.DirectMention,
             SourceId = message.Id,
@@ -387,7 +387,7 @@ public class NotificationService
             ChannelId = channel.Id,
             SourceId = message.Id,
             Source = NotificationSource.PlanetMemberMention,
-            ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}",
+            ClickUrl = $"/planetchannels/{planet.Id}/{channel.Id}/{message.Id}",
             TimeSent = DateTime.UtcNow
         };
 
@@ -424,7 +424,7 @@ public class NotificationService
             ChannelId = channel.Id,
             Source = mentionSource,
             SourceId = message.Id,
-            ClickUrl = $"planets/{planet.Id}/channels/{channel.Id}/{message.Id}"
+            ClickUrl = $"/planetchannels/{planet.Id}/{channel.Id}/{message.Id}"
         };
 
         await _pushNotificationWorker.QueueNotificationAction(new QueueRoleMentionNotification()
