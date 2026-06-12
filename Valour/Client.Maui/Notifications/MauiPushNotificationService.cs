@@ -200,13 +200,22 @@ public class MauiPushNotificationService : IPushNotificationService
 #if ANDROID
         if (OperatingSystem.IsAndroidVersionAtLeast(33))
         {
-            var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
-            return status switch
+            try
             {
-                PermissionStatus.Granted => "granted",
-                PermissionStatus.Denied => "denied",
-                _ => "default"
-            };
+                var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+                return status switch
+                {
+                    PermissionStatus.Granted => "granted",
+                    PermissionStatus.Denied => "denied",
+                    _ => "default"
+                };
+            }
+            catch (Exception)
+            {
+                // A failed permission check must never take down callers
+                // (settings UI, keepalive). Treat as undetermined.
+                return "default";
+            }
         }
 
         // Pre-Android 13: notifications are allowed by default
@@ -221,7 +230,14 @@ public class MauiPushNotificationService : IPushNotificationService
 #if ANDROID
         if (OperatingSystem.IsAndroidVersionAtLeast(33))
         {
-            await Permissions.RequestAsync<Permissions.PostNotifications>();
+            try
+            {
+                await Permissions.RequestAsync<Permissions.PostNotifications>();
+            }
+            catch (Exception)
+            {
+                // Best-effort; RequestSubscriptionAsync re-checks the state after
+            }
         }
 #endif
     }

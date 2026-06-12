@@ -295,7 +295,10 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        _retainedInputCache.Remove(ChatComponent.Channel.Id, out var _);
+        // Channel can be null if the window never finished initializing
+        var channelId = ChatComponent?.Channel?.Id;
+        if (channelId is not null)
+            _retainedInputCache.Remove(channelId.Value, out var _);
         _thisRef?.Dispose();
         DetachEmojiPlanetSubscription();
 

@@ -217,6 +217,46 @@ jobs:
           fi
         done <<< "$ASSEMBLY_STORES"
 
+    - name: Build AAB for Play Store
+      env:
+        ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+        ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+      run: >
+        dotnet publish Valour/Client.Maui/Valour.Client.Maui.csproj
+        -f net11.0-android
+        -c Release
+        -o ./artifacts-aab
+        -p:AndroidKeyStore=true
+        -p:AndroidSigningKeyStore="${{ steps.signing-keystore.outputs.keystore_path }}"
+        -p:AndroidSigningStorePass="$ANDROID_SIGNING_STORE_PASSWORD"
+        -p:AndroidSigningKeyAlias="$ANDROID_SIGNING_KEY_ALIAS"
+        -p:AndroidSigningKeyPass="$ANDROID_SIGNING_KEY_PASSWORD"
+        -p:AndroidPackageFormat=aab
+        -p:AndroidSdkDirectory="${{ env.ANDROID_HOME }}"
+
+    - name: Find signed AAB
+      id: find-aab
+      run: |
+        echo "AAB candidates found in ./artifacts-aab:"
+        find ./artifacts-aab -name '*.aab' | sort || true
+
+        AAB_PATH=$(find ./artifacts-aab -name '*-Signed.aab' | sort | head -1)
+        if [ -z "$AAB_PATH" ]; then
+          echo "No signed AAB was found."
+          exit 1
+        fi
+
+        echo "Signed AAB selected: $AAB_PATH"
+        echo "aab_path=$AAB_PATH" >> $GITHUB_OUTPUT
+
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: valour-playstore-aab-v${{ needs.check-version.outputs.version }}
+        path: ${{ steps.find-aab.outputs.aab_path }}
+        if-no-files-found: error
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:

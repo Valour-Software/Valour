@@ -19,13 +19,17 @@
                     <!-- Outer wrapper covers entire screen with darken effect -->
                     <div id="@modal.Id" class="modal-bg" @key="@(modal.Id + "-bg")" @onclick="CloseTopModal">
                         <div @onclick:stopPropagation="true">
-                            <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data"/>
+                            <ValourErrorBoundary @key="@(modal.Id + "-eb")">
+                                <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data"/>
+                            </ValourErrorBoundary>
                         </div>
                     </div>
                 }
                 else
                 {
-                    <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data" />
+                    <ValourErrorBoundary @key="@(modal.Id + "-eb")">
+                        <DynamicComponent @key="@modal.Id" Type="@modal.Type" Parameters="@data" />
+                    </ValourErrorBoundary>
                 }
             </Fade>
         </div>
@@ -143,12 +147,57 @@
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// True if any modal is open and not already closing
+    /// </summary>
+    public bool HasOpenModals => _openModals.Any(x => !x.Closing);
+
+    /// <summary>
+    /// Closes the top modal from outside the Blazor render context
+    /// (e.g. the Android hardware back button). Returns true if a modal was closed.
+    /// </summary>
+    public async Task<bool> TryCloseTopModalExternalAsync()
+    {
+        var closed = false;
+
+        await InvokeAsync(() =>
+        {
+            if (!HasOpenModals)
+                return;
+
+            _ = CloseTopModal();
+            closed = true;
+        });
+
+        return closed;
+    }
+
     private void BeginClose(ModalInstance modal)
     {
         modal.Closing = true;
-        _ = modal.FadeRef.FadeOut();
+        _ = FadeOutAndRemoveAsync(modal);
         UpdateRecede();
         StateHasChanged();
+    }
+
+    private async Task FadeOutAndRemoveAsync(ModalInstance modal)
+    {
+        try
+        {
+            if (modal.FadeRef is not null)
+            {
+                // FadeOut invokes OnFadeOut, which removes the modal
+                await modal.FadeRef.FadeOut();
+            }
+        }
+        catch
+        {
+            // Fall through to the guaranteed removal below
+        }
+
+        // Idempotent - ensures a failed fade can never leave a zombie modal
+        // that blocks the rest of the stack from closing
+        await InvokeAsync(() => RemoveModal(modal.Id));
     }
     
     private void RemoveModal(string id)

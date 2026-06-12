@@ -167,11 +167,23 @@
      * @param {event} e - event object
      * @returns {void}
      */
+    function isEditable(el) {
+        if (!el || !el.tagName) return false;
+        return el.isContentEditable ||
+            el.tagName === 'INPUT' ||
+            el.tagName === 'TEXTAREA' ||
+            (el.closest && el.closest('[contenteditable="true"], [contenteditable=""]') !== null);
+    }
+
     function startLongPressTimer(e, skipTimer = false) {
 
         clearLongPressTimer(e);
 
         const el = e.target;
+
+        // Don't hijack long-press on editable elements; the native text
+        // selection / paste toolbar needs it (especially on mobile)
+        if (isEditable(el)) return;
 
         // get delay from html attribute if it exists, otherwise default to 1500
         const longPressDelayInMs = parseInt(getNearestAttribute(el, 'data-long-press-delay', '400'), 10); // default 1500

@@ -191,12 +191,8 @@ public class BotService
 
         try
         {
-            // Remove old tokens
+            // Remove old tokens (cache eviction happens after the transaction commits)
             var oldTokens = await _db.AuthTokens.Where(x => x.UserId == botId).ToListAsync();
-            foreach (var oldToken in oldTokens)
-            {
-                _tokenService.RemoveFromQuickCache(oldToken.Id);
-            }
             _db.AuthTokens.RemoveRange(oldTokens);
 
             // Create new token
@@ -215,6 +211,12 @@ public class BotService
             await _db.SaveChangesAsync();
 
             await tran.CommitAsync();
+
+            // Evict after commit to avoid re-cache race
+            foreach (var oldToken in oldTokens)
+            {
+                _tokenService.RemoveFromQuickCache(oldToken.Id);
+            }
 
             return new(true, "Token regenerated successfully", newToken.Id);
         }

@@ -114,7 +114,9 @@ export function init(ref, id) {
     
     return {
         toggleOpen: toggleOpen,
-        clearInlineTransform: clearInlineTransform
+        clearInlineTransform: clearInlineTransform,
+        isOpen: () => open,
+        setOpen: setSidebarOpen
     };
 }
 

@@ -19,7 +19,7 @@
                 }
                 else
                 {
-                    <label class="switch">
+                    <label class="switch" @key="@_toggleRenderKey">
                         <input type="checkbox" @onclick="OnNotificationsClick" checked="@_notificationsEnabled">
                         <span class="slider round"></span>
                     </label>
@@ -86,9 +86,23 @@
     private int _notificationVolume = NotificationPreferences.DefaultNotificationVolume;
     private long _enabledNotificationSources = NotificationPreferences.AllNotificationSourcesMask;
 
+    // Rotated whenever a toggle attempt fails. The native checkbox flips its own
+    // DOM state on click, and if our backing field didn't change, Blazor's diff
+    // sees nothing to patch - leaving the switch visually "on" for a subscription
+    // that never happened. Changing the key recreates the element in sync.
+    private int _toggleRenderKey;
+
     protected override async Task OnInitializedAsync()
     {
-        await RefreshPermissionStateAsync();
+        try
+        {
+            await RefreshPermissionStateAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to read push notification state: {ex.Message}");
+        }
+
         await LoadPreferencesAsync();
     }
 
@@ -104,7 +118,15 @@
     {
         if (_notificationsEnabled)
         {
-            await PushSubscriptionsComponent.Instance.UnsubscribeAsync();
+            try
+            {
+                await PushSubscriptionsComponent.Instance.UnsubscribeAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to unsubscribe from push notifications: {ex.Message}");
+            }
+
             _notificationsEnabled = false;
         }
         else
@@ -116,14 +138,28 @@
                 Message = "Setting up..."
             });
 
-            if (result.Success)
+            if (result?.Success == true)
             {
                 _notificationsEnabled = true;
             }
             else
             {
+                _toggleRenderKey++;
+
+                ToastContainer.Instance.AddToast(new ToastData(
+                    "Push notifications failed",
+                    result?.Error ?? "Could not enable push notifications",
+                    ToastProgressState.Failure));
+
                 // Re-check permission state in case the user denied the prompt
-                await RefreshPermissionStateAsync();
+                try
+                {
+                    await RefreshPermissionStateAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to refresh push notification state: {ex.Message}");
+                }
             }
         }
 

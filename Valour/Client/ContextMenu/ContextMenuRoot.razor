@@ -39,15 +39,43 @@
     {
         _currentMenuType = null;
         _currentArgs = null;
-        
-        await _jsModule.InvokeVoidAsync("clearMenu");
-        
+
+        try
+        {
+            if (_jsModule is not null)
+                await _jsModule.InvokeVoidAsync("clearMenu");
+        }
+        catch
+        {
+            // JS cleanup is best-effort; the menu is removed by the re-render below
+        }
+
         StateHasChanged();
     }
 
     public bool HasMenu()
     {
         return _currentMenuType is not null;
+    }
+
+    /// <summary>
+    /// Closes the open context menu from outside the Blazor render context
+    /// (e.g. the Android hardware back button). Returns true if a menu was closed.
+    /// </summary>
+    public async Task<bool> TryCloseMenuExternalAsync()
+    {
+        var closed = false;
+
+        await InvokeAsync(async () =>
+        {
+            if (!HasMenu())
+                return;
+
+            await CloseMenu();
+            closed = true;
+        });
+
+        return closed;
     }
 
     public async Task NotifySubmenuOpen(ElementReference element)

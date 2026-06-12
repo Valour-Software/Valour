@@ -10,8 +10,9 @@
 export function afterStarted(blazor) {
     console.log("Registering custom events...");
 
+    // Note: browserEventName must be omitted when it matches the event name,
+    // otherwise Blazor throws and the event is never registered
     blazor.registerCustomEventType('contextpress', {
-        browserEventName: 'contextpress',
         createEventArgs: event => {
             return {
                 bubbles: event.bubbles,

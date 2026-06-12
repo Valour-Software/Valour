@@ -34,9 +34,21 @@
     
     public async Task FadeOut()
     {
-        await _jsModule.InvokeVoidAsync("fadeOut", _containerRef);
-        await Task.Delay(200);
-        
+        // The visual fade is best-effort: OnFadeOut must always run, otherwise
+        // callers waiting on it (e.g. modal removal) would be stuck forever.
+        try
+        {
+            if (_jsModule is not null)
+            {
+                await _jsModule.InvokeVoidAsync("fadeOut", _containerRef);
+                await Task.Delay(200);
+            }
+        }
+        catch
+        {
+            // JS interop failed - skip the animation and finish immediately
+        }
+
         if (OnFadeOut is not null)
         {
             await OnFadeOut.Invoke();

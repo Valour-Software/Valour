@@ -114,6 +114,9 @@ public class WindowLayout
         {
             if (tabs is not null && tabs.Count > 1)
             {
+                if (focusedTabIndex < 0 || focusedTabIndex >= tabs.Count)
+                    focusedTabIndex = 0;
+
                 tabs = new List<WindowTab>()
                 {
                     tabs[focusedTabIndex]

@@ -142,6 +142,38 @@
 		await _mainSidebar.InvokeAsync(_mainSidebar.OnOpenTabClicked);
 	}
 
+	/// <summary>
+	/// Closes the mobile sidebar overlay if it is open, e.g. for the Android
+	/// hardware back button. Returns true if the sidebar was open and closed.
+	/// </summary>
+	public static async Task<bool> TryCloseMobileSidebarExternalAsync()
+	{
+		var sidebar = _mainSidebar;
+		if (sidebar is null || !DeviceInfo.IsMobile)
+			return false;
+
+		var closed = false;
+
+		await sidebar.InvokeAsync(async () =>
+		{
+			if (sidebar._jsRef is null)
+				return;
+
+			try
+			{
+				if (!await sidebar._jsRef.InvokeAsync<bool>("isOpen"))
+					return;
+
+				await sidebar._jsRef.InvokeVoidAsync("setOpen", false);
+				closed = true;
+			}
+			catch (JSException) { }
+			catch (JSDisconnectedException) { }
+		});
+
+		return closed;
+	}
+
 	private async Task OnOpenTabClicked()
 	{
 		if (!DeviceInfo.IsMobile)

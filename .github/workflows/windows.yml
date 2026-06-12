@@ -114,6 +114,33 @@ jobs:
         -p:InformationalVersion=v${{ needs.check-version.outputs.version }}
         -o ./artifacts/launcher
 
+    # Signing must happen BEFORE the payload is appended: the launcher locates its
+    # payload via a trailer at the very end of the file, and Authenticode places the
+    # certificate table there too. Signing first keeps the trailer last, and the
+    # signature remains valid because Authenticode excludes data appended after the
+    # certificate table. Both ValourLauncher.exe and Valour-full.exe are copies of
+    # this signed binary, so one signing covers both release artifacts.
+    - name: Sign launcher executable
+      uses: sslcom/esigner-codesign@develop
+      with:
+        command: sign
+        username: ${{ secrets.ES_USERNAME }}
+        password: ${{ secrets.ES_PASSWORD }}
+        credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+        totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+        file_path: ${{ github.workspace }}/artifacts/launcher/Valour.exe
+        override: true
+
+    - name: Verify signature
+      shell: pwsh
+      run: |
+        $sig = Get-AuthenticodeSignature -FilePath "./artifacts/launcher/Valour.exe"
+        Write-Host "Signature status: $($sig.Status)"
+        Write-Host "Signer: $($sig.SignerCertificate.Subject)"
+        if ($sig.Status -ne "Valid") {
+          throw "Launcher executable is not validly signed: $($sig.StatusMessage)"
+        }
+
     - name: Build release executable
       shell: pwsh
       run: |
@@ -151,17 +178,6 @@ jobs:
         if (!(Test-Path "./artifacts/Valour-full.zip")) {
           throw "Final full release archive was not created."
         }
-
-    # TODO: Enable once SSL.com cert is validated and eSigner is enrolled
-    # - name: Sign executable
-    #   uses: sslcom/esigner-codesign@develop
-    #   with:
-    #     command: sign
-    #     username: ${{ secrets.ES_USERNAME }}
-    #     password: ${{ secrets.ES_PASSWORD }}
-    #     credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
-    #     totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-    #     file_path: ./artifacts/Valour-full.exe
 
     - name: Create or update GitHub Release
       uses: softprops/action-gh-release@v2

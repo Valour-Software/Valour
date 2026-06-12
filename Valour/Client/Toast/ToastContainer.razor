@@ -174,30 +174,36 @@
     {
         AddToast(toast);
 
+        T result = default;
+
         try {
-            await toast.ProgressTask;
+            result = await toast.ProgressTask;
 
             if (toast.Card is null)
             {
                 RemoveToast(toast);
             }
 
-            toast.Card.SetProgressState(ToastProgressState.Success);
+            toast.Card?.SetProgressState(ToastProgressState.Success);
         }
         catch (Exception e)
         {
             toast.Message = "An error occurred. Please try again later.";
-            toast.Card.SetProgressState(ToastProgressState.Failure);
+            toast.Card?.SetProgressState(ToastProgressState.Failure);
             Console.WriteLine($"Exception in Toast Task: {e.Message}");
         }
 
         await Task.Delay(500);
-        
-        await toast.Card.ShrinkAndRemove();
-        
+
+        if (toast.Card is not null)
+        {
+            await toast.Card.ShrinkAndRemove();
+        }
+
         StateHasChanged();
-        
-        return toast.ProgressTask.Result;
+
+        // Faulted tasks return default rather than rethrowing into the caller
+        return result;
     }
     
     public void AddToast(ToastData toast)

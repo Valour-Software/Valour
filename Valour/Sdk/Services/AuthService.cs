@@ -256,11 +256,35 @@ public class AuthService : ServiceBase
     }
 
     /// <summary>
-    /// Logs out the current user (revokes current token)
+    /// Logs out the current user (revokes current token) and clears local auth state.
+    /// The server call is best-effort: local state is cleared even if it fails so the
+    /// device never keeps using a token the user asked to revoke.
     /// </summary>
     public async Task<TaskResult> LogoutAsync()
     {
-        return await _client.PrimaryNode.PostAsync("api/users/me/logout", null);
+        TaskResult result;
+        try
+        {
+            result = await _client.PrimaryNode.PostAsync("api/users/me/logout", null);
+        }
+        catch (Exception ex)
+        {
+            result = new TaskResult(false, ex.Message);
+        }
+
+        _token = null;
+
+        try
+        {
+            if (_client.Http.DefaultRequestHeaders.Contains("authorization"))
+                _client.Http.DefaultRequestHeaders.Remove("authorization");
+        }
+        catch
+        {
+            // Best-effort header cleanup
+        }
+
+        return result;
     }
 
     #endregion

@@ -1,4 +1,5 @@
 @using Valour.Client.Notifications
+@implements IDisposable
 @inject IPushNotificationService PushService
 @inject ValourClient Client
 
@@ -6,9 +7,17 @@
 
     public static PushSubscriptionsComponent Instance;
 
+    // Renewal is a cheap POST, but no need to spam it on every window focus
+    private static readonly TimeSpan RenewInterval = TimeSpan.FromHours(6);
+    private DateTime _lastRenewalAttempt = DateTime.MinValue;
+
     protected override void OnInitialized()
     {
         Instance = this;
+
+        // On native the app process can live for weeks without a cold start,
+        // so renew on resume/refocus too - not just on first render.
+        BrowserUtils.Focused += OnAppFocused;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -16,13 +25,42 @@
         if (!firstRender)
             return;
 
-        // If the user is logged in and previously opted into push notifications,
-        // re-subscribe to keep the server-side subscription alive (it expires after 7 days)
-        // and to handle cases where the initial login subscription was skipped or failed.
-        if (Client.IsLoggedIn && await PushService.IsNotificationsEnabledAsync())
+        await TryRenewSubscriptionAsync();
+    }
+
+    private async Task OnAppFocused()
+    {
+        await TryRenewSubscriptionAsync();
+    }
+
+    /// <summary>
+    /// If the user is logged in and previously opted into push notifications,
+    /// re-subscribes to keep the server-side subscription alive (it expires if
+    /// not renewed) and to recover when an earlier subscription attempt failed.
+    /// Requires no user gesture: permission is already granted at this point.
+    /// </summary>
+    private async Task TryRenewSubscriptionAsync()
+    {
+        if (DateTime.UtcNow - _lastRenewalAttempt < RenewInterval)
+            return;
+
+        try
         {
+            if (!Client.IsLoggedIn || !await PushService.IsNotificationsEnabledAsync())
+                return;
+
+            _lastRenewalAttempt = DateTime.UtcNow;
             await PushService.RequestSubscriptionAsync();
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Push subscription renewal failed: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        BrowserUtils.Focused -= OnAppFocused;
     }
 
     public Task<PushSubscriptionResult> RequestSubscriptionAsync()

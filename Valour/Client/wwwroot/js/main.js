@@ -1,4 +1,15 @@
-document.addEventListener('contextmenu', event => event.preventDefault());
+// Suppress the browser context menu except on editable elements,
+// where it is required for native text selection / paste (especially mobile)
+document.addEventListener('contextmenu', event => {
+    const el = event.target;
+    if (el && (el.isContentEditable ||
+        el.tagName === 'INPUT' ||
+        el.tagName === 'TEXTAREA' ||
+        el.closest?.('[contenteditable="true"], [contenteditable=""]'))) {
+        return;
+    }
+    event.preventDefault();
+});
 
 window.clipboardCopy = {
     copyText: function (text) {

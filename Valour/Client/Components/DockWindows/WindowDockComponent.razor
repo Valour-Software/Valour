@@ -58,6 +58,16 @@
             {
                 Layout = await _saveLoadAdapter.DeserializeLayout(layoutJson);
                 Layout.SetDockRecursiveRaw(this);
+
+                // If every saved tab failed to restore, fall back to home
+                // rather than showing an empty/broken dock
+                var restoredTabs = new List<WindowTab>();
+                Layout.GetTabs(restoredTabs);
+                if (restoredTabs.Count == 0)
+                {
+                    Console.WriteLine("Saved layout had no restorable tabs; resetting to home.");
+                    await Reset();
+                }
             }
             catch (Exception e)
             {

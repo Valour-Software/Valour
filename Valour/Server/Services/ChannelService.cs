@@ -765,9 +765,12 @@ public class ChannelService
     /// </summary>
     private async Task<bool> HasUniquePosition(Channel channel) =>
         // Ensure position is not already taken
-        // Note: with new position system, we need to check the position and parent separately
-        !await _db.Channels.AnyAsync(x => (x.ParentId == channel.ParentId && // Same parent
-                                                x.RawPosition == channel.RawPosition) && // Same position
+        // Note: with new position system, we need to check the position and parent separately.
+        // Must be scoped to the planet: root channels have a null ParentId and share the same
+        // small RawPosition slot values across planets.
+        !await _db.Channels.AnyAsync(x => x.PlanetId == channel.PlanetId && // Same planet
+                                                x.ParentId == channel.ParentId && // Same parent
+                                                x.RawPosition == channel.RawPosition && // Same position
                                                 x.Id != channel.Id); // Not self
     
     /// <summary>

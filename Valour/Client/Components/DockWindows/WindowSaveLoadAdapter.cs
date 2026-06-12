@@ -154,7 +154,7 @@ public class WindowSaveLoadAdapter
         foreach (var tabState in tabStates)
         {
             var tab = await Import(tabState);
-            if (tab.FloatingProps is not null)
+            if (tab?.FloatingProps is not null)
             {
                 tabs.Add(tab);
             }
@@ -269,7 +269,11 @@ public class WindowSaveLoadAdapter
             
             foreach (var tab in state.TabStates)
             {
-                tabs.Add(await Import(tab));
+                var imported = await Import(tab);
+                // Tabs that failed to restore (missing type, missing data, failed
+                // data fetch) are dropped instead of rendering broken windows
+                if (imported is not null)
+                    tabs.Add(imported);
             }
         }
         
@@ -318,15 +322,22 @@ public class WindowSaveLoadAdapter
         content.PlanetId = state.ContentState.PlanetId;
         content.AutoScroll = state.ContentState.AutoScroll;
 
-        if (state.ContentState.DataJson is not null)
+        // Does this content type carry data? (WindowContent<TWindow, TData>)
+        var importMethod = content.GetType().GetMethod("ImportData");
+
+        if (importMethod is not null)
         {
-            // Use reflection to set the data property
-            var method = content.GetType().GetMethod("ImportData");
-            if (method is not null)
+            // Data-carrying content saved without data (e.g. its channel failed to
+            // load last session) can never restore correctly - drop the tab
+            if (state.ContentState.DataJson is null)
             {
-                
-                // Invoke as async method
-                var task = (Task)method.Invoke(content, [state.ContentState.DataJson, _client]);
+                Console.WriteLine($"Dropping saved window tab with no data: {state.ContentType}");
+                return null;
+            }
+
+            try
+            {
+                var task = (Task)importMethod.Invoke(content, [state.ContentState.DataJson, _client]);
                 if (task is not null)
                 {
                     await task;
@@ -334,11 +345,21 @@ public class WindowSaveLoadAdapter
                 else
                 {
                     Console.WriteLine($"!!! Failed to convert import to task on component type: {state.ContentState.ComponentType} when loading window layout tab state");
+                    return null;
                 }
             }
-            else
+            catch (Exception e)
             {
-                Console.WriteLine($"!!! Could not find import data method on component type: {state.ContentState.ComponentType} when loading window layout tab state");
+                Console.WriteLine($"Dropping saved window tab; failed to import data for {state.ContentType}: {e.Message}");
+                return null;
+            }
+
+            // If the import ran but could not produce data (deleted channel,
+            // failed fetch, etc.), drop the tab rather than render it broken
+            if (content.ComponentData is null)
+            {
+                Console.WriteLine($"Dropping saved window tab; data could not be restored: {state.ContentType}");
+                return null;
             }
         }
         

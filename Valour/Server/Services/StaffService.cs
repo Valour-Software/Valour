@@ -110,14 +110,16 @@ public class StaffService
 
         await _db.SaveChangesAsync();
 
-        // Also remove all tokens and evict them from the in-memory cache
+        // Also remove all tokens and evict them from the in-memory cache.
+        // Eviction must happen after the delete is committed, otherwise a
+        // concurrent request can re-cache the token from the still-live DB row.
         var tokens = await _db.AuthTokens.Where(x => x.UserId == userId).ToListAsync();
-        foreach (var token in tokens)
-            _tokenService.RemoveFromQuickCache(token.Id);
-
         _db.AuthTokens.RemoveRange(tokens);
 
         await _db.SaveChangesAsync();
+
+        foreach (var token in tokens)
+            _tokenService.RemoveFromQuickCache(token.Id);
 
         return TaskResult.SuccessResult;
     }

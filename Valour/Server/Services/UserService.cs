@@ -510,8 +510,12 @@ public class UserService
             if (dbToken is not null)
             {
                 _db.AuthTokens.Remove(dbToken);
-                _tokenService.RemoveFromQuickCache(key);
                 await _db.SaveChangesAsync();
+
+                // Evict AFTER the delete is committed; evicting first allows a
+                // concurrent request to re-cache the token from the still-live
+                // DB row, leaving a permanently stale cache entry
+                _tokenService.RemoveFromQuickCache(key);
             }
         }
         catch (Exception e)
@@ -551,8 +555,10 @@ public class UserService
                 return new TaskResult(false, "Token not found");
 
             _db.AuthTokens.Remove(token);
-            _tokenService.RemoveFromQuickCache(tokenId);
             await _db.SaveChangesAsync();
+
+            // Evict after commit to avoid re-cache race
+            _tokenService.RemoveFromQuickCache(tokenId);
 
             return new TaskResult(true, "Token revoked successfully");
         }
@@ -574,13 +580,14 @@ public class UserService
                 .Where(x => x.UserId == userId && x.Id != currentTokenId)
                 .ToListAsync();
 
+            _db.AuthTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+
+            // Evict after commit to avoid re-cache race
             foreach (var token in tokens)
             {
                 _tokenService.RemoveFromQuickCache(token.Id);
             }
-
-            _db.AuthTokens.RemoveRange(tokens);
-            await _db.SaveChangesAsync();
 
             return new TaskResult(true, $"Revoked {tokens.Count} tokens");
         }
@@ -613,13 +620,14 @@ public class UserService
                 .Where(x => x.UserId == userId && x.Id != newTokenResult.Data.Id)
                 .ToListAsync();
 
+            _db.AuthTokens.RemoveRange(tokens);
+            await _db.SaveChangesAsync();
+
+            // Evict after commit to avoid re-cache race
             foreach (var token in tokens)
             {
                 _tokenService.RemoveFromQuickCache(token.Id);
             }
-
-            _db.AuthTokens.RemoveRange(tokens);
-            await _db.SaveChangesAsync();
 
             _logger.LogInformation("Session token rotated for user {UserId}. Revoked {Count} old tokens.", userId, tokens.Count);
 

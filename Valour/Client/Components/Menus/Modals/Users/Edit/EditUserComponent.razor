@@ -3,6 +3,7 @@
 @inherits Modal<EditUserComponent.ModalParams>
 @inject NavigationManager NavManager
 @inject ValourClient Client
+@inject IAppStorage LocalStorage
 
 
 @if (@Data.User is null)
@@ -226,12 +227,7 @@
             "Are you sure?",
             "Yes, log out",
             "Cancel",
-            async () =>
-            {
-                var result = await Client.PrimaryNode.PostAsync($"api/users/me/logout", null);
-                Console.WriteLine(result.Message);
-                NavManager.NavigateTo("/", true);
-            },
+            PerformLogoutAsync,
             () =>
             {
                 return Task.CompletedTask;
@@ -245,10 +241,28 @@
             Console.WriteLine(e.Message);
 
             // If an error occurs in building/using the ConfirmModal, it reverts back to original behavior and logs out regardless
-            var result = await Client.PrimaryNode.PostAsync($"api/users/me/logout", null);
-            Console.WriteLine(result.Message);
-            NavManager.NavigateTo("/", true);
+            await PerformLogoutAsync();
         }
+    }
+
+    private async Task PerformLogoutAsync()
+    {
+        // Revokes the token server-side and clears SDK auth state (best-effort)
+        var result = await Client.AuthService.LogoutAsync();
+        Console.WriteLine($"Logout result: {result.Message}");
+
+        // Always clear the locally stored token so the next launch can't
+        // auto-login with a revoked token and end up in a broken state
+        try
+        {
+            await LocalStorage.RemoveAsync("token");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to clear stored token: {e.Message}");
+        }
+
+        NavManager.NavigateTo("/", true);
     }
 
     private async Task OpenStaffTools()

@@ -3,7 +3,9 @@ using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
+using AndroidX.Activity;
 using AndroidX.Core.View;
+using Valour.Client.Device;
 
 namespace Valour.Client.Maui;
 
@@ -18,6 +20,11 @@ public class MainActivity : MauiAppCompatActivity
 
         CreateNotificationChannel();
         _ = RequestNotificationPermissionAsync();
+
+        // Back should dismiss the topmost modal/menu/sidebar in the app,
+        // and never destroy the activity - just background it when there
+        // is nothing left to close.
+        OnBackPressedDispatcher.AddCallback(this, new ValourBackPressedCallback(this));
 
         AppLifecycle.CallStarted += CallForegroundService.Start;
         AppLifecycle.CallEnded += CallForegroundService.Stop;
@@ -87,6 +94,39 @@ public class MainActivity : MauiAppCompatActivity
             return;
 
         await Permissions.RequestAsync<Permissions.PostNotifications>();
+    }
+
+    private async Task HandleBackPressedAsync()
+    {
+        bool handled;
+        try
+        {
+            handled = await BackNavigationService.HandleBackAsync();
+        }
+        catch (Exception)
+        {
+            handled = false;
+        }
+
+        if (!handled)
+        {
+            MoveTaskToBack(true);
+        }
+    }
+
+    private sealed class ValourBackPressedCallback : OnBackPressedCallback
+    {
+        private readonly MainActivity _activity;
+
+        public ValourBackPressedCallback(MainActivity activity) : base(true)
+        {
+            _activity = activity;
+        }
+
+        public override void HandleOnBackPressed()
+        {
+            _ = _activity.HandleBackPressedAsync();
+        }
     }
 
     private class SystemBarsPaddingListener : Java.Lang.Object, IOnApplyWindowInsetsListener

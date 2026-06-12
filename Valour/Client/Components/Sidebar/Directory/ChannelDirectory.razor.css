@@ -229,8 +229,16 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    max-width: calc(100% - 20px);
+    max-width: calc(100% - 24px);
     margin: -2px 0 0 24px;
+}
+
+::deep .channel:has(.unread-dot) .name {
+    max-width: calc(100% - 40px);
+}
+
+::deep .channel:has(.notif-badge) .name {
+    max-width: calc(100% - 48px);
 }
 
 /*

@@ -1290,6 +1290,9 @@
             if (imported.PlanetId is not null)
             {
                 var planet = await client.PlanetService.FetchPlanetAsync(imported.PlanetId!.Value);
+                if (planet is null)
+                    return; // Planet unavailable; leave Data null so the tab is dropped
+
                 await planet.EnsureReadyAsync();
                 Data = await planet.FetchChannelAsync(imported.ChannelId);
             }
