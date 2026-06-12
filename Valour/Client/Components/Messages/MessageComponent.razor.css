@@ -69,6 +69,17 @@
     animation: pop-in 0.2s ease-in-out;
 }
 
+.reaction-tooltip-names {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+}
+
+.reaction-tooltip-name {
+    white-space: nowrap;
+}
+
 .message.minimal {
     margin-bottom: 0;
     min-height: auto;
