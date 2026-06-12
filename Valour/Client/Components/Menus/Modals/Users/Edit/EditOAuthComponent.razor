@@ -10,10 +10,7 @@
         <p class="subtitle">Manage your OAuth applications and API access</p>
 
         <div class="oauth-actions">
-            <button class="v-btn primary" @onclick="OnCreateApp">
-                <i class="bi bi-plus-circle"></i>
-                Create New App
-            </button>
+            <VButton Variant="primary" Icon="plus-circle" OnClick="@OnCreateApp">Create New App</VButton>
         </div>
 
         @if (_apps is null)
@@ -29,7 +26,7 @@
                 <i class="bi bi-code-square"></i>
                 <h4>No OAuth Applications</h4>
                 <p>You haven't created any OAuth applications yet. Create your first app to get started with the Valour API.</p>
-                <button class="v-btn primary" @onclick="OnCreateApp">Create Your First App</button>
+                <VButton Variant="primary" OnClick="@OnCreateApp">Create Your First App</VButton>
             </div>
         }
         else

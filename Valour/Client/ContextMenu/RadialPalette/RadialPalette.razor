@@ -147,8 +147,8 @@
 .radial-palette .center-circle {{
     width: {OptionSize}px;
     height: {OptionSize}px;
-    background: var(--main-5, #3498db);
-    border-radius: 50%;
+    background: var(--main-4, #3498db);
+    border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -164,7 +164,7 @@
 .radial-palette .plus {{
     color: #fff;
     font-size: {OptionSize * 0.5}px;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     user-select: none;
     pointer-events: none;
 }}
@@ -186,7 +186,7 @@
     pointer-events: auto;
     transform-origin: center center;
     z-index: 20;
-    border-radius: 100%;
+    border-radius: var(--radius-full);
 }}
 
 .radial-palette .options-wrapper:hover {{
@@ -257,7 +257,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background: rgba(255,255,255,0.15);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     font-size: {OptionSize * 0.6}px;
@@ -265,7 +265,7 @@
     transition: background 0.2s, transform 0.25s, opacity 0.2s;
 }}
 .options-wrapper .circle-pop:hover {{
-    background: var(--main-5, #3498db);
+    background: var(--main-4, #3498db);
 }}
 ");
 

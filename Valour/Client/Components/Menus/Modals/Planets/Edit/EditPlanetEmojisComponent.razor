@@ -3,73 +3,84 @@
 @using Valour.Shared.Utilities
 @implements IDisposable
 
-<div class="emoji-settings">
-    <h3 class="emoji-title">
-        <i class="bi bi-emoji-smile"></i>
-        Custom Emojis
-    </h3>
-    <p class="subtitle">Upload up to @ISharedPlanetEmoji.MaxPerPlanet custom 128x128 emojis for this planet.</p>
-
+<div class="settings-page">
     @if (_loading)
     {
-        <p class="emoji-loading">Loading emojis...</p>
+        <div class="editor-section">
+            <div class="loading-state">
+                <div class="loading-indicator"></div>
+                <p>Loading emojis...</p>
+            </div>
+        </div>
     }
     else
     {
-        <div class="emoji-header">
-            <p class="emoji-usage">@Planet.Emojis.Count / @ISharedPlanetEmoji.MaxPerPlanet used</p>
-        </div>
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-plus-circle-fill"></i>
+                Upload Emoji
+            </h3>
+            <p class="helper-text top-help">Upload up to @ISharedPlanetEmoji.MaxPerPlanet custom 128x128 emojis for this planet.</p>
 
-        @if (!_canManage)
-        {
-            <p class="emoji-warning">You need the Manage Planet permission to add or remove custom emojis.</p>
-        }
+            @if (!_canManage)
+            {
+                <p class="emoji-warning">You need the Manage Planet permission to add or remove custom emojis.</p>
+            }
 
-        <div class="emoji-upload">
-            <div class="emoji-inputs">
-                <input class="v-input emoji-name-input" placeholder="emoji_name" @bind-value="_emojiName" maxlength="32" />
-                <button class="v-btn secondary emoji-choose-btn" onclick="document.getElementById('planet-emoji-upload').click()">Choose Image</button>
-                <span class="emoji-file-name" title="@(_selectedFile?.Name ?? "No file selected")">@(_selectedFile?.Name ?? "No file selected")</span>
-                <InputFile @ref="_fileInput"
-                           id="planet-emoji-upload"
-                           OnChange="OnFileSelected"
-                           style="display:none"
-                           accept=".png,.jpg,.jpeg,.gif,.webp" />
+            <div class="emoji-upload">
+                <div class="emoji-inputs">
+                    <input class="v-input emoji-name-input" placeholder="emoji_name" @bind-value="_emojiName" maxlength="32" />
+                    <button class="v-btn secondary emoji-choose-btn" onclick="document.getElementById('planet-emoji-upload').click()">Choose Image</button>
+                    <span class="emoji-file-name" title="@(_selectedFile?.Name ?? "No file selected")">@(_selectedFile?.Name ?? "No file selected")</span>
+                    <InputFile @ref="_fileInput"
+                               id="planet-emoji-upload"
+                               OnChange="OnFileSelected"
+                               style="display:none"
+                               accept=".png,.jpg,.jpeg,.gif,.webp" />
+                </div>
+                <button class="v-btn primary emoji-upload-btn"
+                        disabled="@(!_canManage || _uploading)"
+                        @onclick="UploadEmojiAsync">
+                    @(_uploading ? "Uploading..." : "Upload Emoji")
+                </button>
             </div>
-            <button class="v-btn primary emoji-upload-btn"
-                    disabled="@(!_canManage || _uploading)"
-                    @onclick="UploadEmojiAsync">
-                @(_uploading ? "Uploading..." : "Upload Emoji")
-            </button>
+
+            <div class="emoji-result-wrap">
+                <ResultLabel Result="@_result" />
+            </div>
         </div>
 
-        <div class="emoji-result-wrap">
-            <ResultLabel Result="@_result" />
-        </div>
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-emoji-smile-fill"></i>
+                Emoji Library
+                <span class="status-badge usage-badge">@Planet.Emojis.Count / @ISharedPlanetEmoji.MaxPerPlanet</span>
+            </h3>
 
-        @if (Planet.Emojis.Count == 0)
-        {
-            <p class="emoji-empty">No custom emojis added yet.</p>
-        }
-        else
-        {
-            <div class="emoji-grid">
-                @foreach (var emoji in Planet.Emojis.OrderBy(x => x.Name))
-                {
-                    <div class="emoji-card">
-                        <img class="emoji-preview" src="@ISharedPlanetEmoji.GetCdnUrl(emoji)" alt="@($":{emoji.Name}:")" />
-                        <div class="emoji-meta">
-                            <span class="emoji-name" title="@($":{emoji.Name}:")">:@emoji.Name:</span>
-                            <button class="v-btn danger emoji-delete-btn"
-                                    disabled="@(!_canManage)"
-                                    @onclick="() => DeleteEmojiAsync(emoji)">
-                                Delete
-                            </button>
+            @if (Planet.Emojis.Count == 0)
+            {
+                <p class="emoji-empty">No custom emojis added yet.</p>
+            }
+            else
+            {
+                <div class="emoji-grid">
+                    @foreach (var emoji in Planet.Emojis.OrderBy(x => x.Name))
+                    {
+                        <div class="emoji-card">
+                            <img class="emoji-preview" src="@ISharedPlanetEmoji.GetCdnUrl(emoji)" alt="@($":{emoji.Name}:")" />
+                            <div class="emoji-meta">
+                                <span class="emoji-name" title="@($":{emoji.Name}:")">:@emoji.Name:</span>
+                                <button class="v-btn danger emoji-delete-btn"
+                                        disabled="@(!_canManage)"
+                                        @onclick="() => DeleteEmojiAsync(emoji)">
+                                    Delete
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                }
-            </div>
-        }
+                    }
+                </div>
+            }
+        </div>
     }
 </div>
 

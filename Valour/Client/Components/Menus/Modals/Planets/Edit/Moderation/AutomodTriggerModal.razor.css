@@ -1,0 +1,65 @@
+.action-empty {
+    margin: 0.5rem 0;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--medium-tint);
+    background-color: var(--main-3);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+}
+
+.action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.action-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+}
+
+.action-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.action-type {
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+}
+
+.action-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: var(--font-size-xs);
+    color: var(--font-alt-color);
+}
+
+.action-message {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.separator {
+    opacity: 0.5;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}

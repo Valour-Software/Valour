@@ -7,10 +7,8 @@ public static class RoleFragments
 {
     public static RenderFragment<PlanetRole> RolePill => role => __builder =>
     {
-        __builder.OpenElement(0, "span");
-        __builder.AddAttribute(1, "class", "role-pill");
-        __builder.AddAttribute(2, "style", $"border-color:{role.Color}");
-        __builder.AddContent(3, role.Name);
-        __builder.CloseElement();
+        __builder.OpenComponent<Valour.Client.Components.UI.RolePill>(0);
+        __builder.AddAttribute(1, "Role", role);
+        __builder.CloseComponent();
     };
 }

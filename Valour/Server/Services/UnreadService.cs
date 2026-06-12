@@ -21,7 +21,7 @@ public class UnreadService
     {
         return await _db.Channels
             .AsNoTracking()
-            .Where(c => c.PlanetId == planetId && c.ChannelType != ChannelTypeEnum.PlanetCategory)
+            .Where(c => c.PlanetId == planetId && ISharedChannel.ChatChannelTypes.Contains(c.ChannelType))
             .Where(c => !_db.UserChannelStates
                 .Where(s => s.UserId == userId && s.PlanetId == planetId)
                 .Any(s => s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
@@ -32,21 +32,21 @@ public class UnreadService
     
     public async Task<long[]> GetUnreadPlanets(long userId)
     {
+        var memberPlanetIds = _db.PlanetMembers
+            .Where(m => m.UserId == userId)
+            .Select(m => m.PlanetId);
+
+        // Must match the unread rules of GetUnreadChannels: only chat channels
+        // can be 'viewed', so categories/voice/video would stay unread forever
         return await _db.Channels
             .AsNoTracking()
-            .Where(c => c.PlanetId != null)
-            .GroupJoin(
-                _db.UserChannelStates.Where(s => s.UserId == userId),
-                channel => channel.Id,
-                state => state.ChannelId,
-                (channel, states) => new { channel, states }
+            .Where(c => c.PlanetId != null
+                        && memberPlanetIds.Contains(c.PlanetId.Value)
+                        && ISharedChannel.ChatChannelTypes.Contains(c.ChannelType))
+            .Where(c => !_db.UserChannelStates
+                .Any(s => s.UserId == userId && s.ChannelId == c.Id && s.LastViewedTime >= c.LastUpdateTime)
             )
-            .SelectMany(
-                x => x.states.DefaultIfEmpty(),
-                (x, state) => new { x.channel, state }
-            )
-            .Where(x => x.state == null || x.state.LastViewedTime < x.channel.LastUpdateTime)
-            .Select(x => x.channel.PlanetId.Value)
+            .Select(c => c.PlanetId.Value)
             .Distinct()
             .ToArrayAsync();
     }

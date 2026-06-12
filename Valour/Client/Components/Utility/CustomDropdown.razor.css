@@ -5,10 +5,10 @@
     gap: 0.25em;
     background-color: var(--main-4);
     border: 1px solid #1d1d1d;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: #ffffff;
     padding: 5px 9px;
-    font-size: 1em;
+    font-size: var(--font-size-md);
     margin-bottom: 0.5em;
     width: 100%;
     min-width: 10em;

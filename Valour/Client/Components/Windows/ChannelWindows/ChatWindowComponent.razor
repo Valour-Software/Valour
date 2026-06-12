@@ -20,7 +20,7 @@
             <ChatHeaderComponent Channel="@Channel" ChatComponent="@this" />
         }
         <div class="chat-member-wrapper @(HideMemberList ? "member-list-hidden" : string.Empty)">
-            <div class="chat-scroll-region" @onmouseleave="@OnMouseLeaveMessageArea">
+            <div class="chat-scroll-region">
                 <div @ref="@MessageWrapperEl" class="chat-holder mt-auto">
                     <!-- Pushes messages to bottom -->
                     <div class="pusher"></div>
@@ -38,12 +38,6 @@
                         @onclick:stopPropagation="true">
                     <i class="bi bi-arrow-down"></i>
                 </button>
-                <RadialPalette @ref="@_hoverMenu"
-                               OptionSize="60"
-                               Scale="0.5"
-                               Radius="75"
-                               AnimationDelayStep="0.02"/>
-
                 <ControlledRenderWrapper @ref="@_reactionSelectorRenderWrapper">
                     <div class="reaction-selector-wrapper" style="bottom: @(_reactionSelectorTop); right: @(_reactionSelectorLeft);">
                         <EmojiMart @ref="@_reactionSelector" EmojiSet="twitter" StartShown="false" OnClickOutside="@OnClickOutsideReactionPicker" OnEmojiClick="@OnReactionSelectedAsync"/>
@@ -63,153 +57,6 @@
 
 @code {
 
-    public List<RadialPalette.Option> GetHoverMenuOptions()
-    {
-        var options = new List<RadialPalette.Option>();
-
-        var messageComponent = _hoverMenuMessage;
-        var message = messageComponent?.ParamData?.Message;
-        var me = Client.Me;
-
-        if (message is null || me is null)
-            return [];
-
-        var isOwnMessage = me.Id == message.AuthorUserId;
-        var canManageMessages =
-            ChannelPermissions?.GetPermissionState(ChatChannelPermissions.ManageMessages) == PermissionState.True;
-        var canUseReactions =
-            ChannelPermissions is null ||
-            ChannelPermissions.GetPermissionState(ChatChannelPermissions.UseReactions) == PermissionState.True;
-        
-        // If owner, add edit
-        if (isOwnMessage)
-        {
-            var edit = new RadialPalette.Option()
-            {
-                Id = "edit",
-                Icon = "pencil",
-                Name = "Edit",
-                Action = async (_) =>
-                {
-                    if (messageComponent is not null)
-                        await OpenEditMode(messageComponent);
-                }
-            };
-            
-            options.Add(edit);
-        }
-        else
-        {
-            // Add report
-            var report = new RadialPalette.Option()
-            {
-                Id = "report",
-                Icon = "flag-fill",
-                Name = "Report",
-                Color = "var(--p-red)",
-                Action = (_) =>
-                {
-                    ShowReportModal(message);
-                    return Task.CompletedTask;
-                }
-            };
-            
-            options.Add(report);
-        }
-
-        if (isOwnMessage || canManageMessages)
-        {
-            var delete = new RadialPalette.Option()
-            {
-                Id = "delete",
-                Icon = "bi bi-trash",
-                Name = "Delete",
-                Color = "var(--p-red)",
-                Action = (_) =>
-                {
-                    ShowMessageDeleteModal(message);
-                    return Task.CompletedTask;
-                }
-            };
-            
-            options.Add(delete);
-        }
-        
-        // Add reaction options if user has permission
-        if (canUseReactions)
-        {
-            var reaction = new RadialPalette.Option()
-            {
-                Id = "reaction",
-                Icon = "emoji-smile",
-                Name = "React",
-                Action = (e) =>
-                {
-                    _currentlyReactingMessage = message;
-
-                    // Reposition
-                    _reactionSelectorLeft = (BrowserUtils.WindowDimensions.Width - e.ClientX) + "px";
-                    _reactionSelectorTop = Math.Min(BrowserUtils.WindowDimensions.Height - e.ClientY, 350) + "px";
-
-                    // Re-render JUST the emoji selector
-                    _reactionSelectorRenderWrapper?.ReRender();
-
-                    _ = RefreshReactionEmojiPickerAsync();
-
-                    _reactionSelector?.ToggleVisible();
-
-                    // Close hover menu
-                    _hoverMenu?.SetVisible(false);
-
-                    return Task.CompletedTask;
-                }
-            };
-
-            var reaction1 = new RadialPalette.Option()
-            {
-                Emoji = "😀",
-                Name = "😀",
-                Action = async (_) =>
-                {
-                    await message.AddReactionAsync("😀");
-                }
-            };
-
-            var reaction2 = new RadialPalette.Option()
-            {
-                Emoji = "💀",
-                Name = "💀",
-                Action = async (_) =>
-                {
-                    await message.AddReactionAsync("💀");
-                }
-            };
-
-            var reaction3 = new RadialPalette.Option()
-            {
-                Emoji = "🚀",
-                Name = "🚀",
-                Action = async (_) =>
-                {
-                    await message.AddReactionAsync("🚀");
-                }
-            };
-
-            options.Add(reaction);
-            options.Add(reaction1);
-            options.Add(reaction2);
-            options.Add(reaction3);
-        }
-        
-        return options;
-    }
-    
-    /* Used for palette */
-    private RadialPalette _hoverMenu;
-    private MessageComponent _hoverMenuMessage;
-    private string _hoverMenuTop;
-    private string _hoverMenuRight;
-    
     private EmojiMart _reactionSelector;
     private ControlledRenderWrapper _reactionSelectorRenderWrapper;
     private Message _currentlyReactingMessage;
@@ -225,6 +72,8 @@
     
     private bool _loading = true;
     private bool _disposed;
+    private long? _pendingScrollToMessageId;
+    private TouchSlide _touchSlide;
 
     [Parameter]
     public bool Embedded { get; set; }
@@ -342,36 +191,22 @@
         return Task.CompletedTask;
     }
 
-    private void ShowMessageDeleteModal(Message message)
+    /// <summary>
+    /// Opens the emoji reaction picker for the given message, positioned near the given client coordinates.
+    /// </summary>
+    public void OpenReactionPicker(Message message, double clientX, double clientY)
     {
-        var desc = message.Content.Length > 32 ? message.Content.Substring(0, 32) + "..." : message.Content;
-        
-        var data = new ConfirmModalComponent.ModalParams("Delete message?", desc, "Delete", "Cancel",
-            async () =>
-            {
-                await message.DeleteAsync();
-            },
-            () => Task.CompletedTask
-        );
+        _currentlyReactingMessage = message;
 
-        ModalRoot.Instance.OpenModal<ConfirmModalComponent>(data);
-    }
+        _reactionSelectorLeft = (BrowserUtils.WindowDimensions.Width - clientX) + "px";
+        _reactionSelectorTop = Math.Min(BrowserUtils.WindowDimensions.Height - clientY, 350) + "px";
 
-    private void ShowReportModal(Message message)
-    {
-        var data = new ReportModalComponent.ModalParams()
-        {
-            Report = new Report()
-            {
-                ReportingUserId = Client.Me.Id,
-                MessageId = message.Id,
-                ChannelId = message.ChannelId,
-                PlanetId = message.PlanetId,
-                ReportedUserId = message.AuthorUserId
-            }
-        };
-        
-        ModalRoot.Instance.OpenModal<ReportModalComponent>(data);
+        // Re-render JUST the emoji selector
+        _reactionSelectorRenderWrapper?.ReRender();
+
+        _ = RefreshReactionEmojiPickerAsync();
+
+        _reactionSelector?.ToggleVisible();
     }
     
     public async Task SetupNewChannelAsync()
@@ -459,11 +294,30 @@
 
         if (firstRender)
         {
+            // Setup must run first: MessageWrapperEl only exists in the DOM
+            // once _loading is false, so the JS init has to wait for it.
             await SetupNewChannelAsync();
             _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/ChatWindowComponent.razor.js");
             _jsService = await _jsModule.InvokeAsync<IJSObjectReference>("init", _thisRef, MessageWrapperEl);
 
-            await ScrollToBottom(true);
+            // Swipe-left-to-reply for touch devices. The :not() filters keep
+            // inner reply previews and ghost messages from being targets.
+            _touchSlide = new TouchSlide();
+            _touchSlide.SlideAction += OnMessageSwipeReply;
+            await _touchSlide.Initialize(MessageWrapperEl, ".message:not(.reply):not(.ghost)", JsRuntime);
+
+            // The notification path (TargetMessageId -> LoadAroundMessageAsync)
+            // wants to scroll before _jsService exists; it defers to here.
+            if (_pendingScrollToMessageId is not null)
+            {
+                var target = _pendingScrollToMessageId.Value;
+                _pendingScrollToMessageId = null;
+                await ScrollToMessage(target, highlight: true);
+            }
+            else
+            {
+                await ScrollToBottom(true);
+            }
         }
 
         if (_pendingReactionEmojiRefresh && !_loading && _reactionSelector is not null)
@@ -666,6 +520,12 @@
     ///////////////////////
 
     private HashSet<long> _messageSet = new();
+
+    /// <summary>
+    /// Ids of messages that arrived live (vs loaded as history) and should
+    /// play an entrance animation when first rendered.
+    /// </summary>
+    private readonly HashSet<long> _liveArrivalIds = new();
     
     private RenderFragment MessagesFragment => builder =>
     {
@@ -694,6 +554,7 @@
                 IsInnerReply = false,
                 LastMessage = showDateDivider ? null : lastMessage,
                 Ghost = false,
+                AnimateIn = _liveArrivalIds.Contains(message.Id),
             };
 
             builder.OpenComponent<MessageComponent>(sequence++);
@@ -722,6 +583,7 @@
                 IsInnerReply = false,
                 LastMessage = showDateDivider ? null : lastMessage,
                 Ghost = true,
+                AnimateIn = true,
             };
 
             builder.OpenComponent<MessageComponent>(sequence++);
@@ -847,7 +709,12 @@
         // Scroll to the target message and trigger highlight animation.
         // Uses instant scroll so it can't be interrupted by DOM changes.
         // The highlight class is added/removed by JS after scrolling.
-        await ScrollToMessage(messageId, highlight: true);
+        // During first-time window setup the JS service doesn't exist yet,
+        // so defer the scroll to OnAfterRenderAsync.
+        if (_jsService is null)
+            _pendingScrollToMessageId = messageId;
+        else
+            await ScrollToMessage(messageId, highlight: true);
 
         // Keep suppressing auto-scroll while messages finish loading
         // (avatars, embeds, etc. trigger ShiftScrollPosition which would
@@ -906,6 +773,7 @@
         DisplayedMessages.Clear();
         QueuedMessages.Clear();
         RenderedMessages.Clear();
+        _liveArrivalIds.Clear();
         
         if (render)
             ReRender();
@@ -1022,8 +890,15 @@
 
         // Remove the matching ghost BEFORE rendering so the ghost removal and
         // real message insertion appear in the same render frame with no gap.
+        var replacedGhost = false;
         if (!string.IsNullOrEmpty(message.Fingerprint))
-            QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+            replacedGhost = QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint) > 0;
+
+        // Live arrivals get an entrance animation — unless they replace a
+        // ghost, in which case the ghost already animated in and the swap
+        // should stay seamless.
+        if (!replacedGhost)
+            _liveArrivalIds.Add(message.Id);
 
         DisplayedMessages.Add(message);
 
@@ -1031,6 +906,7 @@
         if (atBottom && DisplayedMessages.Count > TrimThreshold)
         {
             DisplayedMessages.RemoveRange(0, DisplayedMessages.Count - TargetMessages);
+            _liveArrivalIds.RemoveWhere(id => !DisplayedMessages.Any(x => x.Id == id));
         }
 
         // Flag for UI refresh
@@ -1045,6 +921,26 @@
     public void ToggleMembersList()
     {
         MemberListComponent.ToggleVisible();
+    }
+
+    /// <summary>
+    /// Handles a swipe-left-to-reply gesture on a message (touch only).
+    /// Element ids are in the format m-{channelId}-{messageId}.
+    /// </summary>
+    private async Task OnMessageSwipeReply(string elementId)
+    {
+        if (_disposed || InputComponent is null || string.IsNullOrEmpty(elementId))
+            return;
+
+        var lastDash = elementId.LastIndexOf('-');
+        if (lastDash < 0 || !long.TryParse(elementId[(lastDash + 1)..], out var messageId))
+            return;
+
+        var message = DisplayedMessages.FirstOrDefault(x => x.Id == messageId);
+        if (message is null)
+            return;
+
+        await InvokeAsync(async () => await InputComponent.SetReplyMessage(message));
     }
     
     /* This is called by the MessageComponent when it is rendered */
@@ -1109,6 +1005,19 @@
     /////////////////////
     // JS Interop Zone //
     /////////////////////
+
+    /// <summary>
+    /// Scrolls to bottom (when stuck to bottom) after the next two animation
+    /// frames, so pending Blazor DOM changes are measured first. Use when the
+    /// thing requiring the scroll hasn't rendered yet (e.g. reply preview).
+    /// </summary>
+    public ValueTask ScrollToBottomDeferred(bool force = false)
+    {
+        if (SuppressAutoScroll || _jsService is null)
+            return ValueTask.CompletedTask;
+
+        return _jsService.InvokeVoidAsync("scrollToBottomDeferred", force);
+    }
 
     public ValueTask ScrollToBottom(bool force = false)
     {
@@ -1276,7 +1185,6 @@
     [JSInvokable("OnDebouncedScroll")]
     public void OnDebouncedScroll()
     {
-        //_hoverMenu.SetVisible(false);
     }
 
     [JSInvokable("OnBottomStickinessChanged")]
@@ -1604,40 +1512,6 @@
         return recovered;
     }
     
-    public async Task NotifyMessageMouseEnter(MessageComponent message)
-    {
-        if (_hoverMenu is not null)
-        {
-            _hoverMenuMessage = message;
-            var options = GetHoverMenuOptions();
-
-            if (options.Count == 0)
-            {
-                _hoverMenu.SetVisible(false);
-                return;
-            }
-            
-            var bounds = await BrowserUtils.GetElementBoundingRectAsync(_hoverMenu.OuterRef);
-            var wrapperBounds = await BrowserUtils.GetElementBoundingRectAsync(MessageWrapperEl);
-            
-            var distances = await BrowserUtils.GetVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
-            _hoverMenuTop = (distances.TopDistance + (bounds.Height / 2) - (DeviceInfo.IsMobile ? 70 : 40)) + "px";
-            
-            _hoverMenuRight = (BrowserUtils.WindowDimensions.Width - wrapperBounds.Right + (bounds.Width / 2) - (DeviceInfo.IsMobile ? 24 : 0 )) + "px"; //(wrapperBounds.Right - wrapperBounds.Width) + "px";
-            
-            var visibleDistances = await BrowserUtils.GetVisibleVerticalContainerDistanceAsync(message.OuterRef, MessageWrapperEl);
-            
-            _hoverMenu.SetOptions(options);
-            _hoverMenu.SetPosition(_hoverMenuTop, rightPx: _hoverMenuRight);
-            _hoverMenu.SetVisible(true);
-        }
-    }
-    
-    public void OnMouseLeaveMessageArea()
-    {
-        _hoverMenu?.SetVisible(false);
-    }
-    
     /////////////
     // Cleanup //
     /////////////
@@ -1670,6 +1544,12 @@
         await Channel.Close(WindowChannelKey);
         
         _thisRef.Dispose();
+
+        if (_touchSlide is not null)
+        {
+            _touchSlide.SlideAction -= OnMessageSwipeReply;
+            await _touchSlide.DisposeAsync();
+        }
 
         if (_jsModule is not null)
         {

@@ -1,21 +1,53 @@
-/* Tri button stuff */
-.tri-button-back {
-    fill: #040d14;
+.tri-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    background-color: var(--main-1);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
 }
 
-.tri-button-hightlight {
-    opacity: 0.2;
-    pointer-events: none;
+.seg {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--font-alt-color);
+    width: 30px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    line-height: 1;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
 }
 
-.tri-button-yes {
-    fill: #05ff00;
+.seg:hover {
+    color: var(--font-color);
+    background-color: var(--slight-tint);
 }
 
-.tri-button-disabled {
-    fill: #ffad19;
+.seg:active {
+    transform: scale(0.9);
 }
 
-.tri-button-no {
-    fill: #ef3a3a;
+.seg.deny.active {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger);
+}
+
+.seg.inherit.active {
+    background-color: var(--slight-tint);
+    color: var(--font-color);
+}
+
+.seg.allow.active {
+    background-color: var(--color-success-soft);
+    color: var(--color-success);
 }

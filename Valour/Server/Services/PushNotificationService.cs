@@ -12,6 +12,14 @@ namespace Valour.Server.Services;
 
 public class PushNotificationService
 {
+    /// <summary>
+    /// How long a subscription lives without being renewed. Renewal happens whenever the
+    /// client app is opened (keepalive re-subscribe), so this only needs to cover long
+    /// periods of inactivity. Genuinely dead endpoints are already cleaned up eagerly via
+    /// WebPush 410 Gone / FCM Unregistered responses.
+    /// </summary>
+    public static readonly TimeSpan SubscriptionLifetime = TimeSpan.FromDays(90);
+
     private readonly ValourDb _db;
     private readonly ILogger<PushNotificationService> _logger;
     private readonly HostedPlanetService _hostedService;
@@ -61,7 +69,7 @@ public class PushNotificationService
             existingUserSub.DeviceType = subscription.DeviceType;
             existingUserSub.Auth = subscription.Auth;
             existingUserSub.Key = subscription.Key;
-            existingUserSub.ExpiresAt = DateTime.UtcNow.AddDays(7);
+            existingUserSub.ExpiresAt = DateTime.UtcNow.Add(SubscriptionLifetime);
             
             _db.PushNotificationSubscriptions.Update(existingUserSub);
         }
@@ -69,6 +77,8 @@ public class PushNotificationService
         {
             var newUserSub = subscription.ToDatabase();
             newUserSub.Id = IdManager.Generate();
+            // Set explicitly rather than relying on the database default (which is only 7 days)
+            newUserSub.ExpiresAt = DateTime.UtcNow.Add(SubscriptionLifetime);
             
             // Add new subscription
             await _db.PushNotificationSubscriptions.AddAsync(newUserSub);

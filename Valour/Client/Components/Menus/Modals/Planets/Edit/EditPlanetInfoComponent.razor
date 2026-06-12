@@ -3,13 +3,13 @@
 @using Valour.Shared.Models
 @inject ValourClient Client
 
-<div class="settings-container">
+<div class="settings-page">
     <div class="editor-section">
         <h3 class="editor-section-title">
             <i class="bi bi-globe2"></i>
             Planet Info
         </h3>
-        <p class="subtitle">Edit your planet's name, tags, and primary chat channel</p>
+        <p class="helper-text top-help">Edit your planet's name, tags, and primary chat channel</p>
 
         <div class="form-group">
             <label>Name</label>
@@ -31,7 +31,7 @@
         <SearchTagFilterComponent InitialTags="Planet.Tags?.Select(t => t.Id).ToList() ?? new List<long>()" OnTagSelectToPlanet="HandleTagSelection"
                    OnTagRemoveToPlanet="HandleTagRemoved" ShowCreateButton="true"/>
 
-        <div class="actions mt-3">
+        <div class="actions">
             <button class="v-btn primary" @onclick="OnSaveChanges">Save Changes</button>
         </div>
     </div>

@@ -1,4 +1,5 @@
 ﻿using Valour.Server.Models.Themes;
+using Valour.Shared.Models.Themes;
 
 namespace Valour.Server.Mapping.Themes;
 
@@ -18,6 +19,13 @@ public static class ThemeMapper
             HasCustomBanner = theme.HasCustomBanner,
             HasAnimatedBanner = theme.HasAnimatedBanner,
             Published = theme.Published,
+            FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily),
+            RadiusXs = ISharedTheme.NormalizeRadius(theme.RadiusXs, ISharedTheme.DefaultRadiusXs),
+            RadiusSm = ISharedTheme.NormalizeRadius(theme.RadiusSm, ISharedTheme.DefaultRadiusSm),
+            RadiusMd = ISharedTheme.NormalizeRadius(theme.RadiusMd, ISharedTheme.DefaultRadiusMd),
+            RadiusLg = ISharedTheme.NormalizeRadius(theme.RadiusLg, ISharedTheme.DefaultRadiusLg),
+            RadiusXl = ISharedTheme.NormalizeRadius(theme.RadiusXl, ISharedTheme.DefaultRadiusXl),
+            RadiusFull = ISharedTheme.NormalizeRadius(theme.RadiusFull, ISharedTheme.DefaultRadiusFull),
             FontColor = theme.FontColor,
             FontAltColor = theme.FontAltColor,
             LinkColor = theme.LinkColor,
@@ -52,6 +60,13 @@ public static class ThemeMapper
             HasCustomBanner = theme.HasCustomBanner,
             HasAnimatedBanner = theme.HasAnimatedBanner,
             Published = theme.Published,
+            FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily),
+            RadiusXs = ISharedTheme.NormalizeRadius(theme.RadiusXs, ISharedTheme.DefaultRadiusXs),
+            RadiusSm = ISharedTheme.NormalizeRadius(theme.RadiusSm, ISharedTheme.DefaultRadiusSm),
+            RadiusMd = ISharedTheme.NormalizeRadius(theme.RadiusMd, ISharedTheme.DefaultRadiusMd),
+            RadiusLg = ISharedTheme.NormalizeRadius(theme.RadiusLg, ISharedTheme.DefaultRadiusLg),
+            RadiusXl = ISharedTheme.NormalizeRadius(theme.RadiusXl, ISharedTheme.DefaultRadiusXl),
+            RadiusFull = ISharedTheme.NormalizeRadius(theme.RadiusFull, ISharedTheme.DefaultRadiusFull),
             FontColor = theme.FontColor,
             FontAltColor = theme.FontAltColor,
             LinkColor = theme.LinkColor,

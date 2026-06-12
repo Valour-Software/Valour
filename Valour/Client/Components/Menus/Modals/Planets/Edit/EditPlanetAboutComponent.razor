@@ -1,16 +1,25 @@
 @implements IDisposable
 
-<div class="about-settings">
-    <div class="about-preview">
-        <PlanetInfoDisplay PlanetInfo="@_previewInfo" />
+<div class="settings-page">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-eye-fill"></i>
+            Preview
+        </h3>
+
+        <div class="about-preview">
+            <PlanetInfoDisplay PlanetInfo="@_previewInfo" />
+        </div>
     </div>
 
-    <div class="about-editor">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-file-earmark-richtext-fill"></i>
+            About Markdown
+        </h3>
+
         <div class="about-editor-head">
-            <div>
-                <h3>About Markdown</h3>
-                <p class="subtitle">This appears in the About pseudochannel and public planet preview.</p>
-            </div>
+            <p class="helper-text">This appears in the About pseudochannel and public planet preview.</p>
             <span class="about-count">@_aboutValue.Length / @MaxAboutLength</span>
         </div>
 

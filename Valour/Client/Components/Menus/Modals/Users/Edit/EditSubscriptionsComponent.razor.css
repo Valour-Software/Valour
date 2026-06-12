@@ -5,10 +5,10 @@
 .active-banner {
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     border: 1px solid var(--slight-tint);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 1rem 1.25rem;
     margin-top: 1rem;
-    border-left: 4px solid var(--v-cyan);
+    border-left: 4px solid var(--color-primary);
 }
 
 .active-banner.cancelled {
@@ -16,7 +16,7 @@
 }
 
 .active-banner.payment-failed {
-    border-left-color: var(--p-red);
+    border-left-color: var(--color-danger);
 }
 
 .banner-content {
@@ -39,23 +39,23 @@
 }
 
 .banner-tier-name {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
 }
 
 .banner-billing {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     opacity: 0.7;
 }
 
 .banner-warning {
-    font-size: 0.85rem;
-    color: var(--p-red);
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+    font-weight: var(--font-weight-semibold);
 }
 
 .banner-note {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     opacity: 0.6;
     font-style: italic;
 }
@@ -69,8 +69,8 @@
 }
 
 .cancel-confirm-text {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
     opacity: 0.9;
 }
 
@@ -84,17 +84,17 @@
    ======================================== */
 
 .status-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--letter-spacing-normal);
     padding: 0.15em 0.6em;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
 }
 
 .status-badge.active {
-    background: color-mix(in srgb, var(--v-cyan) 20%, transparent);
-    color: var(--v-cyan);
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    color: var(--color-primary);
 }
 
 .status-badge.cancelled {
@@ -103,8 +103,8 @@
 }
 
 .status-badge.failed {
-    background: color-mix(in srgb, var(--p-red) 20%, transparent);
-    color: var(--p-red);
+    background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+    color: var(--color-danger);
 }
 
 /* ========================================
@@ -121,7 +121,7 @@
 .tier-card {
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     border: 1px solid var(--slight-tint);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
@@ -133,18 +133,18 @@
 }
 
 .tier-card.active {
-    border: 2px solid var(--v-cyan);
+    border: 2px solid var(--color-primary);
 }
 
 .tier-card.expanded {
-    border-color: var(--v-purple);
+    border-color: var(--color-secondary);
 }
 
 .tier-img {
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin-bottom: 0.75rem;
 }
 
@@ -156,8 +156,8 @@
 }
 
 .tier-name {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
 }
 
 .tier-pricing {
@@ -168,21 +168,21 @@
 }
 
 .tier-price-vc {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--v-purple);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-secondary);
 }
 
 .tier-price-usd {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     opacity: 0.6;
 }
 
 .tier-desc {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     opacity: 0.7;
     margin-bottom: 0.5rem;
-    line-height: 1.4;
+    line-height: var(--line-height-base);
 }
 
 .tier-perks {
@@ -193,15 +193,15 @@
 }
 
 .tier-perks li {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     padding: 0.2em 0;
     opacity: 0.85;
 }
 
 .tier-perks li::before {
     content: "\2713 ";
-    color: var(--v-cyan);
-    font-weight: 700;
+    color: var(--color-primary);
+    font-weight: var(--font-weight-bold);
     margin-right: 0.35em;
 }
 
@@ -224,15 +224,15 @@
 }
 
 .balance-warning {
-    font-size: 0.8rem;
-    color: var(--p-red);
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
     opacity: 0.9;
     margin-top: -0.25rem;
 }
 
 .upgrade-note {
-    font-size: 0.8rem;
-    color: var(--v-cyan);
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
     opacity: 0.8;
     margin-top: -0.25rem;
 }
@@ -251,7 +251,7 @@
 .vc-card {
     background: linear-gradient(135deg, var(--main-2), var(--main-3));
     border: 1px solid var(--slight-tint);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -262,7 +262,7 @@
 }
 
 .vc-card:hover {
-    border-color: var(--v-purple);
+    border-color: var(--color-secondary);
     transform: translateY(-2px);
 }
 
@@ -270,35 +270,35 @@
     width: 80px;
     height: 80px;
     object-fit: cover;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin-bottom: 0.5rem;
 }
 
 .vc-amount {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--v-purple);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-secondary);
 }
 
 .vc-price {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
     margin: 0.15rem 0;
 }
 
 .vc-savings {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
     text-transform: uppercase;
-    color: var(--v-cyan);
-    background: color-mix(in srgb, var(--v-cyan) 15%, transparent);
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
     padding: 0.1em 0.5em;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     margin-bottom: 0.15rem;
 }
 
 .vc-desc {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     opacity: 0.6;
 }
 

@@ -1,0 +1,28 @@
+@using Valour.Sdk.Models
+
+@if (Role is not null)
+{
+    <ValourPill Title="@Role.Name"
+                Color="@RoleColor"
+                Variant="soft"
+                Tone="accent"
+                Size="@Size"
+                Class="@CssClass"
+                Style="@Style"
+                @attributes="AdditionalAttributes">
+        <ChildContent>
+            <span class="role-pill-name">@Role.Name</span>
+        </ChildContent>
+    </ValourPill>
+}
+
+@code {
+    [Parameter] public PlanetRole? Role { get; set; }
+    [Parameter] public string? Size { get; set; } = "sm";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string RoleColor => string.IsNullOrWhiteSpace(Role?.Color) ? "#ffffff" : Role.Color;
+    private string CssClass => string.Join(" ", new[] { "role-pill", Class }.Where(x => !string.IsNullOrWhiteSpace(x)));
+}

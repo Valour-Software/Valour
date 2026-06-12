@@ -4,23 +4,19 @@
 
 <div class="attachments-panel">
     <div class="attachments-toolbar">
-        <LargeSearch Placeholder="Search filenames, MIME types, or hashes..."
-                     DebounceMs="250"
-                     OnSearchChanged="OnSearchChanged"
-                     OnSearchCleared="OnSearchCleared" />
+        <VSearchBox Placeholder="Search filenames, MIME types, or hashes..."
+                    Value="@_search"
+                    ValueChanged="@OnSearchChanged" />
 
         <div class="attachments-controls">
-            <select class="v-input" @onchange="OnSortChanged">
+            <select class="form-select sort-select" @onchange="OnSortChanged">
                 <option value="createdAt" selected>Newest</option>
                 <option value="fileName">Filename</option>
                 <option value="sizeBytes">Size</option>
                 <option value="mimeType">Type</option>
                 <option value="category">Category</option>
             </select>
-            <button class="v-btn secondary" @onclick="RefreshAsync" disabled="@_loading">
-                <i class="bi bi-arrow-clockwise"></i>
-                Refresh
-            </button>
+            <VButton Variant="secondary" Icon="arrow-clockwise" Disabled="@_loading" OnClick="@RefreshAsync">Refresh</VButton>
         </div>
     </div>
 
@@ -125,16 +121,27 @@
         await QueryAsync(reset: false);
     }
 
+    private CancellationTokenSource _searchCts;
+
     private async Task OnSearchChanged(string search)
     {
         _search = search ?? string.Empty;
-        await QueryAsync(reset: true);
-    }
 
-    private async Task OnSearchCleared()
-    {
-        _search = string.Empty;
-        await QueryAsync(reset: true);
+        // Debounce so we don't query on every keystroke
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+
+        try
+        {
+            await Task.Delay(250, token);
+            await QueryAsync(reset: true);
+            StateHasChanged();
+        }
+        catch (TaskCanceledException)
+        {
+            // Superseded by newer input
+        }
     }
 
     private async Task OnSortChanged(ChangeEventArgs e)

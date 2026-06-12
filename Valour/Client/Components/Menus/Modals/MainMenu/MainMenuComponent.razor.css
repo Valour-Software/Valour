@@ -9,7 +9,7 @@
     display: flex;
     flex-direction: column;
     background-color: var(--main-2);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
@@ -24,23 +24,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    background-color: var(--main-4);
-    border: none;
-    color: var(--font-color);
-    font-size: 1.2rem;
+    border-radius: var(--radius-full);
+    background-color: transparent;
+    border: 1px solid var(--slight-tint);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-xl);
     cursor: pointer;
     z-index: 10;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard);
 }
 
 .v-menu-close:hover {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+    color: white;
 }
 
 /* Menu Layout */
 .v-menu-layout {
-    background-color: var(--main-3);
+    background-color: var(--main-2);
     display: flex;
     flex: 1;
     height: 100%;
@@ -53,7 +57,8 @@
     height: 100%;
     max-height: 100vh;
     max-height: 100dvh;
-    background-color: var(--main-3);
+    background-color: var(--main-1);
+    border-right: 1px solid var(--slight-tint);
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -64,9 +69,9 @@
 .v-menu-sidebar-toggle {
     display: none; /* Hidden by default, shown in media query */
     padding: 1rem;
-    background-color: var(--main-3);
-    border-bottom: 1px solid var(--main-4);
-    font-weight: 500;
+    background-color: var(--main-1);
+    border-bottom: 1px solid var(--slight-tint);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
     justify-content: space-between;
     align-items: center;
@@ -85,40 +90,42 @@
 
 /* Category */
 .v-menu-category {
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     display: flex;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
     position: relative;
     user-select: none;
-    border-left: 3px solid transparent;
+    color: rgba(255, 255, 255, 0.65);
 }
 
 .v-menu-category.active {
-    background-color: var(--main-4);
-    border-left-color: var(--p-cyan);
+    color: var(--font-color);
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .v-menu-category:hover {
-    background-color: var(--slight-tint);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--font-color);
 }
 
 .v-menu-category i:first-child {
     margin-right: 0.75rem;
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     width: 1.5rem;
     text-align: center;
 }
 
 .v-menu-category span {
     flex: 1;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
 }
 
 .v-menu-category i:last-child {
     opacity: 0.5;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     transition: transform 0.2s ease;
 }
 
@@ -129,42 +136,86 @@
 
 /* Menu Items */
 .v-menu-items {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    /* Add animation for menu items too */
-    max-height: 0;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-slow) var(--ease-out-expo);
 }
 
-.v-menu-category.active + .v-menu-items {
-    max-height: 1000px; /* A large value that should accommodate any number of items */
-    opacity: 1;
+.v-menu-items.open {
+    grid-template-rows: 1fr;
+}
+
+.v-menu-items-inner {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Menu Item */
 .v-menu-item {
-    padding: 0.75rem 1rem 0.75rem 3rem;
+    padding: 0.6rem 1rem 0.6rem 3rem;
     display: flex;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-left: 3px solid transparent;
+    position: relative;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: var(--font-size-sm);
+    opacity: 0;
+    transform: translateX(-12px);
+    transition: background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.v-menu-items.open .v-menu-item {
+    animation: menu-item-slide var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.v-menu-items.open .v-menu-item:nth-child(1) { animation-delay: 30ms; }
+.v-menu-items.open .v-menu-item:nth-child(2) { animation-delay: 60ms; }
+.v-menu-items.open .v-menu-item:nth-child(3) { animation-delay: 90ms; }
+.v-menu-items.open .v-menu-item:nth-child(4) { animation-delay: 120ms; }
+.v-menu-items.open .v-menu-item:nth-child(5) { animation-delay: 150ms; }
+.v-menu-items.open .v-menu-item:nth-child(6) { animation-delay: 180ms; }
+.v-menu-items.open .v-menu-item:nth-child(7) { animation-delay: 210ms; }
+.v-menu-items.open .v-menu-item:nth-child(n + 8) { animation-delay: 240ms; }
+
+@keyframes menu-item-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .v-menu-item:hover {
-    background-color: var(--slight-tint);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--font-color);
 }
 
 .v-menu-item.active {
-    background-color: var(--medium-tint);
-    border-left-color: var(--p-purple);
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--font-color);
+}
+
+.v-menu-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(180deg, var(--v-cyan), var(--v-purple));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--v-cyan) 40%, transparent);
 }
 
 .v-menu-item i {
     margin-right: 0.75rem;
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     width: 1.25rem;
     text-align: center;
 }
@@ -183,10 +234,17 @@
     flex-direction: column;
 }
 
+.v-menu-content-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .v-menu-content-header {
     margin-bottom: 1.5rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--main-4);
+    border-bottom: 1px solid var(--slight-tint);
 }
 
 .v-menu-content-header p {
@@ -196,22 +254,37 @@
 }
 
 .v-menu-content-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
     margin: 0;
 }
 
 .v-menu-content-header i {
-    font-size: 1.3rem;
-    margin-right: 0.25em;
+    font-size: var(--font-size-2xl);
+    margin-right: 0.35em;
+    color: var(--font-color);
+}
+
+.v-menu-content-header .subtitle {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
+    color: var(--font-alt-color);
+    margin: 0;
 }
 
 .v-menu-content-body {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     padding: 0.5em;
+}
+
+.v-menu-content ::deep .slide-swap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
 }
 
 .v-menu-placeholder {
@@ -224,7 +297,7 @@
 }
 
 .v-menu-placeholder i {
-    font-size: 3rem;
+    font-size: var(--font-size-6xl);
     margin-bottom: 1rem;
     opacity: 0.5;
 }

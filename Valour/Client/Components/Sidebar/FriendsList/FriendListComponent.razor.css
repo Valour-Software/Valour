@@ -6,19 +6,21 @@
     padding: 8px;
 }
 
+.friend-search {
+    margin-bottom: 8px;
+}
+
 .friend-container .list {
     overflow: auto;
     overflow-anchor: none;
-    background-color: var(--main-3);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     display: flex;
     flex-direction: column;
-    padding: 4px;
-    gap: 4px;
 }
 
-.friend-container .list::-webkit-scrollbar {
-    display: none;
+.friend-container .list ::deep .user-info {
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
 }
 
 .empty-state {
@@ -31,7 +33,7 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.4;
 }
 

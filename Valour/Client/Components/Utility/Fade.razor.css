@@ -1,9 +1,25 @@
 ﻿.fade-container {
     opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .fade-container.fade-in {
     opacity: 1;
-    transition: opacity 0.3s ease-in-out;
+    transition: opacity var(--duration-base) var(--ease-standard);
+}
+
+.fade-container ::deep .modal-bg > div {
+    transform: scale(0.96) translateY(12px);
+    transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.fade-container.fade-in ::deep .modal-bg > div {
+    transform: none;
+    transition: transform var(--duration-slow) var(--ease-out-expo);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade-container ::deep .modal-bg > div {
+        transform: none;
+    }
 }

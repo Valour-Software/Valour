@@ -2,7 +2,8 @@
     width: 100%;
     min-height: 32px;
     max-height: 32px;
-    background-color: var(--main-3);
+    background-color: var(--main-2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -22,7 +23,7 @@
 }
 
 .header-row .h-center input {
-    line-height: 1;
+    line-height: var(--line-height-none);
     transition: width 0.2s ease-in-out, padding-left 0.2s ease-in-out, padding-right 0.2s ease-in-out;
     margin-left: auto;
     margin-right: auto;
@@ -69,9 +70,20 @@
     gap: 12px;
 }
 
-.members-btn {
+.h-right ::deep .search-btn,
+.h-right ::deep .members-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 20px;
+    font-size: var(--font-size-lg);
+    color: var(--strong-tint);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.h-right ::deep .search-btn:hover,
+.h-right ::deep .members-btn:hover {
+    color: var(--font-color);
 }
 
 /* Covers entire page behind results for unclick */
@@ -92,7 +104,7 @@
     width: min(70vw, 400px);
     background-color: var(--modal-medium);
     z-index: 101;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -111,8 +123,8 @@
 
 ::deep .results-scroll .jump-to-message {
     padding: 4px 12px 8px;
-    font-size: 12px;
-    color: var(--p-cyan, #6cc4dc);
+    font-size: var(--font-size-xs);
+    color: var(--color-primary);
     cursor: pointer;
     text-align: right;
     opacity: 0.7;
@@ -126,5 +138,5 @@
 
 /* Round the scrollbar */
 .results-scroll::-webkit-scrollbar-track {
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }

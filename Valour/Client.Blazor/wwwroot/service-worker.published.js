@@ -14,8 +14,11 @@ self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}-${COMMIT_HASH}`;
-const offlineAssetsInclude = [/\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/];
-const offlineAssetsExclude = [/^service-worker\.js$/, /^bundled\.min\.css$/];
+const offlineAssetsInclude = [/\.dll$/, /\.pdb$/, /\.wasm/, /\.html/, /\.js$/, /\.json$/, /\.css$/, /\.woff2$/, /\.woff$/, /\.png$/, /\.jpe?g$/, /\.gif$/, /\.ico$/, /\.blat$/, /\.dat$/];
+// index.html is excluded because Cloudflare Pages serves it through a pretty-URL redirect
+// whose cached body can come from a different deployment, failing the SRI integrity check
+// and breaking the entire service worker install (which kills push notifications).
+const offlineAssetsExclude = [/^service-worker\.js$/, /^bundled\.min\.css$/, /index\.html$/];
 
 // Function to check if the stored hash matches the current hash
 async function hasHashChanged() {
@@ -114,10 +117,28 @@ self.addEventListener('push', event => {
             icon: payload.iconUrl,
             vibrate: [100, 50, 100],
             badge: "https://app.valour.gg/_content/Valour.Client/media/logo/logo-square-256.png",
+            data: { url: payload.url },
         })
     );
 });
 
 self.addEventListener('notificationclick', event => {
     event.notification.close();
+
+    const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (const client of windowClients) {
+                if ('focus' in client) {
+                    client.focus();
+                    if ('navigate' in client && targetUrl !== client.url) {
+                        return client.navigate(targetUrl).catch(() => {});
+                    }
+                    return;
+                }
+            }
+            return clients.openWindow(targetUrl);
+        })
+    );
 });

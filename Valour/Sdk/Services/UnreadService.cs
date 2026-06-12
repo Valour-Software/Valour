@@ -2,11 +2,22 @@ using System.Collections.Concurrent;
 using Valour.Sdk.Client;
 using Valour.Sdk.Nodes;
 using Valour.Shared.Models;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
 
 public class UnreadService : ServiceBase
 {
+    /// <summary>
+    /// Run when a planet's unread state changes. Argument is the planet id.
+    /// </summary>
+    public HybridEvent<long> PlanetUnreadChanged;
+
+    /// <summary>
+    /// Run when a direct channel's unread state changes. Argument is the channel id.
+    /// </summary>
+    public HybridEvent<long> DirectChannelUnreadChanged;
+
     private readonly LogOptions _logOptions = new(
         "UnreadService",
         "#3381a3",
@@ -81,11 +92,20 @@ public class UnreadService : ServiceBase
     {
         if (planetId is null)
         {
-            _unreadDirectChannels.TryRemove(channelId, out _);
+            if (_unreadDirectChannels.TryRemove(channelId, out _))
+            {
+                DirectChannelUnreadChanged?.Invoke(channelId);
+            }
         }
         else if (_unreadPlanetChannels.TryGetValue(planetId.Value, out var cache))
         {
             cache.TryRemove(channelId, out _);
+
+            // If that was the last unread channel, the planet itself is now read
+            if (cache.IsEmpty && _unreadPlanets.TryRemove(planetId.Value, out _))
+            {
+                PlanetUnreadChanged?.Invoke(planetId.Value);
+            }
         }
 
         Channel? channel = null;
@@ -108,13 +128,21 @@ public class UnreadService : ServiceBase
     {
         if (planetId is null)
         {
-            _unreadDirectChannels[channelId] = 0;
+            if (_unreadDirectChannels.TryAdd(channelId, 0))
+            {
+                DirectChannelUnreadChanged?.Invoke(channelId);
+            }
         }
         else
         {
-            _unreadPlanets[planetId.Value] = 0;
+            var becameUnread = _unreadPlanets.TryAdd(planetId.Value, 0);
             var cache = _unreadPlanetChannels.GetOrAdd(planetId.Value, _ => new ConcurrentDictionary<long, byte>());
             cache[channelId] = 0;
+
+            if (becameUnread)
+            {
+                PlanetUnreadChanged?.Invoke(planetId.Value);
+            }
         }
 
         Channel? channel = null;

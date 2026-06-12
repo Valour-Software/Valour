@@ -1,7 +1,7 @@
 @inject ValourClient Client
 
 <div class="self-info">
-    <UserInfoComponent User="@Client.Me" />
+    <UserInfoComponent User="@Client.Me" ShowBadges="false" />
     <button id="user-edit-button" class="settings-button" aria-label="User settings button"
             @onkeydown="@(e => { if (e.Key == "Enter") OnClickUserSettings(); })"
             @onclick="@OnClickUserSettings">

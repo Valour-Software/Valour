@@ -1,7 +1,7 @@
 ﻿.modal-bg {
     background-color: var(--main-3);
     padding: 20px;
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
 }
 
 .welcome {

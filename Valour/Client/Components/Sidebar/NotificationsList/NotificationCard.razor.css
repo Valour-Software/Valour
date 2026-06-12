@@ -1,15 +1,45 @@
 .notification {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 4px;
     background: var(--main-3);
-    border-radius: var(--main-radius);
-    padding: 8px;
-    transition: background 0.15s ease;
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-md);
+    padding: 10px 10px 8px 14px;
+    animation: notif-in var(--duration-slow) var(--ease-out-expo) backwards;
+    transition: background var(--duration-fast) var(--ease-standard),
+                border-color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+}
+
+.notification::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(180deg, var(--v-cyan), var(--v-purple));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--v-cyan) 40%, transparent);
 }
 
 .notification:hover {
     background: var(--main-4);
+    border-color: var(--medium-tint);
+    transform: translateY(-1px);
+}
+
+@keyframes notif-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .top-row {
@@ -22,7 +52,7 @@
 .image {
     width: 28px;
     height: 28px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     flex-shrink: 0;
     object-fit: cover;
 }
@@ -34,7 +64,8 @@
 }
 
 .title {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: white;
     margin: 0;
     white-space: nowrap;
@@ -43,20 +74,31 @@
 }
 
 .time {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--font-alt-color);
 }
 
 .body {
-    font-size: 12px;
-    color: var(--font-alt-color);
+    font-size: var(--font-size-xs);
+    color: var(--font-color-mid);
     margin: 0;
     padding-top: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    line-height: 1.4;
+    line-height: var(--line-height-base);
+}
+
+.body ::deep p {
+    margin: 0;
+    display: inline;
+    font-size: var(--font-size-xs);
+}
+
+.body ::deep .mention,
+.body ::deep .channel-mention {
+    font-size: var(--font-size-xs);
 }
 
 .button-holder {
@@ -68,7 +110,7 @@
 .button-holder button {
     height: 26px;
     padding: 0 8px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     background: transparent;
     border: none;
     outline: none;
@@ -77,8 +119,10 @@
     align-items: center;
     gap: 4px;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-    font-size: 12px;
+    transition: background var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+    font-size: var(--font-size-xs);
 }
 
 .button-holder button:hover {
@@ -86,7 +130,11 @@
     color: white;
 }
 
+.button-holder button:active {
+    transform: scale(0.95);
+}
+
 .button-holder button.danger:hover {
-    background: rgba(var(--p-red-rgb), 0.2);
-    color: var(--p-red);
+    background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+    color: var(--color-danger);
 }

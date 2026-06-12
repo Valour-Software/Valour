@@ -17,7 +17,6 @@
                     -------------
                 </p>
             </div>
-            <div class="state-circle offline"></div>
         </div>
     </div>
     return;
@@ -35,38 +34,11 @@
                     }
                 </style>
             }
-            <div class="avatar avatar-@User.Id" style="background-image: url(@_avatarUrl), url(@_failedAvatarUrl);" alt="@_name's profile picture">
-                <div class="state-circle @_statusClass"></div>
-            </div>
+            <UserAvatar User="@User" Member="@Member" Size="32" ShowBadges="@ShowBadges" ShowState="@ShowState"/>
             
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
-                    <div class="dot-badge-holder">
-                        @if (User.HasStargazer)
-                        {
-                            <TooltipTrigger>
-                                <ChildContent>
-                                    <img alt="Stargazer badge" class="dot-badge" src="@StarBadge.GetDataUri(User.Id, User.GetStarColor1(), User.GetStarColor2())"/>
-                                </ChildContent>
-                                <TooltipContent>
-                                    <span>Stargazer</span>
-                                </TooltipContent>
-                            </TooltipTrigger>
-                        }
-                        @if (UserId <= 22113735421460480)
-                        {
-                            <span style="font-weight: bold; font-size: 8px; margin-left: 2px; color: var(--v-purple)">1k</span>
-                        }
-                    </div>
-                    @if (User.Bot)
-                    {
-                        <p class="user-badge bot">BOT</p>
-                    }
-                    @if (User.ValourStaff)
-                    {
-                        <p class="user-badge staff">STAFF</p>
-                    }
                 </div>
                 <p class="status">
                     @_statusText
@@ -90,6 +62,12 @@
     
     [Parameter]
     public string Style { get; set; }
+
+    [Parameter]
+    public bool ShowBadges { get; set; } = true;
+
+    [Parameter]
+    public bool ShowState { get; set; } = true;
     
     // Internal cached values
     private string _name = DefaultName;
@@ -99,7 +77,6 @@
     private string _animAvatarUrl;
     private string _failedAvatarUrl;
 
-    private string _statusClass = "offline";
     private string _statusText = "";
 
     // Defaults
@@ -147,7 +124,6 @@
         CalculateTag();
         CalculateAvatar();
         CalculateStatus();
-        CalculateStatusCode();
         DetermineColorChange();
     }
 
@@ -200,17 +176,15 @@
     private void CalculateAvatar()
     {
         _avatarUrl = Member?.GetAvatar() ?? User?.GetAvatar() ?? ISharedUser.DefaultAvatar;
+        _animAvatarUrl = (User?.HasAnimatedAvatar ?? false)
+            ? User.GetAvatar(AvatarFormat.WebpAnimated128)
+            : null;
         _failedAvatarUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
     }
 
     private void CalculateStatus()
     {
         _statusText = User?.Status ?? string.Empty;
-    }
-
-    private void CalculateStatusCode()
-    {
-        _statusClass = User?.UserState?.CssClassName ?? "offline";
     }
 
     private bool DetermineColorChange()
@@ -255,11 +229,6 @@
             {
                 render = true;
                 CalculateStatus();
-            }
-            if (eventData.Changes.On(x => x.UserStateCode))
-            {
-                render = true;
-                CalculateStatusCode();
             }
 
             if (render)

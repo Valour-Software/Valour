@@ -3,14 +3,14 @@
     align-items: center;
     padding: 1rem;
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
 }
 
 .bot-avatar {
     width: 64px;
     height: 64px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     object-fit: cover;
     margin-right: 1rem;
 }
@@ -21,22 +21,22 @@
 
 .bot-header-name {
     margin: 0 0 0.25rem 0;
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
 }
 
 .bot-header-tag {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
     color: var(--font-color-muted);
 }
 
 .bot-header-id {
     margin: 0.25rem 0 0 0;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: var(--font-color-muted);
-    font-family: monospace;
+    font-family: var(--font-family-mono);
 }
 
 .input-group {
@@ -50,15 +50,15 @@
 
 .token-section {
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin-bottom: 1rem;
-    border-left: 3px solid var(--p-orange);
+    border-left: 3px solid var(--color-warning);
 }
 
 .token-warning {
-    color: var(--p-orange);
-    font-size: 0.95rem;
+    color: var(--color-warning);
+    font-size: var(--font-size-md);
     margin-bottom: 1rem;
 }
 
@@ -67,34 +67,34 @@
 }
 
 .token-input {
-    font-family: monospace;
-    font-size: 0.85rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
 }
 
 .danger-zone {
     margin-top: 2rem;
     padding: 1rem;
-    background-color: rgba(220, 53, 69, 0.1);
-    border-radius: var(--main-radius);
-    border: 1px solid var(--p-red);
+    background-color: var(--color-danger-soft);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-danger);
 }
 
 .danger-zone h5 {
     margin: 0 0 0.5rem 0;
-    color: var(--p-red);
+    color: var(--color-danger);
 }
 
 .danger-zone p {
     margin: 0 0 1rem 0;
     color: var(--font-color-muted);
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
 }
 
 .v-btn.warning {
-    background-color: var(--p-orange);
-    color: white;
+    background-color: var(--color-warning);
+    color: var(--color-warning-contrast);
 }
 
 .v-btn.warning:hover {
-    background-color: color-mix(in srgb, var(--p-orange), white 10%);
+    background-color: color-mix(in srgb, var(--color-warning), white 10%);
 }

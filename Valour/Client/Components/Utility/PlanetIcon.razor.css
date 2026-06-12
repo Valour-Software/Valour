@@ -1,0 +1,44 @@
+.planet-icon {
+    position: relative;
+    width: var(--planet-icon-size, 36px);
+    height: var(--planet-icon-size, 36px);
+    flex: 0 0 auto;
+}
+
+.planet-icon-img {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    display: block;
+}
+
+.planet-icon-img.text-icon {
+    background-color: var(--main-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-app);
+    color: var(--font-color);
+    user-select: none;
+}
+
+.planet-icon.unread::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: var(--radius-full);
+    padding: 1px;
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+}
+
+.planet-icon.unread .planet-icon-img {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--v-cyan) 25%, transparent);
+}

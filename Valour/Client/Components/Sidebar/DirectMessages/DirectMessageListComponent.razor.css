@@ -8,8 +8,7 @@
 
 .dm-container .list {
     overflow-y: auto;
-    border-radius: 8px;
-    background-color: var(--main-3);
+    border-radius: var(--radius-md);
     flex: 1;
     min-height: 0;
 }
@@ -24,7 +23,7 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.4;
 }
 

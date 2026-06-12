@@ -1,6 +1,6 @@
 ﻿.watching-container {
     z-index: 1;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     text-align: center;
     width: max-content;
 }

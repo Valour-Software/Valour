@@ -1,19 +1,25 @@
 @using Valour.Sdk.ModelLogic.QueryEngines
 @inject ValourClient Client
 
-<h3>Bans <i class="bi bi-shield-fill-exclamation"></i></h3>
-<p class="subtitle">MANAGE BANS</p>
+<div class="settings-page wide">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-shield-fill-exclamation"></i>
+            Active Bans
+        </h3>
 
-<QueryTable
-    @ref="_table"
-    TableMinWidth="1100"
-    Columns="@_columns"
-    Engine="@_engine"
-    ShowSearch="true"
-    Infinite="true"
-    SearchPlaceholder="Search name..."/>
+        <QueryTable
+            @ref="_table"
+            TableMinWidth="1100"
+            Columns="@_columns"
+            Engine="@_engine"
+            ShowSearch="true"
+            Infinite="true"
+            SearchPlaceholder="Search name..."/>
 
-<ResultLabel Result="@_result" />
+        <ResultLabel Result="@_result" />
+    </div>
+</div>
 
 @code {
     [Parameter]
@@ -38,13 +44,13 @@
             {
                 Name = "User",
                 SortField = "user",
-                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.TargetId" />,
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.TargetId" ShowBadges="false" ShowState="false" />,
                 Width = "250px"
             },
             new()
             {
                 Name = "Banned By",
-                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.IssuerId" />,
+                RenderFragment = row => @<UserInfoComponent UserId="@row.Row.IssuerId" ShowBadges="false" ShowState="false" />,
                 Width = "250px"
             },
             new()

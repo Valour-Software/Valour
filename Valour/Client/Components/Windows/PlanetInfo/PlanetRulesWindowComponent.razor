@@ -48,6 +48,7 @@
     {
         public override async Task ImportData(string data, ValourClient client)
         {
+            AutoScroll = true;
             Data = JsonSerializer.Deserialize<PlanetRulesWindowData>(data);
             if (Data is not null)
             {
@@ -74,7 +75,8 @@
             Title = "Rules - " + planet.Name,
             Icon = planet.GetIconUrl(IconFormat.Webp64),
             Data = new PlanetRulesWindowData { PlanetId = planet.Id },
-            PlanetId = planet.Id
+            PlanetId = planet.Id,
+            AutoScroll = true
         };
     }
 

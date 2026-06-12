@@ -1,0 +1,58 @@
+@* Standard circular planet icon with optional unread gradient ring *@
+
+@if (Planet is null)
+{
+    return;
+}
+
+<div class="planet-icon @(Unread ? "unread" : "")" style="--planet-icon-size: @(Size)px">
+    @if (_iconText is not null)
+    {
+        <div class="planet-icon-img text-icon">
+            <span style="font-size: @(_fontSize.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))px">@_iconText</span>
+        </div>
+    }
+    else
+    {
+        <img class="planet-icon-img" alt="@Planet.Name's icon" src="@_iconUrl"/>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [Parameter]
+    public int Size { get; set; } = 36;
+
+    /// <summary>
+    /// Shows the unread state as a gradient ring around the icon
+    /// </summary>
+    [Parameter]
+    public bool Unread { get; set; }
+
+    [Parameter]
+    public IconFormat Format { get; set; } = IconFormat.Webp64;
+
+    private string _iconUrl;
+    private string _iconText;
+    private float _fontSize;
+
+    protected override void OnParametersSet()
+    {
+        if (Planet is null)
+            return;
+
+        if (Planet.HasCustomIcon)
+        {
+            _iconUrl = Planet.GetIconUrl(Format);
+            _iconText = null;
+        }
+        else
+        {
+            _iconUrl = "_content/Valour.Client/media/logo-circle.svg";
+            _iconText = ISharedPlanet.GetCommunityShortCode(Planet);
+            _fontSize = (float)Size / (_iconText.Length + 1);
+        }
+    }
+}

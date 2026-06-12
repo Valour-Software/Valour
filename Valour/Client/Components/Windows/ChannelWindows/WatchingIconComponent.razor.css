@@ -1,7 +1,7 @@
 ﻿.watching-icon {
     width: 22px;
     height: 22px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     background-color: black;
     margin-left: -12px;
     

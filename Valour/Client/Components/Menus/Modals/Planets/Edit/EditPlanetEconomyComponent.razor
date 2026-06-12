@@ -1,44 +1,72 @@
 @inject ValourClient Client
 @inject EcoService EcoService
 
-<div class="title-container">
-    <h3>Economy</h3>
-    <img alt="Icon of a bank" class="icon" src="_content/Valour.Client/media/eco-icon.svg"/>
-</div>
-
-<p class="subtitle">MANAGE ECONOMY</p>
-
 @if (_loading)
 {
-    <h4>Loading...</h4>
+    <div class="settings-page wide">
+        <div class="editor-section">
+            <div class="loading-state">
+                <div class="loading-indicator"></div>
+                <p>Loading economy...</p>
+            </div>
+        </div>
+    </div>
     return;
 }
 
+<div class="settings-page wide">
 <!-- Eco does not exist -->
 @if (Currency is null)
 {
-    <p>This planet does not have an economy set up yet.</p>
-    <button class="v-btn mt-2" @onclick="@OnClickSetup">Set Up Now</button>
-    
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-bank2"></i>
+            Economy
+        </h3>
+        <p class="helper-text top-help">This planet does not have an economy set up yet.</p>
+        <div class="actions">
+            <button class="v-btn primary" @onclick="@OnClickSetup">Set Up Now</button>
+        </div>
+    </div>
+
 <!-- Eco exists -->
 } else {
 
     if (_hasCurrencyPermission)
     {
-        <section class="v-section v-inline v-bg-dark">
-            <h4>Currency:</h4>
-            <span class="v-span m-1">Name</span>
-            <input class="v-input" placeholder="Dollar" @bind="Currency.Name"/>
-            <span class="v-span m-1">Plural</span>
-            <input class="v-input" placeholder="Dollars" @bind="Currency.PluralName"/>
-            <span class="v-span m-1">Symbol</span>
-            <input class="v-input" placeholder="$" @bind="Currency.Symbol"/>
-            <span class="v-span m-1">Shortcode</span>
-            <input class="v-input" placeholder="USD" @bind="Currency.ShortCode"/>
-            <span class="v-span m-1">Decimals (2 = 1.99, 3 = 1.999, ...)</span>
-            <input class="v-input" placeholder="2" @bind="Currency.DecimalPlaces"/>
-            <p class="mt-4 mb-4">Issued: @Currency.Format(Currency.Issued)</p>
-            <button class="v-btn mt-4" @onclick="@OnClickSaveCurrency">Save Changes</button>
+        <div class="editor-section">
+            <h3 class="editor-section-title">
+                <i class="bi bi-coin"></i>
+                Currency
+                <span class="status-badge issued-badge">Issued: @Currency.Format(Currency.Issued)</span>
+            </h3>
+
+            <div class="currency-grid">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input class="v-input" placeholder="Dollar" @bind="Currency.Name"/>
+                </div>
+                <div class="form-group">
+                    <label>Plural</label>
+                    <input class="v-input" placeholder="Dollars" @bind="Currency.PluralName"/>
+                </div>
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <input class="v-input" placeholder="$" @bind="Currency.Symbol"/>
+                </div>
+                <div class="form-group">
+                    <label>Shortcode</label>
+                    <input class="v-input" placeholder="USD" @bind="Currency.ShortCode"/>
+                </div>
+                <div class="form-group">
+                    <label>Decimals (2 = 1.99, 3 = 1.999, ...)</label>
+                    <input class="v-input" placeholder="2" @bind="Currency.DecimalPlaces"/>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="v-btn primary" @onclick="@OnClickSaveCurrency">Save Changes</button>
+            </div>
 
             @if (!string.IsNullOrWhiteSpace(_currencyError))
             {
@@ -48,9 +76,14 @@
             {
                 <span class="v-span info">@_currencyInfo</span>
             }
-        </section>
-        
-       
+        </div>
+
+        <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-wallet2"></i>
+            Accounts
+        </h3>
+
         <TabContainerComponent IconOne="globe-americas" IconTwo="person-fill" Titles="@TabTitles">
             <TabOne>
                 <table class="v-table">
@@ -81,15 +114,17 @@
                 </table>
                 
                 
-                <button class="v-btn m-2" @onclick="@OnClickAddAccount">Add Account</button>
-                
+                <div class="actions">
+                    <button class="v-btn primary" @onclick="@OnClickAddAccount">Add Account</button>
+                </div>
+
                 @if (!string.IsNullOrWhiteSpace(_accountError))
                 {
-                    <span class="v-span error m-2">@_accountError</span>
+                    <span class="v-span error">@_accountError</span>
                 }
                 @if (!string.IsNullOrWhiteSpace(_accountInfo))
                 {
-                    <span class="v-span info m-2">@_accountInfo</span>
+                    <span class="v-span info">@_accountInfo</span>
                 }
                 
             </TabOne>
@@ -109,7 +144,7 @@
                                 <td>
                                     @if (context.Member is not null)
                                     {
-                                        <UserInfoComponent Member="@context.Member"/>
+                                        <UserInfoComponent Member="@context.Member" ShowBadges="false" ShowState="false"/>
                                     }
                                     else
                                     {
@@ -133,12 +168,16 @@
                 </table>
             </TabTwo>
         </TabContainerComponent>
+        </div>
     } 
     else
     {
-        <span class="v-span m-1">You do not have permission to edit the currency.</span>        
+        <div class="editor-section">
+            <p class="helper-text">You do not have permission to edit the currency.</p>
+        </div>
     }
 }
+</div>
 
 
 

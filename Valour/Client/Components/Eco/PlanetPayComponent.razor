@@ -4,7 +4,7 @@
 
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
-    <p style="color: red; text-align: center; margin-top: 1em">@_majorError</p>
+    <p style="color: var(--color-danger); text-align: center; margin-top: 1em">@_majorError</p>
     return;
 }
 
@@ -38,7 +38,7 @@
 
     if (!string.IsNullOrWhiteSpace(_errorSpan))
     {
-        <p style="color: red; text-align: center;">@_errorSpan</p>
+        <p style="color: var(--color-danger); text-align: center;">@_errorSpan</p>
     }
     
     <button class="v-btn" style="width: 100%" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
@@ -136,7 +136,7 @@ else
             }
             else
             {
-                <p style="color: red; text-align: center; margin-top: 1em">@_errorSpan</p>
+                <p style="color: var(--color-danger); text-align: center; margin-top: 1em">@_errorSpan</p>
             }
         }
     }

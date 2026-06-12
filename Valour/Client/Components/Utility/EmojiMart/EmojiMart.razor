@@ -1,7 +1,10 @@
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
-<div id="@_id" class="@CssClass" style="@(_shown ? "" : "display: none")">
+@* Hidden via .picker-hidden (offscreen + visibility) rather than display:none
+   so the browser keeps the picker's layout warm — re-laying out the whole
+   emoji grid on open causes a visible hitch. *@
+<div id="@_id" class="@CssClass @(_hiding ? "picker-closing" : "") @(_shown || _hiding ? "" : "picker-hidden")">
 </div>
 
 @code {
@@ -13,6 +16,13 @@
 
     [Parameter]
     public bool StartShown { get; set; } = false;
+
+    /// <summary>
+    /// When true (and on mobile), hiding keeps the picker rendered with a
+    /// 'picker-closing' class until the close animation finishes.
+    /// </summary>
+    [Parameter]
+    public bool AnimateClose { get; set; } = false;
 
     [Parameter]
     public string EmojiSet { get; set; } = "native";
@@ -30,6 +40,8 @@
     private string _customCategoryName = "Planet";
 
     private bool _shown;
+    private bool _hiding;
+    private CancellationTokenSource _hideCts;
 
     protected override void OnInitialized()
     {
@@ -39,7 +51,45 @@
 
     public void ToggleVisible()
     {
-        _shown = !_shown;
+        if (_shown)
+            Hide();
+        else
+            Show();
+    }
+
+    private void Show()
+    {
+        _hideCts?.Cancel();
+        _hiding = false;
+        _shown = true;
+        StateHasChanged();
+    }
+
+    private void Hide()
+    {
+        _shown = false;
+
+        // On mobile the picker animates closed, so it stays rendered (with a
+        // closing class) until the animation finishes. Desktop hides instantly.
+        if (AnimateClose && DeviceInfo.IsMobile)
+        {
+            _hiding = true;
+            _hideCts?.Cancel();
+            _hideCts = new CancellationTokenSource();
+            _ = FinishHideAsync(_hideCts.Token);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task FinishHideAsync(CancellationToken ct)
+    {
+        // Matches the emoji-picker-drop animation duration (--duration-slow)
+        await Task.Delay(300);
+        if (ct.IsCancellationRequested)
+            return;
+
+        _hiding = false;
         StateHasChanged();
     }
 
@@ -50,6 +100,31 @@
 
         var results = await _module.InvokeAsync<EmojiClickEvent[]>("search", query, maxResults);
         return results?.ToList() ?? new();
+    }
+
+    private const string ModulePath = "./_content/Valour.Client/Components/Utility/EmojiMart/EmojiMart.razor.js";
+
+    /// <summary>
+    /// Returns the user's most frequently used emojis from emoji-mart's own store,
+    /// padded with defaults when there isn't enough history.
+    /// </summary>
+    public static async Task<List<EmojiClickEvent>> GetFrequentlyUsedAsync(IJSRuntime js, int maxResults = 6)
+    {
+        var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        var results = await module.InvokeAsync<EmojiClickEvent[]>("getFrequent", maxResults);
+        return results?.ToList() ?? new();
+    }
+
+    /// <summary>
+    /// Records an emoji use into emoji-mart's frequency store, for reactions added outside the picker.
+    /// </summary>
+    public static async Task RecordFrequentAsync(IJSRuntime js, string emojiId)
+    {
+        if (string.IsNullOrWhiteSpace(emojiId))
+            return;
+
+        var module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+        await module.InvokeVoidAsync("recordFrequent", emojiId);
     }
 
     public async Task SetCustomEmojisAsync(

@@ -1,0 +1,18 @@
+.app-recede {
+    width: 100%;
+    height: 100%;
+    filter: brightness(1) blur(0px);
+    transition: transform var(--duration-slow) var(--ease-out-expo),
+                filter var(--duration-slow) var(--ease-standard);
+}
+
+.app-recede.receded {
+    transform: scale(0.985);
+    filter: brightness(0.75) blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-recede.receded {
+        transform: none;
+    }
+}

@@ -8,7 +8,7 @@
 		<div class="sidebar">
 			<VersionComponent />
 			<div class="sidebar-content">
-				@_tabItems[SelectedTab].RenderContent
+				<SlideSwap Index="@SelectedTab" Content="@_tabItems[SelectedTab].RenderContent" />
 			</div>
 			<div class="sidebar-tabstrip">
 				@if (!Flip)

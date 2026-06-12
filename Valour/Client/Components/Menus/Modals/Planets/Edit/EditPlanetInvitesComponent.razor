@@ -2,53 +2,73 @@
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavManager
 
-<div class="settings-container">
+<div class="settings-page">
     <div class="editor-section">
         <h3 class="editor-section-title">
-            <i class="bi bi-envelope-paper-heart"></i>
-            Planet Invitations
+            <i class="bi bi-door-open-fill"></i>
+            Access
         </h3>
-        <p class="subtitle">Control how users join your planet</p>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" @oninput="OnCheckPublic" checked="@publicValue" />
-                Invites Enabled
-            </label>
-            <p class="helper-text">
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Invites Enabled</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckPublic" checked="@publicValue" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">
                 @if (publicValue)
                 {
                     <span>Users can join this planet via invite links.</span>
                 }
                 else
                 {
-                    <span style="color: var(--p-red);">Invites are disabled. All existing invite links will stop working until this is re-enabled.</span>
+                    <span class="danger-note">Invites are disabled. All existing invite links will stop working until this is re-enabled.</span>
                 }
             </p>
             <ResultLabel Result="@publicResult" />
         </div>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" />
-                Discoverable
-            </label>
-            <p class="helper-text">Allow this planet to appear in discovery</p>
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Discoverable</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Allow this planet to appear in discovery</p>
             <ResultLabel Result="@discoverableResult" />
         </div>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" @oninput="OnCheckNsfw" checked="@nsfwValue" />
-                Not Safe For Work
-            </label>
-            <p class="helper-text">NSFW planets will not show on discovery</p>
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Not Safe For Work</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckNsfw" checked="@nsfwValue" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">NSFW planets will not show on discovery</p>
             <ResultLabel Result="@nsfwResult" />
         </div>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-envelope-plus-fill"></i>
+            Create Invite
+        </h3>
 
         <CreateInviteLink Planet="Planet" />
+    </div>
 
-        <h4 class="invite-list-title">Invite Links</h4>
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-envelope-paper-heart-fill"></i>
+            Invite Links
+        </h3>
 
         @if (!Planet.Invites.Any())
         {

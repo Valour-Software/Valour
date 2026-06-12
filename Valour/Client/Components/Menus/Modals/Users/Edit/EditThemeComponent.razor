@@ -19,7 +19,7 @@
             background-color: var(--pcr-color);
             height: 100%;
             width: 50px;
-            border-radius: 0 2em 2em 0;
+            border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
         }
     </style>
     
@@ -69,6 +69,23 @@
         <label>Description</label>
         <InputTextArea @bind-Value="@_editingTheme.Description" class="form-control">
         </InputTextArea>
+    </div>
+    <br />
+    <div class="form-group">
+        <label>App Font</label>
+        <input class="form-control" value="@_editingTheme.FontFamily" @oninput="@OnChangeFontFamily" />
+    </div>
+    <br />
+    <div class="form-group">
+        <label>Rounding</label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: var(--space-2);">
+            <input class="form-control" value="@_editingTheme.RadiusXs" @oninput="@OnChangeRadiusXs" placeholder="xs" />
+            <input class="form-control" value="@_editingTheme.RadiusSm" @oninput="@OnChangeRadiusSm" placeholder="sm" />
+            <input class="form-control" value="@_editingTheme.RadiusMd" @oninput="@OnChangeRadiusMd" placeholder="md" />
+            <input class="form-control" value="@_editingTheme.RadiusLg" @oninput="@OnChangeRadiusLg" placeholder="lg" />
+            <input class="form-control" value="@_editingTheme.RadiusXl" @oninput="@OnChangeRadiusXl" placeholder="xl" />
+            <input class="form-control" value="@_editingTheme.RadiusFull" @oninput="@OnChangeRadiusFull" placeholder="full" />
+        </div>
     </div>
     <br />
     <div class="form-group">
@@ -185,7 +202,7 @@
 
     <div class="form-group">
         <label>Theme Assets</label>
-        <p class="hint" style="color: var(--font-alt-color); font-size: 0.85em;">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: use <code>font-family: "theme-font-name"</code>.</p>
+        <p class="hint" style="color: var(--font-alt-color); font-size: var(--font-size-sm);">Upload images or fonts. Images: use <code>var(--theme-asset-name)</code>. Fonts: set App Font to <code>"theme-font-name"</code>.</p>
 
         @if (_themeAssets?.Any() == true)
         {
@@ -194,15 +211,15 @@
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                     @if (asset.AssetType == "font")
                     {
-                        <i class="bi bi-fonts" style="font-size: 2em; width: 48px; text-align: center;"></i>
+                        <i class="bi bi-fonts" style="font-size: var(--font-size-4xl); width: 48px; text-align: center;"></i>
                         <code>font-family: "theme-font-@asset.Name"</code>
                     }
                     else
                     {
-                        <img src="@asset.Url" style="width: 48px; height: 48px; border-radius: 4px; object-fit: cover;" />
+                        <img src="@asset.Url" style="width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover;" />
                         <code>var(--theme-asset-@asset.Name)</code>
                     }
-                    <button class="btn v-btn danger" style="padding: 4px 8px; font-size: 0.8em;" @onclick="() => DeleteAssetAsync(asset)">
+                    <button class="btn v-btn danger" style="padding: 4px 8px; font-size: var(--font-size-sm);" @onclick="() => DeleteAssetAsync(asset)">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -214,7 +231,7 @@
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
                 <input class="form-control" style="max-width: 200px;" @bind="_newAssetName" placeholder="Asset name (e.g. background)" />
                 <button type="button" class="btn v-btn secondary" @onclick="@OpenAssetPickerAsync">Choose File</button>
-                <span style="color: var(--font-alt-color); font-size: 0.85em;" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
+                <span style="color: var(--font-alt-color); font-size: var(--font-size-sm);" title="@(_assetFileName ?? "No file selected")">@(_assetFileName ?? "No file selected")</span>
                 <input id="@_assetUploadInputId" type="file" style="display: none;" accept=".png,.jpg,.jpeg,.webp,.gif,.woff2,.woff,.ttf,.otf" />
             </div>
             <button class="btn v-btn tertiary mt-2" style="width: fit-content;" disabled="@_uploadingAsset" @onclick="@UploadAssetAsync">
@@ -222,12 +239,12 @@
             </button>
             @if (!string.IsNullOrEmpty(_assetError))
             {
-                <p style="color: var(--p-red); font-size: 0.85em; margin-top: 4px;">@_assetError</p>
+                <p style="color: var(--color-danger); font-size: var(--font-size-sm); margin-top: 4px;">@_assetError</p>
             }
         }
         else
         {
-            <p style="color: var(--font-alt-color); font-size: 0.85em;">Save the theme first to upload assets.</p>
+            <p style="color: var(--font-alt-color); font-size: var(--font-size-sm);">Save the theme first to upload assets.</p>
         }
     </div>
 
@@ -483,6 +500,25 @@ else
         ThemeComponent.Instance.Refresh();
         Client.Logger.Log<EditThemeComponent>("Custom CSS updated.", "cyan");
     }
+
+    private void OnChangeFontFamily(ChangeEventArgs e)
+    {
+        _editingTheme.FontFamily = e.Value?.ToString();
+        ThemeComponent.Instance.Refresh();
+    }
+
+    private void OnChangeRadiusXs(ChangeEventArgs e) => UpdateRadius(e, value => _editingTheme.RadiusXs = value);
+    private void OnChangeRadiusSm(ChangeEventArgs e) => UpdateRadius(e, value => _editingTheme.RadiusSm = value);
+    private void OnChangeRadiusMd(ChangeEventArgs e) => UpdateRadius(e, value => _editingTheme.RadiusMd = value);
+    private void OnChangeRadiusLg(ChangeEventArgs e) => UpdateRadius(e, value => _editingTheme.RadiusLg = value);
+    private void OnChangeRadiusXl(ChangeEventArgs e) => UpdateRadius(e, value => _editingTheme.RadiusXl = value);
+    private void OnChangeRadiusFull(ChangeEventArgs e) => UpdateRadius(e, value => _editingTheme.RadiusFull = value);
+
+    private void UpdateRadius(ChangeEventArgs e, Action<string> setRadius)
+    {
+        setRadius(e.Value?.ToString());
+        ThemeComponent.Instance.Refresh();
+    }
     
     private async Task SetPublished(bool published)
     {
@@ -501,6 +537,8 @@ else
     {
         _backupTheme = ThemeComponent.Instance.CurrentTheme;
         _editingTheme = theme;
+        _editingTheme.FontFamily = ISharedTheme.NormalizeFontFamily(_editingTheme.FontFamily);
+        NormalizeEditingThemeRadii();
         _assetFileName = null;
         _assetError = null;
 
@@ -526,12 +564,24 @@ else
         _editingTheme.Id = 0;
         _editingTheme.Name = "New Theme";
         _editingTheme.Description = "A new theme!";
+        _editingTheme.FontFamily = ISharedTheme.NormalizeFontFamily(_editingTheme.FontFamily);
+        NormalizeEditingThemeRadii();
         
         ThemeComponent.Instance.CurrentTheme = _editingTheme;
         
         Client.Logger.Log<EditThemeComponent>("Entering editor for new theme.", "cyan");
         
         StateHasChanged();
+    }
+
+    private void NormalizeEditingThemeRadii()
+    {
+        _editingTheme.RadiusXs = ISharedTheme.NormalizeRadius(_editingTheme.RadiusXs, ISharedTheme.DefaultRadiusXs);
+        _editingTheme.RadiusSm = ISharedTheme.NormalizeRadius(_editingTheme.RadiusSm, ISharedTheme.DefaultRadiusSm);
+        _editingTheme.RadiusMd = ISharedTheme.NormalizeRadius(_editingTheme.RadiusMd, ISharedTheme.DefaultRadiusMd);
+        _editingTheme.RadiusLg = ISharedTheme.NormalizeRadius(_editingTheme.RadiusLg, ISharedTheme.DefaultRadiusLg);
+        _editingTheme.RadiusXl = ISharedTheme.NormalizeRadius(_editingTheme.RadiusXl, ISharedTheme.DefaultRadiusXl);
+        _editingTheme.RadiusFull = ISharedTheme.NormalizeRadius(_editingTheme.RadiusFull, ISharedTheme.DefaultRadiusFull);
     }
     
     private void CancelEdit()

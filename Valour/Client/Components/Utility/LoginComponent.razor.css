@@ -56,7 +56,7 @@
 
 .forgot-password {
     color: #ffffffaa;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     display:block;
     cursor: pointer;
     text-align: right;
@@ -113,7 +113,7 @@
     transform: translate(-50%, -50%);
     background: var(--main-2);
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     z-index: 1000;
 
@@ -129,7 +129,7 @@
 .multi-factor-auth input {
     margin-bottom: 10px;
     text-align: center;
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
 }
 
 .multi-factor-auth button {

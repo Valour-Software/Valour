@@ -26,8 +26,8 @@
 }
 
 .call-channel-name {
-    font-weight: 650;
-    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -38,58 +38,58 @@
     align-items: center;
     gap: 6px;
     padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 500;
+    border-radius: var(--radius-xl);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
     flex-shrink: 0;
-    letter-spacing: 0.01em;
+    letter-spacing: var(--letter-spacing-normal);
 }
 
 .call-status-badge.connected {
-    background: rgba(74, 222, 128, 0.1);
-    color: #4ade80;
+    background: var(--color-success-soft);
+    color: var(--color-success);
 }
 
 .call-status-badge.connecting {
-    background: rgba(250, 204, 21, 0.1);
-    color: #facc15;
+    background: var(--color-warning-soft);
+    color: var(--color-warning);
 }
 
 .call-status-badge.waiting {
-    background: rgba(55, 164, 206, 0.1);
-    color: var(--p-cyan);
+    background: var(--color-info-soft);
+    color: var(--color-info);
 }
 
 .call-status-badge.disconnected {
-    background: rgba(205, 94, 94, 0.1);
-    color: var(--p-red);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
 }
 
 .call-status-dot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     flex-shrink: 0;
 }
 
 .call-status-badge.connected .call-status-dot {
-    background: #4ade80;
-    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+    background: var(--color-success);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
     animation: pulse-dot 2s ease-in-out infinite;
 }
 
 .call-status-badge.connecting .call-status-dot {
-    background: #facc15;
+    background: var(--color-warning);
     animation: pulse-dot 1s ease-in-out infinite;
 }
 
 .call-status-badge.waiting .call-status-dot {
-    background: var(--p-cyan);
+    background: var(--color-info);
     animation: pulse-dot 1.6s ease-in-out infinite;
 }
 
 .call-status-badge.disconnected .call-status-dot {
-    background: var(--p-red);
+    background: var(--color-danger);
 }
 
 @keyframes pulse-dot {
@@ -110,11 +110,11 @@
 .call-ctrl-btn {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: 1px solid var(--slight-tint);
     background: var(--main-4);
     color: var(--font-color);
-    font-size: 16px;
+    font-size: var(--font-size-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -124,7 +124,7 @@
 }
 
 .call-ctrl-btn:hover {
-    background: var(--main-5);
+    background: var(--main-4);
     border-color: var(--medium-tint);
     transform: scale(1.08);
 }
@@ -140,46 +140,46 @@
 }
 
 .call-ctrl-btn.danger {
-    background: rgba(205, 94, 94, 0.12);
-    border-color: rgba(205, 94, 94, 0.25);
-    color: var(--p-red);
+    background: var(--color-danger-soft);
+    border-color: var(--color-danger-border);
+    color: var(--color-danger);
 }
 
 .call-ctrl-btn.danger:hover {
-    background: var(--p-red);
-    border-color: var(--p-red);
-    color: white;
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: var(--color-danger-contrast);
 }
 
 .call-ctrl-btn.toggled-danger {
-    background: rgba(205, 94, 94, 0.18);
-    border-color: rgba(205, 94, 94, 0.35);
-    color: var(--p-red);
+    background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+    border-color: var(--color-danger-border);
+    color: var(--color-danger);
 }
 
 .call-ctrl-btn.toggled-danger:hover {
-    background: rgba(205, 94, 94, 0.28);
-    border-color: rgba(205, 94, 94, 0.5);
+    background: color-mix(in srgb, var(--color-danger) 28%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
 }
 
 .call-ctrl-btn.toggled {
-    background: rgba(55, 164, 206, 0.2);
-    border-color: rgba(55, 164, 206, 0.4);
-    color: var(--p-cyan);
+    background: color-mix(in srgb, var(--color-info) 20%, transparent);
+    border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
+    color: var(--color-info);
 }
 
 .call-ctrl-btn.toggled:hover {
-    background: rgba(55, 164, 206, 0.3);
-    border-color: rgba(55, 164, 206, 0.55);
+    background: color-mix(in srgb, var(--color-info) 30%, transparent);
+    border-color: color-mix(in srgb, var(--color-info) 55%, transparent);
 }
 
 .call-ctrl-btn.reconnect {
-    color: var(--p-cyan);
+    color: var(--color-info);
 }
 
 .call-ctrl-btn.reconnect:hover {
-    background: rgba(55, 164, 206, 0.15);
-    border-color: rgba(55, 164, 206, 0.3);
+    background: var(--color-info-soft);
+    border-color: var(--color-info-border);
 }
 
 .call-ctrl-btn.reconnect:disabled i {
@@ -208,19 +208,19 @@
 }
 
 .call-participants-label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: var(--letter-spacing-normal);
     opacity: 0.45;
 }
 
 .call-participants-count {
-    font-size: 10px;
-    font-weight: 600;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
     background: var(--slight-tint);
     padding: 1px 7px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     opacity: 0.45;
 }
 
@@ -228,7 +228,7 @@
     margin: 0;
     padding: 6px 4px;
     opacity: 0.4;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     text-align: center;
 }
 
@@ -236,7 +236,7 @@
     display: flex;
     align-items: center;
     padding: 4px 6px;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     border: 1px solid transparent;
     transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     position: relative;
@@ -248,9 +248,9 @@
 }
 
 .voice-participant.active-speaker {
-    border-color: rgba(74, 222, 128, 0.25);
-    background: rgba(74, 222, 128, 0.05);
-    box-shadow: 0 0 12px rgba(74, 222, 128, 0.08);
+    border-color: var(--color-success-border);
+    background: color-mix(in srgb, var(--color-success) 5%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--color-success) 8%, transparent);
 }
 
 .participant-info {
@@ -289,14 +289,14 @@
 
 .participant-volume-slider::-webkit-slider-runnable-track {
     height: 3px;
-    background: var(--main-5);
-    border-radius: 2px;
+    background: var(--main-4);
+    border-radius: var(--radius-xs);
 }
 
 .participant-volume-slider::-moz-range-track {
     height: 3px;
-    background: var(--main-5);
-    border-radius: 2px;
+    background: var(--main-4);
+    border-radius: var(--radius-xs);
     border: none;
 }
 
@@ -304,32 +304,32 @@
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
-    border-radius: 50%;
-    background: var(--p-cyan);
+    border-radius: var(--radius-full);
+    background: var(--color-info);
     cursor: pointer;
     margin-top: -4.5px;
-    box-shadow: 0 0 4px rgba(55, 164, 206, 0.3);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--color-info) 30%, transparent);
 }
 
 .participant-volume-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
-    background: var(--p-cyan);
+    border-radius: var(--radius-full);
+    background: var(--color-info);
     border: none;
     cursor: pointer;
-    box-shadow: 0 0 4px rgba(55, 164, 206, 0.3);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--color-info) 30%, transparent);
 }
 
 .participant-volume-btn,
 .participant-mod-btn {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--font-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -355,34 +355,34 @@
 
 .participant-volume-btn.muted {
     opacity: 1;
-    color: var(--p-red);
+    color: var(--color-danger);
 }
 
 .participant-volume-btn.muted:hover {
-    background: rgba(205, 94, 94, 0.12);
+    background: var(--color-danger-soft);
 }
 
 .participant-mod-btn.toggled {
     opacity: 1;
-    background: rgba(250, 204, 21, 0.15);
-    color: var(--p-yellow);
+    background: var(--color-warning-soft);
+    color: var(--color-warning);
 }
 
 .participant-mod-btn.warn:hover {
-    color: var(--p-yellow);
+    color: var(--color-warning);
 }
 
 .participant-mod-btn.warn.toggled:hover {
-    background: rgba(250, 204, 21, 0.2);
+    background: color-mix(in srgb, var(--color-warning) 20%, transparent);
 }
 
 .participant-mod-btn.danger:hover {
-    color: var(--p-red);
+    color: var(--color-danger);
 }
 
 .participant-self-muted {
-    font-size: 13px;
-    color: var(--p-red);
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
     opacity: 0.7;
     flex-shrink: 0;
 }
@@ -478,15 +478,15 @@
     min-width: 204px;
     height: 120px;
     min-height: 120px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .video-tile {
     position: relative;
     min-height: 120px;
-    background: radial-gradient(circle at 30% 20%, rgba(55, 164, 206, 0.18), rgba(0, 0, 0, 0.4));
+    background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--color-info) 18%, transparent), rgba(0, 0, 0, 0.4));
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     display: flex;
     align-items: stretch;
@@ -494,8 +494,10 @@
 }
 
 .video-tile.active-speaker {
-    border-color: rgba(74, 222, 128, 0.65);
-    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2), 0 0 30px rgba(74, 222, 128, 0.2);
+    border-color: color-mix(in srgb, var(--color-success) 65%, transparent);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--color-success) 20%, transparent),
+        0 0 30px color-mix(in srgb, var(--color-success) 20%, transparent);
 }
 
 .participant-video {
@@ -522,7 +524,7 @@
 .video-fallback-avatar {
     width: 120px;
     height: 120px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -531,7 +533,7 @@
 }
 
 .screen-share-fallback-icon {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.8;
     color: rgba(255, 255, 255, 0.88);
 }
@@ -579,11 +581,11 @@
 .video-focus-btn {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--font-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -601,18 +603,18 @@
 
 .video-focus-btn.active {
     opacity: 1;
-    color: var(--p-cyan);
-    background: rgba(55, 164, 206, 0.18);
+    color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 18%, transparent);
 }
 
 .video-viewport-btn {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--font-color);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -630,8 +632,8 @@
 
 .video-viewport-btn.active {
     opacity: 1;
-    color: var(--p-cyan);
-    background: rgba(55, 164, 206, 0.18);
+    color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 18%, transparent);
 }
 
 .video-fullscreen-backdrop {
@@ -657,7 +659,7 @@
     width: 100%;
     height: 100%;
     min-height: 0;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .video-fullscreen-close {
@@ -666,7 +668,7 @@
     right: 10px;
     width: 34px;
     height: 34px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     border: 1px solid rgba(255, 255, 255, 0.22);
     background: rgba(0, 0, 0, 0.55);
     color: #fff;
@@ -715,12 +717,12 @@
     gap: 8px;
     margin: 0 12px 12px;
     padding: 8px 12px;
-    border-radius: var(--small-radius);
-    background: rgba(205, 94, 94, 0.08);
-    border: 1px solid rgba(205, 94, 94, 0.15);
-    color: var(--p-red);
-    font-size: 12px;
-    line-height: 1.4;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+    border: 1px solid var(--color-danger-soft);
+    color: var(--color-danger);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-base);
     flex-shrink: 0;
 }
 

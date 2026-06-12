@@ -8,7 +8,7 @@
     line-height: 43px;
     background-color: white;
     left: 100%;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     opacity: 0.1;
     cursor: pointer;
     transition: left 0.5s ease-in-out, width 0.2s ease-in-out, font-size 0.2s ease-in-out;
@@ -17,7 +17,7 @@
 .open-tab.flip {
     left: auto;
     right: 100%;
-    border-radius: 10px 0 0 10px;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 
 .mobile .open-tab {
@@ -27,6 +27,6 @@
 .open-tab:hover {
     opacity: 0.4;
     width: 30px;
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
     line-height: 26px;
 }

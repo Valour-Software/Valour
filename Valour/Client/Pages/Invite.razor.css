@@ -5,7 +5,7 @@
     width: 450px;
     z-index: 2;
     box-shadow: rgb(0, 0, 0) 0px 0px 15px;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
     border-color: rgb(128, 128, 128);
     margin: auto;
 }
@@ -16,8 +16,8 @@
 
 .invite-prompt {
     margin: 1rem 0;
-    color: var(--v-gray);
-    font-size: 0.95rem;
+    color: var(--font-alt-color);
+    font-size: var(--font-size-md);
 }
 
 .invite-actions {
@@ -28,24 +28,24 @@
 }
 
 .join-btn {
-    background: linear-gradient(135deg, #4f8cff 0%, #3b6fd9 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
     color: white;
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     padding: 0.85rem 1.5rem;
     border: none;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .join-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(79, 140, 255, 0.4);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 
 .login-btn {
     background: transparent;
-    color: var(--v-gray);
-    border: 1px solid var(--v-gray);
+    color: var(--font-alt-color);
+    border: 1px solid var(--font-alt-color);
     padding: 0.7rem 1.5rem;
 }
 
@@ -55,7 +55,7 @@
 }
 
 .already-joined-text {
-    color: var(--v-green);
+    color: var(--color-success);
     margin: 1rem 0;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
 }

@@ -1,7 +1,7 @@
 ﻿.image-attachment-wrapper {
     margin-top: 5px;
     margin-bottom: 5px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .image-attachment-wrapper img:before {

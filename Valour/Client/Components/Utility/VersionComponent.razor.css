@@ -3,23 +3,23 @@
     z-index: 5;
     display: flex;
     flex-direction: row;
-    justify-content: flex-start;
     padding: 8px;
     width: 100%;
     align-items: center;
+    justify-content: center;
 }
 
 .version .logo {
     max-width: 30px;
     max-height: 30px;
     margin-right: 8px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 
 .version .text {
     margin: 0;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
 }
 
 .version-gap {
@@ -27,7 +27,7 @@
 }
 
 .open-menu {
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
     margin-right: 18px;
     cursor: pointer;
 }

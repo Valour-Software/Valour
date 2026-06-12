@@ -7,7 +7,7 @@
 .preview-container .image-attachment-wrapper {
     max-width: min(50vw, 500px);
     max-height: min(50vh, 500px);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
 }
 
 .preview-container button {
@@ -47,7 +47,7 @@
     width: 100%;
     height: 8px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     margin-top: 12px;
 }
@@ -55,7 +55,7 @@
 .upload-progress-bar {
     height: 100%;
     background: linear-gradient(90deg, #5865F2, #EB459E);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     transition: width 0.2s ease;
 }
 
@@ -63,12 +63,12 @@
     display: flex;
     justify-content: space-between;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: rgba(255, 255, 255, 0.6);
 }
 
 .upload-progress-text {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     color: rgba(255, 255, 255, 0.9);
 }
 
@@ -78,11 +78,11 @@
 
 .upload-error {
     color: #ED4245;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     margin-top: 8px;
     padding: 8px;
     background: rgba(237, 66, 69, 0.1);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
 }
 
 ::deep .v-btn.danger {

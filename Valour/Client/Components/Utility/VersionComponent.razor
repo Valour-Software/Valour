@@ -5,11 +5,29 @@
     {
         <i class="bi bi-list open-menu" @onclick="Sidebar.ToggleMobileSidebar"></i>
     }
-    <img alt="Valour logo" class="logo" src="@Logos.SquareWebp256" @onclick="OnClickLogo"/>
-    <p class="text">Valour Alpha <br/> V@(typeof(ISharedUser).Assembly.GetName().Version.ToString()) <span style="font-size: 10px; color: #7A7A7A">(@Version.ShortHash)</span></p>
+    <p class="text" style="cursor: pointer" @onclick="OnClickLogo">Valour Alpha V@(GetVersionNumber()) <span style="font-size: var(--font-size-2xs); color: #7A7A7A">(@GetShortHash())</span></p>
 </div>
 
 @code {
+
+    private string GetVersionNumber()
+    {
+        var baseVer = typeof(ISharedUser)?.Assembly?.GetName()?.Version?.ToString() ?? "?.?.?.?";
+        return baseVer.Substring(0, baseVer.Length - 2);
+    }
+
+    private string GetShortHash()
+    {
+        // $(SHORTHASH) is replaced at build time with the short git hash, but if we're running in a development environment it will be empty, so we'll just return "dev" in that case
+        // But the comparison would be replaced too, so we split it
+        if (Version.ShortHash == "$" + "(SHORTHASH)")
+        {
+            return "Dev";
+        }
+
+        return Version.ShortHash;
+    }
+    
     private void OnClickLogo()
     {
         WindowService.ResetAll();

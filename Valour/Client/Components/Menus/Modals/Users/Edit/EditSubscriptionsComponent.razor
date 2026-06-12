@@ -8,7 +8,7 @@
     <h5 class="subtitle">@_redirectingMessage</h5>
 
     <div class="redirecting-container mt-4">
-        <h3 style="color: var(--v-purple);">Redirecting to checkout...</h3>
+        <h3 style="color: var(--color-secondary);">Redirecting to checkout...</h3>
         <p>@_redirectingDetail</p>
 
         @if (!string.IsNullOrWhiteSpace(_errorSpan))
@@ -24,7 +24,7 @@ else if (_page == SubPage.StripeResult)
     <h4 class="title">Subscriptions</h4>
 
     <div class="result-container mt-4">
-        <h3 style="color: var(--v-purple);">@_stripeResultTitle</h3>
+        <h3 style="color: var(--color-secondary);">@_stripeResultTitle</h3>
         <br />
         <p>@_stripeResultMessage</p>
 

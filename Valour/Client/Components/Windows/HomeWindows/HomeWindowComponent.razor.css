@@ -19,17 +19,17 @@
     min-width: 0;
     background: var(--main-3);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     color: var(--font-color);
     padding: 6px 10px;
-    font-size: 14px;
-    font-family: Ubuntu, sans-serif;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
     outline: none;
     transition: border-color 0.2s ease;
 }
 
 .toolbar .search-input:focus {
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 .toolbar .search-input::placeholder {
@@ -39,11 +39,11 @@
 .toolbar .toggle-btn {
     background: none;
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     color: var(--font-alt-color);
     padding: 6px 10px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--font-size-md);
     transition: all 0.15s ease;
     flex-shrink: 0;
 }
@@ -56,7 +56,7 @@
 .toolbar .toggle-btn.active {
     background-color: var(--main-4);
     color: var(--font-color);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
 }
 
 /* Make the tab container fill remaining space */
@@ -101,10 +101,10 @@
     padding: 8px 12px;
     background: none;
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     color: var(--font-alt-color);
-    font-size: 13px;
-    font-family: Ubuntu, sans-serif;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -116,12 +116,12 @@
 }
 
 .bottom-actions .action-btn .inline-badge {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     color: white;
-    font-size: 11px;
-    font-weight: bold;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
     padding: 1px 6px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     margin-left: auto;
 }
 
@@ -135,7 +135,7 @@
     overflow: hidden;
     border: 1px solid var(--slight-tint);
     background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-xl);
     margin: 12px;
 }
 
@@ -157,7 +157,7 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.4;
 }
 
@@ -176,7 +176,7 @@
     background-color: black;
     width: 80px;
     height: 80px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     z-index: initial;
     margin: 5px;
     box-shadow: black 0 0 10px;
@@ -185,7 +185,7 @@
 ::deep .outer-circle .icon {
     background-position: center;
     background-size: contain;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     position: absolute;
     width: 100%;
     height: 100%;
@@ -200,7 +200,7 @@
 }
 
 ::deep .outer-circle .noti {
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     position: absolute;
     width: 30%;
     height: 30%;
@@ -213,12 +213,12 @@
 }
 
 ::deep .outer-circle .noti.purple {
-    background-color: var(--v-purple);
+    background-color: var(--color-secondary);
 }
 
 ::deep .outer-circle .noti.friends {
-    background-color: red;
-    font-size: 14px;
+    background-color: var(--color-danger);
+    font-size: var(--font-size-sm);
 }
 
 ::deep .outer-circle:hover .noti {
@@ -226,13 +226,13 @@
 }
 
 ::deep .noti.nsfw {
-    background-color: red;
+    background-color: var(--color-danger);
     width: auto;
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     padding-left: 4px;
     padding-right: 4px;
-    font-size: 12px;
-    line-height: 19px;
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-loose);
     top: auto;
     bottom: 0;
     left: 0px;
@@ -245,7 +245,7 @@
     height: 100%;
     background-color: var(--main-1);
     z-index: 0;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     pointer-events: none;
     opacity: 0;
     transition: width 0.2s ease-in-out, opacity 0.1s ease-in-out;
@@ -267,7 +267,7 @@
     background-color: black;
     width: 80px;
     height: 80px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     right: -40px;
     top: 0;
     z-index: -5;
@@ -319,7 +319,7 @@
     height: 100%;
     background-color: black;
     position: absolute;
-    border-radius: 100%;
+    border-radius: var(--radius-full);
     z-index: 1;
 }
 
@@ -328,8 +328,8 @@
 }
 
 ::deep .icon-text {
-    font-weight: 700;
-    font-family: 'Ubuntu';
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-app);
     text-align: center;
     margin: 0;
     text-shadow: 0 0 5px black, 0 0 10px black;

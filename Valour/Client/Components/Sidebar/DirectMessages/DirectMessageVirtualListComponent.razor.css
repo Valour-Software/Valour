@@ -2,7 +2,7 @@
     padding: 10px 8px 2px;
     text-align: center;
     color: var(--font-alt-color);
-    font-size: 12px;
+    font-size: var(--font-size-xs);
 }
 
 .empty-state {
@@ -15,7 +15,7 @@
 }
 
 .empty-state i {
-    font-size: 40px;
+    font-size: var(--font-size-5xl);
     opacity: 0.4;
 }
 

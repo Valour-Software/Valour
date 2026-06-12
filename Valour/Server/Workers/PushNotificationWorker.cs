@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Threading.Channels;
-using Microsoft.Extensions.Options;
 using Valour.Config.Configs;
 using ThreadChannel = System.Threading.Channels.Channel;
 
@@ -63,8 +62,7 @@ public class PushNotificationWorker : IHostedService, IDisposable
     private bool _pushEnabled;
 
     public PushNotificationWorker(ILogger<PushNotificationWorker> logger,
-                                  IServiceScopeFactory serviceScopeFactory, 
-                                  IOptions<NotificationsConfig> notificationsConfig)
+                                  IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
@@ -86,7 +84,10 @@ public class PushNotificationWorker : IHostedService, IDisposable
 
         if (!_pushEnabled)
         {
-            _logger.LogWarning("Notifications config missing - push sends will be disabled");
+            _logger.LogError(
+                "'Notifications' config section is missing or has no PrivateKey - " +
+                "ALL push notification sends (WebPush and FCM) are disabled. " +
+                "Subscriptions will still be accepted but no pushes will be delivered.");
         }
         else
         {

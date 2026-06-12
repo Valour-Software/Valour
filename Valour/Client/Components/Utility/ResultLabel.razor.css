@@ -8,13 +8,13 @@
     position: relative;
     margin-top: 1rem;
     padding: 0.75rem;
-    border-radius: var(--small-radius);
-    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-md);
 }
 
 .result-message.success {
-    background-color: rgba(0, 250, 255, 0.1);
-    border-left: 3px solid var(--v-cyan);
+    background-color: var(--color-success-soft);
+    border-left: 3px solid var(--color-success);
 }
 
 
@@ -23,8 +23,8 @@
 }
 
 .result-message.error {
-    background-color: rgba(205, 94, 94, 0.1);
-    border-left: 3px solid var(--p-red);
+    background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    border-left: 3px solid var(--color-danger);
     max-width: 100%;
     word-wrap: break-word;
 }

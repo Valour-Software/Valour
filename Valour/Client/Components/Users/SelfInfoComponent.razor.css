@@ -2,12 +2,10 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 10px;
+    padding-right: 10px;
     padding-bottom: 5px;
     padding-top: 5px;
-    background-color: var(--main-2);
-    border-top: 4px solid var(--main-3);
 }
 
 .settings-button {
@@ -16,7 +14,7 @@
     
     height: 100%;
     aspect-ratio: 1/1;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
 }
  
 .settings-button:hover .settings-icon, .settings-button:focus .settings-icon { 
@@ -24,7 +22,7 @@
 }
 
 .settings-button:focus {
-    outline: solid var(--main-5);
+    outline: solid var(--main-4);
 }
 
 .settings-button .settings-icon {

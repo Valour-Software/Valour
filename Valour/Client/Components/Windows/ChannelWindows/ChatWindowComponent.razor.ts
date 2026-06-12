@@ -12,6 +12,7 @@ type Channel = {
     scrollTimer: number;
     lastReportedBottomState: boolean;
     suppressPagingUntil: number;
+    resizeObserver: ResizeObserver | null;
     
     hookEvents(): void;
     cleanup(): void;
@@ -22,6 +23,7 @@ type Channel = {
     isAtBottom(): boolean;
     checkBottomSticky(): void;
     scrollToBottom(force: boolean): void;
+    scrollToBottomDeferred(force: boolean): void;
     scrollToBottomAnimated(): void;
     scrollFromTopToBottomAnimated(): void;
     handleChatWindowScroll(e: MouseEvent): void;
@@ -42,6 +44,7 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         scrollTimer: Date.now(),
         lastReportedBottomState: true,
         suppressPagingUntil: 0,
+        resizeObserver: null,
         
         updateScrollPosition(){
             this.oldScrollHeight = this.messageWrapperEl.scrollHeight;
@@ -83,6 +86,14 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
                 this.stickToBottom = true;
                 this.checkBottomSticky();
             }
+        },
+
+        scrollToBottomDeferred(force){
+            // Two frames: lets Blazor commit pending DOM changes (e.g. the
+            // reply preview growing the input area) before measuring.
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                this.scrollToBottom(force);
+            }));
         },
         
         scrollToBottomAnimated(){
@@ -139,10 +150,17 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
         },
         
         scrollToMessage(elementId: string, highlight: boolean){
-            // Wait for layout, then instant-scroll, then trigger highlight animation.
-            requestAnimationFrame(() => {
+            // The target element may not exist yet (Blazor commits renders
+            // asynchronously and messages build async), so retry across
+            // frames for up to ~2s before giving up.
+            const deadline = Date.now() + 2000;
+            const attempt = () => {
                 const el = document.getElementById(elementId);
-                if (!el) return;
+                if (!el) {
+                    if (Date.now() < deadline)
+                        requestAnimationFrame(attempt);
+                    return;
+                }
                 el.scrollIntoView({ block: 'center', behavior: 'instant' });
                 if (highlight) {
                     // Force animation restart by removing and re-adding the class
@@ -151,15 +169,28 @@ export function init(dotnet: DotnetObject, messageWrapperEl: HTMLElement): Chann
                     el.classList.add('highlighted');
                     setTimeout(() => el.classList.remove('highlighted'), 3000);
                 }
-            });
+            };
+            requestAnimationFrame(attempt);
         },
 
         hookEvents(){
             this.messageWrapperEl.addEventListener('scroll', this.handleChatWindowScroll);
+
+            // Keep the chat pinned to the bottom when the viewport itself
+            // resizes (emoji picker opening/closing, soft keyboard, reply
+            // preview, etc). Fires every frame during animated resizes, so
+            // the chat follows the animation smoothly.
+            this.resizeObserver = new ResizeObserver(() => {
+                if (this.stickToBottom)
+                    this.messageWrapperEl.scrollTop = this.messageWrapperEl.scrollHeight;
+            });
+            this.resizeObserver.observe(this.messageWrapperEl);
         },
         
         cleanup(){
             this.messageWrapperEl.removeEventListener('scroll', this.handleChatWindowScroll);
+            this.resizeObserver?.disconnect();
+            this.resizeObserver = null;
         }
     };
 

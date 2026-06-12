@@ -43,33 +43,22 @@
 
     public async Task Build()
     {
-        switch (RenderContext)
+        var context = MentionRenderContext.From(RenderContext);
+
+        if (context.Planet is not null)
         {
-            case MessageComponent messageComponent:
-                var channel = messageComponent.ParamData.ChatComponent.Channel;
-                _targetChannel = await channel.Planet.FetchChannelAsync(Mention.TargetId);
-                break;
-            default:
-                Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");
-                break;    
+            _targetChannel = await context.Planet.FetchChannelAsync(Mention.TargetId);
         }
-        
-        
+
         StateHasChanged();
     }
 
     public async Task OnClicked()
     {
+        if (_targetChannel is null)
+            return;
+
         var windowContent = await ChatWindowComponent.GetDefaultContent(_targetChannel);
-        
-        switch (RenderContext)
-        {
-            case MessageComponent messageComponent:
-                await WindowService.OpenWindowAtFocused(windowContent);
-                break;
-            default:
-                Console.WriteLine("Invalid RenderContext for ChannelMentionComponent");
-                break;    
-        }
+        await WindowService.OpenWindowAtFocused(windowContent);
     }
 }

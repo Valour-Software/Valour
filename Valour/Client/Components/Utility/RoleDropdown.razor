@@ -5,7 +5,7 @@
         @foreach (var role in Roles)
         {
             <div class="role-option" @onmousedown:stopPropagation="true" @onclick="() => Select(role)">
-                <span class="role-pill" style="border-color:@role.Color">@role.Name</span>
+                <RolePill Role="role" />
             </div>
         }
     </div>

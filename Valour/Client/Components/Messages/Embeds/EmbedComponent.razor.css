@@ -2,14 +2,14 @@
     background-color: rgba(255, 255, 255, 0.07);
     padding: 1rem 1rem 1rem 1rem;
     max-width: 1024px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     width: fit-content;
     position: relative;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }
 
 .embed a {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     text-decoration: none;
 }
 
@@ -22,12 +22,12 @@
 }
 
 .embed-title {
-    font-weight: bold;
-    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-md);
     margin-bottom: 8px;
 }
 
 .embed-footer {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     margin-top: 8px;
 }

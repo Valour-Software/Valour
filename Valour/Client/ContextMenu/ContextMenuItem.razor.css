@@ -4,13 +4,13 @@
     border: none;
     background-color: transparent;
     color: white;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     padding-top: 2px;
     padding-bottom: 2px;
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     text-align: left;
     width: 100%;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     outline: none !important;
 }
 
@@ -23,7 +23,7 @@
     height: 100%;
     opacity: 0;
     z-index: -1;
-    border-radius: 1em;
+    border-radius: var(--radius-xl);
 }
 
 .context-btn:hover > .context-bg {
@@ -48,11 +48,11 @@
 .label-wrapper .icon {
     float: right; 
     margin-left: 1em; 
-    font-size: 0.9em
+    font-size: var(--font-size-sm)
 }
 
 .mobile .context-btn {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     padding-top: 8px;
     padding-bottom: 8px;
 }

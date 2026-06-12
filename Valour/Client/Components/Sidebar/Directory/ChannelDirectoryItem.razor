@@ -78,6 +78,10 @@
                     <span>@_notificationCount</span>
                 </div>
             }
+            else if (IsUnread)
+            {
+                <div class="unread-dot"></div>
+            }
 
         </div>
         @if (_voiceParticipants.Count > 0 && ISharedChannel.VoiceChannelTypes.Contains(Channel.ChannelType))
@@ -140,11 +144,10 @@
     @{
         if (Channel.ChannelType == ChannelTypeEnum.PlanetCategory)
         {
-            if (_children is not null && _isOpen)
+            if (_children is not null && _children.Count > 0)
             {
-                if (_children.Count > 0)
-                {
-                    <div class="sub-list" ondragover="event.preventDefault();" depth="@(Depth + 1)">
+                <div class="sub-list @(_isOpen ? "open" : "")" ondragover="event.preventDefault();" depth="@(Depth + 1)">
+                    <div class="sub-list-inner">
                         @for (int i = 0; i < _children.Count; i++)
                         {
                             var ii = i;
@@ -159,7 +162,7 @@
                             </div>
                         }
                     </div>
-                }
+                </div>
             }
         }
     }
@@ -191,6 +194,9 @@
 
             if (ChannelService.ConnectedPlanetChannels.Any(x => x.Id == Channel.Id))
                 css += " open";
+
+            if (IsUnread)
+                css += " unread";
 
             if (DragManager.DragOverId == Channel.Id)
                 css += " drag-over";

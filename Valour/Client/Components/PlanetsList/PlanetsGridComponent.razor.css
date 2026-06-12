@@ -1,7 +1,7 @@
 ﻿.outer-section {
     flex-direction: column;
     width: 100%;
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     background-color: var(--main-3);
 }
 
@@ -13,7 +13,7 @@
 .section-header {
     width: 100%;
     background-color: var(--main-1);
-    border-radius: 0.5em 0.5em 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     padding: 1em;
 }
 
@@ -32,7 +32,7 @@
     height: 100%;
     background-size: contain;
     background-repeat: no-repeat;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     position: relative;
 }
 
@@ -52,8 +52,8 @@
 }
 
 .icon-text {
-    font-weight: 700;
-    font-family: 'Ubuntu';
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-app);
     text-align: center;
     margin: 0;
     text-shadow: 0 0 5px black,  0 0 10px black;

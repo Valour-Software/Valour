@@ -1,31 +1,25 @@
-﻿/* Tab Container Styling */
-.v-tab-container {
-    background-color: var(--main-3);
-    border-radius: var(--main-radius);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+﻿.v-tab-container {
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
 }
 
-/* Tab Header Bar */
 .v-tab-header {
     display: flex;
     position: relative;
-    background-color: var(--main-2);
+    background-color: transparent;
     padding: 0;
-    border-bottom: 1px solid var(--main-4);
-    border-radius: calc(var(--main-radius) - 2px) calc(var(--main-radius) - 2px) 0 0;
+    border-bottom: 1px solid var(--slight-tint);
 }
 
-/* Individual Tab Buttons */
 .v-tab {
     flex: 1;
-    padding: 0.75rem 1.25rem;
+    padding: 0.65rem 1.25rem;
     cursor: pointer;
     text-align: center;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     color: var(--font-alt-color);
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s ease;
+    transition: color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
     position: relative;
     user-select: none;
     display: flex;
@@ -34,29 +28,42 @@
     gap: 0.5rem;
 }
 
-/* Tab Hover State */
 .v-tab:hover {
-    background-color: var(--slight-tint);
+    background-color: rgba(255, 255, 255, 0.05);
     color: var(--font-color);
 }
 
-/* Active Tab Styling */
 .v-tab.active {
     color: var(--font-color);
-    background-color: var(--main-3);
-    border-bottom: 2px solid var(--p-cyan);
 }
 
-/* First and Last Tab Border Radius */
+.v-tab-indicator {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    height: 2px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    transition: transform 0.45s var(--ease-spring);
+    z-index: 1;
+}
+
+.v-tab-indicator-bar {
+    width: 50%;
+    height: 2px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(to right, var(--v-cyan), var(--v-purple));
+}
+
 .v-tab.first {
-    border-top-left-radius: calc(var(--main-radius) - 2px);
+    border-top-left-radius: var(--radius-sm);
 }
 
 .v-tab.last {
-    border-top-right-radius: calc(var(--main-radius) - 2px);
+    border-top-right-radius: var(--radius-sm);
 }
 
-/* Tab Content Area */
 .v-tab-content {
     padding: 1.25rem;
     overflow: auto;
@@ -64,46 +71,31 @@
     min-height: 100px;
 }
 
-/* Tab Content Animation */
-.v-tab-content-enter {
-    opacity: 0;
-    transform: translateY(5px);
-}
-
-.v-tab-content-enter-active {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-/* Tab Badge - for notifications or counts */
 .v-tab-badge {
-    background-color: var(--p-red);
+    background-color: var(--color-danger);
     color: white;
-    font-size: 0.7rem;
+    font-size: var(--font-size-xs);
     padding: 0.15rem 0.4rem;
-    border-radius: 1rem;
+    border-radius: var(--radius-full);
     margin-left: 0.5rem;
 }
 
-/* Tab Icon */
 .v-tab-icon {
-    font-size: 1rem;
+    font-size: var(--font-size-md);
 }
 
-/* Small size variant */
 .v-tab-small .v-tab {
     padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     gap: 0.35rem;
 }
 
 .v-tab-small .v-tab-icon {
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
 }
 
 .v-tab-small .v-tab-badge {
-    font-size: 0.6rem;
+    font-size: var(--font-size-2xs);
     padding: 0.1rem 0.3rem;
 }
 
@@ -111,11 +103,10 @@
     padding: 0.75rem;
 }
 
-/* Small Screen Adjustments */
 @media (max-width: 576px) {
     .v-tab {
         padding: 0.75rem 0.5rem;
-        font-size: 0.9rem;
+        font-size: var(--font-size-md);
     }
 
     .v-tab-icon {

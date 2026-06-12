@@ -34,13 +34,13 @@
     animation-iteration-count: infinite;
     animation-fill-mode: forwards;
     content: '.';
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
 }
 
 .is-typing-name {
-    font-weight: 700;
-    font-size: 12px;
-    line-height: 14px;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-tight);
     display: inline-block;
 }
 
@@ -52,7 +52,7 @@
 
 .remainder-text {
     color: #b5b5b5;
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     display: inline-block;
     margin-left: 10px;
 }

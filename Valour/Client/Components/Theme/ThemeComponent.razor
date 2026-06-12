@@ -4,34 +4,83 @@
 <div id="theme">
     <style>
         :root {
+            --font-family-app: @((MarkupString)ISharedTheme.NormalizeFontFamily(CurrentTheme.FontFamily));
+            --radius-xs: @CurrentTheme.RadiusXs;
+            --radius-sm: @CurrentTheme.RadiusSm;
+            --radius-md: @CurrentTheme.RadiusMd;
+            --radius-lg: @CurrentTheme.RadiusLg;
+            --radius-xl: @CurrentTheme.RadiusXl;
+            --radius-full: @CurrentTheme.RadiusFull;
+
             --font-color: @CurrentTheme.FontColor;
             --font-alt-color: @CurrentTheme.FontAltColor;
             --link-color: @CurrentTheme.LinkColor;
-            
+
             --main-1: @CurrentTheme.MainColor1;
             --main-2: @CurrentTheme.MainColor2;
             --main-3: @CurrentTheme.MainColor3;
             --main-4: @CurrentTheme.MainColor4;
-            --main-5: @CurrentTheme.MainColor5;
-            
+            --main-4: @CurrentTheme.MainColor5;
+
             --modal-main: @(CurrentTheme.MainColor1 + "55");
             --modal-medium: @(CurrentTheme.MainColor1 + "aa");
             --modal-dark: @(CurrentTheme.MainColor1 + "cc");
-            
+
             --slight-tint: @(CurrentTheme.TintColor + "15");
             --medium-tint: @(CurrentTheme.TintColor + "30");
             --strong-tint: @(CurrentTheme.TintColor + "55");
-            
-            /* Vibrant colors */
-            --v-purple: @CurrentTheme.VibrantPurple;
+
+            --color-primary: @CurrentTheme.PastelCyan;
+            --color-primary-contrast: #ffffff;
+            --color-primary-soft: color-mix(in srgb, var(--color-primary) 15%, transparent);
+            --color-primary-border: color-mix(in srgb, var(--color-primary) 35%, transparent);
+
+            --color-secondary: @CurrentTheme.PastelPurple;
+            --color-secondary-contrast: #ffffff;
+            --color-secondary-soft: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+            --color-secondary-border: color-mix(in srgb, var(--color-secondary) 35%, transparent);
+
+            --color-accent: @CurrentTheme.PastelCyanPurple;
+            --color-accent-contrast: #ffffff;
+            --color-accent-soft: color-mix(in srgb, var(--color-accent) 15%, transparent);
+            --color-accent-border: color-mix(in srgb, var(--color-accent) 35%, transparent);
+
+            --color-info: var(--color-primary);
+            --color-info-contrast: #ffffff;
+            --color-info-soft: color-mix(in srgb, var(--color-info) 15%, transparent);
+            --color-info-border: color-mix(in srgb, var(--color-info) 35%, transparent);
+
+            --color-success: #58c48b;
+            --color-success-contrast: #ffffff;
+            --color-success-soft: color-mix(in srgb, var(--color-success) 15%, transparent);
+            --color-success-border: color-mix(in srgb, var(--color-success) 35%, transparent);
+
+            --color-warning: #facc15;
+            --color-warning-contrast: #101820;
+            --color-warning-soft: color-mix(in srgb, var(--color-warning) 15%, transparent);
+            --color-warning-border: color-mix(in srgb, var(--color-warning) 35%, transparent);
+
+            --color-danger: @CurrentTheme.PastelRed;
+            --color-danger-contrast: #ffffff;
+            --color-danger-soft: color-mix(in srgb, var(--color-danger) 15%, transparent);
+            --color-danger-border: color-mix(in srgb, var(--color-danger) 35%, transparent);
+
+            --color-staff: @CurrentTheme.VibrantCyan;
+            --color-staff-contrast: #030b10;
+            --color-bot: @CurrentTheme.VibrantPurple;
+            --color-bot-contrast: #ffffff;
+
+            /* Legacy palette aliases. New component CSS should use the semantic colors above. */
+            --v-purple: var(--color-bot);
             --v-blue:   @CurrentTheme.VibrantBlue;
-            --v-cyan:   @CurrentTheme.VibrantCyan;
-        
-            /* Pastel colors */
-            --p-cyan:        @CurrentTheme.PastelCyan;
-            --p-cyan-purple: @CurrentTheme.PastelCyanPurple;
-            --p-purple:      @CurrentTheme.PastelPurple;
-            --p-red:         @CurrentTheme.PastelRed;
+            --v-cyan:   var(--color-staff);
+
+            --p-cyan:        var(--color-primary);
+            --p-cyan-purple: var(--color-accent);
+            --p-purple:      var(--color-secondary);
+            --p-red:         var(--color-danger);
+            --p-green:       var(--color-success);
+            --p-orange:      var(--color-warning);
 
             /* Theme asset variables */
             @foreach (var asset in CurrentTheme.Assets ?? Enumerable.Empty<ThemeAssetInfo>())
@@ -64,13 +113,15 @@
 
 @code {
     public static ThemeComponent Instance;
-    
+
     [Parameter]
     public Theme CurrentTheme { get; set; } = Theme.Default;
     public static event Action OnThemeChanged;
-    
+
     public async Task InstallTheme(Theme theme)
     {
+        theme.FontFamily = ISharedTheme.NormalizeFontFamily(theme.FontFamily);
+        NormalizeThemeRadii(theme);
         CurrentTheme = theme;
         await LocalStorage.SetStringAsync("ACTIVE_THEME", JsonSerializer.Serialize(CurrentTheme));
         StateHasChanged();
@@ -129,7 +180,7 @@
             return string.Empty;
         }
     }
-    
+
     private bool AreBracketsValid(string input)
     {
         int count = 0;
@@ -152,20 +203,32 @@
 
         return count == 0; // True if opening and closing brackets match
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         Instance = this;
-        
+
         // Load from local storage
         if (await LocalStorage.ContainsKeyAsync("ACTIVE_THEME"))
         {
             CurrentTheme = JsonSerializer.Deserialize<Theme>(await LocalStorage.GetStringAsync("ACTIVE_THEME"));
+            CurrentTheme.FontFamily = ISharedTheme.NormalizeFontFamily(CurrentTheme.FontFamily);
+            NormalizeThemeRadii(CurrentTheme);
             StateHasChanged();
         }
     }
-    
-   
+
+
+    private static void NormalizeThemeRadii(Theme theme)
+    {
+        theme.RadiusXs = ISharedTheme.NormalizeRadius(theme.RadiusXs, ISharedTheme.DefaultRadiusXs);
+        theme.RadiusSm = ISharedTheme.NormalizeRadius(theme.RadiusSm, ISharedTheme.DefaultRadiusSm);
+        theme.RadiusMd = ISharedTheme.NormalizeRadius(theme.RadiusMd, ISharedTheme.DefaultRadiusMd);
+        theme.RadiusLg = ISharedTheme.NormalizeRadius(theme.RadiusLg, ISharedTheme.DefaultRadiusLg);
+        theme.RadiusXl = ISharedTheme.NormalizeRadius(theme.RadiusXl, ISharedTheme.DefaultRadiusXl);
+        theme.RadiusFull = ISharedTheme.NormalizeRadius(theme.RadiusFull, ISharedTheme.DefaultRadiusFull);
+    }
+
 
     public void Refresh()
     {

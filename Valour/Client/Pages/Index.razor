@@ -35,6 +35,7 @@
 
 					<ModalInjector/>
 
+					<AppRecedeLayer>
 					<body class="mainrow">
 					<Sidebar></Sidebar>
 					<div class="channel-and-topbar" id="mainwindow">
@@ -46,7 +47,7 @@
 							<QuickNotifComponent />
 							@if (DeviceInfo.IsMobile)
 							{
-								<img alt="Home" title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="home" @onclick="OnClickHome"/>
+								<i class="bi bi-house-door-fill home" role="button" aria-label="Go Home" title="Go Home" @onclick="OnClickHome"></i>
 							}
 						</div>
 						<!-- It's so nice when it's hidden away, just like my fears -->
@@ -60,6 +61,7 @@
 					*@
 
 					</body>
+					</AppRecedeLayer>
 				</ContextMenuRoot>
 			</ValourErrorBoundary>
 		</ModalRoot>

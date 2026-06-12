@@ -9,9 +9,9 @@
 
 <BasicModalLayout Title="@(_isNew ? "Add Action" : "Edit Action")" Icon="lightning-fill" MaxWidth="400px">
     <MainArea>
-        <div class="form-group mt-2">
+        <div class="form-group">
             <label>Type</label>
-            <select class="form-control" @bind="_action.ActionType">
+            <select class="v-input" @bind="_action.ActionType">
                 @foreach (AutomodActionType t in Enum.GetValues<AutomodActionType>())
                 {
                     <option value="@t">@GetActionTypeLabel(t)</option>
@@ -19,26 +19,31 @@
             </select>
         </div>
 
-        <div class="form-group mt-2">
+        <div class="form-group">
             <label>Strikes Required</label>
-            <InputNumber class="form-control" TValue="int" @bind-Value="_action.Strikes" />
+            <InputNumber class="v-input" TValue="int" @bind-Value="_action.Strikes" />
         </div>
-        <div class="form-group mt-2">
-            <label><input type="checkbox" @bind="_action.UseGlobalStrikes" /> Use Global Strikes</label>
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Use Global Strikes</span>
+                <label class="switch">
+                    <input type="checkbox" @bind="_action.UseGlobalStrikes" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </div>
-
 
         @if (ShowExpires)
         {
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Duration Minutes (0 for permanent)</label>
-                <InputNumber class="form-control" TValue="int" @bind-Value="_duration" />
+                <InputNumber class="v-input" TValue="int" @bind-Value="_duration" />
             </div>
         }
 
         @if (ShowRole)
         {
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Role</label>
                 <CustomDropdown TItem="PlanetRole"
                                 Items="Data.Planet.Roles"
@@ -52,15 +57,15 @@
 
         @if (ShowMessage)
         {
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Message</label>
-                <textarea class="form-control" @bind="_action.Message"></textarea>
+                <textarea class="v-input" rows="3" @bind="_action.Message"></textarea>
             </div>
         }
 
         @if (ShowResponseChannel)
         {
-            <div class="form-group mt-2">
+            <div class="form-group">
                 <label>Response Channel</label>
                 <CustomDropdown TItem="Channel"
                                 Items="_chatChannels"
@@ -71,7 +76,7 @@
             </div>
             @if (_action.ResponseChannelId.HasValue)
             {
-                <button class="v-btn mt-1" style="font-size:12px" @onclick="ClearResponseChannel">Reset to Automatic</button>
+                <button class="v-btn small" @onclick="ClearResponseChannel">Reset to Automatic</button>
             }
         }
 

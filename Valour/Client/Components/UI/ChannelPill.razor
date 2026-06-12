@@ -1,0 +1,30 @@
+@using Valour.Sdk.Models
+@using Valour.Shared.Models
+
+@if (Channel is not null)
+{
+    <ValourPill Text="@Channel.Name"
+                Title="@Channel.Name"
+                Icon="@GetIcon(Channel.ChannelType)"
+                Variant="soft"
+                Tone="neutral"
+                Size="@Size"
+                Class="@Class"
+                @attributes="AdditionalAttributes" />
+}
+
+@code {
+    [Parameter] public Channel? Channel { get; set; }
+    [Parameter] public string? Size { get; set; } = "sm";
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private static string GetIcon(ChannelTypeEnum type) => type switch
+    {
+        ChannelTypeEnum.PlanetChat => "chat-left",
+        ChannelTypeEnum.PlanetVoice => "music-note-beamed",
+        ChannelTypeEnum.PlanetVideo => "camera-video",
+        ChannelTypeEnum.PlanetCategory => "folder",
+        _ => "chat-left"
+    };
+}

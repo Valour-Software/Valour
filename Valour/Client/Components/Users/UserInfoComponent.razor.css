@@ -5,7 +5,7 @@
     justify-content: space-between;
     word-break: initial;
     padding: 2px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     transition: background 0.15s ease;
     cursor: pointer;
 }
@@ -29,57 +29,20 @@
     min-width: 32px;
     min-height: 32px;
     
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin: 6px;
     background-position: center;
     background-size: cover;
 }
 
-.state-circle {
-    width: 12px;
-    height: 12px;
-    background: #4ade80;
-    border-radius: 50%;
-    position: absolute;
-    left: 22px;
-    top: 22px;
-    border: 2px solid var(--main-1);
-}
-
-.dot-badge-holder {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin-top: -2px;
-}
-
-.dot-badge-holder .dot-badge {
-    width: 12px;
-    height: 12px;
-    margin-left: 2px;
-    border-radius: 50%;
-}
-
-.state-circle.online {
-    background: #4ade80;
-}
-
-.state-circle.away {
-    background: #facc15;
-}
-
-.state-circle.do-not-disturb {
-    background: var(--p-red);
-}
-
-.state-circle.offline {
-    background: var(--font-alt-color);
+.left-block ::deep .user-avatar {
+    margin: 6px;
 }
 
 .name-status {
     display: flex;
     flex-direction: column;
-    line-height: normal;
+    line-height: var(--line-height-base);
 }
 
 .name-tag {
@@ -88,9 +51,9 @@
 }
 
 .username {
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     text-overflow: ellipsis;
     overflow: hidden;
     margin: 0;
@@ -103,7 +66,7 @@
 }
 
 .status {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--font-alt-color);
     margin: 0;
     overflow: hidden;

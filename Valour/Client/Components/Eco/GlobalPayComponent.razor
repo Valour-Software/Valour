@@ -79,7 +79,7 @@ else
 @code {
 
     private RenderFragment<string> _errorFragment = (error) =>
-        @<p style="color: red; text-align: center; margin-top: 1em">@error</p>;
+        @<p style="color: var(--color-danger); text-align: center; margin-top: 1em">@error</p>;
 
     [Parameter]
     public InputComponent Input { get; set; }

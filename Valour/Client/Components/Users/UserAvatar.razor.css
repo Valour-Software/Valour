@@ -1,0 +1,91 @@
+.user-avatar {
+    position: relative;
+    width: var(--user-avatar-size, 32px);
+    height: var(--user-avatar-size, 32px);
+    flex: 0 0 auto;
+}
+
+.user-avatar.clickable,
+.user-avatar.clickable .user-avatar-img {
+    cursor: pointer;
+}
+
+.user-avatar-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-md);
+    background-position: center;
+    background-size: cover;
+}
+
+.user-avatar.with-state .user-avatar-img {
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    margin: 4px;
+    border-radius: calc(var(--radius-md) - 2px);
+}
+
+.user-avatar.with-state .user-avatar-img::after {
+    border-radius: calc(var(--radius-md) + 2px);
+}
+
+.user-avatar-img::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--radius-md) + 3px);
+    border: 1px solid var(--state-ring, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--state-ring, transparent) 45%, transparent);
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.user-avatar-img.online {
+    --state-ring: #2bff88;
+}
+
+.user-avatar-img.away {
+    --state-ring: #ffd60a;
+}
+
+.user-avatar-img.do-not-disturb {
+    --state-ring: #ff5d5d;
+}
+
+.user-avatar-img.offline {
+    --state-ring: var(--medium-tint);
+}
+
+.user-avatar.unread::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--radius-md) + 3px);
+    padding: 1px;
+    background: linear-gradient(135deg, var(--v-cyan), var(--v-purple));
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+}
+
+.user-avatar.unread .user-avatar-img {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--v-cyan) 25%, transparent);
+}
+
+/* When both rings show, keep the outer gradient ring concentric with the inner state ring */
+.user-avatar.with-state.unread::after {
+    border-radius: calc(var(--radius-md) + 6px);
+}
+
+.user-avatar-badges {
+    position: absolute;
+    left: 50%;
+    bottom: 0px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1;
+}

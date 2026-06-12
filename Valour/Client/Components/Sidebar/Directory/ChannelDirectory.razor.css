@@ -29,7 +29,7 @@
 /* Channel wrapper */
 
 ::deep .category {
-    border-radius: 8px;
+    border-radius: var(--radius-xs);
     border-left-width: 2px;
     border-left-style: solid;
     border-left-color: transparent;
@@ -43,23 +43,23 @@
 
 /*
 ::deep .category.drag-over {
-    border: 1px solid var(--v-cyan);
+    border: 1px solid var(--color-primary);
     background-color: rgba(0, 255, 255, 0.1);
 }
 */
 
 ::deep .category .inner-drop {
     color: white;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     font-style: italic;
 }
 
 
 ::deep .category.drag-over > .inner-drop {
     display: block;
-    border: 1px solid var(--main-5);
+    border: 1px solid var(--main-3);
     background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: var(--radius-xs);
     padding: 6px;
     margin-left: 12px;
     margin-top: 6px;
@@ -67,36 +67,35 @@
 }
 
 ::deep .category.drag-over >  .inner-drop.highlight {
-    border: 1px solid var(--v-cyan);
+    border: 1px solid var(--color-primary);
     background-color: rgba(0, 255, 255, 0.1);
 }
 
 ::deep .channel.nested .path {
-    border-radius: 0 var(--main-radius);
-    border-left: 2px solid var(--v-cyan);
-    width: 7px;
+    border-radius: 0 var(--radius-md);
+    border-left: 1px solid var(--v-cyan);
+    width: 5px;
     height: 20px;
     position: absolute;
-    border-bottom: 2px solid var(--v-cyan);
+    border-bottom: 1px solid var(--v-cyan);
     left: -3px;
     top: -5px;
 }
 
 ::deep .channel.nested .path[depth="2"] {
-    border-color: var(--p-cyan);
+    border-color: var(--v-cyan);
 }
 
 ::deep .channel.nested .path[depth="3"] {
-    border-color: var(--p-cyan-purple);
-    
+    border-color: color-mix(in srgb, var(--v-cyan) 66%, var(--v-purple));
 }
 
 ::deep .channel.nested .path[depth="4"] {
-    border-color: var(--p-purple);
+    border-color: color-mix(in srgb, var(--v-cyan) 33%, var(--v-purple));
 }
 
 ::deep .channel.nested .path[depth="5"] {
-    border-color: var(--p-red);
+    border-color: var(--v-purple);
 }
 
 ::deep .channel-wrapper {
@@ -108,8 +107,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--p-red);
-    border-radius: 8px;
+    background-color: var(--color-danger);
+    border-radius: var(--radius-full);
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
@@ -120,11 +119,23 @@
     z-index: 1;
 }
 
+::deep .channel .unread-dot {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--font-color);
+    z-index: 1;
+}
+
 ::deep .channel .notif-badge span {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
     color: white;
-    line-height: 1;
+    line-height: var(--line-height-none);
 }
 
 ::deep .channel-wrapper .drop {
@@ -160,12 +171,20 @@
     align-items: start;
     padding: 6px 8px 4px 6px;
     height: 27px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-xs);
+    color: rgba(255, 255, 255, 0.65);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+::deep .channel.unread,
+::deep .channel.open,
+::deep .channel-wrapper:hover > .channel {
+    color: var(--font-color);
 }
 
 ::deep .channel-wrapper:hover > .channel,
 ::deep .channel-wrapper:hover > .channel > .channel-icon {
-    background: var(--main-5);
+    background: var(--main-3);
 }
 
 ::deep .channel-wrapper:active > .channel,
@@ -173,9 +192,27 @@
     background: var(--main-4);
 }
 
+::deep .channel.open {
+    position: relative;
+    z-index: 2;
+}
+
+::deep .channel.open::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(180deg, var(--v-cyan), var(--v-purple));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--v-cyan) 40%, transparent);
+    z-index: 1;
+}
+
 ::deep .channel.open,
 ::deep .channel.open > .channel-icon {
-    background: var(--main-5);
+    background: var(--main-3);
 }
 
 ::deep .channel.open:hover,
@@ -184,22 +221,21 @@
 }
 
 ::deep .channel .name {
-    font-family: Ubuntu,sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: normal;
-    font-size: 14px;
-    color: var(--font-color);
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-sm);
     display: inline-block;
-    margin: 0 0 0 24px;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     max-width: calc(100% - 20px);
+    margin: -2px 0 0 24px;
 }
 
 /*
 ::deep .channel.drag-over {
-    border: 1px solid var(--v-cyan);
+    border: 1px solid var(--color-primary);
     background-color: rgba(0, 255, 255, 0.1);
 }
 */
@@ -210,7 +246,7 @@
 
 ::deep .drop-line {
     height: 2px;
-    background-color: var(--v-cyan);
+    background-color: var(--color-primary);
     width: 100%;
 }
 
@@ -220,8 +256,52 @@
 
 /* Sub list */
 
+/* Category open/close: same grid-rows expand used by the main menu categories.
+   Children stay rendered; the inner wrapper collapses to zero height. */
 ::deep .sub-list {
     position: relative;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-slow) var(--ease-out-expo);
+}
+
+::deep .sub-list.open {
+    grid-template-rows: 1fr;
+}
+
+/* The padding/margin pair keeps the tree connector lines (which reach 8px
+   above the first row) inside the clip region without shifting layout. */
+::deep .sub-list-inner {
+    min-height: 0;
+    overflow: hidden;
+    padding-top: 8px;
+    margin-top: -8px;
+}
+
+/* Staggered slide-in of rows when a category opens. Direct-child chain so
+   nested categories animate only when their own sub-list toggles. */
+::deep .sub-list.open > .sub-list-inner > .tree-row {
+    animation: dir-item-slide var(--duration-slow) var(--ease-out-expo) both;
+}
+
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(1) { animation-delay: 30ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(2) { animation-delay: 60ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(3) { animation-delay: 90ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(4) { animation-delay: 120ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(5) { animation-delay: 150ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(6) { animation-delay: 180ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(7) { animation-delay: 210ms; }
+::deep .sub-list.open > .sub-list-inner > .tree-row:nth-child(n + 8) { animation-delay: 240ms; }
+
+@keyframes dir-item-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 ::deep .direct-children {
@@ -230,6 +310,8 @@
 
 ::deep .tree-row {
     position: relative;
+    opacity: 0;
+    transform: translateX(-12px);
 }
 
 ::deep .tree-row::before {
@@ -239,27 +321,27 @@
     top: -8px;
     bottom: 0;
     width: 0;
-    border-left: 2px solid var(--v-cyan);
+    border-left: 1px solid var(--v-cyan);
 }
 
 ::deep .tree-row[depth="2"]::before,
 ::deep .tree-row.last[depth="2"]::before {
-    border-color: var(--p-cyan);
+    border-color: var(--v-cyan);
 }
 
 ::deep .tree-row[depth="3"]::before,
 ::deep .tree-row.last[depth="3"]::before {
-    border-color: var(--p-cyan-purple);
+    border-color: color-mix(in srgb, var(--v-cyan) 66%, var(--v-purple));
 }
 
 ::deep .tree-row[depth="4"]::before,
 ::deep .tree-row.last[depth="4"]::before {
-    border-color: var(--p-purple);
+    border-color: color-mix(in srgb, var(--v-cyan) 33%, var(--v-purple));
 }
 
 ::deep .tree-row[depth="5"]::before,
 ::deep .tree-row.last[depth="5"]::before {
-    border-color: var(--p-red);
+    border-color: var(--v-purple);
 }
 
 ::deep .tree-row.last::before {
@@ -274,7 +356,7 @@
     top: 50%;
     left: 6px;
     max-width: 20px;
-    background-color: var(--main-3);
+    background-color: var(--main-1);
     z-index: 1;
 }
 
@@ -288,8 +370,8 @@
 ::deep .channel-icon-holder p {
     top: 4px;
     left: 3px;
-    font-size: 10px;
-    font-weight: 900;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-black);
     position: absolute;
 }
 
@@ -304,14 +386,14 @@
 ::deep .voice-participant-avatar {
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     object-fit: cover;
     border: 1px solid var(--main-4);
     flex-shrink: 0;
 }
 
 ::deep .voice-participant-overflow {
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     color: var(--font-color);
     opacity: 0.7;
     padding-left: 2px;

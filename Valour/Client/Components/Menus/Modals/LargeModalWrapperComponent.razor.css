@@ -15,5 +15,5 @@
 }
 
 ::deep .settings-button:hover.active {
-    background-color: var(--main-5);
+    background-color: var(--main-4);
 }

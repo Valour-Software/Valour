@@ -10,8 +10,8 @@
 }
 
 .limit-warning {
-    color: var(--p-orange);
-    font-size: 0.9rem;
+    color: var(--color-warning);
+    font-size: var(--font-size-md);
 }
 
 .loading-state,
@@ -23,7 +23,7 @@
 
 .loading-state i,
 .empty-state i {
-    font-size: 3rem;
+    font-size: var(--font-size-6xl);
     margin-bottom: 1rem;
     opacity: 0.5;
 }
@@ -52,7 +52,7 @@
     align-items: center;
     padding: 1rem;
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
@@ -60,7 +60,7 @@
 
 .bot-card:hover {
     background-color: var(--medium-tint);
-    border-color: var(--p-cyan);
+    border-color: var(--color-primary);
     transform: translateY(-2px);
 }
 
@@ -74,7 +74,7 @@
 .bot-icon img {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     object-fit: cover;
 }
 
@@ -85,8 +85,8 @@
 
 .bot-name {
     margin: 0 0 0.25rem 0;
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
     white-space: nowrap;
     overflow: hidden;
@@ -96,7 +96,7 @@
 .bot-tag,
 .bot-id {
     margin: 0;
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: var(--font-color-muted);
 }
 
@@ -107,7 +107,7 @@
 }
 
 .bot-card:hover .bot-actions-icon {
-    color: var(--p-cyan);
+    color: var(--color-primary);
 }
 
 .bot-info-section {
@@ -118,20 +118,20 @@
 .info-item {
     padding: 1rem;
     background-color: var(--main-4);
-    border-radius: var(--main-radius);
-    border-left: 3px solid var(--p-cyan);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-primary);
 }
 
 .info-item h4 {
     margin: 0 0 0.5rem 0;
     color: var(--font-color);
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
 }
 
 .info-item p {
     margin: 0;
     color: var(--font-color-muted);
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 @media (max-width: 768px) {

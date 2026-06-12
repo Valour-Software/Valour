@@ -30,7 +30,7 @@ public static class EmailTemplateHelper
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
     <title>Valour</title>
 </head>
-<body style='font-family: Ubuntu, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>
+<body style='font-family: Outfit, Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>
     <div style='max-width: 600px; margin: 20px auto; background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);'>
         <img src='https://valour.gg/media/logo/logo-64.png' alt='Valour Logo' style='max-width: 100%; height: auto; display: block; margin: 0 auto;'>
         {bodyContent}

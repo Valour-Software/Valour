@@ -1,57 +1,20 @@
-.emoji-settings {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 2px;
+.top-help {
+    margin-top: 0;
+    margin-bottom: 1rem;
 }
 
-.emoji-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-size: 1.08rem;
-    letter-spacing: 0.01em;
-}
-
-.subtitle {
-    margin: 0;
-    color: var(--font-alt-color);
-    opacity: 0.9;
-}
-
-.emoji-loading {
-    margin: 0;
-    opacity: 0.85;
-}
-
-.emoji-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 10px 12px;
-    border-radius: var(--main-radius);
-    border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-}
-
-.emoji-usage {
-    margin: 0;
-    font-weight: 600;
-    font-size: 0.92rem;
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--medium-tint);
-    background: rgba(0, 0, 0, 0.2);
+.usage-badge {
+    margin-left: auto;
 }
 
 .emoji-warning {
-    margin: 0;
-    color: var(--p-yellow);
-    background: color-mix(in srgb, var(--p-yellow) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--p-yellow) 35%, transparent);
-    border-radius: var(--main-radius);
+    margin: 0 0 1rem;
+    color: var(--color-warning);
+    background: var(--color-warning-soft);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-md);
     padding: 10px 12px;
+    font-size: var(--font-size-sm);
 }
 
 .emoji-upload {
@@ -60,10 +23,9 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: 14px;
-    border-radius: var(--card-radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    background-color: var(--main-3);
 }
 
 .emoji-inputs {
@@ -92,11 +54,11 @@
 
 .emoji-file-name {
     grid-column: 1 / -1;
-    opacity: 0.92;
-    font-size: 0.9rem;
-    background: rgba(0, 0, 0, 0.22);
+    color: var(--font-alt-color);
+    font-size: var(--font-size-sm);
+    background-color: var(--main-1);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     padding: 7px 10px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -105,6 +67,7 @@
 
 .emoji-result-wrap {
     min-height: 18px;
+    margin-top: 0.5rem;
 }
 
 .emoji-grid {
@@ -118,10 +81,11 @@
     align-items: center;
     gap: 12px;
     padding: 11px 12px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
-    background: linear-gradient(135deg, var(--main-2) 0%, var(--main-3) 100%);
-    transition: border-color 0.16s ease, transform 0.16s ease;
+    background-color: var(--main-3);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
     min-width: 0;
 }
 
@@ -133,8 +97,8 @@
 .emoji-preview {
     width: 40px;
     height: 40px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md);
+    background-color: var(--main-1);
     padding: 4px;
     image-rendering: auto;
     flex-shrink: 0;
@@ -150,8 +114,8 @@
 }
 
 .emoji-name {
-    font-family: monospace;
-    font-size: 0.95rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -164,17 +128,18 @@
 }
 
 .emoji-empty {
-    margin: 8px 0 0;
-    opacity: 0.85;
+    margin: 0;
+    color: var(--font-alt-color);
     padding: 16px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px dashed var(--medium-tint);
-    background: rgba(0, 0, 0, 0.15);
+    background-color: var(--main-3);
 }
 
 @media (max-width: 760px) {
     .emoji-upload {
         align-items: stretch;
+        flex-direction: column;
     }
 
     .emoji-inputs {

@@ -2036,6 +2036,34 @@ namespace Valour.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("font_color");
 
+                    b.Property<string>("FontFamily")
+                        .HasColumnType("text")
+                        .HasColumnName("font_family");
+
+                    b.Property<string>("RadiusXs")
+                        .HasColumnType("text")
+                        .HasColumnName("radius_xs");
+
+                    b.Property<string>("RadiusSm")
+                        .HasColumnType("text")
+                        .HasColumnName("radius_sm");
+
+                    b.Property<string>("RadiusMd")
+                        .HasColumnType("text")
+                        .HasColumnName("radius_md");
+
+                    b.Property<string>("RadiusLg")
+                        .HasColumnType("text")
+                        .HasColumnName("radius_lg");
+
+                    b.Property<string>("RadiusXl")
+                        .HasColumnType("text")
+                        .HasColumnName("radius_xl");
+
+                    b.Property<string>("RadiusFull")
+                        .HasColumnType("text")
+                        .HasColumnName("radius_full");
+
                     b.Property<bool>("HasAnimatedBanner")
                         .HasColumnType("boolean")
                         .HasColumnName("animated_banner");

@@ -5,14 +5,14 @@
 
 .planet-name {
     margin: 0;
-    margin-left: 6px;
+    margin-left: 8px;
     vertical-align: top;
     display: inline-block;
-    font-family: Ubuntu;
+    font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: normal;
-    font-size: 16px;
-    line-height: 21px;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
     color: #FFFFFF;
 }
 
@@ -21,21 +21,56 @@
     margin-right: auto;
     margin-left: auto;
     margin-bottom: 4px;
-    background-color: var(--main-3);
-    border-radius: 8px;
 }
 
-.is-open {
-    padding-bottom: 10px;
+/* Open/close: same grid-rows expand used by the main menu categories */
+.channel-list {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-slow) var(--ease-out-expo);
 }
 
-.planet .icon {
-    width: 22px;
-    height: 22px;
-    float: right;
-    margin-right: 4px;
-    border-radius: 50%;
+.channel-list.open {
+    grid-template-rows: 1fr;
 }
+
+.channel-list-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Staggered slide-in of rows when the planet opens */
+.list-wrapper ::deep > * {
+    opacity: 0;
+    transform: translateX(-12px);
+}
+
+.channel-list.open .list-wrapper ::deep > * {
+    animation: dir-item-slide var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.channel-list.open .list-wrapper ::deep > :nth-child(1) { animation-delay: 30ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(2) { animation-delay: 60ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(3) { animation-delay: 90ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(4) { animation-delay: 120ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(5) { animation-delay: 150ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(6) { animation-delay: 180ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(7) { animation-delay: 210ms; }
+.channel-list.open .list-wrapper ::deep > :nth-child(n + 8) { animation-delay: 240ms; }
+
+/* Note: keyframes must be defined in this file — the scoped CSS compiler
+   renames them per-file, so they can't be shared across .razor.css files. */
+@keyframes dir-item-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 
 .header-wrapper {
 }
@@ -46,7 +81,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .header .right,
@@ -56,27 +91,29 @@
     align-items: center;
 }
 
-.header .right .unread-badge {
-    background-color: var(--strong-tint);
-    border-radius: 8px;
-    height: 16px;
-    min-width: 16px;
-    transition: min-width, height 0.2s ease-in-out;
+.header .right {
+    gap: 8px;
+}
+
+.header .right .notif-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    background-color: var(--color-danger);
+    border-radius: var(--radius-full);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
 }
 
-.header-wrapper:hover .header .right .unread-badge {
-
-}
-
-.header .right .unread-badge.notification {
-    background-color: var(--p-red);
+.header .right .notif-badge span {
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    color: white;
+    line-height: var(--line-height-none);
 }
 
 .header .edit-button {
-    margin-left: 6px;
     transition: transform 0.2s ease-in-out;
 }
 
@@ -84,27 +121,22 @@
     transform: rotate(45deg) scale(1.1);
 }
 
-.unread-badge span {
-    font-size: 10px;
-    font-weight: bold;
-    color: white;
-    padding: 0 4px;
-    line-height: 1;
-}
-
 .planet-about,
 .planet-rules {
     cursor: pointer;
     position: relative;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     white-space: nowrap;
     height: 27px;
     padding: 6px 8px 4px 6px;
+    color: rgba(255, 255, 255, 0.65);
+    transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .planet-about:hover,
 .planet-rules:hover {
     background: rgba(255, 255, 255, 0.075);
+    color: var(--font-color);
 }
 
 .planet-pseudo-icon {
@@ -112,24 +144,22 @@
     top: 50%;
     left: 6px;
     transform: translateY(-50%);
-    color: #fff;
-    font-size: 0.95rem;
-    line-height: 1;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-none);
 }
 
 .planet-about .name,
 .planet-rules .name {
-    font-family: Ubuntu, sans-serif;
+    font-family: var(--font-family-app);
     font-style: normal;
-    font-weight: normal;
-    font-size: 14px;
-    color: var(--font-color);
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-sm);
     display: inline-block;
-    margin: 0 0 0 24px;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
     max-width: calc(100% - 24px);
+    margin: -2px 0 0 24px;
 }
 
 .planet .header:hover {
@@ -150,4 +180,5 @@
 .list-wrapper {
     padding-left: 2px;
     padding-right: 2px;
+    padding-bottom: 10px;
 }

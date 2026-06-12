@@ -1,11 +1,14 @@
 @implements IDisposable
 @inject ValourClient Client
 
-<div class="rules-settings">
+<div class="rules-settings settings-page wide">
     <div class="rules-toolbar">
         <div>
-            <h3>Planet Rules</h3>
-            <p class="subtitle">Rules appear in the Rules pseudochannel and can later be used for planet reports.</p>
+            <h3 class="editor-section-title">
+                <i class="bi bi-list-check"></i>
+                Planet Rules
+            </h3>
+            <p class="helper-text rules-help">Rules appear in the Rules pseudochannel and can later be used for planet reports.</p>
         </div>
         <button class="v-btn primary"
                 disabled="@(!_canManage || _loading)"

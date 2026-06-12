@@ -27,12 +27,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     background: var(--main-3);
-    color: var(--p-cyan);
+    color: var(--color-primary);
     border: 1px solid var(--slight-tint);
-    font-weight: 700;
-    font-size: 0.85rem;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
 }
 
 .rule-body {
@@ -41,15 +41,15 @@
 
 .rule-body h3 {
     margin: 0 0 0.35rem 0;
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     word-break: break-word;
 }
 
 .rule-description {
     color: var(--font-alt-color);
-    line-height: 1.55;
+    line-height: var(--line-height-loose);
     word-break: break-word;
 }
 
@@ -70,11 +70,11 @@
     gap: 0.5rem;
     color: var(--font-alt-color);
     border: 1px dashed var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 .rules-empty i {
-    font-size: 1.75rem;
+    font-size: var(--font-size-3xl);
     opacity: 0.8;
 }
 
@@ -95,9 +95,9 @@
 .planet-rules-display.compact .rule-number {
     width: 1.8rem;
     height: 1.8rem;
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
 }
 
 .planet-rules-display.compact .rule-body h3 {
-    font-size: 0.95rem;
+    font-size: var(--font-size-md);
 }

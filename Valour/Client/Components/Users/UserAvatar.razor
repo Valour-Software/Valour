@@ -1,0 +1,132 @@
+@implements IDisposable
+
+@* Reusable user avatar with optional state ring and badge overlay *@
+
+@if (User is null)
+{
+    return;
+}
+
+<div class="user-avatar @(OnClick.HasDelegate ? "clickable" : "") @(ShowState ? "with-state" : "") @(Unread ? "unread" : "")"
+     style="--user-avatar-size: @(Size)px"
+     @onclick="@OnClick">
+    <div class="user-avatar-img avatar-@User.Id @(ShowState ? _statusClass : "")"
+         style="background-image: url(@_avatarUrl), url(@_failedAvatarUrl);"
+         role="img"
+         aria-label="@User.Name's profile picture"></div>
+    @if (ShowBadges)
+    {
+        <div class="user-avatar-badges">
+            <UserBadges User="@User"/>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public User User { get; set; }
+
+    /// <summary>
+    /// Optional - used for member-specific avatars
+    /// </summary>
+    [Parameter]
+    public PlanetMember Member { get; set; }
+
+    [Parameter]
+    public int Size { get; set; } = 32;
+
+    [Parameter]
+    public bool ShowBadges { get; set; }
+
+    /// <summary>
+    /// Shows the online state as a glowing ring around the avatar
+    /// </summary>
+    [Parameter]
+    public bool ShowState { get; set; }
+
+    /// <summary>
+    /// Shows a cyan/purple gradient ring around the avatar, matching PlanetIcon's unread style
+    /// </summary>
+    [Parameter]
+    public bool Unread { get; set; }
+
+    [Parameter]
+    public AvatarFormat Format { get; set; } = AvatarFormat.Webp128;
+
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    private string _avatarUrl;
+    private string _failedAvatarUrl;
+    private string _statusClass = "offline";
+
+    protected override void OnInitialized()
+    {
+        if (User is not null)
+            User.Updated += OnUserUpdated;
+
+        if (Member is not null)
+            Member.Updated += OnMemberUpdated;
+
+        CalculateAvatar();
+        CalculateStatus();
+    }
+
+    private void CalculateAvatar()
+    {
+        _avatarUrl = Member?.GetAvatar(Format) ?? User?.GetAvatar(Format) ?? ISharedUser.DefaultAvatar;
+        _failedAvatarUrl = User?.GetFailedAvatar() ?? ISharedUser.DefaultAvatar;
+    }
+
+    private void CalculateStatus()
+    {
+        _statusClass = string.IsNullOrWhiteSpace(User?.UserState?.CssClassName)
+            ? "offline"
+            : User.UserState.CssClassName;
+    }
+
+    private void OnUserUpdated(ModelUpdatedEvent<User> eventData)
+    {
+        InvokeAsync(() =>
+        {
+            var render = false;
+
+            if (eventData.Changes.On(x => x.HasCustomAvatar) ||
+                eventData.Changes.On(x => x.Version))
+            {
+                render = true;
+                CalculateAvatar();
+            }
+
+            if (eventData.Changes.On(x => x.UserStateCode))
+            {
+                render = true;
+                CalculateStatus();
+            }
+
+            if (render)
+                StateHasChanged();
+        });
+    }
+
+    private void OnMemberUpdated(ModelUpdatedEvent<PlanetMember> eventData)
+    {
+        InvokeAsync(() =>
+        {
+            if (eventData.Changes.On(x => x.MemberAvatar))
+            {
+                CalculateAvatar();
+                StateHasChanged();
+            }
+        });
+    }
+
+    void IDisposable.Dispose()
+    {
+        if (User is not null)
+            User.Updated -= OnUserUpdated;
+
+        if (Member is not null)
+            Member.Updated -= OnMemberUpdated;
+    }
+}

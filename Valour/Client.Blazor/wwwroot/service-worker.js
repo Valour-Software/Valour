@@ -20,12 +20,29 @@ self.addEventListener('push', event => {
             icon: payload.iconUrl,
             vibrate: [100, 50, 100],
             badge: "https://app.valour.gg/_content/Valour.Client/media/logo/victor-mono-192.png",
-            //data: { url: payload.url }
+            data: { url: payload.url },
         })
     );
 });
 
 self.addEventListener('notificationclick', event => {
     event.notification.close();
+
+    const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (const client of windowClients) {
+                if ('focus' in client) {
+                    client.focus();
+                    if ('navigate' in client && targetUrl !== client.url) {
+                        return client.navigate(targetUrl).catch(() => {});
+                    }
+                    return;
+                }
+            }
+            return clients.openWindow(targetUrl);
+        })
+    );
 });
 

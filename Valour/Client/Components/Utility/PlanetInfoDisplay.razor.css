@@ -28,7 +28,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--slight-tint);
 }
 
@@ -45,11 +45,11 @@
 }
 
 .icon-text {
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     text-align: center;
-    line-height: 1;
-    letter-spacing: 0;
+    line-height: var(--line-height-none);
+    letter-spacing: var(--letter-spacing-normal);
     user-select: none;
 }
 
@@ -59,12 +59,12 @@
 }
 
 .planet-title {
-    font-size: 1.55rem;
-    font-weight: 700;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
     color: var(--font-color);
     margin: 0 0 0.65rem 0;
     word-break: break-word;
-    line-height: 1.2;
+    line-height: var(--line-height-snug);
 }
 
 .planet-stats {
@@ -79,32 +79,32 @@
     gap: 0.4rem;
     background: var(--main-3);
     padding: 0.45rem 0.65rem;
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     border: 1px solid var(--slight-tint);
 }
 
 .stat-item.nsfw {
-    background: rgba(205, 94, 94, 0.14);
-    border-color: var(--p-red);
-    color: var(--p-red);
+    background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+    border-color: var(--color-danger);
+    color: var(--color-danger);
 }
 
 .stat-item i {
-    font-size: 0.9rem;
+    font-size: var(--font-size-md);
     color: var(--font-alt-color);
     flex-shrink: 0;
 }
 
 .stat-value {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--p-cyan);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
+    color: var(--color-primary);
 }
 
 .stat-label {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: var(--font-alt-color);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
 }
 
 .planet-content {
@@ -114,8 +114,8 @@
 }
 
 .section-title {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
     color: var(--font-color);
     margin: 0 0 0.6rem 0;
 }
@@ -125,8 +125,8 @@
 }
 
 .description-text {
-    font-size: 0.98rem;
-    line-height: 1.6;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-loose);
     color: var(--font-color);
     margin: 0;
     word-break: break-word;
@@ -150,17 +150,6 @@
     gap: 0.5rem;
 }
 
-.planet-tag {
-    background: var(--main-3);
-    padding: 0.35rem 0.6rem;
-    border-radius: var(--small-radius);
-    font-size: 0.85rem;
-    font-weight: 500;
-    white-space: nowrap;
-    border: 1px solid var(--slight-tint);
-    color: var(--p-cyan);
-}
-
 /* Full page mode adjustments */
 .planet-info-display.full-page {
     min-height: 100vh;
@@ -169,7 +158,7 @@
 }
 
 .planet-info-display.full-page .planet-title {
-    font-size: 2rem;
+    font-size: var(--font-size-4xl);
 }
 
 .planet-info-display.full-page .planet-icon-container {
@@ -181,7 +170,7 @@
 @media (max-width: 768px) {
     .planet-info-display {
         padding: 0.75rem;
-        border-radius: var(--main-radius);
+        border-radius: var(--radius-md);
     }
     
     .planet-info-header {
@@ -197,7 +186,7 @@
     }
     
     .planet-title {
-        font-size: 1.35rem;
+        font-size: var(--font-size-2xl);
     }
     
     .planet-stats {
@@ -219,7 +208,7 @@
     }
     
     .planet-title {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
     }
     
     .planet-stats {

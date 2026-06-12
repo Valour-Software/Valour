@@ -12,18 +12,18 @@
 .developer-header h1 {
     color: var(--font-color);
     margin: 0 0 0.5rem 0;
-    font-size: 2rem;
+    font-size: var(--font-size-4xl);
 }
 
 .developer-header h1 i {
     margin-right: 0.5rem;
-    color: var(--p-cyan);
+    color: var(--color-primary);
 }
 
 .developer-header p {
     color: var(--font-color-muted);
     margin: 0;
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
 }
 
 .developer-tabs {
@@ -40,9 +40,9 @@
     padding: 0.75rem 1.5rem;
     background-color: var(--main-3);
     border: 1px solid var(--main-4);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     color: var(--font-color-muted);
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -53,20 +53,20 @@
 }
 
 .tab-button.active {
-    background-color: var(--p-cyan);
-    border-color: var(--p-cyan);
-    color: white;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary-contrast);
 }
 
 .tab-button i {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
 }
 
 .developer-content {
     max-width: 900px;
     margin: 0 auto;
     background-color: var(--main-2);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 1rem;
 }
 
@@ -82,7 +82,7 @@
 }
 
 .back-link a:hover {
-    color: var(--p-cyan);
+    color: var(--color-primary);
 }
 
 .back-link i {
@@ -95,7 +95,7 @@
     }
 
     .developer-header h1 {
-        font-size: 1.5rem;
+        font-size: var(--font-size-2xl);
     }
 
     .developer-tabs {

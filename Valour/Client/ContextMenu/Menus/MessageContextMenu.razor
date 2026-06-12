@@ -1,6 +1,32 @@
 @inherits ContextMenu<MessageContextMenu.MessageContextParams>
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
+@inject NavigationManager NavManager
+@using Valour.Client.Emojis
+
+@if (_canUseReactions && _quickEmojis is not null && _quickEmojis.Count > 0)
+{
+    <div class="quick-reactions">
+        @foreach (var emoji in _quickEmojis)
+        {
+            var reacted = _myReactions.Contains(emoji.Native);
+            <button class="quick-reaction @(reacted ? "reacted" : "")"
+                    title="@emoji.Name"
+                    @onclick="@(() => OnQuickReact(emoji))"
+                    @onclick:stopPropagation="true">
+                <img class="emoji"
+                     src="@EmojiSourceProvider.GetSrcUrlFromReaction(emoji.Native, Data.Message.PlanetId)"
+                     alt="@emoji.Native"/>
+            </button>
+        }
+        <button class="quick-reaction more"
+                title="More reactions"
+                @onclick="@OnOpenPicker"
+                @onclick:stopPropagation="true">
+            <i class="bi bi-emoji-smile"></i>
+        </button>
+    </div>
+}
 
 <ContextMenuItem OnClickAsync="@OnClickReply">
     <Label>Reply</Label>
@@ -36,6 +62,7 @@
     <Icon><i class="bi bi-caret-right-fill"></i></Icon>
     <Content>
         <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyLink">Link</ContextMenuItem>
         <ContextMenuItem OnClickAsync="@OnClickCopyId">Message Id</ContextMenuItem>
     </Content>
 </ContextSubMenu>
@@ -70,8 +97,27 @@
     private PermissionState _deletePermission = PermissionState.False;
     private MemberContextMenu.MemberContextParams _memberContextData;
 
+    private List<EmojiClickEvent> _quickEmojis;
+    private HashSet<string> _myReactions = new();
+    private bool _canUseReactions;
+
     protected override async Task OnInitializedAsync()
     {
+        _canUseReactions =
+            Data.WindowComponent?.ChannelPermissions is null ||
+            Data.WindowComponent.ChannelPermissions.GetPermissionState(ChatChannelPermissions.UseReactions) == PermissionState.True;
+
+        if (_canUseReactions)
+        {
+            _myReactions = Data.Message.Reactions?
+                .Where(x => x.AuthorUserId == Client.Me.Id)
+                .Select(x => x.Emoji)
+                .ToHashSet() ?? new();
+
+            _quickEmojis = await EmojiMart.GetFrequentlyUsedAsync(JsRuntime);
+            StateHasChanged();
+        }
+
         if (Data.Message.PlanetId is not null)
         {
             _authorMember = await Data.Message.FetchAuthorMemberAsync();
@@ -97,6 +143,29 @@
         {
             _deletePermission = PermissionState.False;
         }
+    }
+
+    private async Task OnQuickReact(EmojiClickEvent emoji)
+    {
+        await CloseAsync();
+
+        if (_myReactions.Contains(emoji.Native))
+        {
+            await Data.Message.RemoveReactionAsync(emoji.Native);
+        }
+        else
+        {
+            await Data.Message.AddReactionAsync(emoji.Native);
+
+            // Feed emoji-mart's frequency store so the quick row stays accurate
+            await EmojiMart.RecordFrequentAsync(JsRuntime, emoji.Id);
+        }
+    }
+
+    private async Task OnOpenPicker(MouseEventArgs e)
+    {
+        await CloseAsync();
+        Data.WindowComponent?.OpenReactionPicker(Data.Message, e.ClientX, e.ClientY);
     }
 
     private async Task OnClickReply()
@@ -126,14 +195,30 @@
     private async Task OnClickDelete()
     {
         await CloseAsync();
-        
-        var data = new ConfirmModalComponent.ModalParams("Delete message?", Data.Message.Content, "Delete", "Cancel",
+
+        var message = Data.Message;
+
+        var previewParams = new MessageComponent.Params
+        {
+            ChatComponent = Data.MessageComponent.ParamData.ChatComponent,
+            Message = message,
+            LastMessage = null,
+            IsInnerReply = false,
+            Ghost = false
+        };
+
+        var data = new ConfirmModalComponent.ModalParams("Delete message?", message.Content, "Delete", "Cancel",
             async () =>
             {
-                await Data.Message.DeleteAsync();
+                await message.DeleteAsync();
             },
             () => Task.CompletedTask
-        );
+        )
+        {
+            DescriptionFragment = @<div class="message-delete-preview">
+                <MessageComponent ParamData="@previewParams" />
+            </div>
+        };
 
         ModalRoot.OpenModal<ConfirmModalComponent>(data);
     }
@@ -172,5 +257,18 @@
     private async Task OnClickCopyId(){
         await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Message.Id.ToString());
         ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message ID copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task OnClickCopyLink(){
+        var message = Data.Message;
+        var baseUri = NavManager.BaseUri.TrimEnd('/');
+
+        // Matches the deep-link routes on Index.razor
+        var url = message.PlanetId is not null
+            ? $"{baseUri}/planetchannels/{message.PlanetId.Value}/{message.ChannelId}/{message.Id}"
+            : $"{baseUri}/directchannels/{message.ChannelId}/{message.Id}";
+
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Message link copied to clipboard", ToastProgressState.Success));
     }
 }

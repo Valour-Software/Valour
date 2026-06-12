@@ -1,5 +1,5 @@
 ﻿.role-checkbox {
-    border-radius: 2em;
+    border-radius: var(--radius-full);
     margin-right: 0.5em;
 
     position: absolute;
@@ -30,7 +30,7 @@
     height: 1em;
     width: 1em;
     background-color: var(--strong-tint);
-    border-radius: 1em;
+    border-radius: var(--radius-full);
 }
 
 .v-checkmark-fill {
@@ -38,7 +38,7 @@
     position: absolute;
     height: 1em;
     width: 1em;
-    border-radius: 1em;
+    border-radius: var(--radius-full);
 }
 
 .roles-wrapper {
@@ -51,4 +51,9 @@
     flex-direction: row;
     justify-content: left;
     align-items: center;
-} 
+    min-width: 12rem;
+}
+
+::deep .context-role-pill {
+    max-width: 14rem;
+}

@@ -15,18 +15,18 @@
 
 .report-progress span {
     border: 1px solid var(--slight-tint);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--font-color);
-    font-size: 0.78rem;
-    font-weight: 700;
-    line-height: 1;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-none);
     padding: 0.55rem 0.6rem;
     text-align: center;
 }
 
 .report-progress span.active {
-    border-color: var(--main-5);
-    background: color-mix(in srgb, var(--main-5) 22%, transparent);
+    border-color: var(--main-4);
+    background: color-mix(in srgb, var(--main-4) 22%, transparent);
 }
 
 .report-progress span.done {
@@ -42,8 +42,8 @@
 
 .report-step h3 {
     color: var(--font-color);
-    font-size: 1.35rem;
-    line-height: 1.15;
+    font-size: var(--font-size-2xl);
+    line-height: var(--line-height-tight);
     margin: 0;
 }
 
@@ -58,7 +58,7 @@
 .report-summary-card {
     background: var(--main-2);
     border: 1px solid var(--slight-tint);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: var(--font-color);
 }
 
@@ -79,8 +79,8 @@
 
 .report-scope-card:hover:not(:disabled),
 .report-option-card:hover {
-    border-color: var(--main-5);
-    background: color-mix(in srgb, var(--main-5) 12%, var(--main-2));
+    border-color: var(--main-4);
+    background: color-mix(in srgb, var(--main-4) 12%, var(--main-2));
     transform: translateY(-1px);
 }
 
@@ -91,17 +91,17 @@
 
 .report-scope-card i {
     color: var(--font-color);
-    font-size: 1.6rem;
-    line-height: 1;
+    font-size: var(--font-size-2xl);
+    line-height: var(--line-height-none);
 }
 
 .report-scope-card span,
 .report-option-card span,
 .report-summary-card span {
     color: var(--font-color);
-    font-size: 1rem;
-    font-weight: 800;
-    line-height: 1.2;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-extrabold);
+    line-height: var(--line-height-snug);
 }
 
 .report-scope-card p,
@@ -109,8 +109,8 @@
 .report-summary-card p,
 .report-result p {
     color: var(--font-color);
-    font-size: 0.92rem;
-    line-height: 1.35;
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
     margin: 0;
 }
 
@@ -142,8 +142,8 @@
 
 .report-field label {
     color: var(--font-color);
-    font-size: 0.9rem;
-    font-weight: 800;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-extrabold);
 }
 
 .report-field textarea {
@@ -157,7 +157,7 @@
 }
 
 .report-result i {
-    font-size: 2rem;
+    font-size: var(--font-size-4xl);
 }
 
 .report-result.success i {
@@ -165,7 +165,7 @@
 }
 
 .report-result.failure i {
-    color: var(--p-red);
+    color: var(--color-danger);
 }
 
 @media (max-width: 620px) {

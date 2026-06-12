@@ -12,15 +12,12 @@
     gap: 1rem;
 }
 
-.rules-toolbar h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
+.rules-toolbar .editor-section-title {
+    margin-bottom: 0.35rem;
 }
 
-.subtitle {
-    margin: 0.25rem 0 0;
-    color: var(--font-color);
+.rules-help {
+    margin: 0;
 }
 
 .rules-layout {
@@ -28,7 +25,7 @@
     grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.6fr);
     min-height: 24rem;
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     background: var(--main-1);
     overflow: hidden;
 }
@@ -66,9 +63,9 @@
 }
 
 .rule-position {
-    color: var(--p-cyan);
-    font-weight: 700;
-    font-size: 0.8rem;
+    color: var(--color-primary);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
 }
 
 .rule-title {
@@ -89,7 +86,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     background: var(--main-2);
     color: var(--font-color);
 }
@@ -114,14 +111,16 @@
 .rule-description-input {
     min-height: 9rem;
     resize: vertical;
-    line-height: 1.5;
+    line-height: var(--line-height-relaxed);
 }
 
 .rule-preview {
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     padding: 0.85rem;
     background: rgba(0, 0, 0, 0.14);
+    max-height: 16rem;
+    overflow-y: auto;
 }
 
 .rule-editor-actions {
@@ -150,19 +149,19 @@
     gap: 0.45rem;
     padding: 1.5rem;
     border: 1px solid var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
     background: var(--main-1);
     text-align: center;
 }
 
 .rules-empty-panel i {
     color: var(--font-color);
-    font-size: 1.8rem;
+    font-size: var(--font-size-3xl);
 }
 
 .rules-empty-panel h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     color: var(--font-color);
 }
 
@@ -179,11 +178,11 @@
     justify-content: center;
     gap: 0.5rem;
     border: 1px dashed var(--slight-tint);
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 .rule-empty-editor i {
-    font-size: 1.75rem;
+    font-size: var(--font-size-3xl);
 }
 
 .rule-empty-editor p,

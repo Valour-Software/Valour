@@ -1,9 +1,9 @@
 ﻿.item-name {
-    font-weight: bold;
-    font-size: 14px;
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
     cursor: pointer;
 }
 
 .item-text {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }

@@ -1,0 +1,33 @@
+<div class="app-recede @(_receded ? "receded" : "")">
+    @ChildContent
+</div>
+
+@code {
+
+    /// <summary>
+    /// The layer that visually pushes the app backward (scale, dim, blur)
+    /// while a modal is open. Must wrap only app content — overlay roots
+    /// (modals, context menus, toasts) need to live outside it, since its
+    /// filter creates a stacking context that would trap them below modals.
+    /// </summary>
+    public static AppRecedeLayer Instance { get; private set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    private bool _receded;
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    public void SetReceded(bool receded)
+    {
+        if (_receded == receded)
+            return;
+
+        _receded = receded;
+        StateHasChanged();
+    }
+}

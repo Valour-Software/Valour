@@ -1,0 +1,7 @@
+.device-status {
+    margin: 0 0 1rem;
+}
+
+.error-text {
+    color: var(--color-danger);
+}

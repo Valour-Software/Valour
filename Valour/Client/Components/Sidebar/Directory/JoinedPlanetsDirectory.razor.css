@@ -11,18 +11,9 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    border-radius: 8px;
-    background-color: var(--main-3);
+    border-radius: var(--radius-md);
     flex: 1;
     min-height: 0;
-}
-
-.joined-planets .list::-webkit-scrollbar {
-
-}
-
-.joined-planets .list::-webkit-scrollbar-track {
-    border-radius: var(--main-radius);
 }
 
 /* Bottom pinned actions */
@@ -30,29 +21,6 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     padding: 8px 0 0;
-}
-
-.bottom-actions .action-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: none;
-    border: 1px solid var(--slight-tint);
-    border-radius: var(--small-radius);
-    color: var(--font-alt-color);
-    font-size: 13px;
-    font-family: Ubuntu, sans-serif;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.bottom-actions .action-btn:hover {
-    background-color: var(--main-4);
-    color: var(--font-color);
-    border-color: var(--medium-tint);
 }

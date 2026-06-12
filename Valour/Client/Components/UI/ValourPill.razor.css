@@ -1,0 +1,169 @@
+.v-pill {
+    --pill-accent: var(--color-primary);
+    --pill-border-color: var(--slight-tint);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    max-width: 100%;
+    min-width: 0;
+    vertical-align: middle;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--pill-border-color);
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--main-3) 0%, var(--main-4) 100%);
+    color: var(--font-color);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    transition:
+        background var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-standard);
+}
+
+.v-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.v-pill > i {
+    flex: 0 0 auto;
+    color: var(--pill-accent);
+    font-size: var(--font-size-md);
+}
+
+.v-pill-content {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.v-pill--xs {
+    padding: 2px var(--space-1);
+    font-size: var(--font-size-2xs);
+}
+
+.v-pill--md {
+    padding: 0.35rem var(--space-3);
+    font-size: var(--font-size-sm);
+}
+
+.v-pill--lg {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-md);
+}
+
+.v-pill--accent {
+    --pill-accent: var(--color-primary);
+}
+
+.v-pill--danger {
+    --pill-accent: var(--color-danger);
+}
+
+.v-pill--success {
+    --pill-accent: var(--color-success);
+}
+
+.v-pill--soft {
+    background: color-mix(in srgb, var(--pill-accent) 14%, transparent);
+    border-color: color-mix(in srgb, var(--pill-accent) 30%, transparent);
+    color: var(--pill-accent);
+    box-shadow: none;
+}
+
+.v-pill--outline {
+    background: color-mix(in srgb, var(--main-3) 86%, transparent);
+    border-color: color-mix(in srgb, var(--pill-border-color) 78%, var(--slight-tint));
+    color: var(--font-color);
+}
+
+.v-pill--solid {
+    background: var(--pill-accent);
+    border-color: var(--pill-accent);
+    color: #fff;
+}
+
+.v-pill--neutral.v-pill--solid {
+    background: var(--main-4);
+    border-color: var(--medium-tint);
+}
+
+.v-pill--removable {
+    padding-right: var(--space-1);
+}
+
+.v-pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, currentColor 14%, transparent);
+    color: currentColor;
+    line-height: var(--line-height-none);
+    cursor: pointer;
+    transition:
+        background var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-standard);
+}
+
+.v-pill-remove:hover {
+    background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+    color: var(--color-danger);
+    transform: scale(1.08);
+}
+
+.v-pill-remove i {
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-none);
+}
+
+.role-pill {
+    --role-pill-dot-size: 0.5em;
+
+    justify-content: flex-start;
+    background: transparent;
+    border-color: color-mix(in srgb, var(--pill-accent) 42%, var(--slight-tint));
+    color: var(--pill-accent);
+    font-weight: var(--font-weight-regular);
+    box-shadow: none;
+}
+
+.role-pill:hover {
+    background: transparent;
+    border-color: color-mix(in srgb, var(--pill-accent) 62%, var(--slight-tint));
+}
+
+.role-pill .v-pill-content {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.role-pill::after {
+    content: "";
+    display: block;
+    flex: 0 0 var(--role-pill-dot-size);
+    width: var(--role-pill-dot-size);
+    min-width: var(--role-pill-dot-size);
+    max-width: var(--role-pill-dot-size);
+    height: var(--role-pill-dot-size);
+    min-height: var(--role-pill-dot-size);
+    max-height: var(--role-pill-dot-size);
+    aspect-ratio: 1;
+    border-radius: var(--radius-full);
+    background: var(--pill-accent);
+    line-height: 0;
+}

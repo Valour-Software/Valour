@@ -168,11 +168,11 @@
                 : $"{CssStyle.Trim().TrimEnd(';')};";
 
             return baseStyle +
-                   $"--profile-primary: {GetProfileColor(Profile?.PrimaryColor, "var(--p-cyan-purple)")};" +
-                   $"--profile-secondary: {GetProfileColor(Profile?.SecondaryColor, "var(--p-cyan)")};" +
-                   $"--profile-tertiary: {GetProfileColor(Profile?.TertiaryColor, "var(--v-purple)")};" +
-                   $"--profile-border: {GetProfileColor(Profile?.BorderColor, "var(--main-5)")};" +
-                   $"--profile-glow: {GetProfileColor(Profile?.GlowColor, "var(--p-cyan)")};" +
+                   $"--profile-primary: {GetProfileColor(Profile?.PrimaryColor, "var(--color-accent)")};" +
+                   $"--profile-secondary: {GetProfileColor(Profile?.SecondaryColor, "var(--color-primary)")};" +
+                   $"--profile-tertiary: {GetProfileColor(Profile?.TertiaryColor, "var(--color-secondary)")};" +
+                   $"--profile-border: {GetProfileColor(Profile?.BorderColor, "var(--main-4)")};" +
+                   $"--profile-glow: {GetProfileColor(Profile?.GlowColor, "var(--color-primary)")};" +
                    $"--profile-text: {GetProfileColor(Profile?.TextColor, "var(--font-color)")};";
         }
     }
@@ -197,7 +197,7 @@
     {
         get
         {
-            var border = GetProfileColor(Profile?.BorderColor, "var(--main-5)");
+            var border = GetProfileColor(Profile?.BorderColor, "var(--main-4)");
             var primary = GetProfileColor(Profile?.PrimaryColor, border);
             var secondary = GetProfileColor(Profile?.SecondaryColor, primary);
             var tertiary = GetProfileColor(Profile?.TertiaryColor, secondary);

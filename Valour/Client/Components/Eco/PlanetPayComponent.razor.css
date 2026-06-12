@@ -8,7 +8,7 @@
 
 .select-title {
     margin-top: 0.5em;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     text-align: center;
 }
 
@@ -21,7 +21,7 @@
     align-items: center;
     background-color: var(--main-3);
     padding: 8px;
-    border-radius: var(--main-radius);
+    border-radius: var(--radius-md);
 }
 
 .account-select:hover {
@@ -44,6 +44,6 @@
 .selected-preview {
     margin-top: 1em;
     padding: 0.5em;
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     background-color: var(--main-4);
 }

@@ -174,42 +174,20 @@ public class MauiPushNotificationService : IPushNotificationService
 
     public async Task<bool> IsNotificationsEnabledAsync()
     {
+        // Reflects user intent (local opt-in) plus OS permission. Deliberately does NOT
+        // consult the server: server-side subscriptions expire and are purged, and gating
+        // re-subscription on the server's answer meant an expired row could never be
+        // renewed, permanently killing push for the device.
         var locallySubscribed = Preferences.Default.Get(PushSubscribedPreferenceKey, false);
-
-        if (!_client.IsLoggedIn || _client.PrimaryNode is null)
-            return locallySubscribed;
+        if (!locallySubscribed)
+            return false;
 
         try
         {
+            // Don't clear the local preference on denial - if the user re-grants
+            // permission in OS settings, the next app open will re-subscribe.
             var permissionState = await GetPermissionStateAsync();
-            if (permissionState == "denied")
-            {
-                Preferences.Default.Set(PushSubscribedPreferenceKey, false);
-                return false;
-            }
-
-            var token = await CrossFirebaseCloudMessaging.Current.GetTokenAsync();
-            if (string.IsNullOrWhiteSpace(token))
-                return locallySubscribed;
-
-            var pushNotificationSubscription = new PushNotificationSubscription
-            {
-                UserId = _client.Me.Id,
-                Endpoint = token,
-                Key = "",
-                Auth = "",
-                DeviceType = NotificationDeviceType.AndroidFcm,
-            };
-
-            var result = await _client.PrimaryNode.PostAsyncWithResponse<bool>(
-                "api/notifications/subscribed",
-                pushNotificationSubscription);
-
-            if (!result.Success)
-                return locallySubscribed;
-
-            Preferences.Default.Set(PushSubscribedPreferenceKey, result.Data);
-            return result.Data;
+            return permissionState != "denied";
         }
         catch (Exception)
         {

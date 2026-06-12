@@ -1,6 +1,7 @@
 @inject ChannelService ChannelService
 @inject UnreadService UnreadService
 @inject NotificationService NotificationService
+@implements IDisposable
 
 <InfiniteScroll TItem="DirectMessageListItem"
                 Items="_items"
@@ -68,8 +69,23 @@
 
     protected override async Task OnInitializedAsync()
     {
+        UnreadService.DirectChannelUnreadChanged += OnDirectChannelUnreadChanged;
+
         _normalizedFilterText = NormalizeFilter(FilterText);
         await ReloadAsync();
+    }
+
+    private void OnDirectChannelUnreadChanged(long channelId)
+    {
+        if (!_itemIds.Contains(channelId))
+            return;
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    void IDisposable.Dispose()
+    {
+        UnreadService.DirectChannelUnreadChanged -= OnDirectChannelUnreadChanged;
     }
 
     protected override async Task OnParametersSetAsync()

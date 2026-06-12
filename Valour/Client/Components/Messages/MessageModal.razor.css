@@ -1,6 +1,6 @@
 ﻿.message-modal {
     background-color: var(--main-3);
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     padding: 0.75em;
     max-width: min(800px, 90vw);
     box-shadow: 0 0 20px black, 0 0 20px black;

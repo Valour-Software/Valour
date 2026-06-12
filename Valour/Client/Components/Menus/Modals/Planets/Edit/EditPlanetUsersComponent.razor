@@ -2,16 +2,27 @@
 @using Valour.Client.Utility
 @inject ValourClient Client
 
-<QueryTable
-    @ref="_table"
-    Columns="@_columns"
-    Engine="@_engine"
-    ShowSearch="true"
-    Infinite="true"
-    TableMinWidth="600"
-    SearchPlaceholder="Search name..." />
+<div class="settings-page wide">
+    <div class="editor-section">
+        <h3 class="editor-section-title">
+            <i class="bi bi-person-heart"></i>
+            Members
+        </h3>
+
+        <QueryTable
+            @ref="_table"
+            Columns="@_columns"
+            Engine="@_engine"
+            ShowSearch="true"
+            Infinite="true"
+            TableMinWidth="600"
+            SearchPlaceholder="Search name..." />
+    </div>
+</div>
 
 @code {
+    private const int MaxShownRoles = 3;
+
     [Parameter]
     public Planet Planet { get; set; }
 
@@ -31,12 +42,22 @@
                 Name = "Member",
                 SortField = "name",
                 Sortable = true,
-                RenderFragment = row => @<UserInfoComponent Member="@row.Row" />
+                RenderFragment = row => @<UserInfoComponent Member="@row.Row" ShowBadges="false" ShowState="false" />
             },
             new()
             {
                 Name = "Roles",
-                RenderFragment = row => @<div class="role-tags">@foreach (var r in row.Row.Roles){@RoleFragments.RolePill(r)}</div>
+                RenderFragment = row =>
+                    @<div class="role-tags">
+                        @foreach (var r in row.Row.Roles.Take(MaxShownRoles))
+                        {
+                            @RoleFragments.RolePill(r)
+                        }
+                        @if (row.Row.Roles.Count > MaxShownRoles)
+                        {
+                            <span class="role-overflow" title="@string.Join(", ", row.Row.Roles.Skip(MaxShownRoles).Select(x => x.Name))">+@(row.Row.Roles.Count - MaxShownRoles)</span>
+                        }
+                    </div>
             },
             new()
             {
@@ -44,12 +65,12 @@
                 RenderFragment = row => @<div class="button-row">
                         @if (row.Row.UserId != Client.Me.Id)
                         {
-                            <button class="v-btn secondary" @onclick="(() => OnKick(row.Row))">Kick</button>
-                            <button class="v-btn danger" @onclick="(() => OnBan(row.Row))">Ban</button>
+                            <button class="v-btn small" @onclick="(() => OnKick(row.Row))">Kick</button>
+                            <button class="v-btn small danger" @onclick="(() => OnBan(row.Row))">Ban</button>
                         }
                         else
                         {
-                            <span class="text-muted">You</span>
+                            <span class="self-label">You</span>
                         }
                     </div>,
                 TextAlign = "right",

@@ -22,7 +22,7 @@
             <div 
                 class="tab">
                 <div class="tab-info">
-                    <img alt="tab icon" class="tab-icon" src="@Icon"/>
+                    <img alt="tab icon" class="tab-icon @(IsPlanetTab ? "circle" : "")" src="@Icon"/>
                     <span class="tab-title">@Title</span>
                 </div>
                 <div class="tab-buttons"
@@ -60,7 +60,7 @@
                     @onmousedown:stopPropagation="true"
                     @onmousedown:preventDefault="true"
                 >
-                    <i class="bi bi-plus-square"></i>
+                    <i class="bi bi-plus-lg"></i>
                 </div>
             }
         }
@@ -174,6 +174,11 @@
     }
 
     private string Icon => WindowTab.Content?.Icon ?? HomeWindowComponent.DefaultContent.Icon;
+    
+    /// <summary>
+    /// Planet tabs show circular icons; user/app tabs show rounded squares
+    /// </summary>
+    private bool IsPlanetTab => WindowTab.Content?.PlanetId is not null;
     private string Title => WindowTab.Content?.Title ?? HomeWindowComponent.DefaultContent.Title;
     private Type Type => WindowTab.Content.ComponentType ?? HomeWindowComponent.DefaultContent.ComponentType;
 

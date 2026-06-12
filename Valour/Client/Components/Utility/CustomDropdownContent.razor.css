@@ -10,7 +10,7 @@
 
 .custom-dropdown-content {
     background-color: var(--main-1);
-    border-radius: 0.5em;
+    border-radius: var(--radius-md);
     padding: 0.5em;
 }
 
@@ -47,10 +47,10 @@
 }
 
 .dropdown-item.selected {
-    border-radius: var(--small-radius);
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
-    box-shadow: 0 0 5px var(--v-cyan);
+    box-shadow: 0 0 5px var(--color-primary);
 }
 
 .dropdown-item .check {

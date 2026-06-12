@@ -61,7 +61,7 @@
     </div>
     <MentionSelectComponent @ref="MentionSelector" ChannelComponent="@ChatComponent"></MentionSelectComponent>
     
-    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" AnimateClose="true" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
     
     <div class="textbox-holder" @onclick="@OnClickTextbox">
         <div class="textbox" @ref="_dropZoneElement">
@@ -79,18 +79,20 @@
             </div>
         </div>
         
-        <button type="button" tabindex="0" class="upload-btn" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
-            <img class="upload" src="_content/Valour.Client/media/Paperclip-Icon.svg" alt="Attach File"/>
+        <button type="button" tabindex="0" class="input-action-btn upload-btn" title="Attach" aria-label="Attach File" @onclick="@ToggleUploadMenu" @onclick:stopPropagation="true">
+            <i class="bi bi-plus-circle"></i>
         </button>
-        
-        <button id="emoji-button" class="emoji-button" @onclick="@ToggleEmojis">
-            <img class="emoji-icon" alt="Open emoji picker" src="_content/Valour.Client/media/Emoji-Icon.svg" />
+
+        <button id="emoji-button" class="input-action-btn emoji-button" title="Emoji" aria-label="Open emoji picker" @onclick="@ToggleEmojis">
+            <i class="bi bi-emoji-smile"></i>
         </button>
-        
+
         @if (DeviceInfo.IsMobile && CanUserPost){
             <div class="send-wrapper" @onclick="@OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true"
                  onmousedown="event.preventDefault()">
-                <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
+                <div class="input-action-btn send-btn" role="button" aria-label="Send Message">
+                    <i class="bi bi-send-fill"></i>
+                </div>
             </div>
         }
     </div>
@@ -790,6 +792,10 @@
         RefreshPreviewMessage();
         Refresh();
 
+        // The reply preview grows the input area and covers the bottom
+        // messages — follow it down if the user is near the bottom.
+        await ChatComponent.ScrollToBottomDeferred();
+
         await FocusInputAsync();
     }
 
@@ -819,6 +825,7 @@
                     Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                     AuthorUserId = ISharedUser.VictorUserId,
                     ChannelId = ChatComponent.Channel.Id,
+                    TimeSent = DateTime.UtcNow,
                     Id = long.MaxValue
                 };
 
@@ -846,6 +853,7 @@
                     Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
                     AuthorUserId = long.MaxValue,
                     ChannelId = ChatComponent.Channel.Id,
+                    TimeSent = DateTime.UtcNow,
                     Id = 0 
                 };
 

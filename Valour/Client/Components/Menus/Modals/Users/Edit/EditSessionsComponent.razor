@@ -5,9 +5,11 @@
 
 @using Valour.Client.Components.Menus.Modals.Users.Edit
 
+<div class="settings-page">
+
 @* ===== Multi-Factor Authentication ===== *@
 <div class="editor-section">
-    <h3 class="editor-section-title security">
+    <h3 class="editor-section-title">
         <i class="bi bi-shield-lock"></i>
         Multi-Factor Authentication
     </h3>
@@ -38,13 +40,13 @@
                         <i class="bi bi-shield-check"></i>
                         <span>Your account is protected with multi-factor authentication</span>
                     </div>
-                    <button @onclick="@OnClickRemoveMfa" class="v-btn danger mt-2">Remove MFA</button>
+                    <VButton Variant="danger" OnClick="@OnClickRemoveMfa">Remove MFA</VButton>
                 } else {
                     <div class="mfa-status">
                         <i class="bi bi-shield-exclamation"></i>
                         <span>Adding MFA greatly improves your account security</span>
                     </div>
-                    <button @onclick="@OnClickMfA" class="v-btn primary">Setup MFA</button>
+                    <VButton Variant="primary" OnClick="@OnClickMfA">Setup MFA</VButton>
                 }
             }
         </div>
@@ -53,13 +55,13 @@
 
 @* ===== Password ===== *@
 <div class="editor-section">
-    <h3 class="editor-section-title security">
+    <h3 class="editor-section-title">
         <i class="bi bi-key"></i>
         Password
     </h3>
 
     <div class="actions">
-        <button class="v-btn secondary" @onclick="@OnClickChangePassword">Change Password</button>
+        <VButton Variant="secondary" OnClick="@OnClickChangePassword">Change Password</VButton>
     </div>
 </div>
 
@@ -108,9 +110,7 @@
                         <div class="token-actions">
                             @if (!isExpired)
                             {
-                                <button class="v-btn danger" @onclick="() => RevokeToken(token)">
-                                    Revoke
-                                </button>
+                                <VButton Variant="danger" Size="sm" OnClick="@(() => RevokeToken(token))">Revoke</VButton>
                             }
                         </div>
                     </div>
@@ -142,12 +142,12 @@
         </div>
 
         <div class="token-actions-bulk">
-            <button class="v-btn warning" @onclick="RevokeAllOtherTokens">
-                Revoke All Other Sessions
-            </button>
+            <VButton Variant="danger" OnClick="@RevokeAllOtherTokens">Revoke All Other Sessions</VButton>
             <p class="help-text">This will log out all other devices except this one</p>
         </div>
     }
+</div>
+
 </div>
 
 @code {

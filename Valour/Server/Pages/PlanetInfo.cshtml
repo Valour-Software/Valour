@@ -61,7 +61,7 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Ubuntu', sans-serif;
+            font-family: var(--font-family-app);
             background: linear-gradient(135deg, #040d14 0%, #0b151d 50%, #121e27 100%);
             color: #ffffff;
             min-height: 100vh;
@@ -86,27 +86,27 @@
         }
         
         .error-container h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #cd5e5e;
+            font-size: var(--font-size-4xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-danger);
             margin: 0;
         }
         
         .error-container p {
-            font-size: 1.1rem;
-            color: #7a7a7a;
+            font-size: var(--font-size-lg);
+            color: var(--font-alt-color);
             margin: 0;
             max-width: 500px;
-            line-height: 1.5;
+            line-height: var(--line-height-relaxed);
         }
         
         .v-btn {
             color: #ffffff;
-            font-size: 14px;
-            font-weight: 400;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-regular);
             background-color: rgba(255, 255, 255, 0.1);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             padding: 0.5em 1em;
             display: inline-block;
             outline: none !important;
@@ -121,12 +121,12 @@
         }
         
         .v-btn.primary {
-            background-color: #37a4ce;
+            background-color: var(--color-primary);
             color: white;
         }
         
         .v-btn.primary:hover {
-            background-color: #8457cd;
+            background-color: var(--color-secondary);
             color: white;
         }
         
@@ -140,11 +140,11 @@
             }
             
             .error-container h2 {
-                font-size: 1.5rem;
+                font-size: var(--font-size-2xl);
             }
             
             .error-container p {
-                font-size: 1rem;
+                font-size: var(--font-size-md);
             }
         }
     </style>
@@ -166,4 +166,3 @@
     }
 </body>
 </html>
-
