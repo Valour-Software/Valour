@@ -32,6 +32,9 @@ public class Planet : ISharedPlanet
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetReport> Reports { get; set; }
+
+    [InverseProperty("Planet")]
+    public virtual ICollection<PlanetThread> Threads { get; set; }
     
     public virtual ICollection<Message> Messages { get; set; }
     
@@ -117,6 +120,18 @@ public class Planet : ISharedPlanet
     
     [Column("version")]
     public int Version { get; set; }
+
+    /// <summary>
+    /// True if the threads feed is enabled for this planet
+    /// </summary>
+    [Column("enable_threads")]
+    public bool EnableThreads { get; set; }
+
+    /// <summary>
+    /// True if this planet's threads can be browsed publicly without an account
+    /// </summary>
+    [Column("public_threads")]
+    public bool PublicThreads { get; set; }
 
     // Only to fulfill contract
     [NotMapped]

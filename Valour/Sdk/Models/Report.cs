@@ -34,8 +34,18 @@ public class Report : ClientModel<Report, string>, ISharedReport
     
     /// <summary>
     /// The planet id (if any) the report applies to
-    /// </summary>ß
+    /// </summary>
     public long? PlanetId { get; set; }
+
+    /// <summary>
+    /// The thread id (if any) the report applies to
+    /// </summary>
+    public long? ThreadId { get; set; }
+
+    /// <summary>
+    /// The thread comment id (if any) the report applies to
+    /// </summary>
+    public long? ThreadCommentId { get; set; }
     
     /// <summary>
     /// The category-code of the reason of the report

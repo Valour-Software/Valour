@@ -1,0 +1,35 @@
+.static-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.static-gallery img,
+.static-gallery video {
+    max-width: min(100%, 360px);
+    max-height: 300px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--slight-tint);
+    object-fit: cover;
+}
+
+.static-gallery.nsfw img,
+.static-gallery.nsfw video {
+    filter: blur(24px);
+}
+
+.static-file {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--main-4);
+    border-radius: var(--radius-md);
+    color: var(--font-color);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+}
+
+.static-file:hover {
+    border-color: var(--color-secondary);
+}

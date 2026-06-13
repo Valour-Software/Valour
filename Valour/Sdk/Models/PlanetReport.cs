@@ -17,6 +17,8 @@ public class PlanetReport : ClientPlanetModel<PlanetReport, long>, ISharedPlanet
     public long? ReportedMemberId { get; set; }
     public long? MessageId { get; set; }
     public long? ChannelId { get; set; }
+    public long? ThreadId { get; set; }
+    public long? ThreadCommentId { get; set; }
     public long? RuleId { get; set; }
     public string RuleTitleSnapshot { get; set; }
     public string RuleDescriptionSnapshot { get; set; }

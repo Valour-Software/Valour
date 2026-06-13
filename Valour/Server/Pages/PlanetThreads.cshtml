@@ -1,0 +1,115 @@
+@page "/threads/{planetId:long}"
+@model Valour.Server.Pages.PlanetThreadsModel
+@using Valour.Server.Pages
+@using Valour.Client.Components.Threads.Display
+@using Microsoft.AspNetCore.Components
+@{
+    var planetName = Model.Planet?.Name ?? "Planet";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Threads - @planetName | Valour</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/_content/Valour.Client/media/favicon/favicon-16x16.png">
+
+    @if (Model.Planet is not null && !Model.IsPrivate)
+    {
+        <meta name="description" content="Browse threads from @planetName on Valour."/>
+
+        <meta property="og:type" content="website"/>
+        <meta property="og:url" content="@Model.RequestUrl"/>
+        <meta property="og:title" content="Threads - @planetName"/>
+        <meta property="og:description" content="Browse threads from @planetName on Valour."/>
+        <meta property="og:image" content="@Model.PlanetIcon"/>
+    }
+
+    <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>
+    <link href="/_content/Valour.Client/css/public-threads.css" rel="stylesheet"/>
+
+    <script>
+        // Logged-in users (token in localStorage, same origin as the app)
+        // get sent into the full app instead of the static page.
+        // Append ?static to stay on this page.
+        (function () {
+            try {
+                if (new URLSearchParams(window.location.search).has('static')) return;
+                if (window.localStorage.getItem('token')) {
+                    window.location.replace('@Model.AppLink');
+                }
+            } catch (e) { /* storage unavailable */ }
+        })();
+    </script>
+</head>
+<body>
+<div class="pt-page">
+    <header class="pt-topbar">
+        <a class="pt-brand" href="/">
+            <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
+            <span>Valour</span>
+        </a>
+        <a class="pt-open-app" href="@Model.AppLink">Open in Valour</a>
+    </header>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="pt-error">
+            <h2>Planet not found</h2>
+            <p>@Model.ErrorMessage</p>
+            <a class="pt-open-app" href="/">Go Home</a>
+        </div>
+    }
+    else if (Model.IsPrivate)
+    {
+        <div class="pt-error">
+            <img class="pt-planet-icon-lg" src="@Model.PlanetIcon" alt="@planetName"/>
+            <h2>@planetName's threads are private</h2>
+            <p>Join the community on Valour to see what's being discussed.</p>
+            <a class="pt-open-app" href="/">Open in Valour</a>
+        </div>
+    }
+    else
+    {
+        <main class="pt-main">
+            <div class="pt-feed-header">
+                <img src="@Model.PlanetIcon" alt="@planetName"/>
+                <div>
+                    <h1>@planetName</h1>
+                    <p>@Model.TotalCount @(Model.TotalCount == 1 ? "thread" : "threads")</p>
+                </div>
+            </div>
+
+            @if (Model.Threads.Count == 0)
+            {
+                <p class="pt-none">No threads here yet.</p>
+            }
+
+            <div class="pt-feed">
+                @foreach (var item in Model.Threads)
+                {
+                    <a class="pt-post-link" href="/threads/@Model.PlanetId/@item.ThreadId">
+                        @(await Html.RenderComponentAsync<StaticThreadPost>(RenderMode.Static, new { Data = item.Post, Preview = true, Clickable = true }))
+                    </a>
+                }
+            </div>
+
+            <div class="pt-pager">
+                @if (Model.HasPrevPage)
+                {
+                    <a href="/threads/@Model.PlanetId?p=@(Model.P - 1)">&larr; Newer</a>
+                }
+                @if (Model.HasNextPage)
+                {
+                    <a href="/threads/@Model.PlanetId?p=@(Model.P + 1)">Older &rarr;</a>
+                }
+            </div>
+        </main>
+    }
+</div>
+</body>
+</html>

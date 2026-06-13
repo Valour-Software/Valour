@@ -74,6 +74,16 @@ public interface ISharedPlanet : ISharedModel<long>
     /// True if the planet has a custom background
     /// </summary>
     public bool HasCustomBackground { get; set; }
+
+    /// <summary>
+    /// True if the threads feed is enabled for this planet
+    /// </summary>
+    bool EnableThreads { get; set; }
+
+    /// <summary>
+    /// True if this planet's threads can be browsed publicly without an account
+    /// </summary>
+    bool PublicThreads { get; set; }
     
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {

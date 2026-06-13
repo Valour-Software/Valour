@@ -110,12 +110,21 @@
     }
 
     /// <summary>
-    /// Honors deep links (/planetchannels/... and /directchannels/...) by
-    /// opening the target channel, optionally focused on a specific message.
+    /// Honors deep links (/planetchannels/..., /directchannels/..., and /planetthreads/...)
+    /// by opening the target channel or thread, optionally focused on a specific message.
     /// </summary>
     private async Task TryOpenStartTargetAsync()
     {
-        if (StartData?.Start is null || StartData.StartChannelId is null)
+        if (StartData?.Start is null)
+            return;
+
+        if (StartData.Start == StartScreen.PlanetThread)
+        {
+            await TryOpenStartThreadAsync();
+            return;
+        }
+
+        if (StartData.StartChannelId is null)
             return;
 
         try
@@ -157,6 +166,42 @@
         catch (Exception e)
         {
             Console.WriteLine("Failed to open deep-linked channel: " + e.Message);
+        }
+    }
+
+    private async Task TryOpenStartThreadAsync()
+    {
+        if (StartData.StartPlanetId is null)
+            return;
+
+        try
+        {
+            // No thread id means the link targets the planet's thread feed
+            if (StartData.StartThreadId is null)
+            {
+                var planet = await Client.PlanetService.FetchPlanetAsync(StartData.StartPlanetId.Value);
+                if (planet is null)
+                    return;
+
+                await Layout.AddTab(ThreadsWindowComponent.GetDefaultContent(planet));
+                await NotifyLayoutChanged();
+                return;
+            }
+
+            var thread = await Client.ThreadService.FetchThreadAsync(
+                StartData.StartPlanetId.Value,
+                StartData.StartThreadId.Value);
+
+            if (thread is null)
+                return;
+
+            var content = ThreadWindowComponent.GetDefaultContent(thread);
+            await Layout.AddTab(content);
+            await NotifyLayoutChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Failed to open deep-linked thread: " + e.Message);
         }
     }
 
@@ -250,7 +295,7 @@
         Splits.Clear();
 
         Layout = new WindowLayout(this);
-        await Layout.AddTab(HomeWindowComponent.DefaultContent);
+        await Layout.AddTab(ThreadsWindowComponent.DefaultContent);
 
         await NotifyLayoutChanged(notifyService, saveLayout);
     }

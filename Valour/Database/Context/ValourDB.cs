@@ -203,6 +203,12 @@ public partial class ValourDb : DbContext
     public DbSet<PlanetRule> PlanetRules { get; set; }
     public DbSet<PlanetReport> PlanetReports { get; set; }
 
+    public DbSet<PlanetThread> PlanetThreads { get; set; }
+    public DbSet<ThreadComment> ThreadComments { get; set; }
+    public DbSet<ThreadAttachment> ThreadAttachments { get; set; }
+    public DbSet<ThreadBoost> ThreadBoosts { get; set; }
+    public DbSet<ThreadCommentBoost> ThreadCommentBoosts { get; set; }
+
     public DbSet<UserChannelState> UserChannelStates { get; set; }
     
     public DbSet<NodeStats> NodeStats { get; set; }
@@ -266,6 +272,7 @@ public partial class ValourDb : DbContext
         modelBuilder.Entity<Planet>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
+        modelBuilder.Entity<PlanetThread>().HasQueryFilter(x => x.IsDeleted == false);
 
         // can only add query filters to root entities
         // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
@@ -289,6 +296,11 @@ public partial class ValourDb : DbContext
         PlanetEmoji.SetupDbModel(modelBuilder);
         PlanetRule.SetupDbModel(modelBuilder);
         PlanetReport.SetupDbModel(modelBuilder);
+        PlanetThread.SetupDbModel(modelBuilder);
+        ThreadComment.SetupDbModel(modelBuilder);
+        ThreadAttachment.SetupDbModel(modelBuilder);
+        ThreadBoost.SetupDbModel(modelBuilder);
+        ThreadCommentBoost.SetupDbModel(modelBuilder);
         Report.SetupDbModel(modelBuilder);
         PlanetInvite.SetupDbModel(modelBuilder);
         AuthToken.SetupDbModel(modelBuilder);

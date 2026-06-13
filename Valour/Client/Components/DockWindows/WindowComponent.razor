@@ -70,7 +70,7 @@
          @onclick:stopPropagation="true"
          @onclick="@OnClickWindow">
         @* Window Content *@
-        @(WindowTab.Content?.RenderContent ?? HomeWindowComponent.DefaultContent.RenderContent)
+        @(WindowTab.Content?.RenderContent ?? ThreadsWindowComponent.DefaultContent.RenderContent)
         
         @if (ShouldShowDropTargets) // floating tabs don't have drop targets
         { 
@@ -173,14 +173,14 @@
         }
     }
 
-    private string Icon => WindowTab.Content?.Icon ?? HomeWindowComponent.DefaultContent.Icon;
+    private string Icon => WindowTab.Content?.Icon ?? ThreadsWindowComponent.DefaultContent.Icon;
     
     /// <summary>
     /// Planet tabs show circular icons; user/app tabs show rounded squares
     /// </summary>
     private bool IsPlanetTab => WindowTab.Content?.PlanetId is not null;
-    private string Title => WindowTab.Content?.Title ?? HomeWindowComponent.DefaultContent.Title;
-    private Type Type => WindowTab.Content.ComponentType ?? HomeWindowComponent.DefaultContent.ComponentType;
+    private string Title => WindowTab.Content?.Title ?? ThreadsWindowComponent.DefaultContent.Title;
+    private Type Type => WindowTab.Content.ComponentType ?? ThreadsWindowComponent.DefaultContent.ComponentType;
 
     private string WindowStyle
     {
@@ -308,7 +308,7 @@
 
     private async Task OnClickPlus()
     {
-        await AddSiblingTab(HomeWindowComponent.DefaultContent);
+        await AddSiblingTab(ThreadsWindowComponent.DefaultContent);
     }
     
     private async Task OnClickMinus()
@@ -355,7 +355,7 @@
     
     private Task OnClickHome()
     {
-        return ReplaceAsync(HomeWindowComponent.DefaultContent);
+        return ReplaceAsync(ThreadsWindowComponent.DefaultContent);
     }
 
     

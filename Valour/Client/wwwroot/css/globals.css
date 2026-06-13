@@ -83,10 +83,12 @@
     --font-color-mid: #aaaaaa;
     --link-color: #00aaff;
 
+    /* Must match Theme.Default ("To The Stars") - the in-app theme system
+       overrides these at runtime, but public pages only get this file */
     --main-1: #040d14;
-    --main-2: #0f1e2b;
-    --main-3: #1a2f3d;
-    --main-4: #243847;
+    --main-2: #0b151d;
+    --main-3: #121e27;
+    --main-4: #212f3a;
 
     --modal-main: #040d1455;
     --modal-medium: #040d14aa;
@@ -96,38 +98,38 @@
     --medium-tint: #ffffff30;
     --strong-tint: #ffffff55;
 
-    /* Semantic purpose colors - neon family, aligned with status/brand accents */
-    --color-primary: #00e5ff;
-    --color-primary-contrast: #04141c;
+    /* Semantic purpose colors - must match what ThemeComponent emits for Theme.Default */
+    --color-primary: #37a4ce;
+    --color-primary-contrast: #ffffff;
     --color-primary-soft: color-mix(in srgb, var(--color-primary) 15%, transparent);
     --color-primary-border: color-mix(in srgb, var(--color-primary) 35%, transparent);
 
-    --color-secondary: #c44dff;
+    --color-secondary: #8457cd;
     --color-secondary-contrast: #ffffff;
     --color-secondary-soft: color-mix(in srgb, var(--color-secondary) 15%, transparent);
     --color-secondary-border: color-mix(in srgb, var(--color-secondary) 35%, transparent);
 
-    --color-accent: #7b5cff;
+    --color-accent: #6278cd;
     --color-accent-contrast: #ffffff;
     --color-accent-soft: color-mix(in srgb, var(--color-accent) 15%, transparent);
     --color-accent-border: color-mix(in srgb, var(--color-accent) 35%, transparent);
 
     --color-info: var(--color-primary);
-    --color-info-contrast: var(--color-primary-contrast);
+    --color-info-contrast: #ffffff;
     --color-info-soft: color-mix(in srgb, var(--color-info) 15%, transparent);
     --color-info-border: color-mix(in srgb, var(--color-info) 35%, transparent);
 
-    --color-success: #2bff88;
-    --color-success-contrast: #04140b;
+    --color-success: #58c48b;
+    --color-success-contrast: #ffffff;
     --color-success-soft: color-mix(in srgb, var(--color-success) 15%, transparent);
     --color-success-border: color-mix(in srgb, var(--color-success) 35%, transparent);
 
-    --color-warning: #ffd60a;
+    --color-warning: #facc15;
     --color-warning-contrast: #101820;
     --color-warning-soft: color-mix(in srgb, var(--color-warning) 15%, transparent);
     --color-warning-border: color-mix(in srgb, var(--color-warning) 35%, transparent);
 
-    --color-danger: #ff3b5c;
+    --color-danger: #cd5e5e;
     --color-danger-contrast: #ffffff;
     --color-danger-soft: color-mix(in srgb, var(--color-danger) 15%, transparent);
     --color-danger-border: color-mix(in srgb, var(--color-danger) 35%, transparent);

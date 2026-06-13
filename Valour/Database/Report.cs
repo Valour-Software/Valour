@@ -36,6 +36,16 @@ public class Report : ISharedReport
     /// The planet id (if any) the report applies to
     /// </summary>
     public long? PlanetId { get; set; }
+
+    /// <summary>
+    /// The thread id (if any) the report applies to
+    /// </summary>
+    public long? ThreadId { get; set; }
+
+    /// <summary>
+    /// The thread comment id (if any) the report applies to
+    /// </summary>
+    public long? ThreadCommentId { get; set; }
     
     /// <summary>
     /// The category-code of the reason of the report
@@ -109,6 +119,12 @@ public class Report : ISharedReport
             
             e.Property(x => x.ChannelId)
                 .HasColumnName("channel_id");
+
+            e.Property(x => x.ThreadId)
+                .HasColumnName("thread_id");
+
+            e.Property(x => x.ThreadCommentId)
+                .HasColumnName("thread_comment_id");
             
             e.Property(x => x.ReasonCode)
                 .HasColumnName("reason_code");
@@ -147,6 +163,10 @@ public class Report : ISharedReport
             e.HasIndex(x => x.MessageId);
 
             e.HasIndex(x => x.ChannelId);
+
+            e.HasIndex(x => x.ThreadId);
+
+            e.HasIndex(x => x.ThreadCommentId);
 
             e.HasIndex(x => x.PlanetId);
 

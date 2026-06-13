@@ -514,6 +514,11 @@ public enum PlanetPermissionsEnum
     ForceTransactions,
     BypassAutomod,
     UseCustomEmojis,
+
+    // Thread Permissions
+    PostThreads,
+    CommentOnThreads,
+    ManageThreads,
 }
 
 /// <summary>
@@ -522,8 +527,9 @@ public enum PlanetPermissionsEnum
 /// </summary>
 public static class PlanetPermissions
 {
-    public static readonly long Default =
-        Permission.CreateCode(View, UseEconomy, UseCustomEmojis);
+    // Assigned in the static constructor: field initializers run in declaration order,
+    // so referencing the permission statics below from an initializer here would yield 0.
+    public static readonly long Default;
 
     /// <summary>
     /// Contains every planet permission
@@ -532,6 +538,8 @@ public static class PlanetPermissions
 
     static PlanetPermissions()
     {
+        Default = Permission.CreateCode(View, UseEconomy, UseCustomEmojis, PostThreads, CommentOnThreads);
+
         Permissions = new PlanetPermission[]
         {
                 FullControl,
@@ -554,6 +562,11 @@ public static class PlanetPermissions
                 MentionAll,
                 BypassAutomod,
                 UseCustomEmojis,
+
+                // Thread Permissions
+                PostThreads,
+                CommentOnThreads,
+                ManageThreads,
         };
     }
 
@@ -579,6 +592,11 @@ public static class PlanetPermissions
     public static readonly PlanetPermission BypassAutomod = new PlanetPermission(0x2000, "Bypass Automod", "Ignore automod triggers for members with this role.");
     public static readonly PlanetPermission UseCustomEmojis = new PlanetPermission(0x4000, "Use Custom Emojis", "Allow members to use custom planet emojis in chat.");
     public static readonly PlanetPermission ViewReports = new PlanetPermission(0x8000, "View Reports", "Allow members to view and resolve the planet report queue.");
+
+    // Thread Permissions
+    public static readonly PlanetPermission PostThreads = new PlanetPermission(0x10000, "Post Threads", "Allow members to post threads to the planet's feed.");
+    public static readonly PlanetPermission CommentOnThreads = new PlanetPermission(0x20000, "Comment on Threads", "Allow members to comment on threads in the planet's feed.");
+    public static readonly PlanetPermission ManageThreads = new PlanetPermission(0x40000, "Manage Threads", "Allow members to delete, lock, and pin threads and comments.");
 }
 
 public enum PermissionState

@@ -1,0 +1,303 @@
+@inherits WindowContentComponent<ThreadWindowData>
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="thread-window">
+    @if (_thread is null)
+    {
+        <div class="thread-loading">
+            @if (_failed)
+            {
+                <i class="bi bi-rocket"></i>
+                <p>This thread could not be loaded. It may have been deleted.</p>
+            }
+            else
+            {
+                <p>Loading thread...</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="thread-scroll">
+            <div class="thread-main">
+                <div class="thread-topbar">
+                    <button class="back-btn" title="Back to threads" @onclick="@OnClickBack">
+                        <i class="bi bi-arrow-left"></i> Threads
+                    </button>
+                </div>
+
+                <ThreadCard Thread="@_thread" ShowPlanet="true" ShowPresence="false" Preview="false" Clickable="false"/>
+
+                @if (_planet is not null)
+                {
+                    <button class="live-cta" @onclick="@OnClickJoinChat">
+                        <span class="live-cta-inner">
+                            <span class="live-cta-left">
+                                <span class="live-dot"></span>
+                                @(_presence is not null && _presence.ChattingCount >= 3
+                                    ? $"{_presence.ChattingCount} chatting in {_planet.Name}"
+                                    : $"{_planet.Name} is on Valour")
+                            </span>
+                            <span class="live-cta-right">
+                                <span class="live-cta-label">Continue the conversation live</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </span>
+                        </span>
+                    </button>
+                }
+
+                <div class="comments-section">
+                    @if (_thread.IsLocked)
+                    {
+                        <div class="locked-notice">
+                            <i class="bi bi-lock-fill"></i>
+                            This thread is locked. New comments cannot be posted.
+                        </div>
+                    }
+                    else
+                    {
+                        <ThreadCommentCompose Thread="@_thread" OnPosted="@OnCommentPosted"/>
+                    }
+
+                    <div class="comments-header">
+                        <h4>@_thread.CommentCount @(_thread.CommentCount == 1 ? "Comment" : "Comments")</h4>
+                        <div class="comment-sort">
+                            <CustomDropdown TItem="SortOption"
+                                            Items="@SortOptions"
+                                            InitialItem="@CurrentSortOption"
+                                            EnableSearch="false"
+                                            SelectedItemChanged="@OnSortChanged"/>
+                        </div>
+                    </div>
+
+                    @if (_hasLoaded && _comments.Count == 0)
+                    {
+                        <div class="no-comments">
+                            <i class="bi bi-chat-left"></i>
+                            <p>No comments yet. Start the conversation!</p>
+                        </div>
+                    }
+
+                    @foreach (var comment in _comments)
+                    {
+                        <ThreadCommentComponent @key="@comment.Id" Comment="@comment" Thread="@_thread"/>
+                    }
+
+                    @if (_hasMore)
+                    {
+                        <button class="load-more" disabled="@_isLoading" @onclick="@LoadMoreAsync">
+                            @(_isLoading ? "Loading..." : "Load more comments")
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private const int PageSize = 20;
+
+    public class Content : WindowContent<ThreadWindowComponent, ThreadWindowData>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            AutoScroll = true;
+            Data = JsonSerializer.Deserialize<ThreadWindowData>(data);
+            if (Data is not null)
+            {
+                var thread = await client.ThreadService.FetchThreadAsync(Data.PlanetId, Data.ThreadId);
+                if (thread is not null)
+                {
+                    Title = thread.Title;
+                    PlanetId = thread.PlanetId;
+
+                    var planet = await client.PlanetService.FetchPlanetAsync(thread.PlanetId);
+                    if (planet is not null)
+                        Icon = planet.GetIconUrl(IconFormat.Webp64);
+                }
+            }
+        }
+
+        public override string ExportData(ValourClient client)
+        {
+            return JsonSerializer.Serialize(Data);
+        }
+    }
+
+    public static Content GetDefaultContent(PlanetThread thread)
+    {
+        var planet = thread.GetPlanet(false);
+
+        return new Content()
+        {
+            Title = thread.Title,
+            Icon = planet?.GetIconUrl(IconFormat.Webp64) ?? "./_content/Valour.Client/media/logo/logo-128.png",
+            Data = new ThreadWindowData() { PlanetId = thread.PlanetId, ThreadId = thread.Id },
+            PlanetId = thread.PlanetId,
+            AutoScroll = true
+        };
+    }
+
+    private PlanetThread _thread;
+    private Planet _planet;
+    private PlanetPresenceSummary _presence;
+    private bool _failed;
+
+    private string _sort = "top";
+    private readonly List<ThreadComment> _comments = new();
+    private readonly HashSet<long> _commentIds = new();
+    private bool _hasLoaded;
+    private bool _hasMore;
+    private bool _isLoading;
+
+    private PlanetThread _hooked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadThreadAsync();
+        }
+        finally
+        {
+            await ReRender();
+        }
+    }
+
+    private async Task LoadThreadAsync()
+    {
+        if (Data is null)
+        {
+            _failed = true;
+            return;
+        }
+
+        _thread = await Client.ThreadService.FetchThreadAsync(Data.PlanetId, Data.ThreadId, skipCache: true);
+        if (_thread is null)
+        {
+            _failed = true;
+            return;
+        }
+
+        _hooked = _thread;
+        _hooked.Updated += OnThreadUpdated;
+
+        _planet = await Client.PlanetService.FetchPlanetAsync(_thread.PlanetId);
+        if (_planet is not null)
+            _presence = await Client.PlanetService.FetchPresenceAsync(_planet);
+
+        await Client.ThreadService.LoadThreadBoostStateAsync(new[] { _thread });
+        await ReloadCommentsAsync();
+    }
+
+    private Task OnThreadUpdated(ModelUpdatedEvent<PlanetThread> e)
+    {
+        return ReRender();
+    }
+
+    private async Task ReloadCommentsAsync()
+    {
+        _comments.Clear();
+        _commentIds.Clear();
+        _hasLoaded = false;
+        _hasMore = false;
+
+        await LoadMoreAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        if (_isLoading)
+            return;
+
+        _isLoading = true;
+        await ReRender();
+
+        var response = await Client.ThreadService.QueryCommentsAsync(
+            _thread, null, _sort, _comments.Count, PageSize);
+
+        await Client.ThreadService.LoadCommentBoostStateAsync(_thread, response.Items);
+
+        var added = 0;
+        foreach (var comment in response.Items)
+        {
+            if (_commentIds.Add(comment.Id))
+            {
+                _comments.Add(comment);
+                added++;
+            }
+        }
+
+        _hasMore = _comments.Count < response.TotalCount && added > 0;
+        _hasLoaded = true;
+        _isLoading = false;
+        await ReRender();
+    }
+
+    public record SortOption(string Value, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private static readonly List<SortOption> SortOptions = new()
+    {
+        new("top", "Top"),
+        new("new", "New"),
+        new("old", "Old"),
+    };
+
+    private SortOption CurrentSortOption =>
+        SortOptions.FirstOrDefault(x => x.Value == _sort) ?? SortOptions[0];
+
+    private async Task OnSortChanged(SortOption option)
+    {
+        _sort = option?.Value ?? "top";
+        await ReloadCommentsAsync();
+    }
+
+    private async Task OnClickBack()
+    {
+        WindowContent feedContent = null;
+
+        var backPlanetId = Data?.BackPlanetId;
+        if (backPlanetId is not null)
+        {
+            var planet = await Client.PlanetService.FetchPlanetAsync(backPlanetId.Value);
+            if (planet is not null)
+                feedContent = ThreadsWindowComponent.GetDefaultContent(planet);
+        }
+
+        feedContent ??= ThreadsWindowComponent.DefaultContent;
+
+        await WindowCtx.Tab.SetContent(feedContent);
+    }
+
+    private async Task OnClickJoinChat()
+    {
+        var content = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(_planet);
+        if (content is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Failed to open planet",
+                $"Error accessing {_planet.Name}", ToastProgressState.Failure));
+            return;
+        }
+
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    private async Task OnCommentPosted(ThreadComment comment)
+    {
+        if (_commentIds.Add(comment.Id))
+            _comments.Insert(0, comment);
+
+        await ReRender();
+    }
+
+    public void Dispose()
+    {
+        if (_hooked is not null)
+            _hooked.Updated -= OnThreadUpdated;
+    }
+}

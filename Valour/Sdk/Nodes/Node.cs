@@ -48,6 +48,12 @@ public class Node : ServiceBase // each node acts like a service
     /// </summary>
     public bool IsRealtimeSetup { get; private set; }
 
+    /// <summary>
+    /// Set when the client stops the hub connection on purpose, so the
+    /// Closed handler knows not to reconnect.
+    /// </summary>
+    private volatile bool _intentionalDisconnect;
+
     public static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -125,6 +131,8 @@ public class Node : ServiceBase // each node acts like a service
     {
         if (IsRealtimeSetup)
             return TaskResult.SuccessResult;
+        
+        _intentionalDisconnect = false;
         
         Log("Setting up new realtime hub connection...");
 
@@ -218,6 +226,7 @@ public class Node : ServiceBase // each node acts like a service
         if (_realtimePlanets.Count == 0 && _realtimeChannels.Count == 0)
         {
             Log("No more realtime connections. Disconnecting from SignalR.");
+            _intentionalDisconnect = true;
             await HubConnection.StopAsync();
             IsRealtimeSetup = false;
         }
@@ -737,16 +746,25 @@ public class Node : ServiceBase // each node acts like a service
     /// </summary>
     private Task OnSignalRClosed(Exception ex)
     {
-        // Ensure disconnect was not on purpose
+        // Disconnect was requested by the client itself; do not reconnect
+        if (_intentionalDisconnect)
+        {
+            Log("SignalR closed intentionally.");
+            return Task.CompletedTask;
+        }
+
         if (ex is not null)
         {
             LogError("A Breaking SignalR Error Has Occured", ex);
-            return Reconnect();
+        }
+        else
+        {
+            // Graceful server-side closes (node restarts, deploys, etc.)
+            // arrive without an exception but still need recovery
+            LogError("SignalR has closed without error. Reconnecting...");
         }
 
-        LogError("SignalR has closed without error.");
-        // return Reconnect(); // TODO: Shouldn't we... not reconnect if it was on purpose?
-        return Task.CompletedTask;
+        return Reconnect();
     }
 
     /// <summary>

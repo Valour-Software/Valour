@@ -98,6 +98,16 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// The configured rules of this planet.
     /// </summary>
     public readonly SortedModelStore<PlanetRule, long> Rules = new();
+
+    /// <summary>
+    /// The loaded threads of this planet. Will not contain all threads.
+    /// </summary>
+    public readonly ModelStore<Threads.PlanetThread, long> Threads = new();
+
+    /// <summary>
+    /// The loaded thread comments of this planet. Will not contain all comments.
+    /// </summary>
+    public readonly ModelStore<Threads.ThreadComment, long> ThreadComments = new();
     
     /// <summary>
     /// A map from role membership to the contained roles
@@ -189,7 +199,17 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// True if the planet has a custom background
     /// </summary>
     public bool HasCustomBackground { get; set; }
-    
+
+    /// <summary>
+    /// True if the threads feed is enabled for this planet
+    /// </summary>
+    public bool EnableThreads { get; set; }
+
+    /// <summary>
+    /// True if this planet's threads can be browsed publicly without an account
+    /// </summary>
+    public bool PublicThreads { get; set; }
+
     public List<PlanetTag> Tags { get; set; }
 
     internal void SetMyMember(PlanetMember member)
@@ -359,6 +379,8 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         Reports.Dispose();
         Emojis.Dispose();
         Rules.Dispose();
+        Threads.Dispose();
+        ThreadComments.Dispose();
     }
 
     public async Task EnsureReadyAsync()
@@ -639,6 +661,21 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
         invites.SyncAll(Client, ModelInsertFlags.Batched);
 
         Invites.NotifySet();
+    }
+
+    private Task _rolesLoadTask;
+
+    /// <summary>
+    /// Loads roles if they aren't already present, deduplicating concurrent
+    /// callers. Used by surfaces like thread feeds that need role colors
+    /// without a full planet connection.
+    /// </summary>
+    public Task EnsureRolesLoadedAsync()
+    {
+        if (Roles.Count > 0)
+            return Task.CompletedTask;
+
+        return _rolesLoadTask ??= LoadRolesAsync();
     }
 
     /// <summary>

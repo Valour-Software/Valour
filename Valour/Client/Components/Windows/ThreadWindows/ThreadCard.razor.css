@@ -1,0 +1,90 @@
+/* Layout and styling live in ThreadPostDisplay; only app-specific bits here */
+
+.author-wrap {
+    min-width: 0;
+}
+
+.avatar-placeholder {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background-color: var(--main-4);
+}
+
+.mobile .share-label {
+    display: none;
+}
+
+/* Presence on the planet chip */
+
+.chip-presence {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    color: color-mix(in srgb, var(--color-success) 70%, white);
+}
+
+.presence-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-success);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
+    animation: presence-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes presence-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+/* Hover tooltip: avatar stack + join hint */
+
+.presence-tooltip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 2px;
+}
+
+.presence-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.presence-avatars img {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--main-1);
+    object-fit: cover;
+}
+
+.presence-avatars img:not(:first-child),
+.presence-avatars .presence-more {
+    margin-left: -8px;
+}
+
+.presence-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 4px;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--main-1);
+    background-color: var(--main-4);
+    color: var(--font-color);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    box-sizing: border-box;
+}
+
+.presence-cta-text {
+    font-size: var(--font-size-xs);
+    color: color-mix(in srgb, var(--font-color) 85%, transparent);
+    white-space: nowrap;
+}

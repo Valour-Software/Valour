@@ -1,0 +1,250 @@
+.threads-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--main-2);
+    font-family: var(--font-family-app);
+}
+
+.threads-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: color-mix(in srgb, var(--main-2) 92%, transparent);
+    backdrop-filter: blur(8px);
+    padding: var(--space-2) var(--space-3) 0 var(--space-3);
+}
+
+.threads-header::after {
+    content: '';
+    display: block;
+    height: 1px;
+    margin: var(--space-2) calc(-1 * var(--space-3)) 0 calc(-1 * var(--space-3));
+    background-image: linear-gradient(to right, var(--v-cyan), var(--v-purple));
+    opacity: 0.45;
+}
+
+.title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.title-row h2 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--font-color);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.title-row h2 i {
+    color: var(--color-primary);
+}
+
+.controls-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.planet-filter {
+    width: 220px;
+    max-width: 100%;
+}
+
+.period-filter {
+    width: 140px;
+}
+
+.period-filter ::deep .custom-dropdown {
+    min-width: unset;
+}
+
+.planet-filter ::deep .custom-dropdown,
+.period-filter ::deep .custom-dropdown {
+    border-radius: var(--radius-full);
+    padding: 5px 14px;
+}
+
+.planet-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.planet-option-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.all-planets-icon {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+    color: var(--color-primary);
+}
+
+.refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 6px 10px;
+    background-color: var(--main-3);
+    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
+    border-radius: var(--radius-full);
+    color: color-mix(in srgb, var(--font-color) 65%, transparent);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.refresh-btn:hover {
+    color: var(--font-color);
+    border-color: color-mix(in srgb, var(--font-color) 25%, transparent);
+}
+
+.refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.refresh-btn.has-new {
+    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-accent-soft) 100%);
+    border-color: var(--color-primary-border);
+    color: color-mix(in srgb, var(--color-primary) 70%, white);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 15%, transparent);
+    animation: refresh-pop var(--duration-slow) var(--ease-spring);
+}
+
+@keyframes refresh-pop {
+    from { transform: scale(0.9); }
+    to { transform: none; }
+}
+
+.refresh-btn .new-count {
+    white-space: nowrap;
+}
+
+.refresh-btn .spinning {
+    animation: refresh-spin 0.8s linear infinite;
+}
+
+@keyframes refresh-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sort-tabs {
+    display: flex;
+    gap: var(--space-1);
+    background-color: var(--main-3);
+    border-radius: var(--radius-full);
+    padding: 3px;
+    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
+}
+
+.sort-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    background: none;
+    border: none;
+    border-radius: var(--radius-full);
+    color: color-mix(in srgb, var(--font-color) 65%, transparent);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
+    font-weight: var(--font-weight-medium);
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.sort-tab:hover {
+    color: var(--font-color);
+    background: var(--slight-tint);
+}
+
+.sort-tab.active {
+    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-accent-soft) 100%);
+    color: color-mix(in srgb, var(--color-primary) 70%, white);
+    box-shadow:
+        inset 0 0 0 1px var(--color-primary-border),
+        0 0 10px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+/* Feed: spaced cards on the window background */
+
+.threads-feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    flex: 1;
+    padding: var(--space-3) var(--space-3) var(--space-4) var(--space-3);
+    max-width: 760px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.threads-feed ::deep .infinite-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.feed-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-8) var(--space-4);
+    color: color-mix(in srgb, var(--font-color) 70%, transparent);
+    text-align: center;
+}
+
+.feed-empty i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    height: 88px;
+    font-size: 40px;
+    color: var(--color-primary);
+    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-accent-soft) 100%);
+    border: 1px solid var(--color-primary-border);
+    border-radius: var(--radius-full);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--color-primary) 12%, transparent);
+    margin-bottom: var(--space-2);
+}
+
+.feed-empty h3 {
+    margin: 0;
+    color: var(--font-color);
+    font-size: var(--font-size-lg);
+}
+
+.feed-empty p {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--font-size-sm);
+}
+
+.feed-loading {
+    text-align: center;
+    padding: var(--space-4);
+    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+    font-size: var(--font-size-sm);
+}

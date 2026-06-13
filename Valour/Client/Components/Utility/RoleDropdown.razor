@@ -1,19 +1,17 @@
 @using Valour.Sdk.Models
 
-<DropdownComponent @ref="_dropdown" Title="@Title" Style="width:100%" Alignment="DropdownComponent.DropdownAlignment.Right">
-    <div class="role-dropdown-content">
-        @foreach (var role in Roles)
-        {
-            <div class="role-option" @onmousedown:stopPropagation="true" @onclick="() => Select(role)">
-                <RolePill Role="role" />
-            </div>
-        }
-    </div>
-</DropdownComponent>
+<CustomDropdown TItem="PlanetRole"
+                Items="@Roles"
+                InitialItem="@SelectedRole"
+                Placeholder="Select Role"
+                SearchFunc="@RoleSearch"
+                SelectedItemChanged="@OnRoleSelected">
+    <ItemTemplate Context="role">
+        <RolePill Role="@role"/>
+    </ItemTemplate>
+</CustomDropdown>
 
 @code {
-    private DropdownComponent _dropdown;
-
     [Parameter]
     public IEnumerable<PlanetRole> Roles { get; set; } = Array.Empty<PlanetRole>();
 
@@ -23,14 +21,18 @@
     [Parameter]
     public EventCallback<long> ValueChanged { get; set; }
 
-    private string Title => Roles.FirstOrDefault(r => r.Id == Value)?.Name ?? "Select Role";
+    private PlanetRole SelectedRole => Roles.FirstOrDefault(r => r.Id == Value);
 
-    private async Task Select(PlanetRole role)
+    private static bool RoleSearch(PlanetRole role, string search) =>
+        role.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) == true;
+
+    private async Task OnRoleSelected(PlanetRole role)
     {
+        if (role is null)
+            return;
+
         Value = role.Id;
         if (ValueChanged.HasDelegate)
             await ValueChanged.InvokeAsync(role.Id);
-        _dropdown.SetVisible(false);
-        StateHasChanged();
     }
 }

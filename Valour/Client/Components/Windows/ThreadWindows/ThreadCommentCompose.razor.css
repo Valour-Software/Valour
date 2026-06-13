@@ -1,0 +1,65 @@
+.comment-compose {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    font-family: var(--font-family-app);
+}
+
+.compose-input {
+    min-height: 70px;
+    resize: vertical;
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-sm);
+}
+
+.compose-preview {
+    min-height: 70px;
+    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--main-1);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+}
+
+.preview-empty {
+    color: color-mix(in srgb, var(--font-color) 45%, transparent);
+    font-style: italic;
+    font-size: var(--font-size-sm);
+}
+
+.compose-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.right-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.preview-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    background: none;
+    border: none;
+    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family-app);
+    cursor: pointer;
+    padding: 2px 6px;
+}
+
+.preview-toggle:hover {
+    color: var(--color-primary);
+}
+
+.compose-error {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: var(--font-size-xs);
+}

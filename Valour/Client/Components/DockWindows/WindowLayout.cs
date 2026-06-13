@@ -344,8 +344,8 @@ public class WindowLayout
             if (Parent is null)
             {
                 // If this is the root layout, we can't remove it
-                // so instead we add the home tab
-                await AddTab(HomeWindowComponent.DefaultContent);
+                // so instead we add the threads feed tab
+                await AddTab(Valour.Client.Components.Windows.ThreadWindows.ThreadsWindowComponent.DefaultContent);
             }
             else
             {

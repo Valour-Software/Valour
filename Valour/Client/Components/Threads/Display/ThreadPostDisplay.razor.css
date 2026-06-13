@@ -1,0 +1,325 @@
+/* Elevated card layout matching the app's surface language:
+   --main-3 cards with a subtle inset highlight and neon accents on hover. */
+
+.thread-post {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    font-family: var(--font-family-app);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+}
+
+.thread-post.clickable {
+    cursor: pointer;
+}
+
+.thread-post.clickable:hover {
+    border-color: var(--color-primary-border);
+    transform: translateY(-1px);
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.3),
+        0 0 12px color-mix(in srgb, var(--color-primary) 8%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Header */
+
+.tp-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    row-gap: var(--space-1);
+    min-width: 0;
+    font-size: var(--font-size-sm);
+}
+
+.tp-header ::deep .tp-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.tp-header ::deep .tp-author {
+    font-size: var(--font-size-sm);
+    color: var(--font-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Role tag matching the chat message header style */
+
+.tp-header ::deep .tp-role {
+    color: var(--font-color);
+    opacity: 0.3;
+    font-style: italic;
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.tp-header ::deep .tp-separator {
+    font-size: var(--font-size-xs);
+    color: color-mix(in srgb, var(--font-color) 50%, transparent);
+    flex-shrink: 0;
+}
+
+.tp-header ::deep .tooltip-trigger {
+    display: inline-flex;
+    min-width: 0;
+}
+
+.tp-header ::deep .tp-planet-chip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 1px 8px 1px 3px;
+    border-radius: var(--radius-full);
+    background-color: color-mix(in srgb, var(--font-color) 4%, transparent);
+    border: 1px solid var(--slight-tint);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family-app);
+    color: var(--font-color);
+    white-space: nowrap;
+    min-width: 0;
+    max-width: 260px;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.tp-header ::deep button.tp-planet-chip {
+    cursor: pointer;
+}
+
+.tp-header ::deep button.tp-planet-chip:hover {
+    border-color: var(--color-primary-border);
+}
+
+.tp-header ::deep .tp-planet-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tp-time, .tp-edited {
+    font-size: var(--font-size-xs);
+    color: color-mix(in srgb, var(--font-color) 50%, transparent);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tp-time {
+    margin-left: auto;
+}
+
+.tp-flags {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+.tp-flags:empty {
+    display: none;
+}
+
+.tp-flag.pinned {
+    color: var(--color-primary);
+}
+
+.tp-flag.locked {
+    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+}
+
+.tp-flag.nsfw {
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-xs);
+    padding: 0 4px;
+    letter-spacing: 0.05em;
+}
+
+/* Title and body */
+
+.tp-title {
+    margin: var(--space-2) 0 0 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--font-color);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.tp-body {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal, 1.5);
+    color: color-mix(in srgb, var(--font-color) 88%, transparent);
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+/* Markdown normalization for slotted content */
+
+.tp-body ::deep p {
+    margin: 0 0 var(--space-2) 0;
+}
+
+.tp-body ::deep p:last-child {
+    margin-bottom: 0;
+}
+
+.tp-body ::deep blockquote {
+    margin: 0 0 var(--space-2) 0;
+    padding: 2px var(--space-3);
+    border-left: 3px solid var(--medium-tint);
+    background-color: var(--main-2);
+    border-radius: var(--radius-md);
+}
+
+.tp-body ::deep ul,
+.tp-body ::deep ol {
+    margin: 0 0 var(--space-2) 0;
+    padding-left: var(--space-5);
+}
+
+.tp-body ::deep img,
+.tp-body ::deep video {
+    max-width: 100%;
+    border-radius: var(--radius-sm);
+}
+
+.tp-body ::deep pre {
+    margin: 0 0 var(--space-2) 0;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--slight-tint);
+    overflow-x: auto;
+}
+
+/* Preview (feed) mode: clamp with a mask fade. Pixel anchors mean content
+   shorter than the fade start renders fully - only genuinely long posts fade. */
+
+.thread-post.tp-preview .tp-body {
+    max-height: 320px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, black 240px, transparent 320px);
+    mask-image: linear-gradient(to bottom, black 240px, transparent 320px);
+}
+
+.thread-post.tp-preview .tp-body ::deep h1,
+.thread-post.tp-preview .tp-body ::deep h2,
+.thread-post.tp-preview .tp-body ::deep h3,
+.thread-post.tp-preview .tp-body ::deep h4,
+.thread-post.tp-preview .tp-body ::deep h5,
+.thread-post.tp-preview .tp-body ::deep h6 {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    margin: 0 0 var(--space-1) 0;
+}
+
+.thread-post.tp-preview .tp-body ::deep img,
+.thread-post.tp-preview .tp-body ::deep video,
+.thread-post.tp-preview .tp-body ::deep iframe {
+    max-height: 200px;
+}
+
+/* Gallery */
+
+.tp-gallery {
+    margin-top: var(--space-2);
+}
+
+/* Slots that received a fragment which rendered nothing */
+
+.tp-body:empty,
+.tp-gallery:empty,
+.tp-footer:empty {
+    display: none;
+}
+
+/* Footer: quiet borderless icon actions; the boost keeps a primary
+   outline only when active so the accent reads without the chrome */
+
+.tp-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+.tp-footer ::deep .tp-pill {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+    padding: 4px 9px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-full);
+    background: none;
+    color: color-mix(in srgb, var(--font-color) 55%, transparent);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.tp-footer ::deep .tp-pill:hover {
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    color: var(--color-primary);
+}
+
+.tp-footer ::deep .tp-pill.active {
+    border-color: var(--color-primary-border);
+    color: color-mix(in srgb, var(--color-primary) 70%, white);
+}
+
+.tp-footer ::deep .tp-pill.active:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+}
+
+.tp-footer ::deep .tp-pill.static {
+    cursor: default;
+}
+
+.tp-footer ::deep .tp-pill.static:hover {
+    background: none;
+    color: color-mix(in srgb, var(--font-color) 55%, transparent);
+}
+
+/* Small screens */
+
+@media (max-width: 600px) {
+    .thread-post {
+        padding: var(--space-3) var(--space-2);
+    }
+
+    .tp-header ::deep .tp-planet-chip {
+        max-width: 40vw;
+    }
+
+    .tp-header ::deep .tp-role {
+        max-width: 90px;
+    }
+
+    .tp-footer ::deep .tp-pill {
+        padding: 4px 8px;
+    }
+}

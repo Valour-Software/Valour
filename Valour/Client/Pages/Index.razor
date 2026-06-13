@@ -1,6 +1,8 @@
 ﻿@page "/"
 @page "/planetchannels/{StartPlanetId:long}/{StartChannelId:long}/{StartMessageId:long}"
 @page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
+@page "/planetthreads/{StartPlanetId:long}/{StartThreadId:long}"
+@page "/planetthreads/{StartPlanetId:long}"
 @using Valour.Client.Emojis
 @using Valour.Sdk.Services
 
@@ -84,6 +86,9 @@
 	[Parameter]
 	public long? StartMessageId { get; set; }
 
+	[Parameter]
+	public long? StartThreadId { get; set; }
+
 	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
 	
 	private string EmbeddedClass => DeviceInfo.IsEmbedded ? "embedded" : "";
@@ -100,13 +105,18 @@
 		{
 			Start = StartScreen.DirectChannel;
 		}
+		else if (NavigationManager.Uri.Contains("planetthreads"))
+		{
+			Start = StartScreen.PlanetThread;
+		}
 
 		_startData = new()
 		{
 			Start = Start,
 			StartPlanetId = StartPlanetId,
 			StartChannelId = StartChannelId,
-			StartMessageId = StartMessageId
+			StartMessageId = StartMessageId,
+			StartThreadId = StartThreadId
 		};
 
 		await base.OnInitializedAsync();
@@ -141,7 +151,7 @@
 
 	private async Task OnClickHome()
 	{
-		await WindowService.OpenWindowAtFocused(HomeWindowComponent.DefaultContent);
+		await WindowService.OpenWindowAtFocused(ThreadsWindowComponent.DefaultContent);
 	}
 
 	public void ForceRefresh()

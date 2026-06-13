@@ -25,6 +25,8 @@ public static class PlanetMapper
             Nsfw = planet.Nsfw,
             Version = planet.Version,
             HasCustomBackground = planet.HasCustomBackground,
+            EnableThreads = planet.EnableThreads,
+            PublicThreads = planet.PublicThreads,
             Tags = planet.Tags?.Select(x => x.ToModel()).ToList() ?? new ()
         };
     }
@@ -49,6 +51,8 @@ public static class PlanetMapper
         dbPlanet.Nsfw = planet.Nsfw;
         dbPlanet.Version = planet.Version;
         dbPlanet.HasCustomBackground = planet.HasCustomBackground;
+        dbPlanet.EnableThreads = planet.EnableThreads;
+        dbPlanet.PublicThreads = planet.PublicThreads;
         dbPlanet.Tags = planet.Tags?.Select(x => x.ToDatabase()).ToList() ?? new ();
 
         return dbPlanet;

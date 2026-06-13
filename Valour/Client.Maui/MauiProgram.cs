@@ -65,6 +65,9 @@ public static class MauiProgram
 #endif
         // Native clients should talk directly to the API host.
         builder.Services.AddValourClientServices("https://api.valour.gg");
+
+        // Override the browser share service with the native OS share sheet
+        builder.Services.AddSingleton<Valour.Client.Utility.IShareService, MauiShareService>();
 #if WINDOWS
         builder.Services.AddSingleton<WindowsToastService>();
         builder.Services.AddSingleton<INativeWindowService, MauiNativeWindowService>();

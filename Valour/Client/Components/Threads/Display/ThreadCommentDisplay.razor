@@ -1,0 +1,72 @@
+@* Presentational comment layout shell. No service injections - shared by the
+   interactive comment tree and the static public pages. *@
+
+<div class="thread-comment">
+    <div class="tc-gutter @(OnGutterClick.HasDelegate ? "clickable" : "")"
+         title="@GutterTitle"
+         @onclick="@OnGutterClick">
+        <div class="tc-line"></div>
+    </div>
+
+    <div class="tc-body">
+        <div class="tc-header">
+            @Header
+        </div>
+
+        @if (!Collapsed)
+        {
+            @if (Content is not null)
+            {
+                <div class="tc-content">
+                    @Content
+                </div>
+            }
+
+            @if (Footer is not null)
+            {
+                <div class="tc-footer">
+                    @Footer
+                </div>
+            }
+
+            @if (Replies is not null)
+            {
+                <div class="tc-replies">
+                    @Replies
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Hides content/footer/replies; the header stays visible (caller renders
+    /// an expand affordance inside the header)
+    /// </summary>
+    [Parameter] public bool Collapsed { get; set; }
+
+    [Parameter] public string GutterTitle { get; set; }
+
+    /// <summary>
+    /// Clicking the left accent line (used in-app for collapse)
+    /// </summary>
+    [Parameter] public EventCallback OnGutterClick { get; set; }
+
+    /// <summary>
+    /// Author identity, timestamp, and flags row
+    /// </summary>
+    [Parameter] public RenderFragment Header { get; set; }
+
+    [Parameter] public RenderFragment Content { get; set; }
+
+    /// <summary>
+    /// Action row (interactive in-app, static counts on public pages)
+    /// </summary>
+    [Parameter] public RenderFragment Footer { get; set; }
+
+    /// <summary>
+    /// Nested reply tree
+    /// </summary>
+    [Parameter] public RenderFragment Replies { get; set; }
+}

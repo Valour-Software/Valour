@@ -58,6 +58,43 @@
                 </div>
             }
 
+            @if (Data.Report.ThreadId.HasValue)
+            {
+                <div class="report-section">
+                    <h4>@(Data.Report.ThreadCommentId.HasValue ? "Reported Thread Comment" : "Reported Thread")</h4>
+                    @if (_isLoadingThread)
+                    {
+                        <div class="message-loading">Loading thread content...</div>
+                    }
+                    else if (Data.Report.ThreadCommentId.HasValue && _reportedComment is not null)
+                    {
+                        <div class="reported-message-container">
+                            @if (_reportedComment.IsDeleted)
+                            {
+                                <p><i>This comment was deleted.</i></p>
+                            }
+                            else
+                            {
+                                <RichText Content="@_reportedComment.Content" PlanetId="@_reportedComment.PlanetId"/>
+                            }
+                        </div>
+                    }
+                    else if (!Data.Report.ThreadCommentId.HasValue && _reportedThread is not null)
+                    {
+                        <div class="reported-message-container">
+                            <Valour.Client.Components.Windows.ThreadWindows.ThreadCard Thread="@_reportedThread" Preview="true" Clickable="false" ShowPlanet="true"/>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="message-error">
+                            <span>Thread content could not be loaded (ID: @Data.Report.ThreadId)</span>
+                            <button class="v-btn small secondary" @onclick="LoadThread">Retry</button>
+                        </div>
+                    }
+                </div>
+            }
+
             @if (Data.Report.MessageId.HasValue)
             {
                 <div class="report-section">
@@ -384,11 +421,52 @@
     private MessageComponent.Params _messageParams;
     private bool _isLoadingMessage = false;
 
+    private Valour.Sdk.Models.Threads.PlanetThread _reportedThread;
+    private Valour.Sdk.Models.Threads.ThreadComment _reportedComment;
+    private bool _isLoadingThread = false;
+
     protected override async Task OnInitializedAsync()
     {
         if (Data.Report.MessageId.HasValue)
         {
             await LoadMessage();
+        }
+
+        if (Data.Report.ThreadId.HasValue)
+        {
+            await LoadThread();
+        }
+    }
+
+    private async Task LoadThread()
+    {
+        if (!Data.Report.ThreadId.HasValue || !Data.Report.PlanetId.HasValue)
+            return;
+
+        _isLoadingThread = true;
+        StateHasChanged();
+
+        try
+        {
+            if (Data.Report.ThreadCommentId.HasValue)
+            {
+                _reportedComment = await Client.ThreadService.FetchCommentAsync(
+                    Data.Report.PlanetId.Value, Data.Report.ThreadId.Value, Data.Report.ThreadCommentId.Value, skipCache: true);
+            }
+            else
+            {
+                _reportedThread = await Client.ThreadService.FetchThreadAsync(
+                    Data.Report.PlanetId.Value, Data.Report.ThreadId.Value, skipCache: true);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to load reported thread {Data.Report.ThreadId}: {e.Message}");
+        }
+        finally
+        {
+            _isLoadingThread = false;
+            StateHasChanged();
         }
     }
 

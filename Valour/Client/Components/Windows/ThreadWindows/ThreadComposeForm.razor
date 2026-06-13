@@ -1,0 +1,351 @@
+@using System.Net.Http.Headers
+@inject ValourClient Client
+
+@* Shared thread compose form. Hosted inline in the feed (ThreadComposeInline)
+   and in the edit modal (ThreadComposeModal). *@
+
+<div class="compose-form">
+    @if (Planet is null && !IsEditing)
+    {
+        <div class="form-group">
+            <label>Planet</label>
+            <CustomDropdown TItem="Planet"
+                            Items="@JoinedPlanets"
+                            InitialItem="@_selectedPlanet"
+                            Placeholder="Select a planet..."
+                            SearchFunc="@PlanetSearch"
+                            SelectedItemChanged="@OnPlanetSelected">
+                <ItemTemplate Context="planet">
+                    <div class="planet-option">
+                        <PlanetIcon Planet="@planet" Size="20"/>
+                        <span class="planet-option-name">@planet.Name</span>
+                    </div>
+                </ItemTemplate>
+            </CustomDropdown>
+        </div>
+    }
+
+    <div class="form-group">
+        <label>Title</label>
+        <input @ref="_titleInput" class="v-input" maxlength="@ISharedPlanetThread.MaxTitleLength" placeholder="An interesting title"
+               @bind="_title" @bind:event="oninput"/>
+        <span class="char-count">@(_title?.Length ?? 0)/@ISharedPlanetThread.MaxTitleLength</span>
+    </div>
+
+    <div class="form-group">
+        <div class="content-tabs">
+            <button class="content-tab @(_previewing ? "" : "active")" @onclick="@(() => _previewing = false)">
+                <i class="bi bi-pencil"></i> Write
+            </button>
+            <button class="content-tab @(_previewing ? "active" : "")" @onclick="@(() => _previewing = true)">
+                <i class="bi bi-eye"></i> Preview
+            </button>
+        </div>
+
+        @if (_previewing)
+        {
+            <div class="content-preview">
+                @if (string.IsNullOrWhiteSpace(_content))
+                {
+                    <span class="preview-empty">Nothing to preview yet.</span>
+                }
+                else
+                {
+                    <RichText Content="@_content" PlanetId="@SelectedPlanetId"/>
+                }
+            </div>
+        }
+        else
+        {
+            <textarea class="v-input content-input" maxlength="@ISharedPlanetThread.MaxContentLength"
+                      placeholder="Share your thoughts... (markdown supported)"
+                      @bind="_content" @bind:event="oninput"></textarea>
+        }
+    </div>
+
+    @if (_attachments.Count > 0)
+    {
+        <div class="attachment-strip">
+            @foreach (var attachment in _attachments)
+            {
+                <div class="attachment-thumb">
+                    @if (attachment.Type == MessageAttachmentType.Image && _attachmentUrls.TryGetValue(attachment, out var url))
+                    {
+                        <img src="@url" alt="@attachment.FileName"/>
+                    }
+                    else
+                    {
+                        <i class="bi @(attachment.Type == MessageAttachmentType.Video ? "bi-film" : "bi-file-earmark-fill")"></i>
+                    }
+                    <button class="remove-attachment" title="Remove" @onclick="@(() => RemoveAttachment(attachment))">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="compose-options">
+        @if (!IsEditing)
+        {
+            <label class="upload-btn @(_uploading || _attachments.Count >= ISharedPlanetThread.MaxAttachments ? "disabled" : "")">
+                <InputFile OnChange="@OnFilesSelected" multiple accept="image/*,video/*" disabled="@_uploading"/>
+                <i class="bi bi-image"></i>
+                @(_uploading ? "Uploading..." : "Add Media")
+            </label>
+        }
+        else
+        {
+            <span></span>
+        }
+
+        <label class="nsfw-toggle">
+            <input type="checkbox" @bind="_nsfw"/>
+            <span>NSFW</span>
+        </label>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="compose-error">@_error</p>
+    }
+
+    <div class="compose-actions">
+        <button class="v-btn" @onclick="@OnClickCancel">Cancel</button>
+        <button class="v-btn primary" disabled="@(!CanPost)" @onclick="@OnClickPost">
+            @(_posting ? (IsEditing ? "Saving..." : "Posting...") : (IsEditing ? "Save" : "Post"))
+        </button>
+    </div>
+</div>
+
+@code {
+    private const long MaxUploadBytes = 50 * 1024 * 1024;
+
+    /// <summary>
+    /// When set, the thread is posted to this planet. When null, a picker is shown.
+    /// </summary>
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    /// <summary>
+    /// When set, the form edits this thread instead of creating a new one
+    /// </summary>
+    [Parameter]
+    public PlanetThread ExistingThread { get; set; }
+
+    [Parameter]
+    public Func<PlanetThread, Task> OnPosted { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>
+    /// Focuses the title input when the form first renders (used by the inline composer)
+    /// </summary>
+    [Parameter]
+    public bool Autofocus { get; set; }
+
+    private string _title = "";
+    private string _content = "";
+    private bool _nsfw;
+    private bool _previewing;
+    private bool _uploading;
+    private bool _posting;
+    private string _error;
+    private Planet _selectedPlanet;
+    private ElementReference _titleInput;
+
+    private readonly List<MessageAttachment> _attachments = new();
+    private readonly Dictionary<MessageAttachment, string> _attachmentUrls = new();
+
+    private IEnumerable<Planet> JoinedPlanets =>
+        Client.PlanetService.JoinedPlanets.Where(x => x.EnableThreads);
+
+    private bool IsEditing => ExistingThread is not null;
+
+    private long SelectedPlanetId => ExistingThread?.PlanetId ?? Planet?.Id ?? _selectedPlanet?.Id ?? 0;
+
+    private static bool PlanetSearch(Planet planet, string search) =>
+        planet.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    private void OnPlanetSelected(Planet planet)
+    {
+        _selectedPlanet = planet;
+    }
+
+    private bool CanPost =>
+        !_posting &&
+        !_uploading &&
+        SelectedPlanetId != 0 &&
+        !string.IsNullOrWhiteSpace(_title);
+
+    protected override void OnInitialized()
+    {
+        if (ExistingThread is not null)
+        {
+            _title = ExistingThread.Title;
+            _content = ExistingThread.Content;
+            _nsfw = ExistingThread.Nsfw;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Autofocus)
+            await _titleInput.FocusAsync();
+    }
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _uploading = true;
+        StateHasChanged();
+
+        try
+        {
+            foreach (var file in e.GetMultipleFiles(ISharedPlanetThread.MaxAttachments))
+            {
+                if (_attachments.Count >= ISharedPlanetThread.MaxAttachments)
+                {
+                    _error = $"Threads support up to {ISharedPlanetThread.MaxAttachments} attachments.";
+                    break;
+                }
+
+                if (file.Size > MaxUploadBytes)
+                {
+                    _error = $"{file.Name} is too large (max 50MB).";
+                    continue;
+                }
+
+                var mime = file.ContentType ?? "application/octet-stream";
+
+                var type = MessageAttachmentType.File;
+                var uploadPath = "file";
+                if (mime.StartsWith("image/"))
+                {
+                    type = MessageAttachmentType.Image;
+                    uploadPath = "image";
+                }
+                else if (mime.StartsWith("video/"))
+                {
+                    type = MessageAttachmentType.Video;
+                }
+
+                await using var stream = file.OpenReadStream(MaxUploadBytes);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var bytes = ms.ToArray();
+
+                using var content = new MultipartFormDataContent();
+                var byteContent = new ByteArrayContent(bytes);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+                content.Add(byteContent, file.Name, file.Name);
+
+                var result = await Client.PrimaryNode.PostMultipartDataWithResponse<string>($"upload/{uploadPath}", content);
+                if (!result.Success)
+                {
+                    _error = $"Failed to upload {file.Name}: {result.Message}";
+                    continue;
+                }
+
+                var attachment = new MessageAttachment(type)
+                {
+                    Location = result.Data,
+                    MimeType = mime,
+                    FileName = file.Name
+                };
+
+                _attachments.Add(attachment);
+
+                var url = await attachment.GetSignedUrl(Client, Client.PrimaryNode);
+                if (url is not null)
+                    _attachmentUrls[attachment] = url;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = "Upload failed: " + ex.Message;
+        }
+
+        _uploading = false;
+        StateHasChanged();
+    }
+
+    private void RemoveAttachment(MessageAttachment attachment)
+    {
+        _attachments.Remove(attachment);
+        _attachmentUrls.Remove(attachment);
+    }
+
+    private async Task OnClickPost()
+    {
+        if (!CanPost)
+            return;
+
+        _posting = true;
+        _error = null;
+        StateHasChanged();
+
+        TaskResult<PlanetThread> result;
+        if (IsEditing)
+        {
+            var updated = new PlanetThread(Client)
+            {
+                Id = ExistingThread.Id,
+                PlanetId = ExistingThread.PlanetId,
+                Title = _title.Trim(),
+                Content = _content ?? "",
+                Nsfw = _nsfw
+            };
+
+            result = await Client.ThreadService.EditThreadAsync(updated);
+        }
+        else
+        {
+            var thread = new PlanetThread(Client)
+            {
+                PlanetId = SelectedPlanetId,
+                Title = _title.Trim(),
+                Content = _content ?? "",
+                Nsfw = _nsfw,
+                Attachments = _attachments.ToList()
+            };
+
+            result = await Client.ThreadService.CreateThreadAsync(thread);
+        }
+
+        _posting = false;
+
+        if (!result.Success)
+        {
+            _error = result.Message;
+            StateHasChanged();
+            return;
+        }
+
+        ToastContainer.Instance.AddToast(IsEditing
+            ? new ToastData("Saved!", "Your changes are live.", ToastProgressState.Success)
+            : new ToastData("Posted!", "Your thread is live.", ToastProgressState.Success));
+
+        if (!IsEditing)
+            ResetForm();
+
+        if (OnPosted is not null)
+            await OnPosted.Invoke(result.Data);
+    }
+
+    private void ResetForm()
+    {
+        _title = "";
+        _content = "";
+        _nsfw = false;
+        _previewing = false;
+        _attachments.Clear();
+        _attachmentUrls.Clear();
+    }
+
+    private async Task OnClickCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

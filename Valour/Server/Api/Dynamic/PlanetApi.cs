@@ -223,6 +223,22 @@ public class PlanetApi
         return Results.Json(memberInfo);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/presence")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetPresenceRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        PlanetService planetService)
+    {
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var presence = await planetService.GetPresenceSummaryAsync(id);
+
+        return Results.Json(presence);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/members/count")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetMemberCountRouteAsync(

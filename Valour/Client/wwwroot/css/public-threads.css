@@ -1,0 +1,242 @@
+/* Public (non-Blazor) thread pages.
+   Post and comment styling comes from the shared display components
+   (ThreadPostDisplay / ThreadCommentDisplay) via bundled.min.css; this file
+   only styles the surrounding page chrome. */
+
+/* Same surface as the app's window area (windows sit on --main-2) */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family-app, sans-serif);
+    background-color: var(--main-2, #0b151d);
+    color: var(--font-color, #ffffff);
+    min-height: 100vh;
+}
+
+.pt-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top bar */
+
+.pt-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: var(--main-1, #040d14);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* The app's signature cyan-purple gradient underline */
+.pt-topbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, var(--color-primary, #37a4ce), var(--color-secondary, #8457cd));
+    opacity: 0.5;
+}
+
+.pt-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--font-color, #fff);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.pt-brand img {
+    width: 28px;
+    height: 28px;
+}
+
+.pt-open-app {
+    display: inline-block;
+    background: color-mix(in srgb, var(--color-primary, #37a4ce) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary, #37a4ce) 40%, transparent);
+    color: color-mix(in srgb, var(--color-primary, #37a4ce) 65%, white);
+    border-radius: var(--radius-md, 8px);
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.pt-open-app:hover {
+    background: var(--color-primary, #37a4ce);
+    color: var(--color-primary-contrast, #ffffff);
+    box-shadow: 0 2px 14px color-mix(in srgb, var(--color-primary, #37a4ce) 35%, transparent);
+}
+
+/* Layout */
+
+.pt-main {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 16px 12px 40px 12px;
+    box-sizing: border-box;
+}
+
+.pt-error {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 48px 16px;
+}
+
+.pt-error h2 {
+    margin: 0;
+}
+
+.pt-error p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.65);
+    max-width: 420px;
+}
+
+.pt-planet-icon-lg {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Planet link / feed header */
+
+.pt-planet-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.pt-planet-link:hover {
+    color: #fff;
+}
+
+.pt-planet-link img {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.pt-feed-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.pt-feed-header img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.pt-feed-header h1 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.pt-feed-header p {
+    margin: 2px 0 0 0;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+}
+
+/* Feed list: spaced post cards, links must not restyle them */
+
+.pt-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pt-post-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Comments section: card surface matching the post card */
+
+.pt-comments {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background-color: var(--main-3, #121e27);
+    border: 1px solid var(--slight-tint, rgba(255, 255, 255, 0.08));
+    border-radius: var(--radius-lg, 12px);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.pt-comments > h2 {
+    font-size: 16px;
+    border-bottom: 1px solid var(--slight-tint, rgba(255, 255, 255, 0.1));
+    padding-bottom: 6px;
+    margin: 0 0 8px 0;
+}
+
+.pt-none {
+    color: rgba(255, 255, 255, 0.55);
+    padding: 24px 0;
+    text-align: center;
+}
+
+.pt-cta {
+    margin-top: 20px;
+    padding: 16px;
+    text-align: center;
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-primary, #37a4ce) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-accent, #6278cd) 8%, transparent) 100%);
+    border: 1px solid color-mix(in srgb, var(--color-primary, #37a4ce) 25%, transparent);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary, #37a4ce) 8%, transparent);
+}
+
+.pt-cta p {
+    margin: 0 0 10px 0;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* Pager */
+
+.pt-pager {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+}
+
+.pt-pager a {
+    color: var(--color-primary, #37a4ce);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .pt-main {
+        padding: 12px 8px 32px 8px;
+    }
+}

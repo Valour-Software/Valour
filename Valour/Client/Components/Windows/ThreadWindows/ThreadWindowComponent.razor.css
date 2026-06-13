@@ -1,0 +1,250 @@
+.thread-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--main-2);
+    font-family: var(--font-family-app);
+}
+
+.thread-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.thread-main {
+    max-width: 760px;
+    width: 100%;
+    margin: 0 auto;
+    padding: var(--space-2) var(--space-3) var(--space-4) var(--space-3);
+    box-sizing: border-box;
+}
+
+.thread-topbar {
+    margin-bottom: var(--space-1);
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    background: none;
+    border: none;
+    padding: var(--space-1) 0;
+    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.back-btn:hover {
+    color: var(--font-color);
+}
+
+.thread-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: 100%;
+    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+}
+
+.thread-loading i {
+    font-size: 42px;
+}
+
+/* Live chat CTA: thin cyan-purple gradient ring between post and comments */
+
+.live-cta {
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: 1px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    cursor: pointer;
+    box-shadow: 0 1px 10px color-mix(in srgb, var(--color-primary) 10%, transparent);
+    transition: box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.live-cta:hover {
+    box-shadow:
+        0 2px 14px color-mix(in srgb, var(--color-primary) 22%, transparent),
+        0 2px 14px color-mix(in srgb, var(--color-secondary) 16%, transparent);
+}
+
+.live-cta-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: var(--main-2);
+    font-family: var(--font-family-app);
+    font-size: var(--font-size-sm);
+    transition: background-color var(--duration-base) var(--ease-standard);
+}
+
+.live-cta:hover .live-cta-inner {
+    background: color-mix(in srgb, var(--main-2) 88%, var(--color-primary));
+}
+
+.live-cta-left {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--font-color) 80%, transparent);
+}
+
+.live-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-success);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
+    animation: live-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+.live-cta-right {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+    color: color-mix(in srgb, var(--color-primary) 70%, white);
+    font-weight: var(--font-weight-medium);
+}
+
+.live-cta-right i {
+    transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.live-cta:hover .live-cta-right i {
+    transform: translateX(2px);
+}
+
+@media (max-width: 600px) {
+    .live-cta-label {
+        display: none;
+    }
+}
+
+/* Comments: card surface matching the post card above */
+
+.comments-section {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.locked-notice {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    color: color-mix(in srgb, var(--font-color) 80%, transparent);
+    font-size: var(--font-size-sm);
+}
+
+.locked-notice i {
+    color: var(--color-danger);
+}
+
+.comments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid color-mix(in srgb, var(--font-color) 8%, transparent);
+}
+
+.comments-header h4 {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--font-color);
+}
+
+.comment-sort {
+    width: 110px;
+}
+
+.comment-sort ::deep .custom-dropdown {
+    min-width: unset;
+    border-radius: var(--radius-full);
+    padding: 4px 12px;
+}
+
+.no-comments {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-6) 0;
+    color: color-mix(in srgb, var(--font-color) 50%, transparent);
+    font-size: var(--font-size-sm);
+}
+
+.no-comments i {
+    font-size: var(--font-size-2xl);
+}
+
+.no-comments p {
+    margin: 0;
+}
+
+.load-more {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-1) var(--space-2);
+    background: color-mix(in srgb, var(--font-color) 4%, transparent);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-full);
+    color: color-mix(in srgb, var(--font-color) 70%, transparent);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard),
+                color var(--duration-fast) var(--ease-standard);
+}
+
+.load-more:hover {
+    background: color-mix(in srgb, var(--font-color) 8%, transparent);
+    border-color: var(--color-primary-border);
+    color: var(--font-color);
+}
+
+.load-more:disabled {
+    color: color-mix(in srgb, var(--font-color) 40%, transparent);
+    border-color: color-mix(in srgb, var(--font-color) 15%, transparent);
+    cursor: default;
+}
+
+@media (max-width: 600px) {
+    .comments-section {
+        padding: var(--space-3) var(--space-2);
+    }
+}

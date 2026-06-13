@@ -1,0 +1,106 @@
+@inject ValourClient Client
+
+<div class="comment-compose">
+    @if (_previewing)
+    {
+        <div class="compose-preview">
+            @if (string.IsNullOrWhiteSpace(_content))
+            {
+                <span class="preview-empty">Nothing to preview yet.</span>
+            }
+            else
+            {
+                <RichText Content="@_content" PlanetId="@Thread.PlanetId"/>
+            }
+        </div>
+    }
+    else
+    {
+        <textarea class="v-input compose-input" maxlength="@ISharedThreadComment.MaxContentLength"
+                  placeholder="@Placeholder"
+                  @bind="_content" @bind:event="oninput"></textarea>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="compose-error">@_error</p>
+    }
+
+    <div class="compose-actions">
+        <button class="preview-toggle" @onclick="@(() => _previewing = !_previewing)">
+            <i class="bi @(_previewing ? "bi-pencil" : "bi-eye")"></i>
+            @(_previewing ? "Write" : "Preview")
+        </button>
+        <div class="right-actions">
+            @if (OnCancel.HasDelegate)
+            {
+                <button class="v-btn small" @onclick="@OnCancel">Cancel</button>
+            }
+            <button class="v-btn primary small" disabled="@(!CanPost)" @onclick="@PostAsync">
+                @(_posting ? "Posting..." : "Comment")
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public PlanetThread Thread { get; set; }
+
+    /// <summary>
+    /// When set, the comment is a reply to this comment
+    /// </summary>
+    [Parameter]
+    public ThreadComment ParentComment { get; set; }
+
+    [Parameter]
+    public EventCallback<ThreadComment> OnPosted { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } = "Add a comment...";
+
+    private string _content = "";
+    private bool _previewing;
+    private bool _posting;
+    private string _error;
+
+    private bool CanPost => !_posting && !string.IsNullOrWhiteSpace(_content);
+
+    private async Task PostAsync()
+    {
+        if (!CanPost)
+            return;
+
+        _posting = true;
+        _error = null;
+        StateHasChanged();
+
+        var comment = new ThreadComment(Client)
+        {
+            PlanetId = Thread.PlanetId,
+            ThreadId = Thread.Id,
+            ParentCommentId = ParentComment?.Id,
+            Content = _content
+        };
+
+        var result = await Client.ThreadService.CreateCommentAsync(comment);
+
+        _posting = false;
+
+        if (!result.Success)
+        {
+            _error = result.Message;
+            StateHasChanged();
+            return;
+        }
+
+        _content = "";
+        _previewing = false;
+        StateHasChanged();
+
+        await OnPosted.InvokeAsync(result.Data);
+    }
+}

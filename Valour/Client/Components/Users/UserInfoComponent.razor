@@ -6,16 +6,19 @@
 @* Placeholder *@
 @if (User is null)
 {
-    <div class="user-info" style="@Style">
+    <div class="user-info @CompactClass" style="@Style">
         <div class="left-block">
             <img alt="user not found" class="avatar" src="@_avatarUrl">
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor">Not Found</p>
                 </div>
-                <p class="status">
-                    -------------
-                </p>
+                @if (ShowStatus)
+                {
+                    <p class="status">
+                        -------------
+                    </p>
+                }
             </div>
         </div>
     </div>
@@ -24,7 +27,7 @@
 
 <div @oncontextpress="@OnContextMenu" style="display:inline" tabindex="0"
      @onkeydown="@OnKeyDown">
-    <div class="user-info" style="@Style" @onclick="@ShowProfileAsync">
+    <div class="user-info @CompactClass" style="@Style" @onclick="@ShowProfileAsync">
         <div class="left-block">
             @if (User.HasAnimatedAvatar)
             {
@@ -34,15 +37,18 @@
                     }
                 </style>
             }
-            <UserAvatar User="@User" Member="@Member" Size="32" ShowBadges="@ShowBadges" ShowState="@ShowState"/>
+            <UserAvatar User="@User" Member="@Member" Size="@AvatarSize" ShowBadges="@ShowBadges" ShowState="@ShowState"/>
             
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor" @onclick="@ShowProfileAsync">@_name</p>
                 </div>
-                <p class="status">
-                    @_statusText
-                </p>
+                @if (ShowStatus)
+                {
+                    <p class="status">
+                        @_statusText
+                    </p>
+                }
             </div>
         </div>
     </div>
@@ -68,6 +74,26 @@
 
     [Parameter]
     public bool ShowState { get; set; } = true;
+
+    /// <summary>
+    /// Shows the status text line under the name
+    /// </summary>
+    [Parameter]
+    public bool ShowStatus { get; set; } = true;
+
+    /// <summary>
+    /// Avatar size in pixels
+    /// </summary>
+    [Parameter]
+    public int AvatarSize { get; set; } = 32;
+
+    /// <summary>
+    /// Tight spacing for inline use (e.g. thread cards and comments)
+    /// </summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private string CompactClass => Compact ? "compact" : "";
     
     // Internal cached values
     private string _name = DefaultName;

@@ -5,8 +5,22 @@
 {
     <div class="custom-dropdown-overlay @(IsMobile ? "mobile" : string.Empty)" @onclick="Close">
         <div class="custom-dropdown-content" style="@_style" @onclick:stopPropagation="true">
-            <input class="dropdown-search v-input" placeholder="Search" @bind="_search" @oninput="OnSearch" />
+            @if (_data.ShowSearch)
+            {
+                <input class="dropdown-search v-input" placeholder="Search" @bind="_search" @oninput="OnSearch" />
+            }
             <div class="dropdown-items">
+                @if (_data.NullOptionTemplate is not null && string.IsNullOrWhiteSpace(_search))
+                {
+                    var nullSelected = _data.SelectedItem is null;
+                    <div class="dropdown-item @(nullSelected ? "selected" : string.Empty)" @onclick="() => Select(null)">
+                        @_data.NullOptionTemplate
+                        @if (nullSelected)
+                        {
+                            <i class="bi bi-check check"></i>
+                        }
+                    </div>
+                }
                 @foreach (var item in _filteredItems)
                 {
                     var selected = IsSelected(item);
@@ -17,6 +31,10 @@
                             <i class="bi bi-check check"></i>
                         }
                     </div>
+                }
+                @if (_filteredItems.Count == 0 && !string.IsNullOrWhiteSpace(_search))
+                {
+                    <div class="dropdown-empty">No results found</div>
                 }
             </div>
             @if (IsMobile)
@@ -33,7 +51,10 @@
     private bool _hidden = true;
     private double _left;
     private double _top;
-    private string _style => IsMobile ? string.Empty : $"position: absolute; left: {_left}px; top: {_top}px;";
+    private double _minWidth;
+    private string _style => IsMobile
+        ? string.Empty
+        : $"position: absolute; left: {(int)_left}px; top: {(int)_top}px; min-width: {(int)_minWidth}px;";
     private string _search = string.Empty;
     private List<object> _filteredItems = new();
     private CustomDropdownContentData _data;
@@ -70,8 +91,13 @@
     private async Task UpdatePosition()
     {
         var rect = await BrowserUtils.GetElementBoundingRectAsync(_anchor);
-        _left = rect.Left;
-        _top = rect.Bottom;
+        _minWidth = rect.Width;
+        _top = rect.Bottom + 4;
+
+        // Keep the popup from spilling off the right edge of the viewport
+        var windowWidth = BrowserUtils.WindowDimensions.Width;
+        var estimatedWidth = Math.Max(rect.Width, 220);
+        _left = Math.Max(8, Math.Min(rect.Left, windowWidth - estimatedWidth - 8));
     }
 
     private void Filter()
@@ -109,6 +135,10 @@
     public async Task Close()
     {
         _hidden = true;
+
+        if (_data?.OnClose != null)
+            await _data.OnClose();
+
         await InvokeAsync(StateHasChanged);
     }
 

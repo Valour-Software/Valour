@@ -19,6 +19,8 @@ public interface ISharedPlanetReport : ISharedPlanetModel<long>
     long? ReportedMemberId { get; set; }
     long? MessageId { get; set; }
     long? ChannelId { get; set; }
+    long? ThreadId { get; set; }
+    long? ThreadCommentId { get; set; }
     long? RuleId { get; set; }
     string RuleTitleSnapshot { get; set; }
     string RuleDescriptionSnapshot { get; set; }

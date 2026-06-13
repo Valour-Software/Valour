@@ -1,0 +1,97 @@
+@inherits ContextMenu<ThreadCommentContextMenu.CommentContextParams>
+@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+
+<ContextSubMenu>
+    <Label>Copy</Label>
+    <Icon><i class="bi bi-caret-right-fill"></i></Icon>
+    <Content>
+        <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyId">Comment Id</ContextMenuItem>
+    </Content>
+</ContextSubMenu>
+
+@if (_canDelete && !Data.Comment.IsDeleted)
+{
+    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
+        <Label>Delete</Label>
+        <Icon><i class="bi bi-trash-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
+<ContextMenuItem OnClickAsync="@OnClickReport" Color="red">
+    <Label>Report</Label>
+    <Icon><i class="bi bi-flag-fill"></i></Icon>
+</ContextMenuItem>
+
+@code {
+
+    public class CommentContextParams
+    {
+        public ThreadComment Comment;
+    }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private bool _canDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var planet = await Client.PlanetService.FetchPlanetAsync(Data.Comment.PlanetId);
+        var canManage = planet?.MyMember?.HasPermission(PlanetPermissions.ManageThreads) ?? false;
+
+        _canDelete = canManage || Data.Comment.AuthorUserId == Client.Me.Id;
+    }
+
+    private async Task OnClickDelete()
+    {
+        await CloseAsync();
+
+        var comment = Data.Comment;
+
+        var data = new ConfirmModalComponent.ModalParams("Delete comment?", comment.Content, "Delete", "Cancel",
+            async () =>
+            {
+                var result = await Client.ThreadService.DeleteCommentAsync(comment);
+                if (!result.Success)
+                    ToastContainer.Instance.AddToast(new ToastData("Delete failed", result.Message, ToastProgressState.Failure));
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(data);
+    }
+
+    private async Task OnClickReport()
+    {
+        await CloseAsync();
+
+        var data = new ReportModalComponent.ModalParams()
+        {
+            Report = new Report()
+            {
+                ReportingUserId = Client.Me.Id,
+                PlanetId = Data.Comment.PlanetId,
+                ThreadId = Data.Comment.ThreadId,
+                ThreadCommentId = Data.Comment.Id,
+                ReportedUserId = Data.Comment.AuthorUserId
+            },
+            ReportedMemberId = Data.Comment.AuthorMemberId
+        };
+
+        ModalRoot.OpenModal<ReportModalComponent>(data);
+    }
+
+    private async Task OnClickCopyText()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Comment.Content);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Comment text copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task OnClickCopyId()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Comment.Id.ToString());
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Comment ID copied to clipboard", ToastProgressState.Success));
+    }
+}

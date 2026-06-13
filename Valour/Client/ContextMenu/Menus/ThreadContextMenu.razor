@@ -1,0 +1,170 @@
+@inherits ContextMenu<ThreadContextMenu.ThreadContextParams>
+@inject IJSRuntime JsRuntime
+@inject ValourClient Client
+@inject NavigationManager NavManager
+
+<ContextMenuItem OnClickAsync="@OnClickOpenInNewTab">
+    <Label>Open in New Tab</Label>
+    <Icon><i class="bi bi-window-plus"></i></Icon>
+</ContextMenuItem>
+
+@if (Data.Thread.AuthorUserId == Client.Me.Id)
+{
+    <ContextMenuItem OnClickAsync="@OnClickEdit">
+        <Label>Edit</Label>
+        <Icon><i class="bi bi-pen-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
+<ContextSubMenu>
+    <Label>Copy</Label>
+    <Icon><i class="bi bi-caret-right-fill"></i></Icon>
+    <Content>
+        <ContextMenuItem OnClickAsync="@OnClickCopyLink">Link</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyText">Text</ContextMenuItem>
+        <ContextMenuItem OnClickAsync="@OnClickCopyId">Thread Id</ContextMenuItem>
+    </Content>
+</ContextSubMenu>
+
+@if (_canManage)
+{
+    <ContextMenuItem OnClickAsync="@OnClickTogglePin">
+        <Label>@(Data.Thread.IsPinned ? "Unpin" : "Pin")</Label>
+        <Icon><i class="bi bi-pin-angle-fill"></i></Icon>
+    </ContextMenuItem>
+
+    <ContextMenuItem OnClickAsync="@OnClickToggleLock">
+        <Label>@(Data.Thread.IsLocked ? "Unlock" : "Lock")</Label>
+        <Icon><i class="bi @(Data.Thread.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i></Icon>
+    </ContextMenuItem>
+}
+
+@if (_canDelete)
+{
+    <ContextMenuItem OnClickAsync="@OnClickDelete" Color="red">
+        <Label>Delete</Label>
+        <Icon><i class="bi bi-trash-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
+<ContextMenuItem OnClickAsync="@OnClickReport" Color="red">
+    <Label>Report</Label>
+    <Icon><i class="bi bi-flag-fill"></i></Icon>
+</ContextMenuItem>
+
+@code {
+
+    public class ThreadContextParams
+    {
+        public PlanetThread Thread;
+    }
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    private bool _canManage;
+    private bool _canDelete;
+    private Planet _planet;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _planet = await Client.PlanetService.FetchPlanetAsync(Data.Thread.PlanetId);
+
+        _canManage = _planet?.MyMember?.HasPermission(PlanetPermissions.ManageThreads) ?? false;
+        _canDelete = _canManage || Data.Thread.AuthorUserId == Client.Me.Id;
+    }
+
+    private async Task OnClickOpenInNewTab()
+    {
+        await CloseAsync();
+
+        var content = ThreadWindowComponent.GetDefaultContent(Data.Thread);
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    private async Task OnClickEdit()
+    {
+        await CloseAsync();
+
+        ModalRoot.OpenModal<ThreadComposeModal>(new ThreadComposeModal.ModalParams()
+        {
+            ExistingThread = Data.Thread
+        });
+    }
+
+    private async Task OnClickTogglePin()
+    {
+        await CloseAsync();
+
+        var result = await Client.ThreadService.SetThreadPinAsync(Data.Thread, !Data.Thread.IsPinned);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Failed", result.Message, ToastProgressState.Failure));
+    }
+
+    private async Task OnClickToggleLock()
+    {
+        await CloseAsync();
+
+        var result = await Client.ThreadService.SetThreadLockAsync(Data.Thread, !Data.Thread.IsLocked);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Failed", result.Message, ToastProgressState.Failure));
+    }
+
+    private async Task OnClickDelete()
+    {
+        await CloseAsync();
+
+        var thread = Data.Thread;
+
+        var data = new ConfirmModalComponent.ModalParams("Delete thread?", thread.Title, "Delete", "Cancel",
+            async () =>
+            {
+                var result = await Client.ThreadService.DeleteThreadAsync(thread);
+                if (!result.Success)
+                    ToastContainer.Instance.AddToast(new ToastData("Delete failed", result.Message, ToastProgressState.Failure));
+            },
+            () => Task.CompletedTask
+        );
+
+        ModalRoot.OpenModal<ConfirmModalComponent>(data);
+    }
+
+    private async Task OnClickReport()
+    {
+        await CloseAsync();
+
+        var data = new ReportModalComponent.ModalParams()
+        {
+            Report = new Report()
+            {
+                ReportingUserId = Client.Me.Id,
+                PlanetId = Data.Thread.PlanetId,
+                ThreadId = Data.Thread.Id,
+                ReportedUserId = Data.Thread.AuthorUserId
+            },
+            ReportedMemberId = Data.Thread.AuthorMemberId
+        };
+
+        ModalRoot.OpenModal<ReportModalComponent>(data);
+    }
+
+    private async Task OnClickCopyLink()
+    {
+        var url = ShareUtils.GetThreadShareUrl(NavManager, _planet, Data.Thread);
+
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Thread link copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task OnClickCopyText()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Thread.Content);
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Thread text copied to clipboard", ToastProgressState.Success));
+    }
+
+    private async Task OnClickCopyId()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Data.Thread.Id.ToString());
+        ToastContainer.Instance.AddToast(new ToastData("Copied!", "Thread ID copied to clipboard", ToastProgressState.Success));
+    }
+}

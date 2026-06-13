@@ -18,7 +18,13 @@ public enum ModerationActionType
     BlockMessage = 7,
     Respond = 8,
     ResolveReport = 9,
-    DismissReport = 10
+    DismissReport = 10,
+    DeleteThread = 11,
+    LockThread = 12,
+    UnlockThread = 13,
+    PinThread = 14,
+    UnpinThread = 15,
+    DeleteThreadComment = 16
 }
 
 public interface ISharedModerationAuditLog : ISharedPlanetModel<long>

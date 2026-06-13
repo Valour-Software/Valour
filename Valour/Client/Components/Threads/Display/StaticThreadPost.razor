@@ -1,0 +1,108 @@
+@* Static composition of ThreadPostDisplay for server-rendered public pages.
+   Everything is plain data - no SDK, no interactivity. *@
+
+<ThreadPostDisplay Title="@Data.Title"
+                   TimeCreated="@Data.TimeCreated"
+                   Edited="@Data.Edited"
+                   IsPinned="@Data.IsPinned"
+                   IsLocked="@Data.IsLocked"
+                   Nsfw="@Data.Nsfw"
+                   Preview="@Preview"
+                   Clickable="@Clickable">
+    <AuthorArea>
+        @if (!string.IsNullOrEmpty(Data.AuthorAvatarUrl))
+        {
+            <img class="tp-avatar" src="@Data.AuthorAvatarUrl" alt="" loading="lazy" />
+        }
+        <span class="tp-author" style="@AuthorStyle">@Data.AuthorName</span>
+        @if (!string.IsNullOrEmpty(Data.AuthorRoleName))
+        {
+            <span class="tp-role">- @Data.AuthorRoleName</span>
+        }
+    </AuthorArea>
+    <Body>
+        @((MarkupString)(Data.ContentHtml ?? string.Empty))
+    </Body>
+    <Gallery>
+        @if (Data.Attachments is { Count: > 0 })
+        {
+            <div class="static-gallery @(Data.Nsfw ? "nsfw" : "")">
+                @foreach (var att in Data.Attachments)
+                {
+                    @if (att.IsImage)
+                    {
+                        <a href="@att.Url" target="_blank" rel="noopener">
+                            <img src="@att.Url" alt="@att.FileName" loading="lazy" />
+                        </a>
+                    }
+                    else if (att.IsVideo)
+                    {
+                        <video src="@att.Url" controls preload="metadata"></video>
+                    }
+                    else
+                    {
+                        <a class="static-file" href="@att.Url" target="_blank" rel="noopener">
+                            <i class="bi bi-file-earmark"></i> @att.FileName
+                        </a>
+                    }
+                }
+            </div>
+        }
+    </Gallery>
+    <Footer>
+        @if (!string.IsNullOrEmpty(ActionHref))
+        {
+            <a class="tp-pill" href="@ActionHref" title="Boost this thread on Valour">
+                <i class="bi bi-rocket-takeoff"></i>
+                @if (Data.BoostCount > 0)
+                {
+                    <span>@Data.BoostCount</span>
+                }
+            </a>
+            <a class="tp-pill" href="@ActionHref" title="Comment on Valour">
+                <i class="bi bi-chat-square-text"></i>
+                @if (Data.CommentCount > 0)
+                {
+                    <span>@Data.CommentCount</span>
+                }
+            </a>
+            <a class="tp-pill" href="@ActionHref" title="Share on Valour">
+                <i class="bi bi-share"></i>
+            </a>
+        }
+        else
+        {
+            <span class="tp-pill static">
+                <i class="bi bi-rocket-takeoff"></i>
+                @if (Data.BoostCount > 0)
+                {
+                    <span>@Data.BoostCount</span>
+                }
+            </span>
+            <span class="tp-pill static">
+                <i class="bi bi-chat-square-text"></i>
+                @if (Data.CommentCount > 0)
+                {
+                    <span>@Data.CommentCount</span>
+                }
+            </span>
+        }
+    </Footer>
+</ThreadPostDisplay>
+
+@code {
+    [Parameter] public StaticThreadPostData Data { get; set; }
+    [Parameter] public bool Preview { get; set; }
+    [Parameter] public bool Clickable { get; set; }
+
+    /// <summary>
+    /// When set, action pills render as links to this URL (the app deep link,
+    /// which routes through login for logged-out visitors). When null the
+    /// pills are static counts - used inside feed cards that are already links.
+    /// </summary>
+    [Parameter] public string ActionHref { get; set; }
+
+    private string AuthorStyle => string.IsNullOrEmpty(Data.AuthorRoleColor)
+        ? null
+        : $"color: {Data.AuthorRoleColor};";
+}

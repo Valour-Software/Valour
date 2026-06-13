@@ -170,6 +170,16 @@ public interface ISharedReport : ISharedModel<string>
     /// The planet id (if any) the report applies to
     /// </summary>
     long? PlanetId { get; set; }
+
+    /// <summary>
+    /// The thread id (if any) the report applies to
+    /// </summary>
+    long? ThreadId { get; set; }
+
+    /// <summary>
+    /// The thread comment id (if any) the report applies to
+    /// </summary>
+    long? ThreadCommentId { get; set; }
     
     /// <summary>
     /// The category-code of the reason of the report

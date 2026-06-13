@@ -1,0 +1,107 @@
+@using Valour.Client.Components.Menus.Modals.Attachments
+@inject ValourClient Client
+
+@if (_visible.Count > 0)
+{
+    <div class="thread-gallery count-@Math.Min(_visible.Count, 4)">
+        @for (var i = 0; i < _visible.Count && i < MaxVisible; i++)
+        {
+            var index = i;
+            var attachment = _visible[index];
+            var url = _urls.GetValueOrDefault(attachment);
+
+            <div class="gallery-item" @onclick="@(() => OnClickItem(attachment))" @onclick:stopPropagation="true">
+                @if (attachment.Type == MessageAttachmentType.Image)
+                {
+                    <img src="@url" alt="@attachment.FileName" loading="lazy"/>
+                }
+                else if (attachment.Type == MessageAttachmentType.Video)
+                {
+                    @if (_visible.Count == 1)
+                    {
+                        <video src="@url" controls preload="metadata" @onclick:stopPropagation="true"></video>
+                    }
+                    else
+                    {
+                        <video src="@url" preload="metadata" muted></video>
+                        <div class="play-overlay">
+                            <i class="bi bi-play-circle-fill"></i>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="file-chip">
+                        <i class="bi bi-file-earmark-fill"></i>
+                        <span>@(attachment.FileName ?? "File")</span>
+                    </div>
+                }
+
+                @if (index == MaxVisible - 1 && _visible.Count > MaxVisible)
+                {
+                    <div class="more-overlay">+@(_visible.Count - MaxVisible)</div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const int MaxVisible = 4;
+
+    [CascadingParameter]
+    public ModalRoot ModalRoot { get; set; }
+
+    [Parameter]
+    public List<MessageAttachment> Attachments { get; set; }
+
+    [Parameter]
+    public long PlanetId { get; set; }
+
+    /// <summary>
+    /// When false, clicking items does nothing (used inside clickable cards that
+    /// should not hijack the navigation click)
+    /// </summary>
+    [Parameter]
+    public bool Expandable { get; set; } = true;
+
+    private List<MessageAttachment> _visible = new();
+    private readonly Dictionary<MessageAttachment, string> _urls = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _visible = Attachments?
+            .Where(x => x is not null && !x.Missing && x.Type != MessageAttachmentType.SitePreview)
+            .ToList() ?? new List<MessageAttachment>();
+
+        var node = Client.NodeService.GetKnownByPlanet(PlanetId) ?? Client.PrimaryNode;
+
+        foreach (var attachment in _visible)
+        {
+            if (_urls.ContainsKey(attachment))
+                continue;
+
+            var url = await attachment.GetSignedUrl(Client, node);
+            if (url is not null)
+                _urls[attachment] = url;
+        }
+    }
+
+    private void OnClickItem(MessageAttachment attachment)
+    {
+        if (!Expandable || ModalRoot is null)
+            return;
+
+        // AttachmentModal needs a message for client/node resolution
+        var stub = new Message(Client)
+        {
+            PlanetId = PlanetId
+        };
+
+        ModalRoot.OpenModal<AttachmentModal>(new AttachmentModal.ModalParams()
+        {
+            Message = stub,
+            Attachment = attachment
+        });
+    }
+}

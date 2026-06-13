@@ -1,0 +1,90 @@
+@* Presentational thread post layout. No service injections - safe for both
+   the interactive app (ThreadCard) and static SSR on the public pages. *@
+
+@* "tp-preview" rather than "preview": globals.css restyles ".preview" on mobile *@
+<article class="thread-post @(Preview ? "tp-preview" : "") @(Clickable ? "clickable" : "")">
+    <div class="tp-header">
+        @AuthorArea
+        @PlanetChip
+        <span class="tp-time" title="@TimeCreated.ToLocalTime()">@Valour.Client.Utility.TimeUtil.GetRelativeTime(TimeCreated)</span>
+        @if (Edited)
+        {
+            <span class="tp-edited">(edited)</span>
+        }
+        <div class="tp-flags">
+            @if (IsPinned)
+            {
+                <i class="bi bi-pin-angle-fill tp-flag pinned" title="Pinned"></i>
+            }
+            @if (IsLocked)
+            {
+                <i class="bi bi-lock-fill tp-flag locked" title="Locked"></i>
+            }
+            @if (Nsfw)
+            {
+                <span class="tp-flag nsfw">NSFW</span>
+            }
+        </div>
+    </div>
+
+    <h3 class="tp-title">@Title</h3>
+
+    @if (Body is not null)
+    {
+        <div class="tp-body">
+            @Body
+        </div>
+    }
+
+    @if (Gallery is not null)
+    {
+        <div class="tp-gallery">
+            @Gallery
+        </div>
+    }
+
+    @if (Footer is not null)
+    {
+        <div class="tp-footer">
+            @Footer
+        </div>
+    }
+</article>
+
+@code {
+    [Parameter] public string Title { get; set; }
+    [Parameter] public DateTime TimeCreated { get; set; }
+    [Parameter] public bool Edited { get; set; }
+    [Parameter] public bool IsPinned { get; set; }
+    [Parameter] public bool IsLocked { get; set; }
+    [Parameter] public bool Nsfw { get; set; }
+
+    /// <summary>
+    /// Clamps the body with a fade for feed previews
+    /// </summary>
+    [Parameter] public bool Preview { get; set; }
+
+    [Parameter] public bool Clickable { get; set; }
+
+    /// <summary>
+    /// Author identity area (UserInfoComponent in-app, plain markup on public pages)
+    /// </summary>
+    [Parameter] public RenderFragment AuthorArea { get; set; }
+
+    /// <summary>
+    /// Optional planet chip shown after the author on aggregated feeds
+    /// </summary>
+    [Parameter] public RenderFragment PlanetChip { get; set; }
+
+    /// <summary>
+    /// Post content (RichText in-app, pre-rendered markdown on public pages)
+    /// </summary>
+    [Parameter] public RenderFragment Body { get; set; }
+
+    [Parameter] public RenderFragment Gallery { get; set; }
+
+    /// <summary>
+    /// Action row (interactive buttons in-app, static stats on public pages)
+    /// </summary>
+    [Parameter] public RenderFragment Footer { get; set; }
+}

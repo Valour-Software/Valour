@@ -1,0 +1,116 @@
+.thread-gallery {
+    display: grid;
+    gap: 3px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-top: var(--space-3);
+    max-height: 420px;
+    border: 1px solid color-mix(in srgb, var(--font-color) 8%, transparent);
+}
+
+.thread-gallery.count-1 {
+    grid-template-columns: 1fr;
+}
+
+.thread-gallery.count-2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.thread-gallery.count-3 {
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.thread-gallery.count-3 .gallery-item:first-child {
+    grid-row: span 2;
+}
+
+.thread-gallery.count-4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.gallery-item {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    cursor: pointer;
+    background-color: var(--main-1);
+}
+
+.thread-gallery.count-1 .gallery-item {
+    max-height: 420px;
+}
+
+.thread-gallery:not(.count-1) .gallery-item {
+    aspect-ratio: 16 / 10;
+}
+
+.gallery-item img,
+.gallery-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.thread-gallery.count-1 .gallery-item img,
+.thread-gallery.count-1 .gallery-item video {
+    object-fit: contain;
+    max-height: 420px;
+}
+
+.gallery-item:hover img {
+    transform: scale(1.02);
+}
+
+.play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, black 30%, transparent);
+    pointer-events: none;
+}
+
+.play-overlay i {
+    font-size: 42px;
+    color: white;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.more-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, black 55%, transparent);
+    color: white;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-app);
+}
+
+.file-chip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    color: var(--font-color);
+    font-size: var(--font-size-sm);
+    height: 100%;
+}
+
+.file-chip i {
+    font-size: var(--font-size-lg);
+    color: var(--color-primary);
+}
+
+.file-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

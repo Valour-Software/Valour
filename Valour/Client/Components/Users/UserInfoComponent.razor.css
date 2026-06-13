@@ -73,3 +73,19 @@
     text-align: left;
     padding-right: 8px;
 }
+
+/* Compact mode: tight inline layout for cards and comments */
+
+.user-info.compact {
+    padding: 0;
+    display: inline-flex;
+}
+
+.user-info.compact:hover {
+    background: none;
+}
+
+.user-info.compact .avatar,
+.user-info.compact .left-block ::deep .user-avatar {
+    margin: 0 6px 0 0;
+}

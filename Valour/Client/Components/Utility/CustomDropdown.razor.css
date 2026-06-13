@@ -2,22 +2,51 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.25em;
-    background-color: var(--main-4);
-    border: 1px solid #1d1d1d;
+    gap: var(--space-2);
+    background-color: var(--main-3);
+    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
     border-radius: var(--radius-md);
-    color: #ffffff;
-    padding: 5px 9px;
-    font-size: var(--font-size-md);
-    margin-bottom: 0.5em;
+    color: var(--font-color);
+    padding: 6px 10px;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family-app);
     width: 100%;
     min-width: 10em;
+    box-sizing: border-box;
+    user-select: none;
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                background-color var(--duration-fast) var(--ease-standard);
 }
 
-.custom-dropdown i {
+.custom-dropdown:hover {
+    border-color: color-mix(in srgb, var(--font-color) 25%, transparent);
+}
+
+.custom-dropdown.open {
+    border-color: var(--color-primary-border);
+}
+
+.dropdown-value {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.custom-dropdown .chevron {
     margin-left: auto;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--font-color) 60%, transparent);
+    transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.custom-dropdown.open .chevron {
+    transform: rotate(180deg);
 }
 
 .placeholder {
-    opacity: 0.7;
+    opacity: 0.6;
 }

@@ -1,0 +1,338 @@
+@inherits WindowContentComponent<ThreadsWindowData>
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="threads-window">
+    <div class="threads-header">
+        <div class="controls-row">
+            <div class="planet-filter">
+                <CustomDropdown TItem="Planet"
+                                Items="@JoinedPlanets"
+                                InitialItem="@_planet"
+                                SearchFunc="@PlanetSearch"
+                                SelectedItemChanged="@OnPlanetSelected">
+                    <ItemTemplate Context="planet">
+                        <div class="planet-option">
+                            <PlanetIcon Planet="@planet" Size="20"/>
+                            <span class="planet-option-name">@planet.Name</span>
+                        </div>
+                    </ItemTemplate>
+                    <NullOptionTemplate>
+                        <div class="planet-option">
+                            <i class="bi bi-globe-americas all-planets-icon"></i>
+                            <span class="planet-option-name">All Planets</span>
+                        </div>
+                    </NullOptionTemplate>
+                </CustomDropdown>
+            </div>
+
+            <div class="sort-tabs">
+                <button class="sort-tab @(_sort == "hot" ? "active" : "")" @onclick='@(() => SetSort("hot"))'>
+                    <i class="bi bi-fire"></i> Hot
+                </button>
+                <button class="sort-tab @(_sort == "new" ? "active" : "")" @onclick='@(() => SetSort("new"))'>
+                    <i class="bi bi-stars"></i> New
+                </button>
+                <button class="sort-tab @(_sort == "top" ? "active" : "")" @onclick='@(() => SetSort("top"))'>
+                    <i class="bi bi-trophy"></i> Top
+                </button>
+            </div>
+
+            @if (_sort == "top")
+            {
+                <div class="period-filter">
+                    <CustomDropdown TItem="PeriodOption"
+                                    Items="@PeriodOptions"
+                                    InitialItem="@CurrentPeriodOption"
+                                    EnableSearch="false"
+                                    SelectedItemChanged="@OnPeriodSelected"/>
+                </div>
+            }
+
+            <button class="refresh-btn @(_newPostCount > 0 ? "has-new" : "")"
+                    title="@(_newPostCount > 0 ? "Load new posts" : "Refresh feed")"
+                    disabled="@_isLoading"
+                    @onclick="@OnClickRefresh">
+                <i class="bi bi-arrow-clockwise @(_isLoading ? "spinning" : "")"></i>
+                @if (_newPostCount > 0)
+                {
+                    <span class="new-count">@NewPostLabel</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    <div class="threads-feed">
+        <ThreadComposeInline @ref="@_composer" Planet="@_planet" OnPosted="@OnThreadPosted"/>
+
+        <InfiniteScroll TItem="PlanetThread"
+                        Items="@_threads"
+                        HasLoaded="@_hasLoaded"
+                        HasMore="@_hasMore"
+                        IsLoading="@_isLoading"
+                        ErrorMessage="@_error"
+                        OnLoadMore="@LoadMoreAsync">
+            <ItemTemplate Context="thread">
+                <ThreadCard @key="@thread.Id" Thread="@thread" ShowPlanet="@(_planet is null)" WindowCtx="@WindowCtx"/>
+            </ItemTemplate>
+            <EmptyContent>
+                <div class="feed-empty">
+                    <i class="bi bi-rocket"></i>
+                    <h3>No threads yet</h3>
+                    <p>Be the first to post something!</p>
+                    <button class="v-btn primary" @onclick="@OnClickNewPost">New Post</button>
+                </div>
+            </EmptyContent>
+            <LoadingContent>
+                <div class="feed-loading">Loading threads...</div>
+            </LoadingContent>
+        </InfiniteScroll>
+    </div>
+</div>
+
+@code {
+    private const int PageSize = 20;
+
+    public static WindowContent<ThreadsWindowComponent, ThreadsWindowData> DefaultContent => new Content()
+    {
+        Title = "Threads",
+        Icon = "./_content/Valour.Client/media/logo/logo-128.png",
+        Data = new ThreadsWindowData(),
+        AutoScroll = true
+    };
+
+    public static WindowContent<ThreadsWindowComponent, ThreadsWindowData> GetDefaultContent(Planet planet) => new Content()
+    {
+        Title = "Threads - " + planet.Name,
+        Icon = planet.GetIconUrl(IconFormat.Webp64),
+        Data = new ThreadsWindowData() { PlanetId = planet.Id },
+        PlanetId = planet.Id,
+        AutoScroll = true
+    };
+
+    public class Content : WindowContent<ThreadsWindowComponent, ThreadsWindowData>
+    {
+        public override async Task ImportData(string data, ValourClient client)
+        {
+            AutoScroll = true;
+            Data = JsonSerializer.Deserialize<ThreadsWindowData>(data) ?? new ThreadsWindowData();
+            Title = "Threads";
+            Icon = "./_content/Valour.Client/media/logo/logo-128.png";
+
+            if (Data.PlanetId is not null)
+            {
+                var planet = await client.PlanetService.FetchPlanetAsync(Data.PlanetId.Value);
+                if (planet is not null)
+                {
+                    Title = "Threads - " + planet.Name;
+                    Icon = planet.GetIconUrl(IconFormat.Webp64);
+                    PlanetId = planet.Id;
+                }
+            }
+        }
+
+        public override string ExportData(ValourClient client)
+        {
+            return JsonSerializer.Serialize(Data ?? new ThreadsWindowData());
+        }
+    }
+
+    private Planet _planet;
+    private ThreadComposeInline _composer;
+    private ModelQueryEngine<PlanetThread> _engine;
+    private readonly List<PlanetThread> _threads = new();
+    private readonly HashSet<long> _threadIds = new();
+
+    private string _sort = "hot";
+    private string _period = "week";
+    private bool _hasLoaded;
+    private bool _hasMore = true;
+    private bool _isLoading;
+    private string _error;
+
+    // New-post detection (Twitter-style "N new" inside the refresh button)
+    private const int PollIntervalMs = 45_000;
+    private const int NewCheckPageSize = 20;
+    private System.Timers.Timer _pollTimer;
+    private DateTime _newestSeen = DateTime.MinValue;
+    private int _newPostCount;
+
+    private string NewPostLabel =>
+        _newPostCount >= NewCheckPageSize ? $"{NewCheckPageSize}+ new" : $"{_newPostCount} new";
+
+    private IEnumerable<Planet> JoinedPlanets =>
+        Client.PlanetService.JoinedPlanets.Where(x => x.EnableThreads);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data?.PlanetId is not null)
+            _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId.Value);
+
+        await RebuildFeedAsync();
+
+        _pollTimer = new System.Timers.Timer(PollIntervalMs);
+        _pollTimer.Elapsed += (_, _) => _ = InvokeAsync(CheckForNewPostsAsync);
+        _pollTimer.AutoReset = true;
+        _pollTimer.Start();
+    }
+
+    /// <summary>
+    /// Polls the first page of the "new" feed and counts posts newer than
+    /// anything we've loaded. Shown inside the refresh button like Twitter.
+    /// </summary>
+    private async Task CheckForNewPostsAsync()
+    {
+        if (_isLoading || !_hasLoaded)
+            return;
+
+        try
+        {
+            var checkEngine = _planet is null
+                ? Client.ThreadService.GetGlobalFeedEngine()
+                : Client.ThreadService.GetPlanetFeedEngine(_planet);
+
+            checkEngine.SetFilter("sort", "new", false);
+            checkEngine.ApplyOptions();
+
+            var response = await checkEngine.GetItemsAsync(0, NewCheckPageSize);
+
+            var count = response.Items
+                .Count(x => x.TimeCreated > _newestSeen && !_threadIds.Contains(x.Id));
+
+            if (count != _newPostCount)
+            {
+                _newPostCount = count;
+                await ReRender();
+            }
+        }
+        catch
+        {
+            // Background poll - never surface errors
+        }
+    }
+
+    private async Task OnClickRefresh()
+    {
+        await RebuildFeedAsync();
+    }
+
+    private async Task RebuildFeedAsync()
+    {
+        _engine = _planet is null
+            ? Client.ThreadService.GetGlobalFeedEngine()
+            : Client.ThreadService.GetPlanetFeedEngine(_planet);
+
+        _engine.SetFilter("sort", _sort, false);
+        _engine.SetFilter("period", _sort == "top" ? _period : null, false);
+        _engine.ApplyOptions();
+
+        _threads.Clear();
+        _threadIds.Clear();
+        _hasLoaded = false;
+        _hasMore = true;
+        _error = null;
+        _newPostCount = 0;
+
+        await LoadMoreAsync();
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        if (_isLoading)
+            return;
+
+        _isLoading = true;
+        await ReRender();
+
+        try
+        {
+            var response = await _engine.GetItemsAsync(_threads.Count, PageSize);
+
+            var newThreads = response.Items
+                .Where(x => _threadIds.Add(x.Id))
+                .ToList();
+
+            _threads.AddRange(newThreads);
+            _hasMore = _threads.Count < response.TotalCount && newThreads.Count > 0;
+            _error = null;
+
+            foreach (var thread in newThreads)
+            {
+                if (thread.TimeCreated > _newestSeen)
+                    _newestSeen = thread.TimeCreated;
+            }
+
+            if (newThreads.Count > 0)
+                await Client.ThreadService.LoadThreadBoostStateAsync(newThreads);
+        }
+        catch (Exception e)
+        {
+            _error = "Failed to load threads: " + e.Message;
+        }
+
+        _hasLoaded = true;
+        _isLoading = false;
+        await ReRender();
+    }
+
+    public record PeriodOption(string Value, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private static readonly List<PeriodOption> PeriodOptions = new()
+    {
+        new("day", "Today"),
+        new("week", "This Week"),
+        new("all", "All Time"),
+    };
+
+    private PeriodOption CurrentPeriodOption =>
+        PeriodOptions.FirstOrDefault(x => x.Value == _period) ?? PeriodOptions[1];
+
+    private static bool PlanetSearch(Planet planet, string search) =>
+        planet.Name.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    private async Task OnPlanetSelected(Planet planet)
+    {
+        _planet = planet;
+
+        if (Data is not null)
+            Data.PlanetId = _planet?.Id;
+
+        await RebuildFeedAsync();
+    }
+
+    private async Task SetSort(string sort)
+    {
+        if (_sort == sort)
+            return;
+
+        _sort = sort;
+        await RebuildFeedAsync();
+    }
+
+    private async Task OnPeriodSelected(PeriodOption option)
+    {
+        _period = option?.Value ?? "week";
+        await RebuildFeedAsync();
+    }
+
+    private void OnClickNewPost()
+    {
+        _composer?.Open();
+    }
+
+    private async Task OnThreadPosted(PlanetThread thread)
+    {
+        // Refresh the feed so the new post is visible
+        await RebuildFeedAsync();
+    }
+
+    public void Dispose()
+    {
+        _pollTimer?.Stop();
+        _pollTimer?.Dispose();
+        _pollTimer = null;
+    }
+}

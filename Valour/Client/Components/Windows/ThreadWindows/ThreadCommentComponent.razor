@@ -1,0 +1,243 @@
+@implements IDisposable
+@inject ValourClient Client
+@inject ContextMenuService ContextMenuService
+
+@using Valour.Client.Components.Threads.Display
+
+<div class="comment-wrap" @oncontextpress="@OnContextMenu">
+    <ThreadCommentDisplay Collapsed="@_collapsed"
+                          GutterTitle="@(_collapsed ? "Expand" : "Collapse")"
+                          OnGutterClick="@ToggleCollapse">
+        <Header>
+            @if (_author is not null)
+            {
+                <UserInfoComponent User="@_author" Member="@_member" AvatarSize="18" Compact="true"
+                                   ShowBadges="false" ShowState="false" ShowStatus="false"/>
+                @if (_role is not null)
+                {
+                    <span class="tc-role">- @_role.Name</span>
+                }
+            }
+            else
+            {
+                <span class="tc-author deleted-author">[deleted]</span>
+            }
+            <span class="tc-time">@TimeUtil.GetRelativeTime(Comment.TimeCreated)</span>
+            @if (Comment.EditedTime is not null)
+            {
+                <span class="tc-edited">(edited)</span>
+            }
+            @if (_collapsed)
+            {
+                <button class="tc-expand" @onclick="@ToggleCollapse">
+                    <i class="bi bi-arrows-expand"></i> @(Comment.ReplyCount > 0 ? $"{Comment.ReplyCount} replies" : "expand")
+                </button>
+            }
+        </Header>
+        <Content>
+            @if (Comment.IsDeleted)
+            {
+                <span class="deleted">This comment was deleted.</span>
+            }
+            else
+            {
+                <RichText Content="@Comment.Content" PlanetId="@Comment.PlanetId"/>
+            }
+        </Content>
+        <Footer>
+            <button class="tc-action boost @(_boosted ? "active" : "")" @onclick="@OnClickBoost">
+                <i class="bi @(_boosted ? "bi-rocket-takeoff-fill" : "bi-rocket-takeoff")"></i>
+                <span>@Comment.BoostCount</span>
+            </button>
+            @if (CanReply)
+            {
+                <button class="tc-action" @onclick="@(() => _replying = !_replying)">
+                    <i class="bi bi-reply"></i> Reply
+                </button>
+            }
+            <button class="tc-action" title="More" @onclick="@OnClickMore" @onclick:stopPropagation="true">
+                <i class="bi bi-three-dots"></i>
+            </button>
+        </Footer>
+        <Replies>
+            @if (_replying)
+            {
+                <div class="reply-compose">
+                    <ThreadCommentCompose Thread="@Thread"
+                                          ParentComment="@Comment"
+                                          Placeholder="Write a reply..."
+                                          OnPosted="@OnReplyPosted"
+                                          OnCancel="@(() => _replying = false)"/>
+                </div>
+            }
+
+            @foreach (var reply in _replies)
+            {
+                <ThreadCommentComponent @key="@reply.Id" Comment="@reply" Thread="@Thread"/>
+            }
+
+            @if (RemainingReplies > 0)
+            {
+                <button class="load-replies" disabled="@_loadingReplies" @onclick="@LoadRepliesAsync">
+                    <i class="bi bi-arrow-return-right"></i>
+                    @(_loadingReplies ? "Loading..." : $"Load {RemainingReplies} {(RemainingReplies == 1 ? "reply" : "replies")}")
+                </button>
+            }
+        </Replies>
+    </ThreadCommentDisplay>
+</div>
+
+@code {
+    private const int ReplyPageSize = 10;
+
+    /// <summary>
+    /// Replies this deep (or shallower) load automatically; deeper branches
+    /// stay behind a "Load replies" button to keep huge trees manageable
+    /// </summary>
+    private const int AutoExpandDepth = 2;
+
+    [Parameter]
+    public ThreadComment Comment { get; set; }
+
+    [Parameter]
+    public PlanetThread Thread { get; set; }
+
+    private User _author;
+    private PlanetMember _member;
+    private PlanetRole _role;
+    private bool _boosted;
+    private bool _collapsed;
+    private bool _replying;
+    private bool _loadingReplies;
+
+    private readonly List<ThreadComment> _replies = new();
+    private readonly HashSet<long> _replyIds = new();
+
+    private ThreadComment _hooked;
+
+    private bool CanReply => !Thread.IsLocked && !Comment.IsDeleted;
+
+    private int RemainingReplies => Math.Max(0, Comment.ReplyCount - _replies.Count);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var changedComment = !ReferenceEquals(_hooked, Comment);
+        if (changedComment)
+        {
+            if (_hooked is not null)
+                _hooked.Updated -= OnCommentUpdated;
+
+            _hooked = Comment;
+            _hooked.Updated += OnCommentUpdated;
+        }
+
+        _boosted = Client.ThreadService.IsCommentBoosted(Comment.Id);
+
+        if (!Comment.IsDeleted)
+        {
+            _author = await Client.UserService.FetchUserAsync(Comment.AuthorUserId);
+
+            if (Comment.AuthorMemberId is not null)
+            {
+                var planet = await Client.PlanetService.FetchPlanetAsync(Comment.PlanetId);
+                if (planet is not null)
+                {
+                    await planet.EnsureRolesLoadedAsync();
+
+                    _member = await planet.FetchMemberAsync(Comment.AuthorMemberId.Value);
+
+                    // Same role shown next to names in chat
+                    _role = _member?.PrimaryRole;
+                }
+            }
+        }
+
+        // Shallow branches show their replies right away
+        if (changedComment && Comment.ReplyCount > 0 && Comment.Depth <= AutoExpandDepth)
+        {
+            await LoadRepliesAsync();
+        }
+    }
+
+    private Task OnCommentUpdated(ModelUpdatedEvent<ThreadComment> e)
+    {
+        _boosted = Client.ThreadService.IsCommentBoosted(Comment.Id);
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleCollapse()
+    {
+        _collapsed = !_collapsed;
+    }
+
+    private void OnContextMenu(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<ThreadCommentContextMenu>(e,
+            new ThreadCommentContextMenu.CommentContextParams()
+            {
+                Comment = Comment
+            });
+    }
+
+    private void OnClickMore(MouseEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<ThreadCommentContextMenu>(e,
+            new ThreadCommentContextMenu.CommentContextParams()
+            {
+                Comment = Comment
+            });
+    }
+
+    private async Task OnClickBoost()
+    {
+        var result = await Client.ThreadService.ToggleCommentBoostAsync(Comment);
+        _boosted = Client.ThreadService.IsCommentBoosted(Comment.Id);
+
+        if (!result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Boost failed", result.Message, ToastProgressState.Failure));
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadRepliesAsync()
+    {
+        if (_loadingReplies)
+            return;
+
+        _loadingReplies = true;
+        StateHasChanged();
+
+        var response = await Client.ThreadService.QueryCommentsAsync(
+            Thread, Comment.Id, "old", _replies.Count, ReplyPageSize);
+
+        await Client.ThreadService.LoadCommentBoostStateAsync(Thread, response.Items);
+
+        foreach (var reply in response.Items)
+        {
+            if (_replyIds.Add(reply.Id))
+                _replies.Add(reply);
+        }
+
+        _loadingReplies = false;
+        StateHasChanged();
+    }
+
+    private Task OnReplyPosted(ThreadComment reply)
+    {
+        _replying = false;
+
+        if (_replyIds.Add(reply.Id))
+            _replies.Add(reply);
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        if (_hooked is not null)
+            _hooked.Updated -= OnCommentUpdated;
+    }
+}

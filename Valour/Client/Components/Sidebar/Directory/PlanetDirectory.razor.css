@@ -122,7 +122,8 @@
 }
 
 .planet-about,
-.planet-rules {
+.planet-rules,
+.planet-threads {
     cursor: pointer;
     position: relative;
     border-radius: var(--radius-md);
@@ -134,7 +135,8 @@
 }
 
 .planet-about:hover,
-.planet-rules:hover {
+.planet-rules:hover,
+.planet-threads:hover {
     background: rgba(255, 255, 255, 0.075);
     color: var(--font-color);
 }
@@ -149,7 +151,8 @@
 }
 
 .planet-about .name,
-.planet-rules .name {
+.planet-rules .name,
+.planet-threads .name {
     font-family: var(--font-family-app);
     font-style: normal;
     font-weight: var(--font-weight-regular);

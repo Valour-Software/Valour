@@ -1,0 +1,63 @@
+@inject ValourClient Client
+
+@* Twitter-style composer that sits above the feed. Collapsed it's a
+   compose bar; clicking expands it into the compose form inline. *@
+
+<div class="inline-compose">
+    @if (!_open)
+    {
+        <button class="compose-cta" @onclick="@Open">
+            <img class="cta-avatar" src="@(Client.Me?.GetAvatar(AvatarFormat.Webp64))" alt="" loading="lazy"/>
+            <span class="cta-placeholder">Start a new thread...</span>
+            <span class="cta-post">
+                <i class="bi bi-rocket-takeoff-fill"></i>
+                New Post
+            </span>
+        </button>
+    }
+    else
+    {
+        <div class="compose-card">
+            <div class="compose-card-header">
+                <h4><i class="bi bi-rocket-takeoff-fill"></i> New Thread</h4>
+            </div>
+            <ThreadComposeForm Planet="@Planet"
+                               OnPosted="@HandlePosted"
+                               OnCancel="@Close"
+                               Autofocus="true"/>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Target planet for new threads. When null, the form shows a planet picker.
+    /// </summary>
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [Parameter]
+    public Func<PlanetThread, Task> OnPosted { get; set; }
+
+    private bool _open;
+
+    public void Open()
+    {
+        _open = true;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        _open = false;
+    }
+
+    private async Task HandlePosted(PlanetThread thread)
+    {
+        _open = false;
+        StateHasChanged();
+
+        if (OnPosted is not null)
+            await OnPosted.Invoke(thread);
+    }
+}

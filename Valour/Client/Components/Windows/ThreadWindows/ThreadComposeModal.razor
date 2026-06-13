@@ -1,0 +1,45 @@
+@inherits Modal<ThreadComposeModal.ModalParams>
+
+@* Thin modal wrapper around the shared compose form. New posts use the
+   inline composer in the feed; this modal remains for editing. *@
+
+<BasicModalLayout Title="@(IsEditing ? "Edit Thread" : "New Thread")" Icon="rocket-takeoff-fill" MaxWidth="640px">
+    <MainArea>
+        <ThreadComposeForm Planet="@Data.Planet"
+                           ExistingThread="@Data.ExistingThread"
+                           OnPosted="@HandlePosted"
+                           OnCancel="@OnClickCancel"/>
+    </MainArea>
+</BasicModalLayout>
+
+@code {
+    public class ModalParams
+    {
+        /// <summary>
+        /// When set, the thread is posted to this planet. When null, a picker is shown.
+        /// </summary>
+        public Planet Planet { get; set; }
+
+        /// <summary>
+        /// When set, the modal edits this thread instead of creating a new one
+        /// </summary>
+        public PlanetThread ExistingThread { get; set; }
+
+        public Func<PlanetThread, Task> OnPosted { get; set; }
+    }
+
+    private bool IsEditing => Data.ExistingThread is not null;
+
+    private async Task HandlePosted(PlanetThread thread)
+    {
+        Close();
+
+        if (Data.OnPosted is not null)
+            await Data.OnPosted.Invoke(thread);
+    }
+
+    private void OnClickCancel()
+    {
+        Close();
+    }
+}

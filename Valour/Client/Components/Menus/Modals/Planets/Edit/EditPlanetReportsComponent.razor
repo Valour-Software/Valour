@@ -1,6 +1,8 @@
 @using Valour.Sdk.ModelLogic
 @using Valour.Shared.Authorization
+@using Valour.Client.Components.Windows.ThreadWindows
 @inject SafetyService SafetyService
+@inject ValourClient Client
 
 @if (!_canViewReports)
 {
@@ -134,6 +136,47 @@ else
                 </div>
             }
 
+            @if (_selected.ThreadId.HasValue)
+            {
+                <div class="reported-message-review">
+                    <div class="review-header">
+                        <label>@(_selected.ThreadCommentId.HasValue ? "Reported comment" : "Reported thread")</label>
+                        <span>@(_selected.ThreadCommentId ?? _selected.ThreadId.Value)</span>
+                    </div>
+
+                    @if (_isLoadingThread)
+                    {
+                        <div class="message-state">Loading thread content...</div>
+                    }
+                    else if (_selected.ThreadCommentId.HasValue && _reportedComment is not null)
+                    {
+                        <div class="reported-message-container">
+                            @if (_reportedComment.IsDeleted)
+                            {
+                                <p><i>This comment was deleted.</i></p>
+                            }
+                            else
+                            {
+                                <RichText Content="@_reportedComment.Content" PlanetId="@_reportedComment.PlanetId"/>
+                            }
+                        </div>
+                    }
+                    else if (!_selected.ThreadCommentId.HasValue && _reportedThread is not null)
+                    {
+                        <div class="reported-message-container">
+                            <ThreadCard Thread="@_reportedThread" Preview="true" Clickable="true" ShowPlanet="false"/>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="message-state error">
+                            <span>Thread content could not be loaded. It may have been deleted.</span>
+                            <button class="v-btn secondary" @onclick="LoadSelectedThreadAsync">Retry</button>
+                        </div>
+                    }
+                </div>
+            }
+
             <div class="detail-copy">
                 <label>Report details</label>
                 <p>@(string.IsNullOrWhiteSpace(_selected.LongReason) ? "No extra details provided." : _selected.LongReason)</p>
@@ -194,6 +237,9 @@ else
     private Message _reportedMessage;
     private MessageComponent.Params _messageParams;
     private bool _isLoadingMessage;
+    private Valour.Sdk.Models.Threads.PlanetThread _reportedThread;
+    private Valour.Sdk.Models.Threads.ThreadComment _reportedComment;
+    private bool _isLoadingThread;
     private bool _canViewReports;
     private bool _canKick;
     private bool _canBan;
@@ -305,6 +351,7 @@ else
     {
         _selected = report;
         await LoadSelectedMessageAsync();
+        await LoadSelectedThreadAsync();
     }
 
     private void BackToReports()
@@ -313,6 +360,9 @@ else
         _reportedMessage = null;
         _messageParams = null;
         _isLoadingMessage = false;
+        _reportedThread = null;
+        _reportedComment = null;
+        _isLoadingThread = false;
     }
 
     private async Task LoadSelectedMessageAsync()
@@ -351,6 +401,42 @@ else
         finally
         {
             _isLoadingMessage = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSelectedThreadAsync()
+    {
+        _reportedThread = null;
+        _reportedComment = null;
+
+        var selected = _selected;
+        if (selected?.ThreadId is null)
+            return;
+
+        _isLoadingThread = true;
+        StateHasChanged();
+
+        try
+        {
+            if (selected.ThreadCommentId.HasValue)
+            {
+                _reportedComment = await Client.ThreadService.FetchCommentAsync(
+                    Planet.Id, selected.ThreadId.Value, selected.ThreadCommentId.Value, skipCache: true);
+            }
+            else
+            {
+                _reportedThread = await Client.ThreadService.FetchThreadAsync(
+                    Planet.Id, selected.ThreadId.Value, skipCache: true);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to load reported thread {selected.ThreadId}: {e.Message}");
+        }
+        finally
+        {
+            _isLoadingThread = false;
             StateHasChanged();
         }
     }

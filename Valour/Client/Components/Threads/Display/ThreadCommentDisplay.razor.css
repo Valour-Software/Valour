@@ -1,0 +1,202 @@
+/* Comment row using the chat reply/quote left accent */
+
+.thread-comment {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.tc-gutter {
+    display: flex;
+    justify-content: center;
+    width: 10px;
+    flex-shrink: 0;
+    padding: 2px 0;
+}
+
+.tc-gutter.clickable {
+    cursor: pointer;
+}
+
+.tc-line {
+    width: 3px;
+    border-radius: var(--radius-full);
+    background-color: var(--medium-tint);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.tc-gutter.clickable:hover .tc-line {
+    background-color: var(--color-primary);
+}
+
+.tc-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.tc-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    row-gap: 2px;
+    min-width: 0;
+    font-size: var(--font-size-sm);
+}
+
+/* Role tag matching the chat message header style */
+
+.tc-header ::deep .tc-role {
+    color: var(--font-color);
+    opacity: 0.3;
+    font-style: italic;
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.tc-header ::deep .tc-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-full);
+}
+
+.tc-header ::deep .tc-author {
+    font-size: var(--font-size-sm);
+    color: var(--font-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tc-header ::deep .tc-time,
+.tc-header ::deep .tc-edited {
+    font-size: var(--font-size-xs);
+    color: color-mix(in srgb, var(--font-color) 50%, transparent);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tc-header ::deep .tc-expand {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    color: var(--color-primary);
+    font-family: var(--font-family-app);
+}
+
+.tc-header ::deep .tc-expand:hover {
+    text-decoration: underline;
+}
+
+.tc-content {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-normal, 1.5);
+    color: color-mix(in srgb, var(--font-color) 88%, transparent);
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.tc-content ::deep p {
+    margin: 0 0 var(--space-1) 0;
+}
+
+.tc-content ::deep p:last-child {
+    margin-bottom: 0;
+}
+
+.tc-content ::deep blockquote {
+    margin: 0 0 var(--space-1) 0;
+    padding: 2px var(--space-3);
+    border-left: 3px solid var(--medium-tint);
+    background-color: var(--main-2);
+    border-radius: var(--radius-md);
+}
+
+.tc-content ::deep img,
+.tc-content ::deep video {
+    max-width: min(100%, 320px);
+    border-radius: var(--radius-sm);
+}
+
+.tc-content ::deep .deleted {
+    font-style: italic;
+    color: color-mix(in srgb, var(--font-color) 45%, transparent);
+}
+
+/* Footer: small text actions, chat density */
+
+.tc-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-1);
+}
+
+.tc-footer ::deep .tc-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    text-decoration: none;
+    padding: 1px 0;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family-app);
+    color: color-mix(in srgb, var(--font-color) 55%, transparent);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.tc-footer ::deep .tc-action:hover {
+    color: var(--font-color);
+}
+
+.tc-footer ::deep .tc-action.boost.active {
+    color: var(--color-primary);
+}
+
+.tc-footer ::deep .tc-action.static {
+    cursor: default;
+}
+
+.tc-replies {
+    margin-top: 0;
+}
+
+.tc-content:empty,
+.tc-footer:empty,
+.tc-replies:empty {
+    display: none;
+}
+
+/* Small screens: keep deep nesting readable */
+
+@media (max-width: 600px) {
+    .tc-gutter {
+        width: 8px;
+    }
+
+    .tc-header ::deep .tc-role {
+        max-width: 80px;
+    }
+}
+
+.tc-replies ::deep .load-replies {
+    background: none;
+    border: none;
+    padding: var(--space-1) 0 0 0;
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family-app);
+    color: var(--color-primary);
+}
+
+.tc-replies ::deep .load-replies:hover {
+    text-decoration: underline;
+}

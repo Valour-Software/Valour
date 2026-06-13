@@ -1,0 +1,76 @@
+@* Recursive static comment tree for server-rendered public pages *@
+
+@foreach (var comment in Comments)
+{
+    <ThreadCommentDisplay>
+        <Header>
+            @if (!comment.Deleted)
+            {
+                @if (!string.IsNullOrEmpty(comment.AuthorAvatarUrl))
+                {
+                    <img class="tc-avatar" src="@comment.AuthorAvatarUrl" alt="" loading="lazy" />
+                }
+                <span class="tc-author" style="@(string.IsNullOrEmpty(comment.AuthorRoleColor) ? null : $"color: {comment.AuthorRoleColor};")">@comment.AuthorName</span>
+                @if (!string.IsNullOrEmpty(comment.AuthorRoleName))
+                {
+                    <span class="tc-role">- @comment.AuthorRoleName</span>
+                }
+            }
+            <span class="tc-time">@Valour.Client.Utility.TimeUtil.GetRelativeTime(comment.TimeCreated)</span>
+            @if (comment.Edited)
+            {
+                <span class="tc-edited">(edited)</span>
+            }
+        </Header>
+        <Content>
+            @if (comment.Deleted)
+            {
+                <span class="deleted">[deleted]</span>
+            }
+            else
+            {
+                @((MarkupString)(comment.ContentHtml ?? string.Empty))
+            }
+        </Content>
+        <Footer>
+            @if (!string.IsNullOrEmpty(ActionHref))
+            {
+                <a class="tc-action" href="@ActionHref" title="Boost on Valour">
+                    <i class="bi bi-rocket-takeoff"></i>
+                    @if (comment.BoostCount > 0)
+                    {
+                        <span>@comment.BoostCount</span>
+                    }
+                </a>
+                <a class="tc-action" href="@ActionHref" title="Reply on Valour">
+                    <i class="bi bi-reply"></i> Reply
+                </a>
+            }
+            else
+            {
+                <span class="tc-action static">
+                    <i class="bi bi-rocket-takeoff"></i>
+                    @if (comment.BoostCount > 0)
+                    {
+                        <span>@comment.BoostCount</span>
+                    }
+                </span>
+            }
+        </Footer>
+        <Replies>
+            @if (comment.Replies is { Count: > 0 })
+            {
+                <StaticThreadComments Comments="@comment.Replies" ActionHref="@ActionHref" />
+            }
+        </Replies>
+    </ThreadCommentDisplay>
+}
+
+@code {
+    [Parameter] public List<StaticCommentData> Comments { get; set; }
+
+    /// <summary>
+    /// When set, comment actions render as links to this URL (app deep link)
+    /// </summary>
+    [Parameter] public string ActionHref { get; set; }
+}

@@ -38,6 +38,37 @@
 
     <div class="editor-section">
         <h3 class="editor-section-title">
+            <i class="bi bi-rocket-takeoff-fill"></i>
+            Threads
+        </h3>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Enable Threads</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckEnableThreads" checked="@_enableThreadsValue" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Give this planet a Reddit-style threads feed where members can post and comment</p>
+            <ResultLabel Result="@_enableThreadsResult" />
+        </div>
+
+        <div class="toggle-item">
+            <div class="toggle-header">
+                <span class="toggle-title">Public Threads</span>
+                <label class="switch">
+                    <input type="checkbox" @oninput="OnCheckPublicThreads" checked="@_publicThreadsValue" disabled="@(!_enableThreadsValue)" />
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="toggle-description">Allow anyone on the web to browse this planet's threads without an account</p>
+            <ResultLabel Result="@_publicThreadsResult" />
+        </div>
+    </div>
+
+    <div class="editor-section">
+        <h3 class="editor-section-title">
             <i class="bi bi-image"></i>
             Appearance
         </h3>
@@ -90,13 +121,52 @@
     private List<Channel> _chatChannels = new();
     private Channel? _selectedPrimaryChannel;
 
+    private bool _enableThreadsValue;
+    private ITaskResult _enableThreadsResult;
+    private bool _publicThreadsValue;
+    private ITaskResult _publicThreadsResult;
+
     protected override Task OnInitializedAsync()
     {
         _nameValue = Planet.Name;
         _chatChannels = Planet.Channels.Where(c => c.ChannelType == ChannelTypeEnum.PlanetChat).ToList();
         _selectedPrimaryChannel = Planet.PrimaryChatChannel;
+        _enableThreadsValue = Planet.EnableThreads;
+        _publicThreadsValue = Planet.PublicThreads;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private async Task OnCheckEnableThreads()
+    {
+        _enableThreadsValue = !_enableThreadsValue;
+
+        Planet.EnableThreads = _enableThreadsValue;
+        _enableThreadsResult = await Planet.UpdateAsync();
+
+        if (!_enableThreadsResult.Success)
+        {
+            _enableThreadsValue = !_enableThreadsValue;
+            Planet.EnableThreads = _enableThreadsValue;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnCheckPublicThreads()
+    {
+        _publicThreadsValue = !_publicThreadsValue;
+
+        Planet.PublicThreads = _publicThreadsValue;
+        _publicThreadsResult = await Planet.UpdateAsync();
+
+        if (!_publicThreadsResult.Success)
+        {
+            _publicThreadsValue = !_publicThreadsValue;
+            Planet.PublicThreads = _publicThreadsValue;
+        }
+
+        StateHasChanged();
     }
 
     private Task OnPrimaryChannelChanged(Channel channel)

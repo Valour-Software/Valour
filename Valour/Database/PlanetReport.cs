@@ -23,6 +23,8 @@ public class PlanetReport : ISharedPlanetReport
     public long? ReportedMemberId { get; set; }
     public long? MessageId { get; set; }
     public long? ChannelId { get; set; }
+    public long? ThreadId { get; set; }
+    public long? ThreadCommentId { get; set; }
     public long? RuleId { get; set; }
     public string RuleTitleSnapshot { get; set; }
     public string RuleDescriptionSnapshot { get; set; }
@@ -67,6 +69,12 @@ public class PlanetReport : ISharedPlanetReport
 
             e.Property(x => x.ChannelId)
                 .HasColumnName("channel_id");
+
+            e.Property(x => x.ThreadId)
+                .HasColumnName("thread_id");
+
+            e.Property(x => x.ThreadCommentId)
+                .HasColumnName("thread_comment_id");
 
             e.Property(x => x.RuleId)
                 .HasColumnName("rule_id");
@@ -113,6 +121,8 @@ public class PlanetReport : ISharedPlanetReport
             e.HasIndex(x => x.ReportedUserId);
             e.HasIndex(x => x.ReportedMemberId);
             e.HasIndex(x => x.RuleId);
+            e.HasIndex(x => x.ThreadId);
+            e.HasIndex(x => x.ThreadCommentId);
             e.HasIndex(x => x.Resolution);
             e.HasIndex(x => x.ResolvedById);
         });

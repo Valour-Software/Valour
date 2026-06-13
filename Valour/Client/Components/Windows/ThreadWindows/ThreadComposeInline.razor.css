@@ -1,0 +1,130 @@
+.inline-compose {
+    width: 100%;
+}
+
+/* Collapsed: compose bar on the same card surface as posts, with the
+   app's tertiary gradient pill as the action */
+
+.compose-cta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-full);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    box-sizing: border-box;
+    font-family: var(--font-family-app);
+    transition: border-color var(--duration-fast) var(--ease-standard),
+                box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.compose-cta:hover {
+    border-color: var(--color-primary-border);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        0 0 12px color-mix(in srgb, var(--color-primary) 8%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.cta-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.cta-placeholder {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--font-color) 45%, transparent);
+    font-size: var(--font-size-sm);
+}
+
+/* Matches .v-btn.tertiary, the app's gradient action button */
+.cta-post {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-secondary) 100%);
+    color: white;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    box-shadow:
+        0 2px 12px color-mix(in srgb, var(--color-accent) 30%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: box-shadow var(--duration-fast) var(--ease-standard),
+                transform var(--duration-fast) var(--ease-standard);
+}
+
+.compose-cta:hover .cta-post {
+    transform: translateY(-1px);
+    box-shadow:
+        0 4px 16px color-mix(in srgb, var(--color-secondary) 40%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Expanded: card surface matching thread posts */
+
+.compose-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--main-3);
+    border: 1px solid var(--color-primary-border);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        0 0 16px color-mix(in srgb, var(--color-primary) 8%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    animation: compose-expand var(--duration-base) var(--ease-out-expo);
+    transform-origin: top center;
+}
+
+@keyframes compose-expand {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.compose-card-header h4 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--font-color);
+}
+
+.compose-card-header h4 i {
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+@media (max-width: 600px) {
+    .compose-card {
+        padding: var(--space-3) var(--space-2);
+    }
+}

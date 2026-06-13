@@ -1,0 +1,288 @@
+@implements IDisposable
+@inject ValourClient Client
+@inject ContextMenuService ContextMenuService
+@inject NavigationManager NavManager
+@inject IJSRuntime JsRuntime
+@inject IShareService ShareService
+
+@using Valour.Client.Components.Threads.Display
+
+<div class="thread-card-wrap" @onclick="@OnClickCard" @oncontextpress="@OnContextMenu">
+    <ThreadPostDisplay Title="@Thread.Title"
+                       TimeCreated="@Thread.TimeCreated"
+                       Edited="@(Thread.EditedTime is not null)"
+                       IsPinned="@Thread.IsPinned"
+                       IsLocked="@Thread.IsLocked"
+                       Nsfw="@Thread.Nsfw"
+                       Preview="@Preview"
+                       Clickable="@Clickable">
+        <AuthorArea>
+            @if (_author is not null)
+            {
+                <div class="author-wrap" @onclick:stopPropagation="true">
+                    <UserInfoComponent User="@_author" Member="@_member" AvatarSize="22" Compact="true"
+                                       ShowBadges="false" ShowState="false" ShowStatus="false"/>
+                </div>
+                @if (_role is not null)
+                {
+                    <span class="tp-role">- @_role.Name</span>
+                }
+            }
+            else
+            {
+                <div class="avatar-placeholder"></div>
+                <span class="tp-author">...</span>
+            }
+        </AuthorArea>
+        <PlanetChip>
+            @if (ShowPlanet && _planet is not null)
+            {
+                <span class="tp-separator">in</span>
+                @if (_presence is not null && _presence.ChattingCount >= MinChattingToShow)
+                {
+                    <TooltipTrigger Position="top">
+                        <ChildContent>
+                            <button class="tp-planet-chip"
+                                    @onclick="@OnClickPlanet" @onclick:stopPropagation="true">
+                                <PlanetIcon Planet="@_planet" Size="16"/>
+                                <span>@_planet.Name</span>
+                                <span class="chip-presence">
+                                    <span class="presence-dot"></span>
+                                    @_presence.ChattingCount chatting
+                                </span>
+                            </button>
+                        </ChildContent>
+                        <TooltipContent>
+                            <div class="presence-tooltip">
+                                <div class="presence-avatars">
+                                    @foreach (var avatar in _presence.Avatars)
+                                    {
+                                        <img src="@avatar.AvatarUrl" alt="@avatar.Name" title="@avatar.Name" loading="lazy"/>
+                                    }
+                                    @if (_presence.ChattingCount > _presence.Avatars.Count)
+                                    {
+                                        <span class="presence-more">+@(_presence.ChattingCount - _presence.Avatars.Count)</span>
+                                    }
+                                </div>
+                                <span class="presence-cta-text">Join the conversation</span>
+                            </div>
+                        </TooltipContent>
+                    </TooltipTrigger>
+                }
+                else
+                {
+                    <button class="tp-planet-chip" title="Open @_planet.Name"
+                            @onclick="@OnClickPlanet" @onclick:stopPropagation="true">
+                        <PlanetIcon Planet="@_planet" Size="16"/>
+                        <span>@_planet.Name</span>
+                    </button>
+                }
+            }
+        </PlanetChip>
+        <Body>
+            @if (!string.IsNullOrWhiteSpace(Thread.Content))
+            {
+                <RichText Content="@Thread.Content" PlanetId="@Thread.PlanetId"/>
+            }
+        </Body>
+        <Gallery>
+            @if (Thread.Attachments is not null && Thread.Attachments.Count > 0)
+            {
+                <ThreadAttachmentGallery Attachments="@Thread.Attachments" PlanetId="@Thread.PlanetId" Expandable="@(!Preview)"/>
+            }
+        </Gallery>
+        <Footer>
+            <button class="tp-pill boost @(_boosted ? "active" : "")"
+                    title="@(_boosted ? "Remove boost" : "Boost")"
+                    @onclick="@OnClickBoost"
+                    @onclick:stopPropagation="true">
+                <i class="bi @(_boosted ? "bi-rocket-takeoff-fill" : "bi-rocket-takeoff")"></i>
+                @if (Thread.BoostCount > 0)
+                {
+                    <span>@Thread.BoostCount</span>
+                }
+            </button>
+            <button class="tp-pill" title="Comments" @onclick="@OnClickCard" @onclick:stopPropagation="true">
+                <i class="bi bi-chat-left-text"></i>
+                @if (Thread.CommentCount > 0)
+                {
+                    <span>@Thread.CommentCount</span>
+                }
+            </button>
+            <button class="tp-pill" title="Share" @onclick="@OnClickShare" @onclick:stopPropagation="true">
+                <i class="bi bi-share"></i>
+                <span class="share-label"></span>
+            </button>
+            <button class="tp-pill" title="More" @onclick="@OnClickMore" @onclick:stopPropagation="true">
+                <i class="bi bi-three-dots"></i>
+            </button>
+        </Footer>
+    </ThreadPostDisplay>
+</div>
+
+@code {
+    [Parameter]
+    public PlanetThread Thread { get; set; }
+
+    /// <summary>
+    /// The window content hosting this card, if any. When set, opening the
+    /// thread replaces the current tab's content instead of opening a new tab.
+    /// </summary>
+    [Parameter]
+    public WindowContent WindowCtx { get; set; }
+
+    /// <summary>
+    /// Shows the planet chip; used on the aggregated feed
+    /// </summary>
+    [Parameter]
+    public bool ShowPlanet { get; set; }
+
+    /// <summary>
+    /// Clamps long content and makes the card clickable to open the full thread
+    /// </summary>
+    [Parameter]
+    public bool Preview { get; set; } = true;
+
+    [Parameter]
+    public bool Clickable { get; set; } = true;
+
+    /// <summary>
+    /// Shows the chatting count on the planet chip. Disabled where another
+    /// surface (like the thread view's live CTA) already shows presence.
+    /// </summary>
+    [Parameter]
+    public bool ShowPresence { get; set; } = true;
+
+    /// <summary>
+    /// Below this many active members the count is just noise
+    /// </summary>
+    private const int MinChattingToShow = 3;
+
+    private User _author;
+    private PlanetMember _member;
+    private PlanetRole _role;
+    private Planet _planet;
+    private PlanetPresenceSummary _presence;
+    private bool _boosted;
+
+    private PlanetThread _hooked;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ReferenceEquals(_hooked, Thread))
+        {
+            if (_hooked is not null)
+                _hooked.Updated -= OnThreadUpdated;
+
+            _hooked = Thread;
+            _hooked.Updated += OnThreadUpdated;
+        }
+
+        _boosted = Client.ThreadService.IsThreadBoosted(Thread.Id);
+        _planet = await Client.PlanetService.FetchPlanetAsync(Thread.PlanetId);
+        _author = await Client.UserService.FetchUserAsync(Thread.AuthorUserId);
+
+        if (Thread.AuthorMemberId is not null && _planet is not null)
+        {
+            // Role colors and tags need the planet's roles, which aren't
+            // loaded unless the planet is connected
+            await _planet.EnsureRolesLoadedAsync();
+
+            _member = await _planet.FetchMemberAsync(Thread.AuthorMemberId.Value);
+
+            // Same role shown next to names in chat
+            _role = _member?.PrimaryRole;
+        }
+
+        if (ShowPlanet && ShowPresence && _planet is not null)
+            _presence = await Client.PlanetService.FetchPresenceAsync(_planet);
+    }
+
+    private Task OnThreadUpdated(ModelUpdatedEvent<PlanetThread> e)
+    {
+        _boosted = Client.ThreadService.IsThreadBoosted(Thread.Id);
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnClickBoost()
+    {
+        var result = await Client.ThreadService.ToggleThreadBoostAsync(Thread);
+        _boosted = Client.ThreadService.IsThreadBoosted(Thread.Id);
+
+        if (!result.Success)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Boost failed", result.Message, ToastProgressState.Failure));
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnClickCard()
+    {
+        if (!Clickable)
+            return;
+
+        var content = ThreadWindowComponent.GetDefaultContent(Thread);
+
+        // Remember which feed we came from so the thread view can navigate back
+        content.Data.BackPlanetId = ShowPlanet ? null : Thread.PlanetId;
+
+        // Render in the current tab when we know which window we live in;
+        // "open in new tab" is available from the context menu
+        await WindowService.OpenWindowAtFocused(content, WindowCtx?.Tab);
+    }
+
+    private async Task OnClickShare()
+    {
+        var url = ShareUtils.GetThreadShareUrl(NavManager, _planet, Thread);
+
+        // Only the URL is shared as content - including extra text breaks
+        // pasting the result into a URL bar on several platforms
+        var handled = await ShareService.ShareAsync(Thread.Title, null, url);
+        if (!handled)
+        {
+            await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", url);
+            ToastContainer.Instance.AddToast(new ToastData("Link copied!", "Thread link copied to clipboard", ToastProgressState.Success));
+        }
+    }
+
+    private async Task OnClickPlanet()
+    {
+        if (_planet is null)
+            return;
+
+        var content = await ChatWindowComponent.GetContentForPlanetPrimaryChannel(_planet);
+        if (content is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData("Failed to open planet",
+                $"Error accessing {_planet.Name}", ToastProgressState.Failure));
+            return;
+        }
+
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    private void OnContextMenu(ContextPressEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<ThreadContextMenu>(e,
+            new ThreadContextMenu.ThreadContextParams()
+            {
+                Thread = Thread
+            });
+    }
+
+    private void OnClickMore(MouseEventArgs e)
+    {
+        ContextMenuService.Root.OpenMenu<ThreadContextMenu>(e,
+            new ThreadContextMenu.ThreadContextParams()
+            {
+                Thread = Thread
+            });
+    }
+
+    public void Dispose()
+    {
+        if (_hooked is not null)
+            _hooked.Updated -= OnThreadUpdated;
+    }
+}

@@ -1,23 +1,28 @@
 @typeparam TItem
 
-@{
-    Console.WriteLine("SelectedItem is null: " + (_selectedItem is null));
-}
-
-<div class="custom-dropdown" @ref="_ref" @onclick="OnClick">
-    @if (_selectedItem is null)
-    {
-        <span class="placeholder">@Placeholder</span>
-    }
-    else if (ItemTemplate is not null)
-    {
-        @ItemTemplate(_selectedItem)
-    }
-    else
-    {
-        <span>@_selectedItem.ToString()</span>
-    }
-    <i class="bi bi-chevron-down"></i>
+<div class="custom-dropdown @(_open ? "open" : string.Empty)" style="@Style" @ref="_ref" @onclick="OnClick">
+    <div class="dropdown-value">
+        @if (_selectedItem is null)
+        {
+            @if (NullOptionTemplate is not null)
+            {
+                @NullOptionTemplate
+            }
+            else
+            {
+                <span class="placeholder">@Placeholder</span>
+            }
+        }
+        else if (ItemTemplate is not null)
+        {
+            @ItemTemplate(_selectedItem)
+        }
+        else
+        {
+            <span>@_selectedItem.ToString()</span>
+        }
+    </div>
+    <i class="bi bi-chevron-down chevron"></i>
 </div>
 
 @code {
@@ -29,8 +34,22 @@
     [Parameter] public TItem InitialItem { get; set; }
     [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
     [Parameter] public string Placeholder { get; set; } = "Select";
+    [Parameter] public string Style { get; set; }
 
-    private TItem? _selectedItem;
+    /// <summary>
+    /// When set, shows a "clear" option that selects null. Also rendered
+    /// in the trigger while nothing is selected (unlike the placeholder,
+    /// a null selection is treated as a valid value).
+    /// </summary>
+    [Parameter] public RenderFragment NullOptionTemplate { get; set; }
+
+    /// <summary>
+    /// Set false to hide the search box for short, fixed lists
+    /// </summary>
+    [Parameter] public bool EnableSearch { get; set; } = true;
+
+    private TItem _selectedItem;
+    private bool _open;
 
     protected override void OnInitialized()
     {
@@ -45,6 +64,8 @@
         var data = new CustomDropdownContentData
         {
             Items = Items.Cast<object>().ToList(),
+            ShowSearch = EnableSearch,
+            NullOptionTemplate = NullOptionTemplate,
             ItemTemplate = item => builder =>
             {
                 if (ItemTemplate is not null)
@@ -61,17 +82,21 @@
                 new Func<object, string, bool>((o, s) => SearchFunc((TItem)o, s)),
             OnSelect = async o =>
             {
-                Console.WriteLine("New selection");
-                
-                _selectedItem = (TItem)o;
+                _selectedItem = o is null ? default : (TItem)o;
                 if (SelectedItemChanged.HasDelegate)
-                    await SelectedItemChanged.InvokeAsync((TItem)o);
+                    await SelectedItemChanged.InvokeAsync(_selectedItem);
 
+                await InvokeAsync(StateHasChanged);
+            },
+            OnClose = async () =>
+            {
+                _open = false;
                 await InvokeAsync(StateHasChanged);
             },
             SelectedItem = _selectedItem
         };
 
+        _open = true;
         await CustomDropdownContent.Instance.ShowAsync(_ref, data);
     }
 }

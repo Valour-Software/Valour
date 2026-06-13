@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Sdk.Client;
@@ -597,6 +597,34 @@ public class PlanetService : ServiceBase
     {
         var response = await planet.Node.GetJsonAsync<int>($"{planet.IdRoute}/members/count");
         return response.Success ? response.Data : 0;
+    }
+
+    private static readonly TimeSpan PresenceCacheTime = TimeSpan.FromSeconds(60);
+    private readonly Dictionary<long, (DateTime Time, Task<PlanetPresenceSummary> Task)> _presenceCache = new();
+
+    /// <summary>
+    /// Fetches a snapshot of recently active members on the planet.
+    /// Results are briefly cached and deduplicated, so this is safe to call
+    /// from many cards in a feed at once.
+    /// </summary>
+    public Task<PlanetPresenceSummary> FetchPresenceAsync(Planet planet)
+    {
+        lock (_presenceCache)
+        {
+            if (_presenceCache.TryGetValue(planet.Id, out var cached) &&
+                DateTime.UtcNow - cached.Time < PresenceCacheTime)
+                return cached.Task;
+
+            var task = FetchPresenceInternalAsync(planet);
+            _presenceCache[planet.Id] = (DateTime.UtcNow, task);
+            return task;
+        }
+    }
+
+    private async Task<PlanetPresenceSummary> FetchPresenceInternalAsync(Planet planet)
+    {
+        var response = await planet.Node.GetJsonAsync<PlanetPresenceSummary>($"{planet.IdRoute}/presence");
+        return response.Success ? response.Data : null;
     }
 
     public async Task<Dictionary<long, int>> FetchRoleMembershipCountsAsync(long planetId)

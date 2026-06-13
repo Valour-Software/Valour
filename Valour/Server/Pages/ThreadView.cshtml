@@ -1,0 +1,118 @@
+@page "/threads/{planetId:long}/{threadId:long}"
+@model Valour.Server.Pages.ThreadViewModel
+@using Valour.Server.Pages
+@using Valour.Shared.Models
+@using Valour.Client.Components.Threads.Display
+@using Microsoft.AspNetCore.Components
+@{
+    var title = Model.Thread?.Title ?? "Thread";
+    var planetName = Model.Planet?.Name ?? "Planet";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@title - @planetName | Valour</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/_content/Valour.Client/media/favicon/favicon-16x16.png">
+
+    @if (Model.Thread is not null)
+    {
+        <meta name="description" content="@Model.Snippet"/>
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="article"/>
+        <meta property="og:url" content="@Model.RequestUrl"/>
+        <meta property="og:title" content="@title"/>
+        <meta property="og:site_name" content="@planetName on Valour"/>
+        <meta property="og:description" content="@Model.Snippet"/>
+        <meta property="og:image" content="@(Model.OgImage ?? Model.PlanetIcon)"/>
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="@(Model.OgImage is null ? "summary" : "summary_large_image")"/>
+        <meta property="twitter:title" content="@title"/>
+        <meta property="twitter:description" content="@Model.Snippet"/>
+        <meta property="twitter:image" content="@(Model.OgImage ?? Model.PlanetIcon)"/>
+    }
+
+    <link id="bundled-css" href="/_content/Valour.Client/css/bundled.min.css" rel="stylesheet"/>
+    <link href="/_content/Valour.Client/css/public-threads.css" rel="stylesheet"/>
+
+    <script>
+        // Logged-in users (token in localStorage, same origin as the app)
+        // get sent into the full app instead of the static page.
+        // Append ?static to stay on this page.
+        (function () {
+            try {
+                if (new URLSearchParams(window.location.search).has('static')) return;
+                if (window.localStorage.getItem('token')) {
+                    window.location.replace('@Model.AppLink');
+                }
+            } catch (e) { /* storage unavailable */ }
+        })();
+    </script>
+</head>
+<body>
+<div class="pt-page">
+    <header class="pt-topbar">
+        <a class="pt-brand" href="/">
+            <img src="/_content/Valour.Client/media/logo/logo-64.png" alt="Valour"/>
+            <span>Valour</span>
+        </a>
+        <a class="pt-open-app" href="@Model.AppLink">Open in Valour</a>
+    </header>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="pt-error">
+            <h2>Thread not found</h2>
+            <p>@Model.ErrorMessage</p>
+            <a class="pt-open-app" href="/">Go Home</a>
+        </div>
+    }
+    else if (Model.IsPrivate)
+    {
+        <div class="pt-error">
+            <img class="pt-planet-icon-lg" src="@Model.PlanetIcon" alt="@planetName"/>
+            <h2>@planetName's threads are private</h2>
+            <p>Join the community on Valour to see what's being discussed.</p>
+            <a class="pt-open-app" href="@Model.AppLink">Open in Valour</a>
+        </div>
+    }
+    else if (Model.Thread is not null)
+    {
+        <main class="pt-main">
+            <a class="pt-planet-link" href="/threads/@Model.PlanetId">
+                <img src="@Model.PlanetIcon" alt="@planetName"/>
+                <span>@planetName</span>
+            </a>
+
+            @* Same display components the app itself uses, rendered statically *@
+            @(await Html.RenderComponentAsync<StaticThreadPost>(RenderMode.Static, new { Data = Model.Post, ActionHref = Model.AppLink }))
+
+            <section class="pt-comments">
+                <h2>@Model.TotalComments @(Model.TotalComments == 1 ? "Comment" : "Comments")</h2>
+
+                @if (Model.Comments.Count == 0)
+                {
+                    <p class="pt-none">No comments yet. Join the conversation on Valour!</p>
+                }
+                else
+                {
+                    @(await Html.RenderComponentAsync<StaticThreadComments>(RenderMode.Static, new { Comments = Model.Comments, ActionHref = Model.AppLink }))
+                }
+
+                <div class="pt-cta">
+                    <p>Want to join the discussion?</p>
+                    <a class="pt-open-app" href="@Model.AppLink">Open in Valour</a>
+                </div>
+            </section>
+        </main>
+    }
+</div>
+</body>
+</html>

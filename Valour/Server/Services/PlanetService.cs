@@ -367,6 +367,39 @@ public class PlanetService
             .Where(x => x.PlanetId == planetId)
             .CountAsync();
     }
+
+    /// <summary>
+    /// Snapshot of recently active members for presence hints.
+    /// "Chatting" means active within the window and not appearing offline.
+    /// </summary>
+    public async Task<PlanetPresenceSummary> GetPresenceSummaryAsync(long planetId, int avatarCount = 5)
+    {
+        var cutoff = DateTime.UtcNow.AddMinutes(-15);
+
+        var activeQuery = _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId &&
+                        x.User.TimeLastActive > cutoff &&
+                        x.User.UserStateCode != 1); // Respect explicit offline/invisible
+
+        var count = await activeQuery.CountAsync();
+
+        var recentUsers = await activeQuery
+            .OrderByDescending(x => x.User.TimeLastActive)
+            .Take(avatarCount)
+            .Select(x => x.User)
+            .ToListAsync();
+
+        return new PlanetPresenceSummary()
+        {
+            ChattingCount = count,
+            Avatars = recentUsers.Select(x => new PresenceAvatar()
+            {
+                Name = x.Name,
+                AvatarUrl = ISharedUser.GetAvatar(x.ToModel(), AvatarFormat.Webp64)
+            }).ToList()
+        };
+    }
     
     public async Task<Dictionary<long, int>> GetRoleMembershipCountsAsync(long planetId)
     {

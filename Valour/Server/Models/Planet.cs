@@ -58,6 +58,16 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// True if the planet has a custom background
     /// </summary>
     public bool HasCustomBackground { get; set; }
+
+    /// <summary>
+    /// True if the threads feed is enabled for this planet
+    /// </summary>
+    public bool EnableThreads { get; set; }
+
+    /// <summary>
+    /// True if this planet's threads can be browsed publicly without an account
+    /// </summary>
+    public bool PublicThreads { get; set; }
     
     public List<PlanetTag> Tags { get; set; } = new();
     

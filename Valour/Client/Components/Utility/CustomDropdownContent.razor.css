@@ -1,66 +1,89 @@
-
 .custom-dropdown-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 10000;
+    z-index: 10001;
 }
 
 .custom-dropdown-content {
-    background-color: var(--main-1);
+    background-color: var(--main-2);
+    border: 1px solid color-mix(in srgb, var(--font-color) 10%, transparent);
     border-radius: var(--radius-md);
-    padding: 0.5em;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+    padding: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    max-width: min(90vw, 340px);
 }
 
 .custom-dropdown-overlay.mobile {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 50dvh;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.4);
 }
 
 .custom-dropdown-overlay.mobile .custom-dropdown-content {
     width: 100%;
-    height: 100%;
-    border-radius: 0;
-    
-    max-height: unset;
+    max-width: unset;
+    height: 50dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border: none;
 }
 
 .dropdown-search {
     width: 100%;
-    margin-bottom: 0.5em;
+    margin-bottom: var(--space-2);
+    box-sizing: border-box;
+    font-size: var(--font-size-sm);
 }
 
 .dropdown-items {
     max-height: min(50dvh, 300px);
-    padding: 0.25em;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.custom-dropdown-overlay.mobile .dropdown-items {
+    max-height: unset;
+    flex: 1;
 }
 
 .dropdown-item {
     cursor: pointer;
-    padding: .25em;
-    margin: 0.25em 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--font-color);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.dropdown-item:hover {
+    background-color: color-mix(in srgb, var(--font-color) 8%, transparent);
 }
 
 .dropdown-item.selected {
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    box-shadow: 0 0 5px var(--color-primary);
+    background-color: var(--color-primary-soft);
 }
 
 .dropdown-item .check {
     margin-left: auto;
+    padding-left: var(--space-2);
+    color: var(--color-primary);
 }
 
-.dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+.dropdown-empty {
+    padding: var(--space-3);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: color-mix(in srgb, var(--font-color) 55%, transparent);
 }
 
 .close-btn {
-    margin-top: 0.5em;
+    margin-top: var(--space-2);
 }
