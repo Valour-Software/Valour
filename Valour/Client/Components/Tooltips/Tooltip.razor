@@ -1,5 +1,6 @@
 ﻿@inherits ControlledRenderComponentBase
 @implements IDisposable
+@using System.Globalization
 @using System.Timers
 
 <div @ref="@_tooltipReference" class="tooltip @ComputedClass" style="@TooltipStyles" data-position="@Data.Trigger.Position">
@@ -18,7 +19,9 @@
     private bool _boundsCalculated = false;
 
     // Initially positioned off-screen until we calculate the proper position
-    private string TooltipStyles => _tooltipPosition is null ? "position: fixed; top: -1000px; left: -1000px; z-index: 9999;" : $"position: fixed; top: {_tooltipPosition.Value.Y}px; left: {_tooltipPosition.Value.X}px; z-index: 9999;";
+    private string TooltipStyles => _tooltipPosition is null
+        ?  "position: fixed; top: -1000px; left: -1000px; z-index: 9999;"
+        : $"position: fixed; top: {_tooltipPosition.Value.Y.ToString(CultureInfo.InvariantCulture)}px; left: {_tooltipPosition.Value.X.ToString(CultureInfo.InvariantCulture)}px; z-index: 9999;";
     private string ComputedClass => _shown ? (Data.Trigger.TooltipClass ?? "") + " show" : (Data.Trigger.TooltipClass ?? "") + " hide";
 
     private bool _shown;
