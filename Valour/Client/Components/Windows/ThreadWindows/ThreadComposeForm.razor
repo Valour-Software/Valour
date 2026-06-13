@@ -1,5 +1,6 @@
 @using System.Net.Http.Headers
 @inject ValourClient Client
+@inject IJSRuntime JsRuntime
 
 @* Shared thread compose form. Hosted inline in the feed (ThreadComposeInline)
    and in the edit modal (ThreadComposeModal). *@
@@ -254,6 +255,19 @@
                     MimeType = mime,
                     FileName = file.Name
                 };
+
+                // Displays size images from this metadata - without it the
+                // attachment preview renders 0x0
+                if (type == MessageAttachmentType.Image)
+                {
+                    var blobUrl = await JsRuntime.InvokeAsync<string>("createBlob", bytes, mime);
+                    var size = await JsRuntime.InvokeAsync<int[]>("getImageSizeAsync", blobUrl);
+                    if (size is { Length: 2 })
+                    {
+                        attachment.Width = size[0];
+                        attachment.Height = size[1];
+                    }
+                }
 
                 _attachments.Add(attachment);
 

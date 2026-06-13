@@ -17,7 +17,47 @@
     margin: 0 auto;
     padding: var(--space-2) var(--space-3) var(--space-4) var(--space-3);
     box-sizing: border-box;
+    /* Forward shared-axis entrance: opening a thread always navigates
+       "deeper" from a feed, so the page slides in from the right. The
+       back button sets SlideBack on the feed so it answers with the
+       mirrored slide. Page-level navigation gets a longer duration than
+       the 200ms token - ease-out-expo front-loads its motion, so short
+       durations read as a pop instead of a slide. */
+    animation: thread-nav-in 0.45s var(--ease-out-expo) both;
 }
+
+@keyframes thread-nav-in {
+    from {
+        opacity: 0;
+        transform: translateX(56px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Used by comments below; keyframes are per-file under scoped CSS */
+@keyframes thread-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.comment-skeletons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.comment-skeletons ::deep .skel-card:nth-child(2) { animation-delay: 70ms; }
+.comment-skeletons ::deep .skel-card:nth-child(3) { animation-delay: 140ms; }
 
 .thread-topbar {
     margin-bottom: var(--space-1);
@@ -185,6 +225,17 @@
     font-weight: var(--font-weight-semibold);
     color: var(--font-color);
 }
+
+/* Comments slide in as they load; later replies inherit the base delay */
+
+.comments-section ::deep .comment-wrap {
+    animation: thread-in 0.35s var(--ease-standard) both;
+}
+
+.comments-section ::deep .comment-wrap:nth-child(1) { animation-delay: 30ms; }
+.comments-section ::deep .comment-wrap:nth-child(2) { animation-delay: 70ms; }
+.comments-section ::deep .comment-wrap:nth-child(3) { animation-delay: 110ms; }
+.comments-section ::deep .comment-wrap:nth-child(n + 4) { animation-delay: 140ms; }
 
 .comment-sort {
     width: 110px;

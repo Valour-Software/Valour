@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Valour.Client.Components.Windows.ThreadWindows;
 
 /// <summary>
@@ -7,6 +9,14 @@ namespace Valour.Client.Components.Windows.ThreadWindows;
 public class ThreadsWindowData
 {
     public long? PlanetId { get; set; }
+
+    /// <summary>
+    /// Set when navigating back from a thread view, so the feed plays a
+    /// backward (left-to-right) shared-axis entrance instead of none.
+    /// Transient - never persisted.
+    /// </summary>
+    [JsonIgnore]
+    public bool SlideBack { get; set; }
 }
 
 /// <summary>

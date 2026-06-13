@@ -16,6 +16,11 @@
 
     private string GetWrapperStyle()
     {
+        // No size metadata (e.g. older thread attachments): let the image
+        // render at natural size, clamped by the max constraints below
+        if (_width <= 0 || _height <= 0)
+            return $"max-width: min({MaxSize}px, 100%);";
+
         if (DoAspect)
             return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%); width: {_width}px";
 

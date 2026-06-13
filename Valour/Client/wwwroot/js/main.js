@@ -318,6 +318,17 @@ function getImageSize(blobUrl, ref) {
     image.src = blobUrl;
 }
 
+// Promise variant: resolves to [width, height], or [0, 0] on failure.
+// Blazor awaits the promise directly, so no DotNetObjectReference is needed.
+function getImageSizeAsync(url) {
+    return new Promise((resolve) => {
+        const image = new Image();
+        image.onload = function () { resolve([this.width, this.height]); };
+        image.onerror = function () { resolve([0, 0]); };
+        image.src = url;
+    });
+}
+
 /* Useful functions for layout items */
 function determineFlip(elementId, safeWidth){
     const element = document.getElementById(elementId);

@@ -2,7 +2,7 @@
 @implements IDisposable
 @inject ValourClient Client
 
-<div class="threads-window">
+<div class="threads-window @(_slideBack ? "nav-back" : "")">
     <div class="threads-header">
         <div class="controls-row">
             <div class="planet-filter">
@@ -84,7 +84,11 @@
                 </div>
             </EmptyContent>
             <LoadingContent>
-                <div class="feed-loading">Loading threads...</div>
+                <div class="feed-skeletons">
+                    <ThreadCardSkeleton/>
+                    <ThreadCardSkeleton/>
+                    <ThreadCardSkeleton/>
+                </div>
             </LoadingContent>
         </InfiniteScroll>
     </div>
@@ -160,11 +164,21 @@
     private string NewPostLabel =>
         _newPostCount >= NewCheckPageSize ? $"{NewCheckPageSize}+ new" : $"{_newPostCount} new";
 
+    // True when arriving via a thread view's back button - plays the
+    // backward shared-axis entrance
+    private bool _slideBack;
+
     private IEnumerable<Planet> JoinedPlanets =>
         Client.PlanetService.JoinedPlanets.Where(x => x.EnableThreads);
 
     protected override async Task OnInitializedAsync()
     {
+        if (Data is not null)
+        {
+            _slideBack = Data.SlideBack;
+            Data.SlideBack = false; // One-shot - don't replay on future mounts
+        }
+
         if (Data?.PlanetId is not null)
             _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId.Value);
 

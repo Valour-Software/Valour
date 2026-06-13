@@ -1,0 +1,112 @@
+.skel-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--main-3);
+    border: 1px solid var(--slight-tint);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    animation: skel-in 0.35s var(--ease-standard) both;
+}
+
+.skel-card.comment {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: var(--space-2) 0;
+    border-left: 3px solid var(--slight-tint);
+    border-radius: 0;
+    padding-left: var(--space-3);
+}
+
+@keyframes skel-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.skel-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.skel-row.footer {
+    margin-top: var(--space-1);
+}
+
+/* Shared shimmer surface */
+
+.skel-avatar,
+.skel-bar,
+.skel-pill {
+    background: linear-gradient(
+        100deg,
+        var(--slight-tint) 40%,
+        var(--medium-tint) 50%,
+        var(--slight-tint) 60%
+    );
+    background-size: 200% 100%;
+    animation: skel-shimmer 1.6s linear infinite;
+}
+
+@keyframes skel-shimmer {
+    from { background-position: 130% 0; }
+    to { background-position: -70% 0; }
+}
+
+.skel-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.skel-avatar.small {
+    width: 18px;
+    height: 18px;
+}
+
+.skel-bar {
+    height: 10px;
+    border-radius: var(--radius-full);
+}
+
+.skel-bar.title {
+    height: 16px;
+    width: 45%;
+    margin-top: var(--space-1);
+}
+
+.skel-bar.body {
+    height: 9px;
+}
+
+.skel-bar.w-110 { width: 110px; }
+.skel-bar.w-70 { width: 70px; }
+.skel-bar.w-50 { width: 50px; }
+.skel-bar.w-full { width: 100%; }
+.skel-bar.w-80p { width: 80%; }
+.skel-bar.w-60p { width: 60%; }
+
+.skel-bar.push-right {
+    margin-left: auto;
+}
+
+.skel-pill {
+    width: 52px;
+    height: 24px;
+    border-radius: var(--radius-full);
+}
+
+.skel-pill.small {
+    width: 34px;
+}

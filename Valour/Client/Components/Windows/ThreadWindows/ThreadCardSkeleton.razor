@@ -1,0 +1,40 @@
+@* Shimmering placeholder matching the thread card layout, shown while
+   feeds and threads load. Purely presentational. *@
+
+<div class="skel-card @(Comment ? "comment" : "")">
+    @if (Comment)
+    {
+        <div class="skel-row">
+            <div class="skel-avatar small"></div>
+            <div class="skel-bar w-110"></div>
+            <div class="skel-bar w-50"></div>
+        </div>
+        <div class="skel-bar body w-full"></div>
+        <div class="skel-bar body w-60p"></div>
+    }
+    else
+    {
+        <div class="skel-row">
+            <div class="skel-avatar"></div>
+            <div class="skel-bar w-110"></div>
+            <div class="skel-bar w-70"></div>
+            <div class="skel-bar w-50 push-right"></div>
+        </div>
+        <div class="skel-bar title"></div>
+        <div class="skel-bar body w-full"></div>
+        <div class="skel-bar body w-80p"></div>
+        <div class="skel-row footer">
+            <div class="skel-pill"></div>
+            <div class="skel-pill"></div>
+            <div class="skel-pill small"></div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Renders a smaller, flat comment-shaped placeholder instead of a post card
+    /// </summary>
+    [Parameter]
+    public bool Comment { get; set; }
+}

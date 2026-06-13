@@ -91,18 +91,68 @@
         0 4px 16px rgba(0, 0, 0, 0.2),
         0 0 16px color-mix(in srgb, var(--color-primary) 8%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    animation: compose-expand var(--duration-base) var(--ease-out-expo);
     transform-origin: top center;
+    /* Same bottom-sheet pattern as the mobile emoji picker: growing
+       max-height makes the editor slide open out of the compose bar.
+       overflow:hidden lives in the keyframes so it only clips while
+       animating - dropdowns inside the form must overflow afterwards. */
+    /* ease-out-expo at short durations finishes almost instantly;
+       the sheet needs time for the slide-open to read */
+    animation: compose-rise 0.4s var(--ease-standard);
 }
 
-@keyframes compose-expand {
+@keyframes compose-rise {
+    from {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-16px);
+        overflow: hidden;
+    }
+    to {
+        max-height: 900px;
+        opacity: 1;
+        transform: none;
+        overflow: hidden;
+    }
+}
+
+/* While closing, the card stays rendered with this class until the
+   animation completes (ThreadComposeInline removes it after 300ms). */
+.compose-card.closing {
+    animation: compose-drop var(--duration-slow) var(--ease-standard) both;
+    pointer-events: none;
+}
+
+@keyframes compose-drop {
+    from {
+        max-height: 900px;
+        opacity: 1;
+        transform: none;
+        overflow: hidden;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-16px);
+        overflow: hidden;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-width: 0;
+        margin-bottom: 0;
+    }
+}
+
+/* The bar fades back in as the card collapses above it */
+.compose-cta {
+    animation: cta-in 0.35s var(--ease-standard);
+}
+
+@keyframes cta-in {
     from {
         opacity: 0;
-        transform: translateY(-6px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: none;
     }
 }
 

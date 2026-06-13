@@ -285,9 +285,30 @@
     color: var(--color-primary);
 }
 
+.tp-footer ::deep .tp-pill:active {
+    transform: scale(0.92);
+}
+
 .tp-footer ::deep .tp-pill.active {
     border-color: var(--color-primary-border);
     color: color-mix(in srgb, var(--color-primary) 70%, white);
+}
+
+/* Rocket "takeoff" when a boost lands */
+.tp-footer ::deep .tp-pill.active i {
+    animation: boost-takeoff 0.4s var(--ease-spring);
+}
+
+@keyframes boost-takeoff {
+    0% {
+        transform: none;
+    }
+    45% {
+        transform: translate(2px, -3px) scale(1.25) rotate(8deg);
+    }
+    100% {
+        transform: none;
+    }
 }
 
 .tp-footer ::deep .tp-pill.active:hover {
