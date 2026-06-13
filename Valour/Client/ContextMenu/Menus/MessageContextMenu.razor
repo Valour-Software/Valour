@@ -38,6 +38,14 @@
     <Icon><i class="bi bi-envelope-fill"></i></Icon>
 </ContextMenuItem>
 
+@if (Data.Message.Reactions is not null && Data.Message.Reactions.Count > 0)
+{
+    <ContextMenuItem OnClickAsync="@OnClickReactions">
+        <Label>Reactions</Label>
+        <Icon><i class="bi bi-emoji-smile-fill"></i></Icon>
+    </ContextMenuItem>
+}
+
 @if (Data.Message.AuthorUserId == Client.Me.Id)
 {
     <ContextMenuItem OnClickAsync="@OnClickEdit">
@@ -175,6 +183,16 @@
         
         var input = Data.MessageComponent.ParamData.ChatComponent.InputComponent;
         await input.SetReplyMessage(Data.Message);
+    }
+
+    private async Task OnClickReactions()
+    {
+        await CloseAsync();
+
+        ModalRoot.OpenModal<ReactionsModalComponent>(new ReactionsModalComponent.ModalParams
+        {
+            Message = Data.Message
+        });
     }
 
     private async Task OnClickMarkUnread()

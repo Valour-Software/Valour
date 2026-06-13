@@ -1,0 +1,113 @@
+@inherits Modal<ReactionsModalComponent.ModalParams>
+@inject ValourClient Client
+@using Valour.Client.Emojis
+
+<BasicModalLayout Title="Reactions" Icon="emoji-smile-fill" MaxWidth="400px">
+    <MainArea>
+        <div class="reactions-modal">
+            <div class="reactions-modal-emoji-row">
+                @foreach (var emoji in _emojis)
+                {
+                    <button class="reactions-modal-emoji @(emoji == _selectedEmoji ? "selected" : "")"
+                            @onclick="() => SelectEmoji(emoji)">
+                        <img class="emoji" src="@GetReactionSrc(emoji)" alt="@emoji"/>
+                        <span class="count">@_counts[emoji]</span>
+                    </button>
+                }
+            </div>
+            <div class="reactions-modal-user-list">
+                @if (_loading)
+                {
+                    <p class="reactions-modal-loading">Loading...</p>
+                }
+                else
+                {
+                    @foreach (var entry in _currentUsers)
+                    {
+                        <UserInfoComponent @key="@(entry.Member?.Id ?? entry.User?.Id ?? 0)" User="@entry.User" Member="@entry.Member"/>
+                    }
+                }
+            </div>
+        </div>
+    </MainArea>
+    <ButtonArea>
+        <button @onclick="Close" class="v-btn">Close</button>
+    </ButtonArea>
+</BasicModalLayout>
+
+@code {
+
+    public class ModalParams
+    {
+        public Message Message;
+    }
+
+    private List<string> _emojis = new();
+    private Dictionary<string, int> _counts = new();
+    private Dictionary<string, List<(User User, PlanetMember Member)>> _reactionUsers = new();
+    private string _selectedEmoji;
+    private bool _loading;
+
+    private List<(User User, PlanetMember Member)> _currentUsers =>
+        _selectedEmoji is not null && _reactionUsers.TryGetValue(_selectedEmoji, out var users) ? users : new();
+
+    private string GetReactionSrc(string emoji) =>
+        EmojiSourceProvider.GetSrcUrlFromReaction(emoji, Data.Message?.PlanetId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Data.Message.Reactions is null)
+            return;
+
+        foreach (var group in Data.Message.Reactions.GroupBy(x => x.Emoji).OrderByDescending(x => x.Count()))
+        {
+            _emojis.Add(group.Key);
+            _counts[group.Key] = group.Count();
+        }
+
+        if (_emojis.Count > 0)
+            await SelectEmoji(_emojis[0]);
+    }
+
+    private async Task SelectEmoji(string emoji)
+    {
+        _selectedEmoji = emoji;
+
+        if (_reactionUsers.ContainsKey(emoji))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        _loading = true;
+        StateHasChanged();
+
+        var users = new List<(User User, PlanetMember Member)>();
+
+        try
+        {
+            foreach (var reaction in Data.Message.Reactions.Where(x => x.Emoji == emoji))
+            {
+                PlanetMember member = null;
+                if (reaction.AuthorMemberId is not null && Data.Message.Planet is not null)
+                {
+                    member = await Data.Message.Planet.FetchMemberAsync(reaction.AuthorMemberId.Value);
+                }
+
+                var user = member?.User ?? await Client.UserService.FetchUserAsync(reaction.AuthorUserId);
+                users.Add((user, member));
+            }
+
+            _reactionUsers[emoji] = users;
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log("Reactions", "Error loading reaction users: " + e, "red");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+}

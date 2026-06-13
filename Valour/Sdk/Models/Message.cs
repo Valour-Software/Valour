@@ -129,11 +129,17 @@ public class Message : ClientPlanetModel<Message, long>, ISharedMessage
     
     public void NotifyReactionAdded(MessageReaction reaction)
     {
+        Reactions ??= new List<MessageReaction>();
+        Reactions.Add(reaction);
+
         ReactionAdded?.Invoke(reaction);
     }
-    
+
     public void NotifyReactionRemoved(MessageReaction reaction)
     {
+        Reactions?.RemoveAll(x =>
+            x.Emoji == reaction.Emoji && x.AuthorUserId == reaction.AuthorUserId);
+
         ReactionRemoved?.Invoke(reaction);
     }
     
