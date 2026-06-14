@@ -20,11 +20,13 @@
                     <div class="tree-row @(isLast ? "last" : "")" depth="2">
                         <div class="channel-wrapper" style="margin-left: 18px" depth="2"
                              @onclick="@(() => OnClickThread(thread))">
-                            <div class="channel nested">
-                                <i class="channel-icon bi-@(pinned ? "pin-angle-fill" : "chat-square-text")"
-                                   style="font-size: 13px; transform: translateY(-50%); left: 6px;"></i>
-                                <div class="path" depth="2"></div>
-                                <p class="name">@thread.Title</p>
+                            <div class="channel-wrapper">
+                                <div class="channel nested">
+                                    <i class="channel-icon bi-@(pinned ? "pin-angle-fill" : "chat-square-text")"
+                                       style="font-size: 14px; transform: translateY(calc(-50% - -2px)); left: 8px;"></i>
+                                    <div class="path" depth="2"></div>
+                                    <p class="name">@thread.Title</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -44,6 +46,11 @@
     private ModelQueryEngine<PlanetThread> _engine;
     private CancellationTokenSource _reloadCts;
 
+    // Guards against the reload loop: our own GetItemsAsync syncs threads into
+    // Planet.Threads, which re-fires Threads.Changed. We ignore changes that
+    // originate from our own fetch.
+    private bool _loading;
+
     protected override async Task OnInitializedAsync()
     {
         Planet.Threads.Changed += OnThreadsChanged;
@@ -62,6 +69,7 @@
         if (!Planet.EnableThreads)
             return;
 
+        _loading = true;
         try
         {
             _engine ??= Client.ThreadService.GetPlanetFeedEngine(Planet);
@@ -74,6 +82,10 @@
         catch
         {
             // Sidebar preview - never surface errors
+        }
+        finally
+        {
+            _loading = false;
         }
 
         await InvokeAsync(StateHasChanged);
@@ -100,11 +112,21 @@
         await LoadThreadsAsync();
     }
 
-    private void OnThreadsChanged(IModelEvent<PlanetThread> eventData) =>
-        _ = InvokeAsync(QueueReloadAsync);
+    private void OnThreadsChanged(IModelEvent<PlanetThread> eventData)
+    {
+        // Ignore changes caused by our own fetch to avoid an endless reload loop.
+        if (_loading)
+            return;
 
-    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData) =>
         _ = InvokeAsync(QueueReloadAsync);
+    }
+
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData)
+    {
+        // Only react when the pin actually changed (or on a full resync).
+        if (eventData.Changes is null || eventData.Changes.On(x => x.PinnedThreadId))
+            _ = InvokeAsync(QueueReloadAsync);
+    }
 
     private void OnPinChanged(long planetId)
     {

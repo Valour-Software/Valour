@@ -111,14 +111,6 @@
                     <span>@Thread.CommentCount</span>
                 }
             </button>
-            @if (ShowDismissPin)
-            {
-                <button class="tp-pill" title="Mark as read (stop pinning to the top of your feed)"
-                        @onclick="@OnClickDismissPin"
-                        @onclick:stopPropagation="true">
-                    <i class="bi bi-check2-circle"></i>
-                </button>
-            }
             <button class="tp-pill" title="Share" @onclick="@OnClickShare" @onclick:stopPropagation="true">
                 <i class="bi bi-share"></i>
                 <span class="share-label"></span>
@@ -126,6 +118,15 @@
             <button class="tp-pill" title="More" @onclick="@OnClickMore" @onclick:stopPropagation="true">
                 <i class="bi bi-three-dots"></i>
             </button>
+            @if (ShowDismissPin)
+            {
+                <button class="tp-pill pin-pill" title="Mark as read (stop pinning to the top of your feed)"
+                        @onclick="@OnClickDismissPin"
+                        @onclick:stopPropagation="true">
+                    <i class="bi bi-check2-circle"></i>
+                    Dismiss Pin
+                </button>
+            }
         </Footer>
     </ThreadPostDisplay>
 </div>

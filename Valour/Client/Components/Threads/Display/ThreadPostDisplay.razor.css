@@ -280,6 +280,10 @@
                 color var(--duration-fast) var(--ease-standard);
 }
 
+.tp-footer ::deep .tp-pill.pin-pill {
+    margin-left: auto;
+}
+
 .tp-footer ::deep .tp-pill:hover {
     background: color-mix(in srgb, var(--color-primary) 8%, transparent);
     color: var(--color-primary);
