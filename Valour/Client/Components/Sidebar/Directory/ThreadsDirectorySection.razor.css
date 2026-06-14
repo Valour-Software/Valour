@@ -29,6 +29,37 @@
     line-height: var(--line-height-none);
 }
 
+.threads-actions {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 1px;
+}
+
+.threads-sort {
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-none);
+    border-radius: var(--radius-xs);
+    transition: color var(--duration-fast) var(--ease-standard),
+                background var(--duration-fast) var(--ease-standard);
+}
+
+.threads-sort:hover {
+    color: var(--font-color);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.threads-sort.active {
+    color: var(--v-cyan);
+}
+
 .planet-threads .name {
     font-family: var(--font-family-app);
     font-style: normal;

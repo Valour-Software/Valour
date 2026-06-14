@@ -59,7 +59,7 @@
     flex-shrink: 0;
     padding: 6px 14px;
     border-radius: var(--radius-full);
-    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-secondary) 100%);
+    background: linear-gradient(135deg, var(--color-primary-dimmed) 0%, var(--color-secondary-dimmed) 100%);
     color: white;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
@@ -164,13 +164,6 @@
     font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
     color: var(--font-color);
-}
-
-.compose-card-header h4 i {
-    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
 }
 
 @media (max-width: 600px) {

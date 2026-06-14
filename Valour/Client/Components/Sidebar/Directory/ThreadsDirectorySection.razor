@@ -5,6 +5,20 @@
     <div class="channel planet-threads" @onclick="OnClickHeader">
         <i class="bi bi-rocket-takeoff-fill planet-pseudo-icon"></i>
         <p class="name">Threads</p>
+        <div class="threads-actions">
+            <button class="threads-sort @(_sort == "hot" ? "active" : "")" title="Hot"
+                    @onclick='@(() => SetSortAsync("hot"))' @onclick:stopPropagation="true">
+                <i class="bi bi-fire"></i>
+            </button>
+            <button class="threads-sort @(_sort == "new" ? "active" : "")" title="New"
+                    @onclick='@(() => SetSortAsync("new"))' @onclick:stopPropagation="true">
+                <i class="bi bi-stars"></i>
+            </button>
+            <button class="threads-sort @(_sort == "top" ? "active" : "")" title="Top"
+                    @onclick='@(() => SetSortAsync("top"))' @onclick:stopPropagation="true">
+                <i class="bi bi-trophy"></i>
+            </button>
+        </div>
     </div>
 
     @if (_threads.Count > 0)
@@ -45,6 +59,7 @@
     private List<PlanetThread> _threads = new();
     private ModelQueryEngine<PlanetThread> _engine;
     private CancellationTokenSource _reloadCts;
+    private string _sort = "hot";
 
     // Guards against the reload loop: our own GetItemsAsync syncs threads into
     // Planet.Threads, which re-fires Threads.Changed. We ignore changes that
@@ -73,7 +88,8 @@
         try
         {
             _engine ??= Client.ThreadService.GetPlanetFeedEngine(Planet);
-            _engine.SetFilter("sort", "hot", false);
+            _engine.SetFilter("sort", _sort, false);
+            _engine.SetFilter("period", _sort == "top" ? "all" : null, false);
             _engine.ApplyOptions();
 
             var response = await _engine.GetItemsAsync(0, DisplayCount);
@@ -132,6 +148,15 @@
     {
         if (planetId == Planet.Id)
             _ = InvokeAsync(QueueReloadAsync);
+    }
+
+    private async Task SetSortAsync(string sort)
+    {
+        if (_sort == sort)
+            return;
+
+        _sort = sort;
+        await LoadThreadsAsync();
     }
 
     private async Task OnClickHeader()
