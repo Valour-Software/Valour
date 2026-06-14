@@ -85,6 +85,17 @@ public class NotificationService
         return new TaskResult(true, $"Cleared {changes} notifications");
     }
 
+    /// <summary>
+    /// Permanently deletes read notifications older than the given age
+    /// </summary>
+    public async Task<int> DeleteOldReadNotificationsAsync(TimeSpan maxAge)
+    {
+        var cutoff = DateTime.UtcNow - maxAge;
+        return await _db.Notifications
+            .Where(x => x.TimeRead != null && x.TimeRead < cutoff)
+            .ExecuteDeleteAsync();
+    }
+
     public async Task<List<Models.Notification>> GetNotifications(long userId, int page = 0)
         => await _db.Notifications.Where(x => x.UserId == userId)
             .OrderBy(x => x.TimeSent)
@@ -101,9 +112,15 @@ public class NotificationService
             .Select(x => x.ToModel())
             .ToListAsync();
     
+    /// <summary>
+    /// Upper bound on unread notifications hydrated at once
+    /// </summary>
+    const int MaxUnreadFetch = 99;
+
     public async Task<List<Models.Notification>> GetAllUnreadNotifications(long userId)
         => await _db.Notifications.Where(x => x.UserId == userId && x.TimeRead == null)
-            .OrderBy(x => x.TimeSent)
+            .OrderByDescending(x => x.TimeSent)
+            .Take(MaxUnreadFetch)
             .Select(x => x.ToModel())
             .ToListAsync();
     

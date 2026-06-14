@@ -308,6 +308,7 @@ public partial class ValourDb : DbContext
         Channel.SetupDbModel(modelBuilder);
         MultiAuth.SetupDbModel(modelBuilder);
         PushNotificationSubscription.SetUpDbModel(modelBuilder);
+        Notification.SetupDbModel(modelBuilder);
         UserPrivateInfo.SetupDbModel(modelBuilder);
         Referral.SetupDbModel(modelBuilder);
         PlanetTag.SetupDbModel(modelBuilder);

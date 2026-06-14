@@ -431,6 +431,7 @@ public partial class Program
         services.AddHostedService<SubscriptionWorker>();
         services.AddHostedService<StripeReconciliationWorker>();
         services.AddHostedService<VoiceStateCleanupWorker>();
+        services.AddHostedService<NotificationCleanupWorker>();
         services.AddHostedService<MigrationWorker>();
         services.AddEndpointsApiExplorer();
 
