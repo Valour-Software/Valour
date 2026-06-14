@@ -182,6 +182,8 @@
         if (Data?.PlanetId is not null)
             _planet = await Client.PlanetService.FetchPlanetAsync(Data.PlanetId.Value);
 
+        Client.ThreadService.PinChanged += OnPinChanged;
+
         await RebuildFeedAsync();
 
         _pollTimer = new System.Timers.Timer(PollIntervalMs);
@@ -343,8 +345,17 @@
         await RebuildFeedAsync();
     }
 
+    private void OnPinChanged(long planetId)
+    {
+        // A pin/dismiss changes ordering; rebuild so it floats or drops appropriately.
+        // The global feed only floats Valour Central's pin, but rebuilding is cheap.
+        _ = InvokeAsync(RebuildFeedAsync);
+    }
+
     public void Dispose()
     {
+        Client.ThreadService.PinChanged -= OnPinChanged;
+
         _pollTimer?.Stop();
         _pollTimer?.Dispose();
         _pollTimer = null;

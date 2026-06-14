@@ -32,6 +32,13 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     string MemberAvatar { get; set; }
 
     public PlanetRoleMembership RoleMembership { get; set; }
+
+    /// <summary>
+    /// The id of the most recent pinned thread this member dismissed ("marked as read").
+    /// When this matches the planet's <see cref="ISharedPlanet.PinnedThreadId"/>, the pin
+    /// no longer floats to the top of this member's feed.
+    /// </summary>
+    long? DismissedPinThreadId { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

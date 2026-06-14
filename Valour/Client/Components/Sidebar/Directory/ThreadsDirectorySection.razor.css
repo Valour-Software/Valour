@@ -1,0 +1,43 @@
+.threads-section {
+    position: relative;
+}
+
+.planet-threads {
+    cursor: pointer;
+    position: relative;
+    border-radius: var(--radius-md);
+    white-space: nowrap;
+    height: 27px;
+    padding: 6px 8px 4px 6px;
+    color: rgba(255, 255, 255, 0.65);
+    transition: color var(--duration-fast) var(--ease-standard);
+    background-color: var(--main-1);
+    z-index: 1;
+}
+
+.planet-threads:hover {
+    background-color: var(--main-3);
+    color: var(--font-color);
+}
+
+.planet-pseudo-icon {
+    position: absolute;
+    top: 50%;
+    left: 6px;
+    transform: translateY(-50%);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-none);
+}
+
+.planet-threads .name {
+    font-family: var(--font-family-app);
+    font-style: normal;
+    font-weight: var(--font-weight-regular);
+    font-size: var(--font-size-sm);
+    display: inline-block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: calc(100% - 24px);
+    margin: -2px 0 0 24px;
+}

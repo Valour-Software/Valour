@@ -29,6 +29,7 @@ public interface ISharedPlanetThread : ISharedPlanetModel<long>
     public static string GetBoostLookupRoute(long planetId) => $"{GetBaseRoute(planetId)}/boosts/lookup";
     public static string GetLockRoute(long planetId, long id) => $"{GetIdRoute(planetId, id)}/lock";
     public static string GetPinRoute(long planetId, long id) => $"{GetIdRoute(planetId, id)}/pin";
+    public static string GetDismissPinRoute(long planetId, long id) => $"{GetIdRoute(planetId, id)}/dismiss-pin";
 
     public const string FeedRoute = "api/threads/feed";
     public const string FeedBoostLookupRoute = "api/threads/boosts/lookup";
@@ -64,11 +65,6 @@ public interface ISharedPlanetThread : ISharedPlanetModel<long>
     /// Locked threads do not accept new comments
     /// </summary>
     bool IsLocked { get; set; }
-
-    /// <summary>
-    /// Pinned threads render at the top of the planet feed
-    /// </summary>
-    bool IsPinned { get; set; }
 
     bool Nsfw { get; set; }
 

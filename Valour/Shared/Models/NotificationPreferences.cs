@@ -28,7 +28,9 @@ public static class NotificationPreferences
         NotificationSource.TradeProposed,
         NotificationSource.TradeAccepted,
         NotificationSource.TradeDeclined,
-        NotificationSource.DirectMessage
+        NotificationSource.DirectMessage,
+        NotificationSource.ThreadComment,
+        NotificationSource.ThreadReply
     ];
 
     public static readonly long AllNotificationSourcesMask = ConfigurableSources

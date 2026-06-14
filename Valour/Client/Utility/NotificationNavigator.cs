@@ -3,6 +3,7 @@ using Valour.Client.Components.Menus.Modals;
 using Valour.Sdk.Models;
 using Valour.Client.Components.Menus.Modals.Users.Edit;
 using Valour.Client.Components.Windows.ChannelWindows;
+using Valour.Client.Components.Windows.ThreadWindows;
 using Valour.Client.Toast;
 using Valour.Shared.Models;
 
@@ -33,6 +34,25 @@ public static class NotificationNavigator
 
         if (long.TryParse(parts[1], out var planetId) && long.TryParse(parts[2], out var channelId))
             return (planetId, channelId);
+
+        return null;
+    }
+
+    /// <summary>
+    /// Thread notifications navigate via their ClickUrl
+    /// (/planetthreads/{planetId}/{threadId}).
+    /// </summary>
+    private static (long PlanetId, long ThreadId)? TryParseThreadRoute(string clickUrl)
+    {
+        if (string.IsNullOrWhiteSpace(clickUrl))
+            return null;
+
+        var parts = clickUrl.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3 || parts[0] != "planetthreads")
+            return null;
+
+        if (long.TryParse(parts[1], out var planetId) && long.TryParse(parts[2], out var threadId))
+            return (planetId, threadId);
 
         return null;
     }
@@ -124,6 +144,31 @@ public static class NotificationNavigator
                     if (notification.SourceId is not null)
                         content.TargetMessageId = notification.SourceId;
 
+                    await WindowService.OpenWindowAtFocused(content);
+
+                    break;
+                }
+                case NotificationSource.ThreadComment:
+                case NotificationSource.ThreadReply:
+                {
+                    var route = TryParseThreadRoute(notification.ClickUrl);
+                    var planetId = notification.PlanetId ?? route?.PlanetId;
+                    var threadId = route?.ThreadId;
+
+                    if (planetId is null || threadId is null)
+                    {
+                        ShowNavigationFailureToast("This thread notification is missing route details.");
+                        return;
+                    }
+
+                    var thread = await client.ThreadService.FetchThreadAsync(planetId.Value, threadId.Value);
+                    if (thread is null)
+                    {
+                        ShowNavigationFailureToast("Couldn't load the thread for this notification.");
+                        return;
+                    }
+
+                    var content = ThreadWindowComponent.GetDefaultContent(thread);
                     await WindowService.OpenWindowAtFocused(content);
 
                     break;

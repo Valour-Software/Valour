@@ -111,6 +111,14 @@
                     <span>@Thread.CommentCount</span>
                 }
             </button>
+            @if (ShowDismissPin)
+            {
+                <button class="tp-pill" title="Mark as read (stop pinning to the top of your feed)"
+                        @onclick="@OnClickDismissPin"
+                        @onclick:stopPropagation="true">
+                    <i class="bi bi-check2-circle"></i>
+                </button>
+            }
             <button class="tp-pill" title="Share" @onclick="@OnClickShare" @onclick:stopPropagation="true">
                 <i class="bi bi-share"></i>
                 <span class="share-label"></span>
@@ -166,8 +174,36 @@
     private Planet _planet;
     private PlanetPresenceSummary _presence;
     private bool _boosted;
+    private bool _dismissedLocally;
 
     private PlanetThread _hooked;
+    private bool _pinHooked;
+
+    /// <summary>
+    /// Shows the "mark as read" action only on the pinned thread, and only while
+    /// the viewer hasn't already dismissed it.
+    /// </summary>
+    private bool ShowDismissPin =>
+        Thread.IsPinned &&
+        !_dismissedLocally &&
+        _planet?.MyMember?.DismissedPinThreadId != Thread.Id;
+
+    protected override void OnInitialized()
+    {
+        if (!_pinHooked)
+        {
+            Client.ThreadService.PinChanged += OnPinChanged;
+            _pinHooked = true;
+        }
+    }
+
+    private void OnPinChanged(long planetId)
+    {
+        if (planetId != Thread.PlanetId)
+            return;
+
+        InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -178,6 +214,7 @@
 
             _hooked = Thread;
             _hooked.Updated += OnThreadUpdated;
+            _dismissedLocally = false;
         }
 
         _boosted = Client.ThreadService.IsThreadBoosted(Thread.Id);
@@ -234,6 +271,20 @@
         await WindowService.OpenWindowAtFocused(content, WindowCtx?.Tab);
     }
 
+    private async Task OnClickDismissPin()
+    {
+        _dismissedLocally = true;
+        StateHasChanged();
+
+        var result = await Client.ThreadService.DismissPinAsync(Thread);
+        if (!result.Success)
+        {
+            _dismissedLocally = false;
+            ToastContainer.Instance.AddToast(new ToastData("Failed", result.Message, ToastProgressState.Failure));
+            StateHasChanged();
+        }
+    }
+
     private async Task OnClickShare()
     {
         var url = ShareUtils.GetThreadShareUrl(NavManager, _planet, Thread);
@@ -286,5 +337,8 @@
     {
         if (_hooked is not null)
             _hooked.Updated -= OnThreadUpdated;
+
+        if (_pinHooked)
+            Client.ThreadService.PinChanged -= OnPinChanged;
     }
 }

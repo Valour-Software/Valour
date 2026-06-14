@@ -235,6 +235,8 @@
             NotificationSource.TradeAccepted => "Trade Accepted",
             NotificationSource.TradeDeclined => "Trade Declined",
             NotificationSource.DirectMessage => "Direct Messages",
+            NotificationSource.ThreadComment => "Thread Comments",
+            NotificationSource.ThreadReply => "Thread Replies",
             _ => source.ToString()
         };
 
@@ -256,6 +258,8 @@
             NotificationSource.TradeAccepted => "When your trade is accepted.",
             NotificationSource.TradeDeclined => "When your trade is declined.",
             NotificationSource.DirectMessage => "When you receive a new direct message.",
+            NotificationSource.ThreadComment => "When someone comments on your thread.",
+            NotificationSource.ThreadReply => "When someone replies to your comment.",
             _ => string.Empty
         };
 }

@@ -130,7 +130,7 @@ public class PlanetThreadsModel : PageModel
                     AuthorRoleName = roleName,
                     AuthorRoleColor = roleColor,
                     TimeCreated = thread.TimeCreated,
-                    IsPinned = thread.IsPinned,
+                    IsPinned = thread.Id == Planet.PinnedThreadId,
                     IsLocked = thread.IsLocked,
                     Nsfw = thread.Nsfw,
                     BoostCount = thread.BoostCount,

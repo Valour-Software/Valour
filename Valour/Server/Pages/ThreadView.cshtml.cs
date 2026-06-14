@@ -84,7 +84,7 @@ public class ThreadViewModel : PageModel
             Title = Thread.Title,
             TimeCreated = Thread.TimeCreated,
             Edited = Thread.EditedTime is not null,
-            IsPinned = Thread.IsPinned,
+            IsPinned = Thread.Id == Planet.PinnedThreadId,
             IsLocked = Thread.IsLocked,
             Nsfw = Thread.Nsfw,
             BoostCount = Thread.BoostCount,

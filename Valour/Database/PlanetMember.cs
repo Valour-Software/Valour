@@ -44,6 +44,11 @@ public class PlanetMember : ISharedPlanetMember
     public string Nickname { get; set; }
     public string MemberAvatar { get; set; }
     public bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// The id of the most recent pinned thread this member dismissed ("marked as read")
+    /// </summary>
+    public long? DismissedPinThreadId { get; set; }
     
     public PlanetRoleMembership RoleMembership { get; set; }
 
@@ -79,6 +84,9 @@ public class PlanetMember : ISharedPlanetMember
             
             e.Property(x => x.IsDeleted)
                 .HasColumnName("is_deleted");
+
+            e.Property(x => x.DismissedPinThreadId)
+                .HasColumnName("dismissed_pin_thread_id");
 
             e.ComplexProperty<PlanetRoleMembership>(x => x.RoleMembership, b =>
             {

@@ -27,6 +27,7 @@ public static class PlanetMapper
             HasCustomBackground = planet.HasCustomBackground,
             EnableThreads = planet.EnableThreads,
             PublicThreads = planet.PublicThreads,
+            PinnedThreadId = planet.PinnedThreadId,
             Tags = planet.Tags?.Select(x => x.ToModel()).ToList() ?? new ()
         };
     }
@@ -53,6 +54,7 @@ public static class PlanetMapper
         dbPlanet.HasCustomBackground = planet.HasCustomBackground;
         dbPlanet.EnableThreads = planet.EnableThreads;
         dbPlanet.PublicThreads = planet.PublicThreads;
+        dbPlanet.PinnedThreadId = planet.PinnedThreadId;
         dbPlanet.Tags = planet.Tags?.Select(x => x.ToDatabase()).ToList() ?? new ();
 
         return dbPlanet;

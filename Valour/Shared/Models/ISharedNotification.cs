@@ -24,6 +24,10 @@ public enum NotificationSource
     
     // DMs
     DirectMessage =          0x4000,
+    
+    // Threads
+    ThreadComment =          0x8000,
+    ThreadReply =            0x10000,
 }
 
 public interface ISharedNotification : ISharedModel<Guid>

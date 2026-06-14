@@ -140,7 +140,7 @@ public class ThreadApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        var threads = await threadService.QueryPlanetThreadsAsync(planetId, queryRequest);
+        var threads = await threadService.QueryPlanetThreadsAsync(planetId, queryRequest, member.UserId);
         return Results.Json(threads);
     }
 
@@ -294,6 +294,25 @@ public class ThreadApi
             return ValourResult.BadRequest(result.Message);
 
         return Results.Json(result.Data);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/threads/{threadId}/dismiss-pin")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> DismissThreadPinAsync(
+        long planetId,
+        long threadId,
+        PlanetMemberService memberService,
+        ThreadService threadService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var result = await threadService.DismissPinAsync(planetId, threadId, member.UserId);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.NoContent();
     }
 
     ///////////////

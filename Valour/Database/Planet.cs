@@ -133,6 +133,12 @@ public class Planet : ISharedPlanet
     [Column("public_threads")]
     public bool PublicThreads { get; set; }
 
+    /// <summary>
+    /// The id of the single thread pinned to the top of this planet's feed, if any
+    /// </summary>
+    [Column("pinned_thread_id")]
+    public long? PinnedThreadId { get; set; }
+
     // Only to fulfill contract
     [NotMapped]
     public new string NodeName { get; set; }

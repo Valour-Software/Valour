@@ -5,6 +5,7 @@ using Valour.Server.Database;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Threads;
 
 namespace Valour.Server.Services;
 
@@ -278,6 +279,68 @@ public class NotificationService
         await SendUserNotification(repliedToMessage.AuthorUserId, notification);
     }
     
+    /// <summary>
+    /// Notifies the relevant author when a thread comment is posted. Top-level comments
+    /// notify the thread author; replies notify the parent comment's author.
+    /// </summary>
+    public async Task HandleThreadCommentAsync(
+        ISharedThreadComment comment,
+        ISharedPlanetThread thread,
+        ISharedThreadComment parentComment)
+    {
+        var isReply = parentComment is not null;
+        var recipientUserId = isReply ? parentComment.AuthorUserId : thread.AuthorUserId;
+
+        // Never notify someone about their own comment
+        if (recipientUserId == comment.AuthorUserId)
+            return;
+
+        var senderUser = (await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == comment.AuthorUserId))?.ToModel();
+
+        if (senderUser is null)
+            return;
+
+        var senderName = senderUser.Name;
+        var senderAvatar = ISharedUser.GetAvatar(senderUser, AvatarFormat.Webp128);
+
+        if (comment.AuthorMemberId is not null)
+        {
+            var memberMeta = await _db.PlanetMembers
+                .AsNoTracking()
+                .Where(x => x.Id == comment.AuthorMemberId)
+                .Select(x => new { x.Nickname, x.MemberAvatar })
+                .FirstOrDefaultAsync();
+
+            if (memberMeta is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(memberMeta.Nickname))
+                    senderName = memberMeta.Nickname;
+                if (!string.IsNullOrWhiteSpace(memberMeta.MemberAvatar))
+                    senderAvatar = memberMeta.MemberAvatar;
+            }
+        }
+
+        var title = isReply
+            ? $"{senderName} replied to your comment"
+            : $"{senderName} commented on your post";
+
+        Models.Notification notification = new()
+        {
+            Title = title,
+            Body = string.IsNullOrWhiteSpace(comment.Content) ? thread.Title : comment.Content,
+            ImageUrl = senderAvatar,
+            ClickUrl = $"/planetthreads/{thread.PlanetId}/{thread.Id}",
+            PlanetId = thread.PlanetId,
+            Source = isReply ? NotificationSource.ThreadReply : NotificationSource.ThreadComment,
+            SourceId = comment.Id,
+            UserId = recipientUserId,
+        };
+
+        await SendUserNotification(recipientUserId, notification);
+    }
+
     public async Task HandleDirectMessageAsync(
         ISharedMessage message,
         ISharedUser user,

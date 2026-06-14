@@ -27,7 +27,6 @@ public class PlanetThread : ISharedPlanetThread
     public DateTime TimeCreated { get; set; }
     public DateTime? EditedTime { get; set; }
     public bool IsLocked { get; set; }
-    public bool IsPinned { get; set; }
     public bool Nsfw { get; set; }
     public int BoostCount { get; set; }
     public int CommentCount { get; set; }
@@ -76,9 +75,6 @@ public class PlanetThread : ISharedPlanetThread
             e.Property(x => x.IsLocked)
                 .HasColumnName("is_locked");
 
-            e.Property(x => x.IsPinned)
-                .HasColumnName("is_pinned");
-
             e.Property(x => x.Nsfw)
                 .HasColumnName("nsfw");
 
@@ -98,7 +94,6 @@ public class PlanetThread : ISharedPlanetThread
 
             e.HasIndex(x => x.PlanetId);
             e.HasIndex(x => new { x.PlanetId, x.TimeCreated });
-            e.HasIndex(x => new { x.PlanetId, x.IsPinned });
             e.HasIndex(x => x.AuthorUserId);
         });
     }

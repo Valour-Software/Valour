@@ -3,6 +3,7 @@ using Valour.Sdk.ModelLogic;
 using Valour.Sdk.Models.Threads;
 using Valour.Shared;
 using Valour.Shared.Models.Threads;
+using Valour.Shared.Utilities;
 
 namespace Valour.Sdk.Services;
 
@@ -19,6 +20,13 @@ public class ThreadService : ServiceBase
     );
 
     private readonly ValourClient _client;
+
+    /// <summary>
+    /// Fired (with the planet id) when the current user changes a thread pin or
+    /// dismisses one, so feeds and the channel directory can re-sort live.
+    /// We don't assign because += and -= will do it.
+    /// </summary>
+    public HybridEvent<long>? PinChanged;
 
     // Boost state for the current user, populated by lookups and toggles
     private readonly HashSet<long> _boostedThreads = new();
@@ -126,7 +134,43 @@ public class ThreadService : ServiceBase
             ISharedPlanetThread.GetPinRoute(thread.PlanetId, thread.Id), value);
 
         if (response.Success)
+        {
             response.Data?.Sync(_client);
+
+            // Pinning lives on the planet; update it optimistically so IsPinned and
+            // feed ordering reflect the change before the planet broadcast arrives.
+            var planet = thread.GetPlanet(false);
+            if (planet is not null)
+            {
+                if (value)
+                    planet.PinnedThreadId = thread.Id;
+                else if (planet.PinnedThreadId == thread.Id)
+                    planet.PinnedThreadId = null;
+            }
+
+            PinChanged?.Invoke(thread.PlanetId);
+        }
+
+        return response;
+    }
+
+    /// <summary>
+    /// Marks the given pinned thread as read for the current user so it no longer
+    /// floats to the top of their feed.
+    /// </summary>
+    public async Task<TaskResult> DismissPinAsync(PlanetThread thread)
+    {
+        var response = await thread.Node.PostAsync(
+            ISharedPlanetThread.GetDismissPinRoute(thread.PlanetId, thread.Id), null);
+
+        if (response.Success)
+        {
+            var member = thread.GetPlanet(false)?.MyMember;
+            if (member is not null)
+                member.DismissedPinThreadId = thread.Id;
+
+            PinChanged?.Invoke(thread.PlanetId);
+        }
 
         return response;
     }

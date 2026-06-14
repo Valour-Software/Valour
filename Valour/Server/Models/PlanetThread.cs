@@ -12,7 +12,6 @@ public class PlanetThread : ServerModel<long>, ISharedPlanetThread
     public DateTime TimeCreated { get; set; }
     public DateTime? EditedTime { get; set; }
     public bool IsLocked { get; set; }
-    public bool IsPinned { get; set; }
     public bool Nsfw { get; set; }
     public int BoostCount { get; set; }
     public int CommentCount { get; set; }

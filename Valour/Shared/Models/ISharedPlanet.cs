@@ -84,6 +84,12 @@ public interface ISharedPlanet : ISharedModel<long>
     /// True if this planet's threads can be browsed publicly without an account
     /// </summary>
     bool PublicThreads { get; set; }
+
+    /// <summary>
+    /// The id of the single thread pinned to the top of this planet's feed, if any.
+    /// Members can dismiss it individually via <see cref="ISharedPlanetMember.DismissedPinThreadId"/>.
+    /// </summary>
+    long? PinnedThreadId { get; set; }
     
     private static readonly Dictionary<IconFormat, string> IconFormatMap = new()
     {

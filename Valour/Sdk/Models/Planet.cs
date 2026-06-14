@@ -210,6 +210,11 @@ public class Planet : ClientModel<Planet, long>, ISharedPlanet, IDisposable
     /// </summary>
     public bool PublicThreads { get; set; }
 
+    /// <summary>
+    /// The id of the single thread pinned to the top of this planet's feed, if any
+    /// </summary>
+    public long? PinnedThreadId { get; set; }
+
     public List<PlanetTag> Tags { get; set; }
 
     internal void SetMyMember(PlanetMember member)

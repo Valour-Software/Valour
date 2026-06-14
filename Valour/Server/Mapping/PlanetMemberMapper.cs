@@ -17,6 +17,7 @@ public static class PlanetMemberMapper
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
             RoleMembership = member.RoleMembership,
+            DismissedPinThreadId = member.DismissedPinThreadId,
             User = member.User.ToModel()
         };
     }
@@ -33,7 +34,8 @@ public static class PlanetMemberMapper
             PlanetId = member.PlanetId,
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
-            RoleMembership = member.RoleMembership
+            RoleMembership = member.RoleMembership,
+            DismissedPinThreadId = member.DismissedPinThreadId
         };
     }
 }

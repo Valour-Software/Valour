@@ -104,6 +104,11 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// Flags representing the roles of the member
     /// </summary>
     public PlanetRoleMembership RoleMembership { get; set; }
+
+    /// <summary>
+    /// The id of the most recent pinned thread this member dismissed ("marked as read")
+    /// </summary>
+    public long? DismissedPinThreadId { get; set; }
     
     private PlanetMember() : base() {}
     public PlanetMember(ValourClient client) : base(client) { }

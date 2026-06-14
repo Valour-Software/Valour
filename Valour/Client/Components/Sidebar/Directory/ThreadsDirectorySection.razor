@@ -1,0 +1,135 @@
+@implements IDisposable
+@inject ValourClient Client
+
+<div class="threads-section">
+    <div class="channel planet-threads" @onclick="OnClickHeader">
+        <i class="bi bi-rocket-takeoff-fill planet-pseudo-icon"></i>
+        <p class="name">Threads</p>
+    </div>
+
+    @if (_threads.Count > 0)
+    {
+        <div class="sub-list open" depth="2">
+            <div class="sub-list-inner">
+                @for (var i = 0; i < _threads.Count; i++)
+                {
+                    var thread = _threads[i];
+                    var isLast = i == _threads.Count - 1;
+                    var pinned = IsActivePin(thread);
+
+                    <div class="tree-row @(isLast ? "last" : "")" depth="2">
+                        <div class="channel-wrapper" style="margin-left: 18px" depth="2"
+                             @onclick="@(() => OnClickThread(thread))">
+                            <div class="channel nested">
+                                <i class="channel-icon bi-@(pinned ? "pin-angle-fill" : "chat-square-text")"
+                                   style="font-size: 13px; transform: translateY(-50%); left: 6px;"></i>
+                                <div class="path" depth="2"></div>
+                                <p class="name">@thread.Title</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private const int DisplayCount = 4;
+
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    private List<PlanetThread> _threads = new();
+    private ModelQueryEngine<PlanetThread> _engine;
+    private CancellationTokenSource _reloadCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Planet.Threads.Changed += OnThreadsChanged;
+        Planet.Updated += OnPlanetUpdated;
+        Client.ThreadService.PinChanged += OnPinChanged;
+
+        await LoadThreadsAsync();
+    }
+
+    private bool IsActivePin(PlanetThread thread) =>
+        Planet.PinnedThreadId == thread.Id &&
+        Planet.MyMember?.DismissedPinThreadId != thread.Id;
+
+    private async Task LoadThreadsAsync()
+    {
+        if (!Planet.EnableThreads)
+            return;
+
+        try
+        {
+            _engine ??= Client.ThreadService.GetPlanetFeedEngine(Planet);
+            _engine.SetFilter("sort", "hot", false);
+            _engine.ApplyOptions();
+
+            var response = await _engine.GetItemsAsync(0, DisplayCount);
+            _threads = response.Items.ToList();
+        }
+        catch
+        {
+            // Sidebar preview - never surface errors
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Threads sync in bursts, so collapse rapid changes into a single reload.
+    /// </summary>
+    private async Task QueueReloadAsync()
+    {
+        _reloadCts?.Cancel();
+        _reloadCts = new CancellationTokenSource();
+        var token = _reloadCts.Token;
+
+        try
+        {
+            await Task.Delay(600, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        await LoadThreadsAsync();
+    }
+
+    private void OnThreadsChanged(IModelEvent<PlanetThread> eventData) =>
+        _ = InvokeAsync(QueueReloadAsync);
+
+    private void OnPlanetUpdated(ModelUpdatedEvent<Planet> eventData) =>
+        _ = InvokeAsync(QueueReloadAsync);
+
+    private void OnPinChanged(long planetId)
+    {
+        if (planetId == Planet.Id)
+            _ = InvokeAsync(QueueReloadAsync);
+    }
+
+    private async Task OnClickHeader()
+    {
+        var content = ThreadsWindowComponent.GetDefaultContent(Planet);
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    private async Task OnClickThread(PlanetThread thread)
+    {
+        var content = ThreadWindowComponent.GetDefaultContent(thread);
+        content.Data.BackPlanetId = Planet.Id;
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    public void Dispose()
+    {
+        Planet.Threads.Changed -= OnThreadsChanged;
+        Planet.Updated -= OnPlanetUpdated;
+        Client.ThreadService.PinChanged -= OnPinChanged;
+        _reloadCts?.Cancel();
+    }
+}

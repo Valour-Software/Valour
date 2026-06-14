@@ -22,6 +22,7 @@ public class ThreadService
     private readonly AutomodService _automodService;
     private readonly ProxyHandler _proxyHandler;
     private readonly ModerationAuditService _auditService;
+    private readonly NotificationService _notificationService;
     private readonly ILogger<ThreadService> _logger;
 
     public ThreadService(
@@ -30,6 +31,7 @@ public class ThreadService
         AutomodService automodService,
         ProxyHandler proxyHandler,
         ModerationAuditService auditService,
+        NotificationService notificationService,
         ILogger<ThreadService> logger)
     {
         _db = db;
@@ -37,6 +39,7 @@ public class ThreadService
         _automodService = automodService;
         _proxyHandler = proxyHandler;
         _auditService = auditService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -78,7 +81,6 @@ public class ThreadService
         thread.AuthorUserId = member.UserId;
         thread.AuthorMemberId = member.Id;
         thread.IsLocked = false;
-        thread.IsPinned = false;
         thread.BoostCount = 0;
         thread.CommentCount = 0;
 
@@ -243,23 +245,80 @@ public class ThreadService
         return result;
     }
 
+    /// <summary>
+    /// Pins or unpins a thread. There is only ever one pinned thread per planet,
+    /// so the pin lives on the planet itself rather than the thread.
+    /// </summary>
     public async Task<TaskResult<PlanetThread>> SetPinnedAsync(long planetId, long threadId, bool value, long actorUserId)
     {
-        var result = await SetThreadFlagAsync(planetId, threadId, thread => thread.IsPinned = value);
+        var dbPlanet = await _db.Planets
+            .Include(x => x.Tags)
+            .FirstOrDefaultAsync(x => x.Id == planetId);
+        if (dbPlanet is null)
+            return TaskResult<PlanetThread>.FromFailure("Planet not found.");
 
-        if (result.Success)
+        var dbThread = await _db.PlanetThreads
+            .Include(x => x.Attachments)
+            .FirstOrDefaultAsync(x => x.Id == threadId && x.PlanetId == planetId);
+
+        if (dbThread is null)
+            return TaskResult<PlanetThread>.FromFailure("Thread not found.");
+
+        if (value)
+            dbPlanet.PinnedThreadId = threadId;
+        else if (dbPlanet.PinnedThreadId == threadId)
+            dbPlanet.PinnedThreadId = null;
+
+        try
         {
-            await _auditService.LogAsync(
-                planetId,
-                ModerationActionSource.Manual,
-                value ? ModerationActionType.PinThread : ModerationActionType.UnpinThread,
-                actorUserId: actorUserId,
-                targetUserId: result.Data.AuthorUserId,
-                targetMemberId: result.Data.AuthorMemberId,
-                details: $"{(value ? "Pinned" : "Unpinned")} thread \"{result.Data.Title}\" ({threadId})");
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to set pin on thread {ThreadId}", threadId);
+            return TaskResult<PlanetThread>.FromFailure("Failed to update pin.");
         }
 
-        return result;
+        await _auditService.LogAsync(
+            planetId,
+            ModerationActionSource.Manual,
+            value ? ModerationActionType.PinThread : ModerationActionType.UnpinThread,
+            actorUserId: actorUserId,
+            targetUserId: dbThread.AuthorUserId,
+            targetMemberId: dbThread.AuthorMemberId,
+            details: $"{(value ? "Pinned" : "Unpinned")} thread \"{dbThread.Title}\" ({threadId})");
+
+        // Pinning lives on the planet, so broadcast the planet so feeds re-sort live
+        _coreHub.NotifyPlanetChange(dbPlanet.ToModel());
+
+        return TaskResult<PlanetThread>.FromData(dbThread.ToModel());
+    }
+
+    /// <summary>
+    /// Records that a member has dismissed ("marked as read") the given pinned thread,
+    /// so it no longer floats to the top of their feed.
+    /// </summary>
+    public async Task<TaskResult> DismissPinAsync(long planetId, long threadId, long userId)
+    {
+        var member = await _db.PlanetMembers
+            .FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+
+        if (member is null)
+            return TaskResult.FromFailure("You are not a member of this planet.");
+
+        member.DismissedPinThreadId = threadId;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to dismiss pin {ThreadId} for user {UserId}", threadId, userId);
+            return TaskResult.FromFailure("Failed to dismiss pin.");
+        }
+
+        return TaskResult.SuccessResult;
     }
 
     private async Task<TaskResult<PlanetThread>> SetThreadFlagAsync(long planetId, long threadId, Action<Valour.Database.PlanetThread> setFlag)
@@ -293,13 +352,15 @@ public class ThreadService
     // Feeds //
     //////////
 
-    public async Task<QueryResponse<PlanetThread>> QueryPlanetThreadsAsync(long planetId, QueryRequest request)
+    public async Task<QueryResponse<PlanetThread>> QueryPlanetThreadsAsync(long planetId, QueryRequest request, long? userId = null)
     {
+        var pinnedId = await GetEffectivePinAsync(planetId, userId);
+
         var query = _db.PlanetThreads
             .AsNoTracking()
             .Where(x => x.PlanetId == planetId);
 
-        query = ApplyFeedSort(query, request, pinnedFirst: true);
+        query = ApplyFeedSort(query, request, pinnedId);
 
         return await ExecuteThreadQueryAsync(query, request);
     }
@@ -314,15 +375,42 @@ public class ThreadService
             .AsNoTracking()
             .Where(x => planetIds.Contains(x.PlanetId) && x.Planet.EnableThreads);
 
-        query = ApplyFeedSort(query, request, pinnedFirst: false);
+        // Only Valour Central's pin is allowed to float to the top of the global feed
+        var pinnedId = await GetEffectivePinAsync(ISharedPlanet.ValourCentralId, userId);
+
+        query = ApplyFeedSort(query, request, pinnedId);
 
         return await ExecuteThreadQueryAsync(query, request);
+    }
+
+    /// <summary>
+    /// Resolves the thread that should float to the top of a planet's feed for the given user,
+    /// accounting for the user's per-member dismissal. Returns null when nothing should float.
+    /// </summary>
+    private async Task<long?> GetEffectivePinAsync(long planetId, long? userId)
+    {
+        var pinnedId = await _db.Planets
+            .AsNoTracking()
+            .Where(x => x.Id == planetId)
+            .Select(x => x.PinnedThreadId)
+            .FirstOrDefaultAsync();
+
+        if (pinnedId is null || userId is null)
+            return pinnedId;
+
+        var dismissedId = await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.PlanetId == planetId && x.UserId == userId.Value)
+            .Select(x => x.DismissedPinThreadId)
+            .FirstOrDefaultAsync();
+
+        return dismissedId == pinnedId ? null : pinnedId;
     }
 
     private static IQueryable<Valour.Database.PlanetThread> ApplyFeedSort(
         IQueryable<Valour.Database.PlanetThread> query,
         QueryRequest request,
-        bool pinnedFirst)
+        long? pinnedThreadId)
     {
         var sort = request.Options?.Filters?.GetValueOrDefault("sort") ?? "hot";
         var period = request.Options?.Filters?.GetValueOrDefault("period") ?? "all";
@@ -342,9 +430,10 @@ public class ThreadService
 
         IOrderedQueryable<Valour.Database.PlanetThread> ordered;
 
-        if (pinnedFirst)
+        if (pinnedThreadId is not null)
         {
-            ordered = query.OrderByDescending(x => x.IsPinned);
+            var pinId = pinnedThreadId.Value;
+            ordered = query.OrderByDescending(x => x.Id == pinId);
             ordered = sort switch
             {
                 "new" => ordered.ThenByDescending(x => x.TimeCreated),
@@ -593,6 +682,15 @@ public class ThreadService
         var threadModel = await GetThreadAsync(comment.ThreadId);
         if (threadModel is not null)
             _coreHub.NotifyPlanetItemChange(threadModel);
+
+        try
+        {
+            await _notificationService.HandleThreadCommentAsync(comment, dbThread, parent);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to send notification for comment {CommentId} on thread {ThreadId}", comment.Id, comment.ThreadId);
+        }
 
         return TaskResult<ThreadComment>.FromData(comment);
     }

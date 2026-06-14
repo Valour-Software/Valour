@@ -53,12 +53,7 @@
                 </div>
                 @if (Planet.EnableThreads)
                 {
-                    <div class="channel planet-threads" @onclick="OnClickPlanetThreads">
-                        <i class="bi bi-rocket-takeoff-fill planet-pseudo-icon"></i>
-                        <p class="name">
-                            Threads
-                        </p>
-                    </div>
+                    <ThreadsDirectorySection Planet="@Planet"/>
                 }
 
                 @foreach (var root in RootChannels)
@@ -232,12 +227,6 @@
     private async Task OnClickPlanetRules()
     {
         var newWindowContent = PlanetRulesWindowComponent.GetDefaultContent(Planet);
-        await WindowService.OpenWindowAtFocused(newWindowContent);
-    }
-
-    private async Task OnClickPlanetThreads()
-    {
-        var newWindowContent = ThreadsWindowComponent.GetDefaultContent(Planet);
         await WindowService.OpenWindowAtFocused(newWindowContent);
     }
 

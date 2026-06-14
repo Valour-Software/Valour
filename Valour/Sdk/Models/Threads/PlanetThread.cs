@@ -19,12 +19,18 @@ public class PlanetThread : ClientPlanetModel<PlanetThread, long>, ISharedPlanet
     public DateTime TimeCreated { get; set; }
     public DateTime? EditedTime { get; set; }
     public bool IsLocked { get; set; }
-    public bool IsPinned { get; set; }
     public bool Nsfw { get; set; }
     public int BoostCount { get; set; }
     public int CommentCount { get; set; }
 
     public List<MessageAttachment> Attachments { get; set; }
+
+    /// <summary>
+    /// True if this thread is the one currently pinned on its planet. Pinning lives
+    /// on the planet (one pin per planet), so this is derived from the cached planet.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsPinned => GetPlanet(false)?.PinnedThreadId == Id;
 
     protected override long? GetPlanetId() => PlanetId;
 

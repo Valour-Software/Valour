@@ -47,6 +47,14 @@
     </ContextMenuItem>
 }
 
+@if (_isPinned && !_dismissed)
+{
+    <ContextMenuItem OnClickAsync="@OnClickMarkRead">
+        <Label>Mark as Read</Label>
+        <Icon><i class="bi bi-check2-circle"></i></Icon>
+    </ContextMenuItem>
+}
+
 <ContextMenuItem OnClickAsync="@OnClickReport" Color="red">
     <Label>Report</Label>
     <Icon><i class="bi bi-flag-fill"></i></Icon>
@@ -64,6 +72,8 @@
 
     private bool _canManage;
     private bool _canDelete;
+    private bool _isPinned;
+    private bool _dismissed;
     private Planet _planet;
 
     protected override async Task OnInitializedAsync()
@@ -72,6 +82,17 @@
 
         _canManage = _planet?.MyMember?.HasPermission(PlanetPermissions.ManageThreads) ?? false;
         _canDelete = _canManage || Data.Thread.AuthorUserId == Client.Me.Id;
+        _isPinned = _planet?.PinnedThreadId == Data.Thread.Id;
+        _dismissed = _planet?.MyMember?.DismissedPinThreadId == Data.Thread.Id;
+    }
+
+    private async Task OnClickMarkRead()
+    {
+        await CloseAsync();
+
+        var result = await Client.ThreadService.DismissPinAsync(Data.Thread);
+        if (!result.Success)
+            ToastContainer.Instance.AddToast(new ToastData("Failed", result.Message, ToastProgressState.Failure));
     }
 
     private async Task OnClickOpenInNewTab()

@@ -68,6 +68,11 @@ public class Planet : ServerModel<long>, ISharedPlanet
     /// True if this planet's threads can be browsed publicly without an account
     /// </summary>
     public bool PublicThreads { get; set; }
+
+    /// <summary>
+    /// The id of the single thread pinned to the top of this planet's feed, if any
+    /// </summary>
+    public long? PinnedThreadId { get; set; }
     
     public List<PlanetTag> Tags { get; set; } = new();
     
