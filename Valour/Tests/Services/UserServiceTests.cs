@@ -112,7 +112,6 @@ public class UserServiceTests : IAsyncLifetime
             Email = $"t{randomName}@test.com",
             Password = "TempPass1!",
             DateOfBirth = new DateTime(2000, 1, 1),
-            Locality = Locality.General,
             Source = "test"
         };
 
@@ -442,7 +441,7 @@ public class UserServiceTests : IAsyncLifetime
     {
         var me = _client.Me;
         var birth = DateTime.Today.AddYears(-10);
-        var result = await _userService.SetUserComplianceData(me.Id, birth, Locality.General);
+        var result = await _userService.SetUserComplianceData(me.Id, birth);
         Assert.False(result.Success);
     }
 

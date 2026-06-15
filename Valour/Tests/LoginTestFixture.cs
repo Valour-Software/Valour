@@ -63,7 +63,6 @@ public class LoginTestFixture : IAsyncLifetime
         var details = new RegisterUserRequest()
         {
             Email = testEmail,
-            Locality = Locality.General,
             Password = testPassword,
             Username = testUsername,
             DateOfBirth = new DateTime(2000, 1, 1),

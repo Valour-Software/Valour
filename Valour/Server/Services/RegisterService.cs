@@ -157,7 +157,6 @@ public class RegisterService
                 Verified = skipEmail || (EmailConfig.Instance.ApiKey == "fake-value"),
                 UserId = user.Id,
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
-                Locality = request.Locality,
                 JoinInviteCode = request.InviteCode,
                 JoinSource = request.Source
             };

@@ -8,7 +8,6 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     public bool Verified { get; set; }
     public long UserId { get; set; }
     public DateTime? BirthDate { get; set; }
-    public Locality? Locality { get; set; }
     public string JoinInviteCode { get; set; }
     public string JoinSource { get; set; }
 }

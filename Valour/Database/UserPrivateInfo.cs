@@ -36,11 +36,6 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     public DateTime? BirthDate { get; set; }
     
     /// <summary>
-    /// Locality is used for data localization and other compliance purposes
-    /// </summary>
-    public Locality? Locality { get; set; }
-    
-    /// <summary>
     /// If the user joined valour from a specific invite code, it is stored here
     /// </summary>
     public string JoinInviteCode { get; set; }
@@ -79,9 +74,6 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
                     x => x == null ? null : new DateTime(x.Value.Ticks, DateTimeKind.Utc)
                 );
 
-            e.Property(x => x.Locality)
-                .HasColumnName("locality");
-
             e.Property(x => x.JoinInviteCode)
                 .HasColumnName("join_invite_code");
 
@@ -94,8 +86,6 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
                 .IsUnique();
 
             e.HasIndex(x => x.BirthDate);
-
-            e.HasIndex(x => x.Locality);
 
             e.HasIndex(x => x.JoinInviteCode);
 

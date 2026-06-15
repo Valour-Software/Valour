@@ -57,11 +57,7 @@
                 return;
         }
         
-        // We have to do this for data localization laws
-        var isEuropean = await JsRuntime.InvokeAsync<bool>("isEuropeanUnion");
-        var locale = isEuropean ? Locality.EuropeanUnion : Locality.General;
-
-        var result = await Client.AuthService.SetComplianceDataAsync(_model.DateOfBirth, locale);
+        var result = await Client.AuthService.SetComplianceDataAsync(_model.DateOfBirth);
         if (!result.Success)
         {
             _errorSpan = result.Message;

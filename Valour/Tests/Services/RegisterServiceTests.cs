@@ -51,7 +51,6 @@ public class RegisterServiceTests : IAsyncLifetime
             Username = $"register-{uid}",
             Password = $"Test-{uid}!",
             DateOfBirth = new DateTime(2000, 1, 1),
-            Locality = Locality.General,
             Source = "test"
         };
     }

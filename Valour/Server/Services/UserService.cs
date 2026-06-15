@@ -348,7 +348,7 @@ public class UserService
         return age;
     }
 
-    public async Task<TaskResult> SetUserComplianceData(long userId, DateTime birthDate, Locality locality)
+    public async Task<TaskResult> SetUserComplianceData(long userId, DateTime birthDate)
     {
         if (GetYearsOld(birthDate) < 13)
             return new TaskResult(false, "You must be 13 or older to use Valour. Sorry!");
@@ -368,7 +368,6 @@ public class UserService
         try
         {
             userPrivateInfo.BirthDate = birthDate;
-            userPrivateInfo.Locality = locality;
 
             await _db.SaveChangesAsync();
 

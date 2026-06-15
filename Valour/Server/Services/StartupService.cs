@@ -35,7 +35,6 @@ public class StartupService
             var result = await _registerService.RegisterUserAsync(new RegisterUserRequest()
             {
                 Email = "victor@valour.gg",
-                Locality = Locality.General,
                 Password = "T" + Guid.NewGuid().ToString().Substring(0, 10) + "!",
                 Username = "Victor",
                 DateOfBirth = new DateTime(1990, 1, 1),
