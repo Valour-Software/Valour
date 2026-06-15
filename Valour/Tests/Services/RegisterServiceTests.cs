@@ -32,9 +32,9 @@ public class RegisterServiceTests : IAsyncLifetime
         _userService = _scope.ServiceProvider.GetRequiredService<UserService>();
     }
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         foreach (var user in _createdUsers)
         {

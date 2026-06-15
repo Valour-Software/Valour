@@ -26,7 +26,7 @@ public class UserBlockServiceTests : IAsyncLifetime
         _db = _scope.ServiceProvider.GetRequiredService<ValourDb>();
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var details = await _fixture.RegisterUser();
         _secondaryUserId = await _db.Users
@@ -36,10 +36,10 @@ public class UserBlockServiceTests : IAsyncLifetime
             .FirstAsync();
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _scope.Dispose();
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     [Fact]

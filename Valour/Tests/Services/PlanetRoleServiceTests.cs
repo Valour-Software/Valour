@@ -43,7 +43,7 @@ namespace Valour.Tests.Services
         }
 
         // Clean up any created roles after all tests in this class have run
-        public async Task DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
             foreach (var role in _createdRoles)
             {
@@ -57,7 +57,7 @@ namespace Valour.Tests.Services
         }
 
         // xUnit requires these to fulfill IAsyncLifetime
-        public Task InitializeAsync() => Task.CompletedTask;
+        public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
         [Fact]
         public async Task CreateRole()

@@ -41,7 +41,7 @@ public class PlanetMemberServiceTests : IAsyncLifetime
         _userService = _scope.ServiceProvider.GetRequiredService<UserService>();
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var owner = await _userService.GetAsync(_client.Me.Id);
         var createResult = await _planetService.CreateAsync(new Planet
@@ -54,7 +54,7 @@ public class PlanetMemberServiceTests : IAsyncLifetime
         _planet = createResult.Data!;
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         foreach (var memberId in _createdMembers)
         {

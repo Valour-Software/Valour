@@ -44,7 +44,7 @@ public class AutomodServiceTests : IAsyncLifetime
         _automodService = _scope.ServiceProvider.GetRequiredService<AutomodService>();
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _owner = await _userService.GetAsync(_fixture.Client.Me.Id);
 
@@ -69,7 +69,7 @@ public class AutomodServiceTests : IAsyncLifetime
             .FirstAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         foreach (var user in _createdUsers)
         {
