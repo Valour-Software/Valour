@@ -721,6 +721,7 @@ app {
 
 *::-webkit-scrollbar-track {
     background: var(--main-4);
+    border-radius: var(--radius-xl);
 }
 
 *::-webkit-scrollbar-thumb {
