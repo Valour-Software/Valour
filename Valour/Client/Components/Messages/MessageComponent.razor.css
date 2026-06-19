@@ -286,6 +286,11 @@
     cursor: pointer;
 }
 
+.preview-message .message {
+    max-height: 30vh;
+    overflow-y: scroll;
+}
+
 .reply .content-holder {
     padding-left: 4px;
 }

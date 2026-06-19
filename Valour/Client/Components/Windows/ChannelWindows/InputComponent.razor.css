@@ -5,7 +5,7 @@
 .textbox {
     background: var(--main-3);
     border: 1px solid var(--slight-tint);
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-md);
     color: white;
     position: relative;
     margin: 10px 6px 10px 10px; /* right gap matches button gap rhythm */
@@ -26,8 +26,10 @@
     outline: none;
     width: 100%;
     height: fit-content;
+    max-height: 45vh;
     resize: none;
     vertical-align: bottom;
+    overflow-y: auto;
 }
 
 .textbox-inner {
@@ -284,4 +286,22 @@
 
 .emoji-button:hover i {
     transform: rotate(12deg) scale(1.1);
+}
+
+@media (max-width: 1280px) {
+    .textbox-wrapper {
+        max-height: 20em;
+    }
+}
+
+@media (max-width: 960px) {
+    .textbox-wrapper {
+        max-height: 15em;
+    }
+}
+
+@media (max-width: 720px) {
+    .textbox-wrapper {
+        max-height: 10em;
+    }
 }
