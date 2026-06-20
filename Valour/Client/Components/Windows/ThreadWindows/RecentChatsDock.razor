@@ -345,8 +345,8 @@
         if (!wasDragging)
             return;
 
-        var dropped = await WindowTargetScanner.FinalizeAsync(e.X, e.Y);
-        if (!dropped)
+        await WindowTargetScanner.FinalizeAsync(e.X, e.Y);
+        if (ChannelDragManager.Dragging)
             DragManager.OnCancelDrag();
 
         _dragGhostItem = null;

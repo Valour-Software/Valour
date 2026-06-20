@@ -409,32 +409,39 @@
 
     private async Task OnTabUp(MouseUpEvent e)
     {
-        // Stop JS drag if active, get final position
-        var finalPos = await MouseListener.StopDrag();
-        if (finalPos is not null && WindowTab.FloatingProps is not null)
+        var wasDragging = _dragging || WindowService.DraggingTab == WindowTab;
+
+        try
         {
-            WindowTab.FloatingProps.X = finalPos[0];
-            WindowTab.FloatingProps.Y = finalPos[1];
+            // Stop JS drag if active, get final position
+            var finalPos = await MouseListener.StopDrag();
+            if (finalPos is not null && WindowTab.FloatingProps is not null)
+            {
+                WindowTab.FloatingProps.X = finalPos[0];
+                WindowTab.FloatingProps.Y = finalPos[1];
+            }
+
+            if (wasDragging)
+                await WindowTargetScanner.FinalizeAsync(e.X, e.Y);
         }
-
-        _dragging = false;
-
-        // End window target scanner
-        await WindowTargetScanner.FinalizeAsync(e.X, e.Y);
-
-        // Disable mouse move listener (only if we subscribed)
-        if (_subscribedToMove)
+        finally
         {
-            MouseListener.UnsubscribeMouseMove(OnDragTab);
-            _subscribedToMove = false;
+            _dragging = false;
+
+            // Disable mouse move listener (only if we subscribed)
+            if (_subscribedToMove)
+            {
+                MouseListener.UnsubscribeMouseMove(OnDragTab);
+                _subscribedToMove = false;
+            }
+
+            // Disable mouse up listener
+            MouseListener.UnsubscribeMouseUp(OnTabUp);
+
+            WindowService.NotifyTabDragging(null);
+
+            ReRender();
         }
-
-        // Disable mouse up listener
-        MouseListener.UnsubscribeMouseUp(OnTabUp);
-
-        WindowService.NotifyTabDragging(null);
-
-        ReRender();
     }
 
     private async Task OnDragTab(MousePosition e)

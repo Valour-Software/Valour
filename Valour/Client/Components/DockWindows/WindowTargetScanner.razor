@@ -21,12 +21,25 @@
     
     public static async Task ScanAsync(float x, float y)
     {
+        if (JsService is null)
+            return;
+
         await JsService.InvokeVoidAsync("scan", x, y);
     }
 
-    public static async Task<bool> FinalizeAsync(float x, float y)
+    public static async Task FinalizeAsync(float x, float y)
     {
-        return await JsService.InvokeAsync<bool>("finalize", x, y);
+        if (JsService is null)
+            return;
+
+        try
+        {
+            await JsService.InvokeVoidAsync("finalize", x, y);
+        }
+        catch (JSException)
+        {
+            // Ignore finalize failures during tab/dock interactions.
+        }
     }
 
 }
