@@ -4,7 +4,7 @@
 @inject IJSRuntime JsRuntime
 @using Valour.Client.Pages
 
-<div class="window-dock" @ref="@_ref">
+<div class="window-dock @(IsResizingSplit ? "resizing-split" : "")" @ref="@_ref">
     @foreach (var tab in Tabs)
     {
         <WindowComponent @key="@tab.Id" WindowTab="@tab" Dock="@this" />
@@ -28,6 +28,8 @@
     public List<WindowTab> Tabs { get; private set; } = new();
 
     public List<WindowSplit> Splits { get; private set; } = new();
+
+    public bool IsResizingSplit { get; private set; }
     
     public ElementDimensions Dimensions { get; private set; }
 
@@ -311,6 +313,15 @@
     {
         var floatersJson = _saveLoadAdapter.SerializeFloaters(_floaters);
         await LocalStorage.SetStringAsync("coreFloaters", floatersJson);
+    }
+
+    public void SetSplitResizing(bool resizing)
+    {
+        if (IsResizingSplit == resizing)
+            return;
+
+        IsResizingSplit = resizing;
+        Render();
     }
 
     

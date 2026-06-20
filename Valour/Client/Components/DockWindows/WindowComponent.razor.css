@@ -32,6 +32,13 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
+    transition:
+        left var(--duration-slow) var(--ease-out-expo),
+        top var(--duration-slow) var(--ease-out-expo),
+        width var(--duration-slow) var(--ease-out-expo),
+        height var(--duration-slow) var(--ease-out-expo),
+        opacity var(--duration-base) var(--ease-standard);
+    will-change: left, top, width, height;
 }
 
 .window-wrapper.dragging {

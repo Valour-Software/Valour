@@ -55,6 +55,8 @@
     {
         _dragStartX = (float)e.ClientX;
         _dragStartY = (float)e.ClientY;
+
+        Split.Layout.DockComponent.SetSplitResizing(true);
         
         MouseListener.SubscribeMouseMove(HandleMouseMove);
         MouseListener.SubscribeMouseUp(HandleMouseUp);
@@ -102,6 +104,8 @@
     public Task HandleMouseUp(MouseUpEvent e)
     {
         MouseListener.UnsubscribeMouseMove(HandleMouseMove);
+        MouseListener.UnsubscribeMouseUp(HandleMouseUp);
+        Split.Layout.DockComponent.SetSplitResizing(false);
         
         // Tell dock to save layout
         Split.Layout.DockComponent.SaveLayout();
