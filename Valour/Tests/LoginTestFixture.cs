@@ -23,7 +23,7 @@ public class LoginTestFixture : IAsyncLifetime
     public bool UserRegistered { get; private set; } = false;
     public bool UserLoggedIn { get; private set; } = false;
     
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         // Create the underlying WebApplicationFactory
         Factory = new WebApplicationFactory<Program>()
@@ -139,7 +139,7 @@ public class LoginTestFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         /*
         // Hard delete the test user
@@ -171,7 +171,7 @@ public class TeardownTestFixture : IAsyncLifetime
     public ValourClient Client { get; private set; } = null!;
     public RegisterUserRequest TestUserDetails { get; private set; } = null!;
     
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         // Create the underlying WebApplicationFactory
         Factory = new WebApplicationFactory<Program>()
@@ -213,7 +213,7 @@ public class TeardownTestFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         // Clean up if needed
         await Factory.DisposeAsync();
