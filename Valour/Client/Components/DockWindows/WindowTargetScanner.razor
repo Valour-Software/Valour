@@ -24,9 +24,9 @@
         await JsService.InvokeVoidAsync("scan", x, y);
     }
 
-    public static async Task FinalizeAsync(float x, float y)
+    public static async Task<bool> FinalizeAsync(float x, float y)
     {
-        await JsService.InvokeVoidAsync("finalize", x, y);
+        return await JsService.InvokeAsync<bool>("finalize", x, y);
     }
 
 }

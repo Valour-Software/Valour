@@ -3,6 +3,7 @@
 @inject IJSRuntime JsRuntime
 @inject ValourClient Client
 @inject UnreadService UnreadService
+@inject RecentChatService RecentChatService
 @using Valour.Client.Emojis
 @using Valour.Sdk.Nodes
 @using Valour.Shared.Models
@@ -233,6 +234,8 @@
 
             if (Channel.Node is null)
                 throw new Exception("Channel node is unavailable after opening connection.");
+
+            await RecentChatService.RecordOpenedAsync(Channel);
 
             // Planet stuff
             if (Channel.PlanetId is not null)

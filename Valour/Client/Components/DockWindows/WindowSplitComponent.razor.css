@@ -1,6 +1,12 @@
 .window-split {
     position: absolute;
     z-index: 10;
+    transition:
+        left var(--duration-slow) var(--ease-out-expo),
+        top var(--duration-slow) var(--ease-out-expo),
+        width var(--duration-slow) var(--ease-out-expo),
+        height var(--duration-slow) var(--ease-out-expo);
+    will-change: left, top, width, height;
 }
 
 .window-split.vertical {

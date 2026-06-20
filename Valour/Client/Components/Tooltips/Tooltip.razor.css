@@ -1,10 +1,12 @@
 ﻿.tooltip {
     position: fixed;
-    background-color: #333;
-    color: #fff;
+    background-color: var(--main-1);
+    color: var(--font-color);
     text-align: center;
-    padding: 4px 6px;
+    padding: 4px 8px;
     border-radius: var(--radius-sm);
+    border: 1px solid var(--slight-tint);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     white-space: normal;
     z-index: 999999999;
     opacity: 0;

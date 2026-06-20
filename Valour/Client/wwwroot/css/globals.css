@@ -540,11 +540,16 @@ label {
     padding-top: 1em !important;
 }
 
+html {
+    overscroll-behavior-x: none;
+}
+
 body {
     /* Theming */
     background-color: var(--main-1);
     color: var(--font-color);
     line-height: var(--line-height-base);
+    overscroll-behavior-x: none;
 }
 
 .mobile-holder {

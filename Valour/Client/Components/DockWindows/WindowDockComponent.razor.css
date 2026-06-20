@@ -3,3 +3,15 @@
     width: 100%;
     height: 100%;
 }
+
+.window-dock.resizing-split ::deep .window-wrapper.docked,
+.window-dock.resizing-split ::deep .window-split {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .window-dock ::deep .window-wrapper.docked,
+    .window-dock ::deep .window-split {
+        transition: none;
+    }
+}

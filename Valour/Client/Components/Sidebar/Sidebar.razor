@@ -1,5 +1,6 @@
 @inject IJSRuntime JsRuntime
 @inject IAppStorage LocalStorage
+@inject PlanetService PlanetService
 @implements IAsyncDisposable
 
 <div class="sidebar-container @ActiveClass @FlipClass">
@@ -8,14 +9,14 @@
 		<div class="sidebar">
 			<VersionComponent />
 			<div class="sidebar-content">
-				<SlideSwap Index="@SelectedTab" Content="@_tabItems[SelectedTab].RenderContent" />
+				<SlideSwap Index="@SelectedTab" Content="@VisibleTabItems[SelectedTab].RenderContent" />
 			</div>
 			<div class="sidebar-tabstrip">
 				@if (!Flip)
 				{
 					<SelfInfoComponent />
 				}
-				<SidebarTabstrip TabItems="@_tabItems" Sidebar="@this" Flip="Flip" />
+				<SidebarTabstrip TabItems="@VisibleTabItems" Sidebar="@this" Flip="Flip" />
 			</div>
 		</div>
 	</div>
@@ -23,13 +24,23 @@
 
 @code {
 
-	private List<TabStripItem> _tabItems = new()
+	private readonly List<TabStripItem> _tabItems = new()
 	{
-		new TabStripItem<PlanetsDmDirectory>("Planets", "folder-fill", 16),
+		new TabStripItem<PlanetsDmDirectory>("Planets", "globe-americas", 16),
 		new TabStripItem<FriendListComponent>("Friends", "person-fill", 21),
 		new TabStripItem<ChannelDirectory>("Channels", "chat-left-fill", 15),
 		new TabStripItem<NotificationsListComponent>("Notifications", "bell-fill", 16)
 	};
+
+	private const string ChannelsTabName = "Channels";
+	private const string PlanetsTabName = "Planets";
+
+	// The channel list only shows connected planets, so hide its tab entirely
+	// when none are open.
+	private bool ChannelsTabAvailable => PlanetService.ConnectedPlanets.Count > 0;
+
+	public List<TabStripItem> VisibleTabItems =>
+		_tabItems.Where(x => x.Name != ChannelsTabName || ChannelsTabAvailable).ToList();
 	
 	private static event Func<Task> OnToggleMobileSidebar;
 	public static async Task ToggleMobileSidebar()
@@ -43,7 +54,18 @@
 	public bool Flip { get; set; }
 	public string FlipClass => Flip ? "flip" : "";
 	
-    public int SelectedTab = 0;
+	private string _selectedTabName = PlanetsTabName;
+
+	// Index of the active tab within the currently visible tabs.
+	public int SelectedTab
+	{
+		get
+		{
+			var index = VisibleTabItems.FindIndex(x => x.Name == _selectedTabName);
+			return index < 0 ? 0 : index;
+		}
+	}
+
 	private bool _active = !DeviceInfo.IsMobile;
 	
 	private string ActiveClass => _active ? "sidebar-active" : "";
@@ -63,8 +85,6 @@
 	private IJSObjectReference _jsRef;
 	
 	
-	private const int ChannelsTabIndex = 2;
-
 	protected override async Task OnInitializedAsync()
 	{
 		_mainSidebar = this;
@@ -72,35 +92,52 @@
 		if (await LocalStorage.ContainsKeyAsync("sidebar"))
 		{
 			var name = await LocalStorage.GetStringAsync("sidebar");
-			SelectedTab = _tabItems.FindIndex(x => x.Name == name);
-			if (SelectedTab == -1)
-				SelectedTab = 0;
+			_selectedTabName = _tabItems.Any(x => x.Name == name) ? name : PlanetsTabName;
 		}
 		else
 		{
-			SelectedTab = 0;
+			_selectedTabName = PlanetsTabName;
 		}
+
+		EnsureValidSelection();
 
 		OnToggleMobileSidebar += OnOpenTabClicked;
 		WindowService.FocusedTabChanged += OnFocusedTabChanged;
+		PlanetService.ConnectedPlanetsUpdated += OnConnectedPlanetsUpdated;
 	}
 
 	private void OnFocusedTabChanged(WindowTab tab)
 	{
 		InvokeAsync(() =>
 		{
-			if (tab?.Content?.PlanetId is not null && SelectedTab != ChannelsTabIndex)
+			if (tab?.Content?.PlanetId is not null && _selectedTabName != ChannelsTabName)
 			{
-				SelectedTab = ChannelsTabIndex;
+				_selectedTabName = ChannelsTabName;
 				StateHasChanged();
 			}
 		});
 	}
 
+	private void OnConnectedPlanetsUpdated()
+	{
+		InvokeAsync(() =>
+		{
+			EnsureValidSelection();
+			StateHasChanged();
+		});
+	}
+
+	// Keeps selection off the Channels tab when it is hidden.
+	private void EnsureValidSelection()
+	{
+		if (_selectedTabName == ChannelsTabName && !ChannelsTabAvailable)
+			_selectedTabName = PlanetsTabName;
+	}
+
 	public async Task OnSelected(int index, TabStripItem tab)
 	{
 		await LocalStorage.SetStringAsync("sidebar", tab.Name);
-		SelectedTab = index;
+		_selectedTabName = tab.Name;
 		StateHasChanged();
 	}
 	
@@ -120,6 +157,7 @@
 		_thisRef?.Dispose();
 		OnToggleMobileSidebar -= OnOpenTabClicked;
 		WindowService.FocusedTabChanged -= OnFocusedTabChanged;
+		PlanetService.ConnectedPlanetsUpdated -= OnConnectedPlanetsUpdated;
 	}
 	
 	protected override async Task OnAfterRenderAsync(bool firstRender)

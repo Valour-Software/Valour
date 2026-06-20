@@ -25,6 +25,29 @@ namespace Valour.Client.Components.Sidebar.Directory
         
         public static ChannelDirectoryItem CurrentDragItem;
 
+        /// <summary>
+        /// A channel being dragged from outside the channel directory (e.g. the recent
+        /// chats dock). Lets non-directory sources reuse the window drop targets.
+        /// </summary>
+        public static Channel CurrentDragChannel;
+
+        /// <summary>
+        /// The channel currently being dragged, regardless of its source.
+        /// </summary>
+        public static Channel EffectiveDragChannel => CurrentDragItem?.Channel ?? CurrentDragChannel;
+
+        /// <summary>
+        /// Begins a drag for a channel that does not originate from the channel directory.
+        /// </summary>
+        public void OnStartExternalDrag(Channel channel)
+        {
+            Dragging = true;
+            CurrentDragItem = null;
+            CurrentDragChannel = channel;
+
+            ChannelDragChanged?.Invoke(channel);
+        }
+
         public void OnCancelDrag()
         {
             Dragging = false;
@@ -32,8 +55,9 @@ namespace Valour.Client.Components.Sidebar.Directory
             DragOverId = 0;
             var dragItem = CurrentDragItem;
             CurrentDragItem = null;
+            CurrentDragChannel = null;
             
-            dragItem.PlanetComponent.ChannelsNeedRefresh?.Invoke();
+            dragItem?.PlanetComponent.ChannelsNeedRefresh?.Invoke();
             
             ChannelDragChanged?.Invoke(null);
         }

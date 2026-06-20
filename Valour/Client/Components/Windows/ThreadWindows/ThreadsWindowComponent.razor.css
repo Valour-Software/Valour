@@ -21,9 +21,15 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow-y: auto;
+    overflow: hidden;
     background-color: var(--main-2);
     font-family: var(--font-family-app);
+}
+
+.threads-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .threads-header {

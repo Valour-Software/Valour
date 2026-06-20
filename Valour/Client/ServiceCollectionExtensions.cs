@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ContextMenuService>();
         services.AddSingleton<INativeWindowService, NoopNativeWindowService>();
         services.AddSingleton<IShareService, BrowserShareService>();
+        services.AddSingleton<RecentChatService>();
         services.AddScoped<RealtimeKitHostService>();
         services.AddScoped<GlobalCallSessionService>();
         services.AddScoped<RealtimeKitDeviceService>();

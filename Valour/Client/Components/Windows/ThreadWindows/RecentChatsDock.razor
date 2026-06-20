@@ -1,0 +1,463 @@
+@implements IDisposable
+@inject RecentChatService RecentChatService
+@inject ValourClient Client
+@inject UnreadService UnreadService
+@inject NotificationService NotificationService
+@inject ChannelDragManager DragManager
+
+@if (_items.Count > 0)
+{
+    <nav class="recent-chat-dock" aria-label="@DockLabel">
+        <div class="dock-scroll">
+            @foreach (var item in _items)
+            {
+                <TooltipTrigger @key="item" Position="top">
+                    <ChildContent>
+                        <button class="dock-item"
+                                aria-label="@item.Title"
+                                @onclick="@(() => OpenDockItemAsync(item))"
+                                @onmousedown:stopPropagation="true"
+                                @onmousedown="@((e) => OnDockMouseDown(e, item))">
+                            <span class="dock-icon">
+                                @if (item.Kind == RecentChatKind.Planet && item.Planet is not null)
+                                {
+                                    <PlanetIcon Planet="@item.Planet" Size="40" Unread="@item.IsUnread"/>
+                                }
+                                else if (item.User is not null)
+                                {
+                                    <UserAvatar User="@item.User" Size="40" Unread="@item.IsUnread" ShowState="true"/>
+                                }
+                                else if (item.Kind == RecentChatKind.Group)
+                                {
+                                    <span class="dock-group-icon">
+                                        <i class="bi bi-people-fill"></i>
+                                    </span>
+                                }
+
+                                @if (item.NotificationCount > 0)
+                                {
+                                    <span class="dock-badge">@(item.NotificationCount > 9 ? "9+" : item.NotificationCount)</span>
+                                }
+                            </span>
+                        </button>
+                    </ChildContent>
+                    <TooltipContent>
+                        <span>@item.Title</span>
+                    </TooltipContent>
+                </TooltipTrigger>
+            }
+        </div>
+    </nav>
+}
+
+@if (_dragGhostItem is not null)
+{
+    <div id="recent-chat-drag-ghost"
+         class="dock-drag-ghost"
+         style="left: @(_dragGhostX)px; top: @(_dragGhostY)px;">
+        <span class="dock-icon">
+            @if (_dragGhostItem.Kind == RecentChatKind.Planet && _dragGhostItem.Planet is not null)
+            {
+                <PlanetIcon Planet="@_dragGhostItem.Planet" Size="40" Unread="@_dragGhostItem.IsUnread"/>
+            }
+            else if (_dragGhostItem.User is not null)
+            {
+                <UserAvatar User="@_dragGhostItem.User" Size="40" Unread="@_dragGhostItem.IsUnread" ShowState="true"/>
+            }
+            else if (_dragGhostItem.Kind == RecentChatKind.Group)
+            {
+                <span class="dock-group-icon">
+                    <i class="bi bi-people-fill"></i>
+                </span>
+            }
+        </span>
+    </div>
+}
+
+@code {
+    private const int DisplayCount = 16;
+    private const double DragStartThreshold = 8;
+
+    private readonly List<RecentChatDockItem> _items = new();
+    private bool _loading;
+    private bool _showingPlanetFallback;
+    private RecentChatDockItem _mouseDownItem;
+    private RecentChatDockItem _dragGhostItem;
+    private double _mouseDownX;
+    private double _mouseDownY;
+    private double _dragGhostX;
+    private double _dragGhostY;
+    private bool _mouseListenersSubscribed;
+    private bool _dragStarted;
+    private bool _resolvingDrag;
+    private bool _suppressNextClick;
+
+    // This dock lives inside a window, so starting a drag causes parent windows
+    // to re-render while showing drop targets. Keep renders explicit so the dock
+    // does not rebuild its buttons mid-interaction.
+    private bool _render = true;
+
+    protected override bool ShouldRender() => _render;
+
+    protected override void OnAfterRender(bool firstRender) => _render = false;
+
+    private string DockLabel => _showingPlanetFallback
+        ? "Your planets"
+        : "Recently opened chats";
+
+    protected override async Task OnInitializedAsync()
+    {
+        RecentChatService.Changed += OnRecentChatsChanged;
+        Client.PlanetService.JoinedPlanetsUpdated += OnDockStateChanged;
+        UnreadService.PlanetUnreadChanged += OnPlanetUnreadChanged;
+        UnreadService.DirectChannelUnreadChanged += OnDirectChannelUnreadChanged;
+        NotificationService.NotificationReceived += OnNotificationReceived;
+        NotificationService.NotificationsCleared += OnNotificationsCleared;
+
+        await LoadAsync();
+    }
+
+    private void OnRecentChatsChanged()
+    {
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private void OnDockStateChanged()
+    {
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private void OnPlanetUnreadChanged(long planetId)
+    {
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private void OnDirectChannelUnreadChanged(long channelId)
+    {
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private void OnNotificationReceived(Notification notification)
+    {
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private void OnNotificationsCleared()
+    {
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_loading)
+            return;
+
+        // Reloading rebuilds the item buttons, which would abort an in-flight
+        // drag. Defer refreshes until the drag completes.
+        if (ChannelDragManager.Dragging)
+            return;
+
+        _loading = true;
+
+        try
+        {
+            var entries = await RecentChatService.GetRecentChatsAsync();
+            var items = new List<RecentChatDockItem>();
+
+            foreach (var entry in entries.Take(DisplayCount))
+            {
+                var item = await ResolveAsync(entry);
+                if (item is not null)
+                    items.Add(item);
+            }
+
+            _showingPlanetFallback = items.Count == 0;
+            if (_showingPlanetFallback)
+                items.AddRange(GetPlanetFallbackItems());
+
+            _items.Clear();
+            _items.AddRange(items);
+        }
+        finally
+        {
+            _loading = false;
+            _render = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<RecentChatDockItem> ResolveAsync(RecentChatEntry entry)
+    {
+        return entry.Kind switch
+        {
+            RecentChatKind.Planet => await ResolvePlanetAsync(entry),
+            RecentChatKind.Direct => await ResolveDirectAsync(entry),
+            RecentChatKind.Group => await ResolveGroupAsync(entry),
+            _ => null
+        };
+    }
+
+    private async Task<RecentChatDockItem> ResolvePlanetAsync(RecentChatEntry entry)
+    {
+        if (entry.PlanetId is null)
+            return null;
+
+        var planet = await Client.PlanetService.FetchPlanetAsync(entry.PlanetId.Value);
+        if (planet is null)
+            return null;
+
+        return new RecentChatDockItem
+        {
+            Entry = entry,
+            Kind = RecentChatKind.Planet,
+            Planet = planet,
+            Title = planet.Name,
+            IsUnread = UnreadService.IsChannelUnread(entry.PlanetId, entry.ChannelId),
+            NotificationCount = NotificationService.GetChannelNotifications(entry.ChannelId)
+        };
+    }
+
+    private async Task<RecentChatDockItem> ResolveDirectAsync(RecentChatEntry entry)
+    {
+        var channel = await Client.ChannelService.FetchDirectChannelAsync(entry.ChannelId);
+        if (channel is null)
+            return null;
+
+        var otherUserId = channel.Members?
+            .FirstOrDefault(x => x.UserId != Client.Me.Id)?
+            .UserId ?? Client.Me.Id;
+
+        var user = await Client.UserService.FetchUserAsync(otherUserId);
+        if (user is null)
+            return null;
+
+        return new RecentChatDockItem
+        {
+            Entry = entry,
+            Kind = RecentChatKind.Direct,
+            Channel = channel,
+            User = user,
+            Title = otherUserId == Client.Me.Id ? "Chat with yourself" : user.Name,
+            IsUnread = UnreadService.IsChannelUnread(null, entry.ChannelId),
+            NotificationCount = NotificationService.GetChannelNotifications(entry.ChannelId)
+        };
+    }
+
+    private async Task<RecentChatDockItem> ResolveGroupAsync(RecentChatEntry entry)
+    {
+        var channel = await Client.ChannelService.FetchDirectChannelAsync(entry.ChannelId);
+        if (channel is null)
+            return null;
+
+        return new RecentChatDockItem
+        {
+            Entry = entry,
+            Kind = RecentChatKind.Group,
+            Channel = channel,
+            Title = await channel.GetTitleAsync(),
+            IsUnread = UnreadService.IsChannelUnread(null, entry.ChannelId),
+            NotificationCount = NotificationService.GetChannelNotifications(entry.ChannelId)
+        };
+    }
+
+    private IEnumerable<RecentChatDockItem> GetPlanetFallbackItems()
+    {
+        return Client.PlanetService.JoinedPlanets
+            .Take(DisplayCount)
+            .Select(planet => new RecentChatDockItem
+            {
+                Kind = RecentChatKind.Planet,
+                Planet = planet,
+                Title = planet.Name,
+                IsUnread = UnreadService.IsPlanetUnread(planet.Id),
+                NotificationCount = NotificationService.GetPlanetNotifications(planet.Id)
+            });
+    }
+
+    private void OnDockMouseDown(MouseEventArgs e, RecentChatDockItem item)
+    {
+        if (e.Button != 0)
+            return;
+
+        _mouseDownItem = item;
+        _mouseDownX = e.ClientX;
+        _mouseDownY = e.ClientY;
+        _dragStarted = false;
+        _resolvingDrag = false;
+
+        SubscribeMouseListeners();
+    }
+
+    private async Task OnDockMouseMove(MousePosition e)
+    {
+        if (_mouseDownItem is null)
+            return;
+
+        if (!_dragStarted)
+        {
+            var distanceX = Math.Abs(e.ClientX - _mouseDownX);
+            var distanceY = Math.Abs(e.ClientY - _mouseDownY);
+            if (distanceX < DragStartThreshold && distanceY < DragStartThreshold)
+                return;
+
+            if (_resolvingDrag)
+                return;
+
+            _resolvingDrag = true;
+            var item = _mouseDownItem;
+            var channel = await ResolveDropChannelAsync(item);
+            _resolvingDrag = false;
+
+            if (_mouseDownItem != item || channel is null)
+                return;
+
+            _dragStarted = true;
+            _suppressNextClick = true;
+            _dragGhostItem = item;
+            _dragGhostX = e.ClientX;
+            _dragGhostY = e.ClientY;
+            _render = true;
+
+            DragManager.OnStartExternalDrag(channel);
+
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            _dragGhostX = e.ClientX;
+            _dragGhostY = e.ClientY;
+            _render = true;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        await WindowTargetScanner.ScanAsync(e.ClientX, e.ClientY);
+    }
+
+    private async Task OnDockMouseUp(MouseUpEvent e)
+    {
+        var wasDragging = _dragStarted;
+
+        _mouseDownItem = null;
+        _dragStarted = false;
+        _resolvingDrag = false;
+        UnsubscribeMouseListeners();
+
+        if (!wasDragging)
+            return;
+
+        var dropped = await WindowTargetScanner.FinalizeAsync(e.X, e.Y);
+        if (!dropped)
+            DragManager.OnCancelDrag();
+
+        _dragGhostItem = null;
+        _render = true;
+        await InvokeAsync(StateHasChanged);
+
+        // Pick up any updates that were deferred while dragging.
+        _ = InvokeAsync(LoadAsync);
+    }
+
+    private void SubscribeMouseListeners()
+    {
+        if (_mouseListenersSubscribed)
+            return;
+
+        MouseListener.SubscribeMouseMove(OnDockMouseMove);
+        MouseListener.SubscribeMouseUp(OnDockMouseUp);
+        _mouseListenersSubscribed = true;
+    }
+
+    private void UnsubscribeMouseListeners()
+    {
+        if (!_mouseListenersSubscribed)
+            return;
+
+        MouseListener.UnsubscribeMouseMove(OnDockMouseMove);
+        MouseListener.UnsubscribeMouseUp(OnDockMouseUp);
+        _mouseListenersSubscribed = false;
+    }
+
+    private Task<Channel> ResolveDropChannelAsync(RecentChatDockItem item)
+    {
+        if (item.Kind == RecentChatKind.Planet)
+            return ResolvePlanetChannelForOpenAsync(item);
+
+        return Task.FromResult(item.Channel);
+    }
+
+    private async Task OpenDockItemAsync(RecentChatDockItem item)
+    {
+        if (_suppressNextClick)
+        {
+            _suppressNextClick = false;
+            return;
+        }
+
+        var channel = item.Kind == RecentChatKind.Planet
+            ? await ResolvePlanetChannelForOpenAsync(item)
+            : item.Channel ?? await Client.ChannelService.FetchDirectChannelAsync(item.Entry.ChannelId);
+
+        if (channel is null)
+        {
+            ToastContainer.Instance.AddToast(new ToastData(
+                "Failed to open chat",
+                "This recent chat may no longer be available.",
+                ToastProgressState.Failure));
+            return;
+        }
+
+        var content = await ChatWindowComponent.GetDefaultContent(channel);
+        await WindowService.OpenWindowAtFocused(content);
+    }
+
+    private async Task<Channel> ResolvePlanetChannelForOpenAsync(RecentChatDockItem item)
+    {
+        var planet = item.Planet;
+        if (planet is null && item.Entry?.PlanetId is not null)
+            planet = await Client.PlanetService.FetchPlanetAsync(item.Entry.PlanetId.Value);
+
+        if (planet is null)
+            return null;
+
+        await planet.EnsureReadyAsync();
+
+        if (item.Entry is not null)
+        {
+            if (planet.Channels.TryGet(item.Entry.ChannelId, out var cached))
+                return cached;
+
+            var channel = await Client.ChannelService.FetchPlanetChannelAsync(item.Entry.ChannelId, planet);
+            if (channel is not null)
+                return channel;
+        }
+
+        return await planet.FetchPrimaryChatChannelAsync();
+    }
+
+    public void Dispose()
+    {
+        UnsubscribeMouseListeners();
+
+        if (_dragStarted)
+            DragManager.OnCancelDrag();
+
+        RecentChatService.Changed -= OnRecentChatsChanged;
+        Client.PlanetService.JoinedPlanetsUpdated -= OnDockStateChanged;
+        UnreadService.PlanetUnreadChanged -= OnPlanetUnreadChanged;
+        UnreadService.DirectChannelUnreadChanged -= OnDirectChannelUnreadChanged;
+        NotificationService.NotificationReceived -= OnNotificationReceived;
+        NotificationService.NotificationsCleared -= OnNotificationsCleared;
+    }
+
+    private sealed class RecentChatDockItem
+    {
+        public RecentChatEntry Entry { get; set; }
+        public RecentChatKind Kind { get; set; }
+        public Planet Planet { get; set; }
+        public Channel Channel { get; set; }
+        public User User { get; set; }
+        public string Title { get; set; }
+        public bool IsUnread { get; set; }
+        public int NotificationCount { get; set; }
+    }
+}
