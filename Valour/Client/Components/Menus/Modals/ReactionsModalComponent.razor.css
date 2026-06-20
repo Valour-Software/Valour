@@ -1,0 +1,58 @@
+.reactions-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.reactions-modal-emoji-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    border-bottom: 1px solid var(--slight-tint);
+    padding-bottom: 0.6rem;
+}
+
+.reactions-modal-emoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 3px 6px;
+    border: 1px solid var(--main-4);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--font-color);
+    cursor: pointer;
+    font-size: var(--font-size-md);
+}
+
+.reactions-modal-emoji:hover {
+    border-color: var(--color-secondary);
+}
+
+.reactions-modal-emoji.selected {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+.reactions-modal-emoji .emoji {
+    width: 1.25rem;
+    height: 1.25rem;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.reactions-modal-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: min(50vh, 24rem);
+    overflow-y: auto;
+}
+
+.reactions-modal-loading {
+    color: var(--font-alt-color);
+    text-align: center;
+    margin: 1rem 0;
+}

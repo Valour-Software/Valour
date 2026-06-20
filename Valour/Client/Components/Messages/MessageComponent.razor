@@ -132,10 +132,33 @@ else
                 var added = _myReactions.Contains(reaction.emoji) ? "added" : "";
                 var newReaction = _newReactions != null && _newReactions.Contains(reaction.emoji) ? "new" : "";
                 
-                <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
-                    <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
-                    <span class="reaction-count">@reaction.count</span>
-                </div>
+                <TooltipTrigger Position="top">
+                    <ChildContent>
+                        <div class="reaction @added @newReaction" @onclick="() => OnReactionClick(reaction.emoji)">
+                            <img class="emoji" src="@GetReactionSrc(reaction.emoji)" alt="@GetReactionAlt(reaction.emoji)" title="@GetReactionAlt(reaction.emoji)"/>
+                            <span class="reaction-count">@reaction.count</span>
+                        </div>
+                    </ChildContent>
+                    <TooltipContent>
+                        <div class="reaction-tooltip-users">
+                            @if (_reactionUsers.TryGetValue(reaction.emoji, out var reactionUsers) && reactionUsers.Count > 0)
+                            {
+                                @foreach (var entry in reactionUsers.Take(MaxTooltipUsers))
+                                {
+                                    <UserInfoComponent @key="@(entry.Member?.Id ?? entry.User?.Id ?? 0)" User="@entry.User" Member="@entry.Member" Compact="true" AvatarSize="18" ShowBadges="false" ShowState="false" ShowStatus="false" />
+                                }
+                                @if (reactionUsers.Count > MaxTooltipUsers)
+                                {
+                                    <div class="reaction-tooltip-more">+@(reactionUsers.Count - MaxTooltipUsers) more</div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="reaction-tooltip-name">Loading...</div>
+                            }
+                        </div>
+                    </TooltipContent>
+                </TooltipTrigger>
             }
 
             @if (_reactions.Count > 20)
@@ -277,8 +300,98 @@ else
 
     private string GetReactionAlt(string emoji) =>
         EmojiSourceProvider.GetAltFromReaction(emoji);
-    
-    
+
+    private const int MaxTooltipUsers = 5;
+
+    private Dictionary<string, List<(User User, PlanetMember Member)>> _reactionUsers = new();
+
+    private async Task<(User User, PlanetMember Member)> FetchReactionAuthorAsync(MessageReaction reaction)
+    {
+        PlanetMember member = null;
+        if (reaction.AuthorMemberId is not null && _message.Planet is not null)
+        {
+            member = await _message.Planet.FetchMemberAsync(reaction.AuthorMemberId.Value);
+        }
+
+        var user = member?.User ?? await Client.UserService.FetchUserAsync(reaction.AuthorUserId);
+        return (user, member);
+    }
+
+    private async Task BuildReactionUsersAsync()
+    {
+        if (_message.Reactions is null) return;
+
+        try
+        {
+            var changed = false;
+
+            foreach (var group in _message.Reactions.GroupBy(x => x.Emoji))
+            {
+                var users = new List<(User User, PlanetMember Member)>();
+
+                foreach (var reaction in group)
+                {
+                    users.Add(await FetchReactionAuthorAsync(reaction));
+                }
+
+                _reactionUsers[group.Key] = users;
+                changed = true;
+            }
+
+            if (changed)
+                await ReRender();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log("Message", "Error building reaction tooltips: " + e, "red");
+        }
+    }
+
+    private async Task AddReactionUserAsync(MessageReaction reaction)
+    {
+        try
+        {
+            var entry = await FetchReactionAuthorAsync(reaction);
+
+            if (!_reactionUsers.TryGetValue(reaction.Emoji, out var users))
+            {
+                users = new List<(User User, PlanetMember Member)>();
+                _reactionUsers[reaction.Emoji] = users;
+            }
+
+            // Avoid duplicates if BuildReactionUsersAsync races with this call
+            if (!users.Any(u => u.User?.Id == entry.User?.Id))
+                users.Add(entry);
+
+            await ReRender();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log("Message", "Error adding reaction tooltip: " + e, "red");
+        }
+    }
+
+    private async Task RemoveReactionUserAsync(MessageReaction reaction)
+    {
+        try
+        {
+            if (_reactionUsers.TryGetValue(reaction.Emoji, out var users))
+            {
+                users.RemoveAll(u => u.User?.Id == reaction.AuthorUserId);
+
+                if (users.Count == 0)
+                    _reactionUsers.Remove(reaction.Emoji);
+            }
+
+            await ReRender();
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log("Message", "Error removing reaction tooltip: " + e, "red");
+        }
+    }
+
+
     private void CalculateReactions()
     {
         if (_ghost || _isInnerReply) return;
@@ -314,6 +427,8 @@ else
         }
 
         BuildReactionRenderList();
+
+        _ = BuildReactionUsersAsync();
     }
 
     private void BuildReactionRenderList()
@@ -367,14 +482,16 @@ else
             
             _newReactions.Add(reaction.Emoji);
         }
-        
+
         if (reaction.AuthorUserId == Client.Me.Id)
         {
             _myReactions.Add(reaction.Emoji);
         }
-        
+
         BuildReactionRenderList();
-        
+
+        _ = AddReactionUserAsync(reaction);
+
         // Re-render the component to show the updated reactions
         ReRender();
     }
@@ -405,10 +522,12 @@ else
         
         BuildReactionRenderList();
 
+        _ = RemoveReactionUserAsync(reaction);
+
         // Re-render the component to show the updated reactions
         ReRender();
     }
-    
+
     private async Task OnReactionClick(string emoji)
     {
         if (_ghost || _isInnerReply) return;
@@ -943,11 +1062,24 @@ else
         {
             _chat.RemoveRenderedMessage(this);
         }
-        
+
         if (_member is not null)
         {
             _member.Updated -= OnMemberUpdated;
         }
+
+        if (_user is not null)
+        {
+            _user.Updated -= OnUserUpdated;
+        }
+
+        if (_message is not null)
+        {
+            _message.ReactionAdded -= OnReactionAdded;
+            _message.ReactionRemoved -= OnReactionRemoved;
+        }
+
+        KeyboardListener.KeyDown -= OnKeyDown;
     }
 
     /// <summary>
