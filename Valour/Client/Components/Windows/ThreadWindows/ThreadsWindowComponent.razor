@@ -3,95 +3,98 @@
 @inject ValourClient Client
 
 <div class="threads-window @(_slideBack ? "nav-back" : "")">
-    <div class="threads-header">
-        <div class="controls-row">
-            <div class="planet-filter">
-                <CustomDropdown TItem="Planet"
-                                Items="@JoinedPlanets"
-                                InitialItem="@_planet"
-                                SearchFunc="@PlanetSearch"
-                                SelectedItemChanged="@OnPlanetSelected">
-                    <ItemTemplate Context="planet">
-                        <div class="planet-option">
-                            <PlanetIcon Planet="@planet" Size="20"/>
-                            <span class="planet-option-name">@planet.Name</span>
-                        </div>
-                    </ItemTemplate>
-                    <NullOptionTemplate>
-                        <div class="planet-option">
-                            <i class="bi bi-globe-americas all-planets-icon"></i>
-                            <span class="planet-option-name">All Planets</span>
-                        </div>
-                    </NullOptionTemplate>
-                </CustomDropdown>
-            </div>
-
-            <div class="sort-tabs">
-                <button class="sort-tab @(_sort == "hot" ? "active" : "")" @onclick='@(() => SetSort("hot"))'>
-                    <i class="bi bi-fire"></i> Hot
-                </button>
-                <button class="sort-tab @(_sort == "new" ? "active" : "")" @onclick='@(() => SetSort("new"))'>
-                    <i class="bi bi-stars"></i> New
-                </button>
-                <button class="sort-tab @(_sort == "top" ? "active" : "")" @onclick='@(() => SetSort("top"))'>
-                    <i class="bi bi-trophy"></i> Top
-                </button>
-            </div>
-
-            @if (_sort == "top")
-            {
-                <div class="period-filter">
-                    <CustomDropdown TItem="PeriodOption"
-                                    Items="@PeriodOptions"
-                                    InitialItem="@CurrentPeriodOption"
-                                    EnableSearch="false"
-                                    SelectedItemChanged="@OnPeriodSelected"/>
+    <div class="threads-scroll">
+        <div class="threads-header">
+            <div class="controls-row">
+                <div class="planet-filter">
+                    <CustomDropdown TItem="Planet"
+                                    Items="@JoinedPlanets"
+                                    InitialItem="@_planet"
+                                    SearchFunc="@PlanetSearch"
+                                    SelectedItemChanged="@OnPlanetSelected">
+                        <ItemTemplate Context="planet">
+                            <div class="planet-option">
+                                <PlanetIcon Planet="@planet" Size="20"/>
+                                <span class="planet-option-name">@planet.Name</span>
+                            </div>
+                        </ItemTemplate>
+                        <NullOptionTemplate>
+                            <div class="planet-option">
+                                <i class="bi bi-globe-americas all-planets-icon"></i>
+                                <span class="planet-option-name">All Planets</span>
+                            </div>
+                        </NullOptionTemplate>
+                    </CustomDropdown>
                 </div>
-            }
 
-            <button class="refresh-btn @(_newPostCount > 0 ? "has-new" : "")"
-                    title="@(_newPostCount > 0 ? "Load new posts" : "Refresh feed")"
-                    disabled="@_isLoading"
-                    @onclick="@OnClickRefresh">
-                <i class="bi bi-arrow-clockwise @(_isLoading ? "spinning" : "")"></i>
-                @if (_newPostCount > 0)
+                <div class="sort-tabs">
+                    <button class="sort-tab @(_sort == "hot" ? "active" : "")" @onclick='@(() => SetSort("hot"))'>
+                        <i class="bi bi-fire"></i> Hot
+                    </button>
+                    <button class="sort-tab @(_sort == "new" ? "active" : "")" @onclick='@(() => SetSort("new"))'>
+                        <i class="bi bi-stars"></i> New
+                    </button>
+                    <button class="sort-tab @(_sort == "top" ? "active" : "")" @onclick='@(() => SetSort("top"))'>
+                        <i class="bi bi-trophy"></i> Top
+                    </button>
+                </div>
+
+                @if (_sort == "top")
                 {
-                    <span class="new-count">@NewPostLabel</span>
+                    <div class="period-filter">
+                        <CustomDropdown TItem="PeriodOption"
+                                        Items="@PeriodOptions"
+                                        InitialItem="@CurrentPeriodOption"
+                                        EnableSearch="false"
+                                        SelectedItemChanged="@OnPeriodSelected"/>
+                    </div>
                 }
-            </button>
+
+                <button class="refresh-btn @(_newPostCount > 0 ? "has-new" : "")"
+                        title="@(_newPostCount > 0 ? "Load new posts" : "Refresh feed")"
+                        disabled="@_isLoading"
+                        @onclick="@OnClickRefresh">
+                    <i class="bi bi-arrow-clockwise @(_isLoading ? "spinning" : "")"></i>
+                    @if (_newPostCount > 0)
+                    {
+                        <span class="new-count">@NewPostLabel</span>
+                    }
+                </button>
+            </div>
+        </div>
+
+        <div class="threads-feed">
+            <ThreadComposeInline @ref="@_composer" Planet="@_planet" OnPosted="@OnThreadPosted"/>
+
+            <InfiniteScroll TItem="PlanetThread"
+                            Items="@_threads"
+                            HasLoaded="@_hasLoaded"
+                            HasMore="@_hasMore"
+                            IsLoading="@_isLoading"
+                            ErrorMessage="@_error"
+                            OnLoadMore="@LoadMoreAsync">
+                <ItemTemplate Context="thread">
+                    <ThreadCard @key="@thread.Id" Thread="@thread" ShowPlanet="@(_planet is null)" WindowCtx="@WindowCtx"/>
+                </ItemTemplate>
+                <EmptyContent>
+                    <div class="feed-empty">
+                        <i class="bi bi-rocket"></i>
+                        <h3>No threads yet</h3>
+                        <p>Be the first to post something!</p>
+                        <button class="v-btn primary" @onclick="@OnClickNewPost">New Post</button>
+                    </div>
+                </EmptyContent>
+                <LoadingContent>
+                    <div class="feed-skeletons">
+                        <ThreadCardSkeleton/>
+                        <ThreadCardSkeleton/>
+                        <ThreadCardSkeleton/>
+                    </div>
+                </LoadingContent>
+            </InfiniteScroll>
         </div>
     </div>
-
-    <div class="threads-feed">
-        <ThreadComposeInline @ref="@_composer" Planet="@_planet" OnPosted="@OnThreadPosted"/>
-
-        <InfiniteScroll TItem="PlanetThread"
-                        Items="@_threads"
-                        HasLoaded="@_hasLoaded"
-                        HasMore="@_hasMore"
-                        IsLoading="@_isLoading"
-                        ErrorMessage="@_error"
-                        OnLoadMore="@LoadMoreAsync">
-            <ItemTemplate Context="thread">
-                <ThreadCard @key="@thread.Id" Thread="@thread" ShowPlanet="@(_planet is null)" WindowCtx="@WindowCtx"/>
-            </ItemTemplate>
-            <EmptyContent>
-                <div class="feed-empty">
-                    <i class="bi bi-rocket"></i>
-                    <h3>No threads yet</h3>
-                    <p>Be the first to post something!</p>
-                    <button class="v-btn primary" @onclick="@OnClickNewPost">New Post</button>
-                </div>
-            </EmptyContent>
-            <LoadingContent>
-                <div class="feed-skeletons">
-                    <ThreadCardSkeleton/>
-                    <ThreadCardSkeleton/>
-                    <ThreadCardSkeleton/>
-                </div>
-            </LoadingContent>
-        </InfiniteScroll>
-    </div>
+    <RecentChatsDock/>
 </div>
 
 @code {
@@ -99,7 +102,7 @@
 
     public static WindowContent<ThreadsWindowComponent, ThreadsWindowData> DefaultContent => new Content()
     {
-        Title = "Threads",
+        Title = "Home",
         Icon = "./_content/Valour.Client/media/logo/logo-128.png",
         Data = new ThreadsWindowData(),
         AutoScroll = true
@@ -107,7 +110,7 @@
 
     public static WindowContent<ThreadsWindowComponent, ThreadsWindowData> GetDefaultContent(Planet planet) => new Content()
     {
-        Title = "Threads - " + planet.Name,
+        Title = "Home - " + planet.Name,
         Icon = planet.GetIconUrl(IconFormat.Webp64),
         Data = new ThreadsWindowData() { PlanetId = planet.Id },
         PlanetId = planet.Id,
@@ -120,7 +123,7 @@
         {
             AutoScroll = true;
             Data = JsonSerializer.Deserialize<ThreadsWindowData>(data) ?? new ThreadsWindowData();
-            Title = "Threads";
+            Title = "Home";
             Icon = "./_content/Valour.Client/media/logo/logo-128.png";
 
             if (Data.PlanetId is not null)
@@ -128,7 +131,7 @@
                 var planet = await client.PlanetService.FetchPlanetAsync(Data.PlanetId.Value);
                 if (planet is not null)
                 {
-                    Title = "Threads - " + planet.Name;
+                    Title = "Home - " + planet.Name;
                     Icon = planet.GetIconUrl(IconFormat.Webp64);
                     PlanetId = planet.Id;
                 }

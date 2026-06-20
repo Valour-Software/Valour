@@ -1,4 +1,15 @@
 export const init = () => {
+    const getTargetAtPoint = (mouseX, mouseY) => {
+        let target = null;
+        const elements = document.elementsFromPoint(mouseX, mouseY);
+        elements.forEach((element) => {
+            if (element.classList.contains('w-drop-target')) {
+                target = element;
+            }
+        });
+        return target;
+    };
+
     const service = {
         scanTimer: 0,
         currentTarget: null,
@@ -9,14 +20,7 @@ export const init = () => {
                 return;
             }
             service.scanTimer = 0;
-            let newTarget = null;
-            const elements = document.elementsFromPoint(mouseX, mouseY);
-            console.log("Scanning...", elements);
-            elements.forEach((element) => {
-                if (element.classList.contains('w-drop-target')) {
-                    newTarget = element;
-                }
-            });
+            const newTarget = getTargetAtPoint(mouseX, mouseY);
             if (newTarget) {
                 if (newTarget !== service.currentTarget) {
                     // Reset previous target
@@ -26,7 +30,6 @@ export const init = () => {
                     // Set new target
                     service.currentTarget = newTarget;
                     service.currentTarget.classList.add('w-target-active');
-                    console.log("New target found:", service.currentTarget);
                 }
             }
             else {
@@ -38,7 +41,8 @@ export const init = () => {
             }
         },
         finalize: (mouseX, mouseY) => {
-            if (service.currentTarget) {
+            const target = getTargetAtPoint(mouseX, mouseY) || service.currentTarget;
+            if (target) {
                 const ev = new MouseEvent('click', {
                     'view': window,
                     'bubbles': true,
@@ -46,9 +50,12 @@ export const init = () => {
                     'screenX': mouseX,
                     'screenY': mouseY
                 });
-                service.currentTarget.dispatchEvent(ev);
+                target.dispatchEvent(ev);
+                target.classList.remove('w-target-active');
                 service.currentTarget = null;
+                return true;
             }
+            return false;
         }
     };
     return service;

@@ -498,9 +498,9 @@
         {
             return Layout.OnTabDropped(WindowService.DraggingTab, WindowTab);
         }
-        else if (ChannelDragManager.CurrentDragItem is not null && ChannelDragManager.CurrentDragItem.Channel is not null)
+        else if (ChannelDragManager.EffectiveDragChannel is not null)
         {
-            return Layout.OnChannelDropped(ChannelDragManager.CurrentDragItem.Channel, WindowTab);
+            return Layout.OnChannelDropped(ChannelDragManager.EffectiveDragChannel, WindowTab);
         }
         
         return Task.CompletedTask;
