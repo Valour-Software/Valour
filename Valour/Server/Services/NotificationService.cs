@@ -17,14 +17,16 @@ public class NotificationService
     private readonly ILogger<NotificationService> _logger;
     private readonly PushNotificationWorker _pushNotificationWorker;
     private readonly HostedPlanetService _hostedService;
-    
+    private readonly PlanetPermissionService _permissionService;
+
     public NotificationService(
-        ValourDb db, 
+        ValourDb db,
         CoreHubService coreHub,
         NodeLifecycleService nodeLifecycleService,
-        ILogger<NotificationService> logger, 
-        PushNotificationWorker pushNotificationWorker, 
-        HostedPlanetService hostedService)
+        ILogger<NotificationService> logger,
+        PushNotificationWorker pushNotificationWorker,
+        HostedPlanetService hostedService,
+        PlanetPermissionService permissionService)
     {
         _db = db;
         _coreHub = coreHub;
@@ -32,6 +34,7 @@ public class NotificationService
         _logger = logger;
         _pushNotificationWorker = pushNotificationWorker;
         _hostedService = hostedService;
+        _permissionService = permissionService;
     }
     
     public async Task<Models.Notification> GetNotificationAsync(Guid id)
@@ -167,12 +170,31 @@ public class NotificationService
 
         baseNotification.Body ??= "";
 
-        var userIds = await _db.PlanetMembers
+        var members = await _db.PlanetMembers
             .AsNoTracking()
             .WithRoleByLocalIndex(hostedPlanet.Planet.Id,  role.FlagBitIndex)
-            .Select(x => x.UserId)
-            .Distinct()
+            .Select(x => new { x.Id, x.UserId, x.RoleMembership })
             .ToArrayAsync();
+
+        if (members.Length == 0)
+            return;
+
+        var channelId = baseNotification.ChannelId!.Value;
+        var channelAccessByRoles = new Dictionary<PlanetRoleMembership, bool>();
+
+        foreach (var member in members)
+        {
+            if (channelAccessByRoles.ContainsKey(member.RoleMembership))
+                continue;
+
+            channelAccessByRoles[member.RoleMembership] = await _permissionService.HasChannelAccessAsync(member.Id, channelId);
+        }
+
+        var userIds = members
+            .Where(member => channelAccessByRoles[member.RoleMembership])
+            .Select(member => member.UserId)
+            .Distinct()
+            .ToArray();
 
         if (userIds.Length == 0)
             return;
@@ -524,6 +546,9 @@ public class NotificationService
             
         var targetMember = await _db.PlanetMembers.FindAsync(mention.TargetId);
         if (targetMember is null)
+            return;
+
+        if (!await _permissionService.HasChannelAccessAsync(targetMember.Id, channel.Id))
             return;
 
         var content = await ReplaceMentionTagsAsync(message.Content);
