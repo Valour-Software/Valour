@@ -212,6 +212,50 @@ public class PlanetPermissionService
         return access != null && access.Contains(channelId);
     }
 
+    /// <summary>
+    /// Returns the user ids of planet members who can currently view the given channel.
+    /// Used to scope real-time channel events (create/update/delete/access-revoked) so they
+    /// don't leak the channel's existence to members without view access.
+    /// </summary>
+    public async Task<List<long>> GetChannelViewerUserIdsAsync(HostedPlanet hostedPlanet, long channelId)
+    {
+        var members = await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.PlanetId == hostedPlanet.Planet.Id)
+            .Select(x => new { x.Id, x.UserId, x.RoleMembership })
+            .ToArrayAsync();
+
+        var accessByRoleMembership = new Dictionary<PlanetRoleMembership, bool>();
+        var viewerUserIds = new List<long>(members.Length);
+
+        foreach (var member in members)
+        {
+            bool hasAccess;
+
+            // Owners bypass role-based access, so they can't share the role-combo cache.
+            if (member.UserId == hostedPlanet.Planet.OwnerId)
+            {
+                hasAccess = await HasChannelAccessAsync(member.Id, channelId);
+            }
+            else if (!accessByRoleMembership.TryGetValue(member.RoleMembership, out hasAccess))
+            {
+                hasAccess = await HasChannelAccessAsync(member.Id, channelId);
+                accessByRoleMembership[member.RoleMembership] = hasAccess;
+            }
+
+            if (hasAccess)
+                viewerUserIds.Add(member.UserId);
+        }
+
+        return viewerUserIds;
+    }
+
+    public async Task<List<long>> GetChannelViewerUserIdsAsync(long planetId, long channelId)
+    {
+        var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(planetId);
+        return await GetChannelViewerUserIdsAsync(hostedPlanet, channelId);
+    }
+
     public async ValueTask<uint> GetAuthorityAsync(PlanetMember member)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(member.PlanetId);

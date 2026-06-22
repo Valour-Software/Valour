@@ -187,12 +187,24 @@ public class SignalRConnectionService : IDisposable
     /// <summary>
     /// Removes group membership tracking for a connection
     /// </summary>
-    public async Task UntrackGroupMembershipAsync(string groupId, HubCallerContext context)
+    public Task UntrackGroupMembershipAsync(string groupId, HubCallerContext context)
     {
-        if (string.IsNullOrEmpty(groupId) || context == null)
+        if (context == null)
+            return Task.CompletedTask;
+
+        return UntrackGroupMembershipAsync(groupId, context.ConnectionId);
+    }
+
+    /// <summary>
+    /// Removes group membership tracking for a connection, identified directly by connection id.
+    /// Used to evict a connection from outside the hub itself, where no HubCallerContext exists
+    /// (e.g. when a permission change revokes a member's access to a channel they're already viewing).
+    /// </summary>
+    public async Task UntrackGroupMembershipAsync(string groupId, string connectionId)
+    {
+        if (string.IsNullOrEmpty(groupId) || string.IsNullOrEmpty(connectionId))
             return;
 
-        var connectionId = context.ConnectionId;
         long? userId = null;
         
         // Get the user ID from the connection identity

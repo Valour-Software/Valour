@@ -289,6 +289,14 @@ public class ChannelService
                 channelsToDelete.Add(associated);
         }
 
+        // Capture who could view these channels before they're removed from the
+        // hosted planet/permission cache, since access can no longer be computed afterward.
+        var viewersByChannelId = new Dictionary<long, List<long>>();
+        foreach (var channelToDelete in channelsToDelete)
+        {
+            viewersByChannelId[channelToDelete.Id] = await _planetPermissionService.GetChannelViewerUserIdsAsync(hostedPlanet, channelToDelete.Id);
+        }
+
         foreach (var channelToDelete in channelsToDelete)
         {
             channelToDelete.IsDeleted = true;
@@ -309,9 +317,9 @@ public class ChannelService
         {
             var model = channelToDelete.ToModel();
             if (model.PlanetId is not null)
-                _coreHub.NotifyPlanetItemDelete(model.PlanetId.Value, model);
+                _coreHub.NotifyChannelDelete(model, viewersByChannelId[channelToDelete.Id]);
         }
-        
+
         return TaskResult.SuccessResult;
     }
     
@@ -445,10 +453,18 @@ public class ChannelService
             if (associatedChatChannel is not null)
             {
                 hostedPlanet.UpsertChannel(associatedChatChannel);
-                _coreHub.NotifyPlanetItemChange(channel.PlanetId!.Value, associatedChatChannel);
             }
+
             await _planetPermissionService.HandleChannelTopologyChange(channel.PlanetId!.Value);
-            _coreHub.NotifyPlanetItemChange(channel.PlanetId!.Value, channel);
+
+            if (associatedChatChannel is not null)
+            {
+                var chatViewers = await _planetPermissionService.GetChannelViewerUserIdsAsync(hostedPlanet, associatedChatChannel.Id);
+                _coreHub.NotifyChannelChange(associatedChatChannel, chatViewers);
+            }
+
+            var viewers = await _planetPermissionService.GetChannelViewerUserIdsAsync(hostedPlanet, channel.Id);
+            _coreHub.NotifyChannelChange(channel, viewers);
         }
 
         return TaskResult<Channel>.FromData(channel);
@@ -519,7 +535,9 @@ public class ChannelService
         {
             hostedPlanet.UpsertChannel(updated);
             await _planetPermissionService.HandleChannelTopologyChange(updated.PlanetId!.Value);
-            _coreHub.NotifyPlanetItemChange(updated.PlanetId!.Value, updated);
+
+            var viewers = await _planetPermissionService.GetChannelViewerUserIdsAsync(hostedPlanet, updated.Id);
+            _coreHub.NotifyChannelChange(updated, viewers);
         }
 
         // Response
