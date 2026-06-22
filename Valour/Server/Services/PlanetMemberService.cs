@@ -481,12 +481,7 @@ public class PlanetMemberService
         // Fetch updated member for notification
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is not null)
-        {
-            // The member's new role combo may collide with another member's already-cached
-            // combo, which would otherwise keep serving stale access/permissions for it.
-            hostedPlanet.PermissionCache.ClearCacheForCombo(member.RoleMembership);
             _coreHub.NotifyPlanetItemChange(member.ToModel());
-        }
 
         return new TaskResult(true, "Success");
     }
@@ -542,12 +537,7 @@ public class PlanetMemberService
         // Fetch updated member for notification
         var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is not null)
-        {
-            // The member's new role combo may collide with another member's already-cached
-            // combo, which would otherwise keep serving stale access/permissions for it.
-            hostedPlanet.PermissionCache.ClearCacheForCombo(member.RoleMembership);
             _coreHub.NotifyPlanetItemChange(member.ToModel());
-        }
 
         return TaskResult.SuccessResult;
     }
