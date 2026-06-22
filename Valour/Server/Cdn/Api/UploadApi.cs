@@ -436,7 +436,7 @@ public class UploadApi
         
         var isPlus = await db.UserSubscriptions.AnyAsync(x => x.UserId == authToken.UserId && x.Active);
         if (!isPlus)
-            return ValourResult.Forbid("You must be a Valour Plus subscriber to upload profile backgrounds!");
+            return ValourResult.Forbid("You must be a Stargazer Plus subscriber to upload profile backgrounds!");
 
         var file = ctx.Request.Form.Files.FirstOrDefault();
         if (file is null)
