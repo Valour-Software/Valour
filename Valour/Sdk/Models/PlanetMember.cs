@@ -109,6 +109,11 @@ public class PlanetMember : ClientPlanetModel<PlanetMember, long>, ISharedPlanet
     /// The id of the most recent pinned thread this member dismissed ("marked as read")
     /// </summary>
     public long? DismissedPinThreadId { get; set; }
+
+    /// <summary>
+    /// The last time this member connected to planet realtime.
+    /// </summary>
+    public DateTime TimeLastConnected { get; set; }
     
     private PlanetMember() : base() {}
     public PlanetMember(ValourClient client) : base(client) { }
