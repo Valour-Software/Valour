@@ -4,7 +4,8 @@
     border-radius: var(--radius-lg);
     padding: 6px;
     background-color: var(--main-1);
-    opacity: 0.95
+    opacity: 0.95;
+    z-index: 1000;
 }
 
 .mobile .mention-select {
