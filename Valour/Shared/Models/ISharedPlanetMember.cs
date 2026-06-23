@@ -39,6 +39,11 @@ public interface ISharedPlanetMember : ISharedPlanetModel<long>
     /// no longer floats to the top of this member's feed.
     /// </summary>
     long? DismissedPinThreadId { get; set; }
+
+    /// <summary>
+    /// The last time this member connected to planet realtime.
+    /// </summary>
+    DateTime TimeLastConnected { get; set; }
     
     public static TaskResult ValidateName(ISharedPlanetMember member)
     {

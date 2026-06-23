@@ -118,6 +118,7 @@ public class CoreHub : Hub
         
         var groupId = $"p-{planetId}";
         await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { planetId });
 
         // Add to planet group
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
@@ -160,6 +161,7 @@ public class CoreHub : Hub
         var groupId = $"c-{channelId}";
 
         await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { planetId });
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         
         var updatedState = await _unreadService.UpdateReadState(
@@ -203,16 +205,42 @@ public class CoreHub : Hub
 
     public Task<string> Ping(bool userState = false)
     {
-        if (userState)
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        if (authToken is not null)
         {
-            var authToken = _connectionTracker.GetToken(Context.ConnectionId);
-            if (authToken is not null)
+            var planetIds = GetConnectedPlanetIds();
+            if (userState || planetIds.Length > 0)
             {
-                _onlineQueue.Enqueue(authToken.UserId);
+                _onlineQueue.Enqueue(authToken.UserId, planetIds: planetIds);
             }
         }
 
         return Task.FromResult("pong");
+    }
+
+    private long[] GetConnectedPlanetIds()
+    {
+        var groups = _connectionTracker.GetConnectionGroups(Context.ConnectionId);
+        if (groups.Length == 0)
+            return [];
+
+        var planetIds = new List<long>();
+        foreach (var group in groups)
+        {
+            if (!TryGetPlanetGroupId(group, out var planetId))
+                continue;
+
+            planetIds.Add(planetId);
+        }
+
+        return planetIds.ToArray();
+    }
+
+    private static bool TryGetPlanetGroupId(string groupId, out long planetId)
+    {
+        planetId = 0;
+        return groupId?.StartsWith("p-") == true &&
+               long.TryParse(groupId.AsSpan(2), out planetId);
     }
 }
 

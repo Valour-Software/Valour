@@ -49,6 +49,11 @@ public class PlanetMember : ISharedPlanetMember
     /// The id of the most recent pinned thread this member dismissed ("marked as read")
     /// </summary>
     public long? DismissedPinThreadId { get; set; }
+
+    /// <summary>
+    /// The last time this member connected to planet realtime.
+    /// </summary>
+    public DateTime TimeLastConnected { get; set; }
     
     public PlanetRoleMembership RoleMembership { get; set; }
 
@@ -88,6 +93,9 @@ public class PlanetMember : ISharedPlanetMember
             e.Property(x => x.DismissedPinThreadId)
                 .HasColumnName("dismissed_pin_thread_id");
 
+            e.Property(x => x.TimeLastConnected)
+                .HasColumnName("time_last_connected");
+
             e.ComplexProperty<PlanetRoleMembership>(x => x.RoleMembership, b =>
             {
                 b.Property(x => x.Rf0)
@@ -124,6 +132,8 @@ public class PlanetMember : ISharedPlanetMember
             // Indices
             e.HasIndex(x => new { x.UserId, x.PlanetId })
                 .IsUnique();
+
+            e.HasIndex(x => new { x.PlanetId, x.TimeLastConnected });
             
             // TODO: Wait for EF to support this
             // e.HasIndex("rf0", "rf1", "rf2", "rf3");
