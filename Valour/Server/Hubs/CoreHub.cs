@@ -160,6 +160,7 @@ public class CoreHub : Hub
         var groupId = $"c-{channelId}";
 
         await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
+        _onlineQueue.Enqueue(authToken.UserId, planetIds: channel.PlanetId is { } planetId ? new[] { planetId } : null);
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         
         var updatedState = await _unreadService.UpdateReadState(
