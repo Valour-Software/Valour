@@ -338,6 +338,25 @@ public class Node : ServiceBase // each node acts like a service
         return result;
     }
 
+    public async Task<TaskResult> RefreshActiveChannelView(long channelId)
+    {
+        if (!IsRealtimeSetup)
+            await SetupRealtimeConnection();
+
+        if (HubConnection?.State != HubConnectionState.Connected)
+            return TaskResult.FromFailure("Hub connection is not active.");
+
+        return await HubConnection.InvokeAsync<TaskResult>("RefreshActiveChannelView", channelId);
+    }
+
+    public async Task ClearActiveChannelView(long channelId)
+    {
+        if (!IsRealtimeSetup || HubConnection?.State != HubConnectionState.Connected)
+            return;
+
+        await HubConnection.SendAsync("ClearActiveChannelView", channelId);
+    }
+
     /// <summary>
     /// Starts pinging for online state
     /// </summary>

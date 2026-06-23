@@ -15,6 +15,7 @@
 
     public static HybridEvent Blurred;
     public static HybridEvent Focused;
+    public static bool IsFocused { get; private set; } = true;
 
     [Parameter]
     public Func<Task> OnReady { get; set; }
@@ -106,6 +107,7 @@
     [JSInvokable("OnRefocus")]
     public void OnRefocus()
     {
+        IsFocused = true;
         Logger.Log("BUtils", "Detected refocus event.", "cyan");
         NodeService.CheckConnections();
         
@@ -116,6 +118,7 @@
     [JSInvokable("NotifyBlur")]
     public void NotifyBlur()
     {
+        IsFocused = false;
         Logger.Log("BUtils", "Detected blur event.", "cyan");
         if (Blurred is not null)
             Blurred.Invoke();

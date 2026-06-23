@@ -25,6 +25,7 @@ public class CoreHub : Hub
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
     private readonly UserOnlineQueueService _onlineQueue;
+    private readonly ChannelWatchingService _channelWatchingService;
 
     public CoreHub(
         ValourDb db, 
@@ -34,7 +35,8 @@ public class CoreHub : Hub
         TokenService tokenService,
         IConnectionMultiplexer redis, 
         SignalRConnectionService connectionTracker,
-        UserOnlineQueueService onlineQueue)
+        UserOnlineQueueService onlineQueue,
+        ChannelWatchingService channelWatchingService)
     {
         _db = db;
         _hubService = hubService;
@@ -44,6 +46,7 @@ public class CoreHub : Hub
         _unreadService = unreadService;
         _tokenService = tokenService;
         _onlineQueue = onlineQueue;
+        _channelWatchingService = channelWatchingService;
     }
 
     public async Task<TaskResult> Authorize(string token)
@@ -64,6 +67,10 @@ public class CoreHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        if (authToken is not null)
+            await _channelWatchingService.ClearConnectionAsync(authToken.UserId, Context.ConnectionId);
+
         await _connectionTracker.RemovePrimaryConnectionAsync(Context, _redis);
         await _connectionTracker.RemoveAllMembershipsAsync(Context);
 
@@ -161,7 +168,8 @@ public class CoreHub : Hub
         var groupId = $"c-{channelId}";
 
         await _connectionTracker.TrackGroupMembershipAsync(groupId, Context);
-        _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { planetId });
+        if (channel.PlanetId is not null)
+            _onlineQueue.Enqueue(authToken.UserId, planetIds: new[] { channel.PlanetId.Value });
         await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         
         var updatedState = await _unreadService.UpdateReadState(
@@ -177,6 +185,10 @@ public class CoreHub : Hub
     }
 
     public async Task<TaskResult> LeaveChannel(long channelId) {
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        if (authToken is not null)
+            await _channelWatchingService.ClearAsync(authToken.UserId, channelId, Context.ConnectionId);
+
         var groupId = $"c-{channelId}";
         await _connectionTracker.UntrackGroupMembershipAsync(groupId, Context);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
@@ -202,6 +214,28 @@ public class CoreHub : Hub
 
     public async Task LeaveInteractionGroup(long planetId) =>
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
+
+    public async Task<TaskResult> RefreshActiveChannelView(long channelId)
+    {
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        if (authToken is null)
+            return new TaskResult(false, "SignalR was not authenticated.");
+
+        if (!await CanTrackActiveChannelViewAsync(authToken.UserId, channelId))
+            return new TaskResult(false, "Cannot mark this channel as active.");
+
+        await _channelWatchingService.RefreshAsync(authToken.UserId, channelId, Context.ConnectionId);
+        return TaskResult.SuccessResult;
+    }
+
+    public async Task ClearActiveChannelView(long channelId)
+    {
+        var authToken = _connectionTracker.GetToken(Context.ConnectionId);
+        if (authToken is null)
+            return;
+
+        await _channelWatchingService.ClearAsync(authToken.UserId, channelId, Context.ConnectionId);
+    }
 
     public Task<string> Ping(bool userState = false)
     {
@@ -241,6 +275,17 @@ public class CoreHub : Hub
         planetId = 0;
         return groupId?.StartsWith("p-") == true &&
                long.TryParse(groupId.AsSpan(2), out planetId);
+    }
+
+    private async Task<bool> CanTrackActiveChannelViewAsync(long userId, long channelId)
+    {
+        var channelGroupId = $"c-{channelId}";
+        if (_connectionTracker.GetConnectionGroups(Context.ConnectionId).Contains(channelGroupId))
+            return true;
+
+        return await _db.ChannelMembers
+            .AsNoTracking()
+            .AnyAsync(x => x.ChannelId == channelId && x.UserId == userId);
     }
 }
 

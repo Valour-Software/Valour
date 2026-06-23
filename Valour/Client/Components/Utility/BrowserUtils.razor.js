@@ -30,6 +30,9 @@ export const init = (dotnet) => {
                 // Page is visible
                 await handleRefocus();
             }
+            else {
+                await dotnet.invokeMethodAsync('NotifyBlur');
+            }
         });
     }
     // Window focus event listener
