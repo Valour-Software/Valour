@@ -27,6 +27,7 @@ public class CoreHubService
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
     private readonly SignalRConnectionService _connectionTracker;
+    private readonly ChannelWatchingService _channelWatchingService;
     private readonly ILogger<CoreHubService> _logger;
 
     public CoreHubService(
@@ -35,6 +36,7 @@ public class CoreHubService
         IHubContext<CoreHub> hub,
         IConnectionMultiplexer redis,
         SignalRConnectionService connectionTracker,
+        ChannelWatchingService channelWatchingService,
         ILogger<CoreHubService> logger)
     {
         _db = db;
@@ -42,6 +44,7 @@ public class CoreHubService
         _serviceProvider = serviceProvider;
         _redis = redis;
         _connectionTracker = connectionTracker;
+        _channelWatchingService = channelWatchingService;
         _logger = logger;
     }
     
@@ -59,10 +62,9 @@ public class CoreHubService
         // Fire-and-forget channel state update with its own scope to avoid
         // blocking the message pipeline. Uses a separate DbContext so the
         // long-lived worker DbContext is never accessed concurrently.
-        var viewingIds = _connectionTracker.GetGroupUserIds(groupId);
-        if (viewingIds.Length > 0 && ShouldScheduleChannelViewUpdate(message.ChannelId))
+        if (ShouldScheduleChannelViewUpdate(message.ChannelId))
         {
-            _ = UpdateChannelViewStatesAsync(viewingIds, message.ChannelId);
+            _ = UpdateActiveChannelViewStatesAsync(message.ChannelId);
         }
     }
 
@@ -114,6 +116,22 @@ public class CoreHubService
         finally
         {
             ChannelViewUpdateSemaphore.Release();
+        }
+    }
+
+    private async Task UpdateActiveChannelViewStatesAsync(long channelId)
+    {
+        try
+        {
+            var viewingIds = await _channelWatchingService.GetActiveViewingUserIdsAsync(channelId);
+            if (viewingIds.Count == 0)
+                return;
+
+            await UpdateChannelViewStatesAsync(viewingIds.ToArray(), channelId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get active channel viewers for channel {ChannelId}", channelId);
         }
     }
     
@@ -294,54 +312,32 @@ public class CoreHubService
     
     public async Task UpdateChannelsWatching()
     {
-        // Find all groups that start with 'c-' (channel groups)
-        Dictionary<string, long[]> channelGroups = new Dictionary<string, long[]>();
-        
-        // For each group in the registry
         foreach (var groupId in _connectionTracker.GetAllGroups())
         {
-            // Only process channel groups
-            if (!groupId.StartsWith("c-"))
+            if (!TryGetChannelGroupId(groupId, out var channelId))
                 continue;
-                
-            // Get the channel ID from the group name
-            // var channelId = long.Parse(groupId.Substring(2));
-            
-            // Get all user IDs in this group
-            var userIds = _connectionTracker.GetGroupUserIds(groupId);
-            
-            // If there are no users, skip
-            if (userIds.Length == 0)
-                continue;
-                
-            channelGroups[groupId] = userIds;
-        }
-        
-        // Process each channel group
-        foreach (var pair in channelGroups)
-        {
-            var groupId = pair.Key;
-            var userIds = pair.Value;
-            
-            // Get channel ID from group name
-            if (!long.TryParse(groupId.Substring(2), out var channelId))
-            {
-                continue;
-            }
             
             var planetId = await GetPlanetIdForChannel(channelId);
             
             if (!planetId.HasValue)
                 continue;
+
+            var activeUserIds = await _channelWatchingService.GetActiveViewingUserIdsAsync(channelId);
                 
-            // Send the watching update
             _ = _hub.Clients.Group(groupId).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate
             {
                 PlanetId = planetId,
                 ChannelId = channelId,
-                UserIds = userIds.Distinct().ToList()
+                UserIds = activeUserIds.OrderBy(x => x).ToList()
             });
         }
+    }
+
+    private static bool TryGetChannelGroupId(string groupId, out long channelId)
+    {
+        channelId = 0;
+        return groupId?.StartsWith("c-") == true &&
+               long.TryParse(groupId.AsSpan(2), out channelId);
     }
 
     public async Task NotifyCurrentlyTyping(long channelId, long userId)

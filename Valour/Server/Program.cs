@@ -372,6 +372,7 @@ public partial class Program
 
         services.AddScoped<UserOnlineService>();
         services.AddScoped<CoreHubService>();
+        services.AddScoped<ChannelWatchingService>();
         services.AddScoped<CurrentlyTypingService>();
         services.AddScoped<OauthAppService>();
         services.AddScoped<PermissionsNodeService>();

@@ -75,6 +75,10 @@
     private bool _disposed;
     private long? _pendingScrollToMessageId;
     private TouchSlide _touchSlide;
+    private Timer _activeViewTimer;
+    private bool _activeViewLeaseActive;
+    private int _activeViewRefreshInFlight;
+    private static readonly TimeSpan ActiveViewRefreshInterval = TimeSpan.FromSeconds(15);
 
     [Parameter]
     public bool Embedded { get; set; }
@@ -143,6 +147,8 @@
         Client.NodeService.NodeReconnected += OnNodeReconnect;
         Client.BlockService.BlocksChanged += OnBlocksChanged;
         BrowserUtils.Focused += OnBrowserFocused;
+        BrowserUtils.Blurred += OnBrowserBlurred;
+        WindowService.FocusedTabChanged += OnFocusedTabChanged;
         
         Channel.MessageReceived += OnReceiveMessage;
         Channel.MessageEdited += OnReceiveMessageEdit;
@@ -321,6 +327,8 @@
             {
                 await ScrollToBottom(true);
             }
+
+            await UpdateActiveViewingLeaseStateAsync();
         }
 
         if (_pendingReactionEmojiRefresh && !_loading && _reactionSelector is not null)
@@ -476,6 +484,8 @@
     {
         if (WindowCtx?.Tab is not null)
             await WindowCtx.Tab.NotifyFocused();
+
+        await UpdateActiveViewingLeaseStateAsync();
     }
     
     public async Task OnStartFloating()
@@ -1427,7 +1437,126 @@
             }
 
             await RecoverMissedMessages();
+            await UpdateActiveViewingLeaseStateAsync();
         });
+    }
+
+    private async Task OnBrowserBlurred()
+    {
+        await InvokeAsync(UpdateActiveViewingLeaseStateAsync);
+    }
+
+    private async Task OnFocusedTabChanged(WindowTab tab)
+    {
+        await InvokeAsync(UpdateActiveViewingLeaseStateAsync);
+    }
+
+    private bool IsActivelyVisibleToUser()
+    {
+        if (_disposed || _loading || Channel is null || !BrowserUtils.IsFocused)
+            return false;
+
+        var tab = WindowCtx?.Tab;
+        if (tab is null)
+            return Embedded;
+
+        if (tab.IsFloating)
+            return true;
+
+        return tab.Layout?.FocusedTab == tab;
+    }
+
+    private Node GetActiveViewNode()
+    {
+        if (Channel?.PlanetId is not null)
+            return Channel.Planet?.Node;
+
+        return Client.PrimaryNode;
+    }
+
+    private async Task UpdateActiveViewingLeaseStateAsync()
+    {
+        if (IsActivelyVisibleToUser())
+        {
+            await StartActiveViewingLeaseAsync();
+        }
+        else
+        {
+            await StopActiveViewingLeaseAsync();
+        }
+    }
+
+    private async Task StartActiveViewingLeaseAsync()
+    {
+        if (!_activeViewLeaseActive)
+        {
+            _activeViewLeaseActive = true;
+            _activeViewTimer = new Timer(OnActiveViewTimer, null, ActiveViewRefreshInterval, ActiveViewRefreshInterval);
+        }
+
+        await RefreshActiveViewingLeaseAsync();
+    }
+
+    private async Task StopActiveViewingLeaseAsync()
+    {
+        if (!_activeViewLeaseActive)
+            return;
+
+        _activeViewLeaseActive = false;
+        _activeViewTimer?.Dispose();
+        _activeViewTimer = null;
+
+        try
+        {
+            var node = GetActiveViewNode();
+            if (node is not null)
+                await node.ClearActiveChannelView(Channel.Id);
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChatWindowComponent>(
+                $"Failed clearing active channel view for {Channel?.Id}: {e.Message}", "yellow");
+        }
+    }
+
+    private void OnActiveViewTimer(object state)
+    {
+        _ = RefreshActiveViewingLeaseAsync();
+    }
+
+    private async Task RefreshActiveViewingLeaseAsync()
+    {
+        if (!IsActivelyVisibleToUser())
+        {
+            await StopActiveViewingLeaseAsync();
+            return;
+        }
+
+        if (Interlocked.Exchange(ref _activeViewRefreshInFlight, 1) == 1)
+            return;
+
+        try
+        {
+            var node = GetActiveViewNode();
+            if (node is null)
+                return;
+
+            var result = await node.RefreshActiveChannelView(Channel.Id);
+            if (!result.Success)
+            {
+                Client.Logger.Log<ChatWindowComponent>(
+                    $"Failed refreshing active channel view for {Channel.Id}: {result.Message}", "yellow");
+            }
+        }
+        catch (Exception e)
+        {
+            Client.Logger.Log<ChatWindowComponent>(
+                $"Failed refreshing active channel view for {Channel?.Id}: {e.Message}", "yellow");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _activeViewRefreshInFlight, 0);
+        }
     }
 
     private async Task RecoverMissedMessages()
@@ -1538,6 +1667,8 @@
         Client.NodeService.NodeReconnected -= OnNodeReconnect;
         Client.BlockService.BlocksChanged -= OnBlocksChanged;
         BrowserUtils.Focused -= OnBrowserFocused;
+        BrowserUtils.Blurred -= OnBrowserBlurred;
+        WindowService.FocusedTabChanged -= OnFocusedTabChanged;
         
         if (Channel.PlanetId is not null)
         {
@@ -1546,7 +1677,8 @@
             if (Channel.Planet.MyMember is not null)
                 Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;
         }
-        
+
+        await StopActiveViewingLeaseAsync();
         await Channel.Close(WindowChannelKey);
         
         _thisRef.Dispose();

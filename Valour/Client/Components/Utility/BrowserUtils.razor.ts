@@ -55,6 +55,8 @@ export const init = (dotnet: DotnetObject) => {
             if (!document[hiddenProperty as keyof Document]) {
                 // Page is visible
                 await handleRefocus();
+            } else {
+                await dotnet.invokeMethodAsync('NotifyBlur');
             }
         });
     }
