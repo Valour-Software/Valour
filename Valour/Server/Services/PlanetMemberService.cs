@@ -10,6 +10,8 @@ namespace Valour.Server.Services;
 
 public class PlanetMemberService
 {
+    public static readonly TimeSpan OneDayConnectionWindow = TimeSpan.FromDays(1);
+
     private readonly ValourDb _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
@@ -334,6 +336,7 @@ public class PlanetMemberService
                 PlanetId = planet.Id,
                 UserId = user.Id,
                 User = user,
+                TimeLastConnected = DateTime.UtcNow,
                 RoleMembership = new PlanetRoleMembership(0x01) // First bit (position 0) is the default role
             };
         }
@@ -347,6 +350,7 @@ public class PlanetMemberService
             if (rejoin)
             {
                 member.IsDeleted = false;
+                member.TimeLastConnected = DateTime.UtcNow;
                 
                 // Reset roles
                 member.RoleMembership = new PlanetRoleMembership(0x01);

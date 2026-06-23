@@ -250,8 +250,13 @@ public class CoreHubService
     {
         // TODO: Get all locally loaded planets and check if user is member; if so, send update
         // we can probably manage this *without* a database call
+
+        var cutoff = DateTime.UtcNow - PlanetMemberService.OneDayConnectionWindow;
         
-        var planetIds = await _db.PlanetMembers.Where(x => x.UserId == user.Id)
+        var planetIds = await _db.PlanetMembers
+            .AsNoTracking()
+            .Where(x => x.UserId == user.Id &&
+                        x.TimeLastConnected > cutoff)
             .Select(x => x.PlanetId)
             .ToListAsync();
 

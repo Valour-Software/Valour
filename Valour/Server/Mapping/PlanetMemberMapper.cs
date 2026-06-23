@@ -18,6 +18,7 @@ public static class PlanetMemberMapper
             MemberAvatar = member.MemberAvatar,
             RoleMembership = member.RoleMembership,
             DismissedPinThreadId = member.DismissedPinThreadId,
+            TimeLastConnected = member.TimeLastConnected,
             User = member.User.ToModel()
         };
     }
@@ -35,7 +36,8 @@ public static class PlanetMemberMapper
             Nickname = member.Nickname,
             MemberAvatar = member.MemberAvatar,
             RoleMembership = member.RoleMembership,
-            DismissedPinThreadId = member.DismissedPinThreadId
+            DismissedPinThreadId = member.DismissedPinThreadId,
+            TimeLastConnected = member.TimeLastConnected
         };
     }
 }

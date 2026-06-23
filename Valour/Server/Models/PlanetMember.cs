@@ -42,4 +42,9 @@ public class PlanetMember : ServerModel<long>, ISharedPlanetMember
     /// The id of the most recent pinned thread this member dismissed ("marked as read")
     /// </summary>
     public long? DismissedPinThreadId { get; set; }
+
+    /// <summary>
+    /// The last time this member connected to planet realtime.
+    /// </summary>
+    public DateTime TimeLastConnected { get; set; }
 }
