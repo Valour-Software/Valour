@@ -42,8 +42,17 @@ public class PermissionsNodeService
         try
         {
             var oldNode = await _db.PermissionsNodes.FindAsync(newNode.Id);
-            
+
             if (oldNode is null) return new(false, $"PermissionNode not found");
+
+            if (oldNode.RoleId == newNode.RoleId &&
+                oldNode.TargetId == newNode.TargetId &&
+                oldNode.Code == newNode.Code &&
+                oldNode.Mask == newNode.Mask)
+            {
+                return new(true, "Success", newNode); // no-op save, nothing changed
+            }
+
             _db.Entry(oldNode).CurrentValues.SetValues(newNode);
             await _db.SaveChangesAsync();
 

@@ -225,6 +225,70 @@ public class CoreHubService
     public void NotifyPlanetItemDelete<T>(long planetId, T model) =>
         _ = _hub.Clients.Group($"p-{planetId}").SendAsync($"{typeof(T).Name}-Delete", model);
 
+    public void NotifyChannelChange(Channel channel, IReadOnlyList<long> recipientUserIds, int flags = 0)
+    {
+        if (recipientUserIds.Count == 0)
+            return;
+        
+        var groups = new string[recipientUserIds.Count];
+        for (int i = 0; i < recipientUserIds.Count; i++)
+            groups[i] = $"u-{recipientUserIds[i]}";
+
+        _ = _hub.Clients.Groups(groups).SendAsync($"{nameof(Channel)}-Update", channel, flags);
+    }
+
+    public void NotifyChannelDelete(Channel channel, IReadOnlyList<long> recipientUserIds)
+    {
+        if (recipientUserIds.Count == 0)
+            return;
+
+        var groups = new string[recipientUserIds.Count];
+        for (int i = 0; i < recipientUserIds.Count; i++)
+            groups[i] = $"u-{recipientUserIds[i]}";
+
+        _ = _hub.Clients.Groups(groups).SendAsync($"{nameof(Channel)}-Delete", channel);
+    }
+
+    /// <summary>
+    /// Removes any currently-connected clients belonging to the given users from a channel's
+    /// real-time message group, so they stop receiving live messages for a channel they've just
+    /// lost view access to. A permission change doesn't otherwise affect an already-joined group.
+    /// </summary>
+    public async Task EvictUsersFromChannelGroupAsync(long channelId, IReadOnlyList<long> userIds)
+    {
+        if (userIds.Count == 0)
+            return;
+        
+        var groupId = $"c-{channelId}";
+        var connections = _connectionTracker.GetGroupConnections(groupId);
+        if (connections.Length == 0)
+            return;
+        
+        for (int i = 0; i < connections.Length; i++)
+        {
+            var connectionId = connections[i];
+            var token = _connectionTracker.GetToken(connectionId);
+            if (token is null)
+                continue;
+            
+            bool isRevoked = false;
+            for (int j = 0; j < userIds.Count; j++)
+            {
+                if (userIds[j] == token.UserId)
+                {
+                    isRevoked = true;
+                    break;
+                }
+            }
+
+            if (!isRevoked)
+                continue;
+
+            await _hub.Groups.RemoveFromGroupAsync(connectionId, groupId);
+            await _connectionTracker.UntrackGroupMembershipAsync(groupId, connectionId: connectionId);
+        }
+    }
+
     public void NotifyPlanetChange(Planet item, int flags = 0) =>
         _ = _hub.Clients.Group($"p-{item.Id}").SendAsync($"{nameof(Planet)}-Update", item, flags);
 
