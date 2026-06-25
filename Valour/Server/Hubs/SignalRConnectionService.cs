@@ -186,13 +186,19 @@ public class SignalRConnectionService : IDisposable
     
     /// <summary>
     /// Removes group membership tracking for a connection
+    /// 
+    /// Since this never really used anything other than connectionId
+    /// I did this.. it was either that or edit a bunch of files and
+    /// rename/remake a function in here, I thought this was easier.
+    /// lemme know if theres a better way of doing this lol -- Josh
+    /// (Im not the best at C# and im losing my mind trying to do this I swear)
     /// </summary>
-    public async Task UntrackGroupMembershipAsync(string groupId, HubCallerContext context)
+    public async Task UntrackGroupMembershipAsync(string groupId, HubCallerContext context = null, string connectionId = null)
     {
-        if (string.IsNullOrEmpty(groupId) || context == null)
+        connectionId ??= context?.ConnectionId;
+        if (string.IsNullOrEmpty(groupId) || string.IsNullOrEmpty(connectionId))
             return;
 
-        var connectionId = context.ConnectionId;
         long? userId = null;
         
         // Get the user ID from the connection identity

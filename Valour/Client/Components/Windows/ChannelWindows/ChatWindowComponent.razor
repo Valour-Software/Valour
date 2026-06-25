@@ -255,6 +255,7 @@
 
                 Channel.Planet.Deleted += OnPlanetDeleted;
                 myMember.Deleted += OnSelfMemberDeleted;
+                Channel.Deleted += OnChannelDeleted;
                 ChannelPermissions = await Channel.GetFlattenedPermissionsAsync(myMember.Id);
             }
 
@@ -507,6 +508,18 @@
             return Task.CompletedTask;
 
         return WindowCtx.Tab.SetContent(HomeWindowComponent.DefaultContent);
+    }
+
+    public Task OnChannelDeleted()
+    {
+        if (WindowCtx?.Tab is null)
+            return Task.CompletedTask;
+        
+        WindowContent<ThreadsWindowComponent, ThreadsWindowData> content = Channel?.PlanetId is not null
+            ? ThreadsWindowComponent.GetDefaultContent(Channel.Planet)
+            : ThreadsWindowComponent.DefaultContent;
+        
+        return WindowCtx.Tab.SetContent(content);
     }
     
     public async Task<List<PlanetMember>> GetLastChatMembers(int count)
@@ -1673,6 +1686,7 @@
         if (Channel.PlanetId is not null)
         {
             Channel.Planet.Deleted -= OnPlanetDeleted;
+            Channel.Deleted -= OnChannelDeleted;
             
             if (Channel.Planet.MyMember is not null)
                 Channel.Planet.MyMember.Deleted -= OnSelfMemberDeleted;

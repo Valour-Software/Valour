@@ -142,16 +142,26 @@ public class PlanetPermissionService
 
     /// <summary>
     /// When a permissions node changes (for a given channel) clear all per–(role,channel) caches
-    /// and the inverse mapping for that channel, including channels that inherit from it.
+    /// and the inverse mapping for that channel, including channels that inherit from it. Then,
+    /// for the target channel and its inheritors, tell recently-active clients whose access just
+    /// changed — evicting/hiding the channel for anyone who lost view access, and pushing it to
+    /// anyone who just gained it. A permission change doesn't otherwise affect an already-joined
+    /// group, or update clients who never had reason to know about the channel.
     /// </summary>
     public async Task HandleNodeChange(PermissionsNode node)
     {
         var hostedPlanet = await _hostedPlanetService.GetRequiredAsync(node.PlanetId);
         var roleCombos = hostedPlanet.PermissionCache.GetCombosForRole(node.RoleId);
-        if (roleCombos != null)
+
+        // Nobody's computed access has ever touched this role, so nobody can be affected.
+        if (roleCombos is null || roleCombos.Count == 0)
+            return;
+
+        var comboSet = new HashSet<PlanetRoleMembership>(roleCombos.Count);
+        foreach (var roleKey in roleCombos)
         {
-            foreach (var roleKey in roleCombos)
-                hostedPlanet.PermissionCache.ClearCacheForComboAndChannel(roleKey, node.TargetId);
+            hostedPlanet.PermissionCache.ClearCacheForComboAndChannel(roleKey, node.TargetId);
+            comboSet.Add(roleKey);
         }
 
         hostedPlanet.PermissionCache.ClearChannelAccessRoleComboCache(node.TargetId);
@@ -167,6 +177,65 @@ public class PlanetPermissionService
                 hostedPlanet.PermissionCache.ClearChannelAccessRoleComboCache(inheritorId);
             }
         }
+
+        var cutoff = DateTime.UtcNow - PlanetMemberService.OneDayConnectionWindow;
+        // Tracked (no AsNoTracking) so HasChannelAccessAsync's FindAsync below is a local lookup, not a 2nd query
+        var activeMembers = await _db.PlanetMembers
+            .Where(x => x.PlanetId == hostedPlanet.Id && x.TimeLastConnected > cutoff)
+            .ToArrayAsync();
+
+        // Only members whose role combo includes the edited role could possibly be affected -
+        // everyone else's computed access can't have changed from this specific edit.
+        List<Valour.Database.PlanetMember>? affected = null;
+        for (int i = 0; i < activeMembers.Length; i++)
+        {
+            if (comboSet.Contains(activeMembers[i].RoleMembership))
+                (affected ??= new List<Valour.Database.PlanetMember>()).Add(activeMembers[i]);
+        }
+
+        if (affected is null)
+            return;
+
+        // Caches are cleared above, so the access checks below reflect the new permission state.
+        await NotifyChannelAccessChangeAsync(hostedPlanet, node.TargetId, affected);
+        if (inheritors is not null)
+        {
+            foreach (var inheritorId in inheritors)
+                await NotifyChannelAccessChangeAsync(hostedPlanet, inheritorId, affected);
+        }
+    }
+
+    /// <summary>
+    /// Tells each member in the given (already role-combo-filtered) list whether the channel
+    /// exists for them now: members with access get a channel update (harmless no-op if they
+    /// already had it), members without get evicted from its live group and told it's gone.
+    /// </summary>
+    private async Task NotifyChannelAccessChangeAsync(HostedPlanet hostedPlanet, long channelId,
+        List<Valour.Database.PlanetMember> members)
+    {
+        var channel = hostedPlanet.GetChannel(channelId);
+        if (channel is null)
+            return;
+
+        List<long>? gained = null;
+        List<long>? lost = null;
+
+        for (int i = 0; i < members.Count; i++)
+        {
+            if (await HasChannelAccessAsync(members[i].Id, channelId))
+                (gained ??= new List<long>()).Add(members[i].UserId);
+            else
+                (lost ??= new List<long>()).Add(members[i].UserId);
+        }
+
+        if (lost is not null)
+        {
+            await _coreHub.EvictUsersFromChannelGroupAsync(channelId, lost);
+            _coreHub.NotifyChannelDelete(channel, lost);
+        }
+
+        if (gained is not null)
+            _coreHub.NotifyChannelChange(channel, gained);
     }
 
     /// <summary>
@@ -210,6 +279,28 @@ public class PlanetPermissionService
     {
         var access = await GetChannelAccessAsync(memberId);
         return access != null && access.Contains(channelId);
+    }
+
+    public async Task<List<long>[]> GetChannelViewerUserIdsAsync(HostedPlanet hostedPlanet, IReadOnlyList<long> channelIds)
+    {
+        var cutoff = DateTime.UtcNow - PlanetMemberService.OneDayConnectionWindow;
+        var members = await _db.PlanetMembers
+            .Where(x => x.PlanetId == hostedPlanet.Id && x.TimeLastConnected > cutoff)
+            .ToArrayAsync(); // tracked (no AsNoTracking) so HasChannelAccessAsync's FindAsync below is a local lookup, not a 2nd query
+
+        var result = new List<long>[channelIds.Count];
+        for (int c = 0; c < channelIds.Count; c++)
+        {
+            var viewerUserIds = new List<long>(members.Length);
+            for (int i = 0; i < members.Length; i++)
+            {
+                if (await HasChannelAccessAsync(members[i].Id, channelIds[c]))
+                    viewerUserIds.Add(members[i].UserId);
+            }
+            result[c] = viewerUserIds;
+        }
+
+        return result;
     }
 
     public async ValueTask<uint> GetAuthorityAsync(PlanetMember member)
