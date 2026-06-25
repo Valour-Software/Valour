@@ -45,6 +45,11 @@ public class SignalRConnectionService : IDisposable
         public string GroupId { get; }
         public HashSet<string> Connections { get; } = new();
         public HashSet<long> UserIds { get; } = new();
+
+        // For planet groups, maps a present user to their PlanetMember id so callers
+        // can resolve membership without a database round-trip. Only populated when a
+        // memberId is supplied (i.e. planet groups).
+        private readonly Dictionary<long, long> _userMemberIds = new();
         
         // For thread safety
         private readonly object _lock = new();
@@ -54,7 +59,7 @@ public class SignalRConnectionService : IDisposable
             GroupId = groupId;
         }
         
-        public void AddConnection(string connectionId, long? userId = null)
+        public void AddConnection(string connectionId, long? userId = null, long? memberId = null)
         {
             lock (_lock)
             {
@@ -62,6 +67,8 @@ public class SignalRConnectionService : IDisposable
                 if (userId.HasValue)
                 {
                     UserIds.Add(userId.Value);
+                    if (memberId.HasValue)
+                        _userMemberIds[userId.Value] = memberId.Value;
                 }
             }
         }
@@ -78,6 +85,7 @@ public class SignalRConnectionService : IDisposable
                     token?.UserId == userId.Value))
                 {
                     UserIds.Remove(userId.Value);
+                    _userMemberIds.Remove(userId.Value);
                 }
             }
         }
@@ -97,6 +105,18 @@ public class SignalRConnectionService : IDisposable
             lock (_lock)
             {
                 return UserIds.ToArray();
+            }
+        }
+
+        public (long UserId, long MemberId)[] GetMembersCopy()
+        {
+            lock (_lock)
+            {
+                var result = new (long, long)[_userMemberIds.Count];
+                int i = 0;
+                foreach (var pair in _userMemberIds)
+                    result[i++] = (pair.Key, pair.Value);
+                return result;
             }
         }
     }
@@ -137,9 +157,10 @@ public class SignalRConnectionService : IDisposable
     }
     
     /// <summary>
-    /// Tracks group membership for a connection
+    /// Tracks group membership for a connection. For planet groups, pass the caller's
+    /// PlanetMember id so it can later be resolved without a database lookup.
     /// </summary>
-    public async Task TrackGroupMembershipAsync(string groupId, HubCallerContext context)
+    public async Task TrackGroupMembershipAsync(string groupId, HubCallerContext context, long? memberId = null)
     {
         if (string.IsNullOrEmpty(groupId) || context == null)
         {
@@ -160,7 +181,7 @@ public class SignalRConnectionService : IDisposable
         var groupInfo = GroupRegistry.GetOrAdd(groupId, id => new GroupInfo(id));
         
         // Add connection to group
-        groupInfo.AddConnection(connectionId, userId);
+        groupInfo.AddConnection(connectionId, userId, memberId);
         
         // Update connection-to-groups mapping
         await _registryLock.WaitAsync();
@@ -185,13 +206,9 @@ public class SignalRConnectionService : IDisposable
     }
     
     /// <summary>
-    /// Removes group membership tracking for a connection
-    /// 
-    /// Since this never really used anything other than connectionId
-    /// I did this.. it was either that or edit a bunch of files and
-    /// rename/remake a function in here, I thought this was easier.
-    /// lemme know if theres a better way of doing this lol -- Josh
-    /// (Im not the best at C# and im losing my mind trying to do this I swear)
+    /// Removes group membership tracking for a connection. Accepts either a
+    /// <see cref="HubCallerContext"/> or a raw connection id, so it can be called
+    /// outside of a hub invocation (e.g. when evicting a connection server-side).
     /// </summary>
     public async Task UntrackGroupMembershipAsync(string groupId, HubCallerContext context = null, string connectionId = null)
     {
@@ -327,6 +344,26 @@ public class SignalRConnectionService : IDisposable
         
         return Array.Empty<long>();
     }
+
+    /// <summary>
+    /// Gets the (userId, memberId) pairs currently present in a planet group.
+    /// Only returns entries for connections that were tracked with a member id.
+    /// </summary>
+    public (long UserId, long MemberId)[] GetGroupMembers(string groupId)
+    {
+        if (GroupRegistry.TryGetValue(groupId, out var groupInfo))
+        {
+            return groupInfo.GetMembersCopy();
+        }
+
+        return Array.Empty<(long, long)>();
+    }
+
+    /// <summary>
+    /// Gets the (userId, memberId) pairs of members currently connected to the given planet.
+    /// </summary>
+    public (long UserId, long MemberId)[] GetConnectedPlanetMembers(long planetId) =>
+        GetGroupMembers($"p-{planetId}");
     
     /// <summary>
     /// Gets all groups a connection is member of
